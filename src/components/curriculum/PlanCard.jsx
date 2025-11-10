@@ -67,14 +67,30 @@ export default function PlanCard({ planType, title, tag, tagColor, config, stepp
             0 0 0 3px #441d37;
         }
 
+        .section-header {
+          font-size: 13px;
+          font-weight: 700;
+          color: #013f7c;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-top: 16px;
+          margin-bottom: 8px;
+          padding-bottom: 4px;
+          border-bottom: 2px solid rgba(1, 63, 124, 0.2);
+        }
+
+        .section-header:first-child {
+          margin-top: 0;
+        }
+
         .feature-list {
           list-style: none;
           padding: 0;
-          margin: 16px 0;
+          margin: 0 0 12px 0;
         }
 
         .feature-list li {
-          padding: 8px 0;
+          padding: 6px 0;
           color: #555;
           font-size: 14px;
           border-bottom: 1px solid rgba(0,0,0,0.05);
@@ -108,52 +124,86 @@ export default function PlanCard({ planType, title, tag, tagColor, config, stepp
           {tag}
         </span>
 
-        <ul className="feature-list">
-          {/* Workshops */}
-          {config.workshops.map(workshopKey => (
-            <li key={workshopKey}>
-              {productCatalog.workshops[workshopKey]?.name}
-            </li>
-          ))}
-
-          {/* Challenges */}
-          {config.challenges.map(challengeKey => (
-            <li key={challengeKey}>
-              {productCatalog.challenges[challengeKey]?.name}
-            </li>
-          ))}
-
-          {/* Coaching */}
-          {config.coaching.map(coachingKey => (
-            <li key={coachingKey}>
-              {productCatalog.coaching[coachingKey]?.name}
-            </li>
-          ))}
-
-          {/* Wellness Boxes */}
-          {stepperValues.small > 0 && (
-            <li>Small Wellness Boxes ({stepperValues.small})</li>
-          )}
-          {stepperValues.large > 0 && (
-            <li>Large Wellness Boxes ({stepperValues.large})</li>
+        <div>
+          {/* Workshops Section */}
+          {config.workshops.length > 0 && (
+            <>
+              <div className="section-header">Workshops</div>
+              <ul className="feature-list">
+                {config.workshops.map(workshopKey => (
+                  <li key={workshopKey}>
+                    {productCatalog.workshops[workshopKey]?.name}
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
 
-          {/* Platform Features */}
+          {/* Challenges Section */}
+          {config.challenges.length > 0 && (
+            <>
+              <div className="section-header">Challenges</div>
+              <ul className="feature-list">
+                {config.challenges.map(challengeKey => (
+                  <li key={challengeKey}>
+                    {productCatalog.challenges[challengeKey]?.name}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {/* Coaching Section */}
+          {config.coaching.length > 0 && (
+            <>
+              <div className="section-header">Coaching</div>
+              <ul className="feature-list">
+                {config.coaching.map(coachingKey => (
+                  <li key={coachingKey}>
+                    {productCatalog.coaching[coachingKey]?.name}
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {/* Wellness Boxes Section */}
+          {(stepperValues.small > 0 || stepperValues.large > 0) && (
+            <>
+              <div className="section-header">Wellness Incentives</div>
+              <ul className="feature-list">
+                {stepperValues.small > 0 && (
+                  <li>Small Wellness Boxes ({stepperValues.small})</li>
+                )}
+                {stepperValues.large > 0 && (
+                  <li>Large Wellness Boxes ({stepperValues.large})</li>
+                )}
+              </ul>
+            </>
+          )}
+
+          {/* Platform Features Section */}
           {config.includePlatform && (
             <>
-              <li>{productCatalog.platform.access.name}</li>
-              <li>{productCatalog.platform.community.name}</li>
+              <div className="section-header">Platform Access</div>
+              <ul className="feature-list">
+                <li>{productCatalog.platform.access.name}</li>
+                <li>{productCatalog.platform.community.name}</li>
+              </ul>
             </>
           )}
 
-          {/* Reporting Features */}
+          {/* Reporting Features Section */}
           {config.includeReporting && (
             <>
-              <li>{productCatalog.reporting.analytics.name}</li>
-              <li>{productCatalog.reporting.roi.name}</li>
+              <div className="section-header">Reporting & Analytics</div>
+              <ul className="feature-list">
+                <li>{productCatalog.reporting.analytics.name}</li>
+                <li>{productCatalog.reporting.roi.name}</li>
+              </ul>
             </>
           )}
-        </ul>
+        </div>
 
         <div className="price-tag">
           Est. Price: ${calculatePrice().toLocaleString()}
