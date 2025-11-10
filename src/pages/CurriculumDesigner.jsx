@@ -1,108 +1,59 @@
-import React, { useState, useEffect } from 'react';
-import PainPointButtons from '../components/curriculum/PainPointButtons';
-import WellnessBoxSteppers from '../components/curriculum/WellnessBoxSteppers';
-import PlanCard from '../components/curriculum/PlanCard';
-import SubmissionForm from '../components/curriculum/SubmissionForm';
-import { productCatalog, painPointData } from '../components/curriculum/catalogData';
+import React, { useState } from 'react';
+import StepIndicator from '../components/curriculum/StepIndicator';
+import WorkshopStep from '../components/curriculum/WorkshopStep';
+import ChallengeStep from '../components/curriculum/ChallengeStep';
+import LeadershipStep from '../components/curriculum/LeadershipStep';
+import CoachingStep from '../components/curriculum/CoachingStep';
+import WellnessBoxStep from '../components/curriculum/WellnessBoxStep';
+import ReviewStep from '../components/curriculum/ReviewStep';
+import { productCatalog } from '../components/curriculum/catalogData';
 
 export default function CurriculumDesigner() {
-  const [selectedPainPoints, setSelectedPainPoints] = useState(new Set());
-  const [stepperValues, setStepperValues] = useState({ small: 0, large: 0 });
-  const [selectedPlan, setSelectedPlan] = useState('');
-  const [planConfigs, setPlanConfigs] = useState({
-    campaign: { workshops: [], challenges: [], coaching: [], includePlatform: false, includeReporting: false },
-    community: { workshops: [], challenges: [], coaching: [], includePlatform: true, includeReporting: false },
-    coaching: { workshops: [], challenges: [], coaching: [], includePlatform: true, includeReporting: true }
+  const [currentStep, setCurrentStep] = useState(1);
+  const [selections, setSelections] = useState({
+    workshops: [],
+    challenges: [],
+    leadership: [],
+    coaching: [],
+    smallBoxes: 0,
+    largeBoxes: 0
   });
 
-  // Toggle pain point selection
-  const togglePainPoint = (painPoint) => {
-    setSelectedPainPoints(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(painPoint)) {
-        newSet.delete(painPoint);
-      } else {
-        newSet.add(painPoint);
-      }
-      return newSet;
-    });
+  const steps = [
+    { number: 1, name: 'Workshops', component: WorkshopStep },
+    { number: 2, name: 'Challenges', component: ChallengeStep },
+    { number: 3, name: 'Leadership', component: LeadershipStep },
+    { number: 4, name: 'Coaching', component: CoachingStep },
+    { number: 5, name: 'Wellness Boxes', component: WellnessBoxStep },
+    { number: 6, name: 'Review', component: ReviewStep }
+  ];
+
+  const handleNext = () => {
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
-  // Update stepper values
-  const updateStepper = (type, increment) => {
-    setStepperValues(prev => ({
+  const handleBack = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const updateSelections = (category, value) => {
+    setSelections(prev => ({
       ...prev,
-      [type]: increment ? prev[type] + 1 : Math.max(0, prev[type] - 1)
+      [category]: value
     }));
   };
 
-  // Get all products for selected pain points
-  const getSelectedProducts = () => {
-    const products = { workshops: [], challenges: [], coaching: [] };
-    
-    selectedPainPoints.forEach(painPoint => {
-      const data = painPointData[painPoint];
-      if (data.workshops) {
-        products.workshops.push(...data.workshops);
-      }
-      if (data.challenges) {
-        products.challenges.push(...data.challenges);
-      }
-      if (data.coaching) {
-        products.coaching.push(...data.coaching);
-      }
-    });
-
-    // Remove duplicates
-    products.workshops = [...new Set(products.workshops)];
-    products.challenges = [...new Set(products.challenges)];
-    products.coaching = [...new Set(products.coaching)];
-
-    return products;
-  };
-
-  // Update recommendations when pain points or steppers change
-  useEffect(() => {
-    const products = getSelectedProducts();
-    
-    setPlanConfigs({
-      campaign: {
-        workshops: products.workshops.slice(0, 2),
-        challenges: products.challenges.slice(0, 1),
-        coaching: [],
-        includePlatform: false,
-        includeReporting: false
-      },
-      community: {
-        workshops: products.workshops.slice(0, 4),
-        challenges: products.challenges.slice(0, 2),
-        coaching: [],
-        includePlatform: true,
-        includeReporting: false
-      },
-      coaching: {
-        workshops: products.workshops,
-        challenges: products.challenges,
-        coaching: products.coaching,
-        includePlatform: true,
-        includeReporting: true
-      }
-    });
-
-    // Highlight best plan
-    if (selectedPainPoints.has('Leadership Development')) {
-      setSelectedPlan('coaching');
-    } else if (selectedPainPoints.size > 0) {
-      setSelectedPlan('community');
-    } else {
-      setSelectedPlan('');
-    }
-  }, [selectedPainPoints, stepperValues]);
+  const CurrentStepComponent = steps[currentStep - 1].component;
 
   return (
     <div className="min-h-screen py-10 px-4" style={{ background: '#f4f0e9' }}>
-      <div className="max-w-7xl mx-auto">
-        {/* Custom Styles */}
+      <div className="max-w-5xl mx-auto">
         <style>{`
           .neuro-container {
             background: #f4f0e9;
@@ -118,63 +69,24 @@ export default function CurriculumDesigner() {
           {/* Header */}
           <div className="text-center mb-10">
             <h1 className="text-4xl md:text-5xl font-bold mb-2" style={{ color: '#013f7c' }}>
-              Start Your Curriculum Design
+              Build Your Mental Fitness Campaign
             </h1>
             <p className="text-base md:text-lg" style={{ color: '#666' }}>
-              Your Organizational Pain Points
+              Create a customized wellness journey for your organization
             </p>
           </div>
 
-          {/* Pain Point Buttons */}
-          <PainPointButtons 
-            painPoints={Object.keys(painPointData)}
-            selectedPainPoints={selectedPainPoints}
-            onToggle={togglePainPoint}
-          />
+          {/* Step Indicator */}
+          <StepIndicator steps={steps} currentStep={currentStep} />
 
-          {/* Wellness Box Incentives */}
-          <WellnessBoxSteppers 
-            stepperValues={stepperValues}
-            onUpdate={updateStepper}
-          />
-
-          {/* Plan Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <PlanCard 
-              planType="campaign"
-              title="Campaign"
-              tag="Starter Pack"
-              tagColor="starter"
-              config={planConfigs.campaign}
-              stepperValues={stepperValues}
-              isHighlighted={selectedPlan === 'campaign'}
-            />
-            <PlanCard 
-              planType="community"
-              title="Community"
-              tag="Best Value"
-              tagColor="best"
-              config={planConfigs.community}
-              stepperValues={stepperValues}
-              isHighlighted={selectedPlan === 'community'}
-            />
-            <PlanCard 
-              planType="coaching"
-              title="Coaching"
-              tag="Highest Rated"
-              tagColor="highest"
-              config={planConfigs.coaching}
-              stepperValues={stepperValues}
-              isHighlighted={selectedPlan === 'coaching'}
-            />
-          </div>
-
-          {/* Submission Form */}
-          <SubmissionForm 
-            selectedPainPoints={selectedPainPoints}
-            selectedPlan={selectedPlan}
-            planConfigs={planConfigs}
-            stepperValues={stepperValues}
+          {/* Current Step Content */}
+          <CurrentStepComponent
+            selections={selections}
+            updateSelections={updateSelections}
+            onNext={handleNext}
+            onBack={handleBack}
+            isFirstStep={currentStep === 1}
+            isLastStep={currentStep === steps.length}
           />
         </div>
       </div>
