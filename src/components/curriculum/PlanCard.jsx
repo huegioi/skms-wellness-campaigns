@@ -44,12 +44,12 @@ export default function PlanCard({ planType, title, tag, tagColor, config, stepp
     <div>
       <style>{`
         .neuro-card {
-          background: #e0e5e8;
+          background: #f4f0e9;
           border-radius: 16px;
           padding: 24px;
           box-shadow: 
             8px 8px 16px rgba(0, 0, 0, 0.12),
-            -8px -8px 16px rgba(255, 255, 255, 0.8);
+            -8px -8px 16px rgba(255, 255, 255, 0.9);
           transition: all 0.3s ease;
           height: 100%;
         }
@@ -57,13 +57,13 @@ export default function PlanCard({ planType, title, tag, tagColor, config, stepp
         .neuro-card:hover {
           box-shadow: 
             10px 10px 20px rgba(0, 0, 0, 0.15),
-            -10px -10px 20px rgba(255, 255, 255, 0.9);
+            -10px -10px 20px rgba(255, 255, 255, 0.95);
         }
 
         .neuro-card.highlighted {
           box-shadow: 
             inset 4px 4px 8px rgba(0, 0, 0, 0.1),
-            inset -4px -4px 8px rgba(255, 255, 255, 0.7),
+            inset -4px -4px 8px rgba(255, 255, 255, 0.8),
             0 0 0 3px #441d37;
         }
 

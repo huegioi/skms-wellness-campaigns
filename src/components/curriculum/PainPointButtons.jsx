@@ -5,7 +5,7 @@ export default function PainPointButtons({ painPoints, selectedPainPoints, onTog
     <div className="mb-10">
       <style>{`
         .neuro-button {
-          background: #e0e5e8;
+          background: #f4f0e9;
           border: none;
           border-radius: 25px;
           padding: 12px 24px;
@@ -14,7 +14,7 @@ export default function PainPointButtons({ painPoints, selectedPainPoints, onTog
           cursor: pointer;
           box-shadow: 
             6px 6px 12px rgba(0, 0, 0, 0.12),
-            -6px -6px 12px rgba(255, 255, 255, 0.8);
+            -6px -6px 12px rgba(255, 255, 255, 0.9);
           transition: all 0.2s ease;
           margin: 6px;
         }
@@ -22,7 +22,7 @@ export default function PainPointButtons({ painPoints, selectedPainPoints, onTog
         .neuro-button:hover {
           box-shadow: 
             4px 4px 8px rgba(0, 0, 0, 0.15),
-            -4px -4px 8px rgba(255, 255, 255, 0.9);
+            -4px -4px 8px rgba(255, 255, 255, 0.95);
         }
 
         .neuro-button.active {

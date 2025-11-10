@@ -93,16 +93,16 @@ export default function SubmissionForm({ selectedPainPoints, selectedPlan, planC
     <div className="max-w-2xl mx-auto">
       <style>{`
         .neuro-card {
-          background: #e0e5e8;
+          background: #f4f0e9;
           border-radius: 16px;
           padding: 24px;
           box-shadow: 
             8px 8px 16px rgba(0, 0, 0, 0.12),
-            -8px -8px 16px rgba(255, 255, 255, 0.8);
+            -8px -8px 16px rgba(255, 255, 255, 0.9);
         }
 
         .neuro-input {
-          background: #e0e5e8;
+          background: #f4f0e9;
           border: none;
           border-radius: 12px;
           padding: 12px 16px;
@@ -111,7 +111,7 @@ export default function SubmissionForm({ selectedPainPoints, selectedPlan, planC
           width: 100%;
           box-shadow: 
             inset 4px 4px 8px rgba(0, 0, 0, 0.1),
-            inset -4px -4px 8px rgba(255, 255, 255, 0.7);
+            inset -4px -4px 8px rgba(255, 255, 255, 0.8);
           transition: all 0.2s ease;
         }
 
@@ -119,7 +119,7 @@ export default function SubmissionForm({ selectedPainPoints, selectedPlan, planC
           outline: none;
           box-shadow: 
             inset 5px 5px 10px rgba(0, 0, 0, 0.12),
-            inset -5px -5px 10px rgba(255, 255, 255, 0.8);
+            inset -5px -5px 10px rgba(255, 255, 255, 0.9);
         }
 
         .neuro-submit {

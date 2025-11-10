@@ -5,7 +5,7 @@ export default function WellnessBoxSteppers({ stepperValues, onUpdate }) {
     <div className="mb-10">
       <style>{`
         .neuro-stepper {
-          background: #e0e5e8;
+          background: #f4f0e9;
           border-radius: 12px;
           padding: 8px;
           display: flex;
@@ -13,11 +13,11 @@ export default function WellnessBoxSteppers({ stepperValues, onUpdate }) {
           gap: 12px;
           box-shadow: 
             inset 3px 3px 6px rgba(0, 0, 0, 0.1),
-            inset -3px -3px 6px rgba(255, 255, 255, 0.7);
+            inset -3px -3px 6px rgba(255, 255, 255, 0.8);
         }
 
         .neuro-stepper-btn {
-          background: #e0e5e8;
+          background: #f4f0e9;
           border: none;
           width: 32px;
           height: 32px;
@@ -31,14 +31,14 @@ export default function WellnessBoxSteppers({ stepperValues, onUpdate }) {
           font-weight: bold;
           box-shadow: 
             4px 4px 8px rgba(0, 0, 0, 0.12),
-            -4px -4px 8px rgba(255, 255, 255, 0.8);
+            -4px -4px 8px rgba(255, 255, 255, 0.9);
           transition: all 0.2s ease;
         }
 
         .neuro-stepper-btn:hover {
           box-shadow: 
             3px 3px 6px rgba(0, 0, 0, 0.15),
-            -3px -3px 6px rgba(255, 255, 255, 0.9);
+            -3px -3px 6px rgba(255, 255, 255, 0.95);
         }
 
         .neuro-stepper-btn:active {

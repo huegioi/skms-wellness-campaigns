@@ -100,12 +100,12 @@ export default function CurriculumDesigner() {
   }, [selectedPainPoints, stepperValues]);
 
   return (
-    <div className="min-h-screen py-10 px-4" style={{ background: '#e0e5e8' }}>
+    <div className="min-h-screen py-10 px-4" style={{ background: '#f4f0e9' }}>
       <div className="max-w-7xl mx-auto">
         {/* Custom Styles */}
         <style>{`
           .neuro-container {
-            background: #e0e5e8;
+            background: #f4f0e9;
             border-radius: 20px;
             padding: 40px;
             box-shadow: 
