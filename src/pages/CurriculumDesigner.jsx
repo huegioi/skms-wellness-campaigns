@@ -1,31 +1,33 @@
 import React, { useState } from 'react';
 import StepIndicator from '../components/curriculum/StepIndicator';
+import AssessmentStep from '../components/curriculum/AssessmentStep';
 import WorkshopStep from '../components/curriculum/WorkshopStep';
 import ChallengeStep from '../components/curriculum/ChallengeStep';
 import LeadershipStep from '../components/curriculum/LeadershipStep';
-import CoachingStep from '../components/curriculum/CoachingStep';
+import MovementStep from '../components/curriculum/MovementStep';
 import WellnessBoxStep from '../components/curriculum/WellnessBoxStep';
 import ReviewStep from '../components/curriculum/ReviewStep';
-import { productCatalog } from '../components/curriculum/catalogData';
 
 export default function CurriculumDesigner() {
   const [currentStep, setCurrentStep] = useState(1);
   const [selections, setSelections] = useState({
-    workshops: [],
     challenges: [],
+    workshops: [],
+    challengePrograms: [],
     leadership: [],
-    coaching: [],
+    movementClasses: [],
     smallBoxes: 0,
     largeBoxes: 0
   });
 
   const steps = [
-    { number: 1, name: 'Workshops', component: WorkshopStep },
-    { number: 2, name: 'Challenges', component: ChallengeStep },
-    { number: 3, name: 'Leadership', component: LeadershipStep },
-    { number: 4, name: 'Coaching', component: CoachingStep },
-    { number: 5, name: 'Wellness Boxes', component: WellnessBoxStep },
-    { number: 6, name: 'Review', component: ReviewStep }
+    { number: 1, name: 'Assessment', component: AssessmentStep },
+    { number: 2, name: 'Workshops', component: WorkshopStep },
+    { number: 3, name: 'Challenges', component: ChallengeStep },
+    { number: 4, name: 'Leadership', component: LeadershipStep },
+    { number: 5, name: 'Movement', component: MovementStep },
+    { number: 6, name: 'Wellness Boxes', component: WellnessBoxStep },
+    { number: 7, name: 'Review', component: ReviewStep }
   ];
 
   const handleNext = () => {

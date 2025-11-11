@@ -7,11 +7,11 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
   const challenges = Object.entries(productCatalog.challenges);
 
   const toggleSelection = (key) => {
-    const current = selections.challenges;
+    const current = selections.challengePrograms;
     if (current.includes(key)) {
-      updateSelections('challenges', current.filter(k => k !== key));
+      updateSelections('challengePrograms', current.filter(k => k !== key));
     } else {
-      updateSelections('challenges', [...current, key]);
+      updateSelections('challengePrograms', [...current, key]);
     }
   };
 
@@ -19,10 +19,10 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
     <div>
       <div className="mb-8">
         <h2 className="text-3xl font-bold mb-3" style={{ color: '#013f7c' }}>
-          Add Challenges
+          Add 14-Day Challenges
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>
-          Challenges provide ongoing engagement and help reinforce workshop concepts.
+          Challenges provide ongoing engagement and help reinforce workshop concepts. Each challenge is $1,500.
         </p>
       </div>
 
@@ -33,7 +33,9 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
             title={challenge.name}
             description={challenge.description}
             price={challenge.price}
-            isSelected={selections.challenges.includes(key)}
+            icon={challenge.icon}
+            badge={challenge.duration}
+            isSelected={selections.challengePrograms.includes(key)}
             onToggle={() => toggleSelection(key)}
           />
         ))}

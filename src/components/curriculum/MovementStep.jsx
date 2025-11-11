@@ -3,15 +3,15 @@ import { productCatalog } from './catalogData';
 import SelectionCard from './SelectionCard';
 import StepNavigation from './StepNavigation';
 
-export default function LeadershipStep({ selections, updateSelections, onNext, onBack }) {
-  const leadership = Object.entries(productCatalog.leadership);
+export default function MovementStep({ selections, updateSelections, onNext, onBack }) {
+  const classes = Object.entries(productCatalog.movementClasses);
 
   const toggleSelection = (key) => {
-    const current = selections.leadership;
+    const current = selections.movementClasses;
     if (current.includes(key)) {
-      updateSelections('leadership', current.filter(k => k !== key));
+      updateSelections('movementClasses', current.filter(k => k !== key));
     } else {
-      updateSelections('leadership', [...current, key]);
+      updateSelections('movementClasses', [...current, key]);
     }
   };
 
@@ -19,22 +19,23 @@ export default function LeadershipStep({ selections, updateSelections, onNext, o
     <div>
       <div className="mb-8">
         <h2 className="text-3xl font-bold mb-3" style={{ color: '#013f7c' }}>
-          Leadership Development
+          Movement & Mindfulness Classes
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>
-          Elevate your leaders with specialized emotional intelligence training and coaching programs.
+          Add ongoing movement and mindfulness classes to support physical and mental well-being.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        {leadership.map(([key, program]) => (
+        {classes.map(([key, classInfo]) => (
           <SelectionCard
             key={key}
-            title={program.name}
-            description={program.description}
-            price={program.price}
-            icon={program.icon}
-            isSelected={selections.leadership.includes(key)}
+            title={classInfo.name}
+            description={classInfo.description}
+            price={classInfo.price}
+            icon={classInfo.icon}
+            badge={classInfo.duration}
+            isSelected={selections.movementClasses.includes(key)}
             onToggle={() => toggleSelection(key)}
           />
         ))}
@@ -46,14 +47,14 @@ export default function LeadershipStep({ selections, updateSelections, onNext, o
           className="text-sm font-semibold"
           style={{ color: '#013f7c', textDecoration: 'underline' }}
         >
-          Skip Leadership Training
+          Skip Movement Classes
         </button>
       </div>
 
       <StepNavigation
         onNext={onNext}
         onBack={onBack}
-        nextLabel="Continue to Movement Classes"
+        nextLabel="Continue to Wellness Boxes"
       />
     </div>
   );

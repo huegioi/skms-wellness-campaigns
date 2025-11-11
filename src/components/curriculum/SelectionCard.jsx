@@ -1,7 +1,10 @@
 import React from 'react';
 import { Check } from 'lucide-react';
+import * as Icons from 'lucide-react';
 
-export default function SelectionCard({ title, description, price, isSelected, onToggle }) {
+export default function SelectionCard({ title, description, price, icon, badge, isSelected, onToggle }) {
+  const IconComponent = Icons[icon];
+  
   return (
     <div>
       <style>{`
@@ -16,6 +19,9 @@ export default function SelectionCard({ title, description, price, isSelected, o
           transition: all 0.3s ease;
           position: relative;
           border: 2px solid transparent;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
         }
 
         .selection-card:hover {
@@ -47,6 +53,32 @@ export default function SelectionCard({ title, description, price, isSelected, o
             3px 3px 6px rgba(0, 0, 0, 0.2),
             -3px -3px 6px rgba(255, 255, 255, 0.1);
         }
+
+        .icon-circle {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #441d37 0%, #5a2747 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 12px;
+          box-shadow: 
+            3px 3px 6px rgba(0, 0, 0, 0.15),
+            -2px -2px 4px rgba(255, 255, 255, 0.1);
+        }
+
+        .badge {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 600;
+          text-transform: uppercase;
+          background: rgba(1, 63, 124, 0.1);
+          color: #013f7c;
+          margin-bottom: 8px;
+        }
       `}</style>
 
       <div 
@@ -58,14 +90,21 @@ export default function SelectionCard({ title, description, price, isSelected, o
             <Check className="w-4 h-4" />
           </div>
         )}
+        
+        <div className="icon-circle">
+          {IconComponent && <IconComponent className="w-5 h-5 text-white" />}
+        </div>
+
+        {badge && <div className="badge">{badge}</div>}
+        
         <h3 className="text-lg font-bold mb-2 pr-8" style={{ color: '#013f7c' }}>
           {title}
         </h3>
-        <p className="text-sm mb-3" style={{ color: '#666' }}>
+        <p className="text-sm mb-4 flex-grow" style={{ color: '#666' }}>
           {description}
         </p>
         <div className="text-xl font-bold" style={{ color: '#441d37' }}>
-          ${price.toLocaleString()}
+          ${typeof price === 'number' ? price.toLocaleString() : price}
         </div>
       </div>
     </div>

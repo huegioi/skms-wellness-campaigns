@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { productCatalog } from './catalogData';
+import { productCatalog, workforceChallenges, challengeSolutionMap } from './catalogData';
 import StepNavigation from './StepNavigation';
+import { Sparkles } from 'lucide-react';
 
 export default function ReviewStep({ selections, onBack }) {
   const [formData, setFormData] = useState({
@@ -10,17 +11,71 @@ export default function ReviewStep({ selections, onBack }) {
   });
   const [showSuccess, setShowSuccess] = useState(false);
 
+  // Generate narrative based on workforce challenges
+  const generateNarrative = () => {
+    if (!selections.challenges || selections.challenges.length === 0) {
+      return "Your customized mental fitness campaign combines carefully selected programs to support your team's growth and well-being.";
+    }
+
+    const challengeLabels = selections.challenges
+      .map(id => workforceChallenges.find(c => c.id === id)?.label)
+      .filter(Boolean);
+
+    let narrative = `Based on your assessment, your workforce is facing challenges with ${challengeLabels.slice(0, -1).join(', ')}${challengeLabels.length > 1 ? ' and ' + challengeLabels[challengeLabels.length - 1] : challengeLabels[0]}. `;
+    
+    narrative += "Your customized SkillfulMeans campaign directly addresses these needs:\n\n";
+
+    // Workshops
+    if (selections.workshops.length > 0) {
+      narrative += "**Workshops**: ";
+      const workshopNames = selections.workshops.map(key => productCatalog.workshops[key]?.name).filter(Boolean);
+      narrative += `The selected workshops (${workshopNames.join(', ')}) provide foundational knowledge and practical tools to build resilience, improve communication, and create a supportive work environment.\n\n`;
+    }
+
+    // Challenges
+    if (selections.challengePrograms.length > 0) {
+      narrative += "**14-Day Challenges**: ";
+      const challengeNames = selections.challengePrograms.map(key => productCatalog.challenges[key]?.name).filter(Boolean);
+      narrative += `These challenges (${challengeNames.join(', ')}) reinforce workshop learnings through daily practices, creating lasting behavioral change and team engagement.\n\n`;
+    }
+
+    // Leadership
+    if (selections.leadership.length > 0) {
+      narrative += "**Leadership Development**: ";
+      narrative += "Your leadership programs equip managers with emotional intelligence skills to model healthy behaviors, support their teams effectively, and create psychologically safe work environments.\n\n`;
+    }
+
+    // Movement Classes
+    if (selections.movementClasses.length > 0) {
+      narrative += "**Movement & Mindfulness**: ";
+      narrative += "Ongoing classes provide consistent touchpoints for physical wellness, stress reduction, and community building, addressing both mental and physical aspects of well-being.\n\n`;
+    }
+
+    // Wellness Boxes
+    if (selections.smallBoxes > 0 || selections.largeBoxes > 0) {
+      narrative += "**Wellness Incentives**: ";
+      narrative += "Wellness boxes serve as tangible recognition of participation, boosting engagement and showing your organization's commitment to employee well-being.\n\n";
+    }
+
+    narrative += "Together, these programs create a comprehensive mental fitness ecosystem that will help your workforce thrive.";
+
+    return narrative;
+  };
+
   // Calculate total price
   const calculateTotal = () => {
     let total = 0;
     selections.workshops.forEach(key => {
       total += productCatalog.workshops[key]?.price || 0;
     });
-    selections.challenges.forEach(key => {
+    selections.challengePrograms.forEach(key => {
       total += productCatalog.challenges[key]?.price || 0;
     });
     selections.leadership.forEach(key => {
-      total += productCatalog.coaching[key]?.price || 0;
+      total += productCatalog.leadership[key]?.price || 0;
+    });
+    selections.movementClasses.forEach(key => {
+      total += productCatalog.movementClasses[key]?.price || 0;
     });
     total += selections.smallBoxes * 65;
     total += selections.largeBoxes * 125;
@@ -38,12 +93,21 @@ export default function ReviewStep({ selections, onBack }) {
     e.preventDefault();
 
     // Build email body
-    let emailBody = `Hi, I am interested in co-creating a curriculum with SkillfulMeans...%0D%0A%0D%0A`;
+    let emailBody = `Hi, I am interested in co-creating a mental fitness campaign with SkillfulMeans...%0D%0A%0D%0A`;
     emailBody += `Name: ${formData.name}%0D%0A`;
     emailBody += `Company: ${formData.company || 'N/A'}%0D%0A`;
     emailBody += `Email: ${formData.email}%0D%0A%0D%0A`;
     emailBody += `Estimated Total: $${calculateTotal().toLocaleString()}%0D%0A%0D%0A`;
     
+    if (selections.challenges && selections.challenges.length > 0) {
+      emailBody += `Workforce Challenges:%0D%0A`;
+      selections.challenges.forEach(id => {
+        const challenge = workforceChallenges.find(c => c.id === id);
+        emailBody += `- ${challenge?.label}%0D%0A`;
+      });
+      emailBody += `%0D%0A`;
+    }
+
     emailBody += `Selected Workshops:%0D%0A`;
     selections.workshops.forEach(key => {
       emailBody += `- ${productCatalog.workshops[key]?.name}%0D%0A`;
@@ -51,7 +115,7 @@ export default function ReviewStep({ selections, onBack }) {
     emailBody += `%0D%0A`;
 
     emailBody += `Selected Challenges:%0D%0A`;
-    selections.challenges.forEach(key => {
+    selections.challengePrograms.forEach(key => {
       emailBody += `- ${productCatalog.challenges[key]?.name}%0D%0A`;
     });
     emailBody += `%0D%0A`;
@@ -59,12 +123,18 @@ export default function ReviewStep({ selections, onBack }) {
     if (selections.leadership.length > 0) {
       emailBody += `Leadership Programs:%0D%0A`;
       selections.leadership.forEach(key => {
-        emailBody += `- ${productCatalog.coaching[key]?.name}%0D%0A`;
+        emailBody += `- ${productCatalog.leadership[key]?.name}%0D%0A`;
       });
       emailBody += `%0D%0A`;
     }
 
-    emailBody += `Coaching: ${selections.coaching || 'None'}%0D%0A%0D%0A`;
+    if (selections.movementClasses.length > 0) {
+      emailBody += `Movement/Mindfulness Classes:%0D%0A`;
+      selections.movementClasses.forEach(key => {
+        emailBody += `- ${productCatalog.movementClasses[key]?.name}%0D%0A`;
+      });
+      emailBody += `%0D%0A`;
+    }
 
     emailBody += `Wellness Boxes:%0D%0A`;
     emailBody += `- Small Boxes: ${selections.smallBoxes}%0D%0A`;
@@ -90,6 +160,28 @@ export default function ReviewStep({ selections, onBack }) {
           box-shadow: 
             8px 8px 16px rgba(0, 0, 0, 0.12),
             -8px -8px 16px rgba(255, 255, 255, 0.9);
+        }
+
+        .narrative-card {
+          background: linear-gradient(135deg, #441d37 0%, #5a2747 100%);
+          border-radius: 16px;
+          padding: 28px;
+          margin-bottom: 24px;
+          color: white;
+          box-shadow: 
+            8px 8px 16px rgba(0, 0, 0, 0.2),
+            -8px -8px 16px rgba(255, 255, 255, 0.05);
+        }
+
+        .narrative-content {
+          line-height: 1.8;
+          white-space: pre-wrap;
+        }
+
+        .narrative-content strong {
+          font-weight: 700;
+          display: block;
+          margin-top: 12px;
         }
 
         .review-section {
@@ -151,8 +243,19 @@ export default function ReviewStep({ selections, onBack }) {
           Review Your Campaign
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>
-          Review your selections and submit to get started.
+          See how your customized campaign addresses your workforce needs.
         </p>
+      </div>
+
+      {/* Personalized Narrative */}
+      <div className="narrative-card">
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="w-6 h-6" />
+          <h3 className="text-xl font-bold">Your Personalized Campaign Story</h3>
+        </div>
+        <div className="narrative-content">
+          {generateNarrative()}
+        </div>
       </div>
 
       {/* Summary */}
@@ -169,10 +272,10 @@ export default function ReviewStep({ selections, onBack }) {
           </div>
         )}
 
-        {selections.challenges.length > 0 && (
+        {selections.challengePrograms.length > 0 && (
           <div className="review-section">
-            <div className="review-section-title">Challenges ({selections.challenges.length})</div>
-            {selections.challenges.map(key => (
+            <div className="review-section-title">14-Day Challenges ({selections.challengePrograms.length})</div>
+            {selections.challengePrograms.map(key => (
               <div key={key} className="review-item">
                 <span>{productCatalog.challenges[key]?.name}</span>
                 <span className="font-semibold">${productCatalog.challenges[key]?.price.toLocaleString()}</span>
@@ -186,20 +289,22 @@ export default function ReviewStep({ selections, onBack }) {
             <div className="review-section-title">Leadership Programs</div>
             {selections.leadership.map(key => (
               <div key={key} className="review-item">
-                <span>{productCatalog.coaching[key]?.name}</span>
-                <span className="font-semibold">${productCatalog.coaching[key]?.price.toLocaleString()}</span>
+                <span>{productCatalog.leadership[key]?.name}</span>
+                <span className="font-semibold">${productCatalog.leadership[key]?.price.toLocaleString()}</span>
               </div>
             ))}
           </div>
         )}
 
-        {selections.coaching && selections.coaching !== 'none' && (
+        {selections.movementClasses.length > 0 && (
           <div className="review-section">
-            <div className="review-section-title">Coaching</div>
-            <div className="review-item">
-              <span>{selections.coaching.charAt(0).toUpperCase() + selections.coaching.slice(1)} Coaching</span>
-              <span className="text-sm" style={{ color: '#666' }}>Contact for pricing</span>
-            </div>
+            <div className="review-section-title">Movement & Mindfulness Classes</div>
+            {selections.movementClasses.map(key => (
+              <div key={key} className="review-item">
+                <span>{productCatalog.movementClasses[key]?.name}</span>
+                <span className="font-semibold">${productCatalog.movementClasses[key]?.price.toLocaleString()}</span>
+              </div>
+            ))}
           </div>
         )}
 

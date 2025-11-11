@@ -3,7 +3,7 @@ import { productCatalog } from './catalogData';
 import SelectionCard from './SelectionCard';
 import StepNavigation from './StepNavigation';
 
-export default function WorkshopStep({ selections, updateSelections, onNext, onBack, isFirstStep }) {
+export default function WorkshopStep({ selections, updateSelections, onNext, onBack }) {
   const workshops = Object.entries(productCatalog.workshops);
 
   const toggleSelection = (key) => {
@@ -22,7 +22,7 @@ export default function WorkshopStep({ selections, updateSelections, onNext, onB
           Select Workshops
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>
-          Choose the workshops that align with your team's needs. You can select as many as you'd like.
+          Choose the workshops that align with your team's needs. Each workshop is $1,500.
         </p>
       </div>
 
@@ -33,6 +33,7 @@ export default function WorkshopStep({ selections, updateSelections, onNext, onB
             title={workshop.name}
             description={workshop.description}
             price={workshop.price}
+            icon={workshop.icon}
             isSelected={selections.workshops.includes(key)}
             onToggle={() => toggleSelection(key)}
           />
@@ -42,7 +43,6 @@ export default function WorkshopStep({ selections, updateSelections, onNext, onB
       <StepNavigation
         onNext={onNext}
         onBack={onBack}
-        isFirstStep={isFirstStep}
         nextLabel="Continue to Challenges"
       />
     </div>
