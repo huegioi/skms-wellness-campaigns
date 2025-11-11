@@ -12,6 +12,7 @@ export default function CurriculumDesigner() {
   const [currentStep, setCurrentStep] = useState(1);
   const [selections, setSelections] = useState({
     challenges: [],
+    assessmentData: null,
     workshops: [],
     challengePrograms: [],
     leadership: [],

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { productCatalog, workforceChallenges, challengeSolutionMap } from './catalogData';
+import { productCatalog, workforceChallenges } from './catalogData';
 import StepNavigation from './StepNavigation';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, TrendingUp, AlertCircle } from 'lucide-react';
 
 export default function ReviewStep({ selections, onBack }) {
   const [formData, setFormData] = useState({
@@ -11,55 +11,149 @@ export default function ReviewStep({ selections, onBack }) {
   });
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Generate narrative based on workforce challenges
+  const assessmentData = selections.assessmentData || {};
+
+  // Generate comprehensive personalized narrative
   const generateNarrative = () => {
-    if (!selections.challenges || selections.challenges.length === 0) {
-      return "Your customized mental fitness campaign combines carefully selected programs to support your team's growth and well-being.";
+    let narrative = "";
+
+    // Company context
+    if (assessmentData.companySize || assessmentData.industry) {
+      narrative += "**Your Organization**: ";
+      const parts = [];
+      if (assessmentData.industry) parts.push(assessmentData.industry);
+      if (assessmentData.companySize) parts.push(`${assessmentData.companySize} employees`);
+      narrative += parts.join(", ") + "\n\n";
     }
 
-    const challengeLabels = selections.challenges
-      .map(id => workforceChallenges.find(c => c.id === id)?.label)
-      .filter(Boolean);
+    // Workforce challenges
+    if (selections.challenges && selections.challenges.length > 0) {
+      const challengeLabels = selections.challenges
+        .map(id => workforceChallenges.find(c => c.id === id)?.label)
+        .filter(Boolean);
+      
+      narrative += "**Current Challenges**: ";
+      narrative += `Your organization is facing challenges with ${challengeLabels.slice(0, -1).join(', ')}${challengeLabels.length > 1 ? ' and ' + challengeLabels[challengeLabels.length - 1] : challengeLabels[0]}.\n\n`;
+    }
 
-    let narrative = `Based on your assessment, your workforce is facing challenges with ${challengeLabels.slice(0, -1).join(', ')}${challengeLabels.length > 1 ? ' and ' + challengeLabels[challengeLabels.length - 1] : challengeLabels[0]}. `;
+    // Assessment insights
+    const insights = [];
     
-    narrative += "Your customized SkillfulMeans campaign directly addresses these needs:\n\n";
+    if (assessmentData.resilienceLevel && parseInt(assessmentData.resilienceLevel) <= 3) {
+      insights.push("Building resilience and adaptability among leaders");
+    }
+    if (assessmentData.engagementLevel && parseInt(assessmentData.engagementLevel) <= 3) {
+      insights.push("Improving leadership engagement and morale");
+    }
+    if (assessmentData.emotionalIntelligence && parseInt(assessmentData.emotionalIntelligence) <= 3) {
+      insights.push("Developing emotional intelligence and conflict management skills");
+    }
+    if (assessmentData.conflictFrequency && parseInt(assessmentData.conflictFrequency) <= 2) {
+      insights.push("Reducing workplace conflicts and escalations");
+    }
+    if (assessmentData.decisionQuality && parseInt(assessmentData.decisionQuality) <= 3) {
+      insights.push("Enhancing decision-making quality and speed");
+    }
+    if (assessmentData.goalAlignment && parseInt(assessmentData.goalAlignment) <= 3) {
+      insights.push("Improving organizational alignment and goal clarity");
+    }
+
+    if (insights.length > 0) {
+      narrative += "**Key Focus Areas Based on Your Assessment**:\n";
+      insights.forEach(insight => {
+        narrative += `• ${insight}\n`;
+      });
+      narrative += "\n";
+    }
+
+    // Primary goals
+    if (assessmentData.primaryGoals) {
+      narrative += "**Your Stated Goals**: ";
+      narrative += assessmentData.primaryGoals + "\n\n";
+    }
+
+    // How the program addresses needs
+    narrative += "**How Your Customized Campaign Addresses These Needs**:\n\n";
 
     // Workshops
     if (selections.workshops && selections.workshops.length > 0) {
-      narrative += "**Workshops**: ";
-      const workshopNames = selections.workshops.map(key => productCatalog.workshops[key]?.name).filter(Boolean);
-      narrative += `The selected workshops (${workshopNames.join(', ')}) provide foundational knowledge and practical tools to build resilience, improve communication, and create a supportive work environment.\n\n`;
+      narrative += "**Workshops** - Foundation Building: ";
+      const workshopNames = selections.workshops.slice(0, 3).map(key => productCatalog.workshops[key]?.name).filter(Boolean);
+      const remaining = selections.workshops.length - 3;
+      narrative += workshopNames.join(', ');
+      if (remaining > 0) narrative += `, and ${remaining} more`;
+      narrative += ". These sessions provide practical tools and frameworks to address your immediate challenges with stress, communication, and leadership effectiveness.\n\n";
     }
 
     // Challenges
     if (selections.challengePrograms && selections.challengePrograms.length > 0) {
-      narrative += "**14-Day Challenges**: ";
-      const challengeNames = selections.challengePrograms.map(key => productCatalog.challenges[key]?.name).filter(Boolean);
-      narrative += `These challenges (${challengeNames.join(', ')}) reinforce workshop learnings through daily practices, creating lasting behavioral change and team engagement.\n\n`;
+      narrative += "**14-Day Challenges** - Habit Formation: ";
+      narrative += "Daily guided practices reinforce workshop concepts, creating lasting behavioral change and building mental fitness habits across your organization.\n\n";
     }
 
     // Leadership
     if (selections.leadership && selections.leadership.length > 0) {
-      narrative += "**Leadership Development**: ";
-      narrative += "Your leadership programs equip managers with emotional intelligence skills to model healthy behaviors, support their teams effectively, and create psychologically safe work environments.\n\n";
+      narrative += "**Leadership Development** - Culture Transformation: ";
+      narrative += "Equipping your leaders with emotional intelligence competencies creates a ripple effect throughout the organization, modeling healthy behaviors and creating psychologically safe environments.\n\n";
     }
 
     // Movement Classes
     if (selections.movementClasses && selections.movementClasses.length > 0) {
-      narrative += "**Movement & Mindfulness**: ";
-      narrative += "Ongoing classes provide consistent touchpoints for physical wellness, stress reduction, and community building, addressing both mental and physical aspects of well-being.\n\n";
+      narrative += "**Movement & Mindfulness** - Sustained Practice: ";
+      narrative += "Ongoing classes provide consistent touchpoints for stress reduction, physical wellness, and community building.\n\n";
     }
 
     // Wellness Boxes
     if (selections.smallBoxes > 0 || selections.largeBoxes > 0) {
-      narrative += "**Wellness Incentives**: ";
-      narrative += "Wellness boxes serve as tangible recognition of participation, boosting engagement and showing your organization's commitment to employee well-being.\n\n";
+      narrative += "**Wellness Incentives** - Recognition & Engagement: ";
+      narrative += "Tangible rewards boost participation rates and demonstrate organizational commitment to employee well-being.\n\n";
     }
 
-    narrative += "Together, these programs create a comprehensive mental fitness ecosystem that will help your workforce thrive.";
+    // Success metrics
+    if (assessmentData.successMetrics) {
+      narrative += "**Expected Impact on Your Success Metrics**: ";
+      narrative += `This comprehensive approach is designed to positively impact the metrics you've identified: ${assessmentData.successMetrics}\n\n`;
+    }
+
+    // Timeline
+    if (assessmentData.timeline) {
+      const timelineText = {
+        'immediate': 'immediate implementation',
+        '1-3months': '1-3 month rollout',
+        '3-6months': '3-6 month implementation',
+        '6-12months': '6-12 month phased approach',
+        'exploring': 'flexible timeline to fit your needs'
+      }[assessmentData.timeline] || 'customized timeline';
+      
+      narrative += `**Implementation**: Your ${timelineText} aligns well with our program delivery model.\n\n`;
+    }
+
+    narrative += "**Bottom Line**: This integrated mental fitness ecosystem creates sustainable culture change, addressing both immediate needs and long-term organizational health.";
 
     return narrative;
+  };
+
+  // Generate assessment summary
+  const generateAssessmentSummary = () => {
+    const items = [];
+    
+    if (assessmentData.resilienceLevel) {
+      items.push({ label: 'Leadership Resilience', value: `${assessmentData.resilienceLevel}/5`, status: parseInt(assessmentData.resilienceLevel) >= 4 ? 'good' : 'needs-work' });
+    }
+    if (assessmentData.engagementLevel) {
+      items.push({ label: 'Team Engagement', value: `${assessmentData.engagementLevel}/5`, status: parseInt(assessmentData.engagementLevel) >= 4 ? 'good' : 'needs-work' });
+    }
+    if (assessmentData.emotionalIntelligence) {
+      items.push({ label: 'Emotional Intelligence', value: `${assessmentData.emotionalIntelligence}/5`, status: parseInt(assessmentData.emotionalIntelligence) >= 4 ? 'good' : 'needs-work' });
+    }
+    if (assessmentData.decisionQuality) {
+      items.push({ label: 'Decision Quality', value: `${assessmentData.decisionQuality}/5`, status: parseInt(assessmentData.decisionQuality) >= 4 ? 'good' : 'needs-work' });
+    }
+    if (assessmentData.goalAlignment) {
+      items.push({ label: 'Goal Alignment', value: `${assessmentData.goalAlignment}/5`, status: parseInt(assessmentData.goalAlignment) >= 4 ? 'good' : 'needs-work' });
+    }
+    
+    return items;
   };
 
   // Calculate total price
@@ -99,6 +193,12 @@ export default function ReviewStep({ selections, onBack }) {
     emailBody += `Email: ${formData.email}%0D%0A%0D%0A`;
     emailBody += `Estimated Total: $${calculateTotal().toLocaleString()}%0D%0A%0D%0A`;
     
+    // Add assessment data
+    if (assessmentData.companySize) emailBody += `Company Size: ${assessmentData.companySize}%0D%0A`;
+    if (assessmentData.industry) emailBody += `Industry: ${assessmentData.industry}%0D%0A`;
+    if (assessmentData.timeline) emailBody += `Timeline: ${assessmentData.timeline}%0D%0A`;
+    emailBody += `%0D%0A`;
+    
     if (selections.challenges && selections.challenges.length > 0) {
       emailBody += `Workforce Challenges:%0D%0A`;
       selections.challenges.forEach(id => {
@@ -106,6 +206,10 @@ export default function ReviewStep({ selections, onBack }) {
         emailBody += `- ${challenge?.label}%0D%0A`;
       });
       emailBody += `%0D%0A`;
+    }
+
+    if (assessmentData.primaryGoals) {
+      emailBody += `Primary Goals: ${assessmentData.primaryGoals}%0D%0A%0D%0A`;
     }
 
     emailBody += `Selected Workshops:%0D%0A`;
@@ -149,6 +253,8 @@ export default function ReviewStep({ selections, onBack }) {
     }, 2500);
   };
 
+  const assessmentSummary = generateAssessmentSummary();
+
   return (
     <div>
       <style>{`
@@ -182,6 +288,30 @@ export default function ReviewStep({ selections, onBack }) {
           font-weight: 700;
           display: block;
           margin-top: 12px;
+        }
+
+        .assessment-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 16px;
+          margin-top: 16px;
+        }
+
+        .assessment-item {
+          background: rgba(255, 255, 255, 0.1);
+          padding: 16px;
+          border-radius: 12px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+
+        .assessment-item.needs-work {
+          border-left: 4px solid #fbbf24;
+        }
+
+        .assessment-item.good {
+          border-left: 4px solid #10b981;
         }
 
         .review-section {
@@ -240,10 +370,10 @@ export default function ReviewStep({ selections, onBack }) {
 
       <div className="mb-8">
         <h2 className="text-3xl font-bold mb-3" style={{ color: '#013f7c' }}>
-          Review Your Campaign
+          Your Customized Campaign
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>
-          See how your customized campaign addresses your workforce needs.
+          See how your program addresses your organization's specific needs.
         </p>
       </div>
 
@@ -253,12 +383,24 @@ export default function ReviewStep({ selections, onBack }) {
           <Sparkles className="w-6 h-6" />
           <h3 className="text-xl font-bold">Your Personalized Campaign Story</h3>
         </div>
-        <div className="narrative-content">
+        
+        {assessmentSummary.length > 0 && (
+          <div className="assessment-grid">
+            {assessmentSummary.map((item, idx) => (
+              <div key={idx} className={`assessment-item ${item.status}`}>
+                <span className="text-sm font-semibold">{item.label}</span>
+                <span className="text-lg font-bold">{item.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="narrative-content mt-6">
           {generateNarrative()}
         </div>
       </div>
 
-      {/* Summary */}
+      {/* Program Summary */}
       <div className="review-card">
         {selections.workshops && selections.workshops.length > 0 && (
           <div className="review-section">
@@ -338,7 +480,7 @@ export default function ReviewStep({ selections, onBack }) {
       {!showSuccess ? (
         <div className="review-card">
           <h3 className="text-2xl font-bold mb-5" style={{ color: '#013f7c' }}>
-            Your Information
+            Submit Your Campaign
           </h3>
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
