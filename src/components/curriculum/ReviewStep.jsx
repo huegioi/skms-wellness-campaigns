@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { productCatalog, workforceChallenges } from './catalogData';
 import StepNavigation from './StepNavigation';
@@ -15,15 +16,17 @@ export default function ReviewStep({ selections, onBack }) {
 
   // Generate comprehensive personalized narrative
   const generateNarrative = () => {
-    let narrative = "";
+    const sections = [];
 
     // Company context
     if (assessmentData.companySize || assessmentData.industry) {
-      narrative += "**Your Organization**: ";
       const parts = [];
       if (assessmentData.industry) parts.push(assessmentData.industry);
       if (assessmentData.companySize) parts.push(`${assessmentData.companySize} employees`);
-      narrative += parts.join(", ") + "\n\n";
+      sections.push({
+        title: "Your Organization",
+        content: parts.join(", ")
+      });
     }
 
     // Workforce challenges
@@ -32,8 +35,10 @@ export default function ReviewStep({ selections, onBack }) {
         .map(id => workforceChallenges.find(c => c.id === id)?.label)
         .filter(Boolean);
       
-      narrative += "**Current Challenges**: ";
-      narrative += `Your organization is facing challenges with ${challengeLabels.slice(0, -1).join(', ')}${challengeLabels.length > 1 ? ' and ' + challengeLabels[challengeLabels.length - 1] : challengeLabels[0]}.\n\n`;
+      sections.push({
+        title: "Current Challenges",
+        content: `Your organization is facing challenges with ${challengeLabels.slice(0, -1).join(', ')}${challengeLabels.length > 1 ? ' and ' + challengeLabels[challengeLabels.length - 1] : challengeLabels[0]}.`
+      });
     }
 
     // Assessment insights
@@ -59,60 +64,78 @@ export default function ReviewStep({ selections, onBack }) {
     }
 
     if (insights.length > 0) {
-      narrative += "**Key Focus Areas Based on Your Assessment**:\n";
-      insights.forEach(insight => {
-        narrative += `• ${insight}\n`;
+      sections.push({
+        title: "Key Focus Areas Based on Your Assessment",
+        list: insights
       });
-      narrative += "\n";
     }
 
     // Primary goals
     if (assessmentData.primaryGoals) {
-      narrative += "**Your Stated Goals**: ";
-      narrative += assessmentData.primaryGoals + "\n\n";
+      sections.push({
+        title: "Your Stated Goals",
+        content: assessmentData.primaryGoals
+      });
     }
 
     // How the program addresses needs
-    narrative += "**How Your Customized Campaign Addresses These Needs**:\n\n";
+    const programSections = [];
 
     // Workshops
     if (selections.workshops && selections.workshops.length > 0) {
-      narrative += "**Workshops** - Foundation Building: ";
       const workshopNames = selections.workshops.slice(0, 3).map(key => productCatalog.workshops[key]?.name).filter(Boolean);
       const remaining = selections.workshops.length - 3;
-      narrative += workshopNames.join(', ');
-      if (remaining > 0) narrative += `, and ${remaining} more`;
-      narrative += ". These sessions provide practical tools and frameworks to address your immediate challenges with stress, communication, and leadership effectiveness.\n\n";
+      let text = workshopNames.join(', ');
+      if (remaining > 0) text += `, and ${remaining} more`;
+      text += ". These sessions provide practical tools and frameworks to address your immediate challenges with stress, communication, and leadership effectiveness.";
+      programSections.push({ subtitle: "Workshops - Foundation Building", content: text });
     }
 
     // Challenges
     if (selections.challengePrograms && selections.challengePrograms.length > 0) {
-      narrative += "**14-Day Challenges** - Habit Formation: ";
-      narrative += "Daily guided practices reinforce workshop concepts, creating lasting behavioral change and building mental fitness habits across your organization.\n\n";
+      programSections.push({
+        subtitle: "14-Day Challenges - Habit Formation",
+        content: "Daily guided practices reinforce workshop concepts, creating lasting behavioral change and building mental fitness habits across your organization."
+      });
     }
 
     // Leadership
     if (selections.leadership && selections.leadership.length > 0) {
-      narrative += "**Leadership Development** - Culture Transformation: ";
-      narrative += "Equipping your leaders with emotional intelligence competencies creates a ripple effect throughout the organization, modeling healthy behaviors and creating psychologically safe environments.\n\n";
+      programSections.push({
+        subtitle: "Leadership Development - Culture Transformation",
+        content: "Equipping your leaders with emotional intelligence competencies creates a ripple effect throughout the organization, modeling healthy behaviors and creating psychologically safe environments."
+      });
     }
 
     // Movement Classes
     if (selections.movementClasses && selections.movementClasses.length > 0) {
-      narrative += "**Movement & Mindfulness** - Sustained Practice: ";
-      narrative += "Ongoing classes provide consistent touchpoints for stress reduction, physical wellness, and community building.\n\n";
+      programSections.push({
+        subtitle: "Movement & Mindfulness - Sustained Practice",
+        content: "Ongoing classes provide consistent touchpoints for stress reduction, physical wellness, and community building."
+      });
     }
 
     // Wellness Boxes
     if (selections.smallBoxes > 0 || selections.largeBoxes > 0) {
-      narrative += "**Wellness Incentives** - Recognition & Engagement: ";
-      narrative += "Tangible rewards boost participation rates and demonstrate organizational commitment to employee well-being.\n\n";
+      programSections.push({
+        subtitle: "Wellness Incentives - Recognition & Engagement",
+        content: "Tangible rewards boost participation rates and demonstrate organizational commitment to employee well-being."
+      });
+    }
+
+    if (programSections.length > 0) {
+      sections.push({
+        title: "How Your Customized Campaign Addresses These Needs",
+        subsections: programSections
+      });
     }
 
     // Success metrics
     if (assessmentData.successMetrics) {
-      narrative += "**Expected Impact on Your Success Metrics**: ";
-      narrative += `This comprehensive approach is designed to positively impact the metrics you've identified: ${assessmentData.successMetrics}\n\n`;
+      sections.push({
+        title: "Expected Impact on Your Success Metrics",
+        content: `This comprehensive approach is designed to positively impact the metrics you've identified: ${assessmentData.successMetrics}`
+      });
     }
 
     // Timeline
@@ -125,12 +148,19 @@ export default function ReviewStep({ selections, onBack }) {
         'exploring': 'flexible timeline to fit your needs'
       }[assessmentData.timeline] || 'customized timeline';
       
-      narrative += `**Implementation**: Your ${timelineText} aligns well with our program delivery model.\n\n`;
+      sections.push({
+        title: "Implementation",
+        content: `Your ${timelineText} aligns well with our program delivery model.`
+      });
     }
 
-    narrative += "**Bottom Line**: This integrated mental fitness ecosystem creates sustainable culture change, addressing both immediate needs and long-term organizational health.";
+    sections.push({
+      title: "Bottom Line",
+      content: "This integrated mental fitness ecosystem creates sustainable culture change, addressing both immediate needs and long-term organizational health.",
+      highlight: true
+    });
 
-    return narrative;
+    return sections;
   };
 
   // Generate assessment summary
@@ -254,6 +284,7 @@ export default function ReviewStep({ selections, onBack }) {
   };
 
   const assessmentSummary = generateAssessmentSummary();
+  const narrativeSections = generateNarrative();
 
   return (
     <div>
@@ -279,15 +310,65 @@ export default function ReviewStep({ selections, onBack }) {
             -8px -8px 16px rgba(255, 255, 255, 0.05);
         }
 
-        .narrative-content {
-          line-height: 1.8;
-          white-space: pre-wrap;
+        .narrative-section {
+          margin-bottom: 24px;
+          padding-bottom: 20px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.15);
         }
 
-        .narrative-content strong {
+        .narrative-section:last-child {
+          border-bottom: none;
+          margin-bottom: 0;
+          padding-bottom: 0;
+        }
+
+        .narrative-title {
+          font-size: 20px;
           font-weight: 700;
-          display: block;
-          margin-top: 12px;
+          color: #ffffff;
+          margin-bottom: 12px;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+          font-size: 14px;
+          opacity: 0.9;
+        }
+
+        .narrative-content {
+          font-size: 16px;
+          line-height: 1.8;
+          color: rgba(255, 255, 255, 0.95);
+        }
+
+        .narrative-list {
+          margin-top: 8px;
+          padding-left: 20px;
+          list-style-type: disc;
+        }
+
+        .narrative-list li {
+          margin-bottom: 8px;
+          line-height: 1.6;
+          font-size: 15px;
+        }
+
+        .narrative-subsection {
+          margin-top: 16px;
+          padding-left: 16px;
+          border-left: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .narrative-subtitle {
+          font-weight: 700;
+          font-size: 16px;
+          margin-bottom: 6px;
+          color: #ffffff;
+        }
+
+        .narrative-highlight {
+          background: rgba(255, 255, 255, 0.1);
+          padding: 20px;
+          border-radius: 12px;
+          border: 2px solid rgba(255, 255, 255, 0.2);
         }
 
         .assessment-grid {
@@ -379,13 +460,13 @@ export default function ReviewStep({ selections, onBack }) {
 
       {/* Personalized Narrative */}
       <div className="narrative-card">
-        <div className="flex items-center gap-2 mb-4">
+        <div className="flex items-center gap-2 mb-6">
           <Sparkles className="w-6 h-6" />
           <h3 className="text-xl font-bold">Your Personalized Campaign Story</h3>
         </div>
         
         {assessmentSummary.length > 0 && (
-          <div className="assessment-grid">
+          <div className="assessment-grid mb-6">
             {assessmentSummary.map((item, idx) => (
               <div key={idx} className={`assessment-item ${item.status}`}>
                 <span className="text-sm font-semibold">{item.label}</span>
@@ -395,9 +476,30 @@ export default function ReviewStep({ selections, onBack }) {
           </div>
         )}
 
-        <div className="narrative-content mt-6">
-          {generateNarrative()}
-        </div>
+        {narrativeSections.map((section, idx) => (
+          <div key={idx} className={section.highlight ? "narrative-section narrative-highlight" : "narrative-section"}>
+            <div className="narrative-title">{section.title}</div>
+            
+            {section.content && (
+              <div className="narrative-content">{section.content}</div>
+            )}
+            
+            {section.list && (
+              <ul className="narrative-list">
+                {section.list.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+            )}
+            
+            {section.subsections && section.subsections.map((subsection, i) => (
+              <div key={i} className="narrative-subsection">
+                <div className="narrative-subtitle">{subsection.subtitle}</div>
+                <div className="narrative-content">{subsection.content}</div>
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
 
       {/* Program Summary */}

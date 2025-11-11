@@ -111,14 +111,19 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         .scale-container {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 16px; /* Updated gap */
           flex-wrap: wrap;
         }
 
         .scale-label {
-          font-size: 12px;
-          color: #666;
-          min-width: 100px;
+          font-size: 14px; /* Updated font size */
+          font-weight: 700; /* Updated font weight */
+          color: #441d37; /* Updated color */
+          min-width: 120px; /* Updated min-width */
+          padding: 8px 12px; /* Updated padding */
+          background: rgba(68, 29, 55, 0.08); /* Updated background */
+          border-radius: 8px; /* Updated border-radius */
+          text-align: center;
         }
 
         .scale-buttons {
