@@ -42,13 +42,13 @@ export default function ReviewStep({ selections, onBack }) {
     // Leadership
     if (selections.leadership.length > 0) {
       narrative += "**Leadership Development**: ";
-      narrative += "Your leadership programs equip managers with emotional intelligence skills to model healthy behaviors, support their teams effectively, and create psychologically safe work environments.\n\n`;
+      narrative += "Your leadership programs equip managers with emotional intelligence skills to model healthy behaviors, support their teams effectively, and create psychologically safe work environments.\n\n";
     }
 
     // Movement Classes
     if (selections.movementClasses.length > 0) {
       narrative += "**Movement & Mindfulness**: ";
-      narrative += "Ongoing classes provide consistent touchpoints for physical wellness, stress reduction, and community building, addressing both mental and physical aspects of well-being.\n\n`;
+      narrative += "Ongoing classes provide consistent touchpoints for physical wellness, stress reduction, and community building, addressing both mental and physical aspects of well-being.\n\n";
     }
 
     // Wellness Boxes
