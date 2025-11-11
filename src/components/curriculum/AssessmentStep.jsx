@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { workforceChallenges } from './catalogData';
 import StepNavigation from './StepNavigation';
@@ -6,14 +7,14 @@ import { Brain, Users, Target, TrendingUp, DollarSign, Flame, MessageCircle, Mon
 export default function AssessmentStep({ selections, updateSelections, onNext, isFirstStep }) {
   // Icon mapping for workforce challenges
   const iconMap = {
-    Flame,
-    MessageCircle,
-    Monitor,
-    Heart,
-    TrendingUp,
-    Crown,
-    Activity,
-    Scale
+    Flame: Flame,
+    MessageCircle: MessageCircle,
+    Monitor: Monitor,
+    Heart: Heart,
+    TrendingUp: TrendingUp,
+    Crown: Crown,
+    Activity: Activity,
+    Scale: Scale
   };
 
   const [formData, setFormData] = useState({
