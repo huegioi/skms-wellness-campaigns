@@ -26,27 +26,27 @@ export default function ReviewStep({ selections, onBack }) {
     narrative += "Your customized SkillfulMeans campaign directly addresses these needs:\n\n";
 
     // Workshops
-    if (selections.workshops.length > 0) {
+    if (selections.workshops && selections.workshops.length > 0) {
       narrative += "**Workshops**: ";
       const workshopNames = selections.workshops.map(key => productCatalog.workshops[key]?.name).filter(Boolean);
       narrative += `The selected workshops (${workshopNames.join(', ')}) provide foundational knowledge and practical tools to build resilience, improve communication, and create a supportive work environment.\n\n`;
     }
 
     // Challenges
-    if (selections.challengePrograms.length > 0) {
+    if (selections.challengePrograms && selections.challengePrograms.length > 0) {
       narrative += "**14-Day Challenges**: ";
       const challengeNames = selections.challengePrograms.map(key => productCatalog.challenges[key]?.name).filter(Boolean);
       narrative += `These challenges (${challengeNames.join(', ')}) reinforce workshop learnings through daily practices, creating lasting behavioral change and team engagement.\n\n`;
     }
 
     // Leadership
-    if (selections.leadership.length > 0) {
+    if (selections.leadership && selections.leadership.length > 0) {
       narrative += "**Leadership Development**: ";
       narrative += "Your leadership programs equip managers with emotional intelligence skills to model healthy behaviors, support their teams effectively, and create psychologically safe work environments.\n\n";
     }
 
     // Movement Classes
-    if (selections.movementClasses.length > 0) {
+    if (selections.movementClasses && selections.movementClasses.length > 0) {
       narrative += "**Movement & Mindfulness**: ";
       narrative += "Ongoing classes provide consistent touchpoints for physical wellness, stress reduction, and community building, addressing both mental and physical aspects of well-being.\n\n";
     }
@@ -65,20 +65,20 @@ export default function ReviewStep({ selections, onBack }) {
   // Calculate total price
   const calculateTotal = () => {
     let total = 0;
-    selections.workshops.forEach(key => {
+    (selections.workshops || []).forEach(key => {
       total += productCatalog.workshops[key]?.price || 0;
     });
-    selections.challengePrograms.forEach(key => {
+    (selections.challengePrograms || []).forEach(key => {
       total += productCatalog.challenges[key]?.price || 0;
     });
-    selections.leadership.forEach(key => {
+    (selections.leadership || []).forEach(key => {
       total += productCatalog.leadership[key]?.price || 0;
     });
-    selections.movementClasses.forEach(key => {
+    (selections.movementClasses || []).forEach(key => {
       total += productCatalog.movementClasses[key]?.price || 0;
     });
-    total += selections.smallBoxes * 65;
-    total += selections.largeBoxes * 125;
+    total += (selections.smallBoxes || 0) * 65;
+    total += (selections.largeBoxes || 0) * 125;
     return total;
   };
 
@@ -109,18 +109,18 @@ export default function ReviewStep({ selections, onBack }) {
     }
 
     emailBody += `Selected Workshops:%0D%0A`;
-    selections.workshops.forEach(key => {
+    (selections.workshops || []).forEach(key => {
       emailBody += `- ${productCatalog.workshops[key]?.name}%0D%0A`;
     });
     emailBody += `%0D%0A`;
 
     emailBody += `Selected Challenges:%0D%0A`;
-    selections.challengePrograms.forEach(key => {
+    (selections.challengePrograms || []).forEach(key => {
       emailBody += `- ${productCatalog.challenges[key]?.name}%0D%0A`;
     });
     emailBody += `%0D%0A`;
 
-    if (selections.leadership.length > 0) {
+    if (selections.leadership && selections.leadership.length > 0) {
       emailBody += `Leadership Programs:%0D%0A`;
       selections.leadership.forEach(key => {
         emailBody += `- ${productCatalog.leadership[key]?.name}%0D%0A`;
@@ -128,7 +128,7 @@ export default function ReviewStep({ selections, onBack }) {
       emailBody += `%0D%0A`;
     }
 
-    if (selections.movementClasses.length > 0) {
+    if (selections.movementClasses && selections.movementClasses.length > 0) {
       emailBody += `Movement/Mindfulness Classes:%0D%0A`;
       selections.movementClasses.forEach(key => {
         emailBody += `- ${productCatalog.movementClasses[key]?.name}%0D%0A`;
@@ -137,8 +137,8 @@ export default function ReviewStep({ selections, onBack }) {
     }
 
     emailBody += `Wellness Boxes:%0D%0A`;
-    emailBody += `- Small Boxes: ${selections.smallBoxes}%0D%0A`;
-    emailBody += `- Large Boxes: ${selections.largeBoxes}%0D%0A`;
+    emailBody += `- Small Boxes: ${selections.smallBoxes || 0}%0D%0A`;
+    emailBody += `- Large Boxes: ${selections.largeBoxes || 0}%0D%0A`;
 
     const mailtoLink = `mailto:admin@skillfulmeans.life?subject=Mental Fitness Campaign from ${formData.name}&body=${emailBody}`;
 
@@ -260,7 +260,7 @@ export default function ReviewStep({ selections, onBack }) {
 
       {/* Summary */}
       <div className="review-card">
-        {selections.workshops.length > 0 && (
+        {selections.workshops && selections.workshops.length > 0 && (
           <div className="review-section">
             <div className="review-section-title">Workshops ({selections.workshops.length})</div>
             {selections.workshops.map(key => (
@@ -272,7 +272,7 @@ export default function ReviewStep({ selections, onBack }) {
           </div>
         )}
 
-        {selections.challengePrograms.length > 0 && (
+        {selections.challengePrograms && selections.challengePrograms.length > 0 && (
           <div className="review-section">
             <div className="review-section-title">14-Day Challenges ({selections.challengePrograms.length})</div>
             {selections.challengePrograms.map(key => (
@@ -284,7 +284,7 @@ export default function ReviewStep({ selections, onBack }) {
           </div>
         )}
 
-        {selections.leadership.length > 0 && (
+        {selections.leadership && selections.leadership.length > 0 && (
           <div className="review-section">
             <div className="review-section-title">Leadership Programs</div>
             {selections.leadership.map(key => (
@@ -296,7 +296,7 @@ export default function ReviewStep({ selections, onBack }) {
           </div>
         )}
 
-        {selections.movementClasses.length > 0 && (
+        {selections.movementClasses && selections.movementClasses.length > 0 && (
           <div className="review-section">
             <div className="review-section-title">Movement & Mindfulness Classes</div>
             {selections.movementClasses.map(key => (

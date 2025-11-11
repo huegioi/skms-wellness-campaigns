@@ -7,7 +7,7 @@ export default function WorkshopStep({ selections, updateSelections, onNext, onB
   const workshops = Object.entries(productCatalog.workshops);
 
   const toggleSelection = (key) => {
-    const current = selections.workshops;
+    const current = selections.workshops || [];
     if (current.includes(key)) {
       updateSelections('workshops', current.filter(k => k !== key));
     } else {
@@ -34,7 +34,7 @@ export default function WorkshopStep({ selections, updateSelections, onNext, onB
             description={workshop.description}
             price={workshop.price}
             icon={workshop.icon}
-            isSelected={selections.workshops.includes(key)}
+            isSelected={(selections.workshops || []).includes(key)}
             onToggle={() => toggleSelection(key)}
           />
         ))}

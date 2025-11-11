@@ -7,7 +7,7 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
   const challenges = Object.entries(productCatalog.challenges);
 
   const toggleSelection = (key) => {
-    const current = selections.challengePrograms;
+    const current = selections.challengePrograms || [];
     if (current.includes(key)) {
       updateSelections('challengePrograms', current.filter(k => k !== key));
     } else {
@@ -35,7 +35,7 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
             price={challenge.price}
             icon={challenge.icon}
             badge={challenge.duration}
-            isSelected={selections.challengePrograms.includes(key)}
+            isSelected={(selections.challengePrograms || []).includes(key)}
             onToggle={() => toggleSelection(key)}
           />
         ))}

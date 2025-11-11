@@ -7,7 +7,7 @@ export default function LeadershipStep({ selections, updateSelections, onNext, o
   const leadership = Object.entries(productCatalog.leadership);
 
   const toggleSelection = (key) => {
-    const current = selections.leadership;
+    const current = selections.leadership || [];
     if (current.includes(key)) {
       updateSelections('leadership', current.filter(k => k !== key));
     } else {
@@ -34,7 +34,7 @@ export default function LeadershipStep({ selections, updateSelections, onNext, o
             description={program.description}
             price={program.price}
             icon={program.icon}
-            isSelected={selections.leadership.includes(key)}
+            isSelected={(selections.leadership || []).includes(key)}
             onToggle={() => toggleSelection(key)}
           />
         ))}

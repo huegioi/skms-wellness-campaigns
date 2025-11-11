@@ -7,7 +7,7 @@ export default function MovementStep({ selections, updateSelections, onNext, onB
   const classes = Object.entries(productCatalog.movementClasses);
 
   const toggleSelection = (key) => {
-    const current = selections.movementClasses;
+    const current = selections.movementClasses || [];
     if (current.includes(key)) {
       updateSelections('movementClasses', current.filter(k => k !== key));
     } else {
@@ -35,7 +35,7 @@ export default function MovementStep({ selections, updateSelections, onNext, onB
             price={classInfo.price}
             icon={classInfo.icon}
             badge={classInfo.duration}
-            isSelected={selections.movementClasses.includes(key)}
+            isSelected={(selections.movementClasses || []).includes(key)}
             onToggle={() => toggleSelection(key)}
           />
         ))}
