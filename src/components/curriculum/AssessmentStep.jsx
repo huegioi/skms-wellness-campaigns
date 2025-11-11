@@ -1,7 +1,11 @@
 import React from 'react';
 import { workforceChallenges } from './catalogData';
 import StepNavigation from './StepNavigation';
-import * as Icons from 'lucide-react';
+import { Check, Flame, MessageCircle, Monitor, Heart, TrendingUp, Crown, Activity, Scale } from 'lucide-react';
+
+const iconMap = {
+  Flame, MessageCircle, Monitor, Heart, TrendingUp, Crown, Activity, Scale
+};
 
 export default function AssessmentStep({ selections, updateSelections, onNext, isFirstStep }) {
   const toggleChallenge = (challengeId) => {
@@ -84,7 +88,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {workforceChallenges.map((challenge) => {
-          const IconComponent = Icons[challenge.icon];
+          const IconComponent = iconMap[challenge.icon];
           const isSelected = (selections.challenges || []).includes(challenge.id);
           
           return (
@@ -95,7 +99,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             >
               {isSelected && (
                 <div className="check-badge">
-                  <Icons.Check className="w-4 h-4" />
+                  <Check className="w-4 h-4" />
                 </div>
               )}
               <div className="icon-wrapper">

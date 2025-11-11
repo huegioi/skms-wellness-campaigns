@@ -1,9 +1,13 @@
 import React from 'react';
-import { Check } from 'lucide-react';
-import * as Icons from 'lucide-react';
+import { Check, Brain, Flame, MessageCircle, Sparkles, Heart, Users, TrendingUp, Shield, Umbrella, Snowflake, Activity, Apple, Move, Target, CircleDot, Link, MessagesSquare, HandHeart, Waves, Wind, Flower2, Crown, Lightbulb, Compass, Award, Gift } from 'lucide-react';
+
+const iconMap = {
+  Brain, Flame, MessageCircle, Sparkles, Heart, Users, TrendingUp, Shield, Umbrella, Snowflake, Activity, Apple, Move,
+  Target, CircleDot, Link, MessagesSquare, HandHeart, Waves, Wind, Flower2, Crown, Lightbulb, Compass, Award, Gift
+};
 
 export default function SelectionCard({ title, description, price, icon, badge, isSelected, onToggle }) {
-  const IconComponent = Icons[icon];
+  const IconComponent = iconMap[icon];
   
   return (
     <div>
