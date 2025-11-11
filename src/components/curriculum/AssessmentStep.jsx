@@ -1,14 +1,20 @@
 import React, { useState } from 'react';
 import { workforceChallenges } from './catalogData';
 import StepNavigation from './StepNavigation';
-import { Brain, Users, Target, TrendingUp, DollarSign } from 'lucide-react';
-import * as LucideIcons from 'lucide-react';
+import { Brain, Users, Target, TrendingUp, DollarSign, Flame, MessageCircle, Monitor, Heart, Crown, Activity, Scale } from 'lucide-react';
 
 export default function AssessmentStep({ selections, updateSelections, onNext, isFirstStep }) {
-  const iconMap = Object.keys(LucideIcons).reduce((acc, iconName) => {
-    acc[iconName] = LucideIcons[iconName];
-    return acc;
-  }, {});
+  // Icon mapping for workforce challenges
+  const iconMap = {
+    Flame,
+    MessageCircle,
+    Monitor,
+    Heart,
+    TrendingUp,
+    Crown,
+    Activity,
+    Scale
+  };
 
   const [formData, setFormData] = useState({
     companySize: selections.assessmentData?.companySize || '',
