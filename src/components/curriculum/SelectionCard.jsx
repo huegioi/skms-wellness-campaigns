@@ -1,115 +1,103 @@
 import React from 'react';
-import { Check, Brain, Flame, MessageCircle, Sparkles, Heart, Users, TrendingUp, Shield, Umbrella, Snowflake, Activity, Apple, Move, Target, CircleDot, Link, MessagesSquare, HandHeart, Waves, Wind, Flower2, Crown, Lightbulb, Compass, Award, Gift } from 'lucide-react';
-
-const iconMap = {
-  Brain, Flame, MessageCircle, Sparkles, Heart, Users, TrendingUp, Shield, Umbrella, Snowflake, Activity, Apple, Move,
-  Target, CircleDot, Link, MessagesSquare, HandHeart, Waves, Wind, Flower2, Crown, Lightbulb, Compass, Award, Gift
-};
+import { Brain, Flame, MessageCircle, Heart, TrendingUp, Users, Target, Sparkles, Move, Apple, Activity, Wind, Waves, Flower2, Crown, Lightbulb, Compass, Shield, Award, Gift, CircleDot, Link, MessagesSquare, HandHeart, Umbrella, Snowflake } from 'lucide-react';
 
 export default function SelectionCard({ title, description, price, icon, badge, isSelected, onToggle }) {
-  const IconComponent = iconMap[icon];
-  
+  const iconMap = {
+    Brain, Flame, MessageCircle, Heart, TrendingUp, Users, Target, Sparkles, Move, Apple, Activity,
+    Wind, Waves, Flower2, Crown, Lightbulb, Compass, Shield, Award, Gift, CircleDot, Link,
+    MessagesSquare, HandHeart, Umbrella, Snowflake
+  };
+
+  const Icon = iconMap[icon];
+
+  // Color palette for cards
+  const colors = ['#770142', '#264d44', '#ff9878', '#013f7c', '#441d37'];
+  const colorIndex = Math.abs(title.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % colors.length;
+  const accentColor = colors[colorIndex];
+
   return (
-    <div>
-      <style>{`
-        .selection-card {
-          background: #f4f0e9;
-          border-radius: 16px;
-          padding: 20px;
-          cursor: pointer;
-          box-shadow: 
-            6px 6px 12px rgba(0, 0, 0, 0.12),
-            -6px -6px 12px rgba(255, 255, 255, 0.9);
-          transition: all 0.3s ease;
-          position: relative;
-          border: 2px solid transparent;
-          height: 100%;
-          display: flex;
-          flex-direction: column;
+    <div
+      onClick={onToggle}
+      style={{
+        background: isSelected ? accentColor : '#f4f0e9',
+        color: isSelected ? 'white' : '#333',
+        borderRadius: '16px',
+        padding: '20px',
+        cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        boxShadow: isSelected 
+          ? 'inset 4px 4px 8px rgba(0, 0, 0, 0.3), inset -4px -4px 8px rgba(255, 255, 255, 0.05)'
+          : '6px 6px 12px rgba(0, 0, 0, 0.12), -6px -6px 12px rgba(255, 255, 255, 0.9)',
+        position: 'relative'
+      }}
+      onMouseEnter={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.boxShadow = '8px 8px 16px rgba(0, 0, 0, 0.15), -8px -8px 16px rgba(255, 255, 255, 0.95)';
         }
-
-        .selection-card:hover {
-          box-shadow: 
-            8px 8px 16px rgba(0, 0, 0, 0.15),
-            -8px -8px 16px rgba(255, 255, 255, 0.95);
+      }}
+      onMouseLeave={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.boxShadow = '6px 6px 12px rgba(0, 0, 0, 0.12), -6px -6px 12px rgba(255, 255, 255, 0.9)';
         }
+      }}
+    >
+      {/* Icon */}
+      <div style={{
+        width: '56px',
+        height: '56px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: '16px',
+        background: isSelected ? 'rgba(255, 255, 255, 0.2)' : accentColor
+      }}>
+        {Icon && <Icon className="w-7 h-7" style={{ color: 'white' }} />}
+      </div>
 
-        .selection-card.selected {
-          border-color: #441d37;
-          box-shadow: 
-            inset 3px 3px 6px rgba(0, 0, 0, 0.08),
-            inset -3px -3px 6px rgba(255, 255, 255, 0.7);
-        }
-
-        .check-icon {
-          position: absolute;
-          top: 16px;
-          right: 16px;
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          background: #441d37;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          box-shadow: 
-            3px 3px 6px rgba(0, 0, 0, 0.2),
-            -3px -3px 6px rgba(255, 255, 255, 0.1);
-        }
-
-        .icon-circle {
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #441d37 0%, #5a2747 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 12px;
-          box-shadow: 
-            3px 3px 6px rgba(0, 0, 0, 0.15),
-            -2px -2px 4px rgba(255, 255, 255, 0.1);
-        }
-
-        .badge {
-          display: inline-block;
-          padding: 4px 12px;
-          border-radius: 20px;
-          font-size: 11px;
-          font-weight: 600;
-          text-transform: uppercase;
-          background: rgba(1, 63, 124, 0.1);
-          color: #013f7c;
-          margin-bottom: 8px;
-        }
-      `}</style>
-
-      <div 
-        className={`selection-card ${isSelected ? 'selected' : ''}`}
-        onClick={onToggle}
-      >
-        {isSelected && (
-          <div className="check-icon">
-            <Check className="w-4 h-4" />
-          </div>
-        )}
-        
-        <div className="icon-circle">
-          {IconComponent && <IconComponent className="w-5 h-5 text-white" />}
+      {/* Badge */}
+      {badge && (
+        <div style={{
+          position: 'absolute',
+          top: '16px',
+          right: '16px',
+          background: isSelected ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.08)',
+          padding: '4px 12px',
+          borderRadius: '12px',
+          fontSize: '12px',
+          fontWeight: '600'
+        }}>
+          {badge}
         </div>
+      )}
 
-        {badge && <div className="badge">{badge}</div>}
-        
-        <h3 className="text-lg font-bold mb-2 pr-8" style={{ color: '#013f7c' }}>
-          {title}
-        </h3>
-        <p className="text-sm mb-4 flex-grow" style={{ color: '#666' }}>
-          {description}
-        </p>
-        <div className="text-xl font-bold" style={{ color: '#441d37' }}>
-          ${typeof price === 'number' ? price.toLocaleString() : price}
-        </div>
+      {/* Title */}
+      <h3 style={{
+        fontSize: '18px',
+        fontWeight: '700',
+        marginBottom: '8px',
+        lineHeight: '1.3'
+      }}>
+        {title}
+      </h3>
+
+      {/* Description */}
+      <p style={{
+        fontSize: '14px',
+        lineHeight: '1.5',
+        marginBottom: '12px',
+        opacity: isSelected ? 0.95 : 0.8
+      }}>
+        {description}
+      </p>
+
+      {/* Price */}
+      <div style={{
+        fontSize: '20px',
+        fontWeight: '700',
+        marginTop: 'auto'
+      }}>
+        {typeof price === 'number' ? `$${price.toLocaleString()}` : price}
       </div>
     </div>
   );

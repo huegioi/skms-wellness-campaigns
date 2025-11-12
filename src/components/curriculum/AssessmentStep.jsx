@@ -68,6 +68,15 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
     onNext();
   };
 
+  // Color palette for sections
+  const sectionColors = {
+    resilience: '#770142',
+    emotional: '#264d44',
+    decision: '#ff9878',
+    alignment: '#cae5e3', // This color is defined but not explicitly used in alignment section elements due to outline's specific instructions.
+    goals: '#eaf995'
+  };
+
   return (
     <div>
       <style>{`
@@ -111,18 +120,18 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         .scale-container {
           display: flex;
           align-items: center;
-          gap: 16px; /* Updated gap */
+          gap: 16px;
           flex-wrap: wrap;
         }
 
         .scale-label {
-          font-size: 14px; /* Updated font size */
-          font-weight: 700; /* Updated font weight */
-          color: #441d37; /* Updated color */
-          min-width: 120px; /* Updated min-width */
-          padding: 8px 12px; /* Updated padding */
-          background: rgba(68, 29, 55, 0.08); /* Updated background */
-          border-radius: 8px; /* Updated border-radius */
+          font-size: 14px;
+          font-weight: 700;
+          color: #441d37;
+          min-width: 120px;
+          padding: 8px 12px;
+          background: rgba(68, 29, 55, 0.08);
+          border-radius: 8px;
           text-align: center;
         }
 
@@ -155,9 +164,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         }
 
         .scale-btn.selected {
-          background: #441d37;
           color: white;
-          border-color: #441d37;
           box-shadow: 
             inset 3px 3px 6px rgba(0, 0, 0, 0.3),
             inset -3px -3px 6px rgba(255, 255, 255, 0.1);
@@ -215,7 +222,6 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         }
 
         .challenge-card.selected {
-          background: #441d37;
           color: white;
           box-shadow: 
             inset 4px 4px 8px rgba(0, 0, 0, 0.3),
@@ -250,7 +256,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
       `}</style>
 
       <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-3" style={{ color: '#013f7c' }}>
+        <h2 className="text-3xl font-bold mb-3" style={{ color: sectionColors.resilience }}>
           Assessment & Goals
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>
@@ -311,7 +317,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
 
       {/* Workforce Challenges */}
       <div className="assessment-card">
-        <h3 className="text-xl font-bold mb-4" style={{ color: '#013f7c' }}>
+        <h3 className="text-xl font-bold mb-4" style={{ color: sectionColors.emotional }}>
           Current Workforce Challenges
         </h3>
         <p className="text-sm mb-4" style={{ color: '#666' }}>
@@ -319,17 +325,20 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         </p>
         
         <div className="challenge-grid">
-          {workforceChallenges.map((challenge) => {
+          {workforceChallenges.map((challenge, index) => {
             const Icon = iconMap[challenge.icon];
             const isSelected = (selections.challenges || []).includes(challenge.id);
+            const colors = ['#770142', '#264d44', '#ff9878', '#013f7c', '#cae5e3', '#eaf995', '#441d37'];
+            const bgColor = colors[index % colors.length];
             
             return (
               <div
                 key={challenge.id}
                 className={`challenge-card ${isSelected ? 'selected' : ''}`}
                 onClick={() => toggleChallenge(challenge.id)}
+                style={{ background: isSelected ? bgColor : '#f4f0e9' }}
               >
-                <div className="challenge-icon">
+                <div className="challenge-icon" style={{ background: isSelected ? 'rgba(255, 255, 255, 0.2)' : bgColor }}>
                   {Icon && <Icon className="w-6 h-6 text-white" />}
                 </div>
                 <div className="font-bold text-sm mb-2">{challenge.label}</div>
@@ -343,8 +352,8 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
       {/* Section 1: Resilience & Engagement */}
       <div className="assessment-card">
         <div className="section-header">
-          <Brain className="w-6 h-6" style={{ color: '#013f7c' }} />
-          <h3>Resilience & Engagement <span className="optional-badge">Optional</span></h3>
+          <Brain className="w-6 h-6" style={{ color: sectionColors.resilience }} />
+          <h3 style={{ color: sectionColors.resilience }}>Resilience & Engagement <span className="optional-badge">Optional</span></h3>
         </div>
 
         <div className="question-group">
@@ -360,6 +369,10 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
                   type="button"
                   className={`scale-btn ${formData.resilienceLevel === String(num) ? 'selected' : ''}`}
                   onClick={() => handleInputChange('resilienceLevel', String(num))}
+                  style={{ 
+                    background: formData.resilienceLevel === String(num) ? sectionColors.resilience : '#f4f0e9',
+                    borderColor: formData.resilienceLevel === String(num) ? sectionColors.resilience : 'transparent'
+                  }}
                 >
                   {num}
                 </button>
@@ -382,6 +395,10 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
                   type="button"
                   className={`scale-btn ${formData.engagementLevel === String(num) ? 'selected' : ''}`}
                   onClick={() => handleInputChange('engagementLevel', String(num))}
+                  style={{ 
+                    background: formData.engagementLevel === String(num) ? sectionColors.resilience : '#f4f0e9',
+                    borderColor: formData.engagementLevel === String(num) ? sectionColors.resilience : 'transparent'
+                  }}
                 >
                   {num}
                 </button>
@@ -407,8 +424,8 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
       {/* Section 2: Emotional Intelligence & Team Climate */}
       <div className="assessment-card">
         <div className="section-header">
-          <Users className="w-6 h-6" style={{ color: '#013f7c' }} />
-          <h3>Emotional Intelligence & Team Climate <span className="optional-badge">Optional</span></h3>
+          <Users className="w-6 h-6" style={{ color: sectionColors.emotional }} />
+          <h3 style={{ color: sectionColors.emotional }}>Emotional Intelligence & Team Climate <span className="optional-badge">Optional</span></h3>
         </div>
 
         <div className="question-group">
@@ -424,6 +441,10 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
                   type="button"
                   className={`scale-btn ${formData.emotionalIntelligence === String(num) ? 'selected' : ''}`}
                   onClick={() => handleInputChange('emotionalIntelligence', String(num))}
+                  style={{ 
+                    background: formData.emotionalIntelligence === String(num) ? sectionColors.emotional : '#f4f0e9',
+                    borderColor: formData.emotionalIntelligence === String(num) ? sectionColors.emotional : 'transparent'
+                  }}
                 >
                   {num}
                 </button>
@@ -446,6 +467,10 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
                   type="button"
                   className={`scale-btn ${formData.conflictFrequency === String(num) ? 'selected' : ''}`}
                   onClick={() => handleInputChange('conflictFrequency', String(num))}
+                  style={{ 
+                    background: formData.conflictFrequency === String(num) ? sectionColors.emotional : '#f4f0e9',
+                    borderColor: formData.conflictFrequency === String(num) ? sectionColors.emotional : 'transparent'
+                  }}
                 >
                   {num}
                 </button>
@@ -471,8 +496,8 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
       {/* Section 3: Decision-Making & Strategic Thinking */}
       <div className="assessment-card">
         <div className="section-header">
-          <Target className="w-6 h-6" style={{ color: '#013f7c' }} />
-          <h3>Decision-Making & Strategic Thinking <span className="optional-badge">Optional</span></h3>
+          <Target className="w-6 h-6" style={{ color: sectionColors.decision }} />
+          <h3 style={{ color: sectionColors.decision }}>Decision-Making & Strategic Thinking <span className="optional-badge">Optional</span></h3>
         </div>
 
         <div className="question-group">
@@ -488,6 +513,10 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
                   type="button"
                   className={`scale-btn ${formData.decisionQuality === String(num) ? 'selected' : ''}`}
                   onClick={() => handleInputChange('decisionQuality', String(num))}
+                  style={{ 
+                    background: formData.decisionQuality === String(num) ? sectionColors.decision : '#f4f0e9',
+                    borderColor: formData.decisionQuality === String(num) ? sectionColors.decision : 'transparent'
+                  }}
                 >
                   {num}
                 </button>
@@ -510,6 +539,10 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
                   type="button"
                   className={`scale-btn ${formData.strategicThinking === String(num) ? 'selected' : ''}`}
                   onClick={() => handleInputChange('strategicThinking', String(num))}
+                  style={{ 
+                    background: formData.strategicThinking === String(num) ? sectionColors.decision : '#f4f0e9',
+                    borderColor: formData.strategicThinking === String(num) ? sectionColors.decision : 'transparent'
+                  }}
                 >
                   {num}
                 </button>
@@ -536,7 +569,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
       <div className="assessment-card">
         <div className="section-header">
           <TrendingUp className="w-6 h-6" style={{ color: '#013f7c' }} />
-          <h3>Organizational Alignment & Goal Clarity <span className="optional-badge">Optional</span></h3>
+          <h3 style={{ color: '#013f7c' }}>Organizational Alignment & Goal Clarity <span className="optional-badge">Optional</span></h3>
         </div>
 
         <div className="question-group">
@@ -552,6 +585,10 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
                   type="button"
                   className={`scale-btn ${formData.goalAlignment === String(num) ? 'selected' : ''}`}
                   onClick={() => handleInputChange('goalAlignment', String(num))}
+                  style={{ 
+                    background: formData.goalAlignment === String(num) ? '#013f7c' : '#f4f0e9',
+                    borderColor: formData.goalAlignment === String(num) ? '#013f7c' : 'transparent'
+                  }}
                 >
                   {num}
                 </button>
@@ -574,6 +611,10 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
                   type="button"
                   className={`scale-btn ${formData.performanceClarity === String(num) ? 'selected' : ''}`}
                   onClick={() => handleInputChange('performanceClarity', String(num))}
+                  style={{ 
+                    background: formData.performanceClarity === String(num) ? '#013f7c' : '#f4f0e9',
+                    borderColor: formData.performanceClarity === String(num) ? '#013f7c' : 'transparent'
+                  }}
                 >
                   {num}
                 </button>
@@ -599,8 +640,8 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
       {/* Section 5: Overall Goals */}
       <div className="assessment-card">
         <div className="section-header">
-          <DollarSign className="w-6 h-6" style={{ color: '#013f7c' }} />
-          <h3>Overall Program Goals <span className="optional-badge">Optional</span></h3>
+          <DollarSign className="w-6 h-6" style={{ color: sectionColors.goals }} />
+          <h3 style={{ color: '#264d44' }}>Overall Program Goals <span className="optional-badge">Optional</span></h3>
         </div>
 
         <div className="question-group">

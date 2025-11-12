@@ -300,7 +300,7 @@ export default function ReviewStep({ selections, onBack }) {
         }
 
         .narrative-card {
-          background: linear-gradient(135deg, #441d37 0%, #5a2747 100%);
+          background: linear-gradient(135deg, #264d44 0%, #013f7c 100%);
           border-radius: 16px;
           padding: 28px;
           margin-bottom: 24px;
@@ -325,12 +325,11 @@ export default function ReviewStep({ selections, onBack }) {
         .narrative-title {
           font-size: 20px;
           font-weight: 700;
-          color: #ffffff;
+          color: #eaf995;
           margin-bottom: 12px;
           letter-spacing: 0.5px;
           text-transform: uppercase;
           font-size: 14px;
-          opacity: 0.9;
         }
 
         .narrative-content {
@@ -354,21 +353,21 @@ export default function ReviewStep({ selections, onBack }) {
         .narrative-subsection {
           margin-top: 16px;
           padding-left: 16px;
-          border-left: 3px solid rgba(255, 255, 255, 0.3);
+          border-left: 3px solid #ff9878;
         }
 
         .narrative-subtitle {
           font-weight: 700;
           font-size: 16px;
           margin-bottom: 6px;
-          color: #ffffff;
+          color: #cae5e3;
         }
 
         .narrative-highlight {
-          background: rgba(255, 255, 255, 0.1);
+          background: rgba(234, 249, 149, 0.15);
           padding: 20px;
           border-radius: 12px;
-          border: 2px solid rgba(255, 255, 255, 0.2);
+          border: 2px solid #eaf995;
         }
 
         .assessment-grid {
@@ -388,11 +387,11 @@ export default function ReviewStep({ selections, onBack }) {
         }
 
         .assessment-item.needs-work {
-          border-left: 4px solid #fbbf24;
+          border-left: 4px solid #ff9878;
         }
 
         .assessment-item.good {
-          border-left: 4px solid #10b981;
+          border-left: 4px solid #eaf995;
         }
 
         .review-section {
@@ -402,10 +401,10 @@ export default function ReviewStep({ selections, onBack }) {
         .review-section-title {
           font-size: 18px;
           font-weight: 700;
-          color: #013f7c;
+          color: #264d44;
           margin-bottom: 12px;
           padding-bottom: 8px;
-          border-bottom: 2px solid rgba(1, 63, 124, 0.2);
+          border-bottom: 2px solid rgba(38, 77, 68, 0.2);
         }
 
         .review-item {
@@ -438,8 +437,8 @@ export default function ReviewStep({ selections, onBack }) {
         }
 
         .success-message {
-          background: #e8f5e9;
-          color: #2e7d32;
+          background: linear-gradient(135deg, #eaf995, #cae5e3);
+          color: #264d44;
           padding: 20px;
           border-radius: 12px;
           text-align: center;
@@ -450,7 +449,7 @@ export default function ReviewStep({ selections, onBack }) {
       `}</style>
 
       <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-3" style={{ color: '#013f7c' }}>
+        <h2 className="text-3xl font-bold mb-3" style={{ color: '#441d37' }}>
           Your Customized Campaign
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>
@@ -461,7 +460,7 @@ export default function ReviewStep({ selections, onBack }) {
       {/* Personalized Narrative */}
       <div className="narrative-card">
         <div className="flex items-center gap-2 mb-6">
-          <Sparkles className="w-6 h-6" />
+          <Sparkles className="w-6 h-6" style={{ color: '#eaf995' }} />
           <h3 className="text-xl font-bold">Your Personalized Campaign Story</h3>
         </div>
         
@@ -570,10 +569,10 @@ export default function ReviewStep({ selections, onBack }) {
           </div>
         )}
 
-        <div className="mt-6 pt-6 border-t-2 border-gray-300">
+        <div className="mt-6 pt-6 border-t-2" style={{ borderColor: '#cae5e3' }}>
           <div className="flex justify-between items-center">
-            <span className="text-2xl font-bold" style={{ color: '#013f7c' }}>Total Estimate</span>
-            <span className="text-3xl font-bold" style={{ color: '#441d37' }}>${calculateTotal().toLocaleString()}</span>
+            <span className="text-2xl font-bold" style={{ color: '#264d44' }}>Total Estimate</span>
+            <span className="text-3xl font-bold" style={{ color: '#770142' }}>${calculateTotal().toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -581,7 +580,7 @@ export default function ReviewStep({ selections, onBack }) {
       {/* Contact Form */}
       {!showSuccess ? (
         <div className="review-card">
-          <h3 className="text-2xl font-bold mb-5" style={{ color: '#013f7c' }}>
+          <h3 className="text-2xl font-bold mb-5" style={{ color: '#264d44' }}>
             Submit Your Campaign
           </h3>
           <form onSubmit={handleSubmit}>

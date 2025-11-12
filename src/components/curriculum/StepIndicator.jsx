@@ -2,6 +2,17 @@ import React from 'react';
 import { Check } from 'lucide-react';
 
 export default function StepIndicator({ steps, currentStep }) {
+  // Color palette for steps
+  const stepColors = [
+    '#770142', // Step 1 - Assessment (magenta)
+    '#264d44', // Step 2 - Workshops (teal)
+    '#ff9878', // Step 3 - Challenges (coral)
+    '#013f7c', // Step 4 - Leadership (blue)
+    '#cae5e3', // Step 5 - Movement (light cyan)
+    '#eaf995', // Step 6 - Wellness (yellow-green)
+    '#441d37'  // Step 7 - Review (purple)
+  ];
+
   return (
     <div className="mb-12">
       <style>{`
@@ -20,7 +31,7 @@ export default function StepIndicator({ steps, currentStep }) {
           top: 20px;
           left: 0;
           height: 2px;
-          background: #441d37;
+          background: linear-gradient(90deg, #770142, #264d44, #ff9878, #013f7c, #cae5e3, #eaf995, #441d37);
           z-index: 1;
           transition: width 0.3s ease;
         }
@@ -44,7 +55,6 @@ export default function StepIndicator({ steps, currentStep }) {
         }
 
         .step-circle.active {
-          background: #441d37;
           color: white;
           box-shadow: 
             6px 6px 12px rgba(0, 0, 0, 0.2),
@@ -52,7 +62,6 @@ export default function StepIndicator({ steps, currentStep }) {
         }
 
         .step-circle.completed {
-          background: #441d37;
           color: white;
           box-shadow: 
             inset 3px 3px 6px rgba(0, 0, 0, 0.2),
@@ -68,38 +77,47 @@ export default function StepIndicator({ steps, currentStep }) {
         }
 
         .step-label.active {
-          color: #013f7c;
-          font-weight: 600;
+          font-weight: 700;
         }
       `}</style>
 
       <div className="relative px-4">
-        {/* Progress Line */}
         <div className="step-line"></div>
         <div 
           className="step-progress" 
           style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
         ></div>
 
-        {/* Steps */}
         <div className="relative flex justify-between items-start">
-          {steps.map((step) => (
-            <div key={step.number} className="flex flex-col items-center" style={{ flex: 1 }}>
-              <div className={`step-circle ${
-                step.number === currentStep ? 'active' : 
-                step.number < currentStep ? 'completed' : ''
-              }`}>
-                {step.number < currentStep ? (
-                  <Check className="w-5 h-5" />
-                ) : (
-                  step.number
-                )}
+          {steps.map((step, index) => {
+            const stepColor = stepColors[index] || '#441d37';
+            return (
+              <div key={step.number} className="flex flex-col items-center" style={{ flex: 1 }}>
+                <div 
+                  className={`step-circle ${
+                    step.number === currentStep ? 'active' : 
+                    step.number < currentStep ? 'completed' : ''
+                  }`}
+                  style={{
+                    background: step.number <= currentStep ? stepColor : '#f4f0e9',
+                    color: step.number <= currentStep ? 'white' : stepColor
+                  }}
+                >
+                  {step.number < currentStep ? (
+                    <Check className="w-5 h-5" />
+                  ) : (
+                    step.number
+                  )}
+                </div>
+                <div 
+                  className={`step-label ${step.number === currentStep ? 'active' : ''}`}
+                  style={{ color: step.number === currentStep ? stepColor : '#666' }}
+                >
+                  {step.name}
+                </div>
               </div>
-              <div className={`step-label ${step.number === currentStep ? 'active' : ''}`}>
-                {step.name}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>
