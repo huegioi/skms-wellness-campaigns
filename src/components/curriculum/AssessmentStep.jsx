@@ -256,7 +256,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
       `}</style>
 
       <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-3" style={{ color: sectionColors.resilience }}>
+        <h2 className="text-3xl font-bold mb-3" style={{ color: '#013f7c' }}>
           Assessment & Goals
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>
@@ -317,7 +317,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
 
       {/* Workforce Challenges */}
       <div className="assessment-card">
-        <h3 className="text-xl font-bold mb-4" style={{ color: sectionColors.emotional }}>
+        <h3 className="text-xl font-bold mb-4" style={{ color: '#264d44' }}>
           Current Workforce Challenges
         </h3>
         <p className="text-sm mb-4" style={{ color: '#666' }}>

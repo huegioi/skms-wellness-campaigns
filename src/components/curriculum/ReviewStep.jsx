@@ -341,7 +341,6 @@ export default function ReviewStep({ selections, onBack }) {
         .narrative-list {
           margin-top: 8px;
           padding-left: 20px;
-          list-style-type: disc;
         }
 
         .narrative-list li {
@@ -449,7 +448,7 @@ export default function ReviewStep({ selections, onBack }) {
       `}</style>
 
       <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-3" style={{ color: '#441d37' }}>
+        <h2 className="text-3xl font-bold mb-3" style={{ color: '#013f7c' }}>
           Your Customized Campaign
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>

@@ -3,9 +3,9 @@ import StepIndicator from '../components/curriculum/StepIndicator';
 import AssessmentStep from '../components/curriculum/AssessmentStep';
 import WorkshopStep from '../components/curriculum/WorkshopStep';
 import ChallengeStep from '../components/curriculum/ChallengeStep';
-import LeadershipStep from '../components/curriculum/LeadershipStep';
-import MovementStep from '../components/curriculum/MovementStep';
 import WellnessBoxStep from '../components/curriculum/WellnessBoxStep';
+import MovementStep from '../components/curriculum/MovementStep';
+import LeadershipStep from '../components/curriculum/LeadershipStep';
 import ReviewStep from '../components/curriculum/ReviewStep';
 
 export default function CurriculumDesigner() {
@@ -15,19 +15,19 @@ export default function CurriculumDesigner() {
     assessmentData: null,
     workshops: [],
     challengePrograms: [],
-    leadership: [],
-    movementClasses: [],
     smallBoxes: 0,
-    largeBoxes: 0
+    largeBoxes: 0,
+    movementClasses: [],
+    leadership: []
   });
 
   const steps = [
     { number: 1, name: 'Assessment', component: AssessmentStep },
     { number: 2, name: 'Workshops', component: WorkshopStep },
     { number: 3, name: 'Challenges', component: ChallengeStep },
-    { number: 4, name: 'Leadership', component: LeadershipStep },
+    { number: 4, name: 'Wellness Boxes', component: WellnessBoxStep },
     { number: 5, name: 'Movement', component: MovementStep },
-    { number: 6, name: 'Wellness Boxes', component: WellnessBoxStep },
+    { number: 6, name: 'Leadership', component: LeadershipStep },
     { number: 7, name: 'Review', component: ReviewStep }
   ];
 
@@ -69,7 +69,6 @@ export default function CurriculumDesigner() {
         `}</style>
 
         <div className="neuro-container">
-          {/* Header */}
           <div className="text-center mb-10">
             <h1 className="text-4xl md:text-5xl font-bold mb-2" style={{ color: '#013f7c' }}>
               Build Your Mental Fitness Campaign
@@ -79,10 +78,8 @@ export default function CurriculumDesigner() {
             </p>
           </div>
 
-          {/* Step Indicator */}
           <StepIndicator steps={steps} currentStep={currentStep} />
 
-          {/* Current Step Content */}
           <CurrentStepComponent
             selections={selections}
             updateSelections={updateSelections}

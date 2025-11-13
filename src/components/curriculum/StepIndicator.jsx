@@ -2,15 +2,15 @@ import React from 'react';
 import { Check } from 'lucide-react';
 
 export default function StepIndicator({ steps, currentStep }) {
-  // Color palette for steps
+  // Updated color palette for new step order
   const stepColors = [
-    '#770142', // Step 1 - Assessment (magenta)
-    '#264d44', // Step 2 - Workshops (teal)
-    '#ff9878', // Step 3 - Challenges (coral)
-    '#013f7c', // Step 4 - Leadership (blue)
-    '#cae5e3', // Step 5 - Movement (light cyan)
-    '#eaf995', // Step 6 - Wellness (yellow-green)
-    '#441d37'  // Step 7 - Review (purple)
+    '#770142',  // Step 1 - Assessment (magenta)
+    '#264d44',  // Step 2 - Workshops (teal)
+    '#ff9878',  // Step 3 - Challenges (coral)
+    '#eaf995',  // Step 4 - Wellness Boxes (yellow-green)
+    '#cae5e3',  // Step 5 - Movement (light cyan)
+    '#013f7c',  // Step 6 - Leadership (blue)
+    '#441d37'   // Step 7 - Review (purple)
   ];
 
   return (
@@ -31,7 +31,7 @@ export default function StepIndicator({ steps, currentStep }) {
           top: 20px;
           left: 0;
           height: 2px;
-          background: linear-gradient(90deg, #770142, #264d44, #ff9878, #013f7c, #cae5e3, #eaf995, #441d37);
+          background: linear-gradient(90deg, #770142, #264d44, #ff9878, #eaf995, #cae5e3, #013f7c, #441d37);
           z-index: 1;
           transition: width 0.3s ease;
         }
