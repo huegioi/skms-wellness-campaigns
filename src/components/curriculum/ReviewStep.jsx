@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { productCatalog, workforceChallenges, challengeSolutionMap } from './catalogData';
 import StepNavigation from './StepNavigation';
 import { Sparkles, Target } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 
 export default function ReviewStep({ selections, onBack }) {
   const [formData, setFormData] = useState({
@@ -11,9 +12,12 @@ export default function ReviewStep({ selections, onBack }) {
     email: ''
   });
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const assessmentData = selections.assessmentData || {};
   const sampleBoxQuantities = selections.sampleBoxQuantities || {};
+  const customBoxItems = selections.customBoxItems || [];
+  const customBoxPricePerUnit = customBoxItems.reduce((sum, item) => sum + item.price, 0);
 
   const calculateTotal = () => {
     let total = 0;
@@ -34,6 +38,10 @@ export default function ReviewStep({ selections, onBack }) {
     total += (sampleBoxQuantities.relaxationSleep || 0) * 65;
     total += (sampleBoxQuantities.largeEmotional || 0) * 125;
     total += (sampleBoxQuantities.largeStressReduction || 0) * 125;
+    // Add custom box total
+    if (selections.customBoxQuantity > 0 && customBoxPricePerUnit > 0) {
+      total += customBoxPricePerUnit * selections.customBoxQuantity;
+    }
     return total;
   };
 
@@ -210,7 +218,6 @@ export default function ReviewStep({ selections, onBack }) {
             .section { page-break-inside: avoid; }
             .narrative-box, .glance-box, .total-box, .contact-info { background: #f9f9f9 !important; -webkit-print-color-adjust: exact; color-adjust: exact;}
             .glance-box { color: #333 !important; }
-            .glance-box .glance-label { color: #264d44 !important; }
             .total-box { color: #333 !important; }
           }
         </style>
@@ -446,18 +453,16 @@ export default function ReviewStep({ selections, onBack }) {
                 </div>
               </div>
             ` : ''}
-            ${selections.customBoxQuantity > 0 ? `
+            ${selections.customBoxQuantity > 0 && customBoxItems.length > 0 ? `
               <div class="item">
                 <div class="item-title">Custom Wellness Boxes (${selections.customBoxQuantity} boxes)</div>
-                <div class="item-price">Pricing to be determined based on selection</div>
-                ${selections.customBoxItems && selections.customBoxItems.length > 0 ? `
-                  <div class="item-description">
-                    <strong>Selected Items:</strong>
-                    <ul>
-                      ${selections.customBoxItems.map(item => `<li>${item.name} ($${item.price.toFixed(2)})</li>`).join('')}
-                    </ul>
-                  </div>
-                ` : ''}
+                <div class="item-price">${selections.customBoxQuantity} &times; $${customBoxPricePerUnit.toFixed(2)} = $${(customBoxPricePerUnit * selections.customBoxQuantity).toLocaleString()}</div>
+                <div class="item-description">
+                  <strong>Selected Items:</strong>
+                  <ul>
+                    ${customBoxItems.map(item => `<li>${item.name} ($${item.price.toFixed(2)})</li>`).join('')}
+                  </ul>
+                </div>
               </div>
             ` : ''}
           </div>
@@ -466,7 +471,7 @@ export default function ReviewStep({ selections, onBack }) {
         <div class="total-box">
           <div style="font-size: 18px; margin-bottom: 10px;">Estimated Total Investment</div>
           <div class="total-amount">$${calculateTotal().toLocaleString()}</div>
-          <div style="font-size: 14px; opacity: 0.9;">(estimated before shipping${selections.customBoxQuantity > 0 ? ', custom boxes pricing TBD' : ''})</div>
+          <div style="font-size: 14px; opacity: 0.9;">(estimated before shipping)</div>
         </div>
 
         <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #ccc; text-align: center; color: #666;">
@@ -477,7 +482,6 @@ export default function ReviewStep({ selections, onBack }) {
       </html>
     `;
 
-    // Create blob and download
     const blob = new Blob([pdfContent], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -496,111 +500,72 @@ export default function ReviewStep({ selections, onBack }) {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
-    // Generate and download PDF
-    generatePDF();
+    try {
+      // Generate and download PDF
+      generatePDF();
 
-    // Build email body
-    let emailBody = `MENTAL FITNESS CAMPAIGN PROPOSAL%0D%0A`;
-    emailBody += `======================================%0D%0A%0D%0A`;
-    
-    // Instruction to attach PDF
-    emailBody += `A detailed PDF proposal has been downloaded to your computer. Please attach it to this email for a complete overview of your customized program.%0D%0A%0D%0A`;
-    
-    // Contact Info
-    emailBody += `CONTACT INFORMATION%0D%0A`;
-    emailBody += `-------------------%0D%0A`;
-    emailBody += `Name: ${formData.name}%0D%0A`;
-    emailBody += `Company: ${formData.company || 'N/A'}%0D%0A`;
-    emailBody += `Email: ${formData.email}%0D%0A%0D%0A`;
-    
-    // HOW THIS PROGRAM SUPPORTS YOUR TEAM
-    if (narrative) {
-      emailBody += `HOW THIS PROGRAM SUPPORTS YOUR TEAM%0D%0A`;
-      emailBody += `======================================%0D%0A`;
-      emailBody += `Your team is currently facing challenges around ${narrative.challenges.join(', ')}. `;
-      emailBody += `This customized mental fitness program addresses these needs through ${narrative.components.join(', ')}, `;
-      emailBody += `creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.%0D%0A%0D%0A`;
+      // Build detailed email body for admin
+      let emailBody = `NEW MENTAL FITNESS CAMPAIGN SUBMISSION\n\n`;
+      emailBody += `CONTACT INFORMATION\n`;
+      emailBody += `Name: ${formData.name}\n`;
+      emailBody += `Company: ${formData.company || 'N/A'}\n`;
+      emailBody += `Email: ${formData.email}\n\n`;
+      
+      if (narrative) {
+        emailBody += `HOW THIS PROGRAM SUPPORTS THEIR TEAM\n`;
+        emailBody += `Team is facing challenges around: ${narrative.challenges.join(', ')}\n`;
+        emailBody += `Program components: ${narrative.components.join(', ')}\n\n`;
+      }
+
+      emailBody += `PROGRAM SUMMARY\n`;
+      if (assessmentData.companySize) emailBody += `Company Size: ${assessmentData.companySize}\n`;
+      if (assessmentData.industry) emailBody += `Industry: ${assessmentData.industry}\n`;
+      if (assessmentData.timeline) emailBody += `Timeline: ${assessmentData.timeline}\n`;
+      if (selections.challenges) emailBody += `Focus Areas: ${selections.challenges.map(id => workforceChallenges.find(c => c.id === id)?.label).filter(Boolean).join(', ')}\n`;
+      
+      emailBody += `\nPROGRAM COMPONENTS\n`;
+      if (selections.workshops?.length > 0) emailBody += `- ${selections.workshops.length} Workshops\n`;
+      if (selections.challengePrograms?.length > 0) emailBody += `- ${selections.challengePrograms.length} Challenges\n`;
+      if (selections.leadership?.length > 0) emailBody += `- ${selections.leadership.length} Leadership Programs\n`;
+      if (selections.movementClasses?.length > 0) emailBody += `- ${selections.movementClasses.length} Classes\n`;
+      
+      if ((sampleBoxQuantities.reduceStress || 0) + (sampleBoxQuantities.relaxationSleep || 0) + 
+          (sampleBoxQuantities.largeEmotional || 0) + (sampleBoxQuantities.largeStressReduction || 0) > 0 ||
+          (selections.customBoxQuantity || 0) > 0) {
+        emailBody += `\nWELLNESS BOXES\n`;
+        if (sampleBoxQuantities.reduceStress > 0) emailBody += `- Reduce Stress Box: ${sampleBoxQuantities.reduceStress} boxes ($${(sampleBoxQuantities.reduceStress * 65).toLocaleString()})\n`;
+        if (sampleBoxQuantities.relaxationSleep > 0) emailBody += `- Relaxation & Sleep Box: ${sampleBoxQuantities.relaxationSleep} boxes ($${(sampleBoxQuantities.relaxationSleep * 65).toLocaleString()})\n`;
+        if (sampleBoxQuantities.largeEmotional > 0) emailBody += `- Large Emotional Wellness Box: ${sampleBoxQuantities.largeEmotional} boxes ($${(sampleBoxQuantities.largeEmotional * 125).toLocaleString()})\n`;
+        if (sampleBoxQuantities.largeStressReduction > 0) emailBody += `- Large Stress Reduction Box: ${sampleBoxQuantities.largeStressReduction} boxes ($${(sampleBoxQuantities.largeStressReduction * 125).toLocaleString()})\n`;
+        if (selections.customBoxQuantity > 0 && customBoxItems.length > 0) {
+          emailBody += `- Custom Wellness Boxes: ${selections.customBoxQuantity} boxes ($${(customBoxPricePerUnit * selections.customBoxQuantity).toLocaleString()})\n`;
+          emailBody += `  Items: ${customBoxItems.map(item => `${item.name} ($${item.price.toFixed(2)})`).join(', ')}\n`;
+        } else if (selections.customBoxQuantity > 0) {
+          emailBody += `- Custom Wellness Boxes: ${selections.customBoxQuantity} boxes (pricing to be determined)\n`;
+        }
+      }
+
+      emailBody += `\nESTIMATED TOTAL INVESTMENT: $${calculateTotal().toLocaleString()}\n`;
+
+      // Send email to admin using base44 integration
+      await base44.integrations.Core.SendEmail({
+        from_name: 'SkillfulMeans Campaign Builder',
+        to: 'admin@skillfulmeans.life',
+        subject: `New Campaign Submission - ${formData.name}${formData.company ? ` (${formData.company})` : ''}`,
+        body: emailBody
+      });
+
+      setShowSuccess(true);
+    } catch (error) {
+      console.error('Error submitting campaign:', error);
+      alert('There was an error submitting your campaign. Please try again or email us directly at admin@skillfulmeans.life');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    // Concise Summary
-    emailBody += `YOUR PROGRAM AT A GLANCE%0D%0A`;
-    emailBody += `======================================%0D%0A`;
-    
-    // Organization
-    if (assessmentData.companySize || assessmentData.industry) {
-      emailBody += `ORGANIZATION:%0D%0A`;
-      if (assessmentData.industry) emailBody += `  Industry: ${assessmentData.industry}%0D%0A`;
-      if (assessmentData.companySize) emailBody += `  Company Size: ${assessmentData.companySize}%0D%0A`;
-      emailBody += `%0D%0A`;
-    }
-    
-    // Focus Areas
-    if (selections.challenges && selections.challenges.length > 0) {
-      emailBody += `FOCUS AREAS:%0D%0A`;
-      emailBody += `  ${selections.challenges.map(id => workforceChallenges.find(c => c.id === id)?.label).filter(Boolean).join(', ')}%0D%0A%0D%0A`;
-    }
-
-    // Program Components Summary
-    const componentsList = [];
-    if (selections.workshops?.length > 0) componentsList.push(`${selections.workshops.length} Workshops`);
-    if (selections.challengePrograms?.length > 0) componentsList.push(`${selections.challengePrograms.length} Challenges`);
-    if (selections.leadership?.length > 0) componentsList.push(`${selections.leadership.length} Leadership Programs`);
-    if (selections.movementClasses?.length > 0) componentsList.push(`${selections.movementClasses.length} Classes`);
-    
-    const hasWellnessBoxes = (sampleBoxQuantities.reduceStress || 0) + (sampleBoxQuantities.relaxationSleep || 0) + 
-                             (sampleBoxQuantities.largeEmotional || 0) + (sampleBoxQuantities.largeStressReduction || 0) > 0 ||
-                             (selections.customBoxQuantity || 0) > 0;
-    if (hasWellnessBoxes) componentsList.push('Wellness Boxes');
-
-    if (componentsList.length > 0) {
-      emailBody += `PROGRAM COMPONENTS:%0D%0A`;
-      emailBody += `  ${componentsList.join(' • ')}%0D%0A%0D%0A`;
-    }
-
-    // Timeline
-    if (assessmentData.timeline) {
-      emailBody += `TIMELINE:%0D%0A`;
-      emailBody += `  ${assessmentData.timeline}%0D%0A%0D%0A`;
-    }
-
-    // Combined Assessment & Goals
-    const assessmentDetails = [];
-    if (assessmentData.teamResilience) assessmentDetails.push(`Team Resilience: ${assessmentData.teamResilience}/5`);
-    if (assessmentData.engagementLevel) assessmentDetails.push(`Team Engagement: ${assessmentData.engagementLevel}/5`);
-    if (assessmentData.teamCommunication) assessmentDetails.push(`Team Communication: ${assessmentData.teamCommunication}/5`);
-    if (assessmentData.teamDecisionQuality) assessmentDetails.push(`Decision Quality: ${assessmentData.teamDecisionQuality}/5`);
-    if (assessmentData.goalAlignment) assessmentDetails.push(`Goal Alignment: ${assessmentData.goalAlignment}/5`);
-    if (assessmentData.leadershipEffectiveness) assessmentDetails.push(`Leadership Effectiveness: ${assessmentData.leadershipEffectiveness}/5`);
-    if (assessmentData.primaryGoals) assessmentDetails.push(`Primary Goals: ${assessmentData.primaryGoals}`);
-
-    if (assessmentDetails.length > 0) {
-      emailBody += `ASSESSMENT & GOALS:%0D%0A`;
-      emailBody += `  ${assessmentDetails.join(' | ')}%0D%0A%0D%0A`;
-    }
-
-    // Total Investment
-    emailBody += `%0D%0A======================================%0D%0A`;
-    emailBody += `ESTIMATED TOTAL INVESTMENT: $${calculateTotal().toLocaleString()}%0D%0A`;
-    emailBody += `======================================%0D%0A`;
-    emailBody += `(estimated before shipping`;
-    if (selections.customBoxQuantity > 0) {
-      emailBody += `, custom wellness boxes pricing to be determined`;
-    }
-    emailBody += `)%0D%0A%0D%0A`;
-
-    emailBody += `For a comprehensive breakdown of all selected components and details, please refer to the attached PDF proposal.%0D%0A%0D%0A`;
-    emailBody += `Looking forward to co-creating this mental fitness campaign with SkillfulMeans!`;
-
-    const mailtoLink = `mailto:admin@skillfulmeans.life?subject=Mental Fitness Campaign Proposal - ${formData.name}&body=${emailBody}`;
-
-    setShowSuccess(true);
-
-    setTimeout(() => {
-      window.location.href = mailtoLink;
-    }, 2500);
   };
 
   return (
@@ -771,7 +736,7 @@ export default function ReviewStep({ selections, onBack }) {
           </div>
           <p className="narrative-text">
             Your team is currently facing challenges around <strong>{narrative.challenges.join(', ')}</strong>. 
-            This customized mental fitness program addresses these needs through <strong>{narrative.components.join(', ')}</strong>, 
+            This customized mental fitness program addresses these needs through <strong>${narrative.components.join(', ')}</strong>, 
             creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.
           </p>
         </div>
@@ -909,7 +874,11 @@ export default function ReviewStep({ selections, onBack }) {
             {selections.customBoxQuantity > 0 && (
               <div className="review-item">
                 <span>Custom Wellness Boxes ({selections.customBoxQuantity})</span>
-                <span className="font-semibold text-sm" style={{ color: '#666' }}>Contact for pricing</span>
+                {customBoxPricePerUnit > 0 ? (
+                  <span className="font-semibold">${(customBoxPricePerUnit * selections.customBoxQuantity).toLocaleString()}</span>
+                ) : (
+                  <span className="font-semibold text-sm" style={{ color: '#666' }}>Contact for pricing</span>
+                )}
               </div>
             )}
           </div>
@@ -921,7 +890,7 @@ export default function ReviewStep({ selections, onBack }) {
             <span className="text-2xl md:text-3xl font-bold" style={{ color: '#770142' }}>${calculateTotal().toLocaleString()}</span>
           </div>
           <p className="text-xs mt-1 text-right" style={{ color: '#666' }}>
-            (estimated before shipping{selections.customBoxQuantity > 0 ? ', custom boxes pricing TBD' : ''})
+            (estimated before shipping{selections.customBoxQuantity > 0 && customBoxPricePerUnit === 0 ? ', custom boxes pricing TBD' : ''})
           </p>
         </div>
       </div>
@@ -979,15 +948,22 @@ export default function ReviewStep({ selections, onBack }) {
 
             <StepNavigation
               onBack={onBack}
-              nextLabel="Submit Proposal"
+              nextLabel={isSubmitting ? "Submitting..." : "Download PDF & Submit"}
               isLastStep={true}
+              nextDisabled={isSubmitting}
             />
           </form>
         </div>
       ) : (
         <div className="success-message">
           <h3 className="text-lg md:text-xl font-bold mb-2">Thank You!</h3>
-          <p className="text-sm md:text-base">Please complete sending the email from your mail client. A member of our team will follow up with you soon.</p>
+          <p className="text-sm md:text-base mb-4">Your proposal has been downloaded successfully.</p>
+          <p className="text-sm md:text-base mb-2">
+            Please email the downloaded PDF to <strong>admin@skillfulmeans.life</strong> and we will reach out to book a call with you.
+          </p>
+          <p className="text-xs mt-4" style={{ color: '#666' }}>
+            (We've also sent a notification to our team about your submission)
+          </p>
         </div>
       )}
     </div>

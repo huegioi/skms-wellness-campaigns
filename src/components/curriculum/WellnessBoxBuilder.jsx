@@ -1,9 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { X, Plus } from 'lucide-react';
 
-export default function WellnessBoxBuilder({ wellnessItems, customBoxQuantity, onQuantityChange }) {
+export default function WellnessBoxBuilder({ wellnessItems, customBoxQuantity, onQuantityChange, onCustomBoxChange }) {
   const [customBox, setCustomBox] = useState([]);
+
+  useEffect(() => {
+    if (onCustomBoxChange) {
+      onCustomBoxChange(customBox);
+    }
+  }, [customBox, onCustomBoxChange]); // Added onCustomBoxChange to dependencies
 
   const onDragEnd = (result) => {
     if (!result.destination) return;
@@ -316,6 +323,21 @@ export default function WellnessBoxBuilder({ wellnessItems, customBoxQuantity, o
                 +
               </button>
             </div>
+            {customBoxQuantity > 0 && (
+              <div className="mt-4 p-4 bg-white rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-base font-bold" style={{ color: '#264d44' }}>
+                    Total for {customBoxQuantity} box{customBoxQuantity !== 1 ? 'es' : ''}:
+                  </span>
+                  <span className="text-xl font-bold" style={{ color: '#770142' }}>
+                    ${(calculateTotal() * customBoxQuantity).toFixed(2)}
+                  </span>
+                </div>
+                <p className="text-xs mt-1 text-right" style={{ color: '#666' }}>
+                  (estimated before shipping)
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -6,6 +6,7 @@ import { Gift, Sparkles, DollarSign } from 'lucide-react';
 
 export default function WellnessBoxStep({ selections, updateSelections, onNext, onBack }) {
   const [customBoxQuantity, setCustomBoxQuantity] = useState(selections.customBoxQuantity || 0);
+  const [customBoxItems, setCustomBoxItems] = useState(selections.customBoxItems || []);
   const [sampleBoxQuantities, setSampleBoxQuantities] = useState(
     selections.sampleBoxQuantities || {
       reduceStress: 0,
@@ -18,6 +19,11 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
   const handleCustomQuantityChange = (newQuantity) => {
     setCustomBoxQuantity(newQuantity);
     updateSelections('customBoxQuantity', newQuantity);
+  };
+
+  const handleCustomBoxChange = (items) => {
+    setCustomBoxItems(items);
+    updateSelections('customBoxItems', items);
   };
 
   const updateSampleBoxQuantity = (boxId, increment) => {
@@ -35,8 +41,11 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
     total += (sampleBoxQuantities.relaxationSleep || 0) * 65;
     total += (sampleBoxQuantities.largeEmotional || 0) * 125;
     total += (sampleBoxQuantities.largeStressReduction || 0) * 125;
-    // Custom boxes would need price calculation from builder
-    // For now, we'll just show quantity
+    // Add custom box total
+    if (customBoxQuantity > 0 && customBoxItems.length > 0) {
+      const customBoxTotal = customBoxItems.reduce((sum, item) => sum + item.price, 0);
+      total += customBoxTotal * customBoxQuantity;
+    }
     return total;
   };
 
@@ -293,6 +302,7 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
         wellnessItems={wellnessItems} 
         customBoxQuantity={customBoxQuantity}
         onQuantityChange={handleCustomQuantityChange}
+        onCustomBoxChange={handleCustomBoxChange}
       />
 
       {/* Pre-Designed Sample Boxes Section */}
@@ -397,14 +407,25 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
           </div>
           <div className="flex justify-between items-center">
             <span className="text-base md:text-lg">Pre-Designed Boxes</span>
-            <span className="text-xl md:text-2xl font-bold">${calculateWellnessBoxTotal().toLocaleString()}</span>
+            <span className="text-xl md:text-2xl font-bold">
+              ${((sampleBoxQuantities.reduceStress || 0) * 65 + 
+                 (sampleBoxQuantities.relaxationSleep || 0) * 65 + 
+                 (sampleBoxQuantities.largeEmotional || 0) * 125 + 
+                 (sampleBoxQuantities.largeStressReduction || 0) * 125).toLocaleString()}
+            </span>
           </div>
-          {customBoxQuantity > 0 && (
+          {customBoxQuantity > 0 && customBoxItems.length > 0 && (
             <div className="flex justify-between items-center mt-2">
               <span className="text-base md:text-lg">Custom Boxes ({customBoxQuantity})</span>
-              <span className="text-xl md:text-2xl font-bold">Contact for pricing</span>
+              <span className="text-xl md:text-2xl font-bold">
+                ${(customBoxItems.reduce((sum, item) => sum + item.price, 0) * customBoxQuantity).toLocaleString()}
+              </span>
             </div>
           )}
+          <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/20">
+            <span className="text-lg md:text-xl font-bold">Total</span>
+            <span className="text-2xl md:text-3xl font-bold">${calculateWellnessBoxTotal().toLocaleString()}</span>
+          </div>
           <p className="text-xs mt-3 text-right opacity-80">
             (estimated before shipping)
           </p>
