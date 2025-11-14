@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import StepIndicator from '../components/curriculum/StepIndicator';
 import AssessmentStep from '../components/curriculum/AssessmentStep';
@@ -60,6 +61,7 @@ export default function CurriculumDesigner() {
             selections={selections}
             updateSelections={updateSelections}
             onNext={handleNext}
+            isFirstStep={true}
           />
         );
       case 2:
