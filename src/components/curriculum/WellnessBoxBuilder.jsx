@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { X, Plus } from 'lucide-react';
 
-export default function WellnessBoxBuilder({ wellnessItems }) {
+export default function WellnessBoxBuilder({ wellnessItems, customBoxQuantity, onQuantityChange }) {
   const [customBox, setCustomBox] = useState([]);
 
   const onDragEnd = (result) => {
@@ -22,6 +22,11 @@ export default function WellnessBoxBuilder({ wellnessItems }) {
 
   const calculateTotal = () => {
     return customBox.reduce((sum, item) => sum + item.price, 0);
+  };
+
+  const updateStepper = (increment) => {
+    const newValue = increment ? customBoxQuantity + 1 : Math.max(0, customBoxQuantity - 1);
+    onQuantityChange(newValue);
   };
 
   return (
@@ -129,6 +134,49 @@ export default function WellnessBoxBuilder({ wellnessItems }) {
           .item-name {
             font-size: 12px;
           }
+        }
+
+        .neuro-stepper {
+          background: #f4f0e9;
+          border-radius: 12px;
+          padding: 8px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          box-shadow: 
+            inset 3px 3px 6px rgba(0, 0, 0, 0.1),
+            inset -3px -3px 6px rgba(255, 255, 255, 0.8);
+        }
+
+        .neuro-stepper-btn {
+          background: #f4f0e9;
+          border: none;
+          width: 40px;
+          height: 40px;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 20px;
+          color: #441d37;
+          font-weight: bold;
+          box-shadow: 
+            4px 4px 8px rgba(0, 0, 0, 0.12),
+            -4px -4px 8px rgba(255, 255, 255, 0.9);
+          transition: all 0.2s ease;
+        }
+
+        .neuro-stepper-btn:hover {
+          box-shadow: 
+            3px 3px 6px rgba(0, 0, 0, 0.15),
+            -3px -3px 6px rgba(255, 255, 255, 0.95);
+        }
+
+        .neuro-stepper-btn:active {
+          box-shadow: 
+            inset 2px 2px 4px rgba(0, 0, 0, 0.2),
+            inset -2px -2px 4px rgba(255, 255, 255, 0.1);
         }
       `}</style>
 
@@ -244,6 +292,32 @@ export default function WellnessBoxBuilder({ wellnessItems }) {
             </div>
           </div>
         </DragDropContext>
+
+        {/* Quantity Selector for Custom Boxes */}
+        {customBox.length > 0 && (
+          <div className="mt-6 pt-6 border-t-2" style={{ borderColor: '#cae5e3' }}>
+            <h4 className="text-base font-bold mb-3" style={{ color: '#264d44' }}>
+              How many of these custom boxes would you like?
+            </h4>
+            <div className="neuro-stepper" style={{ maxWidth: '300px' }}>
+              <button 
+                className="neuro-stepper-btn"
+                onClick={() => updateStepper(false)}
+              >
+                −
+              </button>
+              <span className="flex-1 text-center text-lg md:text-xl font-bold" style={{ color: '#333' }}>
+                {customBoxQuantity}
+              </span>
+              <button 
+                className="neuro-stepper-btn"
+                onClick={() => updateStepper(true)}
+              >
+                +
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { productCatalog, workforceChallenges } from './catalogData';
 import StepNavigation from './StepNavigation';
@@ -75,14 +76,15 @@ export default function ReviewStep({ selections, onBack }) {
     }
 
     // Assessment Scores (if provided)
-    if (assessmentData.resilienceLevel || assessmentData.engagementLevel || assessmentData.emotionalIntelligence) {
+    if (assessmentData.teamResilience || assessmentData.engagementLevel || assessmentData.teamCommunication || assessmentData.teamDecisionQuality || assessmentData.goalAlignment || assessmentData.leadershipEffectiveness) {
       emailBody += `ASSESSMENT RESULTS%0D%0A`;
       emailBody += `-------------------%0D%0A`;
-      if (assessmentData.resilienceLevel) emailBody += `Leadership Resilience: ${assessmentData.resilienceLevel}/5%0D%0A`;
+      if (assessmentData.teamResilience) emailBody += `Team Resilience: ${assessmentData.teamResilience}/5%0D%0A`;
       if (assessmentData.engagementLevel) emailBody += `Team Engagement: ${assessmentData.engagementLevel}/5%0D%0A`;
-      if (assessmentData.emotionalIntelligence) emailBody += `Emotional Intelligence: ${assessmentData.emotionalIntelligence}/5%0D%0A`;
-      if (assessmentData.decisionQuality) emailBody += `Decision Quality: ${assessmentData.decisionQuality}/5%0D%0A`;
+      if (assessmentData.teamCommunication) emailBody += `Team Communication: ${assessmentData.teamCommunication}/5%0D%0A`;
+      if (assessmentData.teamDecisionQuality) emailBody += `Decision Quality: ${assessmentData.teamDecisionQuality}/5%0D%0A`;
       if (assessmentData.goalAlignment) emailBody += `Goal Alignment: ${assessmentData.goalAlignment}/5%0D%0A`;
+      if (assessmentData.leadershipEffectiveness) emailBody += `Leadership Effectiveness: ${assessmentData.leadershipEffectiveness}/5%0D%0A`;
       emailBody += `%0D%0A`;
     }
 
@@ -138,7 +140,7 @@ export default function ReviewStep({ selections, onBack }) {
 
     // Movement Classes
     if (selections.movementClasses && selections.movementClasses.length > 0) {
-      emailBody += `MOVEMENT & MINDFULNESS CLASSES%0D%0A`;
+      emailBody += `CLASSES%0D%0A`;
       emailBody += `-------------------%0D%0A`;
       selections.movementClasses.forEach(key => {
         const classItem = productCatalog.movementClasses[key];
@@ -164,7 +166,7 @@ export default function ReviewStep({ selections, onBack }) {
 
     // Total
     emailBody += `======================================%0D%0A`;
-    emailBody += `ESTIMATED TOTAL INVESTMENT: $${calculateTotal().toLocaleString()}%0D%0A`;
+    emailBody += `ESTIMATED TOTAL (before shipping): $${calculateTotal().toLocaleString()}%0D%0A`;
     emailBody += `======================================%0D%0A%0D%0A`;
 
     // Success Metrics
@@ -350,7 +352,7 @@ export default function ReviewStep({ selections, onBack }) {
               selections.workshops?.length > 0 && `${selections.workshops.length} Workshops`,
               selections.challengePrograms?.length > 0 && `${selections.challengePrograms.length} Challenges`,
               selections.leadership?.length > 0 && `${selections.leadership.length} Leadership Programs`,
-              selections.movementClasses?.length > 0 && `${selections.movementClasses.length} Movement Classes`,
+              selections.movementClasses?.length > 0 && `${selections.movementClasses.length} Classes`,
               (selections.smallBoxes > 0 || selections.largeBoxes > 0) && 'Wellness Boxes'
             ].filter(Boolean).join(' • ')}
           </div>
@@ -404,7 +406,7 @@ export default function ReviewStep({ selections, onBack }) {
 
         {selections.movementClasses && selections.movementClasses.length > 0 && (
           <div className="review-section">
-            <div className="review-section-title">Movement & Mindfulness</div>
+            <div className="review-section-title">Classes</div>
             {selections.movementClasses.map(key => (
               <div key={key} className="review-item">
                 <span>{productCatalog.movementClasses[key]?.name}</span>
@@ -437,6 +439,9 @@ export default function ReviewStep({ selections, onBack }) {
             <span className="text-xl md:text-2xl font-bold" style={{ color: '#264d44' }}>Total Investment</span>
             <span className="text-2xl md:text-3xl font-bold" style={{ color: '#770142' }}>${calculateTotal().toLocaleString()}</span>
           </div>
+          <p className="text-xs mt-1 text-right" style={{ color: '#666' }}>
+            (estimated before shipping)
+          </p>
         </div>
       </div>
 

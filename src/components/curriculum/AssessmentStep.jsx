@@ -1,11 +1,9 @@
-
 import React, { useState } from 'react';
 import { workforceChallenges } from './catalogData';
 import StepNavigation from './StepNavigation';
 import { Brain, Users, Target, TrendingUp, DollarSign, Flame, MessageCircle, Monitor, Heart, Crown, Activity, Scale } from 'lucide-react';
 
 export default function AssessmentStep({ selections, updateSelections, onNext, isFirstStep }) {
-  // Icon mapping for workforce challenges
   const iconMap = {
     Flame: Flame,
     MessageCircle: MessageCircle,
@@ -22,27 +20,32 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
     industry: selections.assessmentData?.industry || '',
     timeline: selections.assessmentData?.timeline || '',
     
-    // Section 1: Resilience & Engagement
-    resilienceLevel: selections.assessmentData?.resilienceLevel || '3',
+    // Section 1: Team Resilience & Engagement
+    teamResilience: selections.assessmentData?.teamResilience || '3',
     engagementLevel: selections.assessmentData?.engagementLevel || '3',
     resilienceExample: selections.assessmentData?.resilienceExample || '',
     
-    // Section 2: Emotional Intelligence & Team Climate
-    emotionalIntelligence: selections.assessmentData?.emotionalIntelligence || '3',
+    // Section 2: Team Communication & Collaboration
+    teamCommunication: selections.assessmentData?.teamCommunication || '3',
     conflictFrequency: selections.assessmentData?.conflictFrequency || '3',
     teamClimateExample: selections.assessmentData?.teamClimateExample || '',
     
-    // Section 3: Decision-Making & Strategic Thinking
-    decisionQuality: selections.assessmentData?.decisionQuality || '3',
-    strategicThinking: selections.assessmentData?.strategicThinking || '3',
-    decisionExample: selections.assessmentData?.decisionExample || '',
+    // Section 3: Team Decision-Making & Productivity
+    teamDecisionQuality: selections.assessmentData?.teamDecisionQuality || '3',
+    teamProductivity: selections.assessmentData?.teamProductivity || '3',
+    productivityExample: selections.assessmentData?.productivityExample || '',
     
-    // Section 4: Alignment & Goal Clarity
+    // Section 4: Team Alignment & Clarity
     goalAlignment: selections.assessmentData?.goalAlignment || '3',
     performanceClarity: selections.assessmentData?.performanceClarity || '3',
     alignmentBenefits: selections.assessmentData?.alignmentBenefits || '',
     
-    // Section 5: Overall Goals
+    // Section 5: Leadership (single section)
+    leadershipEffectiveness: selections.assessmentData?.leadershipEffectiveness || '3',
+    leadershipEmotionalIntelligence: selections.assessmentData?.leadershipEmotionalIntelligence || '3',
+    leadershipExample: selections.assessmentData?.leadershipExample || '',
+    
+    // Section 6: Overall Goals
     primaryGoals: selections.assessmentData?.primaryGoals || '',
     successMetrics: selections.assessmentData?.successMetrics || ''
   });
@@ -68,12 +71,12 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
     onNext();
   };
 
-  // Color palette for sections
   const sectionColors = {
     resilience: '#770142',
-    emotional: '#264d44',
+    communication: '#264d44',
     decision: '#ff9878',
-    alignment: '#cae5e3', // This color is defined but not explicitly used in alignment section elements due to outline's specific instructions.
+    alignment: '#cae5e3',
+    leadership: '#013f7c',
     goals: '#eaf995'
   };
 
@@ -83,11 +86,17 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         .assessment-card {
           background: #f4f0e9;
           border-radius: 16px;
-          padding: 24px;
+          padding: 20px;
           margin-bottom: 24px;
           box-shadow: 
             8px 8px 16px rgba(0, 0, 0, 0.12),
             -8px -8px 16px rgba(255, 255, 255, 0.9);
+        }
+
+        @media (min-width: 768px) {
+          .assessment-card {
+            padding: 24px;
+          }
         }
 
         .section-header {
@@ -100,9 +109,15 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         }
 
         .section-header h3 {
-          font-size: 20px;
+          font-size: 18px;
           font-weight: 700;
           color: #013f7c;
+        }
+
+        @media (min-width: 768px) {
+          .section-header h3 {
+            font-size: 20px;
+          }
         }
 
         .question-group {
@@ -114,39 +129,64 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
           margin-bottom: 8px;
           font-weight: 600;
           color: #333;
-          font-size: 14px;
+          font-size: 13px;
+        }
+
+        @media (min-width: 768px) {
+          .question-label {
+            font-size: 14px;
+          }
         }
 
         .scale-container {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 12px;
           flex-wrap: wrap;
         }
 
+        @media (min-width: 768px) {
+          .scale-container {
+            gap: 16px;
+          }
+        }
+
         .scale-label {
-          font-size: 14px;
+          font-size: 12px;
           font-weight: 700;
           color: #441d37;
-          min-width: 120px;
+          min-width: 100px;
           padding: 8px 12px;
           background: rgba(68, 29, 55, 0.08);
           border-radius: 8px;
           text-align: center;
         }
 
+        @media (min-width: 768px) {
+          .scale-label {
+            font-size: 14px;
+            min-width: 120px;
+          }
+        }
+
         .scale-buttons {
           display: flex;
-          gap: 8px;
+          gap: 6px;
           flex: 1;
           justify-content: center;
+        }
+
+        @media (min-width: 768px) {
+          .scale-buttons {
+            gap: 8px;
+          }
         }
 
         .scale-btn {
           background: #f4f0e9;
           border: 2px solid transparent;
-          width: 44px;
-          height: 44px;
+          width: 40px;
+          height: 40px;
           border-radius: 50%;
           font-weight: 600;
           color: #441d37;
@@ -155,6 +195,13 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             4px 4px 8px rgba(0, 0, 0, 0.12),
             -4px -4px 8px rgba(255, 255, 255, 0.9);
           transition: all 0.2s ease;
+        }
+
+        @media (min-width: 768px) {
+          .scale-btn {
+            width: 44px;
+            height: 44px;
+          }
         }
 
         .scale-btn:hover {
@@ -199,20 +246,33 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
 
         .challenge-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-          gap: 16px;
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          gap: 12px;
           margin-bottom: 24px;
+        }
+
+        @media (min-width: 768px) {
+          .challenge-grid {
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+          }
         }
 
         .challenge-card {
           background: #f4f0e9;
           border-radius: 16px;
-          padding: 20px;
+          padding: 16px;
           cursor: pointer;
           transition: all 0.3s ease;
           box-shadow: 
             6px 6px 12px rgba(0, 0, 0, 0.12),
             -6px -6px 12px rgba(255, 255, 255, 0.9);
+        }
+
+        @media (min-width: 768px) {
+          .challenge-card {
+            padding: 20px;
+          }
         }
 
         .challenge-card:hover {
@@ -249,24 +309,30 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
           color: #441d37;
           padding: 4px 12px;
           border-radius: 12px;
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
           margin-left: 8px;
         }
+
+        @media (min-width: 768px) {
+          .optional-badge {
+            font-size: 12px;
+          }
+        }
       `}</style>
 
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-3" style={{ color: '#013f7c' }}>
+      <div className="mb-6 md:mb-8">
+        <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-3" style={{ color: '#013f7c' }}>
           Assessment & Goals
         </h2>
-        <p className="text-lg" style={{ color: '#666' }}>
-          Help us understand your organization's current state and desired outcomes.
+        <p className="text-base md:text-lg" style={{ color: '#666' }}>
+          Help us understand your team's current state and desired outcomes.
         </p>
       </div>
 
       {/* Basic Information */}
       <div className="assessment-card">
-        <h3 className="text-xl font-bold mb-4" style={{ color: '#013f7c' }}>
+        <h3 className="text-lg md:text-xl font-bold mb-4" style={{ color: '#013f7c' }}>
           Basic Information <span className="optional-badge">Optional</span>
         </h3>
         
@@ -317,7 +383,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
 
       {/* Workforce Challenges */}
       <div className="assessment-card">
-        <h3 className="text-xl font-bold mb-4" style={{ color: '#264d44' }}>
+        <h3 className="text-lg md:text-xl font-bold mb-4" style={{ color: '#264d44' }}>
           Current Workforce Challenges
         </h3>
         <p className="text-sm mb-4" style={{ color: '#666' }}>
@@ -349,16 +415,16 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         </div>
       </div>
 
-      {/* Section 1: Resilience & Engagement */}
+      {/* Section 1: Team Resilience & Engagement */}
       <div className="assessment-card">
         <div className="section-header">
-          <Brain className="w-6 h-6" style={{ color: sectionColors.resilience }} />
-          <h3 style={{ color: sectionColors.resilience }}>Resilience & Engagement <span className="optional-badge">Optional</span></h3>
+          <Brain className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.resilience }} />
+          <h3 style={{ color: sectionColors.resilience }}>Team Resilience & Engagement <span className="optional-badge">Optional</span></h3>
         </div>
 
         <div className="question-group">
           <label className="question-label">
-            How would you rate your leaders' current adaptability and resilience when facing business challenges?
+            How would you rate your team's current adaptability and resilience when facing business challenges?
           </label>
           <div className="scale-container">
             <span className="scale-label">Low</span>
@@ -367,11 +433,11 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
                 <button
                   key={num}
                   type="button"
-                  className={`scale-btn ${formData.resilienceLevel === String(num) ? 'selected' : ''}`}
-                  onClick={() => handleInputChange('resilienceLevel', String(num))}
+                  className={`scale-btn ${formData.teamResilience === String(num) ? 'selected' : ''}`}
+                  onClick={() => handleInputChange('teamResilience', String(num))}
                   style={{ 
-                    background: formData.resilienceLevel === String(num) ? sectionColors.resilience : '#f4f0e9',
-                    borderColor: formData.resilienceLevel === String(num) ? sectionColors.resilience : 'transparent'
+                    background: formData.teamResilience === String(num) ? sectionColors.resilience : '#f4f0e9',
+                    borderColor: formData.teamResilience === String(num) ? sectionColors.resilience : 'transparent'
                   }}
                 >
                   {num}
@@ -384,7 +450,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
 
         <div className="question-group">
           <label className="question-label">
-            How would you rate overall engagement and morale across your leadership teams?
+            How would you rate overall team engagement and morale?
           </label>
           <div className="scale-container">
             <span className="scale-label">Low</span>
@@ -410,7 +476,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
 
         <div className="question-group">
           <label className="question-label">
-            Can you describe a recent situation where resilience or adaptability challenges impacted your organization? (Optional)
+            Can you describe a recent situation where team resilience or adaptability challenges impacted your organization? (Optional)
           </label>
           <textarea
             className="neuro-textarea"
@@ -421,16 +487,16 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         </div>
       </div>
 
-      {/* Section 2: Emotional Intelligence & Team Climate */}
+      {/* Section 2: Team Communication & Collaboration */}
       <div className="assessment-card">
         <div className="section-header">
-          <Users className="w-6 h-6" style={{ color: sectionColors.emotional }} />
-          <h3 style={{ color: sectionColors.emotional }}>Emotional Intelligence & Team Climate <span className="optional-badge">Optional</span></h3>
+          <Users className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.communication }} />
+          <h3 style={{ color: sectionColors.communication }}>Team Communication & Collaboration <span className="optional-badge">Optional</span></h3>
         </div>
 
         <div className="question-group">
           <label className="question-label">
-            How would you rate your leaders' current emotional intelligence and conflict management skills?
+            How would you rate your team's communication effectiveness and collaboration?
           </label>
           <div className="scale-container">
             <span className="scale-label">Needs Work</span>
@@ -439,11 +505,11 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
                 <button
                   key={num}
                   type="button"
-                  className={`scale-btn ${formData.emotionalIntelligence === String(num) ? 'selected' : ''}`}
-                  onClick={() => handleInputChange('emotionalIntelligence', String(num))}
+                  className={`scale-btn ${formData.teamCommunication === String(num) ? 'selected' : ''}`}
+                  onClick={() => handleInputChange('teamCommunication', String(num))}
                   style={{ 
-                    background: formData.emotionalIntelligence === String(num) ? sectionColors.emotional : '#f4f0e9',
-                    borderColor: formData.emotionalIntelligence === String(num) ? sectionColors.emotional : 'transparent'
+                    background: formData.teamCommunication === String(num) ? sectionColors.communication : '#f4f0e9',
+                    borderColor: formData.teamCommunication === String(num) ? sectionColors.communication : 'transparent'
                   }}
                 >
                   {num}
@@ -456,7 +522,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
 
         <div className="question-group">
           <label className="question-label">
-            How frequently do conflicts or escalations occur within your leadership teams or their departments?
+            How frequently do conflicts or escalations occur within teams?
           </label>
           <div className="scale-container">
             <span className="scale-label">Very Often</span>
@@ -468,8 +534,8 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
                   className={`scale-btn ${formData.conflictFrequency === String(num) ? 'selected' : ''}`}
                   onClick={() => handleInputChange('conflictFrequency', String(num))}
                   style={{ 
-                    background: formData.conflictFrequency === String(num) ? sectionColors.emotional : '#f4f0e9',
-                    borderColor: formData.conflictFrequency === String(num) ? sectionColors.emotional : 'transparent'
+                    background: formData.conflictFrequency === String(num) ? sectionColors.communication : '#f4f0e9',
+                    borderColor: formData.conflictFrequency === String(num) ? sectionColors.communication : 'transparent'
                   }}
                 >
                   {num}
@@ -482,7 +548,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
 
         <div className="question-group">
           <label className="question-label">
-            Describe a recent challenge related to team climate, communication, or conflict management: (Optional)
+            Describe a recent challenge related to team communication or collaboration: (Optional)
           </label>
           <textarea
             className="neuro-textarea"
@@ -493,16 +559,16 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         </div>
       </div>
 
-      {/* Section 3: Decision-Making & Strategic Thinking */}
+      {/* Section 3: Team Decision-Making & Productivity */}
       <div className="assessment-card">
         <div className="section-header">
-          <Target className="w-6 h-6" style={{ color: sectionColors.decision }} />
-          <h3 style={{ color: sectionColors.decision }}>Decision-Making & Strategic Thinking <span className="optional-badge">Optional</span></h3>
+          <Target className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.decision }} />
+          <h3 style={{ color: sectionColors.decision }}>Team Decision-Making & Productivity <span className="optional-badge">Optional</span></h3>
         </div>
 
         <div className="question-group">
           <label className="question-label">
-            How would you rate the current quality and timeliness of strategic decisions made by your leaders?
+            How would you rate the current quality and timeliness of team decisions?
           </label>
           <div className="scale-container">
             <span className="scale-label">Poor</span>
@@ -511,11 +577,11 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
                 <button
                   key={num}
                   type="button"
-                  className={`scale-btn ${formData.decisionQuality === String(num) ? 'selected' : ''}`}
-                  onClick={() => handleInputChange('decisionQuality', String(num))}
+                  className={`scale-btn ${formData.teamDecisionQuality === String(num) ? 'selected' : ''}`}
+                  onClick={() => handleInputChange('teamDecisionQuality', String(num))}
                   style={{ 
-                    background: formData.decisionQuality === String(num) ? sectionColors.decision : '#f4f0e9',
-                    borderColor: formData.decisionQuality === String(num) ? sectionColors.decision : 'transparent'
+                    background: formData.teamDecisionQuality === String(num) ? sectionColors.decision : '#f4f0e9',
+                    borderColor: formData.teamDecisionQuality === String(num) ? sectionColors.decision : 'transparent'
                   }}
                 >
                   {num}
@@ -528,48 +594,48 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
 
         <div className="question-group">
           <label className="question-label">
-            How structured and strategic is your leaders' approach to complex problem-solving?
+            How would you rate your team's overall productivity and efficiency?
           </label>
           <div className="scale-container">
-            <span className="scale-label">Reactive</span>
+            <span className="scale-label">Low</span>
             <div className="scale-buttons">
               {[1, 2, 3, 4, 5].map(num => (
                 <button
                   key={num}
                   type="button"
-                  className={`scale-btn ${formData.strategicThinking === String(num) ? 'selected' : ''}`}
-                  onClick={() => handleInputChange('strategicThinking', String(num))}
+                  className={`scale-btn ${formData.teamProductivity === String(num) ? 'selected' : ''}`}
+                  onClick={() => handleInputChange('teamProductivity', String(num))}
                   style={{ 
-                    background: formData.strategicThinking === String(num) ? sectionColors.decision : '#f4f0e9',
-                    borderColor: formData.strategicThinking === String(num) ? sectionColors.decision : 'transparent'
+                    background: formData.teamProductivity === String(num) ? sectionColors.decision : '#f4f0e9',
+                    borderColor: formData.teamProductivity === String(num) ? sectionColors.decision : 'transparent'
                   }}
                 >
                   {num}
                 </button>
               ))}
             </div>
-            <span className="scale-label">Strategic</span>
+            <span className="scale-label">High</span>
           </div>
         </div>
 
         <div className="question-group">
           <label className="question-label">
-            Describe a recent decision-making challenge or missed opportunity: (Optional)
+            Describe a recent productivity or decision-making challenge: (Optional)
           </label>
           <textarea
             className="neuro-textarea"
             placeholder="Share specific examples or observations..."
-            value={formData.decisionExample}
-            onChange={(e) => handleInputChange('decisionExample', e.target.value)}
+            value={formData.productivityExample}
+            onChange={(e) => handleInputChange('productivityExample', e.target.value)}
           />
         </div>
       </div>
 
-      {/* Section 4: Alignment & Goal Clarity */}
+      {/* Section 4: Team Alignment & Goal Clarity */}
       <div className="assessment-card">
         <div className="section-header">
-          <TrendingUp className="w-6 h-6" style={{ color: '#013f7c' }} />
-          <h3 style={{ color: '#013f7c' }}>Organizational Alignment & Goal Clarity <span className="optional-badge">Optional</span></h3>
+          <TrendingUp className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#013f7c' }} />
+          <h3 style={{ color: '#013f7c' }}>Team Alignment & Goal Clarity <span className="optional-badge">Optional</span></h3>
         </div>
 
         <div className="question-group">
@@ -577,7 +643,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             How well do team goals currently align with broader organizational objectives?
           </label>
           <div className="scale-container">
-            <span className="scale-label">Poorly Aligned</span>
+            <span className="scale-label">Poorly</span>
             <div className="scale-buttons">
               {[1, 2, 3, 4, 5].map(num => (
                 <button
@@ -626,7 +692,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
 
         <div className="question-group">
           <label className="question-label">
-            What benefits would better alignment and goal clarity bring to your organization? (Optional)
+            What benefits would better alignment and goal clarity bring to your teams? (Optional)
           </label>
           <textarea
             className="neuro-textarea"
@@ -637,10 +703,82 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         </div>
       </div>
 
-      {/* Section 5: Overall Goals */}
+      {/* Section 5: Leadership */}
       <div className="assessment-card">
         <div className="section-header">
-          <DollarSign className="w-6 h-6" style={{ color: sectionColors.goals }} />
+          <Crown className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.leadership }} />
+          <h3 style={{ color: sectionColors.leadership }}>Leadership Effectiveness <span className="optional-badge">Optional</span></h3>
+        </div>
+
+        <div className="question-group">
+          <label className="question-label">
+            How would you rate your leaders' overall effectiveness in managing and inspiring their teams?
+          </label>
+          <div className="scale-container">
+            <span className="scale-label">Needs Work</span>
+            <div className="scale-buttons">
+              {[1, 2, 3, 4, 5].map(num => (
+                <button
+                  key={num}
+                  type="button"
+                  className={`scale-btn ${formData.leadershipEffectiveness === String(num) ? 'selected' : ''}`}
+                  onClick={() => handleInputChange('leadershipEffectiveness', String(num))}
+                  style={{ 
+                    background: formData.leadershipEffectiveness === String(num) ? sectionColors.leadership : '#f4f0e9',
+                    borderColor: formData.leadershipEffectiveness === String(num) ? sectionColors.leadership : 'transparent'
+                  }}
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+            <span className="scale-label">Excellent</span>
+          </div>
+        </div>
+
+        <div className="question-group">
+          <label className="question-label">
+            How would you rate your leaders' emotional intelligence and people management skills?
+          </label>
+          <div className="scale-container">
+            <span className="scale-label">Low</span>
+            <div className="scale-buttons">
+              {[1, 2, 3, 4, 5].map(num => (
+                <button
+                  key={num}
+                  type="button"
+                  className={`scale-btn ${formData.leadershipEmotionalIntelligence === String(num) ? 'selected' : ''}`}
+                  onClick={() => handleInputChange('leadershipEmotionalIntelligence', String(num))}
+                  style={{ 
+                    background: formData.leadershipEmotionalIntelligence === String(num) ? sectionColors.leadership : '#f4f0e9',
+                    borderColor: formData.leadershipEmotionalIntelligence === String(num) ? sectionColors.leadership : 'transparent'
+                  }}
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+            <span className="scale-label">High</span>
+          </div>
+        </div>
+
+        <div className="question-group">
+          <label className="question-label">
+            Describe a leadership challenge or area where development would be beneficial: (Optional)
+          </label>
+          <textarea
+            className="neuro-textarea"
+            placeholder="Share specific examples or observations..."
+            value={formData.leadershipExample}
+            onChange={(e) => handleInputChange('leadershipExample', e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Section 6: Overall Goals */}
+      <div className="assessment-card">
+        <div className="section-header">
+          <DollarSign className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.goals }} />
           <h3 style={{ color: '#264d44' }}>Overall Program Goals <span className="optional-badge">Optional</span></h3>
         </div>
 
@@ -650,7 +788,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
           </label>
           <textarea
             className="neuro-textarea"
-            placeholder="e.g., reduce burnout, improve leadership effectiveness, enhance team collaboration..."
+            placeholder="e.g., reduce burnout, improve team effectiveness, enhance collaboration..."
             value={formData.primaryGoals}
             onChange={(e) => handleInputChange('primaryGoals', e.target.value)}
           />
