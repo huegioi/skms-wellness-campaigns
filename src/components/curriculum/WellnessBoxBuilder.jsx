@@ -65,11 +65,14 @@ export default function WellnessBoxBuilder({ wellnessItems }) {
         .draggable-item {
           background: white;
           border-radius: 8px;
-          padding: 10px;
+          padding: 8px;
           margin-bottom: 8px;
           cursor: grab;
           box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.08);
           transition: all 0.2s;
+          display: flex;
+          gap: 8px;
+          align-items: center;
         }
 
         .draggable-item:hover {
@@ -81,12 +84,21 @@ export default function WellnessBoxBuilder({ wellnessItems }) {
           cursor: grabbing;
         }
 
+        .draggable-item img {
+          width: 40px;
+          height: 40px;
+          object-fit: cover;
+          border-radius: 4px;
+          flex-shrink: 0;
+        }
+
         .items-grid {
           display: grid;
           grid-template-columns: 1fr;
           gap: 8px;
           max-height: 400px;
           overflow-y: auto;
+          padding-right: 8px;
         }
 
         @media (min-width: 768px) {
@@ -101,7 +113,22 @@ export default function WellnessBoxBuilder({ wellnessItems }) {
           padding: 4px 8px;
           border-radius: 8px;
           font-weight: 700;
-          font-size: 13px;
+          font-size: 12px;
+          flex-shrink: 0;
+        }
+
+        .item-name {
+          font-size: 11px;
+          font-weight: 600;
+          color: #264d44;
+          flex: 1;
+          line-height: 1.3;
+        }
+
+        @media (min-width: 768px) {
+          .item-name {
+            font-size: 12px;
+          }
         }
       `}</style>
 
@@ -140,14 +167,11 @@ export default function WellnessBoxBuilder({ wellnessItems }) {
                               opacity: snapshot.isDragging ? 0.8 : 1,
                             }}
                           >
-                            <div className="flex justify-between items-center">
-                              <span className="text-xs font-semibold" style={{ color: '#264d44', flex: 1 }}>
-                                {item.name}
-                              </span>
-                              <span className="price-badge ml-2">
-                                ${item.price.toFixed(2)}
-                              </span>
-                            </div>
+                            <img src={item.image} alt={item.name} />
+                            <span className="item-name">{item.name}</span>
+                            <span className="price-badge">
+                              ${item.price.toFixed(2)}
+                            </span>
                           </div>
                         )}
                       </Draggable>
@@ -207,6 +231,9 @@ export default function WellnessBoxBuilder({ wellnessItems }) {
                               ${calculateTotal().toFixed(2)}
                             </span>
                           </div>
+                          <p className="text-xs mt-1 text-right" style={{ color: '#666' }}>
+                            (estimated before shipping)
+                          </p>
                         </div>
                       </>
                     )}

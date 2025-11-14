@@ -4,11 +4,13 @@ import WellnessBoxBuilder from './WellnessBoxBuilder';
 import { Gift, Sparkles } from 'lucide-react';
 
 export default function WellnessBoxStep({ selections, updateSelections, onNext, onBack }) {
-  const updateStepper = (type, increment) => {
-    const currentValue = selections[type];
-    const newValue = increment ? currentValue + 1 : Math.max(0, currentValue - 1);
-    updateSelections(type, newValue);
-  };
+  const [customBoxQuantity, setCustomBoxQuantity] = useState(0);
+  const [sampleBoxQuantities, setSampleBoxQuantities] = useState({
+    reduceStress: 0,
+    relaxationSleep: 0,
+    largeEmotional: 0,
+    largeStressReduction: 0
+  });
 
   const wellnessItems = [
     { id: '1', name: "Tumbler Shot Glass with Metal Straw and Lid", price: 9.00, image: "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/b55e1d9df_3ozTumblerShotGlasswithMetalStrawandLid.png" },
@@ -63,31 +65,43 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
     { id: '50', name: "Cork Massage Balls", price: 6.00, image: "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/538527da8_CorkMassageBalls.png" }
   ];
 
-  const smallBoxSamples = [
-    {
-      name: "Reduce Stress Box",
-      items: ["Heywell Calm + Hydrate", "Calm Aromatherapy Patches", "Squishy Dumpling Stress Ball", "Sleep Gummies", "Lavender Candle"],
-      cost: 33.00
-    },
-    {
-      name: "Relaxation & Sleep Box",
-      items: ["Weighted Eye Pillow", "Herbal Bath Soak", "Calming Tea", "Eucalyptus Shower Steamers", "Sleep Gummies"],
-      cost: 42.00
-    }
-  ];
+  const sampleBoxes = {
+    small: [
+      {
+        id: 'reduceStress',
+        name: "Reduce Stress Box",
+        items: ["Heywell Calm + Hydrate", "Calm Aromatherapy Patches", "Squishy Dumpling Stress Ball", "Sleep Gummies", "Lavender Candle"]
+      },
+      {
+        id: 'relaxationSleep',
+        name: "Relaxation & Sleep Box",
+        items: ["Weighted Eye Pillow", "Herbal Bath Soak", "Calming Tea", "Eucalyptus Shower Steamers", "Sleep Gummies"]
+      }
+    ],
+    large: [
+      {
+        id: 'largeEmotional',
+        name: "Large Emotional Wellness Box",
+        items: ["Mindfulness Cards", "Essential Oil Roller", "Herbal Bath Soak", "Calming Tea", "Dreamy Dark Chocolate", "Spa Body Brush", "Gold Eye Patches"]
+      },
+      {
+        id: 'largeStressReduction',
+        name: "Large Stress Reduction Box",
+        items: ["Calm Patches", "Calming Tea", "Stress Ball", "Essential Oil Roller", "Mindfulness Cards", "Herbal Bath Soak", "Hot Cocoa", "Heywell Drink", "Cork Massage Balls"]
+      }
+    ]
+  };
 
-  const largeBoxSamples = [
-    {
-      name: "Large Emotional Wellness Box",
-      items: ["Mindfulness Cards", "Essential Oil Roller", "Herbal Bath Soak", "Calming Tea", "Dreamy Dark Chocolate", "Spa Body Brush", "Gold Eye Patches"],
-      cost: 59.00
-    },
-    {
-      name: "Large Stress Reduction Box",
-      items: ["Calm Patches", "Calming Tea", "Stress Ball", "Essential Oil Roller", "Mindfulness Cards", "Herbal Bath Soak", "Hot Cocoa", "Heywell Drink", "Cork Massage Balls"],
-      cost: 73.00
-    }
-  ];
+  const updateStepper = (boxId, increment) => {
+    setSampleBoxQuantities(prev => ({
+      ...prev,
+      [boxId]: increment ? prev[boxId] + 1 : Math.max(0, prev[boxId] - 1)
+    }));
+  };
+
+  const updateCustomStepper = (increment) => {
+    setCustomBoxQuantity(increment ? customBoxQuantity + 1 : Math.max(0, customBoxQuantity - 1));
+  };
 
   return (
     <div>
@@ -135,28 +149,18 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
             inset -2px -2px 4px rgba(255, 255, 255, 0.1);
         }
 
-        .box-card {
-          background: #f4f0e9;
-          border-radius: 16px;
-          padding: 20px;
-          box-shadow: 
-            8px 8px 16px rgba(0, 0, 0, 0.12),
-            -8px -8px 16px rgba(255, 255, 255, 0.9);
-          margin-bottom: 20px;
-        }
-
-        @media (min-width: 768px) {
-          .box-card {
-            padding: 24px;
-          }
-        }
-
         .sample-boxes-section {
           background: linear-gradient(135deg, rgba(234, 249, 149, 0.2), rgba(202, 229, 227, 0.2));
           border-radius: 16px;
-          padding: 24px;
+          padding: 20px;
           margin-bottom: 32px;
           border: 2px solid #eaf995;
+        }
+
+        @media (min-width: 768px) {
+          .sample-boxes-section {
+            padding: 24px;
+          }
         }
 
         .sample-box {
@@ -208,16 +212,6 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
           font-weight: bold;
           font-size: 16px;
         }
-
-        .cost-badge {
-          background: #eaf995;
-          color: #264d44;
-          padding: 6px 12px;
-          border-radius: 8px;
-          font-weight: 700;
-          font-size: 14px;
-          display: inline-block;
-        }
       `}</style>
 
       <div className="mb-6 md:mb-8">
@@ -232,33 +226,76 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
       {/* Custom Box Builder */}
       <WellnessBoxBuilder wellnessItems={wellnessItems} />
 
-      {/* Suggested Sample Boxes Section */}
+      {/* Custom Box Quantity Stepper */}
+      <div className="sample-boxes-section">
+        <h3 className="text-lg md:text-xl font-bold mb-4" style={{ color: '#264d44' }}>
+          Custom Box Quantity
+        </h3>
+        <p className="text-sm mb-4" style={{ color: '#666' }}>
+          How many custom boxes would you like to order?
+        </p>
+        <div className="neuro-stepper" style={{ maxWidth: '300px' }}>
+          <button 
+            className="neuro-stepper-btn"
+            onClick={() => updateCustomStepper(false)}
+          >
+            −
+          </button>
+          <span className="flex-1 text-center text-lg md:text-xl font-bold" style={{ color: '#333' }}>
+            {customBoxQuantity}
+          </span>
+          <button 
+            className="neuro-stepper-btn"
+            onClick={() => updateCustomStepper(true)}
+          >
+            +
+          </button>
+        </div>
+      </div>
+
+      {/* Pre-Designed Sample Boxes Section */}
       <div className="sample-boxes-section">
         <div className="flex items-center gap-2 mb-4">
-          <Sparkles className="w-6 h-6" style={{ color: '#264d44' }} />
+          <Sparkles className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#264d44' }} />
           <h3 className="text-xl md:text-2xl font-bold" style={{ color: '#264d44' }}>
             Pre-Designed Sample Boxes
           </h3>
         </div>
         <p className="text-sm mb-6" style={{ color: '#666' }}>
-          Choose from our curated wellness box collections or use them as inspiration for your custom boxes
+          Choose from our curated wellness box collections
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h4 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: '#770142' }}>
               <Gift className="w-5 h-5" />
-              Small Box Samples ($65 each)
+              Small Boxes ($65 each)
             </h4>
-            {smallBoxSamples.map((sample, idx) => (
-              <div key={idx} className="sample-box">
-                <h4>{sample.name}</h4>
+            {sampleBoxes.small.map((box) => (
+              <div key={box.id} className="sample-box">
+                <h4>{box.name}</h4>
                 <ul>
-                  {sample.items.map((item, i) => (
+                  {box.items.map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}
                 </ul>
-                <span className="cost-badge">Estimated: ${sample.cost.toFixed(2)}</span>
+                <div className="neuro-stepper mt-3">
+                  <button 
+                    className="neuro-stepper-btn"
+                    onClick={() => updateStepper(box.id, false)}
+                  >
+                    −
+                  </button>
+                  <span className="flex-1 text-center text-lg font-bold" style={{ color: '#333' }}>
+                    {sampleBoxQuantities[box.id]}
+                  </span>
+                  <button 
+                    className="neuro-stepper-btn"
+                    onClick={() => updateStepper(box.id, true)}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -266,82 +303,35 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
           <div>
             <h4 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: '#770142' }}>
               <Gift className="w-5 h-5" />
-              Large Box Samples ($125 each)
+              Large Boxes ($125 each)
             </h4>
-            {largeBoxSamples.map((sample, idx) => (
-              <div key={idx} className="sample-box">
-                <h4>{sample.name}</h4>
+            {sampleBoxes.large.map((box) => (
+              <div key={box.id} className="sample-box">
+                <h4>{box.name}</h4>
                 <ul>
-                  {sample.items.map((item, i) => (
+                  {box.items.map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}
                 </ul>
-                <span className="cost-badge">Estimated: ${sample.cost.toFixed(2)}</span>
+                <div className="neuro-stepper mt-3">
+                  <button 
+                    className="neuro-stepper-btn"
+                    onClick={() => updateStepper(box.id, false)}
+                  >
+                    −
+                  </button>
+                  <span className="flex-1 text-center text-lg font-bold" style={{ color: '#333' }}>
+                    {sampleBoxQuantities[box.id]}
+                  </span>
+                  <button 
+                    className="neuro-stepper-btn"
+                    onClick={() => updateStepper(box.id, true)}
+                  >
+                    +
+                  </button>
+                </div>
               </div>
             ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Stepper Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
-        <div className="box-card">
-          <h3 className="text-lg md:text-xl font-bold mb-2" style={{ color: '#013f7c' }}>
-            Small Wellness Boxes
-          </h3>
-          <p className="text-sm mb-3 md:mb-4" style={{ color: '#666' }}>
-            Perfect for workshop participants
-          </p>
-          <div className="text-xl md:text-2xl font-bold mb-3 md:mb-4" style={{ color: '#441d37' }}>
-            $65 each
-          </div>
-
-          <div className="neuro-stepper">
-            <button 
-              className="neuro-stepper-btn"
-              onClick={() => updateStepper('smallBoxes', false)}
-            >
-              −
-            </button>
-            <span className="flex-1 text-center text-lg md:text-xl font-bold" style={{ color: '#333' }}>
-              {selections.smallBoxes}
-            </span>
-            <button 
-              className="neuro-stepper-btn"
-              onClick={() => updateStepper('smallBoxes', true)}
-            >
-              +
-            </button>
-          </div>
-        </div>
-
-        <div className="box-card">
-          <h3 className="text-lg md:text-xl font-bold mb-2" style={{ color: '#013f7c' }}>
-            Large Wellness Boxes
-          </h3>
-          <p className="text-sm mb-3 md:mb-4" style={{ color: '#666' }}>
-            Premium boxes for leadership teams
-          </p>
-          <div className="text-xl md:text-2xl font-bold mb-3 md:mb-4" style={{ color: '#441d37' }}>
-            $125 each
-          </div>
-
-          <div className="neuro-stepper">
-            <button 
-              className="neuro-stepper-btn"
-              onClick={() => updateStepper('largeBoxes', false)}
-            >
-              −
-            </button>
-            <span className="flex-1 text-center text-lg md:text-xl font-bold" style={{ color: '#333' }}>
-              {selections.largeBoxes}
-            </span>
-            <button 
-              className="neuro-stepper-btn"
-              onClick={() => updateStepper('largeBoxes', true)}
-            >
-              +
-            </button>
           </div>
         </div>
       </div>
