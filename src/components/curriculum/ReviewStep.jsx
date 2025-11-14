@@ -1,9 +1,7 @@
-
 import React, { useState } from 'react';
 import { productCatalog, workforceChallenges, challengeSolutionMap } from './catalogData';
 import StepNavigation from './StepNavigation';
 import { Sparkles, Target } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
 
 export default function ReviewStep({ selections, onBack }) {
   const [formData, setFormData] = useState({
@@ -11,13 +9,12 @@ export default function ReviewStep({ selections, onBack }) {
     company: '',
     email: ''
   });
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showMessage, setShowMessage] = useState(false);
+  const [downloadReady, setDownloadReady] = useState(false);
 
   const assessmentData = selections.assessmentData || {};
   const sampleBoxQuantities = selections.sampleBoxQuantities || {};
   const customBoxItems = selections.customBoxItems || [];
-  const customBoxPricePerUnit = customBoxItems.reduce((sum, item) => sum + item.price, 0);
 
   const calculateTotal = () => {
     let total = 0;
@@ -33,14 +30,13 @@ export default function ReviewStep({ selections, onBack }) {
     (selections.movementClasses || []).forEach(key => {
       total += productCatalog.movementClasses[key]?.price || 0;
     });
-    // Add sample box totals
     total += (sampleBoxQuantities.reduceStress || 0) * 65;
     total += (sampleBoxQuantities.relaxationSleep || 0) * 65;
     total += (sampleBoxQuantities.largeEmotional || 0) * 125;
     total += (sampleBoxQuantities.largeStressReduction || 0) * 125;
-    // Add custom box total
-    if (selections.customBoxQuantity > 0 && customBoxPricePerUnit > 0) {
-      total += customBoxPricePerUnit * selections.customBoxQuantity;
+    if (selections.customBoxQuantity > 0 && customBoxItems.length > 0) {
+      const customBoxTotal = customBoxItems.reduce((sum, item) => sum + item.price, 0);
+      total += customBoxTotal * selections.customBoxQuantity;
     }
     return total;
   };
@@ -78,6 +74,8 @@ export default function ReviewStep({ selections, onBack }) {
   const narrative = generateNarrative();
 
   const generatePDF = () => {
+    const customBoxTotal = customBoxItems.reduce((sum, item) => sum + item.price, 0);
+    
     const pdfContent = `
       <!DOCTYPE html>
       <html>
@@ -207,7 +205,6 @@ export default function ReviewStep({ selections, onBack }) {
           ul {
             margin-left: 20px;
             margin-top: 8px;
-            list-style-type: disc;
           }
           li {
             margin-bottom: 5px;
@@ -216,9 +213,6 @@ export default function ReviewStep({ selections, onBack }) {
           @media print {
             body { padding: 20px; }
             .section { page-break-inside: avoid; }
-            .narrative-box, .glance-box, .total-box, .contact-info { background: #f9f9f9 !important; -webkit-print-color-adjust: exact; color-adjust: exact;}
-            .glance-box { color: #333 !important; }
-            .total-box { color: #333 !important; }
           }
         </style>
       </head>
@@ -282,34 +276,6 @@ export default function ReviewStep({ selections, onBack }) {
             <div class="glance-item">
               <div class="glance-label">Timeline</div>
               <div class="glance-content">${assessmentData.timeline}</div>
-            </div>
-          ` : ''}
-
-          ${(assessmentData.teamResilience || assessmentData.engagementLevel || assessmentData.teamCommunication || assessmentData.teamDecisionQuality || assessmentData.goalAlignment || assessmentData.leadershipEffectiveness) ? `
-            <div class="glance-item">
-              <div class="glance-label">Assessment Results</div>
-              <div class="glance-content">
-                ${assessmentData.teamResilience ? `Team Resilience: ${assessmentData.teamResilience}/5<br>` : ''}
-                ${assessmentData.engagementLevel ? `Team Engagement: ${assessmentData.engagementLevel}/5<br>` : ''}
-                ${assessmentData.teamCommunication ? `Team Communication: ${assessmentData.teamCommunication}/5<br>` : ''}
-                ${assessmentData.teamDecisionQuality ? `Decision Quality: ${assessmentData.teamDecisionQuality}/5<br>` : ''}
-                ${assessmentData.goalAlignment ? `Goal Alignment: ${assessmentData.goalAlignment}/5<br>` : ''}
-                ${assessmentData.leadershipEffectiveness ? `Leadership Effectiveness: ${assessmentData.leadershipEffectiveness}/5<br>` : ''}
-              </div>
-            </div>
-          ` : ''}
-
-          ${assessmentData.primaryGoals ? `
-            <div class="glance-item">
-              <div class="glance-label">Primary Goals</div>
-              <div class="glance-content">${assessmentData.primaryGoals}</div>
-            </div>
-          ` : ''}
-
-          ${assessmentData.successMetrics ? `
-            <div class="glance-item">
-              <div class="glance-label">Success Metrics</div>
-              <div class="glance-content">${assessmentData.successMetrics}</div>
             </div>
           ` : ''}
         </div>
@@ -386,7 +352,7 @@ export default function ReviewStep({ selections, onBack }) {
             ${sampleBoxQuantities.reduceStress > 0 ? `
               <div class="item">
                 <div class="item-title">Reduce Stress Box (${sampleBoxQuantities.reduceStress} boxes)</div>
-                <div class="item-price">${sampleBoxQuantities.reduceStress} &times; $65 = $${(sampleBoxQuantities.reduceStress * 65).toLocaleString()}</div>
+                <div class="item-price">${sampleBoxQuantities.reduceStress} × $65 = $${(sampleBoxQuantities.reduceStress * 65).toLocaleString()}</div>
                 <div class="item-description">
                   <strong>Includes:</strong>
                   <ul>
@@ -402,7 +368,7 @@ export default function ReviewStep({ selections, onBack }) {
             ${sampleBoxQuantities.relaxationSleep > 0 ? `
               <div class="item">
                 <div class="item-title">Relaxation & Sleep Box (${sampleBoxQuantities.relaxationSleep} boxes)</div>
-                <div class="item-price">${sampleBoxQuantities.relaxationSleep} &times; $65 = $${(sampleBoxQuantities.relaxationSleep * 65).toLocaleString()}</div>
+                <div class="item-price">${sampleBoxQuantities.relaxationSleep} × $65 = $${(sampleBoxQuantities.relaxationSleep * 65).toLocaleString()}</div>
                 <div class="item-description">
                   <strong>Includes:</strong>
                   <ul>
@@ -418,7 +384,7 @@ export default function ReviewStep({ selections, onBack }) {
             ${sampleBoxQuantities.largeEmotional > 0 ? `
               <div class="item">
                 <div class="item-title">Large Emotional Wellness Box (${sampleBoxQuantities.largeEmotional} boxes)</div>
-                <div class="item-price">${sampleBoxQuantities.largeEmotional} &times; $125 = $${(sampleBoxQuantities.largeEmotional * 125).toLocaleString()}</div>
+                <div class="item-price">${sampleBoxQuantities.largeEmotional} × $125 = $${(sampleBoxQuantities.largeEmotional * 125).toLocaleString()}</div>
                 <div class="item-description">
                   <strong>Includes:</strong>
                   <ul>
@@ -436,7 +402,7 @@ export default function ReviewStep({ selections, onBack }) {
             ${sampleBoxQuantities.largeStressReduction > 0 ? `
               <div class="item">
                 <div class="item-title">Large Stress Reduction Box (${sampleBoxQuantities.largeStressReduction} boxes)</div>
-                <div class="item-price">${sampleBoxQuantities.largeStressReduction} &times; $125 = $${(sampleBoxQuantities.largeStressReduction * 125).toLocaleString()}</div>
+                <div class="item-price">${sampleBoxQuantities.largeStressReduction} × $125 = $${(sampleBoxQuantities.largeStressReduction * 125).toLocaleString()}</div>
                 <div class="item-description">
                   <strong>Includes:</strong>
                   <ul>
@@ -456,7 +422,7 @@ export default function ReviewStep({ selections, onBack }) {
             ${selections.customBoxQuantity > 0 && customBoxItems.length > 0 ? `
               <div class="item">
                 <div class="item-title">Custom Wellness Boxes (${selections.customBoxQuantity} boxes)</div>
-                <div class="item-price">${selections.customBoxQuantity} &times; $${customBoxPricePerUnit.toFixed(2)} = $${(customBoxPricePerUnit * selections.customBoxQuantity).toLocaleString()}</div>
+                <div class="item-price">${selections.customBoxQuantity} × $${customBoxTotal.toFixed(2)} = $${(customBoxTotal * selections.customBoxQuantity).toLocaleString()}</div>
                 <div class="item-description">
                   <strong>Selected Items:</strong>
                   <ul>
@@ -486,7 +452,7 @@ export default function ReviewStep({ selections, onBack }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Mental-Fitness-Campaign-Proposal-${formData.name.replace(/\s+/g, '-') || 'Untitled'}.html`; // Ensure filename is safe
+    a.download = `Mental-Fitness-Campaign-Proposal-${formData.name.replace(/\s+/g, '-')}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -500,72 +466,15 @@ export default function ReviewStep({ selections, onBack }) {
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
-
-    try {
-      // Generate and download PDF
+    
+    setShowMessage(true);
+    
+    setTimeout(() => {
       generatePDF();
-
-      // Build detailed email body for admin
-      let emailBody = `NEW MENTAL FITNESS CAMPAIGN SUBMISSION\n\n`;
-      emailBody += `CONTACT INFORMATION\n`;
-      emailBody += `Name: ${formData.name}\n`;
-      emailBody += `Company: ${formData.company || 'N/A'}\n`;
-      emailBody += `Email: ${formData.email}\n\n`;
-      
-      if (narrative) {
-        emailBody += `HOW THIS PROGRAM SUPPORTS THEIR TEAM\n`;
-        emailBody += `Team is facing challenges around: ${narrative.challenges.join(', ')}\n`;
-        emailBody += `Program components: ${narrative.components.join(', ')}\n\n`;
-      }
-
-      emailBody += `PROGRAM SUMMARY\n`;
-      if (assessmentData.companySize) emailBody += `Company Size: ${assessmentData.companySize}\n`;
-      if (assessmentData.industry) emailBody += `Industry: ${assessmentData.industry}\n`;
-      if (assessmentData.timeline) emailBody += `Timeline: ${assessmentData.timeline}\n`;
-      if (selections.challenges) emailBody += `Focus Areas: ${selections.challenges.map(id => workforceChallenges.find(c => c.id === id)?.label).filter(Boolean).join(', ')}\n`;
-      
-      emailBody += `\nPROGRAM COMPONENTS\n`;
-      if (selections.workshops?.length > 0) emailBody += `- ${selections.workshops.length} Workshops\n`;
-      if (selections.challengePrograms?.length > 0) emailBody += `- ${selections.challengePrograms.length} Challenges\n`;
-      if (selections.leadership?.length > 0) emailBody += `- ${selections.leadership.length} Leadership Programs\n`;
-      if (selections.movementClasses?.length > 0) emailBody += `- ${selections.movementClasses.length} Classes\n`;
-      
-      if ((sampleBoxQuantities.reduceStress || 0) + (sampleBoxQuantities.relaxationSleep || 0) + 
-          (sampleBoxQuantities.largeEmotional || 0) + (sampleBoxQuantities.largeStressReduction || 0) > 0 ||
-          (selections.customBoxQuantity || 0) > 0) {
-        emailBody += `\nWELLNESS BOXES\n`;
-        if (sampleBoxQuantities.reduceStress > 0) emailBody += `- Reduce Stress Box: ${sampleBoxQuantities.reduceStress} boxes ($${(sampleBoxQuantities.reduceStress * 65).toLocaleString()})\n`;
-        if (sampleBoxQuantities.relaxationSleep > 0) emailBody += `- Relaxation & Sleep Box: ${sampleBoxQuantities.relaxationSleep} boxes ($${(sampleBoxQuantities.relaxationSleep * 65).toLocaleString()})\n`;
-        if (sampleBoxQuantities.largeEmotional > 0) emailBody += `- Large Emotional Wellness Box: ${sampleBoxQuantities.largeEmotional} boxes ($${(sampleBoxQuantities.largeEmotional * 125).toLocaleString()})\n`;
-        if (sampleBoxQuantities.largeStressReduction > 0) emailBody += `- Large Stress Reduction Box: ${sampleBoxQuantities.largeStressReduction} boxes ($${(sampleBoxQuantities.largeStressReduction * 125).toLocaleString()})\n`;
-        if (selections.customBoxQuantity > 0 && customBoxItems.length > 0) {
-          emailBody += `- Custom Wellness Boxes: ${selections.customBoxQuantity} boxes ($${(customBoxPricePerUnit * selections.customBoxQuantity).toLocaleString()})\n`;
-          emailBody += `  Items: ${customBoxItems.map(item => `${item.name} ($${item.price.toFixed(2)})`).join(', ')}\n`;
-        } else if (selections.customBoxQuantity > 0) {
-          emailBody += `- Custom Wellness Boxes: ${selections.customBoxQuantity} boxes (pricing to be determined)\n`;
-        }
-      }
-
-      emailBody += `\nESTIMATED TOTAL INVESTMENT: $${calculateTotal().toLocaleString()}\n`;
-
-      // Send email to admin using base44 integration
-      await base44.integrations.Core.SendEmail({
-        from_name: 'SkillfulMeans Campaign Builder',
-        to: 'admin@skillfulmeans.life',
-        subject: `New Campaign Submission - ${formData.name}${formData.company ? ` (${formData.company})` : ''}`,
-        body: emailBody
-      });
-
-      setShowSuccess(true);
-    } catch (error) {
-      console.error('Error submitting campaign:', error);
-      alert('There was an error submitting your campaign. Please try again or email us directly at admin@skillfulmeans.life');
-    } finally {
-      setIsSubmitting(false);
-    }
+      setDownloadReady(true);
+    }, 12000);
   };
 
   return (
@@ -678,17 +587,6 @@ export default function ReviewStep({ selections, onBack }) {
             inset -5px -5px 10px rgba(255, 255, 255, 0.9);
         }
 
-        .success-message {
-          background: linear-gradient(135deg, #eaf995, #cae5e3);
-          color: #264d44;
-          padding: 20px;
-          border-radius: 12px;
-          text-align: center;
-          box-shadow: 
-            inset 2px 2px 4px rgba(0, 0, 0, 0.05),
-            inset -2px -2px 4px rgba(255, 255, 255, 0.5);
-        }
-
         .narrative-card {
           background: linear-gradient(135deg, rgba(119, 1, 66, 0.1), rgba(1, 63, 124, 0.1));
           border-radius: 16px;
@@ -714,6 +612,55 @@ export default function ReviewStep({ selections, onBack }) {
             font-size: 16px;
           }
         }
+
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.7);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 20px;
+        }
+
+        .modal-content {
+          background: linear-gradient(135deg, #264d44 0%, #013f7c 100%);
+          color: white;
+          border-radius: 20px;
+          padding: 40px;
+          max-width: 600px;
+          width: 100%;
+          text-align: center;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content h2 {
+          font-size: 28px;
+          margin-bottom: 24px;
+          color: #eaf995;
+        }
+
+        .modal-content p {
+          font-size: 16px;
+          line-height: 1.8;
+          margin-bottom: 16px;
+        }
+
+        @media (min-width: 768px) {
+          .modal-content {
+            padding: 50px;
+          }
+          .modal-content h2 {
+            font-size: 32px;
+          }
+          .modal-content p {
+            font-size: 18px;
+          }
+        }
       `}</style>
 
       <div className="mb-6 md:mb-8">
@@ -736,7 +683,7 @@ export default function ReviewStep({ selections, onBack }) {
           </div>
           <p className="narrative-text">
             Your team is currently facing challenges around <strong>{narrative.challenges.join(', ')}</strong>. 
-            This customized mental fitness program addresses these needs through <strong>${narrative.components.join(', ')}</strong>, 
+            This customized mental fitness program addresses these needs through <strong>{narrative.components.join(', ')}</strong>, 
             creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.
           </p>
         </div>
@@ -871,14 +818,10 @@ export default function ReviewStep({ selections, onBack }) {
                 <span className="font-semibold">${(sampleBoxQuantities.largeStressReduction * 125).toLocaleString()}</span>
               </div>
             )}
-            {selections.customBoxQuantity > 0 && (
+            {selections.customBoxQuantity > 0 && customBoxItems.length > 0 && (
               <div className="review-item">
                 <span>Custom Wellness Boxes ({selections.customBoxQuantity})</span>
-                {customBoxPricePerUnit > 0 ? (
-                  <span className="font-semibold">${(customBoxPricePerUnit * selections.customBoxQuantity).toLocaleString()}</span>
-                ) : (
-                  <span className="font-semibold text-sm" style={{ color: '#666' }}>Contact for pricing</span>
-                )}
+                <span className="font-semibold">${(customBoxItems.reduce((sum, item) => sum + item.price, 0) * selections.customBoxQuantity).toLocaleString()}</span>
               </div>
             )}
           </div>
@@ -890,13 +833,13 @@ export default function ReviewStep({ selections, onBack }) {
             <span className="text-2xl md:text-3xl font-bold" style={{ color: '#770142' }}>${calculateTotal().toLocaleString()}</span>
           </div>
           <p className="text-xs mt-1 text-right" style={{ color: '#666' }}>
-            (estimated before shipping{selections.customBoxQuantity > 0 && customBoxPricePerUnit === 0 ? ', custom boxes pricing TBD' : ''})
+            (estimated before shipping)
           </p>
         </div>
       </div>
 
       {/* Contact Form */}
-      {!showSuccess ? (
+      {!showMessage && (
         <div className="review-card">
           <h3 className="text-xl md:text-2xl font-bold mb-4 md:mb-5" style={{ color: '#264d44' }}>
             Submit Your Proposal
@@ -948,22 +891,33 @@ export default function ReviewStep({ selections, onBack }) {
 
             <StepNavigation
               onBack={onBack}
-              nextLabel={isSubmitting ? "Submitting..." : "Download PDF & Submit"}
+              nextLabel="Submit Proposal"
               isLastStep={true}
-              nextDisabled={isSubmitting}
             />
           </form>
         </div>
-      ) : (
-        <div className="success-message">
-          <h3 className="text-lg md:text-xl font-bold mb-2">Thank You!</h3>
-          <p className="text-sm md:text-base mb-4">Your proposal has been downloaded successfully.</p>
-          <p className="text-sm md:text-base mb-2">
-            Please email the downloaded PDF to <strong>admin@skillfulmeans.life</strong> and we will reach out to book a call with you.
-          </p>
-          <p className="text-xs mt-4" style={{ color: '#666' }}>
-            (We've also sent a notification to our team about your submission)
-          </p>
+      )}
+
+      {/* Modal */}
+      {showMessage && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Thank You!</h2>
+            <p>
+              Thank you for taking the time to build your proposed wellness campaign with SkillfulMeans.
+            </p>
+            <p>
+              In a moment, you will be prompted to download a copy of your campaign. Please follow up by attaching your summary and emailing <strong>admin@skillfulmeans.life</strong>.
+            </p>
+            <p>
+              A member of our team will follow up with you asap to get you started.
+            </p>
+            {downloadReady && (
+              <p className="mt-6" style={{ color: '#eaf995', fontSize: '14px' }}>
+                ✓ Your campaign summary has been downloaded!
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>
