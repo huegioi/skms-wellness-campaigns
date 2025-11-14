@@ -90,34 +90,54 @@ export default function ReviewStep({ selections, onBack }) {
     emailBody += `Company: ${formData.company || 'N/A'}%0D%0A`;
     emailBody += `Email: ${formData.email}%0D%0A%0D%0A`;
     
-    // Organization Overview
-    if (assessmentData.companySize || assessmentData.industry || assessmentData.timeline) {
-      emailBody += `ORGANIZATION OVERVIEW%0D%0A`;
-      emailBody += `-------------------%0D%0A`;
-      if (assessmentData.industry) emailBody += `Industry: ${assessmentData.industry}%0D%0A`;
-      if (assessmentData.companySize) emailBody += `Company Size: ${assessmentData.companySize}%0D%0A`;
-      if (assessmentData.timeline) emailBody += `Timeline: ${assessmentData.timeline}%0D%0A`;
-      emailBody += `%0D%0A`;
-    }
-    
-    // Program Narrative
+    // HOW THIS PROGRAM SUPPORTS YOUR TEAM
     if (narrative) {
-      emailBody += `PROGRAM OVERVIEW%0D%0A`;
-      emailBody += `-------------------%0D%0A`;
+      emailBody += `HOW THIS PROGRAM SUPPORTS YOUR TEAM%0D%0A`;
+      emailBody += `======================================%0D%0A`;
       emailBody += `Your team is currently facing challenges around ${narrative.challenges.join(', ')}. `;
       emailBody += `This customized mental fitness program addresses these needs through ${narrative.components.join(', ')}, `;
       emailBody += `creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.%0D%0A%0D%0A`;
     }
 
-    // Current Challenges
-    if (selections.challenges && selections.challenges.length > 0) {
-      emailBody += `IDENTIFIED WORKFORCE CHALLENGES%0D%0A`;
-      emailBody += `-------------------%0D%0A`;
-      selections.challenges.forEach(id => {
-        const challenge = workforceChallenges.find(c => c.id === id);
-        if (challenge) emailBody += `• ${challenge.label}%0D%0A`;
-      });
+    // YOUR PROGRAM AT A GLANCE
+    emailBody += `YOUR PROGRAM AT A GLANCE%0D%0A`;
+    emailBody += `======================================%0D%0A`;
+    
+    // Organization
+    if (assessmentData.companySize || assessmentData.industry) {
+      emailBody += `ORGANIZATION:%0D%0A`;
+      if (assessmentData.industry) emailBody += `  Industry: ${assessmentData.industry}%0D%0A`;
+      if (assessmentData.companySize) emailBody += `  Company Size: ${assessmentData.companySize}%0D%0A`;
       emailBody += `%0D%0A`;
+    }
+    
+    // Focus Areas
+    if (selections.challenges && selections.challenges.length > 0) {
+      emailBody += `FOCUS AREAS:%0D%0A`;
+      emailBody += `  ${selections.challenges.map(id => workforceChallenges.find(c => c.id === id)?.label).filter(Boolean).join(', ')}%0D%0A%0D%0A`;
+    }
+
+    // Program Components Summary
+    const componentsList = [];
+    if (selections.workshops?.length > 0) componentsList.push(`${selections.workshops.length} Workshops`);
+    if (selections.challengePrograms?.length > 0) componentsList.push(`${selections.challengePrograms.length} Challenges`);
+    if (selections.leadership?.length > 0) componentsList.push(`${selections.leadership.length} Leadership Programs`);
+    if (selections.movementClasses?.length > 0) componentsList.push(`${selections.movementClasses.length} Classes`);
+    
+    const hasWellnessBoxes = (sampleBoxQuantities.reduceStress || 0) + (sampleBoxQuantities.relaxationSleep || 0) + 
+                             (sampleBoxQuantities.largeEmotional || 0) + (sampleBoxQuantities.largeStressReduction || 0) > 0 ||
+                             (selections.customBoxQuantity || 0) > 0;
+    if (hasWellnessBoxes) componentsList.push('Wellness Boxes');
+
+    if (componentsList.length > 0) {
+      emailBody += `PROGRAM COMPONENTS:%0D%0A`;
+      emailBody += `  ${componentsList.join(' • ')}%0D%0A%0D%0A`;
+    }
+
+    // Timeline
+    if (assessmentData.timeline) {
+      emailBody += `TIMELINE:%0D%0A`;
+      emailBody += `  ${assessmentData.timeline}%0D%0A%0D%0A`;
     }
 
     // Assessment Scores (if provided)
@@ -140,95 +160,119 @@ export default function ReviewStep({ selections, onBack }) {
       emailBody += `${assessmentData.primaryGoals}%0D%0A%0D%0A`;
     }
 
-    // Program Summary
-    emailBody += `PROPOSED PROGRAM COMPONENTS%0D%0A`;
+    // DETAILED PROGRAM BREAKDOWN
+    emailBody += `DETAILED PROGRAM BREAKDOWN%0D%0A`;
     emailBody += `======================================%0D%0A%0D%0A`;
 
     // Workshops
     if (selections.workshops && selections.workshops.length > 0) {
       emailBody += `WORKSHOPS (${selections.workshops.length})%0D%0A`;
       emailBody += `-------------------%0D%0A`;
-      (selections.workshops || []).forEach(key => {
+      selections.workshops.forEach(key => {
         const workshop = productCatalog.workshops[key];
         if (workshop) {
-          emailBody += `• ${workshop.name} - $${workshop.price.toLocaleString()}%0D%0A`;
+          emailBody += `• ${workshop.name}%0D%0A`;
+          emailBody += `  Price: $${workshop.price.toLocaleString()}%0D%0A`;
+          emailBody += `  ${workshop.description}%0D%0A%0D%0A`;
         }
       });
-      emailBody += `%0D%0A`;
     }
 
     // Challenges
     if (selections.challengePrograms && selections.challengePrograms.length > 0) {
       emailBody += `14-DAY CHALLENGES (${selections.challengePrograms.length})%0D%0A`;
       emailBody += `-------------------%0D%0A`;
-      (selections.challengePrograms || []).forEach(key => {
+      selections.challengePrograms.forEach(key => {
         const challenge = productCatalog.challenges[key];
         if (challenge) {
-          emailBody += `• ${challenge.name} - $${challenge.price.toLocaleString()}%0D%0A`;
+          emailBody += `• ${challenge.name}%0D%0A`;
+          emailBody += `  Price: $${challenge.price.toLocaleString()}%0D%0A`;
+          emailBody += `  ${challenge.description}%0D%0A%0D%0A`;
         }
       });
-      emailBody += `%0D%0A`;
     }
 
     // Leadership
     if (selections.leadership && selections.leadership.length > 0) {
-      emailBody += `LEADERSHIP PROGRAMS%0D%0A`;
+      emailBody += `LEADERSHIP PROGRAMS (${selections.leadership.length})%0D%0A`;
       emailBody += `-------------------%0D%0A`;
       selections.leadership.forEach(key => {
         const program = productCatalog.leadership[key];
         if (program) {
-          emailBody += `• ${program.name} - $${program.price.toLocaleString()}%0D%0A`;
+          emailBody += `• ${program.name}%0D%0A`;
+          emailBody += `  Price: $${program.price.toLocaleString()}%0D%0A`;
+          emailBody += `  ${program.description}%0D%0A%0D%0A`;
         }
       });
-      emailBody += `%0D%0A`;
     }
 
-    // Movement Classes
+    // Classes
     if (selections.movementClasses && selections.movementClasses.length > 0) {
-      emailBody += `CLASSES%0D%0A`;
+      emailBody += `CLASSES (${selections.movementClasses.length})%0D%0A`;
       emailBody += `-------------------%0D%0A`;
       selections.movementClasses.forEach(key => {
         const classItem = productCatalog.movementClasses[key];
         if (classItem) {
-          emailBody += `• ${classItem.name} - $${classItem.price.toLocaleString()}%0D%0A`;
+          emailBody += `• ${classItem.name}%0D%0A`;
+          emailBody += `  Price: $${classItem.price.toLocaleString()}%0D%0A`;
+          emailBody += `  Duration: ${classItem.duration}%0D%0A`;
+          emailBody += `  ${classItem.description}%0D%0A%0D%0A`;
         }
       });
-      emailBody += `%0D%0A`;
     }
 
     // Wellness Boxes
-    const hasWellnessBoxes = (sampleBoxQuantities.reduceStress || 0) + (sampleBoxQuantities.relaxationSleep || 0) + 
-                             (sampleBoxQuantities.largeEmotional || 0) + (sampleBoxQuantities.largeStressReduction || 0) > 0 ||
-                             (selections.customBoxQuantity || 0) > 0;
-
     if (hasWellnessBoxes) {
       emailBody += `WELLNESS BOXES%0D%0A`;
       emailBody += `-------------------%0D%0A`;
+      
       if (sampleBoxQuantities.reduceStress > 0) {
-        emailBody += `• Reduce Stress Boxes: ${sampleBoxQuantities.reduceStress} x $65 = $${(sampleBoxQuantities.reduceStress * 65).toLocaleString()}%0D%0A`;
+        emailBody += `• Reduce Stress Box (${sampleBoxQuantities.reduceStress} boxes)%0D%0A`;
+        emailBody += `  Price: ${sampleBoxQuantities.reduceStress} x $65 = $${(sampleBoxQuantities.reduceStress * 65).toLocaleString()}%0D%0A`;
+        emailBody += `  Includes: Heywell Calm + Hydrate, Calm Aromatherapy Patches, Squishy Dumpling Stress Ball, Sleep Gummies, Lavender Candle%0D%0A%0D%0A`;
       }
+      
       if (sampleBoxQuantities.relaxationSleep > 0) {
-        emailBody += `• Relaxation & Sleep Boxes: ${sampleBoxQuantities.relaxationSleep} x $65 = $${(sampleBoxQuantities.relaxationSleep * 65).toLocaleString()}%0D%0A`;
+        emailBody += `• Relaxation & Sleep Box (${sampleBoxQuantities.relaxationSleep} boxes)%0D%0A`;
+        emailBody += `  Price: ${sampleBoxQuantities.relaxationSleep} x $65 = $${(sampleBoxQuantities.relaxationSleep * 65).toLocaleString()}%0D%0A`;
+        emailBody += `  Includes: Weighted Eye Pillow, Herbal Bath Soak, Calming Tea, Eucalyptus Shower Steamers, Sleep Gummies%0D%0A%0D%0A`;
       }
+      
       if (sampleBoxQuantities.largeEmotional > 0) {
-        emailBody += `• Large Emotional Wellness Boxes: ${sampleBoxQuantities.largeEmotional} x $125 = $${(sampleBoxQuantities.largeEmotional * 125).toLocaleString()}%0D%0A`;
+        emailBody += `• Large Emotional Wellness Box (${sampleBoxQuantities.largeEmotional} boxes)%0D%0A`;
+        emailBody += `  Price: ${sampleBoxQuantities.largeEmotional} x $125 = $${(sampleBoxQuantities.largeEmotional * 125).toLocaleString()}%0D%0A`;
+        emailBody += `  Includes: Mindfulness Cards, Essential Oil Roller, Herbal Bath Soak, Calming Tea, Dark Chocolate, Spa Body Brush, Gold Eye Patches%0D%0A%0D%0A`;
       }
+      
       if (sampleBoxQuantities.largeStressReduction > 0) {
-        emailBody += `• Large Stress Reduction Boxes: ${sampleBoxQuantities.largeStressReduction} x $125 = $${(sampleBoxQuantities.largeStressReduction * 125).toLocaleString()}%0D%0A`;
+        emailBody += `• Large Stress Reduction Box (${sampleBoxQuantities.largeStressReduction} boxes)%0D%0A`;
+        emailBody += `  Price: ${sampleBoxQuantities.largeStressReduction} x $125 = $${(sampleBoxQuantities.largeStressReduction * 125).toLocaleString()}%0D%0A`;
+        emailBody += `  Includes: Calm Patches, Calming Tea, Stress Ball, Essential Oil Roller, Mindfulness Cards, Herbal Bath Soak, Hot Cocoa, Heywell Drink, Cork Massage Balls%0D%0A%0D%0A`;
       }
+      
       if (selections.customBoxQuantity > 0) {
-        emailBody += `• Custom Wellness Boxes: ${selections.customBoxQuantity} (pricing TBD based on selection)%0D%0A`;
+        emailBody += `• Custom Wellness Boxes (${selections.customBoxQuantity} boxes)%0D%0A`;
+        emailBody += `  Pricing: To be determined based on custom selection%0D%0A`;
+        if (selections.customBoxItems && selections.customBoxItems.length > 0) {
+          emailBody += `  Selected Items:%0D%0A`;
+          selections.customBoxItems.forEach(item => {
+            emailBody += `    - ${item.name} ($${item.price.toFixed(2)})%0D%0A`;
+          });
+        }
+        emailBody += `%0D%0A`;
       }
-      emailBody += `%0D%0A`;
     }
 
-    // Total
+    // Total Investment
+    emailBody += `%0D%0A======================================%0D%0A`;
+    emailBody += `ESTIMATED TOTAL INVESTMENT%0D%0A`;
     emailBody += `======================================%0D%0A`;
-    emailBody += `ESTIMATED TOTAL (before shipping): $${calculateTotal().toLocaleString()}%0D%0A`;
+    emailBody += `$${calculateTotal().toLocaleString()}%0D%0A`;
+    emailBody += `(estimated before shipping`;
     if (selections.customBoxQuantity > 0) {
-      emailBody += `(Note: Custom wellness boxes pricing to be determined)%0D%0A`;
+      emailBody += `, custom wellness boxes pricing to be determined`;
     }
-    emailBody += `======================================%0D%0A%0D%0A`;
+    emailBody += `)%0D%0A%0D%0A`;
 
     // Success Metrics
     if (assessmentData.successMetrics) {
