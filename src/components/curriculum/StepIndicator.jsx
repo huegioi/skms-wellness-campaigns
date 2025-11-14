@@ -2,23 +2,22 @@ import React from 'react';
 import { Check } from 'lucide-react';
 
 export default function StepIndicator({ steps, currentStep }) {
-  // Updated color palette for new step order
   const stepColors = [
-    '#770142',  // Step 1 - Assessment (magenta)
-    '#264d44',  // Step 2 - Workshops (teal)
-    '#ff9878',  // Step 3 - Challenges (coral)
-    '#eaf995',  // Step 4 - Wellness Boxes (yellow-green)
-    '#cae5e3',  // Step 5 - Movement (light cyan)
-    '#013f7c',  // Step 6 - Leadership (blue)
-    '#441d37'   // Step 7 - Review (purple)
+    '#770142',  
+    '#264d44',  
+    '#ff9878',  
+    '#eaf995',  
+    '#cae5e3',  
+    '#013f7c',  
+    '#441d37'   
   ];
 
   return (
-    <div className="mb-8 md:mb-12 px-2 md:px-4">
+    <div className="mb-6 md:mb-12 px-1 md:px-4">
       <style>{`
         .step-line {
           position: absolute;
-          top: 20px;
+          top: 16px;
           left: 0;
           right: 0;
           height: 2px;
@@ -26,9 +25,15 @@ export default function StepIndicator({ steps, currentStep }) {
           z-index: 0;
         }
 
+        @media (min-width: 768px) {
+          .step-line {
+            top: 20px;
+          }
+        }
+
         .step-progress {
           position: absolute;
-          top: 20px;
+          top: 16px;
           left: 0;
           height: 2px;
           background: linear-gradient(90deg, #770142, #264d44, #ff9878, #eaf995, #cae5e3, #013f7c, #441d37);
@@ -36,9 +41,15 @@ export default function StepIndicator({ steps, currentStep }) {
           transition: width 0.3s ease;
         }
 
+        @media (min-width: 768px) {
+          .step-progress {
+            top: 20px;
+          }
+        }
+
         .step-circle {
-          width: 32px;
-          height: 32px;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -47,7 +58,7 @@ export default function StepIndicator({ steps, currentStep }) {
           position: relative;
           z-index: 2;
           font-weight: 600;
-          font-size: 13px;
+          font-size: 11px;
           box-shadow: 
             4px 4px 8px rgba(0, 0, 0, 0.12),
             -4px -4px 8px rgba(255, 255, 255, 0.9);
@@ -70,13 +81,13 @@ export default function StepIndicator({ steps, currentStep }) {
         }
 
         .step-label {
-          font-size: 10px;
+          font-size: 9px;
           color: #666;
           text-align: center;
-          margin-top: 6px;
+          margin-top: 4px;
           font-weight: 500;
-          line-height: 1.2;
-          max-width: 70px;
+          line-height: 1.1;
+          max-width: 60px;
         }
 
         @media (min-width: 768px) {
@@ -111,7 +122,7 @@ export default function StepIndicator({ steps, currentStep }) {
                   }}
                 >
                   {isCompleted ? (
-                    <Check className="w-4 h-4 md:w-5 md:h-5" />
+                    <Check className="w-3 h-3 md:w-5 md:h-5" />
                   ) : (
                     step.number
                   )}
