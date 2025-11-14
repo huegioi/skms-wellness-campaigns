@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { productCatalog, workforceChallenges } from './catalogData';
 import StepNavigation from './StepNavigation';
-import { Sparkles, TrendingUp, AlertCircle } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 
 export default function ReviewStep({ selections, onBack }) {
   const [formData, setFormData] = useState({
@@ -14,179 +13,6 @@ export default function ReviewStep({ selections, onBack }) {
 
   const assessmentData = selections.assessmentData || {};
 
-  // Generate comprehensive personalized narrative
-  const generateNarrative = () => {
-    const sections = [];
-
-    // Company context
-    if (assessmentData.companySize || assessmentData.industry) {
-      const parts = [];
-      if (assessmentData.industry) parts.push(assessmentData.industry);
-      if (assessmentData.companySize) parts.push(`${assessmentData.companySize} employees`);
-      sections.push({
-        title: "Your Organization",
-        content: parts.join(", ")
-      });
-    }
-
-    // Workforce challenges
-    if (selections.challenges && selections.challenges.length > 0) {
-      const challengeLabels = selections.challenges
-        .map(id => workforceChallenges.find(c => c.id === id)?.label)
-        .filter(Boolean);
-      
-      sections.push({
-        title: "Current Challenges",
-        content: `Your organization is facing challenges with ${challengeLabels.slice(0, -1).join(', ')}${challengeLabels.length > 1 ? ' and ' + challengeLabels[challengeLabels.length - 1] : challengeLabels[0]}.`
-      });
-    }
-
-    // Assessment insights
-    const insights = [];
-    
-    if (assessmentData.resilienceLevel && parseInt(assessmentData.resilienceLevel) <= 3) {
-      insights.push("Building resilience and adaptability among leaders");
-    }
-    if (assessmentData.engagementLevel && parseInt(assessmentData.engagementLevel) <= 3) {
-      insights.push("Improving leadership engagement and morale");
-    }
-    if (assessmentData.emotionalIntelligence && parseInt(assessmentData.emotionalIntelligence) <= 3) {
-      insights.push("Developing emotional intelligence and conflict management skills");
-    }
-    if (assessmentData.conflictFrequency && parseInt(assessmentData.conflictFrequency) <= 2) {
-      insights.push("Reducing workplace conflicts and escalations");
-    }
-    if (assessmentData.decisionQuality && parseInt(assessmentData.decisionQuality) <= 3) {
-      insights.push("Enhancing decision-making quality and speed");
-    }
-    if (assessmentData.goalAlignment && parseInt(assessmentData.goalAlignment) <= 3) {
-      insights.push("Improving organizational alignment and goal clarity");
-    }
-
-    if (insights.length > 0) {
-      sections.push({
-        title: "Key Focus Areas Based on Your Assessment",
-        list: insights
-      });
-    }
-
-    // Primary goals
-    if (assessmentData.primaryGoals) {
-      sections.push({
-        title: "Your Stated Goals",
-        content: assessmentData.primaryGoals
-      });
-    }
-
-    // How the program addresses needs
-    const programSections = [];
-
-    // Workshops
-    if (selections.workshops && selections.workshops.length > 0) {
-      const workshopNames = selections.workshops.slice(0, 3).map(key => productCatalog.workshops[key]?.name).filter(Boolean);
-      const remaining = selections.workshops.length - 3;
-      let text = workshopNames.join(', ');
-      if (remaining > 0) text += `, and ${remaining} more`;
-      text += ". These sessions provide practical tools and frameworks to address your immediate challenges with stress, communication, and leadership effectiveness.";
-      programSections.push({ subtitle: "Workshops - Foundation Building", content: text });
-    }
-
-    // Challenges
-    if (selections.challengePrograms && selections.challengePrograms.length > 0) {
-      programSections.push({
-        subtitle: "14-Day Challenges - Habit Formation",
-        content: "Daily guided practices reinforce workshop concepts, creating lasting behavioral change and building mental fitness habits across your organization."
-      });
-    }
-
-    // Leadership
-    if (selections.leadership && selections.leadership.length > 0) {
-      programSections.push({
-        subtitle: "Leadership Development - Culture Transformation",
-        content: "Equipping your leaders with emotional intelligence competencies creates a ripple effect throughout the organization, modeling healthy behaviors and creating psychologically safe environments."
-      });
-    }
-
-    // Movement Classes
-    if (selections.movementClasses && selections.movementClasses.length > 0) {
-      programSections.push({
-        subtitle: "Movement & Mindfulness - Sustained Practice",
-        content: "Ongoing classes provide consistent touchpoints for stress reduction, physical wellness, and community building."
-      });
-    }
-
-    // Wellness Boxes
-    if (selections.smallBoxes > 0 || selections.largeBoxes > 0) {
-      programSections.push({
-        subtitle: "Wellness Incentives - Recognition & Engagement",
-        content: "Tangible rewards boost participation rates and demonstrate organizational commitment to employee well-being."
-      });
-    }
-
-    if (programSections.length > 0) {
-      sections.push({
-        title: "How Your Customized Campaign Addresses These Needs",
-        subsections: programSections
-      });
-    }
-
-    // Success metrics
-    if (assessmentData.successMetrics) {
-      sections.push({
-        title: "Expected Impact on Your Success Metrics",
-        content: `This comprehensive approach is designed to positively impact the metrics you've identified: ${assessmentData.successMetrics}`
-      });
-    }
-
-    // Timeline
-    if (assessmentData.timeline) {
-      const timelineText = {
-        'immediate': 'immediate implementation',
-        '1-3months': '1-3 month rollout',
-        '3-6months': '3-6 month implementation',
-        '6-12months': '6-12 month phased approach',
-        'exploring': 'flexible timeline to fit your needs'
-      }[assessmentData.timeline] || 'customized timeline';
-      
-      sections.push({
-        title: "Implementation",
-        content: `Your ${timelineText} aligns well with our program delivery model.`
-      });
-    }
-
-    sections.push({
-      title: "Bottom Line",
-      content: "This integrated mental fitness ecosystem creates sustainable culture change, addressing both immediate needs and long-term organizational health.",
-      highlight: true
-    });
-
-    return sections;
-  };
-
-  // Generate assessment summary
-  const generateAssessmentSummary = () => {
-    const items = [];
-    
-    if (assessmentData.resilienceLevel) {
-      items.push({ label: 'Leadership Resilience', value: `${assessmentData.resilienceLevel}/5`, status: parseInt(assessmentData.resilienceLevel) >= 4 ? 'good' : 'needs-work' });
-    }
-    if (assessmentData.engagementLevel) {
-      items.push({ label: 'Team Engagement', value: `${assessmentData.engagementLevel}/5`, status: parseInt(assessmentData.engagementLevel) >= 4 ? 'good' : 'needs-work' });
-    }
-    if (assessmentData.emotionalIntelligence) {
-      items.push({ label: 'Emotional Intelligence', value: `${assessmentData.emotionalIntelligence}/5`, status: parseInt(assessmentData.emotionalIntelligence) >= 4 ? 'good' : 'needs-work' });
-    }
-    if (assessmentData.decisionQuality) {
-      items.push({ label: 'Decision Quality', value: `${assessmentData.decisionQuality}/5`, status: parseInt(assessmentData.decisionQuality) >= 4 ? 'good' : 'needs-work' });
-    }
-    if (assessmentData.goalAlignment) {
-      items.push({ label: 'Goal Alignment', value: `${assessmentData.goalAlignment}/5`, status: parseInt(assessmentData.goalAlignment) >= 4 ? 'good' : 'needs-work' });
-    }
-    
-    return items;
-  };
-
-  // Calculate total price
   const calculateTotal = () => {
     let total = 0;
     (selections.workshops || []).forEach(key => {
@@ -216,65 +42,141 @@ export default function ReviewStep({ selections, onBack }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Build email body
-    let emailBody = `Hi, I am interested in co-creating a mental fitness campaign with SkillfulMeans...%0D%0A%0D%0A`;
+    // Build comprehensive email body
+    let emailBody = `MENTAL FITNESS CAMPAIGN PROPOSAL%0D%0A`;
+    emailBody += `======================================%0D%0A%0D%0A`;
+    
+    // Contact Info
+    emailBody += `CONTACT INFORMATION%0D%0A`;
+    emailBody += `-------------------%0D%0A`;
     emailBody += `Name: ${formData.name}%0D%0A`;
     emailBody += `Company: ${formData.company || 'N/A'}%0D%0A`;
     emailBody += `Email: ${formData.email}%0D%0A%0D%0A`;
-    emailBody += `Estimated Total: $${calculateTotal().toLocaleString()}%0D%0A%0D%0A`;
     
-    // Add assessment data
-    if (assessmentData.companySize) emailBody += `Company Size: ${assessmentData.companySize}%0D%0A`;
-    if (assessmentData.industry) emailBody += `Industry: ${assessmentData.industry}%0D%0A`;
-    if (assessmentData.timeline) emailBody += `Timeline: ${assessmentData.timeline}%0D%0A`;
-    emailBody += `%0D%0A`;
+    // Organization Overview
+    if (assessmentData.companySize || assessmentData.industry || assessmentData.timeline) {
+      emailBody += `ORGANIZATION OVERVIEW%0D%0A`;
+      emailBody += `-------------------%0D%0A`;
+      if (assessmentData.industry) emailBody += `Industry: ${assessmentData.industry}%0D%0A`;
+      if (assessmentData.companySize) emailBody += `Company Size: ${assessmentData.companySize}%0D%0A`;
+      if (assessmentData.timeline) emailBody += `Timeline: ${assessmentData.timeline}%0D%0A`;
+      emailBody += `%0D%0A`;
+    }
     
+    // Current Challenges
     if (selections.challenges && selections.challenges.length > 0) {
-      emailBody += `Workforce Challenges:%0D%0A`;
+      emailBody += `IDENTIFIED WORKFORCE CHALLENGES%0D%0A`;
+      emailBody += `-------------------%0D%0A`;
       selections.challenges.forEach(id => {
         const challenge = workforceChallenges.find(c => c.id === id);
-        emailBody += `- ${challenge?.label}%0D%0A`;
+        if (challenge) emailBody += `• ${challenge.label}%0D%0A`;
       });
       emailBody += `%0D%0A`;
     }
 
+    // Assessment Scores (if provided)
+    if (assessmentData.resilienceLevel || assessmentData.engagementLevel || assessmentData.emotionalIntelligence) {
+      emailBody += `ASSESSMENT RESULTS%0D%0A`;
+      emailBody += `-------------------%0D%0A`;
+      if (assessmentData.resilienceLevel) emailBody += `Leadership Resilience: ${assessmentData.resilienceLevel}/5%0D%0A`;
+      if (assessmentData.engagementLevel) emailBody += `Team Engagement: ${assessmentData.engagementLevel}/5%0D%0A`;
+      if (assessmentData.emotionalIntelligence) emailBody += `Emotional Intelligence: ${assessmentData.emotionalIntelligence}/5%0D%0A`;
+      if (assessmentData.decisionQuality) emailBody += `Decision Quality: ${assessmentData.decisionQuality}/5%0D%0A`;
+      if (assessmentData.goalAlignment) emailBody += `Goal Alignment: ${assessmentData.goalAlignment}/5%0D%0A`;
+      emailBody += `%0D%0A`;
+    }
+
+    // Goals
     if (assessmentData.primaryGoals) {
-      emailBody += `Primary Goals: ${assessmentData.primaryGoals}%0D%0A%0D%0A`;
+      emailBody += `PRIMARY GOALS%0D%0A`;
+      emailBody += `-------------------%0D%0A`;
+      emailBody += `${assessmentData.primaryGoals}%0D%0A%0D%0A`;
     }
 
-    emailBody += `Selected Workshops:%0D%0A`;
-    (selections.workshops || []).forEach(key => {
-      emailBody += `- ${productCatalog.workshops[key]?.name}%0D%0A`;
-    });
-    emailBody += `%0D%0A`;
+    // Program Summary
+    emailBody += `PROPOSED PROGRAM COMPONENTS%0D%0A`;
+    emailBody += `======================================%0D%0A%0D%0A`;
 
-    emailBody += `Selected Challenges:%0D%0A`;
-    (selections.challengePrograms || []).forEach(key => {
-      emailBody += `- ${productCatalog.challenges[key]?.name}%0D%0A`;
-    });
-    emailBody += `%0D%0A`;
+    // Workshops
+    if (selections.workshops && selections.workshops.length > 0) {
+      emailBody += `WORKSHOPS (${selections.workshops.length})%0D%0A`;
+      emailBody += `-------------------%0D%0A`;
+      (selections.workshops || []).forEach(key => {
+        const workshop = productCatalog.workshops[key];
+        if (workshop) {
+          emailBody += `• ${workshop.name} - $${workshop.price.toLocaleString()}%0D%0A`;
+        }
+      });
+      emailBody += `%0D%0A`;
+    }
 
+    // Challenges
+    if (selections.challengePrograms && selections.challengePrograms.length > 0) {
+      emailBody += `14-DAY CHALLENGES (${selections.challengePrograms.length})%0D%0A`;
+      emailBody += `-------------------%0D%0A`;
+      (selections.challengePrograms || []).forEach(key => {
+        const challenge = productCatalog.challenges[key];
+        if (challenge) {
+          emailBody += `• ${challenge.name} - $${challenge.price.toLocaleString()}%0D%0A`;
+        }
+      });
+      emailBody += `%0D%0A`;
+    }
+
+    // Leadership
     if (selections.leadership && selections.leadership.length > 0) {
-      emailBody += `Leadership Programs:%0D%0A`;
+      emailBody += `LEADERSHIP PROGRAMS%0D%0A`;
+      emailBody += `-------------------%0D%0A`;
       selections.leadership.forEach(key => {
-        emailBody += `- ${productCatalog.leadership[key]?.name}%0D%0A`;
+        const program = productCatalog.leadership[key];
+        if (program) {
+          emailBody += `• ${program.name} - $${program.price.toLocaleString()}%0D%0A`;
+        }
       });
       emailBody += `%0D%0A`;
     }
 
+    // Movement Classes
     if (selections.movementClasses && selections.movementClasses.length > 0) {
-      emailBody += `Movement/Mindfulness Classes:%0D%0A`;
+      emailBody += `MOVEMENT & MINDFULNESS CLASSES%0D%0A`;
+      emailBody += `-------------------%0D%0A`;
       selections.movementClasses.forEach(key => {
-        emailBody += `- ${productCatalog.movementClasses[key]?.name}%0D%0A`;
+        const classItem = productCatalog.movementClasses[key];
+        if (classItem) {
+          emailBody += `• ${classItem.name} - $${classItem.price.toLocaleString()}%0D%0A`;
+        }
       });
       emailBody += `%0D%0A`;
     }
 
-    emailBody += `Wellness Boxes:%0D%0A`;
-    emailBody += `- Small Boxes: ${selections.smallBoxes || 0}%0D%0A`;
-    emailBody += `- Large Boxes: ${selections.largeBoxes || 0}%0D%0A`;
+    // Wellness Boxes
+    if (selections.smallBoxes > 0 || selections.largeBoxes > 0) {
+      emailBody += `WELLNESS BOXES%0D%0A`;
+      emailBody += `-------------------%0D%0A`;
+      if (selections.smallBoxes > 0) {
+        emailBody += `• Small Wellness Boxes: ${selections.smallBoxes} x $65 = $${(selections.smallBoxes * 65).toLocaleString()}%0D%0A`;
+      }
+      if (selections.largeBoxes > 0) {
+        emailBody += `• Large Wellness Boxes: ${selections.largeBoxes} x $125 = $${(selections.largeBoxes * 125).toLocaleString()}%0D%0A`;
+      }
+      emailBody += `%0D%0A`;
+    }
 
-    const mailtoLink = `mailto:admin@skillfulmeans.life?subject=Mental Fitness Campaign from ${formData.name}&body=${emailBody}`;
+    // Total
+    emailBody += `======================================%0D%0A`;
+    emailBody += `ESTIMATED TOTAL INVESTMENT: $${calculateTotal().toLocaleString()}%0D%0A`;
+    emailBody += `======================================%0D%0A%0D%0A`;
+
+    // Success Metrics
+    if (assessmentData.successMetrics) {
+      emailBody += `SUCCESS METRICS%0D%0A`;
+      emailBody += `-------------------%0D%0A`;
+      emailBody += `${assessmentData.successMetrics}%0D%0A%0D%0A`;
+    }
+
+    emailBody += `Looking forward to co-creating this mental fitness campaign with SkillfulMeans!`;
+
+    const mailtoLink = `mailto:admin@skillfulmeans.life?subject=Mental Fitness Campaign Proposal - ${formData.name}&body=${emailBody}`;
 
     setShowSuccess(true);
 
@@ -283,26 +185,29 @@ export default function ReviewStep({ selections, onBack }) {
     }, 2500);
   };
 
-  const assessmentSummary = generateAssessmentSummary();
-  const narrativeSections = generateNarrative();
-
   return (
     <div>
       <style>{`
         .review-card {
           background: #f4f0e9;
           border-radius: 16px;
-          padding: 24px;
+          padding: 20px;
           margin-bottom: 24px;
           box-shadow: 
             8px 8px 16px rgba(0, 0, 0, 0.12),
             -8px -8px 16px rgba(255, 255, 255, 0.9);
         }
 
-        .narrative-card {
+        @media (min-width: 768px) {
+          .review-card {
+            padding: 24px;
+          }
+        }
+
+        .summary-card {
           background: linear-gradient(135deg, #264d44 0%, #013f7c 100%);
           border-radius: 16px;
-          padding: 28px;
+          padding: 24px;
           margin-bottom: 24px;
           color: white;
           box-shadow: 
@@ -310,87 +215,29 @@ export default function ReviewStep({ selections, onBack }) {
             -8px -8px 16px rgba(255, 255, 255, 0.05);
         }
 
-        .narrative-section {
-          margin-bottom: 24px;
-          padding-bottom: 20px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        @media (min-width: 768px) {
+          .summary-card {
+            padding: 28px;
+          }
         }
 
-        .narrative-section:last-child {
-          border-bottom: none;
-          margin-bottom: 0;
-          padding-bottom: 0;
+        .summary-section {
+          margin-bottom: 16px;
         }
 
-        .narrative-title {
-          font-size: 20px;
+        .summary-title {
+          font-size: 13px;
           font-weight: 700;
           color: #eaf995;
-          margin-bottom: 12px;
+          margin-bottom: 8px;
           letter-spacing: 0.5px;
           text-transform: uppercase;
-          font-size: 14px;
         }
 
-        .narrative-content {
-          font-size: 16px;
-          line-height: 1.8;
-          color: rgba(255, 255, 255, 0.95);
-        }
-
-        .narrative-list {
-          margin-top: 8px;
-          padding-left: 20px;
-        }
-
-        .narrative-list li {
-          margin-bottom: 8px;
-          line-height: 1.6;
+        .summary-content {
           font-size: 15px;
-        }
-
-        .narrative-subsection {
-          margin-top: 16px;
-          padding-left: 16px;
-          border-left: 3px solid #ff9878;
-        }
-
-        .narrative-subtitle {
-          font-weight: 700;
-          font-size: 16px;
-          margin-bottom: 6px;
-          color: #cae5e3;
-        }
-
-        .narrative-highlight {
-          background: rgba(234, 249, 149, 0.15);
-          padding: 20px;
-          border-radius: 12px;
-          border: 2px solid #eaf995;
-        }
-
-        .assessment-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 16px;
-          margin-top: 16px;
-        }
-
-        .assessment-item {
-          background: rgba(255, 255, 255, 0.1);
-          padding: 16px;
-          border-radius: 12px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .assessment-item.needs-work {
-          border-left: 4px solid #ff9878;
-        }
-
-        .assessment-item.good {
-          border-left: 4px solid #eaf995;
+          line-height: 1.6;
+          color: rgba(255, 255, 255, 0.95);
         }
 
         .review-section {
@@ -398,7 +245,7 @@ export default function ReviewStep({ selections, onBack }) {
         }
 
         .review-section-title {
-          font-size: 18px;
+          font-size: 16px;
           font-weight: 700;
           color: #264d44;
           margin-bottom: 12px;
@@ -406,12 +253,25 @@ export default function ReviewStep({ selections, onBack }) {
           border-bottom: 2px solid rgba(38, 77, 68, 0.2);
         }
 
+        @media (min-width: 768px) {
+          .review-section-title {
+            font-size: 18px;
+          }
+        }
+
         .review-item {
-          padding: 8px 0;
+          padding: 6px 0;
           color: #555;
           display: flex;
           justify-content: space-between;
           align-items: center;
+          font-size: 14px;
+        }
+
+        @media (min-width: 768px) {
+          .review-item {
+            padding: 8px 0;
+          }
         }
 
         .neuro-input {
@@ -447,60 +307,64 @@ export default function ReviewStep({ selections, onBack }) {
         }
       `}</style>
 
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-3" style={{ color: '#013f7c' }}>
-          Your Customized Campaign
+      <div className="mb-6 md:mb-8">
+        <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-3" style={{ color: '#013f7c' }}>
+          Campaign Summary
         </h2>
-        <p className="text-lg" style={{ color: '#666' }}>
-          See how your program addresses your organization's specific needs.
+        <p className="text-base md:text-lg" style={{ color: '#666' }}>
+          Review your customized mental fitness program
         </p>
       </div>
 
-      {/* Personalized Narrative */}
-      <div className="narrative-card">
-        <div className="flex items-center gap-2 mb-6">
-          <Sparkles className="w-6 h-6" style={{ color: '#eaf995' }} />
-          <h3 className="text-xl font-bold">Your Personalized Campaign Story</h3>
+      {/* Concise Summary */}
+      <div className="summary-card">
+        <div className="flex items-center gap-2 mb-5">
+          <Sparkles className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#eaf995' }} />
+          <h3 className="text-lg md:text-xl font-bold">Your Program at a Glance</h3>
         </div>
         
-        {assessmentSummary.length > 0 && (
-          <div className="assessment-grid mb-6">
-            {assessmentSummary.map((item, idx) => (
-              <div key={idx} className={`assessment-item ${item.status}`}>
-                <span className="text-sm font-semibold">{item.label}</span>
-                <span className="text-lg font-bold">{item.value}</span>
-              </div>
-            ))}
+        {(assessmentData.companySize || assessmentData.industry) && (
+          <div className="summary-section">
+            <div className="summary-title">Organization</div>
+            <div className="summary-content">
+              {assessmentData.industry && `${assessmentData.industry}`}
+              {assessmentData.industry && assessmentData.companySize && ` • `}
+              {assessmentData.companySize && `${assessmentData.companySize} employees`}
+            </div>
           </div>
         )}
 
-        {narrativeSections.map((section, idx) => (
-          <div key={idx} className={section.highlight ? "narrative-section narrative-highlight" : "narrative-section"}>
-            <div className="narrative-title">{section.title}</div>
-            
-            {section.content && (
-              <div className="narrative-content">{section.content}</div>
-            )}
-            
-            {section.list && (
-              <ul className="narrative-list">
-                {section.list.map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
-            )}
-            
-            {section.subsections && section.subsections.map((subsection, i) => (
-              <div key={i} className="narrative-subsection">
-                <div className="narrative-subtitle">{subsection.subtitle}</div>
-                <div className="narrative-content">{subsection.content}</div>
-              </div>
-            ))}
+        {selections.challenges && selections.challenges.length > 0 && (
+          <div className="summary-section">
+            <div className="summary-title">Focus Areas</div>
+            <div className="summary-content">
+              {selections.challenges.map(id => workforceChallenges.find(c => c.id === id)?.label).filter(Boolean).join(', ')}
+            </div>
           </div>
-        ))}
+        )}
+
+        <div className="summary-section">
+          <div className="summary-title">Program Components</div>
+          <div className="summary-content">
+            {[
+              selections.workshops?.length > 0 && `${selections.workshops.length} Workshops`,
+              selections.challengePrograms?.length > 0 && `${selections.challengePrograms.length} Challenges`,
+              selections.leadership?.length > 0 && `${selections.leadership.length} Leadership Programs`,
+              selections.movementClasses?.length > 0 && `${selections.movementClasses.length} Movement Classes`,
+              (selections.smallBoxes > 0 || selections.largeBoxes > 0) && 'Wellness Boxes'
+            ].filter(Boolean).join(' • ')}
+          </div>
+        </div>
+
+        {assessmentData.timeline && (
+          <div className="summary-section">
+            <div className="summary-title">Timeline</div>
+            <div className="summary-content">{assessmentData.timeline}</div>
+          </div>
+        )}
       </div>
 
-      {/* Program Summary */}
+      {/* Detailed Breakdown */}
       <div className="review-card">
         {selections.workshops && selections.workshops.length > 0 && (
           <div className="review-section">
@@ -540,7 +404,7 @@ export default function ReviewStep({ selections, onBack }) {
 
         {selections.movementClasses && selections.movementClasses.length > 0 && (
           <div className="review-section">
-            <div className="review-section-title">Movement & Mindfulness Classes</div>
+            <div className="review-section-title">Movement & Mindfulness</div>
             {selections.movementClasses.map(key => (
               <div key={key} className="review-item">
                 <span>{productCatalog.movementClasses[key]?.name}</span>
@@ -570,8 +434,8 @@ export default function ReviewStep({ selections, onBack }) {
 
         <div className="mt-6 pt-6 border-t-2" style={{ borderColor: '#cae5e3' }}>
           <div className="flex justify-between items-center">
-            <span className="text-2xl font-bold" style={{ color: '#264d44' }}>Total Estimate</span>
-            <span className="text-3xl font-bold" style={{ color: '#770142' }}>${calculateTotal().toLocaleString()}</span>
+            <span className="text-xl md:text-2xl font-bold" style={{ color: '#264d44' }}>Total Investment</span>
+            <span className="text-2xl md:text-3xl font-bold" style={{ color: '#770142' }}>${calculateTotal().toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -579,12 +443,12 @@ export default function ReviewStep({ selections, onBack }) {
       {/* Contact Form */}
       {!showSuccess ? (
         <div className="review-card">
-          <h3 className="text-2xl font-bold mb-5" style={{ color: '#264d44' }}>
-            Submit Your Campaign
+          <h3 className="text-xl md:text-2xl font-bold mb-4 md:mb-5" style={{ color: '#264d44' }}>
+            Submit Your Proposal
           </h3>
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
-              <label className="block mb-2 font-semibold" style={{ color: '#555' }}>
+              <label className="block mb-2 font-semibold text-sm md:text-base" style={{ color: '#555' }}>
                 Your Name *
               </label>
               <input
@@ -599,7 +463,7 @@ export default function ReviewStep({ selections, onBack }) {
             </div>
 
             <div className="mb-4">
-              <label className="block mb-2 font-semibold" style={{ color: '#555' }}>
+              <label className="block mb-2 font-semibold text-sm md:text-base" style={{ color: '#555' }}>
                 Company Name
               </label>
               <input
@@ -613,7 +477,7 @@ export default function ReviewStep({ selections, onBack }) {
             </div>
 
             <div className="mb-5">
-              <label className="block mb-2 font-semibold" style={{ color: '#555' }}>
+              <label className="block mb-2 font-semibold text-sm md:text-base" style={{ color: '#555' }}>
                 Email Address *
               </label>
               <input
@@ -629,15 +493,15 @@ export default function ReviewStep({ selections, onBack }) {
 
             <StepNavigation
               onBack={onBack}
-              nextLabel="Submit Campaign"
+              nextLabel="Submit Proposal"
               isLastStep={true}
             />
           </form>
         </div>
       ) : (
         <div className="success-message">
-          <h3 className="text-xl font-bold mb-2">Thank You!</h3>
-          <p>Please complete sending the email from your mail client. A member of our team will follow up with you as soon as possible.</p>
+          <h3 className="text-lg md:text-xl font-bold mb-2">Thank You!</h3>
+          <p className="text-sm md:text-base">Please complete sending the email from your mail client. A member of our team will follow up with you soon.</p>
         </div>
       )}
     </div>
