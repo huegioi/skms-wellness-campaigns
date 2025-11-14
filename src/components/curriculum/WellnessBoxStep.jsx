@@ -171,11 +171,17 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
         .box-card {
           background: #f4f0e9;
           border-radius: 16px;
-          padding: 24px;
+          padding: 20px;
           box-shadow: 
             8px 8px 16px rgba(0, 0, 0, 0.12),
             -8px -8px 16px rgba(255, 255, 255, 0.9);
           margin-bottom: 20px;
+        }
+
+        @media (min-width: 768px) {
+          .box-card {
+            padding: 24px;
+          }
         }
 
         .expandable-section {
@@ -204,9 +210,16 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
 
         .items-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-          gap: 16px;
+          grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+          gap: 12px;
           margin-top: 16px;
+        }
+
+        @media (min-width: 768px) {
+          .items-grid {
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+          }
         }
 
         .item-card {
@@ -228,16 +241,28 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
 
         .item-card img {
           width: 100%;
-          height: 120px;
+          height: 100px;
           object-fit: cover;
         }
 
+        @media (min-width: 768px) {
+          .item-card img {
+            height: 120px;
+          }
+        }
+
         .item-card-content {
-          padding: 12px;
+          padding: 10px;
+        }
+
+        @media (min-width: 768px) {
+          .item-card-content {
+            padding: 12px;
+          }
         }
 
         .item-card-title {
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 600;
           color: #264d44;
           line-height: 1.3;
@@ -248,19 +273,38 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
           overflow: hidden;
         }
 
+        @media (min-width: 768px) {
+          .item-card-title {
+            font-size: 12px;
+          }
+        }
+
         .sample-box {
           background: rgba(255, 255, 255, 0.5);
           border-radius: 12px;
-          padding: 16px;
+          padding: 14px;
           margin-bottom: 12px;
           border-left: 4px solid #eaf995;
         }
 
+        @media (min-width: 768px) {
+          .sample-box {
+            padding: 16px;
+          }
+        }
+
         .sample-box h4 {
           color: #264d44;
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 700;
-          margin-bottom: 12px;
+          margin-bottom: 10px;
+        }
+
+        @media (min-width: 768px) {
+          .sample-box h4 {
+            font-size: 15px;
+            margin-bottom: 12px;
+          }
         }
 
         .sample-box ul {
@@ -272,10 +316,16 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
         .sample-box li {
           padding: 4px 0;
           color: #555;
-          font-size: 13px;
+          font-size: 12px;
           display: flex;
           align-items: center;
           gap: 8px;
+        }
+
+        @media (min-width: 768px) {
+          .sample-box li {
+            font-size: 13px;
+          }
         }
 
         .sample-box li:before {
@@ -289,14 +339,14 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
           background: linear-gradient(135deg, #eaf995, #cae5e3);
           border: none;
           border-radius: 12px;
-          padding: 12px 20px;
+          padding: 10px 16px;
           width: 100%;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
           font-weight: 700;
-          font-size: 14px;
+          font-size: 13px;
           color: #264d44;
           cursor: pointer;
           box-shadow: 
@@ -304,6 +354,13 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
             -4px -4px 8px rgba(255, 255, 255, 0.9);
           transition: all 0.2s ease;
           margin-bottom: 16px;
+        }
+
+        @media (min-width: 768px) {
+          .view-samples-btn {
+            padding: 12px 20px;
+            font-size: 14px;
+          }
         }
 
         .view-samples-btn:hover {
@@ -321,11 +378,11 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
         }
       `}</style>
 
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-3" style={{ color: '#013f7c' }}>
+      <div className="mb-6 md:mb-8">
+        <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-3" style={{ color: '#013f7c' }}>
           Wellness Box Incentives
         </h2>
-        <p className="text-lg mb-4" style={{ color: '#666' }}>
+        <p className="text-base md:text-lg mb-3 md:mb-4" style={{ color: '#666' }}>
           Add wellness boxes to boost engagement and show appreciation for participation.
         </p>
         <p className="text-sm" style={{ color: '#666' }}>
@@ -333,27 +390,26 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
         {/* Small Boxes */}
         <div className="box-card">
-          <h3 className="text-xl font-bold mb-2" style={{ color: '#013f7c' }}>
+          <h3 className="text-lg md:text-xl font-bold mb-2" style={{ color: '#013f7c' }}>
             Small Wellness Boxes
           </h3>
-          <p className="text-sm mb-4" style={{ color: '#666' }}>
+          <p className="text-sm mb-3 md:mb-4" style={{ color: '#666' }}>
             Perfect for workshop participants and challenge completers
           </p>
-          <div className="text-2xl font-bold mb-4" style={{ color: '#441d37' }}>
+          <div className="text-xl md:text-2xl font-bold mb-3 md:mb-4" style={{ color: '#441d37' }}>
             $65 each
           </div>
 
-          {/* Prominent View Sample Boxes Button */}
           <button 
             className="view-samples-btn"
             onClick={() => setShowSmallSamples(!showSmallSamples)}
           >
-            <Gift className="w-5 h-5" />
+            <Gift className="w-4 h-4 md:w-5 md:h-5" />
             {showSmallSamples ? 'Hide Sample Boxes' : 'View Sample Boxes'}
-            {showSmallSamples ? <ChevronUp className="w-5 h-5 ml-auto" /> : <ChevronDown className="w-5 h-5 ml-auto" />}
+            {showSmallSamples ? <ChevronUp className="w-4 h-4 md:w-5 md:h-5 ml-auto" /> : <ChevronDown className="w-4 h-4 md:w-5 md:h-5 ml-auto" />}
           </button>
 
           {showSmallSamples && (
@@ -378,7 +434,7 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
             >
               −
             </button>
-            <span className="flex-1 text-center text-xl font-bold" style={{ color: '#333' }}>
+            <span className="flex-1 text-center text-lg md:text-xl font-bold" style={{ color: '#333' }}>
               {selections.smallBoxes}
             </span>
             <button 
@@ -392,24 +448,23 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
 
         {/* Large Boxes */}
         <div className="box-card">
-          <h3 className="text-xl font-bold mb-2" style={{ color: '#013f7c' }}>
+          <h3 className="text-lg md:text-xl font-bold mb-2" style={{ color: '#013f7c' }}>
             Large Wellness Boxes
           </h3>
-          <p className="text-sm mb-4" style={{ color: '#666' }}>
+          <p className="text-sm mb-3 md:mb-4" style={{ color: '#666' }}>
             Premium boxes for leadership teams and top performers
           </p>
-          <div className="text-2xl font-bold mb-4" style={{ color: '#441d37' }}>
+          <div className="text-xl md:text-2xl font-bold mb-3 md:mb-4" style={{ color: '#441d37' }}>
             $125 each
           </div>
 
-          {/* Prominent View Sample Boxes Button */}
           <button 
             className="view-samples-btn"
             onClick={() => setShowLargeSamples(!showLargeSamples)}
           >
-            <Gift className="w-5 h-5" />
+            <Gift className="w-4 h-4 md:w-5 md:h-5" />
             {showLargeSamples ? 'Hide Sample Boxes' : 'View Sample Boxes'}
-            {showLargeSamples ? <ChevronUp className="w-5 h-5 ml-auto" /> : <ChevronDown className="w-5 h-5 ml-auto" />}
+            {showLargeSamples ? <ChevronUp className="w-4 h-4 md:w-5 md:h-5 ml-auto" /> : <ChevronDown className="w-4 h-4 md:w-5 md:h-5 ml-auto" />}
           </button>
 
           {showLargeSamples && (
@@ -434,7 +489,7 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
             >
               −
             </button>
-            <span className="flex-1 text-center text-xl font-bold" style={{ color: '#333' }}>
+            <span className="flex-1 text-center text-lg md:text-xl font-bold" style={{ color: '#333' }}>
               {selections.largeBoxes}
             </span>
             <button 
@@ -451,12 +506,12 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
       <div className="expandable-section">
         <div className="expandable-header" onClick={() => setShowItems(!showItems)}>
           <div className="flex items-center gap-2">
-            <Package className="w-5 h-5" style={{ color: '#264d44' }} />
-            <h3 className="text-lg font-bold" style={{ color: '#264d44' }}>
+            <Package className="w-4 h-4 md:w-5 md:h-5" style={{ color: '#264d44' }} />
+            <h3 className="text-base md:text-lg font-bold" style={{ color: '#264d44' }}>
               Available Wellness Items ({wellnessItems.length})
             </h3>
           </div>
-          {showItems ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          {showItems ? <ChevronUp className="w-4 h-4 md:w-5 md:h-5" /> : <ChevronDown className="w-4 h-4 md:w-5 md:h-5" />}
         </div>
         
         {showItems && (

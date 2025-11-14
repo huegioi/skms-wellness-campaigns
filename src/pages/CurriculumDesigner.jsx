@@ -11,25 +11,32 @@ import ReviewStep from '../components/curriculum/ReviewStep';
 export default function CurriculumDesigner() {
   const [currentStep, setCurrentStep] = useState(1);
   const [selections, setSelections] = useState({
+    assessmentData: {},
     challenges: [],
-    assessmentData: null,
     workshops: [],
     challengePrograms: [],
-    smallBoxes: 0,
-    largeBoxes: 0,
+    leadership: [],
     movementClasses: [],
-    leadership: []
+    smallBoxes: 0,
+    largeBoxes: 0
   });
 
   const steps = [
-    { number: 1, name: 'Assessment', component: AssessmentStep },
-    { number: 2, name: 'Workshops', component: WorkshopStep },
-    { number: 3, name: 'Challenges', component: ChallengeStep },
-    { number: 4, name: 'Wellness Boxes', component: WellnessBoxStep },
-    { number: 5, name: 'Movement', component: MovementStep },
-    { number: 6, name: 'Leadership', component: LeadershipStep },
-    { number: 7, name: 'Review', component: ReviewStep }
+    { number: 1, name: 'Assessment' },
+    { number: 2, name: 'Workshops' },
+    { number: 3, name: 'Challenges' },
+    { number: 4, name: 'Wellness' },
+    { number: 5, name: 'Movement' },
+    { number: 6, name: 'Leadership' },
+    { number: 7, name: 'Review' }
   ];
+
+  const updateSelections = (key, value) => {
+    setSelections(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
 
   const handleNext = () => {
     if (currentStep < steps.length) {
@@ -45,49 +52,101 @@ export default function CurriculumDesigner() {
     }
   };
 
-  const updateSelections = (category, value) => {
-    setSelections(prev => ({
-      ...prev,
-      [category]: value
-    }));
-  };
-
-  const CurrentStepComponent = steps[currentStep - 1].component;
-
-  return (
-    <div className="min-h-screen py-10 px-4" style={{ background: '#f4f0e9' }}>
-      <div className="max-w-5xl mx-auto">
-        <style>{`
-          .neuro-container {
-            background: #f4f0e9;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 
-              12px 12px 24px rgba(0, 0, 0, 0.15),
-              -12px -12px 24px rgba(255, 255, 255, 0.9);
-          }
-        `}</style>
-
-        <div className="neuro-container">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl md:text-5xl font-bold mb-2" style={{ color: '#013f7c' }}>
-              Build Your Mental Fitness Campaign
-            </h1>
-            <p className="text-base md:text-lg" style={{ color: '#666' }}>
-              Create a customized wellness journey for your organization
-            </p>
-          </div>
-
-          <StepIndicator steps={steps} currentStep={currentStep} />
-
-          <CurrentStepComponent
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <AssessmentStep
+            selections={selections}
+            updateSelections={updateSelections}
+            onNext={handleNext}
+          />
+        );
+      case 2:
+        return (
+          <WorkshopStep
             selections={selections}
             updateSelections={updateSelections}
             onNext={handleNext}
             onBack={handleBack}
-            isFirstStep={currentStep === 1}
-            isLastStep={currentStep === steps.length}
           />
+        );
+      case 3:
+        return (
+          <ChallengeStep
+            selections={selections}
+            updateSelections={updateSelections}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        );
+      case 4:
+        return (
+          <WellnessBoxStep
+            selections={selections}
+            updateSelections={updateSelections}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        );
+      case 5:
+        return (
+          <MovementStep
+            selections={selections}
+            updateSelections={updateSelections}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        );
+      case 6:
+        return (
+          <LeadershipStep
+            selections={selections}
+            updateSelections={updateSelections}
+            onNext={handleNext}
+            onBack={handleBack}
+          />
+        );
+      case 7:
+        return (
+          <ReviewStep
+            selections={selections}
+            onBack={handleBack}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#f4f0e9' }}>
+      <style>{`
+        * {
+          box-sizing: border-box;
+        }
+        
+        body {
+          margin: 0;
+          padding: 0;
+          overflow-x: hidden;
+        }
+      `}</style>
+      
+      <div className="px-4 py-6 md:px-6 md:py-8 max-w-6xl mx-auto">
+        <div className="mb-6 md:mb-10 text-center">
+          <h1 className="text-3xl md:text-4xl font-bold mb-3 md:mb-4" style={{ color: '#441d37' }}>
+            Build Your Wellness Campaign
+          </h1>
+          <p className="text-base md:text-lg" style={{ color: '#666' }}>
+            Create a customized mental fitness program for your organization
+          </p>
+        </div>
+
+        <StepIndicator steps={steps} currentStep={currentStep} />
+
+        <div>
+          {renderStep()}
         </div>
       </div>
     </div>

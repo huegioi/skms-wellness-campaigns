@@ -14,7 +14,7 @@ export default function StepIndicator({ steps, currentStep }) {
   ];
 
   return (
-    <div className="mb-12">
+    <div className="mb-8 md:mb-12 px-2 md:px-4">
       <style>{`
         .step-line {
           position: absolute;
@@ -37,8 +37,8 @@ export default function StepIndicator({ steps, currentStep }) {
         }
 
         .step-circle {
-          width: 40px;
-          height: 40px;
+          width: 32px;
+          height: 32px;
           border-radius: 50%;
           display: flex;
           align-items: center;
@@ -47,18 +47,19 @@ export default function StepIndicator({ steps, currentStep }) {
           position: relative;
           z-index: 2;
           font-weight: 600;
-          font-size: 14px;
+          font-size: 13px;
           box-shadow: 
             4px 4px 8px rgba(0, 0, 0, 0.12),
             -4px -4px 8px rgba(255, 255, 255, 0.9);
           transition: all 0.3s ease;
         }
 
-        .step-circle.active {
-          color: white;
-          box-shadow: 
-            6px 6px 12px rgba(0, 0, 0, 0.2),
-            -6px -6px 12px rgba(255, 255, 255, 0.1);
+        @media (min-width: 768px) {
+          .step-circle {
+            width: 40px;
+            height: 40px;
+            font-size: 14px;
+          }
         }
 
         .step-circle.completed {
@@ -69,19 +70,25 @@ export default function StepIndicator({ steps, currentStep }) {
         }
 
         .step-label {
-          font-size: 12px;
+          font-size: 10px;
           color: #666;
           text-align: center;
-          margin-top: 8px;
+          margin-top: 6px;
           font-weight: 500;
+          line-height: 1.2;
+          max-width: 70px;
         }
 
-        .step-label.active {
-          font-weight: 700;
+        @media (min-width: 768px) {
+          .step-label {
+            font-size: 12px;
+            margin-top: 8px;
+            max-width: none;
+          }
         }
       `}</style>
 
-      <div className="relative px-4">
+      <div className="relative">
         <div className="step-line"></div>
         <div 
           className="step-progress" 
@@ -91,27 +98,30 @@ export default function StepIndicator({ steps, currentStep }) {
         <div className="relative flex justify-between items-start">
           {steps.map((step, index) => {
             const stepColor = stepColors[index] || '#441d37';
+            const isCompleted = step.number < currentStep;
+            const isCurrent = step.number === currentStep;
+            
             return (
               <div key={step.number} className="flex flex-col items-center" style={{ flex: 1 }}>
                 <div 
-                  className={`step-circle ${
-                    step.number === currentStep ? 'active' : 
-                    step.number < currentStep ? 'completed' : ''
-                  }`}
+                  className={`step-circle ${isCompleted ? 'completed' : ''}`}
                   style={{
-                    background: step.number <= currentStep ? stepColor : '#f4f0e9',
-                    color: step.number <= currentStep ? 'white' : stepColor
+                    background: isCompleted ? stepColor : '#f4f0e9',
+                    color: isCompleted ? 'white' : '#666'
                   }}
                 >
-                  {step.number < currentStep ? (
-                    <Check className="w-5 h-5" />
+                  {isCompleted ? (
+                    <Check className="w-4 h-4 md:w-5 md:h-5" />
                   ) : (
                     step.number
                   )}
                 </div>
                 <div 
-                  className={`step-label ${step.number === currentStep ? 'active' : ''}`}
-                  style={{ color: step.number === currentStep ? stepColor : '#666' }}
+                  className="step-label"
+                  style={{ 
+                    color: '#666',
+                    fontWeight: isCurrent ? '700' : '500'
+                  }}
                 >
                   {step.name}
                 </div>
