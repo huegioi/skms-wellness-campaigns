@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import StepNavigation from './StepNavigation';
 import WellnessBoxBuilder from './WellnessBoxBuilder';
-import { Gift, Sparkles } from 'lucide-react';
+import { Gift, Sparkles, DollarSign } from 'lucide-react';
 
 export default function WellnessBoxStep({ selections, updateSelections, onNext, onBack }) {
   const [customBoxQuantity, setCustomBoxQuantity] = useState(selections.customBoxQuantity || 0);
@@ -26,6 +27,17 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
     };
     setSampleBoxQuantities(newQuantities);
     updateSelections('sampleBoxQuantities', newQuantities);
+  };
+
+  const calculateWellnessBoxTotal = () => {
+    let total = 0;
+    total += (sampleBoxQuantities.reduceStress || 0) * 65;
+    total += (sampleBoxQuantities.relaxationSleep || 0) * 65;
+    total += (sampleBoxQuantities.largeEmotional || 0) * 125;
+    total += (sampleBoxQuantities.largeStressReduction || 0) * 125;
+    // Custom boxes would need price calculation from builder
+    // For now, we'll just show quantity
+    return total;
   };
 
   const wellnessItems = [
@@ -114,6 +126,8 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
       }
     ]
   };
+
+  const hasAnyBoxes = calculateWellnessBoxTotal() > 0 || customBoxQuantity > 0;
 
   return (
     <div>
@@ -246,6 +260,23 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
             height: 70px;
           }
         }
+
+        .total-cost-card {
+          background: linear-gradient(135deg, #770142, #441d37);
+          border-radius: 16px;
+          padding: 20px;
+          margin-bottom: 32px;
+          color: white;
+          box-shadow: 
+            8px 8px 16px rgba(0, 0, 0, 0.2),
+            -8px -8px 16px rgba(255, 255, 255, 0.05);
+        }
+
+        @media (min-width: 768px) {
+          .total-cost-card {
+            padding: 24px;
+          }
+        }
       `}</style>
 
       <div className="mb-6 md:mb-8">
@@ -356,6 +387,29 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
           </div>
         </div>
       </div>
+
+      {/* Total Wellness Box Cost */}
+      {hasAnyBoxes && (
+        <div className="total-cost-card">
+          <div className="flex items-center gap-2 mb-4">
+            <DollarSign className="w-5 h-5 md:w-6 md:h-6" />
+            <h3 className="text-lg md:text-xl font-bold">Total Wellness Box Investment</h3>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-base md:text-lg">Pre-Designed Boxes</span>
+            <span className="text-xl md:text-2xl font-bold">${calculateWellnessBoxTotal().toLocaleString()}</span>
+          </div>
+          {customBoxQuantity > 0 && (
+            <div className="flex justify-between items-center mt-2">
+              <span className="text-base md:text-lg">Custom Boxes ({customBoxQuantity})</span>
+              <span className="text-xl md:text-2xl font-bold">Contact for pricing</span>
+            </div>
+          )}
+          <p className="text-xs mt-3 text-right opacity-80">
+            (estimated before shipping)
+          </p>
+        </div>
+      )}
 
       <StepNavigation
         onNext={onNext}
