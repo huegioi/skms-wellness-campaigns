@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { productCatalog, workforceChallenges } from './catalogData';
+import { productCatalog, workforceChallenges, challengeSolutionMap } from './catalogData';
 import StepNavigation from './StepNavigation';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Target } from 'lucide-react';
 
 export default function ReviewStep({ selections, onBack }) {
   const [formData, setFormData] = useState({
@@ -13,6 +13,7 @@ export default function ReviewStep({ selections, onBack }) {
   const [showSuccess, setShowSuccess] = useState(false);
 
   const assessmentData = selections.assessmentData || {};
+  const sampleBoxQuantities = selections.sampleBoxQuantities || {};
 
   const calculateTotal = () => {
     let total = 0;
@@ -28,10 +29,45 @@ export default function ReviewStep({ selections, onBack }) {
     (selections.movementClasses || []).forEach(key => {
       total += productCatalog.movementClasses[key]?.price || 0;
     });
-    total += (selections.smallBoxes || 0) * 65;
-    total += (selections.largeBoxes || 0) * 125;
+    // Add sample box totals
+    total += (sampleBoxQuantities.reduceStress || 0) * 65;
+    total += (sampleBoxQuantities.relaxationSleep || 0) * 65;
+    total += (sampleBoxQuantities.largeEmotional || 0) * 125;
+    total += (sampleBoxQuantities.largeStressReduction || 0) * 125;
     return total;
   };
+
+  const generateNarrative = () => {
+    if (!selections.challenges || selections.challenges.length === 0) {
+      return null;
+    }
+
+    const challengeLabels = selections.challenges
+      .map(id => workforceChallenges.find(c => c.id === id)?.label)
+      .filter(Boolean);
+
+    const programComponents = [];
+    if (selections.workshops?.length > 0) programComponents.push(`${selections.workshops.length} targeted workshops`);
+    if (selections.challengePrograms?.length > 0) programComponents.push(`${selections.challengePrograms.length} engagement challenges`);
+    if (selections.leadership?.length > 0) programComponents.push('leadership development');
+    if (selections.movementClasses?.length > 0) programComponents.push('ongoing wellness classes');
+    
+    const hasWellnessBoxes = (sampleBoxQuantities.reduceStress || 0) + (sampleBoxQuantities.relaxationSleep || 0) + 
+                             (sampleBoxQuantities.largeEmotional || 0) + (sampleBoxQuantities.largeStressReduction || 0) > 0 ||
+                             (selections.customBoxQuantity || 0) > 0;
+    if (hasWellnessBoxes) programComponents.push('wellness box incentives');
+
+    if (programComponents.length === 0) {
+      return null;
+    }
+
+    return {
+      challenges: challengeLabels,
+      components: programComponents
+    };
+  };
+
+  const narrative = generateNarrative();
 
   const handleChange = (e) => {
     setFormData({
@@ -64,6 +100,15 @@ export default function ReviewStep({ selections, onBack }) {
       emailBody += `%0D%0A`;
     }
     
+    // Program Narrative
+    if (narrative) {
+      emailBody += `PROGRAM OVERVIEW%0D%0A`;
+      emailBody += `-------------------%0D%0A`;
+      emailBody += `Your team is currently facing challenges around ${narrative.challenges.join(', ')}. `;
+      emailBody += `This customized mental fitness program addresses these needs through ${narrative.components.join(', ')}, `;
+      emailBody += `creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.%0D%0A%0D%0A`;
+    }
+
     // Current Challenges
     if (selections.challenges && selections.challenges.length > 0) {
       emailBody += `IDENTIFIED WORKFORCE CHALLENGES%0D%0A`;
@@ -152,14 +197,27 @@ export default function ReviewStep({ selections, onBack }) {
     }
 
     // Wellness Boxes
-    if (selections.smallBoxes > 0 || selections.largeBoxes > 0) {
+    const hasWellnessBoxes = (sampleBoxQuantities.reduceStress || 0) + (sampleBoxQuantities.relaxationSleep || 0) + 
+                             (sampleBoxQuantities.largeEmotional || 0) + (sampleBoxQuantities.largeStressReduction || 0) > 0 ||
+                             (selections.customBoxQuantity || 0) > 0;
+
+    if (hasWellnessBoxes) {
       emailBody += `WELLNESS BOXES%0D%0A`;
       emailBody += `-------------------%0D%0A`;
-      if (selections.smallBoxes > 0) {
-        emailBody += `• Small Wellness Boxes: ${selections.smallBoxes} x $65 = $${(selections.smallBoxes * 65).toLocaleString()}%0D%0A`;
+      if (sampleBoxQuantities.reduceStress > 0) {
+        emailBody += `• Reduce Stress Boxes: ${sampleBoxQuantities.reduceStress} x $65 = $${(sampleBoxQuantities.reduceStress * 65).toLocaleString()}%0D%0A`;
       }
-      if (selections.largeBoxes > 0) {
-        emailBody += `• Large Wellness Boxes: ${selections.largeBoxes} x $125 = $${(selections.largeBoxes * 125).toLocaleString()}%0D%0A`;
+      if (sampleBoxQuantities.relaxationSleep > 0) {
+        emailBody += `• Relaxation & Sleep Boxes: ${sampleBoxQuantities.relaxationSleep} x $65 = $${(sampleBoxQuantities.relaxationSleep * 65).toLocaleString()}%0D%0A`;
+      }
+      if (sampleBoxQuantities.largeEmotional > 0) {
+        emailBody += `• Large Emotional Wellness Boxes: ${sampleBoxQuantities.largeEmotional} x $125 = $${(sampleBoxQuantities.largeEmotional * 125).toLocaleString()}%0D%0A`;
+      }
+      if (sampleBoxQuantities.largeStressReduction > 0) {
+        emailBody += `• Large Stress Reduction Boxes: ${sampleBoxQuantities.largeStressReduction} x $125 = $${(sampleBoxQuantities.largeStressReduction * 125).toLocaleString()}%0D%0A`;
+      }
+      if (selections.customBoxQuantity > 0) {
+        emailBody += `• Custom Wellness Boxes: ${selections.customBoxQuantity} (pricing TBD based on selection)%0D%0A`;
       }
       emailBody += `%0D%0A`;
     }
@@ -167,6 +225,9 @@ export default function ReviewStep({ selections, onBack }) {
     // Total
     emailBody += `======================================%0D%0A`;
     emailBody += `ESTIMATED TOTAL (before shipping): $${calculateTotal().toLocaleString()}%0D%0A`;
+    if (selections.customBoxQuantity > 0) {
+      emailBody += `(Note: Custom wellness boxes pricing to be determined)%0D%0A`;
+    }
     emailBody += `======================================%0D%0A%0D%0A`;
 
     // Success Metrics
@@ -307,6 +368,32 @@ export default function ReviewStep({ selections, onBack }) {
             inset 2px 2px 4px rgba(0, 0, 0, 0.05),
             inset -2px -2px 4px rgba(255, 255, 255, 0.5);
         }
+
+        .narrative-card {
+          background: linear-gradient(135deg, rgba(119, 1, 66, 0.1), rgba(1, 63, 124, 0.1));
+          border-radius: 16px;
+          padding: 20px;
+          margin-bottom: 24px;
+          border-left: 4px solid #770142;
+        }
+
+        @media (min-width: 768px) {
+          .narrative-card {
+            padding: 24px;
+          }
+        }
+
+        .narrative-text {
+          font-size: 15px;
+          line-height: 1.7;
+          color: #333;
+        }
+
+        @media (min-width: 768px) {
+          .narrative-text {
+            font-size: 16px;
+          }
+        }
       `}</style>
 
       <div className="mb-6 md:mb-8">
@@ -317,6 +404,23 @@ export default function ReviewStep({ selections, onBack }) {
           Review your customized mental fitness program
         </p>
       </div>
+
+      {/* Program Narrative */}
+      {narrative && (
+        <div className="narrative-card">
+          <div className="flex items-center gap-2 mb-3">
+            <Target className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#770142' }} />
+            <h3 className="text-lg md:text-xl font-bold" style={{ color: '#770142' }}>
+              How This Program Supports Your Team
+            </h3>
+          </div>
+          <p className="narrative-text">
+            Your team is currently facing challenges around <strong>{narrative.challenges.join(', ')}</strong>. 
+            This customized mental fitness program addresses these needs through <strong>{narrative.components.join(', ')}</strong>, 
+            creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.
+          </p>
+        </div>
+      )}
 
       {/* Concise Summary */}
       <div className="summary-card">
@@ -353,7 +457,9 @@ export default function ReviewStep({ selections, onBack }) {
               selections.challengePrograms?.length > 0 && `${selections.challengePrograms.length} Challenges`,
               selections.leadership?.length > 0 && `${selections.leadership.length} Leadership Programs`,
               selections.movementClasses?.length > 0 && `${selections.movementClasses.length} Classes`,
-              (selections.smallBoxes > 0 || selections.largeBoxes > 0) && 'Wellness Boxes'
+              ((sampleBoxQuantities.reduceStress || 0) + (sampleBoxQuantities.relaxationSleep || 0) + 
+              (sampleBoxQuantities.largeEmotional || 0) + (sampleBoxQuantities.largeStressReduction || 0) > 0 ||
+              (selections.customBoxQuantity || 0) > 0) && 'Wellness Boxes'
             ].filter(Boolean).join(' • ')}
           </div>
         </div>
@@ -416,19 +522,39 @@ export default function ReviewStep({ selections, onBack }) {
           </div>
         )}
 
-        {(selections.smallBoxes > 0 || selections.largeBoxes > 0) && (
+        {((sampleBoxQuantities.reduceStress || 0) + (sampleBoxQuantities.relaxationSleep || 0) + 
+          (sampleBoxQuantities.largeEmotional || 0) + (sampleBoxQuantities.largeStressReduction || 0) > 0 ||
+          (selections.customBoxQuantity || 0) > 0) && (
           <div className="review-section">
             <div className="review-section-title">Wellness Boxes</div>
-            {selections.smallBoxes > 0 && (
+            {sampleBoxQuantities.reduceStress > 0 && (
               <div className="review-item">
-                <span>Small Boxes ({selections.smallBoxes})</span>
-                <span className="font-semibold">${(selections.smallBoxes * 65).toLocaleString()}</span>
+                <span>Reduce Stress Boxes ({sampleBoxQuantities.reduceStress})</span>
+                <span className="font-semibold">${(sampleBoxQuantities.reduceStress * 65).toLocaleString()}</span>
               </div>
             )}
-            {selections.largeBoxes > 0 && (
+            {sampleBoxQuantities.relaxationSleep > 0 && (
               <div className="review-item">
-                <span>Large Boxes ({selections.largeBoxes})</span>
-                <span className="font-semibold">${(selections.largeBoxes * 125).toLocaleString()}</span>
+                <span>Relaxation & Sleep Boxes ({sampleBoxQuantities.relaxationSleep})</span>
+                <span className="font-semibold">${(sampleBoxQuantities.relaxationSleep * 65).toLocaleString()}</span>
+              </div>
+            )}
+            {sampleBoxQuantities.largeEmotional > 0 && (
+              <div className="review-item">
+                <span>Large Emotional Wellness Boxes ({sampleBoxQuantities.largeEmotional})</span>
+                <span className="font-semibold">${(sampleBoxQuantities.largeEmotional * 125).toLocaleString()}</span>
+              </div>
+            )}
+            {sampleBoxQuantities.largeStressReduction > 0 && (
+              <div className="review-item">
+                <span>Large Stress Reduction Boxes ({sampleBoxQuantities.largeStressReduction})</span>
+                <span className="font-semibold">${(sampleBoxQuantities.largeStressReduction * 125).toLocaleString()}</span>
+              </div>
+            )}
+            {selections.customBoxQuantity > 0 && (
+              <div className="review-item">
+                <span>Custom Wellness Boxes ({selections.customBoxQuantity})</span>
+                <span className="font-semibold text-sm" style={{ color: '#666' }}>Contact for pricing</span>
               </div>
             )}
           </div>
@@ -440,7 +566,7 @@ export default function ReviewStep({ selections, onBack }) {
             <span className="text-2xl md:text-3xl font-bold" style={{ color: '#770142' }}>${calculateTotal().toLocaleString()}</span>
           </div>
           <p className="text-xs mt-1 text-right" style={{ color: '#666' }}>
-            (estimated before shipping)
+            (estimated before shipping{selections.customBoxQuantity > 0 ? ', custom boxes pricing TBD' : ''})
           </p>
         </div>
       </div>
