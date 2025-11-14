@@ -69,6 +69,426 @@ export default function ReviewStep({ selections, onBack }) {
 
   const narrative = generateNarrative();
 
+  const generatePDF = () => {
+    const pdfContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Mental Fitness Campaign Proposal - ${formData.name}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 40px;
+            background: #ffffff;
+            color: #333;
+            line-height: 1.6;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #013f7c;
+          }
+          h1 {
+            color: #013f7c;
+            font-size: 32px;
+            margin-bottom: 10px;
+          }
+          .subtitle {
+            color: #666;
+            font-size: 16px;
+          }
+          .section {
+            margin-bottom: 30px;
+            page-break-inside: avoid;
+          }
+          .section-title {
+            color: #013f7c;
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #cae5e3;
+          }
+          .narrative-box {
+            background: linear-gradient(135deg, rgba(119, 1, 66, 0.05), rgba(1, 63, 124, 0.05));
+            border-left: 4px solid #770142;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+          }
+          .narrative-title {
+            color: #770142;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 12px;
+          }
+          .glance-box {
+            background: linear-gradient(135deg, #264d44 0%, #013f7c 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+          }
+          .glance-item {
+            margin-bottom: 15px;
+          }
+          .glance-label {
+            color: #eaf995;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+          }
+          .glance-content {
+            font-size: 15px;
+          }
+          .item {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+          }
+          .item-title {
+            color: #264d44;
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 5px;
+          }
+          .item-price {
+            color: #770142;
+            font-weight: 700;
+            margin-bottom: 8px;
+          }
+          .item-description {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.5;
+          }
+          .total-box {
+            background: linear-gradient(135deg, #770142, #441d37);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-top: 30px;
+            text-align: center;
+          }
+          .total-amount {
+            font-size: 36px;
+            font-weight: 700;
+            margin: 10px 0;
+          }
+          .contact-info {
+            background: #f4f0e9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+          }
+          .contact-row {
+            margin-bottom: 8px;
+          }
+          .contact-label {
+            font-weight: 700;
+            color: #264d44;
+            display: inline-block;
+            width: 120px;
+          }
+          ul {
+            margin-left: 20px;
+            margin-top: 8px;
+            list-style-type: disc;
+          }
+          li {
+            margin-bottom: 5px;
+            color: #555;
+          }
+          @media print {
+            body { padding: 20px; }
+            .section { page-break-inside: avoid; }
+            .narrative-box, .glance-box, .total-box, .contact-info { background: #f9f9f9 !important; -webkit-print-color-adjust: exact; color-adjust: exact;}
+            .glance-box { color: #333 !important; }
+            .glance-box .glance-label { color: #264d44 !important; }
+            .total-box { color: #333 !important; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Mental Fitness Campaign Proposal</h1>
+          <div class="subtitle">Prepared by SkillfulMeans</div>
+        </div>
+
+        <div class="contact-info">
+          <div class="contact-row"><span class="contact-label">Prepared For:</span> ${formData.name}</div>
+          ${formData.company ? `<div class="contact-row"><span class="contact-label">Company:</span> ${formData.company}</div>` : ''}
+          <div class="contact-row"><span class="contact-label">Email:</span> ${formData.email}</div>
+          <div class="contact-row"><span class="contact-label">Date:</span> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+        </div>
+
+        ${narrative ? `
+          <div class="narrative-box">
+            <div class="narrative-title">How This Program Supports Your Team</div>
+            <p>Your team is currently facing challenges around <strong>${narrative.challenges.join(', ')}</strong>. 
+            This customized mental fitness program addresses these needs through <strong>${narrative.components.join(', ')}</strong>, 
+            creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.</p>
+          </div>
+        ` : ''}
+
+        <div class="glance-box">
+          <div style="font-size: 20px; font-weight: 700; margin-bottom: 20px;">Your Program at a Glance</div>
+          
+          ${(assessmentData.companySize || assessmentData.industry) ? `
+            <div class="glance-item">
+              <div class="glance-label">Organization</div>
+              <div class="glance-content">
+                ${assessmentData.industry ? assessmentData.industry : ''}${assessmentData.industry && assessmentData.companySize ? ' • ' : ''}${assessmentData.companySize ? assessmentData.companySize + ' employees' : ''}
+              </div>
+            </div>
+          ` : ''}
+
+          ${selections.challenges && selections.challenges.length > 0 ? `
+            <div class="glance-item">
+              <div class="glance-label">Focus Areas</div>
+              <div class="glance-content">${selections.challenges.map(id => workforceChallenges.find(c => c.id === id)?.label).filter(Boolean).join(', ')}</div>
+            </div>
+          ` : ''}
+
+          <div class="glance-item">
+            <div class="glance-label">Program Components</div>
+            <div class="glance-content">
+              ${[
+                selections.workshops?.length > 0 && `${selections.workshops.length} Workshops`,
+                selections.challengePrograms?.length > 0 && `${selections.challengePrograms.length} Challenges`,
+                selections.leadership?.length > 0 && `${selections.leadership.length} Leadership Programs`,
+                selections.movementClasses?.length > 0 && `${selections.movementClasses.length} Classes`,
+                ((sampleBoxQuantities.reduceStress || 0) + (sampleBoxQuantities.relaxationSleep || 0) + 
+                  (sampleBoxQuantities.largeEmotional || 0) + (sampleBoxQuantities.largeStressReduction || 0) > 0 ||
+                  (selections.customBoxQuantity || 0) > 0) && 'Wellness Boxes'
+              ].filter(Boolean).join(' • ')}
+            </div>
+          </div>
+
+          ${assessmentData.timeline ? `
+            <div class="glance-item">
+              <div class="glance-label">Timeline</div>
+              <div class="glance-content">${assessmentData.timeline}</div>
+            </div>
+          ` : ''}
+
+          ${(assessmentData.teamResilience || assessmentData.engagementLevel || assessmentData.teamCommunication || assessmentData.teamDecisionQuality || assessmentData.goalAlignment || assessmentData.leadershipEffectiveness) ? `
+            <div class="glance-item">
+              <div class="glance-label">Assessment Results</div>
+              <div class="glance-content">
+                ${assessmentData.teamResilience ? `Team Resilience: ${assessmentData.teamResilience}/5<br>` : ''}
+                ${assessmentData.engagementLevel ? `Team Engagement: ${assessmentData.engagementLevel}/5<br>` : ''}
+                ${assessmentData.teamCommunication ? `Team Communication: ${assessmentData.teamCommunication}/5<br>` : ''}
+                ${assessmentData.teamDecisionQuality ? `Decision Quality: ${assessmentData.teamDecisionQuality}/5<br>` : ''}
+                ${assessmentData.goalAlignment ? `Goal Alignment: ${assessmentData.goalAlignment}/5<br>` : ''}
+                ${assessmentData.leadershipEffectiveness ? `Leadership Effectiveness: ${assessmentData.leadershipEffectiveness}/5<br>` : ''}
+              </div>
+            </div>
+          ` : ''}
+
+          ${assessmentData.primaryGoals ? `
+            <div class="glance-item">
+              <div class="glance-label">Primary Goals</div>
+              <div class="glance-content">${assessmentData.primaryGoals}</div>
+            </div>
+          ` : ''}
+
+          ${assessmentData.successMetrics ? `
+            <div class="glance-item">
+              <div class="glance-label">Success Metrics</div>
+              <div class="glance-content">${assessmentData.successMetrics}</div>
+            </div>
+          ` : ''}
+        </div>
+
+        ${selections.workshops && selections.workshops.length > 0 ? `
+          <div class="section">
+            <div class="section-title">Workshops (${selections.workshops.length})</div>
+            ${selections.workshops.map(key => {
+              const workshop = productCatalog.workshops[key];
+              return workshop ? `
+                <div class="item">
+                  <div class="item-title">${workshop.name}</div>
+                  <div class="item-price">$${workshop.price.toLocaleString()}</div>
+                  <div class="item-description">${workshop.description}</div>
+                </div>
+              ` : '';
+            }).join('')}
+          </div>
+        ` : ''}
+
+        ${selections.challengePrograms && selections.challengePrograms.length > 0 ? `
+          <div class="section">
+            <div class="section-title">14-Day Challenges (${selections.challengePrograms.length})</div>
+            ${selections.challengePrograms.map(key => {
+              const challenge = productCatalog.challenges[key];
+              return challenge ? `
+                <div class="item">
+                  <div class="item-title">${challenge.name}</div>
+                  <div class="item-price">$${challenge.price.toLocaleString()}</div>
+                  <div class="item-description">${challenge.description}</div>
+                </div>
+              ` : '';
+            }).join('')}
+          </div>
+        ` : ''}
+
+        ${selections.leadership && selections.leadership.length > 0 ? `
+          <div class="section">
+            <div class="section-title">Leadership Programs (${selections.leadership.length})</div>
+            ${selections.leadership.map(key => {
+              const program = productCatalog.leadership[key];
+              return program ? `
+                <div class="item">
+                  <div class="item-title">${program.name}</div>
+                  <div class="item-price">$${program.price.toLocaleString()}</div>
+                  <div class="item-description">${program.description}</div>
+                </div>
+              ` : '';
+            }).join('')}
+          </div>
+        ` : ''}
+
+        ${selections.movementClasses && selections.movementClasses.length > 0 ? `
+          <div class="section">
+            <div class="section-title">Classes (${selections.movementClasses.length})</div>
+            ${selections.movementClasses.map(key => {
+              const classItem = productCatalog.movementClasses[key];
+              return classItem ? `
+                <div class="item">
+                  <div class="item-title">${classItem.name}</div>
+                  <div class="item-price">$${classItem.price.toLocaleString()}</div>
+                  <div class="item-description"><strong>Duration:</strong> ${classItem.duration}<br>${classItem.description}</div>
+                </div>
+              ` : '';
+            }).join('')}
+          </div>
+        ` : ''}
+
+        ${((sampleBoxQuantities.reduceStress || 0) + (sampleBoxQuantities.relaxationSleep || 0) + 
+          (sampleBoxQuantities.largeEmotional || 0) + (sampleBoxQuantities.largeStressReduction || 0) > 0 ||
+          (selections.customBoxQuantity || 0) > 0) ? `
+          <div class="section">
+            <div class="section-title">Wellness Boxes</div>
+            ${sampleBoxQuantities.reduceStress > 0 ? `
+              <div class="item">
+                <div class="item-title">Reduce Stress Box (${sampleBoxQuantities.reduceStress} boxes)</div>
+                <div class="item-price">${sampleBoxQuantities.reduceStress} &times; $65 = $${(sampleBoxQuantities.reduceStress * 65).toLocaleString()}</div>
+                <div class="item-description">
+                  <strong>Includes:</strong>
+                  <ul>
+                    <li>Heywell Calm + Hydrate</li>
+                    <li>Calm Aromatherapy Patches</li>
+                    <li>Squishy Dumpling Stress Ball</li>
+                    <li>Sleep Gummies</li>
+                    <li>Lavender Candle</li>
+                  </ul>
+                </div>
+              </div>
+            ` : ''}
+            ${sampleBoxQuantities.relaxationSleep > 0 ? `
+              <div class="item">
+                <div class="item-title">Relaxation & Sleep Box (${sampleBoxQuantities.relaxationSleep} boxes)</div>
+                <div class="item-price">${sampleBoxQuantities.relaxationSleep} &times; $65 = $${(sampleBoxQuantities.relaxationSleep * 65).toLocaleString()}</div>
+                <div class="item-description">
+                  <strong>Includes:</strong>
+                  <ul>
+                    <li>Weighted Eye Pillow</li>
+                    <li>Herbal Bath Soak</li>
+                    <li>Calming Tea</li>
+                    <li>Eucalyptus Shower Steamers</li>
+                    <li>Sleep Gummies</li>
+                  </ul>
+                </div>
+              </div>
+            ` : ''}
+            ${sampleBoxQuantities.largeEmotional > 0 ? `
+              <div class="item">
+                <div class="item-title">Large Emotional Wellness Box (${sampleBoxQuantities.largeEmotional} boxes)</div>
+                <div class="item-price">${sampleBoxQuantities.largeEmotional} &times; $125 = $${(sampleBoxQuantities.largeEmotional * 125).toLocaleString()}</div>
+                <div class="item-description">
+                  <strong>Includes:</strong>
+                  <ul>
+                    <li>Mindfulness Cards</li>
+                    <li>Essential Oil Roller</li>
+                    <li>Herbal Bath Soak</li>
+                    <li>Calming Tea</li>
+                    <li>Dark Chocolate</li>
+                    <li>Spa Body Brush</li>
+                    <li>Gold Eye Patches</li>
+                  </ul>
+                </div>
+              </div>
+            ` : ''}
+            ${sampleBoxQuantities.largeStressReduction > 0 ? `
+              <div class="item">
+                <div class="item-title">Large Stress Reduction Box (${sampleBoxQuantities.largeStressReduction} boxes)</div>
+                <div class="item-price">${sampleBoxQuantities.largeStressReduction} &times; $125 = $${(sampleBoxQuantities.largeStressReduction * 125).toLocaleString()}</div>
+                <div class="item-description">
+                  <strong>Includes:</strong>
+                  <ul>
+                    <li>Calm Patches</li>
+                    <li>Calming Tea</li>
+                    <li>Stress Ball</li>
+                    <li>Essential Oil Roller</li>
+                    <li>Mindfulness Cards</li>
+                    <li>Herbal Bath Soak</li>
+                    <li>Hot Cocoa</li>
+                    <li>Heywell Drink</li>
+                    <li>Cork Massage Balls</li>
+                  </ul>
+                </div>
+              </div>
+            ` : ''}
+            ${selections.customBoxQuantity > 0 ? `
+              <div class="item">
+                <div class="item-title">Custom Wellness Boxes (${selections.customBoxQuantity} boxes)</div>
+                <div class="item-price">Pricing to be determined based on selection</div>
+                ${selections.customBoxItems && selections.customBoxItems.length > 0 ? `
+                  <div class="item-description">
+                    <strong>Selected Items:</strong>
+                    <ul>
+                      ${selections.customBoxItems.map(item => `<li>${item.name} ($${item.price.toFixed(2)})</li>`).join('')}
+                    </ul>
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
+          </div>
+        ` : ''}
+
+        <div class="total-box">
+          <div style="font-size: 18px; margin-bottom: 10px;">Estimated Total Investment</div>
+          <div class="total-amount">$${calculateTotal().toLocaleString()}</div>
+          <div style="font-size: 14px; opacity: 0.9;">(estimated before shipping${selections.customBoxQuantity > 0 ? ', custom boxes pricing TBD' : ''})</div>
+        </div>
+
+        <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #ccc; text-align: center; color: #666;">
+          <p>Looking forward to co-creating this mental fitness campaign with SkillfulMeans!</p>
+          <p style="margin-top: 10px; font-size: 14px;">Contact: admin@skillfulmeans.life</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Create blob and download
+    const blob = new Blob([pdfContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Mental-Fitness-Campaign-Proposal-${formData.name.replace(/\s+/g, '-') || 'Untitled'}.html`; // Ensure filename is safe
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -79,9 +499,15 @@ export default function ReviewStep({ selections, onBack }) {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    // Build comprehensive email body
+    // Generate and download PDF
+    generatePDF();
+
+    // Build email body
     let emailBody = `MENTAL FITNESS CAMPAIGN PROPOSAL%0D%0A`;
     emailBody += `======================================%0D%0A%0D%0A`;
+    
+    // Instruction to attach PDF
+    emailBody += `A detailed PDF proposal has been downloaded to your computer. Please attach it to this email for a complete overview of your customized program.%0D%0A%0D%0A`;
     
     // Contact Info
     emailBody += `CONTACT INFORMATION%0D%0A`;
@@ -99,7 +525,7 @@ export default function ReviewStep({ selections, onBack }) {
       emailBody += `creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.%0D%0A%0D%0A`;
     }
 
-    // YOUR PROGRAM AT A GLANCE
+    // Concise Summary
     emailBody += `YOUR PROGRAM AT A GLANCE%0D%0A`;
     emailBody += `======================================%0D%0A`;
     
@@ -140,147 +566,32 @@ export default function ReviewStep({ selections, onBack }) {
       emailBody += `  ${assessmentData.timeline}%0D%0A%0D%0A`;
     }
 
-    // Assessment Scores (if provided)
-    if (assessmentData.teamResilience || assessmentData.engagementLevel || assessmentData.teamCommunication || assessmentData.teamDecisionQuality || assessmentData.goalAlignment || assessmentData.leadershipEffectiveness) {
-      emailBody += `ASSESSMENT RESULTS%0D%0A`;
-      emailBody += `-------------------%0D%0A`;
-      if (assessmentData.teamResilience) emailBody += `Team Resilience: ${assessmentData.teamResilience}/5%0D%0A`;
-      if (assessmentData.engagementLevel) emailBody += `Team Engagement: ${assessmentData.engagementLevel}/5%0D%0A`;
-      if (assessmentData.teamCommunication) emailBody += `Team Communication: ${assessmentData.teamCommunication}/5%0D%0A`;
-      if (assessmentData.teamDecisionQuality) emailBody += `Decision Quality: ${assessmentData.teamDecisionQuality}/5%0D%0A`;
-      if (assessmentData.goalAlignment) emailBody += `Goal Alignment: ${assessmentData.goalAlignment}/5%0D%0A`;
-      if (assessmentData.leadershipEffectiveness) emailBody += `Leadership Effectiveness: ${assessmentData.leadershipEffectiveness}/5%0D%0A`;
-      emailBody += `%0D%0A`;
-    }
+    // Combined Assessment & Goals
+    const assessmentDetails = [];
+    if (assessmentData.teamResilience) assessmentDetails.push(`Team Resilience: ${assessmentData.teamResilience}/5`);
+    if (assessmentData.engagementLevel) assessmentDetails.push(`Team Engagement: ${assessmentData.engagementLevel}/5`);
+    if (assessmentData.teamCommunication) assessmentDetails.push(`Team Communication: ${assessmentData.teamCommunication}/5`);
+    if (assessmentData.teamDecisionQuality) assessmentDetails.push(`Decision Quality: ${assessmentData.teamDecisionQuality}/5`);
+    if (assessmentData.goalAlignment) assessmentDetails.push(`Goal Alignment: ${assessmentData.goalAlignment}/5`);
+    if (assessmentData.leadershipEffectiveness) assessmentDetails.push(`Leadership Effectiveness: ${assessmentData.leadershipEffectiveness}/5`);
+    if (assessmentData.primaryGoals) assessmentDetails.push(`Primary Goals: ${assessmentData.primaryGoals}`);
 
-    // Goals
-    if (assessmentData.primaryGoals) {
-      emailBody += `PRIMARY GOALS%0D%0A`;
-      emailBody += `-------------------%0D%0A`;
-      emailBody += `${assessmentData.primaryGoals}%0D%0A%0D%0A`;
-    }
-
-    // DETAILED PROGRAM BREAKDOWN
-    emailBody += `DETAILED PROGRAM BREAKDOWN%0D%0A`;
-    emailBody += `======================================%0D%0A%0D%0A`;
-
-    // Workshops
-    if (selections.workshops && selections.workshops.length > 0) {
-      emailBody += `WORKSHOPS (${selections.workshops.length})%0D%0A`;
-      emailBody += `-------------------%0D%0A`;
-      selections.workshops.forEach(key => {
-        const workshop = productCatalog.workshops[key];
-        if (workshop) {
-          emailBody += `• ${workshop.name}%0D%0A`;
-          emailBody += `  Price: $${workshop.price.toLocaleString()}%0D%0A`;
-          emailBody += `  ${workshop.description}%0D%0A%0D%0A`;
-        }
-      });
-    }
-
-    // Challenges
-    if (selections.challengePrograms && selections.challengePrograms.length > 0) {
-      emailBody += `14-DAY CHALLENGES (${selections.challengePrograms.length})%0D%0A`;
-      emailBody += `-------------------%0D%0A`;
-      selections.challengePrograms.forEach(key => {
-        const challenge = productCatalog.challenges[key];
-        if (challenge) {
-          emailBody += `• ${challenge.name}%0D%0A`;
-          emailBody += `  Price: $${challenge.price.toLocaleString()}%0D%0A`;
-          emailBody += `  ${challenge.description}%0D%0A%0D%0A`;
-        }
-      });
-    }
-
-    // Leadership
-    if (selections.leadership && selections.leadership.length > 0) {
-      emailBody += `LEADERSHIP PROGRAMS (${selections.leadership.length})%0D%0A`;
-      emailBody += `-------------------%0D%0A`;
-      selections.leadership.forEach(key => {
-        const program = productCatalog.leadership[key];
-        if (program) {
-          emailBody += `• ${program.name}%0D%0A`;
-          emailBody += `  Price: $${program.price.toLocaleString()}%0D%0A`;
-          emailBody += `  ${program.description}%0D%0A%0D%0A`;
-        }
-      });
-    }
-
-    // Classes
-    if (selections.movementClasses && selections.movementClasses.length > 0) {
-      emailBody += `CLASSES (${selections.movementClasses.length})%0D%0A`;
-      emailBody += `-------------------%0D%0A`;
-      selections.movementClasses.forEach(key => {
-        const classItem = productCatalog.movementClasses[key];
-        if (classItem) {
-          emailBody += `• ${classItem.name}%0D%0A`;
-          emailBody += `  Price: $${classItem.price.toLocaleString()}%0D%0A`;
-          emailBody += `  Duration: ${classItem.duration}%0D%0A`;
-          emailBody += `  ${classItem.description}%0D%0A%0D%0A`;
-        }
-      });
-    }
-
-    // Wellness Boxes
-    if (hasWellnessBoxes) {
-      emailBody += `WELLNESS BOXES%0D%0A`;
-      emailBody += `-------------------%0D%0A`;
-      
-      if (sampleBoxQuantities.reduceStress > 0) {
-        emailBody += `• Reduce Stress Box (${sampleBoxQuantities.reduceStress} boxes)%0D%0A`;
-        emailBody += `  Price: ${sampleBoxQuantities.reduceStress} x $65 = $${(sampleBoxQuantities.reduceStress * 65).toLocaleString()}%0D%0A`;
-        emailBody += `  Includes: Heywell Calm + Hydrate, Calm Aromatherapy Patches, Squishy Dumpling Stress Ball, Sleep Gummies, Lavender Candle%0D%0A%0D%0A`;
-      }
-      
-      if (sampleBoxQuantities.relaxationSleep > 0) {
-        emailBody += `• Relaxation & Sleep Box (${sampleBoxQuantities.relaxationSleep} boxes)%0D%0A`;
-        emailBody += `  Price: ${sampleBoxQuantities.relaxationSleep} x $65 = $${(sampleBoxQuantities.relaxationSleep * 65).toLocaleString()}%0D%0A`;
-        emailBody += `  Includes: Weighted Eye Pillow, Herbal Bath Soak, Calming Tea, Eucalyptus Shower Steamers, Sleep Gummies%0D%0A%0D%0A`;
-      }
-      
-      if (sampleBoxQuantities.largeEmotional > 0) {
-        emailBody += `• Large Emotional Wellness Box (${sampleBoxQuantities.largeEmotional} boxes)%0D%0A`;
-        emailBody += `  Price: ${sampleBoxQuantities.largeEmotional} x $125 = $${(sampleBoxQuantities.largeEmotional * 125).toLocaleString()}%0D%0A`;
-        emailBody += `  Includes: Mindfulness Cards, Essential Oil Roller, Herbal Bath Soak, Calming Tea, Dark Chocolate, Spa Body Brush, Gold Eye Patches%0D%0A%0D%0A`;
-      }
-      
-      if (sampleBoxQuantities.largeStressReduction > 0) {
-        emailBody += `• Large Stress Reduction Box (${sampleBoxQuantities.largeStressReduction} boxes)%0D%0A`;
-        emailBody += `  Price: ${sampleBoxQuantities.largeStressReduction} x $125 = $${(sampleBoxQuantities.largeStressReduction * 125).toLocaleString()}%0D%0A`;
-        emailBody += `  Includes: Calm Patches, Calming Tea, Stress Ball, Essential Oil Roller, Mindfulness Cards, Herbal Bath Soak, Hot Cocoa, Heywell Drink, Cork Massage Balls%0D%0A%0D%0A`;
-      }
-      
-      if (selections.customBoxQuantity > 0) {
-        emailBody += `• Custom Wellness Boxes (${selections.customBoxQuantity} boxes)%0D%0A`;
-        emailBody += `  Pricing: To be determined based on custom selection%0D%0A`;
-        if (selections.customBoxItems && selections.customBoxItems.length > 0) {
-          emailBody += `  Selected Items:%0D%0A`;
-          selections.customBoxItems.forEach(item => {
-            emailBody += `    - ${item.name} ($${item.price.toFixed(2)})%0D%0A`;
-          });
-        }
-        emailBody += `%0D%0A`;
-      }
+    if (assessmentDetails.length > 0) {
+      emailBody += `ASSESSMENT & GOALS:%0D%0A`;
+      emailBody += `  ${assessmentDetails.join(' | ')}%0D%0A%0D%0A`;
     }
 
     // Total Investment
     emailBody += `%0D%0A======================================%0D%0A`;
-    emailBody += `ESTIMATED TOTAL INVESTMENT%0D%0A`;
+    emailBody += `ESTIMATED TOTAL INVESTMENT: $${calculateTotal().toLocaleString()}%0D%0A`;
     emailBody += `======================================%0D%0A`;
-    emailBody += `$${calculateTotal().toLocaleString()}%0D%0A`;
     emailBody += `(estimated before shipping`;
     if (selections.customBoxQuantity > 0) {
       emailBody += `, custom wellness boxes pricing to be determined`;
     }
     emailBody += `)%0D%0A%0D%0A`;
 
-    // Success Metrics
-    if (assessmentData.successMetrics) {
-      emailBody += `SUCCESS METRICS%0D%0A`;
-      emailBody += `-------------------%0D%0A`;
-      emailBody += `${assessmentData.successMetrics}%0D%0A%0D%0A`;
-    }
-
+    emailBody += `For a comprehensive breakdown of all selected components and details, please refer to the attached PDF proposal.%0D%0A%0D%0A`;
     emailBody += `Looking forward to co-creating this mental fitness campaign with SkillfulMeans!`;
 
     const mailtoLink = `mailto:admin@skillfulmeans.life?subject=Mental Fitness Campaign Proposal - ${formData.name}&body=${emailBody}`;
