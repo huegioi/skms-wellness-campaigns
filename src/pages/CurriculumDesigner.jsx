@@ -135,6 +135,12 @@ export default function CurriculumDesigner() {
       
       <div className="px-4 py-6 md:px-6 md:py-8 max-w-6xl mx-auto">
         <div className="mb-6 md:mb-10 text-center">
+          <img 
+            src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/abfb649ad_SkillfulMeansWebsiteHero.png" 
+            alt="SkillfulMeans" 
+            className="mx-auto mb-4 md:mb-6"
+            style={{ maxWidth: '400px', width: '100%', height: 'auto' }}
+          />
           <h1 className="text-2xl md:text-4xl font-bold mb-3 md:mb-4" style={{ color: '#013f7c' }}>
             Build Your Wellness Campaign
           </h1>
