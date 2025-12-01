@@ -901,6 +901,54 @@ export default function ReviewStep({ selections, onBack }) {
           </div>
         )}
 
+        {/* Custom Charges Section */}
+        <div className="review-section">
+          <div className="review-section-title">Additional Charges</div>
+
+          {customCharges.map(charge => (
+            <div key={charge.id} className="review-item">
+              <span>{charge.label}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-semibold">${charge.amount.toLocaleString()}</span>
+                <button
+                  onClick={() => removeCustomCharge(charge.id)}
+                  className="text-red-500 hover:text-red-700 text-sm font-bold"
+                  style={{ marginLeft: '8px' }}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          ))}
+
+          <div className="flex gap-2 mt-3 flex-wrap">
+            <input
+              type="text"
+              className="neuro-input flex-1"
+              placeholder="Charge label..."
+              value={newChargeLabel}
+              onChange={(e) => setNewChargeLabel(e.target.value)}
+              style={{ minWidth: '150px' }}
+            />
+            <input
+              type="number"
+              className="neuro-input"
+              placeholder="Amount"
+              value={newChargeAmount}
+              onChange={(e) => setNewChargeAmount(e.target.value)}
+              style={{ width: '120px' }}
+            />
+            <button
+              type="button"
+              onClick={addCustomCharge}
+              className="px-4 py-2 rounded-lg font-semibold text-white"
+              style={{ background: '#264d44' }}
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
         <div className="mt-6 pt-6 border-t-2" style={{ borderColor: '#cae5e3' }}>
           <div className="flex justify-between items-center">
             <span className="text-xl md:text-2xl font-bold" style={{ color: '#264d44' }}>Total Investment</span>
@@ -910,7 +958,7 @@ export default function ReviewStep({ selections, onBack }) {
             (estimated before shipping)
           </p>
         </div>
-      </div>
+        </div>
 
       {/* Contact Form */}
       {!showMessage && (
