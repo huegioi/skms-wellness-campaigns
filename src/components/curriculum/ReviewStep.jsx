@@ -63,7 +63,27 @@ export default function ReviewStep({ selections, onBack }) {
       const customBoxTotal = customBoxItems.reduce((sum, item) => sum + item.price, 0);
       total += customBoxTotal * selections.customBoxQuantity;
     }
+    // Add custom charges
+    customCharges.forEach(charge => {
+      total += charge.amount;
+    });
     return total;
+  };
+
+  const addCustomCharge = () => {
+    if (newChargeLabel.trim() && newChargeAmount) {
+      setCustomCharges([...customCharges, {
+        id: Date.now(),
+        label: newChargeLabel.trim(),
+        amount: parseFloat(newChargeAmount)
+      }]);
+      setNewChargeLabel('');
+      setNewChargeAmount('');
+    }
+  };
+
+  const removeCustomCharge = (id) => {
+    setCustomCharges(customCharges.filter(c => c.id !== id));
   };
 
   const generateNarrative = () => {
