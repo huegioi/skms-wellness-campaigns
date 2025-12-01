@@ -22,7 +22,7 @@ export default function LeadershipStep({ selections, updateSelections, onNext, o
           Leadership Development
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>
-          Elevate your leaders with specialized emotional intelligence training and coaching programs. All programs are <strong>$450 per session per month</strong>.
+          Elevate your leaders with specialized emotional intelligence training and coaching programs.
         </p>
       </div>
 
