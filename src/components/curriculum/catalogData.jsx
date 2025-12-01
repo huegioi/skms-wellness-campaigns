@@ -143,31 +143,36 @@ export const productCatalog = {
   leadership: {
     leadershipProgram: {
       name: "Leadership EQ Program",
-      price: 10000,
+      price: 450,
+      priceLabel: "$450/session/month",
       description: "A sequential workshop series designed to build leadership skills, align teams, and develop mental fitness. Leaders learn exercises to enhance emotional resilience, foster a growth mindset, and promote values-based leadership.",
       icon: "Crown"
     },
     workshop1: {
       name: "Leadership EQ Workshop 1: Growth Mindset",
-      price: 3500,
+      price: 450,
+      priceLabel: "$450/session/month",
       description: "Part one of the Leadership EQ series. This is a personal exploration into developing a growth mindset. Leaders walk away with clarity about their personal character strengths and how they inform successes and obstacles.",
       icon: "Lightbulb"
     },
     workshop2: {
       name: "Leadership EQ Workshop 2: Aligned Leadership",
-      price: 3500,
+      price: 450,
+      priceLabel: "$450/session/month",
       description: "Part two of the series. This workshop helps leaders develop a model for aligning personal and organizational values, both for themselves and for the people who report to them.",
       icon: "Compass"
     },
     workshop3: {
       name: "Leadership EQ Workshop 3: Emotional Resilience",
-      price: 3500,
+      price: 450,
+      priceLabel: "$450/session/month",
       description: "Part three of the series. This session offers a model and practice for bouncing back from conflict. It provides a straightforward four-step process for preparing for and having difficult conversations.",
       icon: "Shield"
     },
     coachingProgram: {
       name: "Leadership EQ Coaching Program",
-      price: 15000,
+      price: 450,
+      priceLabel: "$450/session/month",
       description: "This program blends individualized support with collaborative growth for emerging and established leaders. It develops emotional intelligence competencies by focusing on three phases: growth mindset, aligning values, and emotional resilience.",
       icon: "Award"
     }

@@ -6,6 +6,44 @@ import { Sparkles } from 'lucide-react';
 
 export default function ChallengeStep({ selections, updateSelections, onNext, onBack }) {
   const challenges = Object.entries(productCatalog.challenges);
+  const assessmentData = selections.assessmentData || {};
+
+  // Calculate challenge price based on company size
+  const calculateChallengePrice = () => {
+    const companySize = assessmentData.companySize || '';
+    let employees = 0;
+    let pricePerParticipant = 25;
+
+    // Parse employee count from selection
+    if (companySize === '1-50') {
+      employees = 50;
+      pricePerParticipant = 25;
+    } else if (companySize === '51-200') {
+      employees = 100;
+      pricePerParticipant = 22;
+    } else if (companySize === '201-500') {
+      employees = 200;
+      pricePerParticipant = 20;
+    } else if (companySize === '501-1000') {
+      employees = 500;
+      pricePerParticipant = 20;
+    } else if (companySize === '1001-5000') {
+      employees = 1000;
+      pricePerParticipant = 20;
+    } else if (companySize === '5000+') {
+      employees = 5000;
+      pricePerParticipant = 20;
+    } else {
+      // Default if no size selected
+      return 1500;
+    }
+
+    // 30% of employees * price per participant
+    const participants = Math.ceil(employees * 0.30);
+    return participants * pricePerParticipant;
+  };
+
+  const challengePrice = calculateChallengePrice();
 
   // Get suggested challenges based on:
   // 1. Selected workforce challenges from assessment
@@ -96,7 +134,12 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
           Add 14-Day Challenges
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>
-          Challenges provide ongoing engagement and help reinforce workshop concepts. Each challenge is $1,500.
+          Challenges provide ongoing engagement and help reinforce workshop concepts. 
+          {assessmentData.companySize ? (
+            <> Based on your organization size, each challenge is <strong>${challengePrice.toLocaleString()}</strong>.</>
+          ) : (
+            <> Select your company size in the Assessment step for accurate pricing.</>
+          )}
         </p>
       </div>
 
@@ -128,7 +171,7 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
               <SelectionCard
                 title={challenge.name}
                 description={challenge.description}
-                price={challenge.price}
+                price={challengePrice}
                 icon={challenge.icon}
                 badge={challenge.duration}
                 isSelected={(selections.challengePrograms || []).includes(key)}

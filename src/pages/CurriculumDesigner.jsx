@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import StepIndicator from '../components/curriculum/StepIndicator';
 import AssessmentStep from '../components/curriculum/AssessmentStep';
@@ -27,7 +26,7 @@ export default function CurriculumDesigner() {
     { number: 2, name: 'Workshops' },
     { number: 3, name: 'Challenges' },
     { number: 4, name: 'Wellness' },
-    { number: 5, name: 'Movement' },
+    { number: 5, name: 'Classes' },
     { number: 6, name: 'Leadership' },
     { number: 7, name: 'Review' }
   ];
