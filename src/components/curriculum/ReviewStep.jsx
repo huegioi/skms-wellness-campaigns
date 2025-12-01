@@ -753,6 +753,35 @@ export default function ReviewStep({ selections, onBack }) {
           </div>
         </div>
 
+        {/* Services Included */}
+        {(selections.workshops?.length > 0 || selections.challengePrograms?.length > 0 || selections.leadership?.length > 0) && (
+          <div className="summary-section">
+            <div className="summary-title">Services Included</div>
+            <div className="summary-content">
+              <ul style={{ margin: 0, paddingLeft: '20px', lineHeight: '1.8' }}>
+                {selections.workshops?.length > 0 && (
+                  <>
+                    <li>Customizable email templates for each workshop</li>
+                    <li>Handouts, recordings & PowerPoint PDF for each workshop</li>
+                  </>
+                )}
+                {selections.challengePrograms?.length > 0 && (
+                  <>
+                    <li>Customizable email templates for each challenge</li>
+                    <li>App access for challenges</li>
+                  </>
+                )}
+                {selections.leadership?.length > 0 && (
+                  <>
+                    <li>Before and after assessments</li>
+                    <li>ROI report</li>
+                  </>
+                )}
+              </ul>
+            </div>
+          </div>
+        )}
+
         {assessmentData.timeline && (
           <div className="summary-section">
             <div className="summary-title">Timeline</div>
