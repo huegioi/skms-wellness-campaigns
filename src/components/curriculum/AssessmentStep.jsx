@@ -338,19 +338,14 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         
         <div className="question-group">
           <label className="question-label">Company Size (Number of Employees)</label>
-          <select 
-            className="neuro-select"
+          <input
+            type="number"
+            className="neuro-input"
+            placeholder="Enter number of employees..."
+            min="1"
             value={formData.companySize}
             onChange={(e) => handleInputChange('companySize', e.target.value)}
-          >
-            <option value="">Select...</option>
-            <option value="1-50">1-50</option>
-            <option value="51-200">51-200</option>
-            <option value="201-500">201-500</option>
-            <option value="501-1000">501-1,000</option>
-            <option value="1001-5000">1,001-5,000</option>
-            <option value="5000+">5,000+</option>
-          </select>
+          />
         </div>
 
         <div className="question-group">
