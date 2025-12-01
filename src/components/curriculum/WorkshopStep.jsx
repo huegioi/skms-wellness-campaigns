@@ -2,7 +2,7 @@ import React from 'react';
 import { productCatalog, challengeSolutionMap } from './catalogData';
 import SelectionCard from './SelectionCard';
 import StepNavigation from './StepNavigation';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Snowflake } from 'lucide-react';
 
 export default function WorkshopStep({ selections, updateSelections, onNext, onBack }) {
   const workshops = Object.entries(productCatalog.workshops);
@@ -59,6 +59,23 @@ export default function WorkshopStep({ selections, updateSelections, onNext, onB
           z-index: 10;
         }
 
+        .seasonal-badge {
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          background: linear-gradient(135deg, #a8d8ea, #e8f4f8);
+          color: #1a5276;
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 700;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          z-index: 10;
+        }
+
         .suggestion-banner {
           background: linear-gradient(135deg, rgba(202, 229, 227, 0.3), rgba(234, 249, 149, 0.3));
           border-left: 4px solid #264d44;
@@ -94,8 +111,15 @@ export default function WorkshopStep({ selections, updateSelections, onNext, onB
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         {sortedWorkshops.map(([key, workshop]) => {
           const isSuggested = suggestedWorkshops.includes(key);
+          const isSeasonal = workshop.seasonal;
           return (
             <div key={key} style={{ position: 'relative' }}>
+              {isSeasonal && !isSuggested && (
+                <div className="seasonal-badge">
+                  <Snowflake className="w-3 h-3" />
+                  Seasonal
+                </div>
+              )}
               {isSuggested && (
                 <div className="suggested-badge">
                   <Sparkles className="w-3 h-3" />

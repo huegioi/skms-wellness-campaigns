@@ -1,6 +1,13 @@
 // Product Catalog with Full Descriptions
 export const productCatalog = {
   workshops: {
+    steadySeasons: {
+      name: "Steady Through the Seasons",
+      price: 1500,
+      description: "The holiday season can be a joyful time — but it also brings increased pressure, disrupted routines, and a higher risk of burnout and seasonal mood changes. This interactive workshop offers practical, evidence-based tools to help employees manage stress, regulate their energy, and support their mental health during the winter months.",
+      icon: "Snowflake",
+      seasonal: true
+    },
     mindsetMastery: {
       name: "Mindset Mastery: Developing Emotional Resilience",
       price: 1500,
@@ -55,12 +62,7 @@ export const productCatalog = {
       description: "This workshop offers a supportive space to explore healthy ways of managing difficult emotions (stress, grief, helplessness) that arise from distressing world events, such as natural disasters or global crises.",
       icon: "Umbrella"
     },
-    steadySeasons: {
-      name: "Steady Through the Season",
-      price: 1500,
-      description: "This interactive workshop offers practical, evidence-based tools to help employees manage stress, regulate energy, and support their mental health during the winter months and holiday season.",
-      icon: "Snowflake"
-    },
+
     snapshotRecovery: {
       name: "A Snapshot of Recovery",
       price: 1500,
