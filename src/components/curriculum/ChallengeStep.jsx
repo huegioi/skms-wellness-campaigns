@@ -11,31 +11,17 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
   // Calculate challenge price based on company size
   const calculateChallengePrice = () => {
     const companySize = assessmentData.companySize || '';
-    let employees = 0;
-    let pricePerParticipant = 25;
+    const employees = parseInt(companySize, 10);
+    
+    if (!employees || employees <= 0) {
+      return 1500; // Default if no size entered
+    }
 
-    // Parse employee count from selection
-    if (companySize === '1-50') {
-      employees = 50;
-      pricePerParticipant = 25;
-    } else if (companySize === '51-200') {
-      employees = 100;
+    let pricePerParticipant = 25;
+    if (employees >= 200) {
+      pricePerParticipant = 20;
+    } else if (employees >= 50) {
       pricePerParticipant = 22;
-    } else if (companySize === '201-500') {
-      employees = 200;
-      pricePerParticipant = 20;
-    } else if (companySize === '501-1000') {
-      employees = 500;
-      pricePerParticipant = 20;
-    } else if (companySize === '1001-5000') {
-      employees = 1000;
-      pricePerParticipant = 20;
-    } else if (companySize === '5000+') {
-      employees = 5000;
-      pricePerParticipant = 20;
-    } else {
-      // Default if no size selected
-      return 1500;
     }
 
     // 30% of employees * price per participant
