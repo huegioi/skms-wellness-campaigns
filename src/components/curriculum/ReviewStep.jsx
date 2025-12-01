@@ -11,6 +11,9 @@ export default function ReviewStep({ selections, onBack }) {
   });
   const [showMessage, setShowMessage] = useState(false);
   const [downloadReady, setDownloadReady] = useState(false);
+  const [customCharges, setCustomCharges] = useState([]);
+  const [newChargeLabel, setNewChargeLabel] = useState('');
+  const [newChargeAmount, setNewChargeAmount] = useState('');
 
   const assessmentData = selections.assessmentData || {};
   const sampleBoxQuantities = selections.sampleBoxQuantities || {};
