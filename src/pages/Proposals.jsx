@@ -7,10 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   FileText, Calendar, DollarSign, Copy, Pencil, Trash2, 
-  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock
+  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock, Bell, Mail
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import SendProposalDialog from '@/components/proposals/SendProposalDialog';
+import SendReminderDialog from '@/components/proposals/SendReminderDialog';
 
 export default function Proposals() {
   const [sortBy, setSortBy] = useState('date');
@@ -18,6 +20,8 @@ export default function Proposals() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterClient, setFilterClient] = useState('all');
   const [viewingProposal, setViewingProposal] = useState(null);
+  const [sendingProposal, setSendingProposal] = useState(null);
+  const [reminderProposal, setReminderProposal] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -56,6 +60,7 @@ export default function Proposals() {
   const statusConfig = {
     draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
     sent: { label: 'Sent', color: 'bg-blue-100 text-blue-700', icon: Send },
+    viewed: { label: 'Viewed', color: 'bg-purple-100 text-purple-700', icon: Eye },
     accepted: { label: 'Accepted', color: 'bg-green-100 text-green-700', icon: CheckCircle },
     declined: { label: 'Declined', color: 'bg-red-100 text-red-700', icon: XCircle }
   };
@@ -112,6 +117,7 @@ export default function Proposals() {
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="draft">Draft</SelectItem>
               <SelectItem value="sent">Sent</SelectItem>
+              <SelectItem value="viewed">Viewed</SelectItem>
               <SelectItem value="accepted">Accepted</SelectItem>
               <SelectItem value="declined">Declined</SelectItem>
             </SelectContent>
@@ -191,6 +197,24 @@ export default function Proposals() {
                             <DollarSign className="w-4 h-4" />
                             ${proposal.total_amount?.toLocaleString() || 0}
                           </span>
+                          {proposal.sent_date && (
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-4 h-4" />
+                              Sent: {new Date(proposal.sent_date).toLocaleDateString()}
+                            </span>
+                          )}
+                          {proposal.viewed_date && (
+                            <span className="flex items-center gap-1 text-purple-600">
+                              <Eye className="w-4 h-4" />
+                              Viewed: {new Date(proposal.viewed_date).toLocaleDateString()}
+                            </span>
+                          )}
+                          {proposal.reminder_count > 0 && (
+                            <span className="flex items-center gap-1 text-amber-600">
+                              <Bell className="w-4 h-4" />
+                              {proposal.reminder_count} reminder(s)
+                            </span>
+                          )}
                         </div>
                       </div>
                       
@@ -206,10 +230,23 @@ export default function Proposals() {
                           <SelectContent>
                             <SelectItem value="draft">Draft</SelectItem>
                             <SelectItem value="sent">Sent</SelectItem>
+                            <SelectItem value="viewed">Viewed</SelectItem>
                             <SelectItem value="accepted">Accepted</SelectItem>
                             <SelectItem value="declined">Declined</SelectItem>
                           </SelectContent>
                         </Select>
+
+                        {/* Send/Reminder buttons based on status */}
+                        {proposal.status === 'draft' && (
+                          <Button size="sm" variant="outline" className="text-[#770142] border-[#770142]" onClick={() => setSendingProposal(proposal)}>
+                            <Send className="w-4 h-4 mr-1" /> Send
+                          </Button>
+                        )}
+                        {(proposal.status === 'sent' || proposal.status === 'viewed') && (
+                          <Button size="sm" variant="outline" className="text-amber-600 border-amber-600" onClick={() => setReminderProposal(proposal)}>
+                            <Bell className="w-4 h-4 mr-1" /> Remind
+                          </Button>
+                        )}
 
                         <Button size="icon" variant="outline" onClick={() => setViewingProposal(proposal)}>
                           <Eye className="w-4 h-4" />
@@ -264,6 +301,33 @@ export default function Proposals() {
                     </Badge>
                   </div>
                 </div>
+
+                {/* Email tracking info */}
+                {viewingProposal.sent_date && (
+                  <div className="border-t pt-4">
+                    <h4 className="font-semibold mb-3">Email Activity</h4>
+                    <div className="space-y-2 text-sm">
+                      <p className="text-gray-600">
+                        <Mail className="w-4 h-4 inline mr-2" />
+                        Sent: {new Date(viewingProposal.sent_date).toLocaleString()}
+                        {viewingProposal.client_email && ` to ${viewingProposal.client_email}`}
+                      </p>
+                      {viewingProposal.viewed_date && (
+                        <p className="text-purple-600">
+                          <Eye className="w-4 h-4 inline mr-2" />
+                          Viewed: {new Date(viewingProposal.viewed_date).toLocaleString()}
+                        </p>
+                      )}
+                      {viewingProposal.reminder_count > 0 && (
+                        <p className="text-amber-600">
+                          <Bell className="w-4 h-4 inline mr-2" />
+                          {viewingProposal.reminder_count} reminder(s) sent
+                          {viewingProposal.last_reminder_date && ` (last: ${new Date(viewingProposal.last_reminder_date).toLocaleDateString()})`}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
                 
                 {viewingProposal.selections && (
                   <div className="border-t pt-4">
@@ -286,6 +350,26 @@ export default function Proposals() {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Send Proposal Dialog */}
+        {sendingProposal && (
+          <SendProposalDialog 
+            proposal={sendingProposal} 
+            open={!!sendingProposal} 
+            onOpenChange={(open) => !open && setSendingProposal(null)}
+            onSent={() => queryClient.invalidateQueries({ queryKey: ['proposals'] })}
+          />
+        )}
+
+        {/* Send Reminder Dialog */}
+        {reminderProposal && (
+          <SendReminderDialog 
+            proposal={reminderProposal} 
+            open={!!reminderProposal} 
+            onOpenChange={(open) => !open && setReminderProposal(null)}
+            onSent={() => queryClient.invalidateQueries({ queryKey: ['proposals'] })}
+          />
+        )}
       </div>
     </div>
   );
