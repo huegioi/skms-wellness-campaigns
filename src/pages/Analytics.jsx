@@ -175,15 +175,25 @@ export default function Analytics() {
           <div className="bg-white rounded-xl p-6 shadow-lg">
             <h3 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Most Popular Services</h3>
             {topServices.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={topServices} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#264d44" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="space-y-3">
+                {topServices.map((service, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <span className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap" style={{
+                      background: service.type === 'Workshop' ? '#e0f2fe' : service.type === 'Challenge' ? '#fce7f3' : service.type === 'Leadership' ? '#f3e8ff' : '#dcfce7',
+                      color: service.type === 'Workshop' ? '#0369a1' : service.type === 'Challenge' ? '#be185d' : service.type === 'Leadership' ? '#7c3aed' : '#16a34a'
+                    }}>
+                      {service.type}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{service.name}</p>
+                      <div className="w-full bg-gray-100 rounded-full h-2 mt-1">
+                        <div className="h-2 rounded-full" style={{ width: `${(service.count / topServices[0].count) * 100}%`, background: '#264d44' }} />
+                      </div>
+                    </div>
+                    <span className="text-sm font-bold text-gray-700">{service.count}</span>
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="h-[250px] flex items-center justify-center text-gray-400">No data yet</div>
             )}

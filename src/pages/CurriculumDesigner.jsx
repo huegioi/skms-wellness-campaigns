@@ -121,20 +121,8 @@ export default function CurriculumDesigner() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f0e9' }}>
-      <style>{`
-        * {
-          box-sizing: border-box;
-        }
-        
-        body {
-          margin: 0;
-          padding: 0;
-          overflow-x: hidden;
-        }
-      `}</style>
-      
-      <div className="px-4 py-6 md:px-6 md:py-8 max-w-6xl mx-auto">
+    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
         <div className="mb-6 md:mb-10 text-center">
           <img 
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/abfb649ad_SkillfulMeansWebsiteHero.png" 
@@ -152,7 +140,7 @@ export default function CurriculumDesigner() {
 
         <StepIndicator steps={steps} currentStep={currentStep} />
 
-        <div>
+        <div className="bg-white rounded-xl shadow-lg p-4 md:p-8">
           {renderStep()}
         </div>
       </div>
