@@ -4,11 +4,11 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Save, Download } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ArrowLeft, Save, Download, Plus, Minus, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { productCatalog } from '@/components/curriculum/catalogData';
+import { productCatalog, workforceChallenges } from '@/components/curriculum/catalogData';
 
 export default function EditProposal() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -18,9 +18,22 @@ export default function EditProposal() {
   const [formData, setFormData] = useState({
     client_name: '',
     company: '',
-    status: 'draft',
-    total_amount: 0
+    status: 'draft'
   });
+  
+  const [selections, setSelections] = useState({
+    workshops: [],
+    challengePrograms: [],
+    leadership: [],
+    movementClasses: [],
+    sampleBoxQuantities: { reduceStress: 0, relaxationSleep: 0, largeEmotional: 0, largeStressReduction: 0 },
+    customBoxQuantity: 0,
+    customBoxItems: [],
+    challenges: [],
+    assessmentData: {}
+  });
+  
+  const [priceOverrides, setPriceOverrides] = useState({});
   const [customCharges, setCustomCharges] = useState([]);
   const [newChargeLabel, setNewChargeLabel] = useState('');
   const [newChargeAmount, setNewChargeAmount] = useState('');
@@ -39,9 +52,20 @@ export default function EditProposal() {
       setFormData({
         client_name: proposal.client_name || '',
         company: proposal.company || '',
-        status: proposal.status || 'draft',
-        total_amount: proposal.total_amount || 0
+        status: proposal.status || 'draft'
       });
+      setSelections({
+        workshops: proposal.selections?.workshops || [],
+        challengePrograms: proposal.selections?.challengePrograms || [],
+        leadership: proposal.selections?.leadership || [],
+        movementClasses: proposal.selections?.movementClasses || [],
+        sampleBoxQuantities: proposal.selections?.sampleBoxQuantities || { reduceStress: 0, relaxationSleep: 0, largeEmotional: 0, largeStressReduction: 0 },
+        customBoxQuantity: proposal.selections?.customBoxQuantity || 0,
+        customBoxItems: proposal.selections?.customBoxItems || [],
+        challenges: proposal.selections?.challenges || [],
+        assessmentData: proposal.selections?.assessmentData || {}
+      });
+      setPriceOverrides(proposal.selections?.priceOverrides || {});
       setCustomCharges(proposal.selections?.customCharges || []);
     }
   }, [proposal]);
@@ -51,75 +75,181 @@ export default function EditProposal() {
     onSuccess: () => navigate(createPageUrl('Proposals'))
   });
 
+  const getPrice = (category, key) => {
+    const overrideKey = `${category}_${key}`;
+    if (priceOverrides[overrideKey] !== undefined) return priceOverrides[overrideKey];
+    if (category === 'workshops') return productCatalog.workshops[key]?.price || 0;
+    if (category === 'challenges') return 1500;
+    if (category === 'leadership') return productCatalog.leadership[key]?.price || 0;
+    if (category === 'movementClasses') return productCatalog.movementClasses[key]?.price || 0;
+    return 0;
+  };
+
+  const setPrice = (category, key, value) => {
+    const overrideKey = `${category}_${key}`;
+    setPriceOverrides(prev => ({ ...prev, [overrideKey]: parseFloat(value) || 0 }));
+  };
+
+  const toggleItem = (category, key) => {
+    setSelections(prev => {
+      const current = prev[category] || [];
+      if (current.includes(key)) {
+        return { ...prev, [category]: current.filter(k => k !== key) };
+      }
+      return { ...prev, [category]: [...current, key] };
+    });
+  };
+
+  const updateBoxQuantity = (boxType, increment) => {
+    setSelections(prev => ({
+      ...prev,
+      sampleBoxQuantities: {
+        ...prev.sampleBoxQuantities,
+        [boxType]: increment ? (prev.sampleBoxQuantities[boxType] || 0) + 1 : Math.max(0, (prev.sampleBoxQuantities[boxType] || 0) - 1)
+      }
+    }));
+  };
+
   const calculateTotal = () => {
-    if (!proposal?.selections) return 0;
-    const sel = proposal.selections;
     let total = 0;
+    selections.workshops.forEach(key => total += getPrice('workshops', key));
+    selections.challengePrograms.forEach(key => total += getPrice('challenges', key));
+    selections.leadership.forEach(key => total += getPrice('leadership', key));
+    selections.movementClasses.forEach(key => total += getPrice('movementClasses', key));
     
-    (sel.workshops || []).forEach(key => {
-      total += productCatalog.workshops[key]?.price || 0;
-    });
-    (sel.challengePrograms || []).forEach(() => {
-      total += 1500; // Default challenge price
-    });
-    (sel.leadership || []).forEach(key => {
-      total += productCatalog.leadership[key]?.price || 0;
-    });
-    (sel.movementClasses || []).forEach(key => {
-      total += productCatalog.movementClasses[key]?.price || 0;
-    });
-    
-    const boxes = sel.sampleBoxQuantities || {};
+    const boxes = selections.sampleBoxQuantities;
     total += (boxes.reduceStress || 0) * 65;
     total += (boxes.relaxationSleep || 0) * 65;
     total += (boxes.largeEmotional || 0) * 125;
     total += (boxes.largeStressReduction || 0) * 125;
     
-    if (sel.customBoxQuantity > 0 && sel.customBoxItems?.length > 0) {
-      const customBoxTotal = sel.customBoxItems.reduce((sum, item) => sum + item.price, 0);
-      total += customBoxTotal * sel.customBoxQuantity;
+    if (selections.customBoxQuantity > 0 && selections.customBoxItems?.length > 0) {
+      const customBoxTotal = selections.customBoxItems.reduce((sum, item) => sum + item.price, 0);
+      total += customBoxTotal * selections.customBoxQuantity;
     }
     
-    customCharges.forEach(charge => {
-      total += charge.amount;
-    });
-    
+    customCharges.forEach(charge => total += charge.amount);
     return total;
   };
 
   const addCustomCharge = () => {
     if (newChargeLabel.trim() && newChargeAmount) {
-      setCustomCharges([...customCharges, {
-        id: Date.now(),
-        label: newChargeLabel.trim(),
-        amount: parseFloat(newChargeAmount)
-      }]);
+      setCustomCharges([...customCharges, { id: Date.now(), label: newChargeLabel.trim(), amount: parseFloat(newChargeAmount) }]);
       setNewChargeLabel('');
       setNewChargeAmount('');
     }
   };
 
-  const removeCustomCharge = (id) => {
-    setCustomCharges(customCharges.filter(c => c.id !== id));
-  };
-
   const handleSave = () => {
-    const total = calculateTotal();
     updateMutation.mutate({
       ...formData,
-      total_amount: total,
-      selections: {
-        ...proposal.selections,
-        customCharges
-      }
+      total_amount: calculateTotal(),
+      selections: { ...selections, priceOverrides, customCharges }
     });
   };
 
-  const statusColors = {
-    draft: 'bg-gray-100 text-gray-700',
-    sent: 'bg-blue-100 text-blue-700',
-    accepted: 'bg-green-100 text-green-700',
-    declined: 'bg-red-100 text-red-700'
+  const generatePDF = () => {
+    const pdfContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Mental Fitness Campaign Proposal - ${formData.client_name}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; background: #fff; color: #333; line-height: 1.6; }
+          .header { text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 3px solid #013f7c; }
+          h1 { color: #013f7c; font-size: 32px; margin-bottom: 10px; }
+          .subtitle { color: #666; font-size: 16px; }
+          .section { margin-bottom: 30px; page-break-inside: avoid; }
+          .section-title { color: #013f7c; font-size: 20px; font-weight: 700; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #cae5e3; }
+          .item { margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px; }
+          .item-title { color: #264d44; font-weight: 700; font-size: 16px; margin-bottom: 5px; }
+          .item-price { color: #770142; font-weight: 700; margin-bottom: 8px; }
+          .item-description { color: #555; font-size: 14px; line-height: 1.5; }
+          .total-box { background: linear-gradient(135deg, #770142, #441d37); color: white; padding: 25px; border-radius: 12px; margin-top: 30px; text-align: center; }
+          .total-amount { font-size: 36px; font-weight: 700; margin: 10px 0; }
+          .contact-info { background: #f4f0e9; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+          .contact-row { margin-bottom: 8px; }
+          .contact-label { font-weight: 700; color: #264d44; display: inline-block; width: 120px; }
+          @media print { body { padding: 20px; } .section { page-break-inside: avoid; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>Mental Fitness Campaign Proposal</h1>
+          <div class="subtitle">Prepared by SkillfulMeans</div>
+        </div>
+        <div class="contact-info">
+          <div class="contact-row"><span class="contact-label">Prepared For:</span> ${formData.client_name}</div>
+          ${formData.company ? `<div class="contact-row"><span class="contact-label">Company:</span> ${formData.company}</div>` : ''}
+          <div class="contact-row"><span class="contact-label">Date:</span> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+        </div>
+
+        ${selections.workshops.length > 0 ? `
+          <div class="section">
+            <div class="section-title">Workshops (${selections.workshops.length})</div>
+            ${selections.workshops.map(key => {
+              const workshop = productCatalog.workshops[key];
+              return workshop ? `<div class="item"><div class="item-title">${workshop.name}</div><div class="item-price">$${getPrice('workshops', key).toLocaleString()}</div><div class="item-description">${workshop.description}</div></div>` : '';
+            }).join('')}
+          </div>
+        ` : ''}
+
+        ${selections.challengePrograms.length > 0 ? `
+          <div class="section">
+            <div class="section-title">14-Day Challenges (${selections.challengePrograms.length})</div>
+            ${selections.challengePrograms.map(key => {
+              const challenge = productCatalog.challenges[key];
+              return challenge ? `<div class="item"><div class="item-title">${challenge.name}</div><div class="item-price">$${getPrice('challenges', key).toLocaleString()}</div><div class="item-description">${challenge.description}</div></div>` : '';
+            }).join('')}
+          </div>
+        ` : ''}
+
+        ${selections.leadership.length > 0 ? `
+          <div class="section">
+            <div class="section-title">Leadership Programs (${selections.leadership.length})</div>
+            ${selections.leadership.map(key => {
+              const program = productCatalog.leadership[key];
+              return program ? `<div class="item"><div class="item-title">${program.name}</div><div class="item-price">$${getPrice('leadership', key).toLocaleString()}</div><div class="item-description">${program.description}</div></div>` : '';
+            }).join('')}
+          </div>
+        ` : ''}
+
+        ${selections.movementClasses.length > 0 ? `
+          <div class="section">
+            <div class="section-title">Classes (${selections.movementClasses.length})</div>
+            ${selections.movementClasses.map(key => {
+              const classItem = productCatalog.movementClasses[key];
+              return classItem ? `<div class="item"><div class="item-title">${classItem.name}</div><div class="item-price">$${getPrice('movementClasses', key).toLocaleString()}</div><div class="item-description">${classItem.description}</div></div>` : '';
+            }).join('')}
+          </div>
+        ` : ''}
+
+        ${customCharges.length > 0 ? `
+          <div class="section">
+            <div class="section-title">Additional Charges</div>
+            ${customCharges.map(charge => `<div class="item"><div class="item-title">${charge.label}</div><div class="item-price">$${charge.amount.toLocaleString()}</div></div>`).join('')}
+          </div>
+        ` : ''}
+
+        <div class="total-box">
+          <div style="font-size: 18px; margin-bottom: 10px;">Estimated Total Investment</div>
+          <div class="total-amount">$${calculateTotal().toLocaleString()}</div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([pdfContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Proposal-${formData.client_name.replace(/\s+/g, '-')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   if (isLoading) {
@@ -131,58 +261,42 @@ export default function EditProposal() {
       <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">Proposal not found</p>
-          <Link to={createPageUrl('Proposals')}>
-            <Button>Back to Proposals</Button>
-          </Link>
+          <Link to={createPageUrl('Proposals')}><Button>Back to Proposals</Button></Link>
         </div>
       </div>
     );
   }
 
-  const selections = proposal.selections || {};
-
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-8">
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center gap-4 mb-8 flex-wrap">
           <Link to={createPageUrl('Proposals')}>
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
+            <Button variant="outline" size="icon"><ArrowLeft className="w-4 h-4" /></Button>
           </Link>
           <div className="flex-1">
             <h1 className="text-2xl font-bold" style={{ color: '#013f7c' }}>Edit Proposal</h1>
-            <p className="text-gray-600">Modify proposal details and pricing</p>
           </div>
-          <Button onClick={handleSave} className="bg-[#264d44] hover:bg-[#1a3830]">
-            <Save className="w-4 h-4 mr-2" /> Save Changes
-          </Button>
+          <Button variant="outline" onClick={generatePDF}><Download className="w-4 h-4 mr-2" /> Download</Button>
+          <Button onClick={handleSave} className="bg-[#264d44] hover:bg-[#1a3830]"><Save className="w-4 h-4 mr-2" /> Save</Button>
         </div>
 
         {/* Client Info */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Client Information</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Client Name</label>
-              <Input 
-                value={formData.client_name} 
-                onChange={(e) => setFormData({...formData, client_name: e.target.value})}
-              />
+              <Input value={formData.client_name} onChange={(e) => setFormData({...formData, client_name: e.target.value})} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Company</label>
-              <Input 
-                value={formData.company} 
-                onChange={(e) => setFormData({...formData, company: e.target.value})}
-              />
+              <Input value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Status</label>
               <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="draft">Draft</SelectItem>
                   <SelectItem value="sent">Sent</SelectItem>
@@ -194,87 +308,143 @@ export default function EditProposal() {
           </div>
         </div>
 
-        {/* Selected Items */}
+        {/* Workshops */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Selected Items</h2>
-          
-          {selections.workshops?.length > 0 && (
-            <div className="mb-4">
-              <h3 className="font-semibold text-sm text-gray-600 mb-2">Workshops</h3>
-              {selections.workshops.map(key => (
-                <div key={key} className="flex justify-between py-2 border-b">
-                  <span>{productCatalog.workshops[key]?.name}</span>
-                  <span className="font-semibold">${productCatalog.workshops[key]?.price?.toLocaleString()}</span>
+          <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Workshops</h2>
+          <div className="space-y-3">
+            {Object.entries(productCatalog.workshops).map(([key, workshop]) => (
+              <div key={key} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.workshops.includes(key) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+                <Checkbox checked={selections.workshops.includes(key)} onCheckedChange={() => toggleItem('workshops', key)} />
+                <div className="flex-1">
+                  <p className="font-medium">{workshop.name}</p>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">$</span>
+                  <Input 
+                    type="number" 
+                    className="w-24" 
+                    value={getPrice('workshops', key)} 
+                    onChange={(e) => setPrice('workshops', key, e.target.value)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-          {selections.challengePrograms?.length > 0 && (
-            <div className="mb-4">
-              <h3 className="font-semibold text-sm text-gray-600 mb-2">Challenges</h3>
-              {selections.challengePrograms.map(key => (
-                <div key={key} className="flex justify-between py-2 border-b">
-                  <span>{productCatalog.challenges[key]?.name}</span>
-                  <span className="font-semibold">$1,500</span>
+        {/* Challenges */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>14-Day Challenges</h2>
+          <div className="space-y-3">
+            {Object.entries(productCatalog.challenges).map(([key, challenge]) => (
+              <div key={key} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.challengePrograms.includes(key) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+                <Checkbox checked={selections.challengePrograms.includes(key)} onCheckedChange={() => toggleItem('challengePrograms', key)} />
+                <div className="flex-1">
+                  <p className="font-medium">{challenge.name}</p>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">$</span>
+                  <Input 
+                    type="number" 
+                    className="w-24" 
+                    value={getPrice('challenges', key)} 
+                    onChange={(e) => setPrice('challenges', key, e.target.value)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-          {selections.leadership?.length > 0 && (
-            <div className="mb-4">
-              <h3 className="font-semibold text-sm text-gray-600 mb-2">Leadership Programs</h3>
-              {selections.leadership.map(key => (
-                <div key={key} className="flex justify-between py-2 border-b">
-                  <span>{productCatalog.leadership[key]?.name}</span>
-                  <span className="font-semibold">${productCatalog.leadership[key]?.price?.toLocaleString()}</span>
+        {/* Leadership */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Leadership Programs</h2>
+          <div className="space-y-3">
+            {Object.entries(productCatalog.leadership).map(([key, program]) => (
+              <div key={key} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.leadership.includes(key) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+                <Checkbox checked={selections.leadership.includes(key)} onCheckedChange={() => toggleItem('leadership', key)} />
+                <div className="flex-1">
+                  <p className="font-medium">{program.name}</p>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">$</span>
+                  <Input 
+                    type="number" 
+                    className="w-24" 
+                    value={getPrice('leadership', key)} 
+                    onChange={(e) => setPrice('leadership', key, e.target.value)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-          {selections.movementClasses?.length > 0 && (
-            <div className="mb-4">
-              <h3 className="font-semibold text-sm text-gray-600 mb-2">Classes</h3>
-              {selections.movementClasses.map(key => (
-                <div key={key} className="flex justify-between py-2 border-b">
-                  <span>{productCatalog.movementClasses[key]?.name}</span>
-                  <span className="font-semibold">${productCatalog.movementClasses[key]?.price?.toLocaleString()}</span>
+        {/* Classes */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Classes</h2>
+          <div className="space-y-3">
+            {Object.entries(productCatalog.movementClasses).map(([key, classItem]) => (
+              <div key={key} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.movementClasses.includes(key) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+                <Checkbox checked={selections.movementClasses.includes(key)} onCheckedChange={() => toggleItem('movementClasses', key)} />
+                <div className="flex-1">
+                  <p className="font-medium">{classItem.name}</p>
+                  <p className="text-sm text-gray-500">{classItem.duration}</p>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">$</span>
+                  <Input 
+                    type="number" 
+                    className="w-24" 
+                    value={getPrice('movementClasses', key)} 
+                    onChange={(e) => setPrice('movementClasses', key, e.target.value)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Wellness Boxes */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Wellness Boxes</h2>
+          <div className="space-y-3">
+            {[
+              { key: 'reduceStress', name: 'Reduce Stress Box', price: 65 },
+              { key: 'relaxationSleep', name: 'Relaxation & Sleep Box', price: 65 },
+              { key: 'largeEmotional', name: 'Large Emotional Wellness Box', price: 125 },
+              { key: 'largeStressReduction', name: 'Large Stress Reduction Box', price: 125 }
+            ].map(box => (
+              <div key={box.key} className="flex items-center gap-4 p-3 rounded-lg border bg-gray-50">
+                <div className="flex-1">
+                  <p className="font-medium">{box.name}</p>
+                  <p className="text-sm text-gray-500">${box.price} each</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button size="icon" variant="outline" onClick={() => updateBoxQuantity(box.key, false)}><Minus className="w-4 h-4" /></Button>
+                  <span className="w-12 text-center font-semibold">{selections.sampleBoxQuantities[box.key] || 0}</span>
+                  <Button size="icon" variant="outline" onClick={() => updateBoxQuantity(box.key, true)}><Plus className="w-4 h-4" /></Button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Custom Charges */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Additional Charges</h2>
-          
           {customCharges.map(charge => (
             <div key={charge.id} className="flex justify-between items-center py-2 border-b">
               <span>{charge.label}</span>
               <div className="flex items-center gap-2">
                 <span className="font-semibold">${charge.amount.toLocaleString()}</span>
-                <button onClick={() => removeCustomCharge(charge.id)} className="text-red-500 hover:text-red-700">×</button>
+                <Button size="icon" variant="ghost" className="text-red-500" onClick={() => setCustomCharges(customCharges.filter(c => c.id !== charge.id))}><X className="w-4 h-4" /></Button>
               </div>
             </div>
           ))}
-
           <div className="flex gap-2 mt-4">
-            <Input 
-              placeholder="Charge label..." 
-              value={newChargeLabel} 
-              onChange={(e) => setNewChargeLabel(e.target.value)}
-              className="flex-1"
-            />
-            <Input 
-              type="number" 
-              placeholder="Amount" 
-              value={newChargeAmount} 
-              onChange={(e) => setNewChargeAmount(e.target.value)}
-              className="w-32"
-            />
+            <Input placeholder="Charge label..." value={newChargeLabel} onChange={(e) => setNewChargeLabel(e.target.value)} className="flex-1" />
+            <Input type="number" placeholder="Amount" value={newChargeAmount} onChange={(e) => setNewChargeAmount(e.target.value)} className="w-32" />
             <Button onClick={addCustomCharge} className="bg-[#264d44]">Add</Button>
           </div>
         </div>
