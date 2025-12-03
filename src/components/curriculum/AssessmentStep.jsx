@@ -513,6 +513,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             value={formData.resilienceExample}
             onChange={(e) => handleInputChange('resilienceExample', e.target.value)}
           />
+        </div>
           </div>
 
           {/* Section 2: Team Communication & Collaboration */}
@@ -584,6 +585,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             value={formData.teamClimateExample}
             onChange={(e) => handleInputChange('teamClimateExample', e.target.value)}
           />
+        </div>
           </div>
 
           {/* Section 3: Team Decision-Making & Productivity */}
@@ -655,6 +657,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             value={formData.productivityExample}
             onChange={(e) => handleInputChange('productivityExample', e.target.value)}
           />
+        </div>
           </div>
 
           {/* Section 4: Team Alignment & Goal Clarity */}
@@ -726,6 +729,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             value={formData.alignmentBenefits}
             onChange={(e) => handleInputChange('alignmentBenefits', e.target.value)}
           />
+        </div>
           </div>
 
           {/* Section 5: Leadership */}
@@ -797,6 +801,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             value={formData.leadershipExample}
             onChange={(e) => handleInputChange('leadershipExample', e.target.value)}
           />
+        </div>
           </div>
 
           {/* Section 6: Overall Goals */}
