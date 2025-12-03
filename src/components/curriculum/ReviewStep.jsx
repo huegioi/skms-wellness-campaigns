@@ -1,9 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { productCatalog, workforceChallenges, challengeSolutionMap } from './catalogData';
 import StepNavigation from './StepNavigation';
 import { Sparkles, Target } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 
 export default function ReviewStep({ selections, onBack }) {
+  const urlParams = new URLSearchParams(window.location.search);
+  const clientId = urlParams.get('clientId');
+
+  const { data: client } = useQuery({
+    queryKey: ['client', clientId],
+    queryFn: async () => {
+      if (!clientId) return null;
+      const clients = await base44.entities.Client.filter({ id: clientId });
+      return clients[0] || null;
+    },
+    enabled: !!clientId
+  });
+
   const [formData, setFormData] = useState({
     name: '',
     company: '',
@@ -14,6 +29,16 @@ export default function ReviewStep({ selections, onBack }) {
   const [customCharges, setCustomCharges] = useState([]);
   const [newChargeLabel, setNewChargeLabel] = useState('');
   const [newChargeAmount, setNewChargeAmount] = useState('');
+
+  useEffect(() => {
+    if (client) {
+      setFormData({
+        name: client.name || '',
+        company: client.company || '',
+        email: client.email || ''
+      });
+    }
+  }, [client]);
 
   const assessmentData = selections.assessmentData || {};
   const sampleBoxQuantities = selections.sampleBoxQuantities || {};
@@ -511,8 +536,31 @@ export default function ReviewStep({ selections, onBack }) {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Save proposal to database
+    const proposalData = {
+      client_id: clientId || null,
+      client_name: formData.name,
+      company: formData.company,
+      total_amount: calculateTotal(),
+      selections: {
+        workshops: selections.workshops,
+        challengePrograms: selections.challengePrograms,
+        leadership: selections.leadership,
+        movementClasses: selections.movementClasses,
+        sampleBoxQuantities: sampleBoxQuantities,
+        customBoxQuantity: selections.customBoxQuantity,
+        customBoxItems: customBoxItems,
+        customCharges: customCharges,
+        assessmentData: selections.assessmentData,
+        challenges: selections.challenges
+      },
+      status: 'draft'
+    };
+
+    await base44.entities.Proposal.create(proposalData);
     
     setShowMessage(true);
     
