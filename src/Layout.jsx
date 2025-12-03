@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Users, FileText } from 'lucide-react';
+import { Users, FileText, FolderOpen } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   return (
@@ -16,7 +16,7 @@ export default function Layout({ children, currentPageName }) {
               className="h-8"
             />
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <Link 
               to={createPageUrl('CurriculumDesigner')} 
               className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -24,7 +24,16 @@ export default function Layout({ children, currentPageName }) {
               }`}
             >
               <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">Proposal Builder</span>
+              <span className="hidden sm:inline">Builder</span>
+            </Link>
+            <Link 
+              to={createPageUrl('Proposals')} 
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                currentPageName === 'Proposals' || currentPageName === 'EditProposal' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <FolderOpen className="w-4 h-4" />
+              <span className="hidden sm:inline">Proposals</span>
             </Link>
             <Link 
               to={createPageUrl('Clients')} 

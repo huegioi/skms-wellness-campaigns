@@ -1,0 +1,292 @@
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { 
+  FileText, Calendar, DollarSign, Copy, Pencil, Trash2, 
+  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+
+export default function Proposals() {
+  const [sortBy, setSortBy] = useState('date');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterClient, setFilterClient] = useState('all');
+  const [viewingProposal, setViewingProposal] = useState(null);
+
+  const queryClient = useQueryClient();
+
+  const { data: proposals = [], isLoading } = useQuery({
+    queryKey: ['proposals'],
+    queryFn: () => base44.entities.Proposal.list('-created_date')
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => base44.entities.Client.list()
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }) => base44.entities.Proposal.update(id, { status }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['proposals'] })
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => base44.entities.Proposal.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['proposals'] })
+  });
+
+  const duplicateMutation = useMutation({
+    mutationFn: async (proposal) => {
+      const { id, created_date, updated_date, ...rest } = proposal;
+      return base44.entities.Proposal.create({
+        ...rest,
+        status: 'draft',
+        client_name: `${rest.client_name} (Copy)`
+      });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['proposals'] })
+  });
+
+  const statusConfig = {
+    draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
+    sent: { label: 'Sent', color: 'bg-blue-100 text-blue-700', icon: Send },
+    accepted: { label: 'Accepted', color: 'bg-green-100 text-green-700', icon: CheckCircle },
+    declined: { label: 'Declined', color: 'bg-red-100 text-red-700', icon: XCircle }
+  };
+
+  // Filter and sort proposals
+  const filteredProposals = proposals
+    .filter(p => filterStatus === 'all' || p.status === filterStatus)
+    .filter(p => filterClient === 'all' || p.client_id === filterClient)
+    .sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'date') {
+        comparison = new Date(a.created_date) - new Date(b.created_date);
+      } else if (sortBy === 'amount') {
+        comparison = (a.total_amount || 0) - (b.total_amount || 0);
+      } else if (sortBy === 'client') {
+        comparison = (a.client_name || '').localeCompare(b.client_name || '');
+      } else if (sortBy === 'status') {
+        comparison = (a.status || 'draft').localeCompare(b.status || 'draft');
+      }
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">Loading...</div>;
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Proposals</h1>
+            <p className="text-gray-600">Manage and track all your proposals</p>
+          </div>
+          <Link to={createPageUrl('CurriculumDesigner')}>
+            <Button className="bg-[#770142] hover:bg-[#5a0132]">
+              <FileText className="w-4 h-4 mr-2" /> New Proposal
+            </Button>
+          </Link>
+        </div>
+
+        {/* Filters and Sort */}
+        <div className="bg-white rounded-xl p-4 shadow-lg mb-6 flex flex-wrap gap-4 items-center">
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-600">Filters:</span>
+          </div>
+          
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="sent">Sent</SelectItem>
+              <SelectItem value="accepted">Accepted</SelectItem>
+              <SelectItem value="declined">Declined</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterClient} onValueChange={setFilterClient}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Client" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Clients</SelectItem>
+              {clients.map(client => (
+                <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center gap-2 ml-auto">
+            <ArrowUpDown className="w-4 h-4 text-gray-500" />
+            <Select value={sortBy} onValueChange={setSortBy}>
+              <SelectTrigger className="w-[120px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Date</SelectItem>
+                <SelectItem value="amount">Amount</SelectItem>
+                <SelectItem value="client">Client</SelectItem>
+                <SelectItem value="status">Status</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            >
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Proposals List */}
+        {filteredProposals.length === 0 ? (
+          <div className="bg-white rounded-xl p-12 text-center shadow-lg">
+            <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">No proposals found</h3>
+            <p className="text-gray-500">Create your first proposal or adjust your filters</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredProposals.map(proposal => {
+              const status = statusConfig[proposal.status || 'draft'];
+              const StatusIcon = status.icon;
+              
+              return (
+                <div key={proposal.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
+                  <div className="p-5">
+                    <div className="flex flex-col md:flex-row justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="text-xl font-bold" style={{ color: '#264d44' }}>
+                            {proposal.client_name}
+                          </h3>
+                          <Badge className={status.color}>
+                            <StatusIcon className="w-3 h-3 mr-1" />
+                            {status.label}
+                          </Badge>
+                        </div>
+                        {proposal.company && (
+                          <p className="text-gray-600 text-sm mb-2">{proposal.company}</p>
+                        )}
+                        <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            {new Date(proposal.created_date).toLocaleDateString()}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <DollarSign className="w-4 h-4" />
+                            ${proposal.total_amount?.toLocaleString() || 0}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Status Dropdown */}
+                        <Select 
+                          value={proposal.status || 'draft'} 
+                          onValueChange={(value) => updateStatusMutation.mutate({ id: proposal.id, status: value })}
+                        >
+                          <SelectTrigger className="w-[120px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="draft">Draft</SelectItem>
+                            <SelectItem value="sent">Sent</SelectItem>
+                            <SelectItem value="accepted">Accepted</SelectItem>
+                            <SelectItem value="declined">Declined</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        <Button size="icon" variant="outline" onClick={() => setViewingProposal(proposal)}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Link to={createPageUrl('EditProposal') + `?id=${proposal.id}`}>
+                          <Button size="icon" variant="outline">
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                        </Link>
+                        <Button size="icon" variant="outline" onClick={() => duplicateMutation.mutate(proposal)}>
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteMutation.mutate(proposal.id)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* View Proposal Dialog */}
+        <Dialog open={!!viewingProposal} onOpenChange={(open) => !open && setViewingProposal(null)}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Proposal Details</DialogTitle>
+            </DialogHeader>
+            {viewingProposal && (
+              <div className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm text-gray-500">Client</label>
+                    <p className="font-semibold">{viewingProposal.client_name}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-500">Company</label>
+                    <p className="font-semibold">{viewingProposal.company || '-'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-500">Total Amount</label>
+                    <p className="font-semibold text-lg" style={{ color: '#770142' }}>
+                      ${viewingProposal.total_amount?.toLocaleString()}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-500">Status</label>
+                    <Badge className={statusConfig[viewingProposal.status || 'draft'].color}>
+                      {statusConfig[viewingProposal.status || 'draft'].label}
+                    </Badge>
+                  </div>
+                </div>
+                
+                {viewingProposal.selections && (
+                  <div className="border-t pt-4">
+                    <h4 className="font-semibold mb-3">Included Items</h4>
+                    {viewingProposal.selections.workshops?.length > 0 && (
+                      <p className="text-sm text-gray-600">• {viewingProposal.selections.workshops.length} Workshops</p>
+                    )}
+                    {viewingProposal.selections.challengePrograms?.length > 0 && (
+                      <p className="text-sm text-gray-600">• {viewingProposal.selections.challengePrograms.length} Challenges</p>
+                    )}
+                    {viewingProposal.selections.leadership?.length > 0 && (
+                      <p className="text-sm text-gray-600">• {viewingProposal.selections.leadership.length} Leadership Programs</p>
+                    )}
+                    {viewingProposal.selections.movementClasses?.length > 0 && (
+                      <p className="text-sm text-gray-600">• {viewingProposal.selections.movementClasses.length} Classes</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
+}
