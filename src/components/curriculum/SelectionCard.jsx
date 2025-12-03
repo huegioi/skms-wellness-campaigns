@@ -19,25 +19,28 @@ export default function SelectionCard({ title, description, price, icon, badge, 
     <div
       onClick={onToggle}
       style={{
-        background: isSelected ? accentColor : '#f4f0e9',
+        background: isSelected ? accentColor : 'white',
         color: isSelected ? 'white' : '#333',
-        borderRadius: '16px',
+        borderRadius: '12px',
         padding: '20px',
         cursor: 'pointer',
-        transition: 'all 0.3s ease',
+        transition: 'all 0.2s ease',
+        border: isSelected ? 'none' : '1px solid #e5e0d8',
         boxShadow: isSelected 
-          ? 'inset 4px 4px 8px rgba(0, 0, 0, 0.3), inset -4px -4px 8px rgba(255, 255, 255, 0.05)'
-          : '6px 6px 12px rgba(0, 0, 0, 0.12), -6px -6px 12px rgba(255, 255, 255, 0.9)',
+          ? '0 4px 12px rgba(0, 0, 0, 0.15)'
+          : '0 2px 4px rgba(0, 0, 0, 0.05)',
         position: 'relative'
       }}
       onMouseEnter={(e) => {
         if (!isSelected) {
-          e.currentTarget.style.boxShadow = '8px 8px 16px rgba(0, 0, 0, 0.15), -8px -8px 16px rgba(255, 255, 255, 0.95)';
+          e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.1)';
+          e.currentTarget.style.transform = 'translateY(-2px)';
         }
       }}
       onMouseLeave={(e) => {
         if (!isSelected) {
-          e.currentTarget.style.boxShadow = '6px 6px 12px rgba(0, 0, 0, 0.12), -6px -6px 12px rgba(255, 255, 255, 0.9)';
+          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)';
+          e.currentTarget.style.transform = 'translateY(0)';
         }
       }}
     >

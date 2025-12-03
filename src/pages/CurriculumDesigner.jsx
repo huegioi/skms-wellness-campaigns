@@ -140,7 +140,7 @@ export default function CurriculumDesigner() {
 
         <StepIndicator steps={steps} currentStep={currentStep} />
 
-        <div className="bg-white rounded-xl shadow-lg p-4 md:p-8">
+        <div className="bg-white rounded-xl shadow-lg p-6 md:p-10">
           {renderStep()}
         </div>
       </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { workforceChallenges } from './catalogData';
 import StepNavigation from './StepNavigation';
-import { Brain, Users, Target, TrendingUp, DollarSign, Flame, MessageCircle, Monitor, Heart, Crown, Activity, Scale } from 'lucide-react';
+import { Brain, Users, Target, TrendingUp, DollarSign, Flame, MessageCircle, Monitor, Heart, Crown, Activity, Scale, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function AssessmentStep({ selections, updateSelections, onNext, isFirstStep }) {
   const iconMap = {
@@ -14,6 +14,8 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
     Activity: Activity,
     Scale: Scale
   };
+
+  const [showDeeperAssessment, setShowDeeperAssessment] = useState(false);
 
   const [formData, setFormData] = useState({
     companySize: selections.assessmentData?.companySize || '',
@@ -84,19 +86,43 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
     <div>
       <style>{`
         .assessment-card {
-          background: #f4f0e9;
-          border-radius: 16px;
+          background: #f8f6f3;
+          border-radius: 12px;
           padding: 20px;
-          margin-bottom: 24px;
-          box-shadow: 
-            8px 8px 16px rgba(0, 0, 0, 0.12),
-            -8px -8px 16px rgba(255, 255, 255, 0.9);
+          margin-bottom: 20px;
+          border: 1px solid #e5e0d8;
         }
 
         @media (min-width: 768px) {
           .assessment-card {
             padding: 24px;
           }
+        }
+
+        .collapsible-header {
+          background: linear-gradient(135deg, #f8f6f3, #f0ede8);
+          border: 1px solid #e5e0d8;
+          border-radius: 12px;
+          padding: 16px 20px;
+          margin-bottom: 20px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          transition: all 0.2s ease;
+        }
+
+        .collapsible-header:hover {
+          background: linear-gradient(135deg, #f0ede8, #e8e4dd);
+        }
+
+        .collapsible-content {
+          animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
         .section-header {
@@ -183,17 +209,14 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         }
 
         .scale-btn {
-          background: #f4f0e9;
-          border: 2px solid transparent;
+          background: white;
+          border: 2px solid #e0dcd5;
           width: 40px;
           height: 40px;
           border-radius: 50%;
           font-weight: 600;
           color: #441d37;
           cursor: pointer;
-          box-shadow: 
-            4px 4px 8px rgba(0, 0, 0, 0.12),
-            -4px -4px 8px rgba(255, 255, 255, 0.9);
           transition: all 0.2s ease;
         }
 
@@ -205,29 +228,23 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         }
 
         .scale-btn:hover {
-          box-shadow: 
-            3px 3px 6px rgba(0, 0, 0, 0.15),
-            -3px -3px 6px rgba(255, 255, 255, 0.95);
+          border-color: #ccc;
+          transform: scale(1.05);
         }
 
         .scale-btn.selected {
           color: white;
-          box-shadow: 
-            inset 3px 3px 6px rgba(0, 0, 0, 0.3),
-            inset -3px -3px 6px rgba(255, 255, 255, 0.1);
+          border-color: transparent;
         }
 
         .neuro-input, .neuro-select, .neuro-textarea {
-          background: #f4f0e9;
-          border: none;
-          border-radius: 12px;
+          background: white;
+          border: 1px solid #e0dcd5;
+          border-radius: 8px;
           padding: 12px 16px;
           font-size: 14px;
           color: #333;
           width: 100%;
-          box-shadow: 
-            inset 4px 4px 8px rgba(0, 0, 0, 0.1),
-            inset -4px -4px 8px rgba(255, 255, 255, 0.8);
           transition: all 0.2s ease;
         }
 
@@ -239,9 +256,8 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
 
         .neuro-input:focus, .neuro-select:focus, .neuro-textarea:focus {
           outline: none;
-          box-shadow: 
-            inset 5px 5px 10px rgba(0, 0, 0, 0.12),
-            inset -5px -5px 10px rgba(255, 255, 255, 0.9);
+          border-color: #264d44;
+          box-shadow: 0 0 0 3px rgba(38, 77, 68, 0.1);
         }
 
         .challenge-grid {
@@ -259,14 +275,12 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         }
 
         .challenge-card {
-          background: #f4f0e9;
-          border-radius: 16px;
+          background: white;
+          border-radius: 12px;
           padding: 16px;
           cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 
-            6px 6px 12px rgba(0, 0, 0, 0.12),
-            -6px -6px 12px rgba(255, 255, 255, 0.9);
+          transition: all 0.2s ease;
+          border: 2px solid #e5e0d8;
         }
 
         @media (min-width: 768px) {
@@ -276,16 +290,15 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         }
 
         .challenge-card:hover {
-          box-shadow: 
-            8px 8px 16px rgba(0, 0, 0, 0.15),
-            -8px -8px 16px rgba(255, 255, 255, 0.95);
+          border-color: #ccc;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
         .challenge-card.selected {
           color: white;
-          box-shadow: 
-            inset 4px 4px 8px rgba(0, 0, 0, 0.3),
-            inset -4px -4px 8px rgba(255, 255, 255, 0.05);
+          border-color: transparent;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
         .challenge-icon {
@@ -410,12 +423,33 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         </div>
       </div>
 
-      {/* Section 1: Team Resilience & Engagement */}
-      <div className="assessment-card">
-        <div className="section-header">
-          <Brain className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.resilience }} />
-          <h3 style={{ color: sectionColors.resilience }}>Team Resilience & Engagement <span className="optional-badge">Optional</span></h3>
+      {/* Optional Deeper Assessment Toggle */}
+      <div 
+        className="collapsible-header"
+        onClick={() => setShowDeeperAssessment(!showDeeperAssessment)}
+      >
+        <div className="flex items-center gap-3">
+          <Brain className="w-5 h-5" style={{ color: '#264d44' }} />
+          <div>
+            <h3 className="text-lg font-bold" style={{ color: '#264d44' }}>Optional Deeper Workforce Assessment</h3>
+            <p className="text-sm text-gray-500">Expand for detailed team evaluation questions</p>
+          </div>
         </div>
+        {showDeeperAssessment ? (
+          <ChevronUp className="w-5 h-5 text-gray-500" />
+        ) : (
+          <ChevronDown className="w-5 h-5 text-gray-500" />
+        )}
+      </div>
+
+      {showDeeperAssessment && (
+        <div className="collapsible-content">
+          {/* Section 1: Team Resilience & Engagement */}
+          <div className="assessment-card">
+            <div className="section-header">
+              <Brain className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.resilience }} />
+              <h3 style={{ color: sectionColors.resilience }}>Team Resilience & Engagement</h3>
+            </div>
 
         <div className="question-group">
           <label className="question-label">
@@ -479,15 +513,14 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             value={formData.resilienceExample}
             onChange={(e) => handleInputChange('resilienceExample', e.target.value)}
           />
-        </div>
-      </div>
+          </div>
 
-      {/* Section 2: Team Communication & Collaboration */}
-      <div className="assessment-card">
-        <div className="section-header">
-          <Users className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.communication }} />
-          <h3 style={{ color: sectionColors.communication }}>Team Communication & Collaboration <span className="optional-badge">Optional</span></h3>
-        </div>
+          {/* Section 2: Team Communication & Collaboration */}
+          <div className="assessment-card">
+            <div className="section-header">
+              <Users className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.communication }} />
+              <h3 style={{ color: sectionColors.communication }}>Team Communication & Collaboration</h3>
+            </div>
 
         <div className="question-group">
           <label className="question-label">
@@ -551,15 +584,14 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             value={formData.teamClimateExample}
             onChange={(e) => handleInputChange('teamClimateExample', e.target.value)}
           />
-        </div>
-      </div>
+          </div>
 
-      {/* Section 3: Team Decision-Making & Productivity */}
-      <div className="assessment-card">
-        <div className="section-header">
-          <Target className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.decision }} />
-          <h3 style={{ color: sectionColors.decision }}>Team Decision-Making & Productivity <span className="optional-badge">Optional</span></h3>
-        </div>
+          {/* Section 3: Team Decision-Making & Productivity */}
+          <div className="assessment-card">
+            <div className="section-header">
+              <Target className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.decision }} />
+              <h3 style={{ color: sectionColors.decision }}>Team Decision-Making & Productivity</h3>
+            </div>
 
         <div className="question-group">
           <label className="question-label">
@@ -623,15 +655,14 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             value={formData.productivityExample}
             onChange={(e) => handleInputChange('productivityExample', e.target.value)}
           />
-        </div>
-      </div>
+          </div>
 
-      {/* Section 4: Team Alignment & Goal Clarity */}
-      <div className="assessment-card">
-        <div className="section-header">
-          <TrendingUp className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#013f7c' }} />
-          <h3 style={{ color: '#013f7c' }}>Team Alignment & Goal Clarity <span className="optional-badge">Optional</span></h3>
-        </div>
+          {/* Section 4: Team Alignment & Goal Clarity */}
+          <div className="assessment-card">
+            <div className="section-header">
+              <TrendingUp className="w-5 h-5 md:w-6 md:h-6" style={{ color: '#013f7c' }} />
+              <h3 style={{ color: '#013f7c' }}>Team Alignment & Goal Clarity</h3>
+            </div>
 
         <div className="question-group">
           <label className="question-label">
@@ -695,15 +726,14 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             value={formData.alignmentBenefits}
             onChange={(e) => handleInputChange('alignmentBenefits', e.target.value)}
           />
-        </div>
-      </div>
+          </div>
 
-      {/* Section 5: Leadership */}
-      <div className="assessment-card">
-        <div className="section-header">
-          <Crown className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.leadership }} />
-          <h3 style={{ color: sectionColors.leadership }}>Leadership Effectiveness <span className="optional-badge">Optional</span></h3>
-        </div>
+          {/* Section 5: Leadership */}
+          <div className="assessment-card">
+            <div className="section-header">
+              <Crown className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.leadership }} />
+              <h3 style={{ color: sectionColors.leadership }}>Leadership Effectiveness</h3>
+            </div>
 
         <div className="question-group">
           <label className="question-label">
@@ -767,40 +797,41 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             value={formData.leadershipExample}
             onChange={(e) => handleInputChange('leadershipExample', e.target.value)}
           />
-        </div>
-      </div>
+          </div>
 
-      {/* Section 6: Overall Goals */}
-      <div className="assessment-card">
-        <div className="section-header">
-          <DollarSign className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.goals }} />
-          <h3 style={{ color: '#264d44' }}>Overall Program Goals <span className="optional-badge">Optional</span></h3>
-        </div>
+          {/* Section 6: Overall Goals */}
+          <div className="assessment-card">
+            <div className="section-header">
+              <DollarSign className="w-5 h-5 md:w-6 md:h-6" style={{ color: sectionColors.goals }} />
+              <h3 style={{ color: '#264d44' }}>Overall Program Goals</h3>
+            </div>
 
-        <div className="question-group">
-          <label className="question-label">
-            What are your primary goals for implementing a mental fitness program?
-          </label>
-          <textarea
-            className="neuro-textarea"
-            placeholder="e.g., reduce burnout, improve team effectiveness, enhance collaboration..."
-            value={formData.primaryGoals}
-            onChange={(e) => handleInputChange('primaryGoals', e.target.value)}
-          />
-        </div>
+            <div className="question-group">
+              <label className="question-label">
+                What are your primary goals for implementing a mental fitness program?
+              </label>
+              <textarea
+                className="neuro-textarea"
+                placeholder="e.g., reduce burnout, improve team effectiveness, enhance collaboration..."
+                value={formData.primaryGoals}
+                onChange={(e) => handleInputChange('primaryGoals', e.target.value)}
+              />
+            </div>
 
-        <div className="question-group">
-          <label className="question-label">
-            How will you measure success? What metrics or outcomes matter most?
-          </label>
-          <textarea
-            className="neuro-textarea"
-            placeholder="e.g., employee engagement scores, retention rates, productivity metrics..."
-            value={formData.successMetrics}
-            onChange={(e) => handleInputChange('successMetrics', e.target.value)}
-          />
+            <div className="question-group">
+              <label className="question-label">
+                How will you measure success? What metrics or outcomes matter most?
+              </label>
+              <textarea
+                className="neuro-textarea"
+                placeholder="e.g., employee engagement scores, retention rates, productivity metrics..."
+                value={formData.successMetrics}
+                onChange={(e) => handleInputChange('successMetrics', e.target.value)}
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       <StepNavigation
         onNext={handleNext}
