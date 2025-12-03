@@ -54,14 +54,12 @@ export default function StepIndicator({ steps, currentStep }) {
           display: flex;
           align-items: center;
           justify-content: center;
-          background: #f4f0e9;
+          background: white;
           position: relative;
           z-index: 2;
           font-weight: 600;
           font-size: 11px;
-          box-shadow: 
-            4px 4px 8px rgba(0, 0, 0, 0.12),
-            -4px -4px 8px rgba(255, 255, 255, 0.9);
+          box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
           transition: all 0.3s ease;
         }
 
@@ -75,9 +73,7 @@ export default function StepIndicator({ steps, currentStep }) {
 
         .step-circle.completed {
           color: white;
-          box-shadow: 
-            inset 3px 3px 6px rgba(0, 0, 0, 0.2),
-            inset -3px -3px 6px rgba(255, 255, 255, 0.1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .step-label {
@@ -117,7 +113,7 @@ export default function StepIndicator({ steps, currentStep }) {
                 <div 
                   className={`step-circle ${isCompleted ? 'completed' : ''}`}
                   style={{
-                    background: isCompleted ? stepColor : '#f4f0e9',
+                    background: isCompleted ? stepColor : 'white',
                     color: isCompleted ? 'white' : '#666'
                   }}
                 >

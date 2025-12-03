@@ -21,24 +21,24 @@ export default function SelectionCard({ title, description, price, icon, badge, 
       style={{
         background: isSelected ? accentColor : 'white',
         color: isSelected ? 'white' : '#333',
-        borderRadius: '12px',
+        borderRadius: '16px',
         padding: '20px',
         cursor: 'pointer',
         transition: 'all 0.2s ease',
         boxShadow: isSelected 
-          ? '0 6px 16px rgba(0, 0, 0, 0.2)'
-          : '0 2px 8px rgba(0, 0, 0, 0.08)',
+          ? '0 8px 24px rgba(0, 0, 0, 0.18), 0 2px 6px rgba(0, 0, 0, 0.1)'
+          : '0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06)',
         position: 'relative'
       }}
       onMouseEnter={(e) => {
         if (!isSelected) {
-          e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.12)';
-          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 8px 24px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08)';
+          e.currentTarget.style.transform = 'translateY(-3px)';
         }
       }}
       onMouseLeave={(e) => {
         if (!isSelected) {
-          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+          e.currentTarget.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06)';
           e.currentTarget.style.transform = 'translateY(0)';
         }
       }}
