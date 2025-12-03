@@ -818,6 +818,9 @@ export default function ReviewStep({ selections, onBack }) {
         {selections.workshops && selections.workshops.length > 0 && (
           <div className="review-section">
             <div className="review-section-title">Workshops ({selections.workshops.length})</div>
+            <p className="text-sm mb-4" style={{ color: '#666', lineHeight: '1.6' }}>
+              Designed by Dr. William Jackson, these evidence-based sessions cover critical topics like stress reduction, emotional resilience, and growth mindset. Available virtually or in-person, each workshop provides teams with practical psychological tools and downloadable resources they can immediately apply.
+            </p>
             {selections.workshops.map(key => (
               <div key={key} className="review-item">
                 <span>{productCatalog.workshops[key]?.name}</span>
@@ -830,6 +833,9 @@ export default function ReviewStep({ selections, onBack }) {
         {selections.challengePrograms && selections.challengePrograms.length > 0 && (
           <div className="review-section">
             <div className="review-section-title">14-Day Challenges ({selections.challengePrograms.length})</div>
+            <p className="text-sm mb-4" style={{ color: '#666', lineHeight: '1.6' }}>
+              Our gamified virtual challenges engage teams through daily videos, resources, and community support. Using leaderboards and discussion forums to foster connection, participants walk away with a sustainable daily routine that strengthens mental fitness through consistent practice.
+            </p>
             {selections.challengePrograms.map(key => (
               <div key={key} className="review-item">
                 <span>{productCatalog.challenges[key]?.name}</span>
@@ -842,6 +848,9 @@ export default function ReviewStep({ selections, onBack }) {
         {selections.leadership && selections.leadership.length > 0 && (
           <div className="review-section">
             <div className="review-section-title">Leadership Programs</div>
+            <p className="text-sm mb-4" style={{ color: '#666', lineHeight: '1.6' }}>
+              This strategic program transforms management culture through deep assessments, intensive workshop series, and ongoing coaching. We equip leaders with skills to navigate difficult conversations, align values with organizational goals, and foster psychological safety within their teams.
+            </p>
             {selections.leadership.map(key => (
               <div key={key} className="review-item">
                 <span>{productCatalog.leadership[key]?.name}</span>
@@ -854,6 +863,9 @@ export default function ReviewStep({ selections, onBack }) {
         {selections.movementClasses && selections.movementClasses.length > 0 && (
           <div className="review-section">
             <div className="review-section-title">Classes</div>
+            <p className="text-sm mb-4" style={{ color: '#666', lineHeight: '1.6' }}>
+              Our recurring Mindful Movement, Yoga, and meditation sessions are accessible to all fitness levels. Designed to release physical tension while training the mind to remain focused and calm under pressure, these classes provide a consistent "reset" that boosts energy and prevents fatigue.
+            </p>
             {selections.movementClasses.map(key => (
               <div key={key} className="review-item">
                 <span>{productCatalog.movementClasses[key]?.name}</span>
@@ -868,6 +880,9 @@ export default function ReviewStep({ selections, onBack }) {
           (selections.customBoxQuantity || 0) > 0) && (
           <div className="review-section">
             <div className="review-section-title">Wellness Boxes</div>
+            <p className="text-sm mb-4" style={{ color: '#666', lineHeight: '1.6' }}>
+              Our curated Wellness Boxes deliver a tangible experience of care directly to your employees, featuring items like aromatherapy, stress balls, and mindfulness resources. Fully customizable to fit your budget, they serve as a powerful engagement tool that rewards participation and demonstrates your company's commitment to well-being.
+            </p>
             {sampleBoxQuantities.reduceStress > 0 && (
               <div className="review-item">
                 <span>Reduce Stress Boxes ({sampleBoxQuantities.reduceStress})</span>
