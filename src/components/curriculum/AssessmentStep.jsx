@@ -86,11 +86,11 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
     <div>
       <style>{`
         .assessment-card {
-          background: #f8f6f3;
+          background: white;
           border-radius: 12px;
           padding: 20px;
           margin-bottom: 20px;
-          border: 1px solid #e5e0d8;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
         @media (min-width: 768px) {
@@ -100,8 +100,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         }
 
         .collapsible-header {
-          background: linear-gradient(135deg, #f8f6f3, #f0ede8);
-          border: 1px solid #e5e0d8;
+          background: white;
           border-radius: 12px;
           padding: 16px 20px;
           margin-bottom: 20px;
@@ -110,10 +109,11 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
           align-items: center;
           justify-content: space-between;
           transition: all 0.2s ease;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
         .collapsible-header:hover {
-          background: linear-gradient(135deg, #f0ede8, #e8e4dd);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
         }
 
         .collapsible-content {
@@ -209,8 +209,8 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         }
 
         .scale-btn {
-          background: white;
-          border: 2px solid #e0dcd5;
+          background: #f4f0e9;
+          border: none;
           width: 40px;
           height: 40px;
           border-radius: 50%;
@@ -218,6 +218,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
           color: #441d37;
           cursor: pointer;
           transition: all 0.2s ease;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         @media (min-width: 768px) {
@@ -228,18 +229,18 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         }
 
         .scale-btn:hover {
-          border-color: #ccc;
           transform: scale(1.05);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
         }
 
         .scale-btn.selected {
           color: white;
-          border-color: transparent;
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         .neuro-input, .neuro-select, .neuro-textarea {
-          background: white;
-          border: 1px solid #e0dcd5;
+          background: #f4f0e9;
+          border: none;
           border-radius: 8px;
           padding: 12px 16px;
           font-size: 14px;
@@ -256,8 +257,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
 
         .neuro-input:focus, .neuro-select:focus, .neuro-textarea:focus {
           outline: none;
-          border-color: #264d44;
-          box-shadow: 0 0 0 3px rgba(38, 77, 68, 0.1);
+          box-shadow: 0 0 0 3px rgba(38, 77, 68, 0.15);
         }
 
         .challenge-grid {
@@ -280,7 +280,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
           padding: 16px;
           cursor: pointer;
           transition: all 0.2s ease;
-          border: 2px solid #e5e0d8;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
 
         @media (min-width: 768px) {
@@ -290,15 +290,13 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         }
 
         .challenge-card:hover {
-          border-color: #ccc;
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
         }
 
         .challenge-card.selected {
           color: white;
-          border-color: transparent;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
         }
 
         .challenge-icon {

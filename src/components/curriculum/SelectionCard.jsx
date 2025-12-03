@@ -25,21 +25,20 @@ export default function SelectionCard({ title, description, price, icon, badge, 
         padding: '20px',
         cursor: 'pointer',
         transition: 'all 0.2s ease',
-        border: isSelected ? 'none' : '1px solid #e5e0d8',
         boxShadow: isSelected 
-          ? '0 4px 12px rgba(0, 0, 0, 0.15)'
-          : '0 2px 4px rgba(0, 0, 0, 0.05)',
+          ? '0 6px 16px rgba(0, 0, 0, 0.2)'
+          : '0 2px 8px rgba(0, 0, 0, 0.08)',
         position: 'relative'
       }}
       onMouseEnter={(e) => {
         if (!isSelected) {
-          e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.1)';
+          e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.12)';
           e.currentTarget.style.transform = 'translateY(-2px)';
         }
       }}
       onMouseLeave={(e) => {
         if (!isSelected) {
-          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
           e.currentTarget.style.transform = 'translateY(0)';
         }
       }}
