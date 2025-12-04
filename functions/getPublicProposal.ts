@@ -1,14 +1,13 @@
-import { createClient } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
   try {
-    // Create client with app ID only - no user auth required
-    const base44 = createClient({
-      appId: Deno.env.get('BASE44_APP_ID'),
-      apiKey: Deno.env.get('BASE44_API_KEY')
-    });
+    // Clone the request to read body, since we need to pass original req to SDK
+    const clonedReq = req.clone();
+    const { proposalId } = await clonedReq.json();
     
-    const { proposalId } = await req.json();
+    // Create client from request - use service role for public access
+    const base44 = createClientFromRequest(req);
 
     if (!proposalId) {
       return Response.json({ error: 'Proposal ID is required' }, { status: 400 });
