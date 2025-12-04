@@ -24,12 +24,20 @@ export default function ViewProposal() {
     // Use direct fetch to avoid SDK auth requirements
     const fetchProposal = async () => {
       try {
-        const response = await fetch('/api/functions/getPublicProposal', {
+        // Get the base URL from window location
+        const baseUrl = window.location.origin;
+        const response = await fetch(`${baseUrl}/api/functions/getPublicProposal`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ proposalId })
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const result = await response.json();
+        console.log('Proposal data received:', result);
         setData(result);
       } catch (err) {
         console.error('Error fetching proposal:', err);
