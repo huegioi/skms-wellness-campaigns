@@ -78,6 +78,19 @@ export default function ViewProposal() {
     );
   }
 
+  if (error || data?.error) {
+    return (
+      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
+          <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Error Loading Proposal</h2>
+          <p className="text-gray-600">{error || data?.error}</p>
+          <p className="text-xs text-gray-400 mt-2">ID: {proposalId}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!proposal) {
     return (
       <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
@@ -85,6 +98,7 @@ export default function ViewProposal() {
           <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Proposal Not Found</h2>
           <p className="text-gray-600">This proposal may have been removed or the link is incorrect.</p>
+          <p className="text-xs text-gray-400 mt-2">ID: {proposalId}</p>
         </div>
       </div>
     );
