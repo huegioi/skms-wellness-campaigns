@@ -15,14 +15,32 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required fields: to, subject, body' }, { status: 400 });
     }
 
-    // Use the built-in SendEmail integration
-    // Note: This sends from the platform, not your Gmail
-    await base44.asServiceRole.integrations.Core.SendEmail({
-      to: to,
-      subject: subject,
-      body: body,
-      from_name: "SkillfulMeans Wellness"
+    const apiKey = Deno.env.get('MAILGUN_API_KEY');
+    const domain = Deno.env.get('MAILGUN_DOMAIN');
+
+    if (!apiKey || !domain) {
+      return Response.json({ error: 'Mailgun credentials not configured' }, { status: 500 });
+    }
+
+    const formData = new FormData();
+    formData.append('from', `SkillfulMeans Wellness <mailgun@${domain}>`);
+    formData.append('to', to);
+    formData.append('subject', subject);
+    formData.append('html', body);
+
+    const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${btoa(`api:${apiKey}`)}`
+      },
+      body: formData
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Mailgun error:', response.status, errorText);
+      return Response.json({ error: `Mailgun: ${errorText}` }, { status: 500 });
+    }
 
     return Response.json({ success: true });
   } catch (error) {
