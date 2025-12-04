@@ -204,6 +204,11 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     
     const newEvent = await base44.entities.CalendarEvent.create(eventData);
     
+    // Update client's last_contacted date
+    if (eventData.client_id) {
+      await base44.entities.Client.update(eventData.client_id, { last_contacted: new Date().toISOString() });
+    }
+    
     // Auto-sync to Google if enabled
     if (syncSettings?.google_enabled && (syncSettings.google_sync_direction === 'to_google' || syncSettings.google_sync_direction === 'both')) {
       try {
