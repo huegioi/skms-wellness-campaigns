@@ -4,6 +4,11 @@ import { createPageUrl } from '@/utils';
 import { Users, FileText, FolderOpen, BarChart3, Calendar, Package, Mail, UserCircle } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
+  // Public pages - no navigation
+  if (currentPageName === 'ViewProposal' || currentPageName === 'MyPortal') {
+    return <>{children}</>;
+  }
+
   return (
     <div className="min-h-screen bg-[#f4f0e9]">
       {/* Navigation Header */}
