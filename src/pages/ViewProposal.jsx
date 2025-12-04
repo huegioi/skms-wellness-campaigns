@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Calendar, Mail, Clock } from 'lucide-react';
 import ClientProposalView from '@/components/portal/ClientProposalView';
@@ -21,18 +22,13 @@ export default function ViewProposal() {
       return;
     }
     
-    // Call the public API endpoint directly without SDK (no auth required)
-    fetch(`https://app.base44.com/api/p/6911f6f4a9d8505805b51a3b/functions/getPublicProposal`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ proposalId })
-    })
-      .then(res => res.json())
-      .then(responseData => {
-        setData(responseData);
+    base44.functions.invoke('getPublicProposal', { proposalId })
+      .then(response => {
+        setData(response.data);
         setIsLoading(false);
       })
       .catch(err => {
+        console.error('Error fetching proposal:', err);
         setError(err.message);
         setIsLoading(false);
       });
