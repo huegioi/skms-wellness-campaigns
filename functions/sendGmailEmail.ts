@@ -1,5 +1,80 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
+async function sendViaSMTP(gmailAddress, gmailAppPassword, to, subject, htmlBody) {
+  const encoder = new TextEncoder();
+  const decoder = new TextDecoder();
+  
+  const conn = await Deno.connectTls({
+    hostname: "smtp.gmail.com",
+    port: 465,
+  });
+
+  async function send(text) {
+    await conn.write(encoder.encode(text + "\r\n"));
+  }
+
+  async function read() {
+    const buffer = new Uint8Array(1024);
+    const n = await conn.read(buffer);
+    return decoder.decode(buffer.subarray(0, n));
+  }
+
+  // Read greeting
+  await read();
+  
+  // EHLO
+  await send(`EHLO smtp.gmail.com`);
+  await read();
+  
+  // AUTH LOGIN
+  await send("AUTH LOGIN");
+  await read();
+  
+  // Send username (base64)
+  await send(btoa(gmailAddress));
+  await read();
+  
+  // Send password (base64)
+  await send(btoa(gmailAppPassword));
+  const authResponse = await read();
+  
+  if (!authResponse.startsWith("235")) {
+    conn.close();
+    throw new Error("Authentication failed: " + authResponse);
+  }
+  
+  // MAIL FROM
+  await send(`MAIL FROM:<${gmailAddress}>`);
+  await read();
+  
+  // RCPT TO
+  await send(`RCPT TO:<${to}>`);
+  await read();
+  
+  // DATA
+  await send("DATA");
+  await read();
+  
+  // Email content
+  const emailContent = [
+    `From: ${gmailAddress}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=UTF-8',
+    '',
+    htmlBody,
+    '.',
+  ].join('\r\n');
+  
+  await send(emailContent);
+  await read();
+  
+  // QUIT
+  await send("QUIT");
+  conn.close();
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -22,55 +97,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Gmail credentials not configured' }, { status: 500 });
     }
 
-    // Create email in RFC 2822 format
-    const emailLines = [
-      `From: ${gmailAddress}`,
-      `To: ${to}`,
-      `Subject: =?UTF-8?B?${btoa(unescape(encodeURIComponent(subject)))}?=`,
-      'MIME-Version: 1.0',
-      'Content-Type: text/html; charset=UTF-8',
-      '',
-      body
-    ];
-    const rawEmail = emailLines.join('\r\n');
-    
-    // Base64url encode
-    const encodedEmail = btoa(unescape(encodeURIComponent(rawEmail)))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
+    await sendViaSMTP(gmailAddress, gmailAppPassword, to, subject, body);
 
-    // Use Google Calendar OAuth token (same Google account)
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken("googlecalendar");
-    
-    const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ raw: encodedEmail })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gmail API error:', response.status, errorText);
-      
-      // If Gmail API fails, fallback to built-in email for app users
-      if (response.status === 403 || response.status === 401) {
-        // Try the built-in integration as fallback
-        await base44.asServiceRole.integrations.Core.SendEmail({
-          to: to,
-          subject: subject,
-          body: body
-        });
-        return Response.json({ success: true, method: 'fallback' });
-      }
-      
-      return Response.json({ error: `Gmail API: ${response.status}` }, { status: 500 });
-    }
-
-    return Response.json({ success: true, method: 'gmail' });
+    return Response.json({ success: true });
   } catch (error) {
     console.error('Email error:', error);
     return Response.json({ error: error.message }, { status: 500 });
