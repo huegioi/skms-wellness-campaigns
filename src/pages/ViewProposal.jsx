@@ -13,15 +13,26 @@ export default function ViewProposal() {
   const urlParams = new URLSearchParams(window.location.search);
   const proposalId = urlParams.get('id');
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['publicProposal', proposalId],
-    queryFn: async () => {
-      if (!proposalId) return { proposal: null, client: null, events: [] };
-      const response = await base44.functions.invoke('getPublicProposal', { proposalId });
-      return response.data;
-    },
-    enabled: !!proposalId
-  });
+  const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useState(() => {
+    if (!proposalId) {
+      setIsLoading(false);
+      return;
+    }
+    
+    base44.functions.invoke('getPublicProposal', { proposalId })
+      .then(response => {
+        setData(response.data);
+        setIsLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setIsLoading(false);
+      });
+  }, [proposalId]);
 
   const proposal = data?.proposal;
   const client = data?.client;
