@@ -562,6 +562,11 @@ export default function ReviewStep({ selections, onBack }) {
 
     await base44.entities.Proposal.create(proposalData);
     
+    // Update client's last_contacted date if linked to a client
+    if (clientId) {
+      await base44.entities.Client.update(clientId, { last_contacted: new Date().toISOString() });
+    }
+    
     setShowMessage(true);
     
     setTimeout(() => {
