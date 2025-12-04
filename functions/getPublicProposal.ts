@@ -1,8 +1,13 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClient } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
   try {
-    const base44 = createClientFromRequest(req);
+    // Create client with app ID only - no user auth required
+    const base44 = createClient({
+      appId: Deno.env.get('BASE44_APP_ID'),
+      apiKey: Deno.env.get('BASE44_API_KEY')
+    });
+    
     const { proposalId } = await req.json();
 
     if (!proposalId) {
