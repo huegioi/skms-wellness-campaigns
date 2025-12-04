@@ -8,6 +8,7 @@ import ServiceCatalog from './pages/ServiceCatalog';
 import ClientPortal from './pages/ClientPortal';
 import EmailTemplateManager from './pages/EmailTemplateManager';
 import MyPortal from './pages/MyPortal';
+import ViewProposal from './pages/ViewProposal';
 import __Layout from './Layout.jsx';
 
 
@@ -22,6 +23,7 @@ export const PAGES = {
     "ClientPortal": ClientPortal,
     "EmailTemplateManager": EmailTemplateManager,
     "MyPortal": MyPortal,
+    "ViewProposal": ViewProposal,
 }
 
 export const pagesConfig = {
