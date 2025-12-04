@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   FileText, Calendar, DollarSign, Copy, Pencil, Trash2, 
-  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock, Bell, Mail
+  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock, Bell, Mail, Link2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -248,6 +248,18 @@ export default function Proposals() {
                           </Button>
                         )}
 
+                        <Button 
+                          size="icon" 
+                          variant="outline" 
+                          title="Copy client portal link"
+                          onClick={() => {
+                            const url = `${window.location.origin}/ViewProposal?id=${proposal.id}`;
+                            navigator.clipboard.writeText(url);
+                            alert('Portal link copied! Share this with your client.');
+                          }}
+                        >
+                          <Link2 className="w-4 h-4" />
+                        </Button>
                         <Button size="icon" variant="outline" onClick={() => setViewingProposal(proposal)}>
                           <Eye className="w-4 h-4" />
                         </Button>
