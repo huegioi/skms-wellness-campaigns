@@ -5,12 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
   ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, 
-  Users, FileText, Dumbbell, Award, Package, Clock, Video
+  Users, FileText, Dumbbell, Award, Package, Clock, Video, Settings, RefreshCw
 } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO, isToday } from 'date-fns';
 import EventDialog from '@/components/calendar/EventDialog';
 import EventDetailDialog from '@/components/calendar/EventDetailDialog';
 import CalendarSidebar from '@/components/calendar/CalendarSidebar';
+import CalendarSyncSettings from '@/components/calendar/CalendarSyncSettings';
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -18,6 +19,7 @@ export default function CalendarPage() {
   const [showEventDialog, setShowEventDialog] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [viewMode, setViewMode] = useState('month');
+  const [showSyncSettings, setShowSyncSettings] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -109,6 +111,9 @@ export default function CalendarPage() {
                       <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
+                  <Button variant="outline" size="icon" onClick={() => setShowSyncSettings(true)} title="Sync Settings">
+                    <Settings className="w-4 h-4" />
+                  </Button>
                   <Button onClick={() => { setSelectedDate(new Date()); setShowEventDialog(true); }} className="bg-[#770142] hover:bg-[#5a0132]">
                     <Plus className="w-4 h-4 mr-2" /> Add Event
                   </Button>
@@ -225,6 +230,12 @@ export default function CalendarPage() {
           onUpdated={() => queryClient.invalidateQueries({ queryKey: ['calendarEvents'] })}
         />
       )}
+
+      {/* Sync Settings Dialog */}
+      <CalendarSyncSettings 
+        open={showSyncSettings}
+        onOpenChange={setShowSyncSettings}
+      />
     </div>
   );
 }
