@@ -22,6 +22,7 @@ Deno.serve(async (req) => {
 
     let client = null;
     let events = [];
+    let templates = [];
 
     if (proposal.client_id) {
       const clients = await base44.asServiceRole.entities.Client.filter({ id: proposal.client_id });
@@ -33,7 +34,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    return Response.json({ proposal, client, events });
+    // Fetch email templates
+    templates = await base44.asServiceRole.entities.EmailTemplate.list('service_category');
+
+    return Response.json({ proposal, client, events, templates });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
