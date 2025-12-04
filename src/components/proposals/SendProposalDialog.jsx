@@ -40,6 +40,13 @@ SkillfulMeans Team`);
         <p><strong>Prepared for:</strong> ${proposal.client_name}</p>
         ${proposal.company ? `<p><strong>Company:</strong> ${proposal.company}</p>` : ''}
         
+        ${proposal.narrative_summary ? `
+          <div style="background: linear-gradient(135deg, rgba(119, 1, 66, 0.08), rgba(1, 63, 124, 0.08)); border-left: 4px solid #770142; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #770142; margin: 0 0 10px;">Program Overview</h3>
+            <p style="color: #333; line-height: 1.7; margin: 0; white-space: pre-line;">${proposal.narrative_summary}</p>
+          </div>
+        ` : ''}
+        
         ${sel.workshops?.length > 0 ? `
           <h3 style="color: #264d44; border-bottom: 2px solid #cae5e3;">Workshops</h3>
           <ul>${sel.workshops.map(k => `<li>${productCatalog.workshops[k]?.name} - $${getPrice('workshops', k).toLocaleString()}</li>`).join('')}</ul>

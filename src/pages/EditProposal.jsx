@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Save, Download, Plus, Minus, X } from 'lucide-react';
+import { ArrowLeft, Save, Download, Plus, Minus, X, Sparkles, RefreshCw } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { productCatalog, workforceChallenges } from '@/components/curriculum/catalogData';
@@ -18,7 +19,8 @@ export default function EditProposal() {
   const [formData, setFormData] = useState({
     client_name: '',
     company: '',
-    status: 'draft'
+    status: 'draft',
+    narrative_summary: ''
   });
   
   const [selections, setSelections] = useState({
@@ -52,7 +54,8 @@ export default function EditProposal() {
       setFormData({
         client_name: proposal.client_name || '',
         company: proposal.company || '',
-        status: proposal.status || 'draft'
+        status: proposal.status || 'draft',
+        narrative_summary: proposal.narrative_summary || ''
       });
       setSelections({
         workshops: proposal.selections?.workshops || [],
@@ -140,6 +143,51 @@ export default function EditProposal() {
     }
   };
 
+  const generateNarrativeSummary = () => {
+    const parts = [];
+    
+    if (selections.workshops.length > 0) {
+      const workshopNames = selections.workshops.map(k => productCatalog.workshops[k]?.name).filter(Boolean);
+      parts.push(`interactive workshops including ${workshopNames.slice(0, 3).join(', ')}${workshopNames.length > 3 ? ' and more' : ''} to build essential mental fitness skills`);
+    }
+    
+    if (selections.challengePrograms.length > 0) {
+      const challengeNames = selections.challengePrograms.map(k => productCatalog.challenges[k]?.name).filter(Boolean);
+      parts.push(`engaging 14-day challenges such as ${challengeNames.slice(0, 2).join(' and ')} to reinforce healthy habits and team engagement`);
+    }
+    
+    if (selections.leadership.length > 0) {
+      const leadershipNames = selections.leadership.map(k => productCatalog.leadership[k]?.name).filter(Boolean);
+      parts.push(`specialized leadership development through ${leadershipNames.join(' and ')} to equip managers with emotional intelligence and people management skills`);
+    }
+    
+    if (selections.movementClasses.length > 0) {
+      const classNames = selections.movementClasses.map(k => productCatalog.movementClasses[k]?.name).filter(Boolean);
+      parts.push(`ongoing wellness classes including ${classNames.slice(0, 2).join(' and ')} to support physical and mental well-being`);
+    }
+    
+    const boxes = selections.sampleBoxQuantities;
+    const totalBoxes = (boxes.reduceStress || 0) + (boxes.relaxationSleep || 0) + (boxes.largeEmotional || 0) + (boxes.largeStressReduction || 0);
+    if (totalBoxes > 0) {
+      parts.push(`curated wellness boxes as thoughtful incentives to encourage participation and self-care`);
+    }
+    
+    if (parts.length === 0) {
+      return `This customized mental fitness program is designed to support ${formData.company || 'your organization'}'s team well-being goals. Select services above to generate a tailored narrative.`;
+    }
+    
+    const intro = `This customized mental fitness campaign is designed to support ${formData.company || 'your organization'}'s workforce well-being and productivity goals.`;
+    const body = `The program includes ${parts.join('; ')}.`;
+    const outro = `Together, these elements create a comprehensive approach to building resilience, reducing stress, and fostering a healthier, more engaged workplace culture.`;
+    
+    return `${intro}\n\n${body}\n\n${outro}`;
+  };
+
+  const handleGenerateNarrative = () => {
+    const narrative = generateNarrativeSummary();
+    setFormData(prev => ({ ...prev, narrative_summary: narrative }));
+  };
+
   const handleSave = () => {
     updateMutation.mutate({
       ...formData,
@@ -185,6 +233,13 @@ export default function EditProposal() {
           ${formData.company ? `<div class="contact-row"><span class="contact-label">Company:</span> ${formData.company}</div>` : ''}
           <div class="contact-row"><span class="contact-label">Date:</span> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
         </div>
+
+        ${formData.narrative_summary ? `
+          <div class="section" style="background: linear-gradient(135deg, rgba(119, 1, 66, 0.08), rgba(1, 63, 124, 0.08)); border-left: 4px solid #770142; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <div class="section-title" style="border-bottom: none; color: #770142;">Program Overview</div>
+            <p style="color: #333; line-height: 1.8; white-space: pre-line;">${formData.narrative_summary}</p>
+          </div>
+        ` : ''}
 
         ${selections.workshops.length > 0 ? `
           <div class="section">
@@ -306,6 +361,35 @@ export default function EditProposal() {
               </Select>
             </div>
           </div>
+        </div>
+
+        {/* Narrative Summary */}
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5" style={{ color: '#770142' }} />
+              <h2 className="text-lg font-bold" style={{ color: '#264d44' }}>Program Narrative</h2>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleGenerateNarrative}
+              className="text-[#770142] border-[#770142] hover:bg-[#770142] hover:text-white"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Auto-Generate
+            </Button>
+          </div>
+          <p className="text-sm text-gray-500 mb-3">
+            This narrative will appear in the proposal download and sent emails. Edit it to customize the message for your client.
+          </p>
+          <Textarea 
+            value={formData.narrative_summary} 
+            onChange={(e) => setFormData({...formData, narrative_summary: e.target.value})}
+            placeholder="Click 'Auto-Generate' to create a narrative based on selected services, or write your own..."
+            rows={6}
+            className="resize-y"
+          />
         </div>
 
         {/* Workshops */}
