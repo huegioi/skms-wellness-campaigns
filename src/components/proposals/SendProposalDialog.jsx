@@ -87,7 +87,7 @@ SkillfulMeans Team`);
       <hr><br>${generateProposalHTML()}`;
     
     try {
-      await base44.integrations.Core.SendEmail({
+      await base44.functions.invoke('sendGmailEmail', {
         to: email,
         subject: subject,
         body: emailBody
