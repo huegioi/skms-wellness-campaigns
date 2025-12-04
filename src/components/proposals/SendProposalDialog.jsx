@@ -103,7 +103,7 @@ SkillfulMeans Team`);
       onOpenChange(false);
     } catch (error) {
       console.error('Failed to send email:', error);
-      alert('Failed to send email. Please try again.');
+      alert(`Failed to send email: ${error.message || 'Unknown error'}`);
     } finally {
       setSending(false);
     }
