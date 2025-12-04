@@ -9,11 +9,20 @@ import { Calendar, Clock, MapPin, Loader2, Package, Award, Dumbbell, Users } fro
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { productCatalog } from '@/components/curriculum/catalogData';
+import { useQuery } from '@tanstack/react-query';
 
 export default function EventDialog({ open, onOpenChange, selectedDate, clients, proposals, eventTypeConfig, onSaved }) {
   const [saving, setSaving] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState(null);
   const [showServicePicker, setShowServicePicker] = useState(false);
+  const [showCatalogPicker, setShowCatalogPicker] = useState(false);
+
+  // Fetch services from catalog
+  const { data: catalogServices = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => base44.entities.Service.list('sort_order')
+  });
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -86,14 +95,16 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
   };
 
   const selectService = (service) => {
-    const client = clients.find(c => c.id === formData.client_id);
     const config = eventTypeConfig[service.type];
     const startDate = new Date(formData.start_date);
-    const endDate = new Date(startDate.getTime() + (service.duration || 1) * 60 * 60 * 1000);
+    const durationHours = service.duration_hours || service.duration || 1;
+    const endDate = new Date(startDate.getTime() + durationHours * 60 * 60 * 1000);
     
-    let description = `Client: ${selectedProposal?.client_name || ''}\nCompany: ${selectedProposal?.company || ''}\n`;
-    if (client?.email) description += `Contact: ${client.email}\n`;
-    if (client?.phone) description += `Phone: ${client.phone}\n`;
+    // Use service description instead of contact info
+    let description = service.description || service.short_description || '';
+    if (service.key_benefits?.length > 0) {
+      description += '\n\nKey Benefits:\n• ' + service.key_benefits.join('\n• ');
+    }
     
     setFormData(prev => ({
       ...prev,
@@ -105,6 +116,38 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
       all_day: service.type === 'delivery'
     }));
     setShowServicePicker(false);
+    setShowCatalogPicker(false);
+  };
+
+  const selectCatalogService = (service) => {
+    const categoryMap = {
+      'workshop': 'workshop',
+      'challenge': 'challenge', 
+      'leadership': 'leadership',
+      'class': 'class',
+      'wellness_box': 'delivery'
+    };
+    const eventType = categoryMap[service.category] || 'other';
+    const config = eventTypeConfig[eventType];
+    const startDate = new Date(formData.start_date);
+    const durationHours = service.duration_hours || 1;
+    const endDate = new Date(startDate.getTime() + durationHours * 60 * 60 * 1000);
+    
+    let description = service.description || service.short_description || '';
+    if (service.key_benefits?.length > 0) {
+      description += '\n\nKey Benefits:\n• ' + service.key_benefits.join('\n• ');
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      title: service.name,
+      event_type: eventType,
+      description: description,
+      end_date: service.category === 'challenge' ? format(new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm") : format(endDate, "yyyy-MM-dd'T'HH:mm"),
+      color: config?.color,
+      all_day: service.category === 'wellness_box'
+    }));
+    setShowCatalogPicker(false);
   };
 
   const handleEventTypeChange = (type) => {
@@ -263,8 +306,79 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
             </div>
           )}
 
+          {/* Service Catalog Picker */}
+          {!showServicePicker && !showCatalogPicker && catalogServices.filter(s => s.is_active !== false).length > 0 && (
+            <div>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start text-left"
+                onClick={() => setShowCatalogPicker(true)}
+              >
+                <Package className="w-4 h-4 mr-2" />
+                Select from Service Catalog
+              </Button>
+            </div>
+          )}
+
+          {showCatalogPicker && (
+            <div className="bg-gray-50 rounded-lg p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Select from your service catalog:
+              </label>
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {['workshop', 'challenge', 'leadership', 'class', 'wellness_box'].map(category => {
+                  const categoryServices = catalogServices.filter(s => s.category === category && s.is_active !== false);
+                  if (categoryServices.length === 0) return null;
+                  const categoryLabels = {
+                    workshop: 'Workshops',
+                    challenge: 'Challenges',
+                    leadership: 'Leadership',
+                    class: 'Classes',
+                    wellness_box: 'Wellness Boxes'
+                  };
+                  return (
+                    <div key={category}>
+                      <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{categoryLabels[category]}</p>
+                      {categoryServices.map(service => {
+                        const categoryMap = { workshop: 'workshop', challenge: 'challenge', leadership: 'leadership', class: 'class', wellness_box: 'delivery' };
+                        const config = eventTypeConfig[categoryMap[service.category]];
+                        const ServiceIcon = config?.icon || Clock;
+                        return (
+                          <div
+                            key={service.id}
+                            onClick={() => selectCatalogService(service)}
+                            className="flex items-center gap-3 p-2 rounded-lg bg-white border cursor-pointer hover:border-[#770142] hover:bg-[#770142]/5 transition-all mb-1"
+                          >
+                            <div 
+                              className="w-8 h-8 rounded-lg flex items-center justify-center"
+                              style={{ backgroundColor: config?.color || '#666' }}
+                            >
+                              <ServiceIcon className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{service.name}</p>
+                              <p className="text-xs text-gray-500">${service.price?.toLocaleString()} • {service.duration || 'N/A'}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="mt-2 w-full"
+                onClick={() => setShowCatalogPicker(false)}
+              >
+                Or create custom event
+              </Button>
+            </div>
+          )}
+
           {/* Manual Event Creation */}
-          {!showServicePicker && (
+          {!showServicePicker && !showCatalogPicker && (
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Event Type *</label>
@@ -392,6 +506,25 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
                 </Button>
               </div>
             </>
+          )}
+
+          {/* Save buttons when service picker is active */}
+          {(showServicePicker || showCatalogPicker) && formData.title && (
+            <div className="flex gap-2 pt-4 border-t">
+              <Button onClick={handleSave} disabled={saving} className="flex-1 bg-[#770142] hover:bg-[#5a0132]">
+                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                Create Event
+              </Button>
+              <Button 
+                onClick={handleSaveAndAddToGoogle} 
+                disabled={saving} 
+                variant="outline"
+                className="flex-1"
+              >
+                <img src="https://www.gstatic.com/images/branding/product/1x/calendar_48dp.png" className="w-4 h-4 mr-2" alt="" />
+                + Google
+              </Button>
+            </div>
           )}
         </div>
       </DialogContent>

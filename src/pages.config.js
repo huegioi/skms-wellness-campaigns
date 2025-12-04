@@ -4,6 +4,7 @@ import Proposals from './pages/Proposals';
 import EditProposal from './pages/EditProposal';
 import Analytics from './pages/Analytics';
 import Calendar from './pages/Calendar';
+import ServiceCatalog from './pages/ServiceCatalog';
 import __Layout from './Layout.jsx';
 
 
@@ -14,6 +15,7 @@ export const PAGES = {
     "EditProposal": EditProposal,
     "Analytics": Analytics,
     "Calendar": Calendar,
+    "ServiceCatalog": ServiceCatalog,
 }
 
 export const pagesConfig = {

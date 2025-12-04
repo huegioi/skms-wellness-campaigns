@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Users, FileText, FolderOpen, BarChart3, Calendar } from 'lucide-react';
+import { Users, FileText, FolderOpen, BarChart3, Calendar, Package } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   return (
@@ -57,6 +57,15 @@ export default function Layout({ children, currentPageName }) {
             >
               <Calendar className="w-4 h-4" />
               <span className="hidden sm:inline">Calendar</span>
+            </Link>
+            <Link 
+              to={createPageUrl('ServiceCatalog')} 
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                currentPageName === 'ServiceCatalog' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Package className="w-4 h-4" />
+              <span className="hidden sm:inline">Services</span>
             </Link>
             </div>
         </div>
