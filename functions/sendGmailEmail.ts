@@ -1,5 +1,4 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import nodemailer from 'npm:nodemailer@6.9.8';
 
 Deno.serve(async (req) => {
   try {
@@ -20,23 +19,44 @@ Deno.serve(async (req) => {
     const gmailAppPassword = Deno.env.get('GMAIL_APP_PASSWORD');
 
     if (!gmailAddress || !gmailAppPassword) {
-      return Response.json({ error: 'Gmail credentials not configured' }, { status: 500 });
+      return Response.json({ error: 'Gmail credentials not configured. Address: ' + (gmailAddress ? 'set' : 'missing') + ', Password: ' + (gmailAppPassword ? 'set' : 'missing') }, { status: 500 });
     }
 
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: gmailAddress,
-        pass: gmailAppPassword,
+    // Use fetch to send via Gmail SMTP API
+    const emailContent = [
+      `From: ${gmailAddress}`,
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      'MIME-Version: 1.0',
+      'Content-Type: text/html; charset=utf-8',
+      '',
+      body
+    ].join('\r\n');
+
+    const encodedEmail = btoa(unescape(encodeURIComponent(emailContent)))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    // Try using the Google Calendar OAuth token for Gmail
+    const accessToken = await base44.asServiceRole.connectors.getAccessToken("googlecalendar");
+    
+    const response = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({
+        raw: encodedEmail
+      })
     });
 
-    await transporter.sendMail({
-      from: gmailAddress,
-      to: to,
-      subject: subject,
-      html: body,
-    });
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Gmail API error:', errorData);
+      return Response.json({ error: `Gmail API error: ${response.status} - ${errorData}` }, { status: 500 });
+    }
 
     return Response.json({ success: true });
   } catch (error) {
