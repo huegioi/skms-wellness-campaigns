@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Calendar, Mail, Building, Clock } from 'lucide-react';
+import { FileText, Calendar, Mail, Clock } from 'lucide-react';
 import ClientProposalView from '@/components/portal/ClientProposalView';
 import ClientTimeline from '@/components/portal/ClientTimeline';
 import ClientEmailTemplates from '@/components/portal/ClientEmailTemplates';
@@ -13,34 +13,19 @@ export default function ViewProposal() {
   const urlParams = new URLSearchParams(window.location.search);
   const proposalId = urlParams.get('id');
 
-  const { data: proposal, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['publicProposal', proposalId],
     queryFn: async () => {
-      if (!proposalId) return null;
-      const proposals = await base44.entities.Proposal.filter({ id: proposalId });
-      return proposals[0] || null;
+      if (!proposalId) return { proposal: null, client: null, events: [] };
+      const response = await base44.functions.invoke('getPublicProposal', { proposalId });
+      return response.data;
     },
     enabled: !!proposalId
   });
 
-  const { data: client } = useQuery({
-    queryKey: ['publicClient', proposal?.client_id],
-    queryFn: async () => {
-      if (!proposal?.client_id) return null;
-      const clients = await base44.entities.Client.filter({ id: proposal.client_id });
-      return clients[0] || null;
-    },
-    enabled: !!proposal?.client_id
-  });
-
-  const { data: events = [] } = useQuery({
-    queryKey: ['publicEvents', proposal?.client_id],
-    queryFn: async () => {
-      if (!proposal?.client_id) return [];
-      return base44.entities.CalendarEvent.filter({ client_id: proposal.client_id }, 'start_date');
-    },
-    enabled: !!proposal?.client_id
-  });
+  const proposal = data?.proposal;
+  const client = data?.client;
+  const events = data?.events || [];
 
   if (!proposalId) {
     return (
