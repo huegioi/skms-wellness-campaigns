@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Calendar, Clock, MapPin, Loader2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, Loader2, Package, Award, Dumbbell, Users } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
+import { productCatalog } from '@/components/curriculum/catalogData';
 
 export default function EventDialog({ open, onOpenChange, selectedDate, clients, proposals, eventTypeConfig, onSaved }) {
   const [saving, setSaving] = useState(false);
+  const [selectedProposal, setSelectedProposal] = useState(null);
+  const [showServicePicker, setShowServicePicker] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -30,39 +33,93 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     setFormData(prev => ({
       ...prev,
       client_id: clientId,
-      client_name: client?.name || ''
+      client_name: client?.name || '',
+      proposal_id: ''
     }));
+    setSelectedProposal(null);
+  };
+
+  const handleProposalChange = (proposalId) => {
+    const proposal = proposals.find(p => p.id === proposalId);
+    setSelectedProposal(proposal);
+    setFormData(prev => ({
+      ...prev,
+      proposal_id: proposalId
+    }));
+    if (proposal) {
+      setShowServicePicker(true);
+    }
+  };
+
+  const getProposalServices = () => {
+    if (!selectedProposal?.selections) return [];
+    const services = [];
+    const sel = selectedProposal.selections;
+    
+    sel.workshops?.forEach(key => {
+      const workshop = productCatalog.workshops[key];
+      if (workshop) services.push({ type: 'workshop', key, name: workshop.name, duration: 1 });
+    });
+    
+    sel.challengePrograms?.forEach(key => {
+      const challenge = productCatalog.challenges[key];
+      if (challenge) services.push({ type: 'challenge', key, name: challenge.name, duration: 14 });
+    });
+    
+    sel.leadership?.forEach(key => {
+      const program = productCatalog.leadership[key];
+      if (program) services.push({ type: 'leadership', key, name: program.name, duration: program.name.includes('3') ? 3 : 1 });
+    });
+    
+    sel.movementClasses?.forEach(key => {
+      const classItem = productCatalog.movementClasses[key];
+      if (classItem) services.push({ type: 'class', key, name: classItem.name, duration: 1 });
+    });
+    
+    const boxes = sel.sampleBoxQuantities || {};
+    if (boxes.reduceStress > 0) services.push({ type: 'delivery', key: 'reduceStress', name: `Reduce Stress Box (${boxes.reduceStress})`, duration: 0 });
+    if (boxes.relaxationSleep > 0) services.push({ type: 'delivery', key: 'relaxationSleep', name: `Relaxation & Sleep Box (${boxes.relaxationSleep})`, duration: 0 });
+    if (boxes.largeEmotional > 0) services.push({ type: 'delivery', key: 'largeEmotional', name: `Large Emotional Wellness Box (${boxes.largeEmotional})`, duration: 0 });
+    if (boxes.largeStressReduction > 0) services.push({ type: 'delivery', key: 'largeStressReduction', name: `Large Stress Reduction Box (${boxes.largeStressReduction})`, duration: 0 });
+    
+    return services;
+  };
+
+  const selectService = (service) => {
+    const client = clients.find(c => c.id === formData.client_id);
+    const config = eventTypeConfig[service.type];
+    const startDate = new Date(formData.start_date);
+    const endDate = new Date(startDate.getTime() + (service.duration || 1) * 60 * 60 * 1000);
+    
+    let description = `Client: ${selectedProposal?.client_name || ''}\nCompany: ${selectedProposal?.company || ''}\n`;
+    if (client?.email) description += `Contact: ${client.email}\n`;
+    if (client?.phone) description += `Phone: ${client.phone}\n`;
+    
+    setFormData(prev => ({
+      ...prev,
+      title: service.name,
+      event_type: service.type,
+      description: description,
+      end_date: service.type === 'challenge' ? format(new Date(startDate.getTime() + 14 * 24 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm") : format(endDate, "yyyy-MM-dd'T'HH:mm"),
+      color: config?.color,
+      all_day: service.type === 'delivery'
+    }));
+    setShowServicePicker(false);
   };
 
   const handleEventTypeChange = (type) => {
     const config = eventTypeConfig[type];
-    let duration = 1; // hours
+    let duration = 1;
     let title = '';
     
     switch(type) {
-      case 'workshop':
-        duration = 1;
-        title = '1-Hour Workshop';
-        break;
-      case 'leadership':
-        duration = 1;
-        title = 'Leadership Workshop';
-        break;
-      case 'challenge':
-        title = '14-Day Challenge Start';
-        break;
-      case 'class':
-        duration = 1;
-        title = 'Weekly Class';
-        break;
-      case 'delivery':
-        title = 'Wellness Box Delivery';
-        break;
-      case 'follow_up':
-        title = 'Proposal Follow-up';
-        break;
-      default:
-        title = '';
+      case 'workshop': duration = 1; title = '1-Hour Workshop'; break;
+      case 'leadership': duration = 1; title = 'Leadership Workshop'; break;
+      case 'challenge': title = '14-Day Challenge Start'; break;
+      case 'class': duration = 1; title = 'Weekly Class'; break;
+      case 'delivery': title = 'Wellness Box Delivery'; break;
+      case 'follow_up': title = 'Proposal Follow-up'; break;
+      default: title = '';
     }
     
     const startDate = new Date(formData.start_date);
@@ -85,6 +142,34 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
       ...formData,
       color: formData.color || eventTypeConfig[formData.event_type]?.color
     });
+    setSaving(false);
+    onSaved?.();
+    onOpenChange(false);
+  };
+
+  const handleSaveAndAddToGoogle = async () => {
+    if (!formData.title || !formData.start_date) return;
+    
+    setSaving(true);
+    await base44.entities.CalendarEvent.create({
+      ...formData,
+      color: formData.color || eventTypeConfig[formData.event_type]?.color
+    });
+    
+    // Open Google Calendar
+    const startDate = new Date(formData.start_date);
+    const endDate = formData.end_date ? new Date(formData.end_date) : new Date(startDate.getTime() + 60 * 60 * 1000);
+    const formatGoogleDate = (date) => format(date, "yyyyMMdd'T'HHmmss");
+    
+    const url = new URL('https://calendar.google.com/calendar/render');
+    url.searchParams.set('action', 'TEMPLATE');
+    url.searchParams.set('text', formData.title);
+    url.searchParams.set('dates', `${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}`);
+    if (formData.description) url.searchParams.set('details', formData.description);
+    if (formData.location) url.searchParams.set('location', formData.location);
+    
+    window.open(url.toString(), '_blank');
+    
     setSaving(false);
     onSaved?.();
     onOpenChange(false);
