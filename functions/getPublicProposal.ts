@@ -17,7 +17,10 @@ Deno.serve(async (req) => {
     // Use service role to fetch data without requiring user auth
     // Get all proposals and find by ID since filter by id doesn't work reliably
     const allProposals = await base44.asServiceRole.entities.Proposal.list();
+    console.log('Found proposals:', allProposals.length, 'Looking for:', proposalId);
+    console.log('Proposal IDs:', allProposals.map(p => p.id));
     const proposal = allProposals.find(p => p.id === proposalId) || null;
+    console.log('Matched proposal:', proposal ? 'yes' : 'no');
 
     if (!proposal) {
       return Response.json({ proposal: null, client: null, events: [], templates: [] });
