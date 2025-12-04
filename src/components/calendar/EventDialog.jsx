@@ -183,152 +183,216 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
         </DialogHeader>
         
         <div className="space-y-4 mt-4">
+          {/* Client Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Event Type *</label>
-            <Select value={formData.event_type} onValueChange={handleEventTypeChange}>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Client</label>
+            <Select value={formData.client_id || "none"} onValueChange={(v) => handleClientChange(v === "none" ? "" : v)}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select a client..." />
               </SelectTrigger>
               <SelectContent>
-                {Object.entries(eventTypeConfig).map(([key, config]) => (
-                  <SelectItem key={key} value={key}>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded" style={{ backgroundColor: config.color }}></div>
-                      {config.label}
-                    </div>
+                <SelectItem value="none">No client</SelectItem>
+                {clients.map(client => (
+                  <SelectItem key={client.id} value={client.id}>
+                    <span className="font-medium">{client.name}</span>
+                    {client.company && <span className="text-gray-500 ml-1">({client.company})</span>}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Title *</label>
-            <Input 
-              value={formData.title} 
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
-              placeholder="Event title..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Description</label>
-            <Textarea 
-              value={formData.description} 
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              placeholder="Add details..."
-              rows={3}
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Checkbox 
-              id="all_day"
-              checked={formData.all_day} 
-              onCheckedChange={(checked) => setFormData({...formData, all_day: checked})}
-            />
-            <label htmlFor="all_day" className="text-sm text-gray-600">All day event</label>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                <Calendar className="w-4 h-4 inline mr-1" />
-                Start *
-              </label>
-              <Input 
-                type={formData.all_day ? "date" : "datetime-local"}
-                value={formData.all_day ? formData.start_date.split('T')[0] : formData.start_date}
-                onChange={(e) => setFormData({...formData, start_date: formData.all_day ? e.target.value : e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                <Clock className="w-4 h-4 inline mr-1" />
-                End
-              </label>
-              <Input 
-                type={formData.all_day ? "date" : "datetime-local"}
-                value={formData.all_day ? formData.end_date.split('T')[0] : formData.end_date}
-                onChange={(e) => setFormData({...formData, end_date: e.target.value})}
-              />
-            </div>
-          </div>
-
-          {formData.event_type === 'leadership' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Workshop Duration</label>
-              <Select 
-                value={formData.title.includes('3') ? '3' : '1'}
-                onValueChange={(val) => {
-                  const startDate = new Date(formData.start_date);
-                  const endDate = new Date(startDate.getTime() + parseInt(val) * 60 * 60 * 1000);
-                  setFormData({
-                    ...formData, 
-                    title: `${val}-Hour Leadership Workshop`,
-                    end_date: format(endDate, "yyyy-MM-dd'T'HH:mm")
-                  });
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 Hour</SelectItem>
-                  <SelectItem value="3">3 Hours</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">
-              <MapPin className="w-4 h-4 inline mr-1" />
-              Location / Meeting Link
-            </label>
-            <Input 
-              value={formData.location} 
-              onChange={(e) => setFormData({...formData, location: e.target.value})}
-              placeholder="Office, Zoom link, etc..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Client (Optional)</label>
-            <Select value={formData.client_id} onValueChange={handleClientChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a client..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={null}>No client</SelectItem>
-                {clients.map(client => (
-                  <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {(formData.event_type === 'follow_up' || formData.event_type === 'meeting') && (
+          {/* Proposal Selection */}
+          {formData.client_id && (
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Related Proposal</label>
-              <Select value={formData.proposal_id} onValueChange={(val) => setFormData({...formData, proposal_id: val})}>
+              <Select value={formData.proposal_id || "none"} onValueChange={(v) => handleProposalChange(v === "none" ? "" : v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a proposal..." />
+                  <SelectValue placeholder="Select a proposal to add services..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={null}>No proposal</SelectItem>
-                  {proposals.map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.client_name} - ${p.total_amount?.toLocaleString()}</SelectItem>
+                  <SelectItem value="none">No proposal</SelectItem>
+                  {proposals.filter(p => p.client_id === formData.client_id || p.client_name === clients.find(c => c.id === formData.client_id)?.name).map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.client_name} - ${p.total_amount?.toLocaleString()}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           )}
 
-          <Button onClick={handleSave} disabled={saving || !formData.title} className="w-full bg-[#770142] hover:bg-[#5a0132]">
-            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            {saving ? 'Saving...' : 'Create Event'}
-          </Button>
+          {/* Service Picker from Proposal */}
+          {showServicePicker && selectedProposal && getProposalServices().length > 0 && (
+            <div className="bg-gray-50 rounded-lg p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Select a service from this proposal:
+              </label>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {getProposalServices().map((service, idx) => {
+                  const config = eventTypeConfig[service.type];
+                  const ServiceIcon = config?.icon || Clock;
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => selectService(service)}
+                      className="flex items-center gap-3 p-2 rounded-lg bg-white border cursor-pointer hover:border-[#770142] hover:bg-[#770142]/5 transition-all"
+                    >
+                      <div 
+                        className="w-8 h-8 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: config?.color || '#666' }}
+                      >
+                        <ServiceIcon className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{service.name}</p>
+                        <p className="text-xs text-gray-500">{config?.label}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="mt-2 w-full"
+                onClick={() => setShowServicePicker(false)}
+              >
+                Or create custom event
+              </Button>
+            </div>
+          )}
+
+          {/* Manual Event Creation */}
+          {!showServicePicker && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Event Type *</label>
+                <Select value={formData.event_type} onValueChange={handleEventTypeChange}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(eventTypeConfig).map(([key, config]) => (
+                      <SelectItem key={key} value={key}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded" style={{ backgroundColor: config.color }}></div>
+                          {config.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Title *</label>
+                <Input 
+                  value={formData.title} 
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  placeholder="Event title..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Description</label>
+                <Textarea 
+                  value={formData.description} 
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  placeholder="Add details..."
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  id="all_day"
+                  checked={formData.all_day} 
+                  onCheckedChange={(checked) => setFormData({...formData, all_day: checked})}
+                />
+                <label htmlFor="all_day" className="text-sm text-gray-600">All day event</label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <Calendar className="w-4 h-4 inline mr-1" />
+                    Start *
+                  </label>
+                  <Input 
+                    type={formData.all_day ? "date" : "datetime-local"}
+                    value={formData.all_day ? formData.start_date.split('T')[0] : formData.start_date}
+                    onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <Clock className="w-4 h-4 inline mr-1" />
+                    End
+                  </label>
+                  <Input 
+                    type={formData.all_day ? "date" : "datetime-local"}
+                    value={formData.all_day ? formData.end_date.split('T')[0] : formData.end_date}
+                    onChange={(e) => setFormData({...formData, end_date: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              {formData.event_type === 'leadership' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">Workshop Duration</label>
+                  <Select 
+                    value={formData.title.includes('3') ? '3' : '1'}
+                    onValueChange={(val) => {
+                      const startDate = new Date(formData.start_date);
+                      const endDate = new Date(startDate.getTime() + parseInt(val) * 60 * 60 * 1000);
+                      setFormData({
+                        ...formData, 
+                        title: `${val}-Hour Leadership Workshop`,
+                        end_date: format(endDate, "yyyy-MM-dd'T'HH:mm")
+                      });
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 Hour</SelectItem>
+                      <SelectItem value="3">3 Hours</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  <MapPin className="w-4 h-4 inline mr-1" />
+                  Location / Meeting Link
+                </label>
+                <Input 
+                  value={formData.location} 
+                  onChange={(e) => setFormData({...formData, location: e.target.value})}
+                  placeholder="Office, Zoom link, etc..."
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={handleSave} disabled={saving || !formData.title} className="flex-1 bg-[#770142] hover:bg-[#5a0132]">
+                  {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  Create Event
+                </Button>
+                <Button 
+                  onClick={handleSaveAndAddToGoogle} 
+                  disabled={saving || !formData.title} 
+                  variant="outline"
+                  className="flex-1"
+                >
+                  <img src="https://www.gstatic.com/images/branding/product/1x/calendar_48dp.png" className="w-4 h-4 mr-2" alt="" />
+                  + Google
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
