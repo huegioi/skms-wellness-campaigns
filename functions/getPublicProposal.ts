@@ -28,13 +28,11 @@ Deno.serve(async (req) => {
     let templates = [];
 
     if (proposal.client_id) {
-      const clients = await base44.asServiceRole.entities.Client.filter({ id: proposal.client_id });
-      client = clients[0] || null;
+      const allClients = await base44.asServiceRole.entities.Client.list();
+      client = allClients.find(c => c.id === proposal.client_id) || null;
 
-      events = await base44.asServiceRole.entities.CalendarEvent.filter(
-        { client_id: proposal.client_id }, 
-        'start_date'
-      );
+      const allEvents = await base44.asServiceRole.entities.CalendarEvent.list('start_date');
+      events = allEvents.filter(e => e.client_id === proposal.client_id);
     }
 
     // Fetch email templates
