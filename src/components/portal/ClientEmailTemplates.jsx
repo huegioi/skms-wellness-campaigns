@@ -68,12 +68,33 @@ export default function ClientEmailTemplates({ proposal }) {
     follow_up: 'Post-Event Follow-up'
   };
 
-  const handleDownload = (template) => {
+  const handleDownload = async (template) => {
+    // If there's a file URL, fetch and download it
+    if (template.file_url) {
+      try {
+        const response = await fetch(template.file_url);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const extension = template.file_url.split('.').pop() || 'txt';
+        a.download = `${template.service_name.replace(/\s+/g, '-')}-${template.template_type}.${extension}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+      } catch (e) {
+        console.error('Error downloading file:', e);
+      }
+    }
+    
+    // Fallback: create text file from content
     const content = `Subject: ${template.subject}\n\n${template.body?.replace(/<[^>]*>/g, '') || 'Template content'}`;
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = template.file_url || url;
+    a.href = url;
     a.download = `${template.service_name.replace(/\s+/g, '-')}-${template.template_type}.txt`;
     document.body.appendChild(a);
     a.click();
@@ -175,15 +196,25 @@ export default function ClientEmailTemplates({ proposal }) {
                                 </p>
                               )}
                             </div>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleDownload(template)}
-                              className="shrink-0"
-                            >
-                              <Download className="w-4 h-4 mr-2" />
-                              Download
-                            </Button>
+                            <div className="flex gap-2 shrink-0">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleDownload(template)}
+                              >
+                                <Download className="w-4 h-4 mr-2" />
+                                Download
+                              </Button>
+                              {template.file_url && (
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => window.open(template.file_url, '_blank')}
+                                >
+                                  <FileText className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}

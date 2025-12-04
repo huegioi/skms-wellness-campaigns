@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Mail, Upload, Send, FileText } from 'lucide-react';
+import { Plus, Pencil, Trash2, Mail, Upload, Send, FileText, Search, Filter, X } from 'lucide-react';
 import { productCatalog } from '@/components/curriculum/catalogData';
 
 export default function EmailTemplateManager() {
@@ -17,6 +17,9 @@ export default function EmailTemplateManager() {
   const [editingTemplate, setEditingTemplate] = useState(null);
   const [sendingTo, setSendingTo] = useState(null);
   const [sendEmail, setSendEmail] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState('all');
+  const [activeCategory, setActiveCategory] = useState('workshop');
   
   const queryClient = useQueryClient();
 
@@ -148,14 +151,32 @@ export default function EmailTemplateManager() {
     wellness_box: 'Wellness Boxes'
   };
 
-  // Group templates by category
+  // Filter templates based on search and type filter
+  const filteredTemplates = useMemo(() => {
+    return templates.filter(t => {
+      const matchesSearch = !searchQuery || 
+        t.service_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.subject?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesType = filterType === 'all' || t.template_type === filterType;
+      return matchesSearch && matchesType;
+    });
+  }, [templates, searchQuery, filterType]);
+
+  // Group filtered templates by category
   const templatesByCategory = {
-    workshop: templates.filter(t => t.service_category === 'workshop'),
-    challenge: templates.filter(t => t.service_category === 'challenge'),
-    leadership: templates.filter(t => t.service_category === 'leadership'),
-    class: templates.filter(t => t.service_category === 'class'),
-    wellness_box: templates.filter(t => t.service_category === 'wellness_box')
+    workshop: filteredTemplates.filter(t => t.service_category === 'workshop'),
+    challenge: filteredTemplates.filter(t => t.service_category === 'challenge'),
+    leadership: filteredTemplates.filter(t => t.service_category === 'leadership'),
+    class: filteredTemplates.filter(t => t.service_category === 'class'),
+    wellness_box: filteredTemplates.filter(t => t.service_category === 'wellness_box')
   };
+
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilterType('all');
+  };
+
+  const hasActiveFilters = searchQuery || filterType !== 'all';
 
   if (isLoading) {
     return <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">Loading...</div>;
@@ -174,7 +195,52 @@ export default function EmailTemplateManager() {
           </Button>
         </div>
 
-        <Tabs defaultValue="workshop">
+        {/* Search and Filters */}
+        <Card className="mb-6">
+          <CardContent className="pt-4">
+            <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex-1 min-w-[200px] relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input 
+                  placeholder="Search by service name or subject..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-gray-500" />
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Template Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="announcement">Announcement</SelectItem>
+                    <SelectItem value="reminder_2weeks">2-Week Reminder</SelectItem>
+                    <SelectItem value="reminder_2days">2-Day Reminder</SelectItem>
+                    <SelectItem value="follow_up">Follow-up</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {hasActiveFilters && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    <X className="w-4 h-4 mr-1" /> Clear
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            {hasActiveFilters && (
+              <div className="mt-3 text-sm text-gray-500">
+                Showing {filteredTemplates.length} of {templates.length} templates
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Tabs value={activeCategory} onValueChange={setActiveCategory}>
           <TabsList className="mb-6">
             {Object.entries(categoryLabels).map(([key, label]) => (
               <TabsTrigger key={key} value={key}>
