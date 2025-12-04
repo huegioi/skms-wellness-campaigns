@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, User, Building, Mail, Phone, FileText, ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, User, Building, Mail, Phone, FileText, ChevronDown, ChevronUp, Pencil, Trash2, Search, Filter, DollarSign, Users, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
@@ -14,7 +15,13 @@ export default function Clients() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [expandedClient, setExpandedClient] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', company: '', phone: '', notes: '' });
+  const [formData, setFormData] = useState({ name: '', email: '', company: '', phone: '', industry: '', company_size: '', wellness_budget: '', notes: '' });
+  
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterIndustry, setFilterIndustry] = useState('all');
+  const [filterSize, setFilterSize] = useState('all');
+  const [filterBudget, setFilterBudget] = useState('all');
   
   const queryClient = useQueryClient();
 
@@ -51,7 +58,7 @@ export default function Clients() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] })
   });
 
-  const resetForm = () => setFormData({ name: '', email: '', company: '', phone: '', notes: '' });
+  const resetForm = () => setFormData({ name: '', email: '', company: '', phone: '', industry: '', company_size: '', wellness_budget: '', notes: '' });
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -63,11 +70,45 @@ export default function Clients() {
   };
 
   const openEditDialog = (client) => {
-    setFormData({ name: client.name, email: client.email, company: client.company || '', phone: client.phone || '', notes: client.notes || '' });
+    setFormData({ 
+      name: client.name, 
+      email: client.email, 
+      company: client.company || '', 
+      phone: client.phone || '', 
+      industry: client.industry || '',
+      company_size: client.company_size || '',
+      wellness_budget: client.wellness_budget || '',
+      notes: client.notes || '' 
+    });
     setEditingClient(client);
   };
 
   const getClientProposals = (clientId) => proposals.filter(p => p.client_id === clientId);
+
+  // Get unique industries for filter dropdown
+  const uniqueIndustries = [...new Set(clients.filter(c => c.industry).map(c => c.industry))];
+
+  // Filter clients
+  const filteredClients = clients.filter(client => {
+    const matchesSearch = !searchQuery || 
+      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      client.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (client.company || '').toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesIndustry = filterIndustry === 'all' || client.industry === filterIndustry;
+    const matchesSize = filterSize === 'all' || client.company_size === filterSize;
+    
+    let matchesBudget = true;
+    if (filterBudget !== 'all') {
+      const budget = client.wellness_budget || 0;
+      if (filterBudget === 'under10k') matchesBudget = budget < 10000;
+      else if (filterBudget === '10k-50k') matchesBudget = budget >= 10000 && budget < 50000;
+      else if (filterBudget === '50k-100k') matchesBudget = budget >= 50000 && budget < 100000;
+      else if (filterBudget === 'over100k') matchesBudget = budget >= 100000;
+    }
+    
+    return matchesSearch && matchesIndustry && matchesSize && matchesBudget;
+  });
 
   const statusColors = {
     draft: 'bg-gray-100 text-gray-700',
@@ -103,11 +144,90 @@ export default function Clients() {
                 <Input type="email" placeholder="Email *" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
                 <Input placeholder="Company" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
                 <Input placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+                <Input placeholder="Industry (e.g., Healthcare, Finance)" value={formData.industry} onChange={(e) => setFormData({...formData, industry: e.target.value})} />
+                <Select value={formData.company_size || "none"} onValueChange={(v) => setFormData({...formData, company_size: v === "none" ? "" : v})}>
+                  <SelectTrigger><SelectValue placeholder="Company Size" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Select size...</SelectItem>
+                    <SelectItem value="1-50">1-50 employees</SelectItem>
+                    <SelectItem value="51-200">51-200 employees</SelectItem>
+                    <SelectItem value="201-500">201-500 employees</SelectItem>
+                    <SelectItem value="501-1000">501-1000 employees</SelectItem>
+                    <SelectItem value="1001-5000">1001-5000 employees</SelectItem>
+                    <SelectItem value="5000+">5000+ employees</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input type="number" placeholder="Wellness Budget ($)" value={formData.wellness_budget} onChange={(e) => setFormData({...formData, wellness_budget: e.target.value ? Number(e.target.value) : ''})} />
                 <Textarea placeholder="Notes" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
                 <Button type="submit" className="w-full bg-[#264d44] hover:bg-[#1a3830]">Add Client</Button>
               </form>
             </DialogContent>
           </Dialog>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="bg-white rounded-xl p-4 shadow-lg mb-6">
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex-1 min-w-[200px] relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input 
+                placeholder="Search by name, email, or company..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              
+              <Select value={filterIndustry} onValueChange={setFilterIndustry}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Industry" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Industries</SelectItem>
+                  {uniqueIndustries.map(ind => (
+                    <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={filterSize} onValueChange={setFilterSize}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Company Size" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sizes</SelectItem>
+                  <SelectItem value="1-50">1-50</SelectItem>
+                  <SelectItem value="51-200">51-200</SelectItem>
+                  <SelectItem value="201-500">201-500</SelectItem>
+                  <SelectItem value="501-1000">501-1000</SelectItem>
+                  <SelectItem value="1001-5000">1001-5000</SelectItem>
+                  <SelectItem value="5000+">5000+</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={filterBudget} onValueChange={setFilterBudget}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Budget" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Budgets</SelectItem>
+                  <SelectItem value="under10k">Under $10k</SelectItem>
+                  <SelectItem value="10k-50k">$10k - $50k</SelectItem>
+                  <SelectItem value="50k-100k">$50k - $100k</SelectItem>
+                  <SelectItem value="over100k">Over $100k</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {(searchQuery || filterIndustry !== 'all' || filterSize !== 'all' || filterBudget !== 'all') && (
+            <div className="mt-3 text-sm text-gray-500">
+              Showing {filteredClients.length} of {clients.length} clients
+            </div>
+          )}
         </div>
 
         {/* Edit Dialog */}
@@ -121,13 +241,27 @@ export default function Clients() {
               <Input type="email" placeholder="Email *" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
               <Input placeholder="Company" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
               <Input placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+              <Input placeholder="Industry (e.g., Healthcare, Finance)" value={formData.industry} onChange={(e) => setFormData({...formData, industry: e.target.value})} />
+              <Select value={formData.company_size || "none"} onValueChange={(v) => setFormData({...formData, company_size: v === "none" ? "" : v})}>
+                <SelectTrigger><SelectValue placeholder="Company Size" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Select size...</SelectItem>
+                  <SelectItem value="1-50">1-50 employees</SelectItem>
+                  <SelectItem value="51-200">51-200 employees</SelectItem>
+                  <SelectItem value="201-500">201-500 employees</SelectItem>
+                  <SelectItem value="501-1000">501-1000 employees</SelectItem>
+                  <SelectItem value="1001-5000">1001-5000 employees</SelectItem>
+                  <SelectItem value="5000+">5000+ employees</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input type="number" placeholder="Wellness Budget ($)" value={formData.wellness_budget} onChange={(e) => setFormData({...formData, wellness_budget: e.target.value ? Number(e.target.value) : ''})} />
               <Textarea placeholder="Notes" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
               <Button type="submit" className="w-full bg-[#264d44] hover:bg-[#1a3830]">Save Changes</Button>
             </form>
           </DialogContent>
         </Dialog>
 
-        {clients.length === 0 ? (
+        {filteredClients.length === 0 ? (
           <div className="bg-white rounded-xl p-12 text-center shadow-lg">
             <User className="w-16 h-16 mx-auto mb-4 text-gray-300" />
             <h3 className="text-xl font-semibold text-gray-700 mb-2">No clients yet</h3>
@@ -135,7 +269,7 @@ export default function Clients() {
           </div>
         ) : (
           <div className="space-y-4">
-            {clients.map(client => {
+            {filteredClients.map(client => {
               const clientProposals = getClientProposals(client.id);
               const isExpanded = expandedClient === client.id;
               
@@ -157,6 +291,18 @@ export default function Clients() {
                           <span className="flex items-center gap-1"><Mail className="w-4 h-4" /> {client.email}</span>
                           {client.phone && (
                             <span className="flex items-center gap-1"><Phone className="w-4 h-4" /> {client.phone}</span>
+                          )}
+                          {client.industry && (
+                            <Badge variant="outline">{client.industry}</Badge>
+                          )}
+                          {client.company_size && (
+                            <span className="flex items-center gap-1"><Users className="w-4 h-4" /> {client.company_size}</span>
+                          )}
+                          {client.wellness_budget && (
+                            <span className="flex items-center gap-1 text-green-600"><DollarSign className="w-4 h-4" /> ${client.wellness_budget.toLocaleString()}</span>
+                          )}
+                          {client.last_contacted && (
+                            <span className="flex items-center gap-1 text-gray-500"><Calendar className="w-4 h-4" /> Last: {new Date(client.last_contacted).toLocaleDateString()}</span>
                           )}
                         </div>
                       </div>
