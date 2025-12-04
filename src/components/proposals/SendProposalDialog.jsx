@@ -79,23 +79,34 @@ SkillfulMeans Team`);
     if (!email) return;
     setSending(true);
     
-    const emailBody = `${message.replace(/\n/g, '<br>')}<br><br><hr><br>${generateProposalHTML()}`;
+    const portalLink = `${window.location.origin}/ViewProposal?id=${proposal.id}`;
+    const emailBody = `${message.replace(/\n/g, '<br>')}<br><br>
+      <div style="text-align: center; margin: 20px 0;">
+        <a href="${portalLink}" style="background: #770142; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block;">View Your Proposal Online</a>
+      </div>
+      <hr><br>${generateProposalHTML()}`;
     
-    await base44.integrations.Core.SendEmail({
-      to: email,
-      subject: subject,
-      body: emailBody
-    });
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: email,
+        subject: subject,
+        body: emailBody
+      });
 
-    await base44.entities.Proposal.update(proposal.id, {
-      status: 'sent',
-      client_email: email,
-      sent_date: new Date().toISOString()
-    });
+      await base44.entities.Proposal.update(proposal.id, {
+        status: 'sent',
+        client_email: email,
+        sent_date: new Date().toISOString()
+      });
 
-    setSending(false);
-    onSent?.();
-    onOpenChange(false);
+      onSent?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Failed to send email:', error);
+      alert('Failed to send email. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
