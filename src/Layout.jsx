@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Users, FileText, FolderOpen, BarChart3, Calendar, Package } from 'lucide-react';
+import { Users, FileText, FolderOpen, BarChart3, Calendar, Package, Mail, UserCircle } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   return (
@@ -66,6 +66,24 @@ export default function Layout({ children, currentPageName }) {
             >
               <Package className="w-4 h-4" />
               <span className="hidden sm:inline">Services</span>
+            </Link>
+            <Link 
+              to={createPageUrl('EmailTemplateManager')} 
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                currentPageName === 'EmailTemplateManager' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Mail className="w-4 h-4" />
+              <span className="hidden sm:inline">Templates</span>
+            </Link>
+            <Link 
+              to={createPageUrl('ClientPortal')} 
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                currentPageName === 'ClientPortal' ? 'bg-[#770142] text-white' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <UserCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Portal</span>
             </Link>
             </div>
         </div>
