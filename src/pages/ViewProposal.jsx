@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Calendar, Mail, Clock } from 'lucide-react';
@@ -17,7 +16,7 @@ export default function ViewProposal() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useState(() => {
+  useEffect(() => {
     if (!proposalId) {
       setIsLoading(false);
       return;
