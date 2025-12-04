@@ -177,14 +177,49 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     }));
   };
 
+  // Fetch sync settings
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me()
+  });
+
+  const { data: syncSettings } = useQuery({
+    queryKey: ['calendarSync', user?.email],
+    queryFn: async () => {
+      if (!user?.email) return null;
+      const settings = await base44.entities.CalendarSync.filter({ user_email: user.email });
+      return settings[0] || null;
+    },
+    enabled: !!user?.email
+  });
+
   const handleSave = async () => {
     if (!formData.title || !formData.start_date) return;
     
     setSaving(true);
-    await base44.entities.CalendarEvent.create({
+    const eventData = {
       ...formData,
       color: formData.color || eventTypeConfig[formData.event_type]?.color
-    });
+    };
+    
+    const newEvent = await base44.entities.CalendarEvent.create(eventData);
+    
+    // Auto-sync to Google if enabled
+    if (syncSettings?.google_enabled && (syncSettings.google_sync_direction === 'to_google' || syncSettings.google_sync_direction === 'both')) {
+      try {
+        const response = await base44.functions.invoke('googleCalendarSync', {
+          action: 'createEvent',
+          eventData: { ...eventData, id: newEvent.id },
+          calendarId: syncSettings.google_calendar_id || 'primary'
+        });
+        if (response.data?.googleEventId) {
+          await base44.entities.CalendarEvent.update(newEvent.id, { google_event_id: response.data.googleEventId });
+        }
+      } catch (e) {
+        console.error('Google sync failed:', e);
+      }
+    }
+    
     setSaving(false);
     onSaved?.();
     onOpenChange(false);
@@ -194,24 +229,38 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     if (!formData.title || !formData.start_date) return;
     
     setSaving(true);
-    await base44.entities.CalendarEvent.create({
+    const eventData = {
       ...formData,
       color: formData.color || eventTypeConfig[formData.event_type]?.color
-    });
+    };
     
-    // Open Google Calendar
-    const startDate = new Date(formData.start_date);
-    const endDate = formData.end_date ? new Date(formData.end_date) : new Date(startDate.getTime() + 60 * 60 * 1000);
-    const formatGoogleDate = (date) => format(date, "yyyyMMdd'T'HHmmss");
+    const newEvent = await base44.entities.CalendarEvent.create(eventData);
     
-    const url = new URL('https://calendar.google.com/calendar/render');
-    url.searchParams.set('action', 'TEMPLATE');
-    url.searchParams.set('text', formData.title);
-    url.searchParams.set('dates', `${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}`);
-    if (formData.description) url.searchParams.set('details', formData.description);
-    if (formData.location) url.searchParams.set('location', formData.location);
-    
-    window.open(url.toString(), '_blank');
+    // Sync to Google Calendar via API
+    try {
+      const response = await base44.functions.invoke('googleCalendarSync', {
+        action: 'createEvent',
+        eventData: { ...eventData, id: newEvent.id },
+        calendarId: syncSettings?.google_calendar_id || 'primary'
+      });
+      if (response.data?.googleEventId) {
+        await base44.entities.CalendarEvent.update(newEvent.id, { google_event_id: response.data.googleEventId });
+      }
+    } catch (e) {
+      console.error('Google sync failed:', e);
+      // Fallback to URL method
+      const startDate = new Date(formData.start_date);
+      const endDate = formData.end_date ? new Date(formData.end_date) : new Date(startDate.getTime() + 60 * 60 * 1000);
+      const formatGoogleDate = (date) => format(date, "yyyyMMdd'T'HHmmss");
+      
+      const url = new URL('https://calendar.google.com/calendar/render');
+      url.searchParams.set('action', 'TEMPLATE');
+      url.searchParams.set('text', formData.title);
+      url.searchParams.set('dates', `${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}`);
+      if (formData.description) url.searchParams.set('details', formData.description);
+      if (formData.location) url.searchParams.set('location', formData.location);
+      window.open(url.toString(), '_blank');
+    }
     
     setSaving(false);
     onSaved?.();
