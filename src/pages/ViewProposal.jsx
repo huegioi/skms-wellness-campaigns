@@ -36,6 +36,7 @@ export default function ViewProposal() {
   const proposal = data?.proposal;
   const client = data?.client;
   const events = data?.events || [];
+  const templates = data?.templates || [];
 
   if (!proposalId) {
     return (
