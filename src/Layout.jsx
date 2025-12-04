@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Users, FileText, FolderOpen, BarChart3 } from 'lucide-react';
+import { Users, FileText, FolderOpen, BarChart3, Calendar } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   return (
@@ -49,7 +49,16 @@ export default function Layout({ children, currentPageName }) {
               <BarChart3 className="w-4 h-4" />
               <span className="hidden sm:inline">Analytics</span>
             </Link>
-          </div>
+            <Link 
+              to={createPageUrl('Calendar')} 
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                currentPageName === 'Calendar' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              <span className="hidden sm:inline">Calendar</span>
+            </Link>
+            </div>
         </div>
       </nav>
 

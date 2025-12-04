@@ -3,6 +3,7 @@ import Clients from './pages/Clients';
 import Proposals from './pages/Proposals';
 import EditProposal from './pages/EditProposal';
 import Analytics from './pages/Analytics';
+import Calendar from './pages/Calendar';
 import __Layout from './Layout.jsx';
 
 
@@ -12,6 +13,7 @@ export const PAGES = {
     "Proposals": Proposals,
     "EditProposal": EditProposal,
     "Analytics": Analytics,
+    "Calendar": Calendar,
 }
 
 export const pagesConfig = {
