@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Calendar, Mail, Clock } from 'lucide-react';
 import ClientProposalView from '@/components/portal/ClientProposalView';
@@ -22,16 +21,25 @@ export default function ViewProposal() {
       return;
     }
     
-    base44.functions.invoke('getPublicProposal', { proposalId })
-      .then(response => {
-        setData(response.data);
-        setIsLoading(false);
-      })
-      .catch(err => {
+    // Use direct fetch to avoid SDK auth requirements
+    const fetchProposal = async () => {
+      try {
+        const response = await fetch('/api/functions/getPublicProposal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ proposalId })
+        });
+        const result = await response.json();
+        setData(result);
+      } catch (err) {
         console.error('Error fetching proposal:', err);
         setError(err.message);
+      } finally {
         setIsLoading(false);
-      });
+      }
+    };
+    
+    fetchProposal();
   }, [proposalId]);
 
   const proposal = data?.proposal;
