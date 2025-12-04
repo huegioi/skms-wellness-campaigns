@@ -130,7 +130,7 @@ export default function ViewProposal() {
           </TabsContent>
 
           <TabsContent value="templates">
-            <ClientEmailTemplates proposal={proposal} />
+            <ClientEmailTemplates proposal={proposal} templates={templates} />
           </TabsContent>
         </Tabs>
       </div>
