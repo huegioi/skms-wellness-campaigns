@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
-import { SMTPClient } from 'npm:emailjs@4.0.3';
+import nodemailer from 'npm:nodemailer@6.9.8';
 
 Deno.serve(async (req) => {
   try {
@@ -23,20 +23,19 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Gmail credentials not configured' }, { status: 500 });
     }
 
-    const client = new SMTPClient({
-      user: gmailAddress,
-      password: gmailAppPassword,
-      host: 'smtp.gmail.com',
-      ssl: true,
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: gmailAddress,
+        pass: gmailAppPassword,
+      },
     });
 
-    await client.sendAsync({
+    await transporter.sendMail({
       from: gmailAddress,
       to: to,
       subject: subject,
-      attachment: [
-        { data: body, alternative: true }
-      ]
+      html: body,
     });
 
     return Response.json({ success: true });
