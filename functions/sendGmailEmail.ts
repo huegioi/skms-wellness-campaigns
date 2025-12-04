@@ -28,7 +28,8 @@ Deno.serve(async (req) => {
     formData.append('subject', subject);
     formData.append('html', body);
 
-    const response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
+    // Try US region first, then EU if needed
+    let response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
       method: 'POST',
       headers: {
         'Authorization': `Basic ${btoa(`api:${apiKey}`)}`
@@ -36,13 +37,34 @@ Deno.serve(async (req) => {
       body: formData
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Mailgun error:', response.status, errorText);
-      return Response.json({ error: `Mailgun: ${errorText}` }, { status: 500 });
+    // If US fails with 401/404, try EU region
+    if (response.status === 401 || response.status === 404) {
+      const euFormData = new FormData();
+      euFormData.append('from', `SkillfulMeans Wellness <mailgun@${domain}>`);
+      euFormData.append('to', to);
+      euFormData.append('subject', subject);
+      euFormData.append('html', body);
+      
+      response = await fetch(`https://api.eu.mailgun.net/v3/${domain}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${btoa(`api:${apiKey}`)}`
+        },
+        body: euFormData
+      });
     }
 
-    return Response.json({ success: true });
+    const responseText = await response.text();
+    
+    if (!response.ok) {
+      console.error('Mailgun error:', response.status, responseText);
+      return Response.json({ 
+        error: `Mailgun error (${response.status}): ${responseText}`,
+        debug: { domain, status: response.status }
+      }, { status: 500 });
+    }
+
+    return Response.json({ success: true, response: responseText });
   } catch (error) {
     console.error('Email error:', error);
     return Response.json({ error: error.message }, { status: 500 });
