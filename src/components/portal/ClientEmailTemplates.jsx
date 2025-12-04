@@ -1,6 +1,4 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,11 +6,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Mail, Download, FileText, Award, Dumbbell, Users, Package } from 'lucide-react';
 import { productCatalog } from '@/components/curriculum/catalogData';
 
-export default function ClientEmailTemplates({ proposal }) {
-  const { data: templates = [] } = useQuery({
-    queryKey: ['emailTemplates'],
-    queryFn: () => base44.entities.EmailTemplate.list('service_category')
-  });
+export default function ClientEmailTemplates({ proposal, templates = [] }) {
 
   const selections = proposal?.selections || {};
 
