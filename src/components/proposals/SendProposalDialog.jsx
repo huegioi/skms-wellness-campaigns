@@ -164,7 +164,6 @@ ${proposalHTML}
     
     try {
       console.log('Portal link:', portalLink);
-      console.log('Button HTML:', buttonHtml);
       console.log('Full email body length:', emailBody.length);
       
       await base44.functions.invoke('sendGmailEmail', {
