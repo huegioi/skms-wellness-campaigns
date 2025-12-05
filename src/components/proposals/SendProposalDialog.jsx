@@ -34,42 +34,77 @@ SkillfulMeans Team`);
       return 0;
     };
 
+    const items = [];
+    let subtotal = 0;
+
+    if (sel.workshops?.length > 0) {
+      sel.workshops.forEach(k => {
+        const price = getPrice('workshops', k);
+        subtotal += price;
+        items.push({ category: 'Workshops', name: productCatalog.workshops[k]?.name, price });
+      });
+    }
+    if (sel.challengePrograms?.length > 0) {
+      sel.challengePrograms.forEach(k => {
+        const price = getPrice('challenges', k);
+        subtotal += price;
+        items.push({ category: '14-Day Challenges', name: productCatalog.challenges[k]?.name, price });
+      });
+    }
+    if (sel.leadership?.length > 0) {
+      sel.leadership.forEach(k => {
+        const price = getPrice('leadership', k);
+        subtotal += price;
+        items.push({ category: 'Leadership Programs', name: productCatalog.leadership[k]?.name, price });
+      });
+    }
+    if (sel.movementClasses?.length > 0) {
+      sel.movementClasses.forEach(k => {
+        const price = getPrice('movementClasses', k);
+        subtotal += price;
+        items.push({ category: 'Classes', name: productCatalog.movementClasses[k]?.name, price });
+      });
+    }
+
     return `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #013f7c;">Mental Fitness Campaign Proposal</h2>
-        <p><strong>Prepared for:</strong> ${proposal.client_name}</p>
-        ${proposal.company ? `<p><strong>Company:</strong> ${proposal.company}</p>` : ''}
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #013f7c; text-align: center; margin-bottom: 5px;">Mental Fitness Campaign Proposal</h2>
+        <p style="text-align: center; color: #666; margin-top: 0;"><strong>Prepared for:</strong> ${proposal.client_name}${proposal.company ? ` | ${proposal.company}` : ''}</p>
         
         ${proposal.narrative_summary ? `
           <div style="background: #f8f8f8; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #013f7c; margin: 0 0 10px;">Program Overview</h3>
+            <h3 style="color: #013f7c; margin: 0 0 10px; text-align: center;">Program Overview</h3>
             <p style="color: #333; line-height: 1.7; margin: 0; white-space: pre-line;">${proposal.narrative_summary}</p>
           </div>
         ` : ''}
         
-        ${sel.workshops?.length > 0 ? `
-          <h3 style="color: #264d44; border-bottom: 2px solid #cae5e3;">Workshops</h3>
-          <ul>${sel.workshops.map(k => `<li>${productCatalog.workshops[k]?.name} - $${getPrice('workshops', k).toLocaleString()}</li>`).join('')}</ul>
-        ` : ''}
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+          <thead>
+            <tr style="background: #264d44; color: white;">
+              <th style="padding: 12px; text-align: left;">Service</th>
+              <th style="padding: 12px; text-align: right; width: 100px;">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map((item, i) => `
+              <tr style="background: ${i % 2 === 0 ? '#f9f9f9' : '#ffffff'};">
+                <td style="padding: 10px 12px; border-bottom: 1px solid #eee;">
+                  <span style="color: #666; font-size: 12px;">${item.category}</span><br>
+                  <span style="color: #333;">${item.name}</span>
+                </td>
+                <td style="padding: 10px 12px; text-align: right; border-bottom: 1px solid #eee; color: #333;">$${item.price.toLocaleString()}</td>
+              </tr>
+            `).join('')}
+            <tr style="background: #f0f0f0; font-weight: bold;">
+              <td style="padding: 12px; text-align: right; color: #333;">Subtotal:</td>
+              <td style="padding: 12px; text-align: right; color: #333;">$${subtotal.toLocaleString()}</td>
+            </tr>
+          </tbody>
+        </table>
         
-        ${sel.challengePrograms?.length > 0 ? `
-          <h3 style="color: #264d44; border-bottom: 2px solid #cae5e3;">14-Day Challenges</h3>
-          <ul>${sel.challengePrograms.map(k => `<li>${productCatalog.challenges[k]?.name} - $${getPrice('challenges', k).toLocaleString()}</li>`).join('')}</ul>
-        ` : ''}
-        
-        ${sel.leadership?.length > 0 ? `
-          <h3 style="color: #264d44; border-bottom: 2px solid #cae5e3;">Leadership Programs</h3>
-          <ul>${sel.leadership.map(k => `<li>${productCatalog.leadership[k]?.name} - $${getPrice('leadership', k).toLocaleString()}</li>`).join('')}</ul>
-        ` : ''}
-        
-        ${sel.movementClasses?.length > 0 ? `
-          <h3 style="color: #264d44; border-bottom: 2px solid #cae5e3;">Classes</h3>
-          <ul>${sel.movementClasses.map(k => `<li>${productCatalog.movementClasses[k]?.name} - $${getPrice('movementClasses', k).toLocaleString()}</li>`).join('')}</ul>
-        ` : ''}
-        
-        <div style="background: linear-gradient(135deg, #770142, #441d37); color: white; padding: 20px; border-radius: 8px; text-align: center; margin-top: 20px;">
-          <p style="margin: 0; font-size: 16px;">Total Investment</p>
-          <p style="margin: 10px 0 0; font-size: 28px; font-weight: bold;">$${proposal.total_amount?.toLocaleString()}</p>
+        <div style="background: #770142; color: white; padding: 20px; border-radius: 8px; text-align: center; margin-top: 20px;">
+          <p style="margin: 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Total Investment</p>
+          <p style="margin: 10px 0 0; font-size: 32px; font-weight: bold;">$${proposal.total_amount?.toLocaleString()}</p>
         </div>
       </div>
     `;
