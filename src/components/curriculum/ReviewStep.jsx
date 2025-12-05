@@ -521,6 +521,20 @@ export default function ReviewStep({ selections, onBack }) {
       const existingClients = await base44.entities.Client.filter({ email: clientEmail });
       let clientId = null;
       
+      // Map company size to enum value
+      const getCompanySizeEnum = (size) => {
+        const num = parseInt(size, 10);
+        if (!num) return null;
+        if (num <= 50) return '1-50';
+        if (num <= 200) return '51-200';
+        if (num <= 500) return '201-500';
+        if (num <= 1000) return '501-1000';
+        if (num <= 5000) return '1001-5000';
+        return '5000+';
+      };
+
+      const companySizeEnum = getCompanySizeEnum(assessmentData.companySize);
+
       if (existingClients.length > 0) {
         // Update existing client
         clientId = existingClients[0].id;
@@ -529,7 +543,7 @@ export default function ReviewStep({ selections, onBack }) {
           company: companyName,
           wellness_budget: assessmentData.wellnessBudget ? parseFloat(assessmentData.wellnessBudget) : null,
           industry: assessmentData.industry || null,
-          company_size: assessmentData.companySize || null,
+          company_size: companySizeEnum,
           last_contacted: new Date().toISOString(),
           notes: [
             assessmentData.brokerName && `Broker: ${assessmentData.brokerName}${assessmentData.brokerCompany ? ` (${assessmentData.brokerCompany})` : ''}`,
@@ -544,7 +558,7 @@ export default function ReviewStep({ selections, onBack }) {
           company: companyName,
           wellness_budget: assessmentData.wellnessBudget ? parseFloat(assessmentData.wellnessBudget) : null,
           industry: assessmentData.industry || null,
-          company_size: assessmentData.companySize || null,
+          company_size: companySizeEnum,
           last_contacted: new Date().toISOString(),
           notes: [
             assessmentData.brokerName && `Broker: ${assessmentData.brokerName}${assessmentData.brokerCompany ? ` (${assessmentData.brokerCompany})` : ''}`,
