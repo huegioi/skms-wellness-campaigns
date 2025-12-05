@@ -356,8 +356,8 @@ export default function Proposals() {
                     {viewingProposal.selections.movementClasses?.length > 0 && (
                       <p className="text-sm text-gray-600">• {viewingProposal.selections.movementClasses.length} Classes</p>
                     )}
-                    {viewingProposal.selections.wellnessBoxes && (() => {
-                      const boxes = viewingProposal.selections.wellnessBoxes;
+                    {(() => {
+                      const boxes = viewingProposal.selections.wellnessBoxes || viewingProposal.selections.sampleBoxQuantities || {};
                       const totalBoxes = (boxes.reduceStress || 0) + (boxes.relaxationSleep || 0) + (boxes.largeEmotional || 0) + (boxes.largeStressReduction || 0);
                       return totalBoxes > 0 ? <p className="text-sm text-gray-600">• {totalBoxes} Wellness Boxes</p> : null;
                     })()}
