@@ -138,9 +138,29 @@ SkillfulMeans Team`);
     // Build the public URL for the proposal viewer - use production URL
     const portalLink = `https://skms-wellness-campaigns.base44.app/ViewProposal?id=${proposal.id}`;
     const proposalHTML = generateProposalHTML();
-    const buttonHtml = '<table cellpadding="0" cellspacing="0" border="0" style="margin: 30px auto;"><tr><td align="center" bgcolor="#770142" style="border-radius: 8px;"><a href="' + portalLink + '" target="_blank" style="display: inline-block; padding: 14px 28px; font-family: Arial, sans-serif; font-size: 16px; color: #ffffff; text-decoration: none; font-weight: bold;">View Your Proposal Online</a></td></tr></table>';
     
-    const emailBody = '<html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><p>' + message.replace(/\n/g, '<br>') + '</p>' + buttonHtml + '<hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">' + proposalHTML + '</body></html>';
+    const emailBody = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+<p style="line-height: 1.6;">${message.replace(/\n/g, '<br>')}</p>
+
+<p style="text-align: center; margin: 30px 0;">
+<a href="${portalLink}" target="_blank" style="background-color: #770142; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; display: inline-block; font-weight: bold;">View Your Proposal Online</a>
+</p>
+
+<p style="text-align: center; margin: 20px 0; font-size: 12px; color: #666;">
+Or copy this link: ${portalLink}
+</p>
+
+<hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+
+${proposalHTML}
+</body>
+</html>`;
     
     try {
       console.log('Portal link:', portalLink);
