@@ -206,7 +206,6 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
             )}
           </div>
           )}
-          </div>
           
           {client.notes && (
             <div className="bg-gray-50 rounded-lg p-4">
