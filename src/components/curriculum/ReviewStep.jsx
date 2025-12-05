@@ -1,46 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { productCatalog, workforceChallenges, challengeSolutionMap } from './catalogData';
+import React, { useState } from 'react';
+import { productCatalog, workforceChallenges } from './catalogData';
 import StepNavigation from './StepNavigation';
-import { Sparkles, Target } from 'lucide-react';
+import { Sparkles, Target, CheckCircle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 export default function ReviewStep({ selections, onBack }) {
-  const urlParams = new URLSearchParams(window.location.search);
-  const clientId = urlParams.get('clientId');
-
-  const { data: client } = useQuery({
-    queryKey: ['client', clientId],
-    queryFn: async () => {
-      if (!clientId) return null;
-      const clients = await base44.entities.Client.filter({ id: clientId });
-      return clients[0] || null;
-    },
-    enabled: !!clientId
-  });
-
-  const [formData, setFormData] = useState({
-    name: '',
-    company: '',
-    email: ''
-  });
+  const navigate = useNavigate();
   const [showMessage, setShowMessage] = useState(false);
-  const [downloadReady, setDownloadReady] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [customCharges, setCustomCharges] = useState([]);
   const [newChargeLabel, setNewChargeLabel] = useState('');
   const [newChargeAmount, setNewChargeAmount] = useState('');
 
-  useEffect(() => {
-    if (client) {
-      setFormData({
-        name: client.name || '',
-        company: client.company || '',
-        email: client.email || ''
-      });
-    }
-  }, [client]);
-
+  // Get client info from assessment data
   const assessmentData = selections.assessmentData || {};
+  const clientName = assessmentData.clientName || '';
+  const clientEmail = assessmentData.clientEmail || '';
+  const companyName = assessmentData.companyName || '';
+
   const sampleBoxQuantities = selections.sampleBoxQuantities || {};
   const customBoxItems = selections.customBoxItems || [];
 
@@ -151,7 +130,7 @@ export default function ReviewStep({ selections, onBack }) {
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>Mental Fitness Campaign Proposal - ${formData.name}</title>
+        <title>Mental Fitness Campaign Proposal - ${clientName}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body { 
@@ -293,9 +272,9 @@ export default function ReviewStep({ selections, onBack }) {
         </div>
 
         <div class="contact-info">
-          <div class="contact-row"><span class="contact-label">Prepared For:</span> ${formData.name}</div>
-          ${formData.company ? `<div class="contact-row"><span class="contact-label">Company:</span> ${formData.company}</div>` : ''}
-          <div class="contact-row"><span class="contact-label">Email:</span> ${formData.email}</div>
+          <div class="contact-row"><span class="contact-label">Prepared For:</span> ${clientName}</div>
+          ${companyName ? `<div class="contact-row"><span class="contact-label">Company:</span> ${companyName}</div>` : ''}
+          <div class="contact-row"><span class="contact-label">Email:</span> ${clientEmail}</div>
           <div class="contact-row"><span class="contact-label">Date:</span> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
         </div>
 
@@ -522,57 +501,102 @@ export default function ReviewStep({ selections, onBack }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Mental-Fitness-Campaign-Proposal-${formData.name.replace(/\s+/g, '-')}.html`;
+    a.download = `Mental-Fitness-Campaign-Proposal-${clientName.replace(/\s+/g, '-')}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Save proposal to database
-    const proposalData = {
-      client_id: clientId || null,
-      client_name: formData.name,
-      company: formData.company,
-      total_amount: calculateTotal(),
-      selections: {
-        workshops: selections.workshops,
-        challengePrograms: selections.challengePrograms,
-        leadership: selections.leadership,
-        movementClasses: selections.movementClasses,
-        sampleBoxQuantities: sampleBoxQuantities,
-        customBoxQuantity: selections.customBoxQuantity,
-        customBoxItems: customBoxItems,
-        customCharges: customCharges,
-        assessmentData: selections.assessmentData,
-        challenges: selections.challenges
-      },
-      status: 'draft'
-    };
-
-    await base44.entities.Proposal.create(proposalData);
-    
-    // Update client's last_contacted date if linked to a client
-    if (clientId) {
-      await base44.entities.Client.update(clientId, { last_contacted: new Date().toISOString() });
+  const handleSubmit = async () => {
+    if (!clientName || !clientEmail) {
+      alert('Please go back and fill in the client name and email in the Assessment step.');
+      return;
     }
+
+    setIsSubmitting(true);
     
-    setShowMessage(true);
-    
-    setTimeout(() => {
-      generatePDF();
-      setDownloadReady(true);
-    }, 12000);
+    try {
+      // Check if client already exists by email
+      const existingClients = await base44.entities.Client.filter({ email: clientEmail });
+      let clientId = null;
+      
+      if (existingClients.length > 0) {
+        // Update existing client
+        clientId = existingClients[0].id;
+        await base44.entities.Client.update(clientId, {
+          name: clientName,
+          company: companyName,
+          wellness_budget: assessmentData.wellnessBudget ? parseFloat(assessmentData.wellnessBudget) : null,
+          industry: assessmentData.industry || null,
+          company_size: assessmentData.companySize || null,
+          last_contacted: new Date().toISOString(),
+          notes: [
+            assessmentData.brokerName && `Broker: ${assessmentData.brokerName}${assessmentData.brokerCompany ? ` (${assessmentData.brokerCompany})` : ''}`,
+            assessmentData.consultantName && `Consultant: ${assessmentData.consultantName}${assessmentData.consultantCompany ? ` (${assessmentData.consultantCompany})` : ''}`
+          ].filter(Boolean).join('\n') || null
+        });
+      } else {
+        // Create new client
+        const newClient = await base44.entities.Client.create({
+          name: clientName,
+          email: clientEmail,
+          company: companyName,
+          wellness_budget: assessmentData.wellnessBudget ? parseFloat(assessmentData.wellnessBudget) : null,
+          industry: assessmentData.industry || null,
+          company_size: assessmentData.companySize || null,
+          last_contacted: new Date().toISOString(),
+          notes: [
+            assessmentData.brokerName && `Broker: ${assessmentData.brokerName}${assessmentData.brokerCompany ? ` (${assessmentData.brokerCompany})` : ''}`,
+            assessmentData.consultantName && `Consultant: ${assessmentData.consultantName}${assessmentData.consultantCompany ? ` (${assessmentData.consultantCompany})` : ''}`
+          ].filter(Boolean).join('\n') || null
+        });
+        clientId = newClient.id;
+      }
+
+      // Create proposal linked to client
+      const proposalData = {
+        client_id: clientId,
+        client_name: clientName,
+        client_email: clientEmail,
+        company: companyName,
+        total_amount: calculateTotal(),
+        narrative_summary: narrative ? `Your team is currently facing challenges around ${narrative.challenges.join(', ')}. This customized mental fitness program addresses these needs through ${narrative.components.join(', ')}, creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.` : null,
+        selections: {
+          workshops: selections.workshops,
+          challengePrograms: selections.challengePrograms,
+          leadership: selections.leadership,
+          movementClasses: selections.movementClasses,
+          wellnessBoxes: {
+            reduceStress: sampleBoxQuantities.reduceStress || 0,
+            relaxationSleep: sampleBoxQuantities.relaxationSleep || 0,
+            largeEmotional: sampleBoxQuantities.largeEmotional || 0,
+            largeStressReduction: sampleBoxQuantities.largeStressReduction || 0
+          },
+          wellnessBoxPrices: {
+            reduceStress: 65,
+            relaxationSleep: 65,
+            largeEmotional: 125,
+            largeStressReduction: 125
+          },
+          customBoxQuantity: selections.customBoxQuantity,
+          customBoxItems: customBoxItems,
+          customCharges: customCharges,
+          assessmentData: selections.assessmentData,
+          challenges: selections.challenges
+        },
+        status: 'draft'
+      };
+
+      await base44.entities.Proposal.create(proposalData);
+      
+      setShowMessage(true);
+    } catch (error) {
+      console.error('Error submitting proposal:', error);
+      alert('There was an error submitting the proposal. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -1013,85 +1037,87 @@ export default function ReviewStep({ selections, onBack }) {
         </div>
         </div>
 
-      {/* Contact Form */}
+      {/* Client Info Summary */}
       {!showMessage && (
         <div className="review-card">
-          <h3 className="text-xl md:text-2xl font-bold mb-4 md:mb-5" style={{ color: '#264d44' }}>
-            Submit Your Proposal
+          <h3 className="text-xl md:text-2xl font-bold mb-4" style={{ color: '#264d44' }}>
+            Client Information
           </h3>
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label className="block mb-2 font-semibold text-sm md:text-base" style={{ color: '#555' }}>
-                Your Name *
-              </label>
-              <input
-                type="text"
-                name="name"
-                required
-                className="neuro-input"
-                placeholder="Enter your name"
-                value={formData.name}
-                onChange={handleChange}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="font-semibold text-gray-600">Name:</span>
+              <span className="ml-2">{clientName || 'Not provided'}</span>
             </div>
-
-            <div className="mb-4">
-              <label className="block mb-2 font-semibold text-sm md:text-base" style={{ color: '#555' }}>
-                Company Name
-              </label>
-              <input
-                type="text"
-                name="company"
-                className="neuro-input"
-                placeholder="Enter company name"
-                value={formData.company}
-                onChange={handleChange}
-              />
+            <div>
+              <span className="font-semibold text-gray-600">Email:</span>
+              <span className="ml-2">{clientEmail || 'Not provided'}</span>
             </div>
-
-            <div className="mb-5">
-              <label className="block mb-2 font-semibold text-sm md:text-base" style={{ color: '#555' }}>
-                Email Address *
-              </label>
-              <input
-                type="email"
-                name="email"
-                required
-                className="neuro-input"
-                placeholder="your@email.com"
-                value={formData.email}
-                onChange={handleChange}
-              />
+            <div>
+              <span className="font-semibold text-gray-600">Company:</span>
+              <span className="ml-2">{companyName || 'Not provided'}</span>
             </div>
-
-            <StepNavigation
-              onBack={onBack}
-              nextLabel="Submit Proposal"
-              isLastStep={true}
-            />
-          </form>
+            {assessmentData.wellnessBudget && (
+              <div>
+                <span className="font-semibold text-gray-600">Wellness Budget:</span>
+                <span className="ml-2">${parseInt(assessmentData.wellnessBudget).toLocaleString()}</span>
+              </div>
+            )}
+          </div>
+          
+          {(!clientName || !clientEmail) && (
+            <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm">
+              Please go back to the Assessment step and fill in the client name and email.
+            </div>
+          )}
         </div>
       )}
 
-      {/* Modal */}
+      {/* Submit Button */}
+      {!showMessage && (
+        <StepNavigation
+          onBack={onBack}
+          onNext={handleSubmit}
+          nextLabel={isSubmitting ? "Submitting..." : "Submit Proposal"}
+          isLastStep={true}
+          disabled={isSubmitting || !clientName || !clientEmail}
+        />
+      )}
+
+      {/* Success Modal */}
       {showMessage && (
         <div className="modal-overlay">
           <div className="modal-content">
-            <h2>Thank You!</h2>
+            <CheckCircle className="w-16 h-16 mx-auto mb-4" style={{ color: '#eaf995' }} />
+            <h2>Proposal Submitted!</h2>
             <p>
-              Thank you for taking the time to build your proposed wellness campaign with SkillfulMeans.
+              The proposal for <strong>{clientName}</strong> has been saved successfully.
             </p>
             <p>
-              In a moment, you will be prompted to download a copy of your campaign. Please follow up by attaching your summary and emailing <strong>admin@skillfulmeans.life</strong>.
+              The client has been added to your Clients list and the proposal is ready to be sent.
             </p>
-            <p>
-              A member of our team will follow up with you asap to get you started.
-            </p>
-            {downloadReady && (
-              <p className="mt-6" style={{ color: '#eaf995', fontSize: '14px' }}>
-                ✓ Your campaign summary has been downloaded!
-              </p>
-            )}
+            <div className="mt-6 flex flex-col gap-3">
+              <button
+                onClick={() => navigate(createPageUrl('Proposals'))}
+                className="px-6 py-3 rounded-lg font-semibold text-white"
+                style={{ background: '#770142' }}
+              >
+                View Proposals
+              </button>
+              <button
+                onClick={() => navigate(createPageUrl('Clients'))}
+                className="px-6 py-3 rounded-lg font-semibold"
+                style={{ background: 'rgba(255,255,255,0.2)', color: 'white' }}
+              >
+                View Clients
+              </button>
+              <button
+                onClick={generatePDF}
+                className="px-6 py-3 rounded-lg font-semibold"
+                style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.3)' }}
+              >
+                Download Proposal PDF
+              </button>
+            </div>
           </div>
         </div>
       )}
