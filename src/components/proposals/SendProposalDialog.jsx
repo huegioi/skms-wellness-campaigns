@@ -41,8 +41,8 @@ SkillfulMeans Team`);
         ${proposal.company ? `<p><strong>Company:</strong> ${proposal.company}</p>` : ''}
         
         ${proposal.narrative_summary ? `
-          <div style="background: linear-gradient(135deg, rgba(119, 1, 66, 0.08), rgba(1, 63, 124, 0.08)); border-left: 4px solid #770142; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #770142; margin: 0 0 10px;">Program Overview</h3>
+          <div style="background: #f8f8f8; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #013f7c; margin: 0 0 10px;">Program Overview</h3>
             <p style="color: #333; line-height: 1.7; margin: 0; white-space: pre-line;">${proposal.narrative_summary}</p>
           </div>
         ` : ''}
@@ -79,7 +79,10 @@ SkillfulMeans Team`);
     if (!email) return;
     setSending(true);
     
-    const portalLink = `${window.location.origin}/ViewProposal?id=${proposal.id}`;
+    const baseUrl = window.location.origin.includes('localhost') 
+      ? window.location.origin 
+      : window.location.origin.replace('/preview', '');
+    const portalLink = `${baseUrl}/ViewProposal?id=${proposal.id}`;
     const emailBody = `${message.replace(/\n/g, '<br>')}<br><br>
       <div style="text-align: center; margin: 20px 0;">
         <a href="${portalLink}" style="background: #770142; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block;">View Your Proposal Online</a>
