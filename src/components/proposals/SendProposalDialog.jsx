@@ -65,6 +65,21 @@ SkillfulMeans Team`);
         items.push({ category: 'Classes', name: productCatalog.movementClasses[k]?.name, price });
       });
     }
+    // Add wellness boxes
+    if (sel.wellnessBoxes) {
+      Object.entries(sel.wellnessBoxes).forEach(([key, qty]) => {
+        if (qty > 0) {
+          const boxPrice = sel.wellnessBoxPrices?.[key] || 0;
+          const totalBoxPrice = boxPrice * qty;
+          subtotal += totalBoxPrice;
+          items.push({ 
+            category: 'Wellness Boxes', 
+            name: `${productCatalog.wellnessBoxes[key]?.name} (x${qty})`, 
+            price: totalBoxPrice 
+          });
+        }
+      });
+    }
 
     return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

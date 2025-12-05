@@ -356,6 +356,9 @@ export default function Proposals() {
                     {viewingProposal.selections.movementClasses?.length > 0 && (
                       <p className="text-sm text-gray-600">• {viewingProposal.selections.movementClasses.length} Classes</p>
                     )}
+                    {viewingProposal.selections.wellnessBoxes && Object.entries(viewingProposal.selections.wellnessBoxes).filter(([_, qty]) => qty > 0).length > 0 && (
+                      <p className="text-sm text-gray-600">• {Object.entries(viewingProposal.selections.wellnessBoxes).filter(([_, qty]) => qty > 0).map(([key, qty]) => `${qty} Wellness Boxes`).join(', ')}</p>
+                    )}
                   </div>
                 )}
               </div>
