@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function StepNavigation({ onNext, onBack, isFirstStep, isLastStep, nextLabel = 'Continue' }) {
+export default function StepNavigation({ onNext, onBack, isFirstStep, isLastStep, nextLabel = 'Continue', disabled = false }) {
   return (
     <div>
       <style>{`
@@ -66,7 +66,13 @@ export default function StepNavigation({ onNext, onBack, isFirstStep, isLastStep
           <div></div>
         )}
 
-        <button type={isLastStep ? 'submit' : 'button'} className="nav-button primary" onClick={isLastStep ? undefined : onNext}>
+        <button 
+          type="button" 
+          className="nav-button primary" 
+          onClick={onNext}
+          disabled={disabled}
+          style={{ opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}
+        >
           {nextLabel}
           {!isLastStep && <ChevronRight className="w-5 h-5" />}
         </button>
