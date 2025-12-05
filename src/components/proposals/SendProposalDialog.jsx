@@ -137,7 +137,7 @@ SkillfulMeans Team`);
     
     const baseUrl = window.location.origin.includes('localhost') 
       ? window.location.origin 
-      : window.location.origin.replace('/preview', '');
+      : window.location.origin.replace('/preview', '').replace('edit.', '');
     const portalLink = `${baseUrl}/ViewProposal?id=${proposal.id}`;
     const emailBody = `${message.replace(/\n/g, '<br>')}<br><br>
       <div style="text-align: center; margin: 20px 0;">
