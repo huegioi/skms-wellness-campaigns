@@ -143,6 +143,10 @@ SkillfulMeans Team`);
     const emailBody = '<html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><p>' + message.replace(/\n/g, '<br>') + '</p>' + buttonHtml + '<hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">' + proposalHTML + '</body></html>';
     
     try {
+      console.log('Portal link:', portalLink);
+      console.log('Button HTML:', buttonHtml);
+      console.log('Full email body length:', emailBody.length);
+      
       await base44.functions.invoke('sendGmailEmail', {
         to: email,
         subject: subject,
