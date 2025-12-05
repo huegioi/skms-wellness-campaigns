@@ -135,12 +135,8 @@ SkillfulMeans Team`);
     if (!email) return;
     setSending(true);
     
-    // Build the public URL for the proposal viewer
-    let baseUrl = window.location.origin;
-    // Remove any preview or edit prefixes for production URLs
-    baseUrl = baseUrl.replace('/preview', '').replace('edit.', '');
-    const portalLink = `${baseUrl}/ViewProposal?id=${proposal.id}`;
-    console.log('Portal link:', portalLink);
+    // Build the public URL for the proposal viewer - use production URL
+    const portalLink = `https://skms-wellness-campaigns.base44.app/ViewProposal?id=${proposal.id}`;
     const proposalHTML = generateProposalHTML();
     const emailBody = `${message.replace(/\n/g, '<br>')}<br><br>
       <div style="text-align: center; margin: 20px 0;">
