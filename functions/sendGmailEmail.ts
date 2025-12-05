@@ -19,6 +19,7 @@ Deno.serve(async (req) => {
     const domain = Deno.env.get('MAILGUN_DOMAIN');
 
     console.log('Mailgun config:', { domain, hasApiKey: !!apiKey, apiKeyLength: apiKey?.length });
+    console.log('Email body preview (first 500 chars):', body?.substring(0, 500));
 
     if (!apiKey || !domain) {
       return Response.json({ error: 'Mailgun credentials not configured' }, { status: 500 });
