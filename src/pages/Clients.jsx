@@ -7,17 +7,24 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, User, Building, Mail, Phone, FileText, ChevronDown, ChevronUp, Pencil, Trash2, Search, Filter, DollarSign, Users, Calendar } from 'lucide-react';
+import { 
+  Plus, User, Building, Mail, Phone, FileText, Pencil, Trash2, Search, Filter, 
+  DollarSign, Users, Calendar, Globe, MapPin, Eye
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import ClientDetailView from '@/components/clients/ClientDetailView';
+import DuplicateChecker from '@/components/clients/DuplicateChecker';
 
 export default function Clients() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
-  const [expandedClient, setExpandedClient] = useState(null);
-  const [formData, setFormData] = useState({ name: '', email: '', company: '', phone: '', industry: '', company_size: '', wellness_budget: '', notes: '' });
+  const [viewingClient, setViewingClient] = useState(null);
+  const [formData, setFormData] = useState({ 
+    name: '', email: '', company: '', phone: '', title: '', industry: '', 
+    company_size: '', company_address: '', company_website: '', wellness_budget: '', notes: '' 
+  });
   
-  // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('all');
   const [filterSize, setFilterSize] = useState('all');
@@ -49,23 +56,37 @@ export default function Clients() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       setEditingClient(null);
+      if (viewingClient) {
+        // Refresh viewing client data
+        const updated = clients.find(c => c.id === viewingClient.id);
+        if (updated) setViewingClient({ ...viewingClient, ...updated });
+      }
       resetForm();
     }
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id) => base44.entities.Client.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      setViewingClient(null);
+    }
   });
 
-  const resetForm = () => setFormData({ name: '', email: '', company: '', phone: '', industry: '', company_size: '', wellness_budget: '', notes: '' });
+  const resetForm = () => setFormData({ 
+    name: '', email: '', company: '', phone: '', title: '', industry: '', 
+    company_size: '', company_address: '', company_website: '', wellness_budget: '', notes: '' 
+  });
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const submitData = { ...formData };
+    if (submitData.wellness_budget === '') delete submitData.wellness_budget;
+    
     if (editingClient) {
-      updateMutation.mutate({ id: editingClient.id, data: formData });
+      updateMutation.mutate({ id: editingClient.id, data: submitData });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(submitData);
     }
   };
 
@@ -75,20 +96,27 @@ export default function Clients() {
       email: client.email, 
       company: client.company || '', 
       phone: client.phone || '', 
+      title: client.title || '',
       industry: client.industry || '',
       company_size: client.company_size || '',
+      company_address: client.company_address || '',
+      company_website: client.company_website || '',
       wellness_budget: client.wellness_budget || '',
       notes: client.notes || '' 
     });
     setEditingClient(client);
   };
 
-  const getClientProposals = (clientId) => proposals.filter(p => p.client_id === clientId);
+  const handleClientUpdate = (updates) => {
+    if (viewingClient) {
+      updateMutation.mutate({ id: viewingClient.id, data: updates });
+      setViewingClient({ ...viewingClient, ...updates });
+    }
+  };
 
-  // Get unique industries for filter dropdown
+  const getClientProposals = (clientId) => proposals.filter(p => p.client_id === clientId);
   const uniqueIndustries = [...new Set(clients.filter(c => c.industry).map(c => c.industry))];
 
-  // Filter clients
   const filteredClients = clients.filter(client => {
     const matchesSearch = !searchQuery || 
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -113,6 +141,7 @@ export default function Clients() {
   const statusColors = {
     draft: 'bg-gray-100 text-gray-700',
     sent: 'bg-blue-100 text-blue-700',
+    viewed: 'bg-purple-100 text-purple-700',
     accepted: 'bg-green-100 text-green-700',
     declined: 'bg-red-100 text-red-700'
   };
@@ -121,13 +150,58 @@ export default function Clients() {
     return <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">Loading...</div>;
   }
 
+  // Client Form Fields Component
+  const ClientFormFields = ({ isEdit = false }) => (
+    <>
+      <DuplicateChecker 
+        clients={clients} 
+        email={formData.email} 
+        company={formData.company}
+        currentClientId={isEdit ? editingClient?.id : null}
+        onSelectDuplicate={(client) => {
+          setIsAddDialogOpen(false);
+          setEditingClient(null);
+          setViewingClient(client);
+        }}
+      />
+      <div className="grid grid-cols-2 gap-4">
+        <Input placeholder="Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+        <Input placeholder="Job Title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <Input type="email" placeholder="Email *" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
+        <Input placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+      </div>
+      <Input placeholder="Company" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
+      <div className="grid grid-cols-2 gap-4">
+        <Input placeholder="Industry" value={formData.industry} onChange={(e) => setFormData({...formData, industry: e.target.value})} />
+        <Select value={formData.company_size || "none"} onValueChange={(v) => setFormData({...formData, company_size: v === "none" ? "" : v})}>
+          <SelectTrigger><SelectValue placeholder="Company Size" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Select size...</SelectItem>
+            <SelectItem value="1-50">1-50 employees</SelectItem>
+            <SelectItem value="51-200">51-200 employees</SelectItem>
+            <SelectItem value="201-500">201-500 employees</SelectItem>
+            <SelectItem value="501-1000">501-1000 employees</SelectItem>
+            <SelectItem value="1001-5000">1001-5000 employees</SelectItem>
+            <SelectItem value="5000+">5000+ employees</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <Input placeholder="Company Website" value={formData.company_website} onChange={(e) => setFormData({...formData, company_website: e.target.value})} />
+      <Input placeholder="Company Address" value={formData.company_address} onChange={(e) => setFormData({...formData, company_address: e.target.value})} />
+      <Input type="number" placeholder="Wellness Budget ($)" value={formData.wellness_budget} onChange={(e) => setFormData({...formData, wellness_budget: e.target.value ? Number(e.target.value) : ''})} />
+      <Textarea placeholder="Notes" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Clients</h1>
-            <p className="text-gray-600">Manage your clients and their proposals</p>
+            <p className="text-gray-600">Manage your clients, contacts, and interactions</p>
           </div>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
@@ -135,30 +209,12 @@ export default function Clients() {
                 <Plus className="w-4 h-4 mr-2" /> Add Client
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>Add New Client</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                <Input placeholder="Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
-                <Input type="email" placeholder="Email *" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
-                <Input placeholder="Company" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
-                <Input placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
-                <Input placeholder="Industry (e.g., Healthcare, Finance)" value={formData.industry} onChange={(e) => setFormData({...formData, industry: e.target.value})} />
-                <Select value={formData.company_size || "none"} onValueChange={(v) => setFormData({...formData, company_size: v === "none" ? "" : v})}>
-                  <SelectTrigger><SelectValue placeholder="Company Size" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Select size...</SelectItem>
-                    <SelectItem value="1-50">1-50 employees</SelectItem>
-                    <SelectItem value="51-200">51-200 employees</SelectItem>
-                    <SelectItem value="201-500">201-500 employees</SelectItem>
-                    <SelectItem value="501-1000">501-1000 employees</SelectItem>
-                    <SelectItem value="1001-5000">1001-5000 employees</SelectItem>
-                    <SelectItem value="5000+">5000+ employees</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Input type="number" placeholder="Wellness Budget ($)" value={formData.wellness_budget} onChange={(e) => setFormData({...formData, wellness_budget: e.target.value ? Number(e.target.value) : ''})} />
-                <Textarea placeholder="Notes" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
+              <form onSubmit={handleSubmit} className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-2">
+                <ClientFormFields />
                 <Button type="submit" className="w-full bg-[#264d44] hover:bg-[#1a3830]">Add Client</Button>
               </form>
             </DialogContent>
@@ -182,9 +238,7 @@ export default function Clients() {
               <Filter className="w-4 h-4 text-gray-500" />
               
               <Select value={filterIndustry} onValueChange={setFilterIndustry}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Industry" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Industry" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Industries</SelectItem>
                   {uniqueIndustries.map(ind => (
@@ -194,9 +248,7 @@ export default function Clients() {
               </Select>
 
               <Select value={filterSize} onValueChange={setFilterSize}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Company Size" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Company Size" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Sizes</SelectItem>
                   <SelectItem value="1-50">1-50</SelectItem>
@@ -209,9 +261,7 @@ export default function Clients() {
               </Select>
 
               <Select value={filterBudget} onValueChange={setFilterBudget}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Budget" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[150px]"><SelectValue placeholder="Budget" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Budgets</SelectItem>
                   <SelectItem value="under10k">Under $10k</SelectItem>
@@ -232,35 +282,31 @@ export default function Clients() {
 
         {/* Edit Dialog */}
         <Dialog open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
-          <DialogContent>
+          <DialogContent className="max-w-lg">
             <DialogHeader>
               <DialogTitle>Edit Client</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-              <Input placeholder="Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
-              <Input type="email" placeholder="Email *" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
-              <Input placeholder="Company" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
-              <Input placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
-              <Input placeholder="Industry (e.g., Healthcare, Finance)" value={formData.industry} onChange={(e) => setFormData({...formData, industry: e.target.value})} />
-              <Select value={formData.company_size || "none"} onValueChange={(v) => setFormData({...formData, company_size: v === "none" ? "" : v})}>
-                <SelectTrigger><SelectValue placeholder="Company Size" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Select size...</SelectItem>
-                  <SelectItem value="1-50">1-50 employees</SelectItem>
-                  <SelectItem value="51-200">51-200 employees</SelectItem>
-                  <SelectItem value="201-500">201-500 employees</SelectItem>
-                  <SelectItem value="501-1000">501-1000 employees</SelectItem>
-                  <SelectItem value="1001-5000">1001-5000 employees</SelectItem>
-                  <SelectItem value="5000+">5000+ employees</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input type="number" placeholder="Wellness Budget ($)" value={formData.wellness_budget} onChange={(e) => setFormData({...formData, wellness_budget: e.target.value ? Number(e.target.value) : ''})} />
-              <Textarea placeholder="Notes" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
+            <form onSubmit={handleSubmit} className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-2">
+              <ClientFormFields isEdit />
               <Button type="submit" className="w-full bg-[#264d44] hover:bg-[#1a3830]">Save Changes</Button>
             </form>
           </DialogContent>
         </Dialog>
 
+        {/* Client Detail View Dialog */}
+        <Dialog open={!!viewingClient} onOpenChange={(open) => !open && setViewingClient(null)}>
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+            {viewingClient && (
+              <ClientDetailView 
+                client={viewingClient} 
+                onClose={() => setViewingClient(null)}
+                onUpdate={handleClientUpdate}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Client List */}
         {filteredClients.length === 0 ? (
           <div className="bg-white rounded-xl p-12 text-center shadow-lg">
             <User className="w-16 h-16 mx-auto mb-4 text-gray-300" />
@@ -271,18 +317,18 @@ export default function Clients() {
           <div className="space-y-4">
             {filteredClients.map(client => {
               const clientProposals = getClientProposals(client.id);
-              const isExpanded = expandedClient === client.id;
+              const acceptedProposals = clientProposals.filter(p => p.status === 'accepted');
+              const totalValue = acceptedProposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
+              const contactCount = (client.related_contacts?.length || 0) + 1;
               
               return (
-                <div key={client.id} className="bg-white rounded-xl shadow-lg overflow-hidden">
+                <div key={client.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
                   <div className="p-5">
                     <div className="flex justify-between items-start">
-                      <div className="flex-1">
+                      <div className="flex-1 cursor-pointer" onClick={() => setViewingClient(client)}>
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="text-xl font-bold" style={{ color: '#264d44' }}>{client.name}</h3>
-                          {clientProposals.length > 0 && (
-                            <Badge variant="outline">{clientProposals.length} proposal{clientProposals.length !== 1 ? 's' : ''}</Badge>
-                          )}
+                          {client.title && <span className="text-gray-500">• {client.title}</span>}
                         </div>
                         <div className="flex flex-wrap gap-4 text-sm text-gray-600">
                           {client.company && (
@@ -292,24 +338,36 @@ export default function Clients() {
                           {client.phone && (
                             <span className="flex items-center gap-1"><Phone className="w-4 h-4" /> {client.phone}</span>
                           )}
-                          {client.industry && (
-                            <Badge variant="outline">{client.industry}</Badge>
-                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-3 mt-2">
+                          {client.industry && <Badge variant="outline">{client.industry}</Badge>}
                           {client.company_size && (
-                            <span className="flex items-center gap-1"><Users className="w-4 h-4" /> {client.company_size}</span>
+                            <span className="flex items-center gap-1 text-sm text-gray-500"><Users className="w-4 h-4" /> {client.company_size}</span>
                           )}
-                          {client.wellness_budget && (
-                            <span className="flex items-center gap-1 text-green-600"><DollarSign className="w-4 h-4" /> ${client.wellness_budget.toLocaleString()}</span>
+                          {client.wellness_budget > 0 && (
+                            <span className="flex items-center gap-1 text-sm text-green-600"><DollarSign className="w-4 h-4" /> ${client.wellness_budget.toLocaleString()} budget</span>
+                          )}
+                          {contactCount > 1 && (
+                            <Badge variant="outline" className="text-blue-600 border-blue-200">{contactCount} contacts</Badge>
+                          )}
+                          {clientProposals.length > 0 && (
+                            <Badge variant="outline">{clientProposals.length} proposal{clientProposals.length !== 1 ? 's' : ''}</Badge>
+                          )}
+                          {totalValue > 0 && (
+                            <Badge className="bg-green-100 text-green-700">${totalValue.toLocaleString()} won</Badge>
                           )}
                           {client.last_contacted && (
-                            <span className="flex items-center gap-1 text-gray-500"><Calendar className="w-4 h-4" /> Last: {new Date(client.last_contacted).toLocaleDateString()}</span>
+                            <span className="flex items-center gap-1 text-sm text-gray-500"><Calendar className="w-4 h-4" /> {new Date(client.last_contacted).toLocaleDateString()}</span>
                           )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" onClick={() => setViewingClient(client)}>
+                          <Eye className="w-4 h-4 mr-1" /> View
+                        </Button>
                         <Link to={createPageUrl('CurriculumDesigner') + `?clientId=${client.id}`}>
                           <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132]">
-                            <FileText className="w-4 h-4 mr-1" /> New Proposal
+                            <FileText className="w-4 h-4 mr-1" /> Proposal
                           </Button>
                         </Link>
                         <Button size="icon" variant="ghost" onClick={() => openEditDialog(client)}>
@@ -318,35 +376,9 @@ export default function Clients() {
                         <Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteMutation.mutate(client.id)}>
                           <Trash2 className="w-4 h-4" />
                         </Button>
-                        {clientProposals.length > 0 && (
-                          <Button size="icon" variant="ghost" onClick={() => setExpandedClient(isExpanded ? null : client.id)}>
-                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                          </Button>
-                        )}
                       </div>
                     </div>
                   </div>
-                  
-                  {isExpanded && clientProposals.length > 0 && (
-                    <div className="border-t bg-gray-50 p-4">
-                      <h4 className="font-semibold text-sm mb-3 text-gray-700">Proposals</h4>
-                      <div className="space-y-2">
-                        {clientProposals.map(proposal => (
-                          <div key={proposal.id} className="flex justify-between items-center bg-white p-3 rounded-lg border">
-                            <div>
-                              <span className="font-medium">${proposal.total_amount?.toLocaleString()}</span>
-                              <span className="text-gray-500 text-sm ml-3">
-                                {new Date(proposal.created_date).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <Badge className={statusColors[proposal.status || 'draft']}>
-                              {proposal.status || 'draft'}
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })}
