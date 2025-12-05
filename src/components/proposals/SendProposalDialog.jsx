@@ -65,27 +65,27 @@ SkillfulMeans Team`);
         items.push({ category: 'Classes', name: productCatalog.movementClasses[k]?.name, price });
       });
     }
-    // Add wellness boxes
-    if (sel.wellnessBoxes) {
-      const boxNames = {
-        reduceStress: 'Reduce Stress Box',
-        relaxationSleep: 'Relaxation & Sleep Box',
-        largeEmotional: 'Large Emotional Wellness Box',
-        largeStressReduction: 'Large Stress Reduction Box'
-      };
-      Object.entries(sel.wellnessBoxes).forEach(([key, qty]) => {
-        if (qty > 0) {
-          const boxPrice = sel.wellnessBoxPrices?.[key] || 0;
-          const totalBoxPrice = boxPrice * qty;
-          subtotal += totalBoxPrice;
-          items.push({ 
-            category: 'Wellness Boxes', 
-            name: `${boxNames[key] || key} (x${qty})`, 
-            price: totalBoxPrice 
-          });
-        }
-      });
-    }
+    // Add wellness boxes - check both wellnessBoxes and sampleBoxQuantities
+    const boxData = sel.wellnessBoxes || sel.sampleBoxQuantities || {};
+    const boxPrices = sel.wellnessBoxPrices || { reduceStress: 65, relaxationSleep: 65, largeEmotional: 125, largeStressReduction: 125 };
+    const boxNames = {
+      reduceStress: 'Reduce Stress Box',
+      relaxationSleep: 'Relaxation & Sleep Box',
+      largeEmotional: 'Large Emotional Wellness Box',
+      largeStressReduction: 'Large Stress Reduction Box'
+    };
+    Object.entries(boxData).forEach(([key, qty]) => {
+      if (qty > 0) {
+        const boxPrice = boxPrices[key] || 0;
+        const totalBoxPrice = boxPrice * qty;
+        subtotal += totalBoxPrice;
+        items.push({ 
+          category: 'Wellness Boxes', 
+          name: `${boxNames[key] || key} (x${qty})`, 
+          price: totalBoxPrice 
+        });
+      }
+    });
 
     return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
