@@ -138,23 +138,9 @@ SkillfulMeans Team`);
     // Build the public URL for the proposal viewer - use production URL
     const portalLink = `https://skms-wellness-campaigns.base44.app/ViewProposal?id=${proposal.id}`;
     const proposalHTML = generateProposalHTML();
-    const emailBody = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-</head>
-<body>
-  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-    <p>${message.replace(/\n/g, '<br>')}</p>
-    <div style="text-align: center; margin: 30px 0;">
-      <a href="${portalLink}" style="background-color: #770142; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; display: inline-block; font-weight: bold;">View Your Proposal Online</a>
-    </div>
-    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-    ${proposalHTML}
-  </div>
-</body>
-</html>`;
+    const buttonHtml = '<table cellpadding="0" cellspacing="0" border="0" style="margin: 30px auto;"><tr><td align="center" bgcolor="#770142" style="border-radius: 8px;"><a href="' + portalLink + '" target="_blank" style="display: inline-block; padding: 14px 28px; font-family: Arial, sans-serif; font-size: 16px; color: #ffffff; text-decoration: none; font-weight: bold;">View Your Proposal Online</a></td></tr></table>';
+    
+    const emailBody = '<html><body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;"><p>' + message.replace(/\n/g, '<br>') + '</p>' + buttonHtml + '<hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">' + proposalHTML + '</body></html>';
     
     try {
       await base44.functions.invoke('sendGmailEmail', {
