@@ -25,8 +25,10 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
     companySize: selections.assessmentData?.companySize || '',
     wellnessBudget: selections.assessmentData?.wellnessBudget || '',
     brokerName: selections.assessmentData?.brokerName || '',
+    brokerEmail: selections.assessmentData?.brokerEmail || '',
     brokerCompany: selections.assessmentData?.brokerCompany || '',
     consultantName: selections.assessmentData?.consultantName || '',
+    consultantEmail: selections.assessmentData?.consultantEmail || '',
     consultantCompany: selections.assessmentData?.consultantCompany || '',
     
     industry: selections.assessmentData?.industry || '',
@@ -421,7 +423,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
           />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4" style={{ borderTop: '1px solid #e5e5e5' }}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4" style={{ borderTop: '1px solid #e5e5e5' }}>
           <div className="question-group">
             <label className="question-label">Broker Name</label>
             <input
@@ -430,6 +432,17 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
               placeholder="Broker's name..."
               value={formData.brokerName}
               onChange={(e) => handleInputChange('brokerName', e.target.value)}
+            />
+          </div>
+
+          <div className="question-group">
+            <label className="question-label">Broker Email</label>
+            <input
+              type="email"
+              className="neuro-input"
+              placeholder="broker@company.com"
+              value={formData.brokerEmail}
+              onChange={(e) => handleInputChange('brokerEmail', e.target.value)}
             />
           </div>
 
@@ -445,7 +458,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="question-group">
             <label className="question-label">Wellness Consultant Name</label>
             <input
@@ -454,6 +467,17 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
               placeholder="Consultant's name..."
               value={formData.consultantName}
               onChange={(e) => handleInputChange('consultantName', e.target.value)}
+            />
+          </div>
+
+          <div className="question-group">
+            <label className="question-label">Wellness Consultant Email</label>
+            <input
+              type="email"
+              className="neuro-input"
+              placeholder="consultant@company.com"
+              value={formData.consultantEmail}
+              onChange={(e) => handleInputChange('consultantEmail', e.target.value)}
             />
           </div>
 
