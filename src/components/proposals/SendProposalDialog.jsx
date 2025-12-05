@@ -67,6 +67,12 @@ SkillfulMeans Team`);
     }
     // Add wellness boxes
     if (sel.wellnessBoxes) {
+      const boxNames = {
+        reduceStress: 'Reduce Stress Box',
+        relaxationSleep: 'Relaxation & Sleep Box',
+        largeEmotional: 'Large Emotional Wellness Box',
+        largeStressReduction: 'Large Stress Reduction Box'
+      };
       Object.entries(sel.wellnessBoxes).forEach(([key, qty]) => {
         if (qty > 0) {
           const boxPrice = sel.wellnessBoxPrices?.[key] || 0;
@@ -74,7 +80,7 @@ SkillfulMeans Team`);
           subtotal += totalBoxPrice;
           items.push({ 
             category: 'Wellness Boxes', 
-            name: `${productCatalog.wellnessBoxes[key]?.name} (x${qty})`, 
+            name: `${boxNames[key] || key} (x${qty})`, 
             price: totalBoxPrice 
           });
         }
