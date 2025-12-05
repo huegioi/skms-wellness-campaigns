@@ -136,7 +136,7 @@ SkillfulMeans Team`);
     setSending(true);
     
     // Build the public URL for the proposal viewer - use production URL
-    const portalLink = `https://skms-wellness-campaigns.base44.app/ViewProposal?id=${proposal.id}`;
+    const portalLink = `https://curriculum-designer-05b51a3b.base44.app/ViewProposal?id=${proposal.id}`;
     const proposalHTML = generateProposalHTML();
     
     const emailBody = `<!DOCTYPE html>
