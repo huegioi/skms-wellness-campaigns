@@ -16,6 +16,63 @@ import { createPageUrl } from '@/utils';
 import ClientDetailView from '@/components/clients/ClientDetailView';
 import DuplicateChecker from '@/components/clients/DuplicateChecker';
 
+// Client Form Fields Component - defined outside to prevent re-renders
+function ClientFormFields({ formData, setFormData, clients, isEdit, editingClient, onSelectDuplicate }) {
+  return (
+    <>
+      <DuplicateChecker 
+        clients={clients} 
+        email={formData.email} 
+        company={formData.company}
+        currentClientId={isEdit ? editingClient?.id : null}
+        onSelectDuplicate={onSelectDuplicate}
+      />
+      <div className="grid grid-cols-2 gap-4">
+        <Input placeholder="Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+        <Input placeholder="Job Title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <Input type="email" placeholder="Email *" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
+        <Input placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
+      </div>
+      <Input placeholder="Company" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
+      <div className="grid grid-cols-2 gap-4">
+        <Input placeholder="Industry" value={formData.industry} onChange={(e) => setFormData({...formData, industry: e.target.value})} />
+        <Select value={formData.company_size || "none"} onValueChange={(v) => setFormData({...formData, company_size: v === "none" ? "" : v})}>
+          <SelectTrigger><SelectValue placeholder="Company Size" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Select size...</SelectItem>
+            <SelectItem value="1-50">1-50 employees</SelectItem>
+            <SelectItem value="51-200">51-200 employees</SelectItem>
+            <SelectItem value="201-500">201-500 employees</SelectItem>
+            <SelectItem value="501-1000">501-1000 employees</SelectItem>
+            <SelectItem value="1001-5000">1001-5000 employees</SelectItem>
+            <SelectItem value="5000+">5000+ employees</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <Input placeholder="Company Website" value={formData.company_website} onChange={(e) => setFormData({...formData, company_website: e.target.value})} />
+      <Input placeholder="Company Address" value={formData.company_address} onChange={(e) => setFormData({...formData, company_address: e.target.value})} />
+      <Input type="number" placeholder="Wellness Budget ($)" value={formData.wellness_budget} onChange={(e) => setFormData({...formData, wellness_budget: e.target.value ? Number(e.target.value) : ''})} />
+      <div className="border-t pt-4 mt-2">
+        <p className="text-sm font-medium text-gray-600 mb-2">Broker Information</p>
+        <div className="grid grid-cols-2 gap-4">
+          <Input placeholder="Broker Name" value={formData.broker_name} onChange={(e) => setFormData({...formData, broker_name: e.target.value})} />
+          <Input type="email" placeholder="Broker Email" value={formData.broker_email} onChange={(e) => setFormData({...formData, broker_email: e.target.value})} />
+        </div>
+      </div>
+      <div className="border-t pt-4 mt-2">
+        <p className="text-sm font-medium text-gray-600 mb-2">Wellness Consultant Information</p>
+        <div className="grid grid-cols-2 gap-4">
+          <Input placeholder="Consultant Name" value={formData.wellness_consultant_name} onChange={(e) => setFormData({...formData, wellness_consultant_name: e.target.value})} />
+          <Input type="email" placeholder="Consultant Email" value={formData.wellness_consultant_email} onChange={(e) => setFormData({...formData, wellness_consultant_email: e.target.value})} />
+        </div>
+      </div>
+      <Textarea placeholder="Notes" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
+    </>
+  );
+}
+
 export default function Clients() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
@@ -156,64 +213,11 @@ export default function Clients() {
     return <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">Loading...</div>;
   }
 
-  // Client Form Fields Component
-  const ClientFormFields = ({ isEdit = false }) => (
-    <>
-      <DuplicateChecker 
-        clients={clients} 
-        email={formData.email} 
-        company={formData.company}
-        currentClientId={isEdit ? editingClient?.id : null}
-        onSelectDuplicate={(client) => {
-          setIsAddDialogOpen(false);
-          setEditingClient(null);
-          setViewingClient(client);
-        }}
-      />
-      <div className="grid grid-cols-2 gap-4">
-        <Input placeholder="Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
-        <Input placeholder="Job Title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <Input type="email" placeholder="Email *" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
-        <Input placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
-      </div>
-      <Input placeholder="Company" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
-      <div className="grid grid-cols-2 gap-4">
-        <Input placeholder="Industry" value={formData.industry} onChange={(e) => setFormData({...formData, industry: e.target.value})} />
-        <Select value={formData.company_size || "none"} onValueChange={(v) => setFormData({...formData, company_size: v === "none" ? "" : v})}>
-          <SelectTrigger><SelectValue placeholder="Company Size" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">Select size...</SelectItem>
-            <SelectItem value="1-50">1-50 employees</SelectItem>
-            <SelectItem value="51-200">51-200 employees</SelectItem>
-            <SelectItem value="201-500">201-500 employees</SelectItem>
-            <SelectItem value="501-1000">501-1000 employees</SelectItem>
-            <SelectItem value="1001-5000">1001-5000 employees</SelectItem>
-            <SelectItem value="5000+">5000+ employees</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <Input placeholder="Company Website" value={formData.company_website} onChange={(e) => setFormData({...formData, company_website: e.target.value})} />
-      <Input placeholder="Company Address" value={formData.company_address} onChange={(e) => setFormData({...formData, company_address: e.target.value})} />
-      <Input type="number" placeholder="Wellness Budget ($)" value={formData.wellness_budget} onChange={(e) => setFormData({...formData, wellness_budget: e.target.value ? Number(e.target.value) : ''})} />
-      <div className="border-t pt-4 mt-2">
-        <p className="text-sm font-medium text-gray-600 mb-2">Broker Information</p>
-        <div className="grid grid-cols-2 gap-4">
-          <Input placeholder="Broker Name" value={formData.broker_name} onChange={(e) => setFormData({...formData, broker_name: e.target.value})} />
-          <Input type="email" placeholder="Broker Email" value={formData.broker_email} onChange={(e) => setFormData({...formData, broker_email: e.target.value})} />
-        </div>
-      </div>
-      <div className="border-t pt-4 mt-2">
-        <p className="text-sm font-medium text-gray-600 mb-2">Wellness Consultant Information</p>
-        <div className="grid grid-cols-2 gap-4">
-          <Input placeholder="Consultant Name" value={formData.wellness_consultant_name} onChange={(e) => setFormData({...formData, wellness_consultant_name: e.target.value})} />
-          <Input type="email" placeholder="Consultant Email" value={formData.wellness_consultant_email} onChange={(e) => setFormData({...formData, wellness_consultant_email: e.target.value})} />
-        </div>
-      </div>
-      <Textarea placeholder="Notes" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
-    </>
-  );
+  const handleSelectDuplicate = (client) => {
+    setIsAddDialogOpen(false);
+    setEditingClient(null);
+    setViewingClient(client);
+  };
 
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
@@ -234,7 +238,14 @@ export default function Clients() {
                 <DialogTitle>Add New Client</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-2">
-                <ClientFormFields />
+                <ClientFormFields 
+                  formData={formData} 
+                  setFormData={setFormData} 
+                  clients={clients}
+                  isEdit={false}
+                  editingClient={null}
+                  onSelectDuplicate={handleSelectDuplicate}
+                />
                 <Button type="submit" className="w-full bg-[#264d44] hover:bg-[#1a3830]">Add Client</Button>
               </form>
             </DialogContent>
@@ -307,7 +318,14 @@ export default function Clients() {
               <DialogTitle>Edit Client</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-2">
-              <ClientFormFields isEdit />
+              <ClientFormFields 
+                formData={formData} 
+                setFormData={setFormData} 
+                clients={clients}
+                isEdit={true}
+                editingClient={editingClient}
+                onSelectDuplicate={handleSelectDuplicate}
+              />
               <Button type="submit" className="w-full bg-[#264d44] hover:bg-[#1a3830]">Save Changes</Button>
             </form>
           </DialogContent>
