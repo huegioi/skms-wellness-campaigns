@@ -148,22 +148,12 @@ SkillfulMeans Team`);
 <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
 <p style="line-height: 1.6;">${message.replace(/\n/g, '<br>')}</p>
 
-<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin: 30px 0;">
-<tr>
-<td align="center">
-<table cellpadding="0" cellspacing="0" border="0">
-<tr>
-<td align="center" bgcolor="#770142" style="padding: 14px 28px; border-radius: 8px;">
-<a href="${portalLink}" style="color: #ffffff; text-decoration: none; font-weight: bold; font-family: Arial, sans-serif; font-size: 16px;">View Your Proposal Online</a>
-</td>
-</tr>
-</table>
-</td>
-</tr>
-</table>
+<p style="text-align: center; margin: 30px 0;">
+<a href="${portalLink}" style="background-color: #770142; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; display: inline-block; font-weight: bold; font-size: 16px;">View Your Proposal Online</a>
+</p>
 
 <p style="text-align: center; margin: 20px 0; font-size: 12px; color: #666;">
-Direct link: <a href="${portalLink}" style="color: #770142;">${portalLink}</a>
+Direct link: <a href="${portalLink}">${portalLink}</a>
 </p>
 
 <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
