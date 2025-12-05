@@ -139,11 +139,12 @@ SkillfulMeans Team`);
       ? window.location.origin 
       : window.location.origin.replace('/preview', '').replace('edit.', '');
     const portalLink = `${baseUrl}/ViewProposal?id=${proposal.id}`;
+    const proposalHTML = generateProposalHTML();
     const emailBody = `${message.replace(/\n/g, '<br>')}<br><br>
       <div style="text-align: center; margin: 20px 0;">
         <a href="${portalLink}" style="background: #770142; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; display: inline-block;">View Your Proposal Online</a>
       </div>
-      <hr><br>${generateProposalHTML()}`;
+      <hr><br>${proposalHTML}`;
     
     try {
       await base44.functions.invoke('sendGmailEmail', {
