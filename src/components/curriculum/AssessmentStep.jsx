@@ -18,7 +18,17 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
   const [showDeeperAssessment, setShowDeeperAssessment] = useState(false);
 
   const [formData, setFormData] = useState({
+    // Client Information
+    clientName: selections.assessmentData?.clientName || '',
+    clientEmail: selections.assessmentData?.clientEmail || '',
+    companyName: selections.assessmentData?.companyName || '',
     companySize: selections.assessmentData?.companySize || '',
+    wellnessBudget: selections.assessmentData?.wellnessBudget || '',
+    brokerName: selections.assessmentData?.brokerName || '',
+    brokerCompany: selections.assessmentData?.brokerCompany || '',
+    consultantName: selections.assessmentData?.consultantName || '',
+    consultantCompany: selections.assessmentData?.consultantCompany || '',
+    
     industry: selections.assessmentData?.industry || '',
     timeline: selections.assessmentData?.timeline || '',
     
@@ -341,23 +351,130 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         </p>
       </div>
 
-      {/* Basic Information */}
+      {/* Client Information */}
       <div className="assessment-card">
         <h3 className="text-lg md:text-xl font-bold mb-4" style={{ color: '#013f7c' }}>
-          Basic Information <span className="optional-badge">Optional</span>
+          Client Information
         </h3>
         
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="question-group">
+            <label className="question-label">Client Name *</label>
+            <input
+              type="text"
+              className="neuro-input"
+              placeholder="Enter client name..."
+              value={formData.clientName}
+              onChange={(e) => handleInputChange('clientName', e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="question-group">
+            <label className="question-label">Client Email *</label>
+            <input
+              type="email"
+              className="neuro-input"
+              placeholder="client@company.com"
+              value={formData.clientEmail}
+              onChange={(e) => handleInputChange('clientEmail', e.target.value)}
+              required
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="question-group">
+            <label className="question-label">Company Name *</label>
+            <input
+              type="text"
+              className="neuro-input"
+              placeholder="Enter company name..."
+              value={formData.companyName}
+              onChange={(e) => handleInputChange('companyName', e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="question-group">
+            <label className="question-label">Company Size (Number of Employees)</label>
+            <input
+              type="number"
+              className="neuro-input"
+              placeholder="Enter number of employees..."
+              min="1"
+              value={formData.companySize}
+              onChange={(e) => handleInputChange('companySize', e.target.value)}
+            />
+          </div>
+        </div>
+
         <div className="question-group">
-          <label className="question-label">Company Size (Number of Employees)</label>
+          <label className="question-label">Annual Wellness Budget ($)</label>
           <input
             type="number"
             className="neuro-input"
-            placeholder="Enter number of employees..."
-            min="1"
-            value={formData.companySize}
-            onChange={(e) => handleInputChange('companySize', e.target.value)}
+            placeholder="Enter wellness budget..."
+            min="0"
+            value={formData.wellnessBudget}
+            onChange={(e) => handleInputChange('wellnessBudget', e.target.value)}
           />
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 pt-4" style={{ borderTop: '1px solid #e5e5e5' }}>
+          <div className="question-group">
+            <label className="question-label">Broker Name</label>
+            <input
+              type="text"
+              className="neuro-input"
+              placeholder="Broker's name..."
+              value={formData.brokerName}
+              onChange={(e) => handleInputChange('brokerName', e.target.value)}
+            />
+          </div>
+
+          <div className="question-group">
+            <label className="question-label">Broker Company</label>
+            <input
+              type="text"
+              className="neuro-input"
+              placeholder="Broker's company..."
+              value={formData.brokerCompany}
+              onChange={(e) => handleInputChange('brokerCompany', e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="question-group">
+            <label className="question-label">Wellness Consultant Name</label>
+            <input
+              type="text"
+              className="neuro-input"
+              placeholder="Consultant's name..."
+              value={formData.consultantName}
+              onChange={(e) => handleInputChange('consultantName', e.target.value)}
+            />
+          </div>
+
+          <div className="question-group">
+            <label className="question-label">Wellness Consultant Company</label>
+            <input
+              type="text"
+              className="neuro-input"
+              placeholder="Consultant's company..."
+              value={formData.consultantCompany}
+              onChange={(e) => handleInputChange('consultantCompany', e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Organization Details */}
+      <div className="assessment-card">
+        <h3 className="text-lg md:text-xl font-bold mb-4" style={{ color: '#013f7c' }}>
+          Organization Details <span className="optional-badge">Optional</span>
+        </h3>
 
         <div className="question-group">
           <label className="question-label">Industry</label>
