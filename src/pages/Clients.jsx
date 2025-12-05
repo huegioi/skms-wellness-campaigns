@@ -22,7 +22,8 @@ export default function Clients() {
   const [viewingClient, setViewingClient] = useState(null);
   const [formData, setFormData] = useState({ 
     name: '', email: '', company: '', phone: '', title: '', industry: '', 
-    company_size: '', company_address: '', company_website: '', wellness_budget: '', notes: '' 
+    company_size: '', company_address: '', company_website: '', wellness_budget: '', 
+    broker_name: '', broker_email: '', wellness_consultant_name: '', wellness_consultant_email: '', notes: '' 
   });
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -75,7 +76,8 @@ export default function Clients() {
 
   const resetForm = () => setFormData({ 
     name: '', email: '', company: '', phone: '', title: '', industry: '', 
-    company_size: '', company_address: '', company_website: '', wellness_budget: '', notes: '' 
+    company_size: '', company_address: '', company_website: '', wellness_budget: '', 
+    broker_name: '', broker_email: '', wellness_consultant_name: '', wellness_consultant_email: '', notes: '' 
   });
 
   const handleSubmit = (e) => {
@@ -102,6 +104,10 @@ export default function Clients() {
       company_address: client.company_address || '',
       company_website: client.company_website || '',
       wellness_budget: client.wellness_budget || '',
+      broker_name: client.broker_name || '',
+      broker_email: client.broker_email || '',
+      wellness_consultant_name: client.wellness_consultant_name || '',
+      wellness_consultant_email: client.wellness_consultant_email || '',
       notes: client.notes || '' 
     });
     setEditingClient(client);
@@ -191,6 +197,20 @@ export default function Clients() {
       <Input placeholder="Company Website" value={formData.company_website} onChange={(e) => setFormData({...formData, company_website: e.target.value})} />
       <Input placeholder="Company Address" value={formData.company_address} onChange={(e) => setFormData({...formData, company_address: e.target.value})} />
       <Input type="number" placeholder="Wellness Budget ($)" value={formData.wellness_budget} onChange={(e) => setFormData({...formData, wellness_budget: e.target.value ? Number(e.target.value) : ''})} />
+      <div className="border-t pt-4 mt-2">
+        <p className="text-sm font-medium text-gray-600 mb-2">Broker Information</p>
+        <div className="grid grid-cols-2 gap-4">
+          <Input placeholder="Broker Name" value={formData.broker_name} onChange={(e) => setFormData({...formData, broker_name: e.target.value})} />
+          <Input type="email" placeholder="Broker Email" value={formData.broker_email} onChange={(e) => setFormData({...formData, broker_email: e.target.value})} />
+        </div>
+      </div>
+      <div className="border-t pt-4 mt-2">
+        <p className="text-sm font-medium text-gray-600 mb-2">Wellness Consultant Information</p>
+        <div className="grid grid-cols-2 gap-4">
+          <Input placeholder="Consultant Name" value={formData.wellness_consultant_name} onChange={(e) => setFormData({...formData, wellness_consultant_name: e.target.value})} />
+          <Input type="email" placeholder="Consultant Email" value={formData.wellness_consultant_email} onChange={(e) => setFormData({...formData, wellness_consultant_email: e.target.value})} />
+        </div>
+      </div>
       <Textarea placeholder="Notes" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
     </>
   );

@@ -187,6 +187,27 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
             </div>
           </div>
           
+          {/* Broker & Consultant Info */}
+          {(client.broker_name || client.broker_email || client.wellness_consultant_name || client.wellness_consultant_email) && (
+          <div className="grid md:grid-cols-2 gap-4 mt-4">
+            {(client.broker_name || client.broker_email) && (
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-700 mb-2">Broker</h4>
+                {client.broker_name && <p className="text-sm font-medium">{client.broker_name}</p>}
+                {client.broker_email && <p className="flex items-center gap-2 text-sm text-blue-600"><Mail className="w-4 h-4" /> {client.broker_email}</p>}
+              </div>
+            )}
+            {(client.wellness_consultant_name || client.wellness_consultant_email) && (
+              <div className="bg-purple-50 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-700 mb-2">Wellness Consultant</h4>
+                {client.wellness_consultant_name && <p className="text-sm font-medium">{client.wellness_consultant_name}</p>}
+                {client.wellness_consultant_email && <p className="flex items-center gap-2 text-sm text-purple-600"><Mail className="w-4 h-4" /> {client.wellness_consultant_email}</p>}
+              </div>
+            )}
+          </div>
+          )}
+          </div>
+          
           {client.notes && (
             <div className="bg-gray-50 rounded-lg p-4">
               <h4 className="font-semibold text-gray-700 mb-2">Notes</h4>
