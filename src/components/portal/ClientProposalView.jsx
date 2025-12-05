@@ -142,7 +142,7 @@ export default function ClientProposalView({ proposal, client }) {
       })}
 
       {/* Wellness Boxes */}
-      {(selections.sampleBoxQuantities || selections.customBoxQuantity > 0) && (
+      {(selections.sampleBoxQuantities || selections.wellnessBoxes || selections.customBoxQuantity > 0) && (
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg" style={{ color: '#264d44' }}>
@@ -152,30 +152,38 @@ export default function ClientProposalView({ proposal, client }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {selections.sampleBoxQuantities?.reduceStress > 0 && (
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <span>Reduce Stress Boxes ({selections.sampleBoxQuantities.reduceStress})</span>
-                  <span className="font-semibold">${(selections.sampleBoxQuantities.reduceStress * 65).toLocaleString()}</span>
-                </div>
-              )}
-              {selections.sampleBoxQuantities?.relaxationSleep > 0 && (
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <span>Relaxation & Sleep Boxes ({selections.sampleBoxQuantities.relaxationSleep})</span>
-                  <span className="font-semibold">${(selections.sampleBoxQuantities.relaxationSleep * 65).toLocaleString()}</span>
-                </div>
-              )}
-              {selections.sampleBoxQuantities?.largeEmotional > 0 && (
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <span>Large Emotional Wellness Boxes ({selections.sampleBoxQuantities.largeEmotional})</span>
-                  <span className="font-semibold">${(selections.sampleBoxQuantities.largeEmotional * 125).toLocaleString()}</span>
-                </div>
-              )}
-              {selections.sampleBoxQuantities?.largeStressReduction > 0 && (
-                <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <span>Large Stress Reduction Boxes ({selections.sampleBoxQuantities.largeStressReduction})</span>
-                  <span className="font-semibold">${(selections.sampleBoxQuantities.largeStressReduction * 125).toLocaleString()}</span>
-                </div>
-              )}
+              {(() => {
+                const boxes = selections.sampleBoxQuantities || selections.wellnessBoxes || {};
+                const prices = selections.wellnessBoxPrices || { reduceStress: 65, relaxationSleep: 65, largeEmotional: 125, largeStressReduction: 125 };
+                return (
+                  <>
+                    {boxes.reduceStress > 0 && (
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span>Reduce Stress Boxes ({boxes.reduceStress})</span>
+                        <span className="font-semibold">${(boxes.reduceStress * prices.reduceStress).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {boxes.relaxationSleep > 0 && (
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span>Relaxation & Sleep Boxes ({boxes.relaxationSleep})</span>
+                        <span className="font-semibold">${(boxes.relaxationSleep * prices.relaxationSleep).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {boxes.largeEmotional > 0 && (
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span>Large Emotional Wellness Boxes ({boxes.largeEmotional})</span>
+                        <span className="font-semibold">${(boxes.largeEmotional * prices.largeEmotional).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {boxes.largeStressReduction > 0 && (
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span>Large Stress Reduction Boxes ({boxes.largeStressReduction})</span>
+                        <span className="font-semibold">${(boxes.largeStressReduction * prices.largeStressReduction).toLocaleString()}</span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>
