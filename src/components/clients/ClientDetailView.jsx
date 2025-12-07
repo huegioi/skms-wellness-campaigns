@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   User, Building, Mail, Phone, Globe, MapPin, DollarSign, Users, Calendar,
   Plus, Pencil, Trash2, FileText, MessageSquare, PhoneCall, Video, StickyNote,
-  ChevronRight, Clock, CheckCircle, XCircle, Eye, Send
+  ChevronRight, Clock, CheckCircle, XCircle, Eye, Send, Package, Award
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -47,8 +47,16 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
     follow_up_date: '',
     proposal_id: ''
   });
+  const [viewingProposal, setViewingProposal] = useState(null);
+  const [showAddService, setShowAddService] = useState(false);
+  const [serviceToAdd, setServiceToAdd] = useState('');
 
   const queryClient = useQueryClient();
+
+  const { data: allServices = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => base44.entities.Service.list('sort_order')
+  });
 
   const { data: proposals = [] } = useQuery({
     queryKey: ['proposals', client.id],
@@ -115,6 +123,38 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
   const totalProposalValue = proposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
   const acceptedValue = proposals.filter(p => p.status === 'accepted').reduce((sum, p) => sum + (p.total_amount || 0), 0);
 
+  // Extract services from accepted proposals
+  const getServicesFromProposals = () => {
+    const serviceIds = new Set();
+    proposals.filter(p => p.status === 'accepted').forEach(proposal => {
+      const sel = proposal.selections || {};
+      (sel.workshops || []).forEach(id => serviceIds.add(id));
+      (sel.challengePrograms || []).forEach(id => serviceIds.add(id));
+      (sel.leadership || []).forEach(id => serviceIds.add(id));
+      (sel.movementClasses || []).forEach(id => serviceIds.add(id));
+    });
+    
+    // Add any manually added services from client record
+    (client.purchased_services || []).forEach(id => serviceIds.add(id));
+    
+    return Array.from(serviceIds);
+  };
+
+  const clientServiceIds = getServicesFromProposals();
+
+  const removeService = (serviceId) => {
+    const updated = (client.purchased_services || []).filter(id => id !== serviceId);
+    onUpdate({ purchased_services: updated });
+  };
+
+  const addService = () => {
+    if (!serviceToAdd) return;
+    const updated = [...new Set([...(client.purchased_services || []), serviceToAdd])];
+    onUpdate({ purchased_services: updated });
+    setServiceToAdd('');
+    setShowAddService(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -157,10 +197,11 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contacts">Contacts ({(client.related_contacts?.length || 0) + 1})</TabsTrigger>
           <TabsTrigger value="proposals">Proposals ({proposals.length})</TabsTrigger>
+          <TabsTrigger value="services">Services</TabsTrigger>
           <TabsTrigger value="interactions">Activity ({interactions.length})</TabsTrigger>
         </TabsList>
 
@@ -297,10 +338,57 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
                           <StatusIcon className="w-3 h-3 mr-1" />
                           {status.label}
                         </Badge>
+                        <Button size="sm" variant="outline" onClick={() => setViewingProposal(proposal)}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
                         <Link to={createPageUrl('EditProposal') + `?id=${proposal.id}`}>
                           <Button size="sm" variant="outline"><Pencil className="w-4 h-4" /></Button>
                         </Link>
                       </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Services Tab */}
+        <TabsContent value="services" className="mt-4">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="font-semibold text-gray-700">Active Services</h4>
+            <Button size="sm" variant="outline" onClick={() => setShowAddService(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Add Service
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            {clientServiceIds.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">No services yet</p>
+            ) : (
+              clientServiceIds.map(serviceId => {
+                const service = allServices.find(s => s.id === serviceId);
+                if (!service) return null;
+
+                return (
+                  <div key={serviceId} className="bg-white border rounded-lg p-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-[#264d44] flex items-center justify-center">
+                          <Award className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="font-semibold">{service.name}</p>
+                          <p className="text-sm text-gray-600">{service.short_description || service.description?.slice(0, 100)}</p>
+                          <div className="flex gap-3 mt-2 text-xs text-gray-500">
+                            <span>${service.price?.toLocaleString()}</span>
+                            {service.duration && <span>{service.duration}</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <Button size="icon" variant="ghost" className="text-red-500" onClick={() => removeService(serviceId)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 );
@@ -376,6 +464,103 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
             <Textarea placeholder="Notes" value={contactForm.notes} onChange={(e) => setContactForm({ ...contactForm, notes: e.target.value })} />
             <Button onClick={handleAddContact} disabled={!contactForm.name} className="w-full bg-[#264d44] hover:bg-[#1a3830]">
               {editingContact !== null ? 'Save Changes' : 'Add Contact'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Proposal Dialog */}
+      <Dialog open={!!viewingProposal} onOpenChange={(open) => !open && setViewingProposal(null)}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Proposal Details</DialogTitle>
+          </DialogHeader>
+          {viewingProposal && (
+            <div className="space-y-4 mt-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-2xl font-bold" style={{ color: '#770142' }}>
+                    ${viewingProposal.total_amount?.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Created: {new Date(viewingProposal.created_date).toLocaleDateString()}
+                  </p>
+                </div>
+                <Badge className={statusConfig[viewingProposal.status || 'draft'].color}>
+                  {statusConfig[viewingProposal.status || 'draft'].label}
+                </Badge>
+              </div>
+
+              {viewingProposal.narrative_summary && (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-semibold mb-2">Program Overview</h4>
+                  <p className="text-sm text-gray-600">{viewingProposal.narrative_summary}</p>
+                </div>
+              )}
+
+              {(() => {
+                const sel = viewingProposal.selections || {};
+                const items = [];
+                
+                if (sel.workshops?.length > 0) {
+                  items.push({ category: 'Workshops', services: sel.workshops });
+                }
+                if (sel.challengePrograms?.length > 0) {
+                  items.push({ category: '14-Day Challenges', services: sel.challengePrograms });
+                }
+                if (sel.leadership?.length > 0) {
+                  items.push({ category: 'Leadership', services: sel.leadership });
+                }
+                if (sel.movementClasses?.length > 0) {
+                  items.push({ category: 'Classes', services: sel.movementClasses });
+                }
+
+                return items.map(({ category, services }, idx) => (
+                  <div key={idx} className="bg-white border rounded-lg p-4">
+                    <h4 className="font-semibold mb-2" style={{ color: '#264d44' }}>{category}</h4>
+                    <ul className="space-y-1">
+                      {services.map(serviceId => {
+                        const service = allServices.find(s => s.id === serviceId);
+                        return (
+                          <li key={serviceId} className="text-sm text-gray-600">
+                            • {service?.name || getServiceName(serviceId)}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                ));
+              })()}
+
+              <Link to={createPageUrl('EditProposal') + `?id=${viewingProposal.id}`}>
+                <Button className="w-full">
+                  <Pencil className="w-4 h-4 mr-2" /> Edit Proposal
+                </Button>
+              </Link>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Service Dialog */}
+      <Dialog open={showAddService} onOpenChange={setShowAddService}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Service to Client</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <Select value={serviceToAdd} onValueChange={setServiceToAdd}>
+              <SelectTrigger><SelectValue placeholder="Select a service..." /></SelectTrigger>
+              <SelectContent>
+                {allServices.filter(s => s.is_active !== false && !clientServiceIds.includes(s.id)).map(service => (
+                  <SelectItem key={service.id} value={service.id}>
+                    {service.name} - ${service.price?.toLocaleString()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={addService} disabled={!serviceToAdd} className="w-full bg-[#264d44] hover:bg-[#1a3830]">
+              Add Service
             </Button>
           </div>
         </DialogContent>
