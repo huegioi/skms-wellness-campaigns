@@ -288,6 +288,21 @@ export default function EditProposal() {
           </div>
         ` : ''}
 
+        ${(() => {
+          const boxes = selections.sampleBoxQuantities;
+          const hasBoxes = boxes && ((boxes.reduceStress || 0) + (boxes.relaxationSleep || 0) + (boxes.largeEmotional || 0) + (boxes.largeStressReduction || 0) > 0);
+          if (!hasBoxes) return '';
+          return `
+            <div class="section">
+              <div class="section-title">Wellness Boxes</div>
+              ${boxes.reduceStress > 0 ? `<div class="item"><div class="item-title">Reduce Stress Boxes (${boxes.reduceStress})</div><div class="item-price">${boxes.reduceStress} × $65 = $${(boxes.reduceStress * 65).toLocaleString()}</div></div>` : ''}
+              ${boxes.relaxationSleep > 0 ? `<div class="item"><div class="item-title">Relaxation & Sleep Boxes (${boxes.relaxationSleep})</div><div class="item-price">${boxes.relaxationSleep} × $65 = $${(boxes.relaxationSleep * 65).toLocaleString()}</div></div>` : ''}
+              ${boxes.largeEmotional > 0 ? `<div class="item"><div class="item-title">Large Emotional Wellness Boxes (${boxes.largeEmotional})</div><div class="item-price">${boxes.largeEmotional} × $125 = $${(boxes.largeEmotional * 125).toLocaleString()}</div></div>` : ''}
+              ${boxes.largeStressReduction > 0 ? `<div class="item"><div class="item-title">Large Stress Reduction Boxes (${boxes.largeStressReduction})</div><div class="item-price">${boxes.largeStressReduction} × $125 = $${(boxes.largeStressReduction * 125).toLocaleString()}</div></div>` : ''}
+            </div>
+          `;
+        })()}
+
         ${customCharges.length > 0 ? `
           <div class="section">
             <div class="section-title">Additional Charges</div>
