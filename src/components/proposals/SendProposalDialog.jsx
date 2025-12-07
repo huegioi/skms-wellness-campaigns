@@ -67,7 +67,7 @@ SkillfulMeans Team`);
     }
     // Add wellness boxes - check both wellnessBoxes and sampleBoxQuantities
     const boxData = sel.wellnessBoxes || sel.sampleBoxQuantities || {};
-    const boxPrices = sel.wellnessBoxPrices || { reduceStress: 65, relaxationSleep: 65, largeEmotional: 125, largeStressReduction: 125 };
+    const boxPrices = sel.wellnessBoxPrices || { reduceStress: 65, relaxationSleep: 65, largeEmotional: 100, largeStressReduction: 100 };
     const boxNames = {
       reduceStress: 'Reduce Stress Box',
       relaxationSleep: 'Relaxation & Sleep Box',

@@ -154,7 +154,7 @@ export default function ClientProposalView({ proposal, client }) {
             <div className="space-y-3">
               {(() => {
                 const boxes = selections.sampleBoxQuantities || selections.wellnessBoxes || {};
-                const prices = selections.wellnessBoxPrices || { reduceStress: 65, relaxationSleep: 65, largeEmotional: 125, largeStressReduction: 125 };
+                const prices = selections.wellnessBoxPrices || { reduceStress: 65, relaxationSleep: 65, largeEmotional: 100, largeStressReduction: 100 };
                 return (
                   <>
                     {boxes.reduceStress > 0 && (

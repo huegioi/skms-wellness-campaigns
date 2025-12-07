@@ -61,8 +61,8 @@ export default function ReviewStep({ selections, onBack }) {
     });
     total += (sampleBoxQuantities.reduceStress || 0) * 65;
     total += (sampleBoxQuantities.relaxationSleep || 0) * 65;
-    total += (sampleBoxQuantities.largeEmotional || 0) * 125;
-    total += (sampleBoxQuantities.largeStressReduction || 0) * 125;
+    total += (sampleBoxQuantities.largeEmotional || 0) * 100;
+    total += (sampleBoxQuantities.largeStressReduction || 0) * 100;
     if (selections.customBoxQuantity > 0 && customBoxItems.length > 0) {
       const customBoxTotal = customBoxItems.reduce((sum, item) => sum + item.price, 0);
       total += customBoxTotal * selections.customBoxQuantity;
@@ -433,7 +433,7 @@ export default function ReviewStep({ selections, onBack }) {
             ${sampleBoxQuantities.largeEmotional > 0 ? `
               <div class="item">
                 <div class="item-title">Large Emotional Wellness Box (${sampleBoxQuantities.largeEmotional} boxes)</div>
-                <div class="item-price">${sampleBoxQuantities.largeEmotional} × $125 = $${(sampleBoxQuantities.largeEmotional * 125).toLocaleString()}</div>
+                <div class="item-price">${sampleBoxQuantities.largeEmotional} × $100 = $${(sampleBoxQuantities.largeEmotional * 100).toLocaleString()}</div>
                 <div class="item-description">
                   <strong>Includes:</strong>
                   <ul>
@@ -451,7 +451,7 @@ export default function ReviewStep({ selections, onBack }) {
             ${sampleBoxQuantities.largeStressReduction > 0 ? `
               <div class="item">
                 <div class="item-title">Large Stress Reduction Box (${sampleBoxQuantities.largeStressReduction} boxes)</div>
-                <div class="item-price">${sampleBoxQuantities.largeStressReduction} × $125 = $${(sampleBoxQuantities.largeStressReduction * 125).toLocaleString()}</div>
+                <div class="item-price">${sampleBoxQuantities.largeStressReduction} × $100 = $${(sampleBoxQuantities.largeStressReduction * 100).toLocaleString()}</div>
                 <div class="item-description">
                   <strong>Includes:</strong>
                   <ul>
@@ -590,8 +590,8 @@ export default function ReviewStep({ selections, onBack }) {
           wellnessBoxPrices: {
             reduceStress: 65,
             relaxationSleep: 65,
-            largeEmotional: 125,
-            largeStressReduction: 125
+            largeEmotional: 100,
+            largeStressReduction: 100
           },
           customBoxQuantity: selections.customBoxQuantity,
           customBoxItems: customBoxItems,
@@ -974,13 +974,13 @@ export default function ReviewStep({ selections, onBack }) {
             {sampleBoxQuantities.largeEmotional > 0 && (
               <div className="review-item">
                 <span>Large Emotional Wellness Boxes ({sampleBoxQuantities.largeEmotional})</span>
-                <span className="font-semibold">${(sampleBoxQuantities.largeEmotional * 125).toLocaleString()}</span>
+                <span className="font-semibold">${(sampleBoxQuantities.largeEmotional * 100).toLocaleString()}</span>
               </div>
             )}
             {sampleBoxQuantities.largeStressReduction > 0 && (
               <div className="review-item">
                 <span>Large Stress Reduction Boxes ({sampleBoxQuantities.largeStressReduction})</span>
-                <span className="font-semibold">${(sampleBoxQuantities.largeStressReduction * 125).toLocaleString()}</span>
+                <span className="font-semibold">${(sampleBoxQuantities.largeStressReduction * 100).toLocaleString()}</span>
               </div>
             )}
             {selections.customBoxQuantity > 0 && customBoxItems.length > 0 && (
