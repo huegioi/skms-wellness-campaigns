@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { productCatalog, workforceChallenges } from '@/components/curriculum/catalogData';
+import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
 
 export default function EditProposal() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -82,7 +83,13 @@ export default function EditProposal() {
     const overrideKey = `${category}_${key}`;
     if (priceOverrides[overrideKey] !== undefined) return priceOverrides[overrideKey];
     if (category === 'workshops') return productCatalog.workshops[key]?.price || 0;
-    if (category === 'challenges') return 1500;
+    if (category === 'challenges') {
+      // Use saved challenge price or calculate from company size
+      const savedPrice = selections.challengePrice;
+      if (savedPrice) return savedPrice;
+      const companySize = selections.assessmentData?.companySize;
+      return calculateChallengePrice(companySize);
+    }
     if (category === 'leadership') return productCatalog.leadership[key]?.price || 0;
     if (category === 'movementClasses') return productCatalog.movementClasses[key]?.price || 0;
     return 0;

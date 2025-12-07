@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { productCatalog, workforceChallenges } from './catalogData';
+import { calculateChallengePrice } from './pricingUtils';
 import StepNavigation from './StepNavigation';
 import { Sparkles, Target, CheckCircle } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
@@ -23,27 +24,7 @@ export default function ReviewStep({ selections, onBack }) {
   const sampleBoxQuantities = selections.sampleBoxQuantities || {};
   const customBoxItems = selections.customBoxItems || [];
 
-  // Calculate challenge price based on company size
-  const calculateChallengePrice = () => {
-    const companySize = assessmentData.companySize || '';
-    const employees = parseInt(companySize, 10);
-    
-    if (!employees || employees <= 0) {
-      return 1500; // Default if no size entered
-    }
-
-    let pricePerParticipant = 25;
-    if (employees >= 200) {
-      pricePerParticipant = 20;
-    } else if (employees >= 50) {
-      pricePerParticipant = 22;
-    }
-
-    const participants = Math.ceil(employees * 0.30);
-    return participants * pricePerParticipant;
-  };
-
-  const challengePrice = calculateChallengePrice();
+  const challengePrice = calculateChallengePrice(assessmentData.companySize);
 
   const calculateTotal = () => {
     let total = 0;
@@ -593,6 +574,7 @@ export default function ReviewStep({ selections, onBack }) {
             largeEmotional: 100,
             largeStressReduction: 100
           },
+          challengePrice: challengePrice,
           customBoxQuantity: selections.customBoxQuantity,
           customBoxItems: customBoxItems,
           customCharges: customCharges,

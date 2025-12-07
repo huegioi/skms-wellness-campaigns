@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, DollarSign, CheckCircle, Clock, Award, Dumbbell, Users, Package } from 'lucide-react';
 import { productCatalog } from '@/components/curriculum/catalogData';
+import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
 
 export default function ClientProposalView({ proposal, client }) {
   if (!proposal) {
@@ -34,6 +35,26 @@ export default function ClientProposalView({ proposal, client }) {
       movementClasses: productCatalog.movementClasses
     };
     return categoryMap[category]?.[key];
+  };
+
+  const getServicePrice = (category, key) => {
+    const priceOverrides = selections.priceOverrides || {};
+    const overrideKey = `${category}_${key}`;
+    
+    if (priceOverrides[overrideKey] !== undefined) {
+      return priceOverrides[overrideKey];
+    }
+    
+    if (category === 'challengePrograms') {
+      // Use saved challenge price or calculate from company size
+      const savedPrice = selections.challengePrice;
+      if (savedPrice) return savedPrice;
+      const companySize = selections.assessmentData?.companySize;
+      return calculateChallengePrice(companySize);
+    }
+    
+    const service = getServiceDetails(category, key);
+    return service?.price || 0;
   };
 
   const categoryIcons = {
@@ -123,7 +144,7 @@ export default function ClientProposalView({ proposal, client }) {
                       <div className="flex justify-between items-start mb-2">
                         <h4 className="font-semibold text-gray-800">{service.name}</h4>
                         <span className="font-semibold" style={{ color: '#770142' }}>
-                          ${service.price?.toLocaleString()}
+                          ${getServicePrice(category, key).toLocaleString()}
                         </span>
                       </div>
                       <p className="text-gray-600 text-sm leading-relaxed">{service.description}</p>

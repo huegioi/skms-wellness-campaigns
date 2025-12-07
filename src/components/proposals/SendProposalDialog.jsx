@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Send, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { productCatalog } from '@/components/curriculum/catalogData';
+import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
 
 export default function SendProposalDialog({ proposal, open, onOpenChange, onSent }) {
   const [email, setEmail] = useState(proposal?.client_email || '');
@@ -28,7 +29,13 @@ SkillfulMeans Team`);
       const overrideKey = `${category}_${key}`;
       if (sel.priceOverrides?.[overrideKey] !== undefined) return sel.priceOverrides[overrideKey];
       if (category === 'workshops') return productCatalog.workshops[key]?.price || 0;
-      if (category === 'challenges') return 1500;
+      if (category === 'challenges') {
+        // Use saved challenge price or calculate from company size
+        const savedPrice = sel.challengePrice;
+        if (savedPrice) return savedPrice;
+        const companySize = sel.assessmentData?.companySize;
+        return calculateChallengePrice(companySize);
+      }
       if (category === 'leadership') return productCatalog.leadership[key]?.price || 0;
       if (category === 'movementClasses') return productCatalog.movementClasses[key]?.price || 0;
       return 0;
