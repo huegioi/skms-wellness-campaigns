@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Plus, User, Building, Mail, Phone, FileText, Pencil, Trash2, Search, Filter, 
-  DollarSign, Users, Calendar, Globe, MapPin, Eye
+  DollarSign, Users, Calendar, Globe, MapPin, Eye, AlertTriangle, XCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -87,6 +87,8 @@ export default function Clients() {
   const [filterIndustry, setFilterIndustry] = useState('all');
   const [filterSize, setFilterSize] = useState('all');
   const [filterBudget, setFilterBudget] = useState('all');
+  const [showDuplicates, setShowDuplicates] = useState(true);
+  const [mergingClients, setMergingClients] = useState(null);
   
   const queryClient = useQueryClient();
 
@@ -220,6 +222,75 @@ export default function Clients() {
   const getClientProposals = (clientId) => proposals.filter(p => p.client_id === clientId);
   const uniqueIndustries = [...new Set(clients.filter(c => c.industry).map(c => c.industry))];
 
+  // Detect duplicate clients
+  const detectDuplicates = () => {
+    const duplicateGroups = [];
+    const processed = new Set();
+
+    clients.forEach(client => {
+      if (processed.has(client.id)) return;
+
+      const matches = clients.filter(c => {
+        if (c.id === client.id || processed.has(c.id)) return false;
+        
+        const emailMatch = c.email && client.email && 
+          c.email.toLowerCase().trim() === client.email.toLowerCase().trim();
+        
+        const companyMatch = c.company && client.company && 
+          c.company.toLowerCase().trim() === client.company.toLowerCase().trim();
+        
+        return emailMatch || companyMatch;
+      });
+
+      if (matches.length > 0) {
+        const group = [client, ...matches];
+        group.forEach(c => processed.add(c.id));
+        duplicateGroups.push(group);
+      }
+    });
+
+    return duplicateGroups;
+  };
+
+  const duplicateGroups = detectDuplicates();
+
+  const mergeClients = async (primaryClient, duplicateClient) => {
+    try {
+      // Update all proposals from duplicate to point to primary
+      const duplicateProposals = proposals.filter(p => p.client_id === duplicateClient.id);
+      for (const proposal of duplicateProposals) {
+        await base44.entities.Proposal.update(proposal.id, {
+          client_id: primaryClient.id,
+          client_name: primaryClient.name,
+          client_email: primaryClient.email
+        });
+      }
+
+      // Merge related contacts
+      const mergedContacts = [
+        ...(primaryClient.related_contacts || []),
+        ...(duplicateClient.related_contacts || [])
+      ];
+
+      // Update primary client with merged data
+      await base44.entities.Client.update(primaryClient.id, {
+        related_contacts: mergedContacts,
+        notes: [primaryClient.notes, duplicateClient.notes].filter(Boolean).join('\n\n---\n\n'),
+        last_contacted: duplicateClient.last_contacted || primaryClient.last_contacted
+      });
+
+      // Delete duplicate client
+      await base44.entities.Client.delete(duplicateClient.id);
+
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      setMergingClients(null);
+    } catch (error) {
+      console.error('Error merging clients:', error);
+      alert('Failed to merge clients. Please try again.');
+    }
+  };
+
   const filteredClients = clients.filter(client => {
     const matchesSearch = !searchQuery || 
       client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -291,6 +362,54 @@ export default function Clients() {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Duplicate Alert */}
+        {showDuplicates && duplicateGroups.length > 0 && (
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-4 shadow-lg mb-6">
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  <h3 className="font-bold text-amber-800">Duplicate Clients Detected</h3>
+                </div>
+                <p className="text-sm text-amber-700 mb-3">
+                  {duplicateGroups.length} group{duplicateGroups.length !== 1 ? 's' : ''} of duplicate clients found. 
+                  Click "Merge" to combine them.
+                </p>
+                <div className="space-y-2">
+                  {duplicateGroups.map((group, idx) => (
+                    <div key={idx} className="bg-white rounded-lg p-3 border border-amber-200">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-800 mb-1">
+                            {group.map(c => c.name).join(' & ')}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {group[0].company && `${group[0].company} • `}
+                            {group[0].email}
+                          </p>
+                          <p className="text-xs text-amber-600 mt-1">
+                            {group.reduce((sum, c) => sum + getClientProposals(c.id).length, 0)} total proposals
+                          </p>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          className="bg-amber-600 hover:bg-amber-700"
+                          onClick={() => setMergingClients(group)}
+                        >
+                          Merge
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Button size="icon" variant="ghost" onClick={() => setShowDuplicates(false)}>
+                <XCircle className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Search and Filters */}
         <div className="bg-white rounded-xl p-4 shadow-lg mb-6">
@@ -380,6 +499,57 @@ export default function Clients() {
                 onClose={() => setViewingClient(null)}
                 onUpdate={handleClientUpdate}
               />
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Merge Clients Dialog */}
+        <Dialog open={!!mergingClients} onOpenChange={(open) => !open && setMergingClients(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Merge Duplicate Clients</DialogTitle>
+            </DialogHeader>
+            {mergingClients && (
+              <div className="space-y-4 mt-4">
+                <p className="text-sm text-gray-600">
+                  Select which client to keep as the primary record. All proposals and contacts will be merged into this client.
+                </p>
+                <div className="space-y-2">
+                  {mergingClients.map(client => {
+                    const clientProposals = getClientProposals(client.id);
+                    return (
+                      <div key={client.id} className="border rounded-lg p-4 hover:border-blue-500 cursor-pointer transition-colors">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="font-semibold text-gray-800">{client.name}</p>
+                            {client.company && <p className="text-sm text-gray-600">{client.company}</p>}
+                            <p className="text-sm text-gray-500">{client.email}</p>
+                          </div>
+                          <Badge variant="outline">{clientProposals.length} proposals</Badge>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          {mergingClients.map(other => {
+                            if (other.id === client.id) return null;
+                            return (
+                              <Button 
+                                key={other.id}
+                                size="sm" 
+                                className="bg-blue-600 hover:bg-blue-700"
+                                onClick={() => mergeClients(client, other)}
+                              >
+                                Keep This, Merge {other.name}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <Button variant="outline" className="w-full" onClick={() => setMergingClients(null)}>
+                  Cancel
+                </Button>
+              </div>
             )}
           </DialogContent>
         </Dialog>
