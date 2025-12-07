@@ -123,24 +123,43 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
   const totalProposalValue = proposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
   const acceptedValue = proposals.filter(p => p.status === 'accepted').reduce((sum, p) => sum + (p.total_amount || 0), 0);
 
-  // Extract services from accepted proposals
-  const getServicesFromProposals = () => {
-    const serviceIds = new Set();
+  // Extract services from accepted proposals - match by name
+  const getClientServices = () => {
+    const serviceNames = new Set();
+    
     proposals.filter(p => p.status === 'accepted').forEach(proposal => {
       const sel = proposal.selections || {};
-      (sel.workshops || []).forEach(id => serviceIds.add(id));
-      (sel.challengePrograms || []).forEach(id => serviceIds.add(id));
-      (sel.leadership || []).forEach(id => serviceIds.add(id));
-      (sel.movementClasses || []).forEach(id => serviceIds.add(id));
+      
+      (sel.workshops || []).forEach(key => {
+        if (productCatalog.workshops[key]) {
+          serviceNames.add(productCatalog.workshops[key].name);
+        }
+      });
+      (sel.challengePrograms || []).forEach(key => {
+        if (productCatalog.challenges[key]) {
+          serviceNames.add(productCatalog.challenges[key].name);
+        }
+      });
+      (sel.leadership || []).forEach(key => {
+        if (productCatalog.leadership[key]) {
+          serviceNames.add(productCatalog.leadership[key].name);
+        }
+      });
+      (sel.movementClasses || []).forEach(key => {
+        if (productCatalog.movementClasses[key]) {
+          serviceNames.add(productCatalog.movementClasses[key].name);
+        }
+      });
     });
     
-    // Add any manually added services from client record
-    (client.purchased_services || []).forEach(id => serviceIds.add(id));
+    const matchedServices = allServices.filter(service => serviceNames.has(service.name));
+    const manualServices = allServices.filter(service => (client.purchased_services || []).includes(service.id));
     
-    return Array.from(serviceIds);
+    const allClientServices = [...matchedServices, ...manualServices];
+    return Array.from(new Map(allClientServices.map(s => [s.id, s])).values());
   };
 
-  const clientServiceIds = getServicesFromProposals();
+  const clientServices = getClientServices();
 
   const removeService = (serviceId) => {
     const updated = (client.purchased_services || []).filter(id => id !== serviceId);
@@ -363,36 +382,31 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
           </div>
 
           <div className="space-y-3">
-            {clientServiceIds.length === 0 ? (
+            {clientServices.length === 0 ? (
               <p className="text-center text-gray-500 py-8">No services yet</p>
             ) : (
-              clientServiceIds.map(serviceId => {
-                const service = allServices.find(s => s.id === serviceId);
-                if (!service) return null;
-
-                return (
-                  <div key={serviceId} className="bg-white border rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-[#264d44] flex items-center justify-center">
-                          <Award className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <p className="font-semibold">{service.name}</p>
-                          <p className="text-sm text-gray-600">{service.short_description || service.description?.slice(0, 100)}</p>
-                          <div className="flex gap-3 mt-2 text-xs text-gray-500">
-                            <span>${service.price?.toLocaleString()}</span>
-                            {service.duration && <span>{service.duration}</span>}
-                          </div>
+              clientServices.map(service => (
+                <div key={service.id} className="bg-white border rounded-lg p-4">
+                  <div className="flex justify-between items-start">
+                    <div className="flex gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-[#264d44] flex items-center justify-center">
+                        <Award className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">{service.name}</p>
+                        <p className="text-sm text-gray-600">{service.short_description || service.description?.slice(0, 100)}</p>
+                        <div className="flex gap-3 mt-2 text-xs text-gray-500">
+                          <span>${service.price?.toLocaleString()}</span>
+                          {service.duration && <span>{service.duration}</span>}
                         </div>
                       </div>
-                      <Button size="icon" variant="ghost" className="text-red-500" onClick={() => removeService(serviceId)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
                     </div>
+                    <Button size="icon" variant="ghost" className="text-red-500" onClick={() => removeService(service.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
-                );
-              })
+                </div>
+              ))
             )}
           </div>
         </TabsContent>
@@ -552,7 +566,7 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
             <Select value={serviceToAdd} onValueChange={setServiceToAdd}>
               <SelectTrigger><SelectValue placeholder="Select a service..." /></SelectTrigger>
               <SelectContent>
-                {allServices.filter(s => s.is_active !== false && !clientServiceIds.includes(s.id)).map(service => (
+                {allServices.filter(s => s.is_active !== false && !clientServices.find(cs => cs.id === s.id)).map(service => (
                   <SelectItem key={service.id} value={service.id}>
                     {service.name} - ${service.price?.toLocaleString()}
                   </SelectItem>
