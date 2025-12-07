@@ -137,8 +137,48 @@ export default function Clients() {
     broker_name: '', broker_email: '', wellness_consultant_name: '', wellness_consultant_email: '', notes: '' 
   });
 
+  const checkForDuplicates = () => {
+    const duplicates = [];
+    
+    if (formData.email) {
+      const emailLower = formData.email.toLowerCase().trim();
+      clients.forEach(client => {
+        if (client.id !== editingClient?.id && client.email?.toLowerCase().trim() === emailLower) {
+          duplicates.push({ client, matchType: 'email' });
+        }
+      });
+    }
+    
+    if (formData.company) {
+      const companyLower = formData.company.toLowerCase().trim();
+      clients.forEach(client => {
+        if (client.id !== editingClient?.id && client.company?.toLowerCase().trim() === companyLower) {
+          if (!duplicates.find(d => d.client.id === client.id)) {
+            duplicates.push({ client, matchType: 'company' });
+          }
+        }
+      });
+    }
+    
+    return duplicates;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Check for duplicates when creating new client
+    if (!editingClient) {
+      const duplicates = checkForDuplicates();
+      if (duplicates.length > 0) {
+        const confirmed = window.confirm(
+          `Warning: A similar client already exists:\n\n${duplicates.map(d => `${d.client.name} (${d.client.email})`).join('\n')}\n\nAre you sure you want to create a new client?`
+        );
+        if (!confirmed) {
+          return;
+        }
+      }
+    }
+    
     const submitData = { ...formData };
     if (submitData.wellness_budget === '') delete submitData.wellness_budget;
     
