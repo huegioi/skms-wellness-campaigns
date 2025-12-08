@@ -40,19 +40,33 @@ Deno.serve(async (req) => {
       const sheetData = sheet.data?.[0];
       const rows = sheetData?.rowData || [];
       
-      // Extract headers from first row
-      const headers = rows[0]?.values?.map(cell => 
+      // Check if first row looks like headers (all strings, no empty values)
+      const firstRow = rows[0]?.values?.map(cell => 
         cell.effectiveValue?.stringValue || 
         cell.effectiveValue?.numberValue?.toString() || 
         cell.formattedValue || 
         ''
       ) || [];
       
+      // Determine if first row is headers or data
+      const hasHeaders = firstRow.length > 0 && firstRow.every(val => val !== '');
+      
+      let headers, dataRows;
+      if (hasHeaders) {
+        headers = firstRow;
+        dataRows = rows.slice(1);
+      } else {
+        // Generate column headers if no header row
+        const maxCols = Math.max(...rows.map(r => r.values?.length || 0));
+        headers = Array.from({ length: maxCols }, (_, i) => `Column ${i + 1}`);
+        dataRows = rows;
+      }
+      
       // Extract data rows
-      const data = rows.slice(1).map(row => {
+      const data = dataRows.map(row => {
         const rowData = {};
         row.values?.forEach((cell, index) => {
-          const header = headers[index] || `Column${index}`;
+          const header = headers[index] || `Column ${index + 1}`;
           const value = cell.effectiveValue?.stringValue || 
                        cell.effectiveValue?.numberValue?.toString() || 
                        cell.formattedValue || 
