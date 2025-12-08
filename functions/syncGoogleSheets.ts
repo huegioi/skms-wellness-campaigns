@@ -16,64 +16,63 @@ Deno.serve(async (req) => {
     // Hardcoded spreadsheet ID for the scheduling sheet
     const spreadsheetId = '1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0';
 
-    // Fetch spreadsheet metadata to get all sheets
-    const metadataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}`;
-    const metadataResponse = await fetch(metadataUrl, {
+    // Fetch spreadsheet with full data using includeGridData
+    const fullDataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?includeGridData=true`;
+    const fullDataResponse = await fetch(fullDataUrl, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json'
       }
     });
 
-    if (!metadataResponse.ok) {
-      const errorData = await metadataResponse.text();
+    if (!fullDataResponse.ok) {
+      const errorData = await fullDataResponse.text();
       return Response.json({ 
-        error: 'Failed to fetch spreadsheet metadata', 
+        error: 'Failed to fetch spreadsheet data', 
         details: errorData 
-      }, { status: metadataResponse.status });
+      }, { status: fullDataResponse.status });
     }
 
-    const metadata = await metadataResponse.json();
-    const sheetNames = metadata.sheets.map(sheet => sheet.properties.title);
+    const fullData = await fullDataResponse.json();
 
-    // Fetch data from all sheets
-    const allSheets = await Promise.all(
-      sheetNames.map(async (sheetName) => {
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(sheetName)}`;
-        const response = await fetch(url, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          }
+    // Process all sheets with grid data
+    const allSheets = fullData.sheets.map(sheet => {
+      const sheetData = sheet.data?.[0];
+      const rows = sheetData?.rowData || [];
+      
+      // Extract headers from first row
+      const headers = rows[0]?.values?.map(cell => 
+        cell.effectiveValue?.stringValue || 
+        cell.effectiveValue?.numberValue?.toString() || 
+        cell.formattedValue || 
+        ''
+      ) || [];
+      
+      // Extract data rows
+      const data = rows.slice(1).map(row => {
+        const rowData = {};
+        row.values?.forEach((cell, index) => {
+          const header = headers[index] || `Column${index}`;
+          const value = cell.effectiveValue?.stringValue || 
+                       cell.effectiveValue?.numberValue?.toString() || 
+                       cell.formattedValue || 
+                       '';
+          rowData[header] = value;
         });
+        return rowData;
+      }).filter(row => Object.values(row).some(val => val !== ''));
 
-        if (!response.ok) {
-          return { name: sheetName, headers: [], data: [], error: 'Failed to fetch' };
-        }
-
-        const data = await response.json();
-        const rows = data.values || [];
-        const headers = rows[0] || [];
-        const sheetData = rows.slice(1).map(row => {
-          const item = {};
-          headers.forEach((header, index) => {
-            item[header] = row[index] || '';
-          });
-          return item;
-        }).filter(row => Object.values(row).some(val => val !== ''));
-
-        return {
-          name: sheetName,
-          headers,
-          data: sheetData
-        };
-      })
-    );
+      return {
+        name: sheet.properties.title,
+        headers: headers.filter(h => h !== ''),
+        data
+      };
+    });
 
     return Response.json({ 
       success: true,
       spreadsheetId,
-      title: metadata.properties.title,
+      title: fullData.properties.title,
       sheets: allSheets,
       lastUpdated: new Date().toISOString()
     });
