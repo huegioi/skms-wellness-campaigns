@@ -46,7 +46,8 @@ export default function QuickBooksOAuth() {
     }
   };
 
-  const startOAuth = () => {
+  const startOAuth = (environment = 'production') => {
+    // Use production OAuth - connects to real QuickBooks company
     const authUrl = `https://appcenter.intuit.com/connect/oauth2?` +
       `client_id=${CLIENT_ID}&` +
       `scope=com.intuit.quickbooks.accounting&` +
@@ -92,12 +93,15 @@ export default function QuickBooksOAuth() {
             )}
 
             <Button 
-              onClick={startOAuth}
+              onClick={() => startOAuth('production')}
               className="w-full bg-[#2ca01c] hover:bg-[#228917] text-white text-lg py-6"
             >
               <ExternalLink className="w-5 h-5 mr-2" />
-              Connect to QuickBooks
+              Connect to Your QuickBooks Company
             </Button>
+            <p className="text-xs text-gray-500 text-center mt-2">
+              This will connect to your real QuickBooks Online company (not sandbox)
+            </p>
           </>
         )}
 
