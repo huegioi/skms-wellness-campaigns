@@ -1,169 +1,159 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, Calendar, ExternalLink, Clock } from 'lucide-react';
+import { RefreshCw, Calendar, Clock, ExternalLink } from 'lucide-react';
 
 export default function SchedulingHub() {
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [schedules, setSchedules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const { data, isLoading, error, refetch, dataUpdatedAt } = useQuery({
-    queryKey: ['googleSheetSchedule'],
-    queryFn: async () => {
+  const fetchSchedules = async () => {
+    try {
+      setRefreshing(true);
       const response = await base44.functions.invoke('syncGoogleSheet', {});
-      return response.data;
-    },
-    refetchInterval: autoRefresh ? 10000 : false, // Auto-refresh every 10 seconds
-    refetchIntervalInBackground: true
-  });
-
-  const renderTable = (sheetData) => {
-    if (!sheetData || sheetData.length === 0) {
-      return <p className="text-gray-500 text-center py-8">No data available</p>;
+      setSchedules(response.data.schedules || []);
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Error fetching schedules:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-
-    const headers = sheetData[0] || [];
-    const rows = sheetData.slice(1);
-
-    return (
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr className="bg-[#013f7c] text-white">
-              {headers.map((header, idx) => (
-                <th key={idx} className="px-4 py-3 text-left font-semibold border border-gray-300">
-                  {header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, rowIdx) => (
-              <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                {headers.map((_, colIdx) => (
-                  <td key={colIdx} className="px-4 py-3 border border-gray-300">
-                    {row[colIdx] || ''}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
   };
 
-  if (error) {
+  useEffect(() => {
+    fetchSchedules();
+    
+    // Auto-refresh every 30 seconds for real-time sync
+    const interval = setInterval(fetchSchedules, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
-        <Card className="max-w-md w-full p-8 text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Error Loading Schedule</h2>
-          <p className="text-gray-600 mb-4">{error.message || 'Failed to load schedule data'}</p>
-          <Button onClick={() => refetch()}>Try Again</Button>
-        </Card>
+      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4" style={{ color: '#013f7c' }} />
+          <p className="text-gray-600">Loading schedules...</p>
+        </div>
       </div>
     );
   }
+
+  // Get all unique headers from the data
+  const headers = schedules.length > 0 ? Object.keys(schedules[0]).filter(key => key !== 'id') : [];
 
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg bg-[#013f7c] flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold" style={{ color: '#013f7c' }}>
-                  {data?.spreadsheetTitle || 'Scheduling Hub'}
-                </h1>
-                {data?.lastUpdated && (
-                  <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
-                    <Clock className="w-3 h-3" />
-                    Last synced: {new Date(data.lastUpdated).toLocaleTimeString()}
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setAutoRefresh(!autoRefresh)}
-                className={autoRefresh ? 'border-green-500 text-green-600' : ''}
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${autoRefresh ? 'animate-spin' : ''}`} />
-                {autoRefresh ? 'Auto-Refresh ON' : 'Auto-Refresh OFF'}
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => refetch()}
-                disabled={isLoading}
-              >
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh Now
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.open('https://docs.google.com/spreadsheets/d/1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0/edit', '_blank')}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Open Sheet
-              </Button>
-            </div>
+        <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2" style={{ color: '#013f7c' }}>
+              Scheduling Hub
+            </h1>
+            <p className="text-gray-600 flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Synced with Google Sheets
+              {lastUpdated && (
+                <span className="text-sm">
+                  • Last updated: {lastUpdated.toLocaleTimeString()}
+                </span>
+              )}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={fetchSchedules}
+              disabled={refreshing}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button
+              onClick={() => window.open('https://docs.google.com/spreadsheets/d/1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0/edit', '_blank')}
+              className="flex items-center gap-2 bg-[#264d44] hover:bg-[#1a3830]"
+            >
+              <ExternalLink className="w-4 h-4" />
+              Open Sheet
+            </Button>
           </div>
         </div>
 
+        {/* Auto-refresh indicator */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-6 flex items-center gap-2">
+          <RefreshCw className="w-4 h-4 text-blue-600" />
+          <span className="text-sm text-blue-800">
+            Auto-refreshing every 30 seconds
+          </span>
+        </div>
+
         {/* Schedule Data */}
-        {isLoading && !data ? (
-          <Card className="p-12 text-center">
-            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-[#013f7c]" />
-            <p className="text-gray-600">Loading schedule data...</p>
-          </Card>
-        ) : data?.sheets && data.sheets.length > 0 ? (
-          <Card className="overflow-hidden">
-            {data.sheets.length === 1 ? (
-              <div className="p-6">
-                <h2 className="text-xl font-bold mb-4" style={{ color: '#264d44' }}>
-                  {data.sheets[0].sheetTitle}
-                </h2>
-                {renderTable(data.sheets[0].data)}
-              </div>
-            ) : (
-              <Tabs defaultValue={data.sheets[0]?.sheetTitle} className="w-full">
-                <TabsList className="w-full justify-start border-b rounded-none bg-gray-50 p-0">
-                  {data.sheets.map((sheet, idx) => (
-                    <TabsTrigger 
-                      key={idx} 
-                      value={sheet.sheetTitle}
-                      className="rounded-none border-b-2 border-transparent data-[state=active]:border-[#013f7c] data-[state=active]:bg-white"
-                    >
-                      {sheet.sheetTitle}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-                
-                {data.sheets.map((sheet, idx) => (
-                  <TabsContent key={idx} value={sheet.sheetTitle} className="p-6">
-                    {renderTable(sheet.data)}
-                  </TabsContent>
-                ))}
-              </Tabs>
-            )}
+        {schedules.length === 0 ? (
+          <Card className="p-8 text-center">
+            <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+            <p className="text-gray-600 mb-2">No schedule data found</p>
+            <p className="text-sm text-gray-500">
+              Make sure your Google Sheet has data and try refreshing
+            </p>
           </Card>
         ) : (
-          <Card className="p-12 text-center">
-            <p className="text-gray-600">No schedule data found in the spreadsheet</p>
-          </Card>
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[#264d44] text-white">
+                  <tr>
+                    {headers.map((header) => (
+                      <th key={header} className="px-6 py-4 text-left text-sm font-semibold">
+                        {header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {schedules.map((schedule, index) => (
+                    <tr key={schedule.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      {headers.map((header) => (
+                        <td key={header} className="px-6 py-4 text-sm text-gray-700">
+                          {schedule[header]}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Stats */}
+        {schedules.length > 0 && (
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="p-4">
+              <p className="text-sm text-gray-600 mb-1">Total Entries</p>
+              <p className="text-2xl font-bold" style={{ color: '#013f7c' }}>
+                {schedules.length}
+              </p>
+            </Card>
+            <Card className="p-4">
+              <p className="text-sm text-gray-600 mb-1">Columns</p>
+              <p className="text-2xl font-bold" style={{ color: '#264d44' }}>
+                {headers.length}
+              </p>
+            </Card>
+            <Card className="p-4">
+              <p className="text-sm text-gray-600 mb-1">Sync Status</p>
+              <p className="text-lg font-semibold text-green-600 flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                Active
+              </p>
+            </Card>
+          </div>
         )}
       </div>
     </div>

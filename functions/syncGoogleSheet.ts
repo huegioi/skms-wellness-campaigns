@@ -1,80 +1,57 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
-const SPREADSHEET_ID = '1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0';
-
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    
-    // Authenticate user
     const user = await base44.auth.me();
+
     if (!user) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get Google Sheets access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
-    
-    if (!accessToken) {
-      return Response.json({ 
-        error: 'Google Sheets not authorized. Please connect your Google account.' 
-      }, { status: 401 });
-    }
 
-    // Fetch all sheets in the spreadsheet
-    const spreadsheetResponse = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`,
+    // Extract spreadsheet ID and range from the URL
+    const spreadsheetId = '1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0';
+    const range = 'Sheet1'; // Fetch all data from Sheet1
+
+    // Fetch data from Google Sheets
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
         },
       }
     );
 
-    if (!spreadsheetResponse.ok) {
-      const error = await spreadsheetResponse.text();
-      return Response.json({ 
-        error: 'Failed to fetch spreadsheet', 
-        details: error 
-      }, { status: spreadsheetResponse.status });
+    if (!response.ok) {
+      const error = await response.text();
+      return Response.json({ error: `Google Sheets API error: ${error}` }, { status: response.status });
     }
 
-    const spreadsheetData = await spreadsheetResponse.json();
-    const sheets = spreadsheetData.sheets || [];
-
-    // Fetch data from all sheets
-    const allSheetsData = [];
+    const data = await response.json();
     
-    for (const sheet of sheets) {
-      const sheetTitle = sheet.properties.title;
-      
-      const valuesResponse = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetTitle)}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-          },
-        }
-      );
-
-      if (valuesResponse.ok) {
-        const valuesData = await valuesResponse.json();
-        allSheetsData.push({
-          sheetTitle,
-          data: valuesData.values || []
-        });
-      }
+    // Parse the data into structured format
+    // Assuming first row is headers
+    const rows = data.values || [];
+    if (rows.length === 0) {
+      return Response.json({ schedules: [] });
     }
 
-    return Response.json({
-      spreadsheetTitle: spreadsheetData.properties?.title || 'Schedule',
-      sheets: allSheetsData,
-      lastUpdated: new Date().toISOString()
+    const headers = rows[0];
+    const schedules = rows.slice(1).map((row, index) => {
+      const schedule = { id: index };
+      headers.forEach((header, i) => {
+        schedule[header] = row[i] || '';
+      });
+      return schedule;
     });
 
+    return Response.json({ schedules, lastUpdated: new Date().toISOString() });
   } catch (error) {
-    return Response.json({ 
-      error: error.message 
-    }, { status: 500 });
+    return Response.json({ error: error.message }, { status: 500 });
   }
 });
