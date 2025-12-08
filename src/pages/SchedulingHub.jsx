@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Calendar, Clock, MapPin, Users } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink } from 'lucide-react';
 
 export default function SchedulingHub() {
   const SPREADSHEET_ID = '1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0';
@@ -12,10 +13,7 @@ export default function SchedulingHub() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['schedule', SPREADSHEET_ID],
     queryFn: async () => {
-      const response = await base44.functions.invoke('syncGoogleSheets', {
-        spreadsheetId: SPREADSHEET_ID,
-        range: 'Sheet1'
-      });
+      const response = await base44.functions.invoke('syncGoogleSheets', {});
       return response.data;
     },
     refetchInterval: 30000, // Auto-refresh every 30 seconds
@@ -53,35 +51,49 @@ export default function SchedulingHub() {
     );
   }
 
-  const scheduleData = data?.data || [];
-  const headers = data?.headers || [];
+  const sheets = data?.sheets || [];
+  const spreadsheetTitle = data?.title || 'Scheduling Hub';
 
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2" style={{ color: '#013f7c' }}>
-              Scheduling Hub
-            </h1>
+            <div className="flex items-center gap-3 mb-2">
+              <Calendar className="w-8 h-8" style={{ color: '#013f7c' }} />
+              <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>
+                {spreadsheetTitle}
+              </h1>
+            </div>
             <p className="text-gray-600">
               Real-time sync with Google Sheets • Auto-updates every 30 seconds
             </p>
           </div>
-          <Button
-            onClick={handleManualRefresh}
-            variant="outline"
-            className="flex items-center gap-2"
-            disabled={isRefreshing}
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh Now
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleManualRefresh}
+              variant="outline"
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <a 
+              href={`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button className="bg-[#264d44] hover:bg-[#1a3830]">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open Sheet
+              </Button>
+            </a>
+          </div>
         </div>
 
-        {/* Schedule Grid */}
-        {scheduleData.length === 0 ? (
+        {/* Sheets Tabs */}
+        {sheets.length === 0 ? (
           <Card className="p-12 text-center">
             <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-400" />
             <h3 className="text-xl font-semibold text-gray-600 mb-2">No Schedule Data</h3>
@@ -90,53 +102,65 @@ export default function SchedulingHub() {
             </p>
           </Card>
         ) : (
-          <div className="grid gap-4">
-            {scheduleData.map((item, index) => (
-              <Card key={index} className="p-6 hover:shadow-lg transition-shadow">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {headers.map((header, headerIndex) => {
-                    const value = item[header];
-                    let icon = null;
-                    
-                    // Smart icon detection
-                    if (header.toLowerCase().includes('date') || header.toLowerCase().includes('day')) {
-                      icon = <Calendar className="w-4 h-4" style={{ color: '#264d44' }} />;
-                    } else if (header.toLowerCase().includes('time')) {
-                      icon = <Clock className="w-4 h-4" style={{ color: '#770142' }} />;
-                    } else if (header.toLowerCase().includes('location') || header.toLowerCase().includes('room')) {
-                      icon = <MapPin className="w-4 h-4" style={{ color: '#013f7c' }} />;
-                    } else if (header.toLowerCase().includes('client') || header.toLowerCase().includes('attendee')) {
-                      icon = <Users className="w-4 h-4" style={{ color: '#264d44' }} />;
-                    }
+          <Tabs defaultValue="0" className="w-full">
+            <TabsList className="mb-6 flex-wrap h-auto">
+              {sheets.map((sheet, index) => (
+                <TabsTrigger key={index} value={index.toString()}>
+                  {sheet.name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
 
-                    return (
-                      <div key={headerIndex} className="flex items-start gap-2">
-                        {icon}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                            {header}
-                          </p>
-                          <p className="text-sm text-gray-800 font-medium break-words">
-                            {value || '—'}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </Card>
+            {sheets.map((sheet, sheetIndex) => (
+              <TabsContent key={sheetIndex} value={sheetIndex.toString()}>
+                <Card className="overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-[#264d44] text-white">
+                        <tr>
+                          {sheet.headers.map((header, idx) => (
+                            <th key={idx} className="px-4 py-3 text-left text-sm font-semibold">
+                              {header}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {sheet.data.length > 0 ? (
+                          sheet.data.map((row, rowIdx) => (
+                            <tr key={rowIdx} className="hover:bg-gray-50 transition-colors">
+                              {sheet.headers.map((header, colIdx) => (
+                                <td key={colIdx} className="px-4 py-3 text-sm text-gray-700">
+                                  {row[header] || '-'}
+                                </td>
+                              ))}
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td 
+                              colSpan={sheet.headers.length} 
+                              className="px-4 py-8 text-center text-gray-500"
+                            >
+                              No data available
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </Card>
+              </TabsContent>
             ))}
-          </div>
+          </Tabs>
         )}
 
-        {/* Data Stats */}
-        <div className="mt-8 flex items-center justify-between text-sm text-gray-500">
-          <p>
-            Showing {scheduleData.length} {scheduleData.length === 1 ? 'entry' : 'entries'}
-          </p>
-          <p>
-            Last updated: {new Date().toLocaleTimeString()}
-          </p>
+        {/* Auto-refresh indicator */}
+        <div className="mt-6 text-center text-sm text-gray-500">
+          <div className="flex items-center justify-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span>Auto-refreshing every 30 seconds</span>
+          </div>
         </div>
       </div>
     </div>
