@@ -9,6 +9,7 @@ import ClientPortal from './pages/ClientPortal';
 import EmailTemplateManager from './pages/EmailTemplateManager';
 import MyPortal from './pages/MyPortal';
 import ViewProposal from './pages/ViewProposal';
+import Invoices from './pages/Invoices';
 import __Layout from './Layout.jsx';
 
 
@@ -24,6 +25,7 @@ export const PAGES = {
     "EmailTemplateManager": EmailTemplateManager,
     "MyPortal": MyPortal,
     "ViewProposal": ViewProposal,
+    "Invoices": Invoices,
 }
 
 export const pagesConfig = {
