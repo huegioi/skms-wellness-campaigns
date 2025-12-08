@@ -1,135 +1,154 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Calendar, Clock, MapPin, User, RefreshCw, Search, ExternalLink } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { RefreshCw, ExternalLink, Clock } from 'lucide-react';
 
 export default function SchedulingHub() {
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const { data, isLoading, refetch, isFetching } = useQuery({
+  const { data, isLoading, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ['schedule'],
     queryFn: async () => {
-      const response = await base44.functions.invoke('syncGoogleSheetSchedule', {});
+      const response = await base44.functions.invoke('syncGoogleSheetSchedule');
       return response.data;
     },
     refetchInterval: 30000, // Auto-refresh every 30 seconds
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: true
   });
 
-  const events = data?.events || [];
+  const handleManualRefresh = () => {
+    refetch();
+  };
+
+  const schedule = data?.schedule || [];
   const lastUpdated = data?.lastUpdated;
 
-  // Filter events based on search
-  const filteredEvents = events.filter(event => {
-    const searchLower = searchTerm.toLowerCase();
-    return Object.values(event).some(value => 
-      String(value).toLowerCase().includes(searchLower)
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-12 h-12 border-4 border-[#264d44] border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading schedule...</p>
+        </div>
+      </div>
     );
-  });
+  }
 
-  // Get all unique headers for display
-  const headers = events.length > 0 ? Object.keys(events[0]) : [];
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
+        <Card className="p-8 max-w-md">
+          <div className="text-center">
+            <div className="text-red-500 text-5xl mb-4">⚠️</div>
+            <h2 className="text-xl font-bold mb-2 text-gray-800">Error Loading Schedule</h2>
+            <p className="text-gray-600 mb-4">{error.message}</p>
+            <Button onClick={() => refetch()}>Try Again</Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
-            <div>
-              <h1 className="text-3xl font-bold mb-2" style={{ color: '#013f7c' }}>
-                Scheduling Hub
-              </h1>
-              <p className="text-gray-600">
-                Real-time sync with Google Sheets • Last updated: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'Never'}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => refetch()}
-                disabled={isFetching}
-                className="gap-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-              <a 
-                href="https://docs.google.com/spreadsheets/d/1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0/edit" 
-                target="_blank" 
-                rel="noopener noreferrer"
-              >
-                <Button className="bg-[#264d44] hover:bg-[#1a3830] gap-2">
-                  <ExternalLink className="w-4 h-4" />
-                  Open Sheet
-                </Button>
-              </a>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2" style={{ color: '#013f7c' }}>
+              Scheduling Hub
+            </h1>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Clock className="w-4 h-4" />
+              {lastUpdated && (
+                <span>
+                  Last updated: {new Date(lastUpdated).toLocaleTimeString()}
+                </span>
+              )}
+              <span className="text-green-600 ml-2">● Live sync every 30s</span>
             </div>
           </div>
-
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              placeholder="Search schedule..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleManualRefresh}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh
+            </Button>
+            <a
+              href="https://docs.google.com/spreadsheets/d/1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0/edit"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" className="flex items-center gap-2">
+                <ExternalLink className="w-4 h-4" />
+                Open Sheet
+              </Button>
+            </a>
           </div>
         </div>
 
-        {/* Loading State */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin w-8 h-8 border-4 border-[#264d44] border-t-transparent rounded-full"></div>
-          </div>
-        )}
-
         {/* Schedule Data */}
-        {!isLoading && events.length === 0 && (
-          <Card className="p-12 text-center">
-            <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">No Schedule Data</h3>
-            <p className="text-gray-500">
-              The Google Sheet is empty or hasn't been synced yet.
-            </p>
+        {schedule.length === 0 ? (
+          <Card className="p-8 text-center">
+            <p className="text-gray-600">No schedule data found in the Google Sheet.</p>
           </Card>
-        )}
-
-        {!isLoading && filteredEvents.length > 0 && (
-          <div className="space-y-4">
-            {filteredEvents.map((event, index) => (
-              <Card key={index} className="p-6 hover:shadow-lg transition-shadow">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {headers.map(header => (
-                    <div key={header}>
-                      <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+        ) : (
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[#264d44] text-white">
+                  <tr>
+                    {Object.keys(schedule[0]).map((header) => (
+                      <th
+                        key={header}
+                        className="px-4 py-3 text-left text-sm font-semibold"
+                      >
                         {header}
-                      </p>
-                      <p className="text-sm text-gray-800">
-                        {event[header] || '-'}
-                      </p>
-                    </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {schedule.map((row, index) => (
+                    <tr
+                      key={index}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      {Object.values(row).map((cell, cellIndex) => (
+                        <td
+                          key={cellIndex}
+                          className="px-4 py-3 text-sm text-gray-700"
+                        >
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
                   ))}
-                </div>
-              </Card>
-            ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {!isLoading && events.length > 0 && filteredEvents.length === 0 && (
-          <Card className="p-12 text-center">
-            <Search className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-lg font-semibold text-gray-700 mb-2">No Results</h3>
-            <p className="text-gray-500">
-              No schedule items match your search.
-            </p>
-          </Card>
+        {/* Stats */}
+        {schedule.length > 0 && (
+          <div className="mt-6 flex gap-4">
+            <Card className="p-4 flex-1">
+              <p className="text-sm text-gray-600 mb-1">Total Entries</p>
+              <p className="text-2xl font-bold" style={{ color: '#264d44' }}>
+                {schedule.length}
+              </p>
+            </Card>
+            <Card className="p-4 flex-1">
+              <p className="text-sm text-gray-600 mb-1">Columns</p>
+              <p className="text-2xl font-bold" style={{ color: '#264d44' }}>
+                {Object.keys(schedule[0]).length}
+              </p>
+            </Card>
+          </div>
         )}
       </div>
     </div>
