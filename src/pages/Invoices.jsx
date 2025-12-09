@@ -388,20 +388,23 @@ export default function Invoices() {
                         </div>
 
                         <div className="flex items-center gap-2">
-                          {invoice.in_local_db && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              if (invoice.in_local_db) {
                                 const localInvoice = invoices.find(inv => inv.id === invoice.local_invoice_id);
                                 if (localInvoice) {
                                   setSelectedInvoice({ mode: 'view', invoice: localInvoice });
                                 }
-                              }}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          )}
+                              } else {
+                                // Show QB-only invoice details
+                                setSelectedInvoice({ mode: 'view-qb', invoice });
+                              }
+                            }}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -523,7 +526,7 @@ export default function Invoices() {
         )}
 
         {/* Invoice Dialog */}
-        {selectedInvoice && (
+        {selectedInvoice && selectedInvoice.mode !== 'view-qb' && (
           <InvoiceDialog
             open={!!selectedInvoice}
             onOpenChange={(open) => !open && setSelectedInvoice(null)}
@@ -531,6 +534,59 @@ export default function Invoices() {
             mode={selectedInvoice.mode}
             clients={clients}
           />
+        )}
+
+        {/* QB-Only Invoice Details Dialog */}
+        {selectedInvoice && selectedInvoice.mode === 'view-qb' && (
+          <Dialog open={!!selectedInvoice} onOpenChange={(open) => !open && setSelectedInvoice(null)}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>QuickBooks Invoice Details</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Invoice Number</p>
+                    <p className="font-semibold">{selectedInvoice.invoice.invoice_number}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Status</p>
+                    <Badge className={statusConfig[selectedInvoice.invoice.status].color}>
+                      {statusConfig[selectedInvoice.invoice.status].label}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Customer</p>
+                  <p className="font-semibold">{selectedInvoice.invoice.customer_name}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500">Issue Date</p>
+                    <p className="font-semibold">{new Date(selectedInvoice.invoice.issue_date).toLocaleDateString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Due Date</p>
+                    <p className="font-semibold">{new Date(selectedInvoice.invoice.due_date).toLocaleDateString()}</p>
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Total Amount:</span>
+                    <span className="font-semibold">${selectedInvoice.invoice.total_amount?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Balance:</span>
+                    <span className="font-semibold text-amber-600">${selectedInvoice.invoice.balance?.toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="bg-blue-50 rounded-lg p-3 text-sm text-blue-800">
+                  <p className="font-medium">QuickBooks Only Invoice</p>
+                  <p className="text-blue-600">This invoice exists in QuickBooks but not in the local database. View it in QuickBooks for full details.</p>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         )}
       </div>
     </div>
