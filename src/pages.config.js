@@ -13,6 +13,7 @@ import Invoices from './pages/Invoices';
 import QuickBooksOAuth from './pages/QuickBooksOAuth';
 import SchedulingHub from './pages/SchedulingHub';
 import UserAgreement from './pages/UserAgreement';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import __Layout from './Layout.jsx';
 
 
@@ -32,6 +33,7 @@ export const PAGES = {
     "QuickBooksOAuth": QuickBooksOAuth,
     "SchedulingHub": SchedulingHub,
     "UserAgreement": UserAgreement,
+    "PrivacyPolicy": PrivacyPolicy,
 }
 
 export const pagesConfig = {
