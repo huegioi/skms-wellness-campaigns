@@ -88,8 +88,9 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
       selections.workshops.forEach(workshopKey => {
         const service = services.find(s => s.category === 'workshop' && s.name.toLowerCase().includes(workshopKey.toLowerCase()));
         const itemId = `workshop_${workshopKey}`;
+        const description = service ? `${service.name} - ${service.short_description || service.description || ''}` : workshopKey;
         lineItems.push({
-          description: service?.name || workshopKey,
+          description: description,
           quantity: 1,
           rate: service?.price || 1500,
           amount: service?.price || 1500,
@@ -104,8 +105,9 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
       selections.challengePrograms.forEach(challengeKey => {
         const service = services.find(s => s.category === 'challenge' && s.name.toLowerCase().includes(challengeKey.toLowerCase()));
         const itemId = `challenge_${challengeKey}`;
+        const description = service ? `${service.name} - ${service.short_description || service.description || ''}` : challengeKey;
         lineItems.push({
-          description: service?.name || challengeKey,
+          description: description,
           quantity: 1,
           rate: service?.price || 2000,
           amount: service?.price || 2000,
@@ -120,8 +122,9 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
       selections.leadership.forEach(leadershipKey => {
         const service = services.find(s => s.category === 'leadership' && s.name.toLowerCase().includes(leadershipKey.toLowerCase()));
         const itemId = `leadership_${leadershipKey}`;
+        const description = service ? `${service.name} - ${service.short_description || service.description || ''}` : leadershipKey;
         lineItems.push({
-          description: service?.name || leadershipKey,
+          description: description,
           quantity: 1,
           rate: service?.price || 3000,
           amount: service?.price || 3000,
@@ -136,8 +139,9 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
       selections.movementClasses.forEach(classKey => {
         const service = services.find(s => s.category === 'class' && s.name.toLowerCase().includes(classKey.toLowerCase()));
         const itemId = `class_${classKey}`;
+        const description = service ? `${service.name} - ${service.short_description || service.description || ''}` : classKey;
         lineItems.push({
-          description: service?.name || classKey,
+          description: description,
           quantity: 1,
           rate: service?.price || 1000,
           amount: service?.price || 1000,
@@ -153,8 +157,9 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
         if (quantity > 0) {
           const service = services.find(s => s.category === 'wellness_box' && s.name.toLowerCase().includes(key.toLowerCase()));
           const itemId = `box_${key}`;
+          const description = service ? `${service.name} - ${service.short_description || service.description || ''}` : key;
           lineItems.push({
-            description: service?.name || key,
+            description: description,
             quantity: quantity,
             rate: service?.price || 100,
             amount: (service?.price || 100) * quantity,
@@ -365,11 +370,12 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
                       </span>
                     </div>
                   )}
-                  <Input
+                  <Textarea
                     placeholder="Description"
                     value={item.description}
                     onChange={(e) => updateLineItem(idx, 'description', e.target.value)}
                     className="col-span-5"
+                    rows={2}
                     disabled={isReadOnly}
                   />
                   <Input
