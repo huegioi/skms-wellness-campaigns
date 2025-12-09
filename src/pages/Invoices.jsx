@@ -165,6 +165,12 @@ export default function Invoices() {
   const paidAmount = filteredInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
   const outstandingAmount = totalAmount - paidAmount;
 
+  // Calculate QB totals
+  const qbFilteredInvoices = qbInvoices.filter(inv => filterStatus === 'all' || inv.status === filterStatus);
+  const qbTotalAmount = qbFilteredInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+  const qbPaidAmount = qbFilteredInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+  const qbOutstandingAmount = qbFilteredInvoices.reduce((sum, inv) => sum + (inv.balance || 0), 0);
+
   if (isLoading) {
     return <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">Loading...</div>;
   }
@@ -218,15 +224,24 @@ export default function Invoices() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl p-6 shadow-lg">
             <p className="text-sm text-gray-500 mb-1">Total Invoiced</p>
-            <p className="text-3xl font-bold text-gray-800">${totalAmount.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-gray-800">${(showQBView ? qbTotalAmount : totalAmount).toLocaleString()}</p>
+            {showQBView && qbInvoices.length > 0 && (
+              <p className="text-xs text-gray-400 mt-1">Local: ${totalAmount.toLocaleString()}</p>
+            )}
           </div>
           <div className="bg-white rounded-xl p-6 shadow-lg">
             <p className="text-sm text-gray-500 mb-1">Paid</p>
-            <p className="text-3xl font-bold text-green-600">${paidAmount.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-green-600">${(showQBView ? qbPaidAmount : paidAmount).toLocaleString()}</p>
+            {showQBView && qbInvoices.length > 0 && (
+              <p className="text-xs text-gray-400 mt-1">Local: ${paidAmount.toLocaleString()}</p>
+            )}
           </div>
           <div className="bg-white rounded-xl p-6 shadow-lg">
             <p className="text-sm text-gray-500 mb-1">Outstanding</p>
-            <p className="text-3xl font-bold text-amber-600">${outstandingAmount.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-amber-600">${(showQBView ? qbOutstandingAmount : outstandingAmount).toLocaleString()}</p>
+            {showQBView && qbInvoices.length > 0 && (
+              <p className="text-xs text-gray-400 mt-1">Local: ${outstandingAmount.toLocaleString()}</p>
+            )}
           </div>
         </div>
 
