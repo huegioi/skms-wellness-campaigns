@@ -5,7 +5,7 @@ const QB_API_URL = 'https://quickbooks.api.intuit.com/v3/company';
 async function refreshAccessToken() {
   const clientId = Deno.env.get('Quickbooks_Client_ID');
   const clientSecret = Deno.env.get('Quickbooks_Client_Secret');
-  const refreshToken = Deno.env.get('Quickbooks_Refresh_Token');
+  const refreshToken = Deno.env.get('QUICKBOOKS_REFRESH_TOKEN');
 
   const response = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
     method: 'POST',
@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
     }
 
     const { action, invoiceId } = await req.json();
-    const realmId = Deno.env.get('Quickbooks_Realm_ID');
+    const realmId = Deno.env.get('QUICKBOOK_REALM_ID');
 
     if (!realmId) {
       return Response.json({ error: 'QuickBooks not configured' }, { status: 500 });
