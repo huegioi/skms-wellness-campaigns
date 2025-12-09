@@ -72,136 +72,120 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
     }
   };
 
-  const handleProposalChange = (proposalId) => {
+  const handleProposalChange = async (proposalId) => {
     const proposal = proposals.find(p => p.id === proposalId);
-    if (proposal) {
-      // Convert proposal to line items
-      const lineItems = [];
-      const selections = proposal.selections || {};
-      const invoicedItems = proposal.invoiced_items || [];
-      
-      // Add workshops
-      if (selections.workshops) {
-        Object.entries(selections.workshops).forEach(([key, selected]) => {
-          if (selected) {
-            const workshop = selections.workshopDetails?.[key];
-            if (workshop) {
-              const itemId = `workshop_${key}`;
-              lineItems.push({
-                description: workshop.name || key,
-                quantity: 1,
-                rate: workshop.price || 0,
-                amount: workshop.price || 0,
-                proposal_item_id: itemId,
-                already_invoiced: invoicedItems.includes(itemId)
-              });
-            }
-          }
-        });
-      }
+    if (!proposal) return;
 
-      // Add challenges
-      if (selections.challenges) {
-        Object.entries(selections.challenges).forEach(([key, selected]) => {
-          if (selected) {
-            const challenge = selections.challengeDetails?.[key];
-            if (challenge) {
-              const itemId = `challenge_${key}`;
-              lineItems.push({
-                description: challenge.name || key,
-                quantity: 1,
-                rate: challenge.price || 0,
-                amount: challenge.price || 0,
-                proposal_item_id: itemId,
-                already_invoiced: invoicedItems.includes(itemId)
-              });
-            }
-          }
+    const lineItems = [];
+    const selections = proposal.selections || {};
+    const invoicedItems = proposal.invoiced_items || [];
+    
+    // Fetch services to get pricing info
+    const services = await base44.entities.Service.list();
+    
+    // Add workshops (stored as array)
+    if (Array.isArray(selections.workshops)) {
+      selections.workshops.forEach(workshopKey => {
+        const service = services.find(s => s.category === 'workshop' && s.name.toLowerCase().includes(workshopKey.toLowerCase()));
+        const itemId = `workshop_${workshopKey}`;
+        lineItems.push({
+          description: service?.name || workshopKey,
+          quantity: 1,
+          rate: service?.price || 1500,
+          amount: service?.price || 1500,
+          proposal_item_id: itemId,
+          already_invoiced: invoicedItems.includes(itemId)
         });
-      }
+      });
+    }
 
-      // Add leadership
-      if (selections.leadership) {
-        Object.entries(selections.leadership).forEach(([key, selected]) => {
-          if (selected) {
-            const program = selections.leadershipDetails?.[key];
-            if (program) {
-              const itemId = `leadership_${key}`;
-              lineItems.push({
-                description: program.name || key,
-                quantity: 1,
-                rate: program.price || 0,
-                amount: program.price || 0,
-                proposal_item_id: itemId,
-                already_invoiced: invoicedItems.includes(itemId)
-              });
-            }
-          }
+    // Add challenge programs (stored as array)
+    if (Array.isArray(selections.challengePrograms)) {
+      selections.challengePrograms.forEach(challengeKey => {
+        const service = services.find(s => s.category === 'challenge' && s.name.toLowerCase().includes(challengeKey.toLowerCase()));
+        const itemId = `challenge_${challengeKey}`;
+        lineItems.push({
+          description: service?.name || challengeKey,
+          quantity: 1,
+          rate: service?.price || 2000,
+          amount: service?.price || 2000,
+          proposal_item_id: itemId,
+          already_invoiced: invoicedItems.includes(itemId)
         });
-      }
+      });
+    }
 
-      // Add classes
-      if (selections.movementClasses) {
-        Object.entries(selections.movementClasses).forEach(([key, selected]) => {
-          if (selected) {
-            const classItem = selections.classDetails?.[key];
-            if (classItem) {
-              const itemId = `class_${key}`;
-              lineItems.push({
-                description: classItem.name || key,
-                quantity: 1,
-                rate: classItem.price || 0,
-                amount: classItem.price || 0,
-                proposal_item_id: itemId,
-                already_invoiced: invoicedItems.includes(itemId)
-              });
-            }
-          }
+    // Add leadership programs (stored as array)
+    if (Array.isArray(selections.leadership)) {
+      selections.leadership.forEach(leadershipKey => {
+        const service = services.find(s => s.category === 'leadership' && s.name.toLowerCase().includes(leadershipKey.toLowerCase()));
+        const itemId = `leadership_${leadershipKey}`;
+        lineItems.push({
+          description: service?.name || leadershipKey,
+          quantity: 1,
+          rate: service?.price || 3000,
+          amount: service?.price || 3000,
+          proposal_item_id: itemId,
+          already_invoiced: invoicedItems.includes(itemId)
         });
-      }
+      });
+    }
 
-      // Add wellness boxes
-      if (selections.wellnessBoxes) {
-        Object.entries(selections.wellnessBoxes).forEach(([key, quantity]) => {
-          if (quantity > 0) {
-            const box = selections.boxDetails?.[key];
-            if (box) {
-              const itemId = `box_${key}`;
-              lineItems.push({
-                description: box.name || key,
-                quantity: quantity,
-                rate: box.price || 0,
-                amount: (box.price || 0) * quantity,
-                proposal_item_id: itemId,
-                already_invoiced: invoicedItems.includes(itemId)
-              });
-            }
-          }
+    // Add movement classes (stored as array)
+    if (Array.isArray(selections.movementClasses)) {
+      selections.movementClasses.forEach(classKey => {
+        const service = services.find(s => s.category === 'class' && s.name.toLowerCase().includes(classKey.toLowerCase()));
+        const itemId = `class_${classKey}`;
+        lineItems.push({
+          description: service?.name || classKey,
+          quantity: 1,
+          rate: service?.price || 1000,
+          amount: service?.price || 1000,
+          proposal_item_id: itemId,
+          already_invoiced: invoicedItems.includes(itemId)
         });
-      }
+      });
+    }
 
-      // Add custom charges
-      if (selections.customCharges && Array.isArray(selections.customCharges)) {
-        selections.customCharges.forEach((charge, idx) => {
-          const itemId = `custom_${idx}`;
+    // Add wellness boxes
+    if (selections.sampleBoxQuantities) {
+      Object.entries(selections.sampleBoxQuantities).forEach(([key, quantity]) => {
+        if (quantity > 0) {
+          const service = services.find(s => s.category === 'wellness_box' && s.name.toLowerCase().includes(key.toLowerCase()));
+          const itemId = `box_${key}`;
           lineItems.push({
-            description: charge.description,
-            quantity: 1,
-            rate: charge.amount,
-            amount: charge.amount,
+            description: service?.name || key,
+            quantity: quantity,
+            rate: service?.price || 100,
+            amount: (service?.price || 100) * quantity,
             proposal_item_id: itemId,
             already_invoiced: invoicedItems.includes(itemId)
           });
-        });
-      }
-
-      setFormData({
-        ...formData,
-        proposal_id: proposalId,
-        line_items: lineItems.length > 0 ? lineItems : [{ description: '', quantity: 1, rate: 0, amount: 0 }],
-        memo: proposal.narrative_summary || ''
+        }
       });
     }
+
+    // Add custom charges
+    if (Array.isArray(selections.customCharges)) {
+      selections.customCharges.forEach((charge, idx) => {
+        const itemId = `custom_${idx}`;
+        lineItems.push({
+          description: charge.description,
+          quantity: 1,
+          rate: charge.amount,
+          amount: charge.amount,
+          proposal_item_id: itemId,
+          already_invoiced: invoicedItems.includes(itemId)
+        });
+      });
+    }
+
+    setFormData({
+      ...formData,
+      proposal_id: proposalId,
+      line_items: lineItems.length > 0 ? lineItems : [{ description: '', quantity: 1, rate: 0, amount: 0 }],
+      memo: proposal.narrative_summary || ''
+    });
   };
 
   const updateLineItem = (index, field, value) => {
