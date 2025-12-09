@@ -421,38 +421,42 @@ Deno.serve(async (req) => {
 
       const invoiceData = invoice[0];
 
-      // Delete from QuickBooks if it exists there
+      // If synced to QuickBooks, delete from QB first
       if (invoiceData.quickbooks_id) {
-        const qbInvoice = await getQBInvoice(accessToken, realmId, invoiceData.quickbooks_id);
-        
-        const deleteData = {
-          Id: invoiceData.quickbooks_id,
-          SyncToken: qbInvoice.SyncToken
-        };
-
-        const response = await fetch(
-          `${QB_API_URL}/${realmId}/invoice?operation=delete`,
-          {
+        try {
+          // Get the invoice to get SyncToken
+          const qbInvoice = await getQBInvoice(accessToken, realmId, invoiceData.quickbooks_id);
+          
+          // Delete from QuickBooks
+          const deleteUrl = `${QB_API_URL}/${realmId}/invoice?operation=delete`;
+          const deleteResponse = await fetch(deleteUrl, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json',
               'Accept': 'application/json'
             },
-            body: JSON.stringify(deleteData)
-          }
-        );
+            body: JSON.stringify({
+              Id: invoiceData.quickbooks_id,
+              SyncToken: qbInvoice.SyncToken
+            })
+          });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          let errorMsg = 'Failed to delete from QuickBooks';
-          try {
-            const errorData = JSON.parse(errorText);
-            errorMsg = errorData.Fault?.Error?.[0]?.Message || errorMsg;
-          } catch {
-            errorMsg = errorText;
+          if (!deleteResponse.ok) {
+            const errorText = await deleteResponse.text();
+            let errorMsg = 'Failed to delete from QuickBooks';
+            try {
+              const errorData = JSON.parse(errorText);
+              errorMsg = errorData.Fault?.Error?.[0]?.Message || errorMsg;
+            } catch {
+              errorMsg = errorText;
+            }
+            throw new Error(errorMsg);
           }
-          throw new Error(errorMsg);
+        } catch (error) {
+          return Response.json({ 
+            error: `Failed to delete from QuickBooks: ${error.message}` 
+          }, { status: 500 });
         }
       }
 
@@ -461,7 +465,7 @@ Deno.serve(async (req) => {
 
       return Response.json({
         success: true,
-        deleted_from_qb: !!invoiceData.quickbooks_id
+        message: 'Invoice deleted successfully'
       });
     }
 

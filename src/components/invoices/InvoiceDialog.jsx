@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 
 export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clients }) {
   const [formData, setFormData] = useState({
@@ -14,6 +14,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
     client_name: '',
     client_email: '',
     company: '',
+    proposal_id: '',
     invoice_number: '',
     issue_date: new Date().toISOString().slice(0, 10),
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
@@ -24,6 +25,12 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
   });
 
   const queryClient = useQueryClient();
+
+  const { data: proposals = [] } = useQuery({
+    queryKey: ['proposals'],
+    queryFn: () => base44.entities.Proposal.list('-created_date'),
+    enabled: mode === 'create'
+  });
 
   useEffect(() => {
     if (invoice && mode !== 'create') {
@@ -59,7 +66,121 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
         client_id: clientId,
         client_name: client.name,
         client_email: client.email,
-        company: client.company || ''
+        company: client.company || '',
+        proposal_id: '' // Reset proposal when changing client
+      });
+    }
+  };
+
+  const handleProposalChange = (proposalId) => {
+    const proposal = proposals.find(p => p.id === proposalId);
+    if (proposal) {
+      // Convert proposal to line items
+      const lineItems = [];
+      const selections = proposal.selections || {};
+      
+      // Add workshops
+      if (selections.workshops) {
+        Object.entries(selections.workshops).forEach(([key, selected]) => {
+          if (selected) {
+            const workshop = selections.workshopDetails?.[key];
+            if (workshop) {
+              lineItems.push({
+                description: workshop.name || key,
+                quantity: 1,
+                rate: workshop.price || 0,
+                amount: workshop.price || 0
+              });
+            }
+          }
+        });
+      }
+
+      // Add challenges
+      if (selections.challenges) {
+        Object.entries(selections.challenges).forEach(([key, selected]) => {
+          if (selected) {
+            const challenge = selections.challengeDetails?.[key];
+            if (challenge) {
+              lineItems.push({
+                description: challenge.name || key,
+                quantity: 1,
+                rate: challenge.price || 0,
+                amount: challenge.price || 0
+              });
+            }
+          }
+        });
+      }
+
+      // Add leadership
+      if (selections.leadership) {
+        Object.entries(selections.leadership).forEach(([key, selected]) => {
+          if (selected) {
+            const program = selections.leadershipDetails?.[key];
+            if (program) {
+              lineItems.push({
+                description: program.name || key,
+                quantity: 1,
+                rate: program.price || 0,
+                amount: program.price || 0
+              });
+            }
+          }
+        });
+      }
+
+      // Add classes
+      if (selections.movementClasses) {
+        Object.entries(selections.movementClasses).forEach(([key, selected]) => {
+          if (selected) {
+            const classItem = selections.classDetails?.[key];
+            if (classItem) {
+              lineItems.push({
+                description: classItem.name || key,
+                quantity: 1,
+                rate: classItem.price || 0,
+                amount: classItem.price || 0
+              });
+            }
+          }
+        });
+      }
+
+      // Add wellness boxes
+      if (selections.wellnessBoxes) {
+        Object.entries(selections.wellnessBoxes).forEach(([key, quantity]) => {
+          if (quantity > 0) {
+            const box = selections.boxDetails?.[key];
+            if (box) {
+              lineItems.push({
+                description: box.name || key,
+                quantity: quantity,
+                rate: box.price || 0,
+                amount: (box.price || 0) * quantity
+              });
+            }
+          }
+        });
+      }
+
+      // Add custom charges
+      if (selections.customCharges && Array.isArray(selections.customCharges)) {
+        selections.customCharges.forEach(charge => {
+          lineItems.push({
+            description: charge.description,
+            quantity: 1,
+            rate: charge.amount,
+            amount: charge.amount
+          });
+        });
+      }
+
+      setFormData({
+        ...formData,
+        proposal_id: proposalId,
+        line_items: lineItems.length > 0 ? lineItems : [{ description: '', quantity: 1, rate: 0, amount: 0 }],
+        memo: proposal.narrative_summary || ''
       });
     }
   };
@@ -127,18 +248,39 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
           {/* Client Selection */}
           <div className="grid grid-cols-2 gap-4">
             {mode === 'create' ? (
-              <Select value={formData.client_id} onValueChange={handleClientChange} disabled={isReadOnly}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select client..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients.map(client => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name} {client.company ? `- ${client.company}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <>
+                <Select value={formData.client_id} onValueChange={handleClientChange} disabled={isReadOnly}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select client..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map(client => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name} {client.company ? `- ${client.company}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                
+                <Select 
+                  value={formData.proposal_id} 
+                  onValueChange={handleProposalChange} 
+                  disabled={isReadOnly || !formData.client_id}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Import from proposal (optional)..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {proposals
+                      .filter(p => p.client_id === formData.client_id && p.status === 'accepted')
+                      .map(proposal => (
+                        <SelectItem key={proposal.id} value={proposal.id}>
+                          Proposal - ${proposal.total_amount?.toLocaleString()}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </>
             ) : (
               <div className="col-span-2">
                 <p className="text-sm text-gray-500">Client</p>
@@ -146,14 +288,18 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
                 {formData.company && <p className="text-sm text-gray-600">{formData.company}</p>}
               </div>
             )}
-            
-            <Input
-              placeholder="Invoice Number"
-              value={formData.invoice_number}
-              onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
-              disabled={isReadOnly}
-            />
           </div>
+
+          {mode === 'create' && (
+            <div>
+              <Input
+                placeholder="Invoice Number"
+                value={formData.invoice_number}
+                onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
+                disabled={isReadOnly}
+              />
+            </div>
+          )}
 
           {/* Dates */}
           <div className="grid grid-cols-2 gap-4">

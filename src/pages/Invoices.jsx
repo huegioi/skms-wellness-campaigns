@@ -362,7 +362,7 @@ export default function Invoices() {
                               </Badge>
                             )}
                           </div>
-                          
+
                           <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
                             <span className="flex items-center gap-1">
                               <FileText className="w-4 h-4" /> {invoice.customer_name}
@@ -380,12 +380,29 @@ export default function Invoices() {
                             </span>
                           </div>
                         </div>
+
+                        <div className="flex items-center gap-2">
+                          {invoice.in_local_db && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const localInvoice = invoices.find(inv => inv.id === invoice.local_invoice_id);
+                                if (localInvoice) {
+                                  setSelectedInvoice({ mode: 'view', invoice: localInvoice });
+                                }
+                              }}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
-                })
-            )}
-          </div>
+                  })
+                  )}
+                  </div>
         ) : (
         <div className="space-y-4">
           {filteredInvoices.length === 0 ? (
