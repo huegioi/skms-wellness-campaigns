@@ -78,6 +78,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
       // Convert proposal to line items
       const lineItems = [];
       const selections = proposal.selections || {};
+      const invoicedItems = proposal.invoiced_items || [];
       
       // Add workshops
       if (selections.workshops) {
@@ -85,11 +86,14 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
           if (selected) {
             const workshop = selections.workshopDetails?.[key];
             if (workshop) {
+              const itemId = `workshop_${key}`;
               lineItems.push({
                 description: workshop.name || key,
                 quantity: 1,
                 rate: workshop.price || 0,
-                amount: workshop.price || 0
+                amount: workshop.price || 0,
+                proposal_item_id: itemId,
+                already_invoiced: invoicedItems.includes(itemId)
               });
             }
           }
@@ -102,11 +106,14 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
           if (selected) {
             const challenge = selections.challengeDetails?.[key];
             if (challenge) {
+              const itemId = `challenge_${key}`;
               lineItems.push({
                 description: challenge.name || key,
                 quantity: 1,
                 rate: challenge.price || 0,
-                amount: challenge.price || 0
+                amount: challenge.price || 0,
+                proposal_item_id: itemId,
+                already_invoiced: invoicedItems.includes(itemId)
               });
             }
           }
@@ -119,11 +126,14 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
           if (selected) {
             const program = selections.leadershipDetails?.[key];
             if (program) {
+              const itemId = `leadership_${key}`;
               lineItems.push({
                 description: program.name || key,
                 quantity: 1,
                 rate: program.price || 0,
-                amount: program.price || 0
+                amount: program.price || 0,
+                proposal_item_id: itemId,
+                already_invoiced: invoicedItems.includes(itemId)
               });
             }
           }
@@ -136,11 +146,14 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
           if (selected) {
             const classItem = selections.classDetails?.[key];
             if (classItem) {
+              const itemId = `class_${key}`;
               lineItems.push({
                 description: classItem.name || key,
                 quantity: 1,
                 rate: classItem.price || 0,
-                amount: classItem.price || 0
+                amount: classItem.price || 0,
+                proposal_item_id: itemId,
+                already_invoiced: invoicedItems.includes(itemId)
               });
             }
           }
@@ -153,11 +166,14 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
           if (quantity > 0) {
             const box = selections.boxDetails?.[key];
             if (box) {
+              const itemId = `box_${key}`;
               lineItems.push({
                 description: box.name || key,
                 quantity: quantity,
                 rate: box.price || 0,
-                amount: (box.price || 0) * quantity
+                amount: (box.price || 0) * quantity,
+                proposal_item_id: itemId,
+                already_invoiced: invoicedItems.includes(itemId)
               });
             }
           }
@@ -166,12 +182,15 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
 
       // Add custom charges
       if (selections.customCharges && Array.isArray(selections.customCharges)) {
-        selections.customCharges.forEach(charge => {
+        selections.customCharges.forEach((charge, idx) => {
+          const itemId = `custom_${idx}`;
           lineItems.push({
             description: charge.description,
             quantity: 1,
             rate: charge.amount,
-            amount: charge.amount
+            amount: charge.amount,
+            proposal_item_id: itemId,
+            already_invoiced: invoicedItems.includes(itemId)
           });
         });
       }
@@ -215,7 +234,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
     return { subtotal, tax_amount, total };
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const { subtotal, tax_amount, total } = calculateTotals();
     const invoiceData = {
       ...formData,
@@ -227,6 +246,24 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
 
     if (mode === 'create') {
       createMutation.mutate(invoiceData);
+      
+      // Update proposal to track invoiced items
+      if (formData.proposal_id) {
+        const invoicedItemIds = formData.line_items
+          .filter(item => item.proposal_item_id)
+          .map(item => item.proposal_item_id);
+        
+        if (invoicedItemIds.length > 0) {
+          const proposal = proposals.find(p => p.id === formData.proposal_id);
+          if (proposal) {
+            const existingInvoiced = proposal.invoiced_items || [];
+            const updatedInvoiced = [...new Set([...existingInvoiced, ...invoicedItemIds])];
+            await base44.entities.Proposal.update(formData.proposal_id, {
+              invoiced_items: updatedInvoiced
+            });
+          }
+        }
+      }
     } else {
       updateMutation.mutate({ id: invoice.id, data: invoiceData });
     }
@@ -336,7 +373,14 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
             
             <div className="space-y-2">
               {formData.line_items.map((item, idx) => (
-                <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-gray-50 p-2 rounded">
+                <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-gray-50 p-2 rounded relative">
+                  {item.already_invoiced && (
+                    <div className="absolute -top-1 -right-1 z-10">
+                      <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">
+                        Already Invoiced
+                      </span>
+                    </div>
+                  )}
                   <Input
                     placeholder="Description"
                     value={item.description}
