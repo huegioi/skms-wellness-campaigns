@@ -3,9 +3,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 const QB_API_URL = 'https://quickbooks.api.intuit.com/v3/company';
 
 async function refreshAccessToken() {
-  const clientId = Deno.env.get('Quickbooks_Client_ID');
-  const clientSecret = Deno.env.get('Quickbooks_Client_Secret');
-  const refreshToken = Deno.env.get('QUICKBOOKS_REFRESH_TOKEN');
+  const clientId = Deno.env.get('QUICKBOOKS_CLIENT_ID');
+  const clientSecret = Deno.env.get('QUICKBOOKS_CLIENT_SECRET');
+  const refreshToken = Deno.env.get('QUICKBOOKS_REFRSH_TOKEN');
 
   const response = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
     method: 'POST',
