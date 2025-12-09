@@ -25,6 +25,9 @@ export default function Invoices() {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [syncing, setSyncing] = useState(null);
   const [syncingAll, setSyncingAll] = useState(false);
+  const [syncResults, setSyncResults] = useState(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const queryClient = useQueryClient();
 
@@ -68,12 +71,16 @@ export default function Invoices() {
 
   const handleSyncAll = async () => {
     setSyncingAll(true);
+    setSyncResults(null);
     try {
       const response = await base44.functions.invoke('quickbooksSync', {
-        action: 'syncAll'
+        action: 'syncAll',
+        statusFilter: filterStatus === 'all' ? null : filterStatus,
+        dateFrom: dateFrom || null,
+        dateTo: dateTo || null
       });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      alert('Sync completed!');
+      setSyncResults(response.data);
     } catch (error) {
       alert(`Sync failed: ${error.message}`);
     } finally {
@@ -161,7 +168,7 @@ export default function Invoices() {
 
         {/* Filters */}
         <div className="bg-white rounded-xl p-4 shadow-lg mb-6">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <span className="text-sm text-gray-600">Filter:</span>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-[180px]">
@@ -176,11 +183,67 @@ export default function Invoices() {
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Date Range:</span>
+              <Input 
+                type="date" 
+                value={dateFrom} 
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-[150px]"
+                placeholder="From"
+              />
+              <span className="text-gray-400">to</span>
+              <Input 
+                type="date" 
+                value={dateTo} 
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-[150px]"
+                placeholder="To"
+              />
+            </div>
+            
             <span className="text-sm text-gray-500 ml-auto">
               {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''}
             </span>
           </div>
         </div>
+
+        {/* Sync Results */}
+        {syncResults && (
+          <div className="bg-white rounded-xl p-4 shadow-lg mb-6">
+            <div className="flex justify-between items-start mb-3">
+              <h3 className="font-semibold text-gray-800">Sync Results</h3>
+              <Button size="sm" variant="ghost" onClick={() => setSyncResults(null)}>✕</Button>
+            </div>
+            <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-gray-800">{syncResults.total}</p>
+                <p className="text-sm text-gray-500">Total Processed</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-600">{syncResults.synced}</p>
+                <p className="text-sm text-gray-500">Synced</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-red-600">{syncResults.failed}</p>
+                <p className="text-sm text-gray-500">Failed</p>
+              </div>
+            </div>
+            {syncResults.results.filter(r => !r.synced).length > 0 && (
+              <div className="border-t pt-3">
+                <p className="text-sm font-medium text-gray-700 mb-2">Errors:</p>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {syncResults.results.filter(r => !r.synced).map((result, idx) => (
+                    <div key={idx} className="text-sm bg-red-50 rounded p-2">
+                      <span className="font-medium">{result.invoice_number}:</span> {result.error}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Invoice List */}
         <div className="space-y-4">
@@ -226,6 +289,11 @@ export default function Invoices() {
                         <span className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" /> Due: {new Date(invoice.due_date).toLocaleDateString()}
                         </span>
+                        {invoice.paid_date && (
+                          <span className="flex items-center gap-1 text-green-600">
+                            <CheckCircle className="w-4 h-4" /> Paid: {new Date(invoice.paid_date).toLocaleDateString()}
+                          </span>
+                        )}
                       </div>
 
                       {invoice.memo && (
