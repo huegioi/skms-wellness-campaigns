@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   FileText, DollarSign, Calendar, CheckCircle, Clock, XCircle, AlertCircle,
-  RefreshCw, Eye, Pencil, Send, Loader2
+  RefreshCw, Eye, Pencil, Send, Loader2, Trash2
 } from 'lucide-react';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 
@@ -72,6 +72,19 @@ export default function Invoices() {
     }
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (invoiceId) => {
+      const response = await base44.functions.invoke('quickbooksSync', {
+        action: 'deleteInvoice',
+        invoiceId
+      });
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+    }
+  });
+
   const handleSyncAll = async () => {
     setSyncingAll(true);
     setSyncResults(null);
@@ -125,6 +138,21 @@ export default function Invoices() {
       alert(`Failed to load QuickBooks invoices: ${error.message}`);
     } finally {
       setLoadingQB(false);
+    }
+  };
+
+  const handleDeleteInvoice = async (invoice) => {
+    const message = invoice.quickbooks_id 
+      ? `Delete invoice ${invoice.invoice_number}?\n\nThis will delete it from both the app AND QuickBooks.`
+      : `Delete invoice ${invoice.invoice_number}?`;
+    
+    if (!confirm(message)) return;
+    
+    try {
+      await deleteMutation.mutateAsync(invoice.id);
+      alert('Invoice deleted successfully!');
+    } catch (error) {
+      alert(`Failed to delete: ${error.message}`);
     }
   };
 
@@ -438,6 +466,15 @@ export default function Invoices() {
                           <Pencil className="w-4 h-4" />
                         </Button>
                       )}
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-red-500 hover:text-red-700 hover:border-red-500"
+                        onClick={() => handleDeleteInvoice(invoice)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 </div>

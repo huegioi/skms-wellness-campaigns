@@ -413,6 +413,58 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === 'deleteInvoice') {
+      const invoice = await base44.asServiceRole.entities.Invoice.filter({ id: invoiceId });
+      if (!invoice || invoice.length === 0) {
+        return Response.json({ error: 'Invoice not found' }, { status: 404 });
+      }
+
+      const invoiceData = invoice[0];
+
+      // Delete from QuickBooks if it exists there
+      if (invoiceData.quickbooks_id) {
+        const qbInvoice = await getQBInvoice(accessToken, realmId, invoiceData.quickbooks_id);
+        
+        const deleteData = {
+          Id: invoiceData.quickbooks_id,
+          SyncToken: qbInvoice.SyncToken
+        };
+
+        const response = await fetch(
+          `${QB_API_URL}/${realmId}/invoice?operation=delete`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify(deleteData)
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMsg = 'Failed to delete from QuickBooks';
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMsg = errorData.Fault?.Error?.[0]?.Message || errorMsg;
+          } catch {
+            errorMsg = errorText;
+          }
+          throw new Error(errorMsg);
+        }
+      }
+
+      // Delete from local database
+      await base44.asServiceRole.entities.Invoice.delete(invoiceId);
+
+      return Response.json({
+        success: true,
+        deleted_from_qb: !!invoiceData.quickbooks_id
+      });
+    }
+
     return Response.json({ error: 'Invalid action' }, { status: 400 });
 
   } catch (error) {
