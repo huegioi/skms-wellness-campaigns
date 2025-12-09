@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Trash2, Save } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { productCatalog } from '@/components/curriculum/catalogData';
 
 export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clients }) {
   const [formData, setFormData] = useState({
@@ -80,74 +81,79 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
     const selections = proposal.selections || {};
     const invoicedItems = proposal.invoiced_items || [];
     
-    // Fetch services to get pricing info
-    const services = await base44.entities.Service.list();
-    
     // Add workshops (stored as array)
     if (Array.isArray(selections.workshops)) {
       selections.workshops.forEach(workshopKey => {
-        const service = services.find(s => s.category === 'workshop' && s.name.toLowerCase().includes(workshopKey.toLowerCase()));
-        const itemId = `workshop_${workshopKey}`;
-        const description = service ? `${service.name} - ${service.short_description || service.description || ''}` : workshopKey;
-        lineItems.push({
-          description: description,
-          quantity: 1,
-          rate: service?.price || 1500,
-          amount: service?.price || 1500,
-          proposal_item_id: itemId,
-          already_invoiced: invoicedItems.includes(itemId)
-        });
+        const catalogItem = productCatalog.workshops[workshopKey];
+        if (catalogItem) {
+          const itemId = `workshop_${workshopKey}`;
+          const description = `${catalogItem.name}\n${catalogItem.description}`;
+          lineItems.push({
+            description: description,
+            quantity: 1,
+            rate: catalogItem.price,
+            amount: catalogItem.price,
+            proposal_item_id: itemId,
+            already_invoiced: invoicedItems.includes(itemId)
+          });
+        }
       });
     }
 
     // Add challenge programs (stored as array)
     if (Array.isArray(selections.challengePrograms)) {
       selections.challengePrograms.forEach(challengeKey => {
-        const service = services.find(s => s.category === 'challenge' && s.name.toLowerCase().includes(challengeKey.toLowerCase()));
-        const itemId = `challenge_${challengeKey}`;
-        const description = service ? `${service.name} - ${service.short_description || service.description || ''}` : challengeKey;
-        lineItems.push({
-          description: description,
-          quantity: 1,
-          rate: service?.price || 2000,
-          amount: service?.price || 2000,
-          proposal_item_id: itemId,
-          already_invoiced: invoicedItems.includes(itemId)
-        });
+        const catalogItem = productCatalog.challenges[challengeKey];
+        if (catalogItem) {
+          const itemId = `challenge_${challengeKey}`;
+          const description = `${catalogItem.name} (${catalogItem.duration})\n${catalogItem.description}`;
+          lineItems.push({
+            description: description,
+            quantity: 1,
+            rate: catalogItem.price,
+            amount: catalogItem.price,
+            proposal_item_id: itemId,
+            already_invoiced: invoicedItems.includes(itemId)
+          });
+        }
       });
     }
 
     // Add leadership programs (stored as array)
     if (Array.isArray(selections.leadership)) {
       selections.leadership.forEach(leadershipKey => {
-        const service = services.find(s => s.category === 'leadership' && s.name.toLowerCase().includes(leadershipKey.toLowerCase()));
-        const itemId = `leadership_${leadershipKey}`;
-        const description = service ? `${service.name} - ${service.short_description || service.description || ''}` : leadershipKey;
-        lineItems.push({
-          description: description,
-          quantity: 1,
-          rate: service?.price || 3000,
-          amount: service?.price || 3000,
-          proposal_item_id: itemId,
-          already_invoiced: invoicedItems.includes(itemId)
-        });
+        const catalogItem = productCatalog.leadership[leadershipKey];
+        if (catalogItem) {
+          const itemId = `leadership_${leadershipKey}`;
+          const description = `${catalogItem.name}\n${catalogItem.description}`;
+          lineItems.push({
+            description: description,
+            quantity: 1,
+            rate: catalogItem.price,
+            amount: catalogItem.price,
+            proposal_item_id: itemId,
+            already_invoiced: invoicedItems.includes(itemId)
+          });
+        }
       });
     }
 
     // Add movement classes (stored as array)
     if (Array.isArray(selections.movementClasses)) {
       selections.movementClasses.forEach(classKey => {
-        const service = services.find(s => s.category === 'class' && s.name.toLowerCase().includes(classKey.toLowerCase()));
-        const itemId = `class_${classKey}`;
-        const description = service ? `${service.name} - ${service.short_description || service.description || ''}` : classKey;
-        lineItems.push({
-          description: description,
-          quantity: 1,
-          rate: service?.price || 1000,
-          amount: service?.price || 1000,
-          proposal_item_id: itemId,
-          already_invoiced: invoicedItems.includes(itemId)
-        });
+        const catalogItem = productCatalog.movementClasses[classKey];
+        if (catalogItem) {
+          const itemId = `class_${classKey}`;
+          const description = `${catalogItem.name} (${catalogItem.duration})\n${catalogItem.description}`;
+          lineItems.push({
+            description: description,
+            quantity: 1,
+            rate: catalogItem.price,
+            amount: catalogItem.price,
+            proposal_item_id: itemId,
+            already_invoiced: invoicedItems.includes(itemId)
+          });
+        }
       });
     }
 
@@ -155,17 +161,20 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
     if (selections.sampleBoxQuantities) {
       Object.entries(selections.sampleBoxQuantities).forEach(([key, quantity]) => {
         if (quantity > 0) {
-          const service = services.find(s => s.category === 'wellness_box' && s.name.toLowerCase().includes(key.toLowerCase()));
-          const itemId = `box_${key}`;
-          const description = service ? `${service.name} - ${service.short_description || service.description || ''}` : key;
-          lineItems.push({
-            description: description,
-            quantity: quantity,
-            rate: service?.price || 100,
-            amount: (service?.price || 100) * quantity,
-            proposal_item_id: itemId,
-            already_invoiced: invoicedItems.includes(itemId)
-          });
+          const catalogItem = productCatalog.wellnessBoxes[key];
+          if (catalogItem) {
+            const itemId = `box_${key}`;
+            const description = `${catalogItem.name}\n${catalogItem.description}`;
+            const price = catalogItem.priceRange ? 75 : 0; // Use middle of range
+            lineItems.push({
+              description: description,
+              quantity: quantity,
+              rate: price,
+              amount: price * quantity,
+              proposal_item_id: itemId,
+              already_invoiced: invoicedItems.includes(itemId)
+            });
+          }
         }
       });
     }
