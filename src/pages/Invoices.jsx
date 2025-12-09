@@ -187,7 +187,13 @@ export default function Invoices() {
           <div className="flex gap-2">
             <Button 
               variant="outline" 
-              onClick={() => setShowQBView(!showQBView)}
+              onClick={() => {
+                if (!showQBView) {
+                  handleLoadQBInvoices();
+                } else {
+                  setShowQBView(false);
+                }
+              }}
             >
               {showQBView ? 'Show Local' : 'View QuickBooks'}
             </Button>
