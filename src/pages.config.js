@@ -12,6 +12,7 @@ import ViewProposal from './pages/ViewProposal';
 import Invoices from './pages/Invoices';
 import QuickBooksOAuth from './pages/QuickBooksOAuth';
 import SchedulingHub from './pages/SchedulingHub';
+import UserAgreement from './pages/UserAgreement';
 import __Layout from './Layout.jsx';
 
 
@@ -30,6 +31,7 @@ export const PAGES = {
     "Invoices": Invoices,
     "QuickBooksOAuth": QuickBooksOAuth,
     "SchedulingHub": SchedulingHub,
+    "UserAgreement": UserAgreement,
 }
 
 export const pagesConfig = {
