@@ -28,6 +28,9 @@ export default function Invoices() {
   const [syncResults, setSyncResults] = useState(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [showQBView, setShowQBView] = useState(false);
+  const [qbInvoices, setQBInvoices] = useState([]);
+  const [loadingQB, setLoadingQB] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -110,6 +113,21 @@ export default function Invoices() {
     }
   };
 
+  const handleLoadQBInvoices = async () => {
+    setLoadingQB(true);
+    try {
+      const response = await base44.functions.invoke('quickbooksSync', {
+        action: 'listQBInvoices'
+      });
+      setQBInvoices(response.data.invoices);
+      setShowQBView(true);
+    } catch (error) {
+      alert(`Failed to load QuickBooks invoices: ${error.message}`);
+    } finally {
+      setLoadingQB(false);
+    }
+  };
+
   const filteredInvoices = invoices.filter(inv => 
     filterStatus === 'all' || inv.status === filterStatus
   );
@@ -135,12 +153,30 @@ export default function Invoices() {
           <div className="flex gap-2">
             <Button 
               variant="outline" 
-              onClick={handleSyncAll}
-              disabled={syncingAll}
+              onClick={() => setShowQBView(!showQBView)}
             >
-              {syncingAll ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-              Sync All
+              {showQBView ? 'Show Local' : 'View QuickBooks'}
             </Button>
+            {!showQBView && (
+              <Button 
+                variant="outline" 
+                onClick={handleSyncAll}
+                disabled={syncingAll}
+              >
+                {syncingAll ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                Sync All
+              </Button>
+            )}
+            {showQBView && (
+              <Button 
+                variant="outline" 
+                onClick={handleLoadQBInvoices}
+                disabled={loadingQB}
+              >
+                {loadingQB ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                Refresh QB
+              </Button>
+            )}
             <Button 
               className="bg-[#264d44] hover:bg-[#1a3830]"
               onClick={() => setSelectedInvoice({ mode: 'create' })}
@@ -246,6 +282,68 @@ export default function Invoices() {
         )}
 
         {/* Invoice List */}
+        {showQBView ? (
+          <div className="space-y-4">
+            {qbInvoices.length === 0 ? (
+              <div className="bg-white rounded-xl p-12 text-center shadow-lg">
+                <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">No QuickBooks data loaded</h3>
+                <p className="text-gray-500 mb-4">Click "Refresh QB" to load invoices from QuickBooks</p>
+              </div>
+            ) : (
+              qbInvoices
+                .filter(inv => filterStatus === 'all' || inv.status === filterStatus)
+                .map(invoice => {
+                  const status = statusConfig[invoice.status];
+                  const StatusIcon = status.icon;
+
+                  return (
+                    <div key={invoice.quickbooks_id} className="bg-white rounded-xl shadow-lg p-5 hover:shadow-xl transition-shadow">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-xl font-bold" style={{ color: '#264d44' }}>
+                              {invoice.invoice_number}
+                            </h3>
+                            <Badge className={status.color}>
+                              <StatusIcon className="w-3 h-3 mr-1" />
+                              {status.label}
+                            </Badge>
+                            {invoice.in_local_db ? (
+                              <Badge variant="outline" className="text-blue-600 border-blue-200">
+                                In Local DB
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-gray-500 border-gray-300">
+                                QB Only
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
+                            <span className="flex items-center gap-1">
+                              <FileText className="w-4 h-4" /> {invoice.customer_name}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="w-4 h-4" /> ${invoice.total_amount?.toLocaleString()}
+                            </span>
+                            {invoice.balance > 0 && (
+                              <span className="flex items-center gap-1 text-amber-600">
+                                Balance: ${invoice.balance?.toLocaleString()}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-4 h-4" /> Due: {new Date(invoice.due_date).toLocaleDateString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+            )}
+          </div>
+        ) : (
         <div className="space-y-4">
           {filteredInvoices.length === 0 ? (
             <div className="bg-white rounded-xl p-12 text-center shadow-lg">
@@ -347,6 +445,7 @@ export default function Invoices() {
             })
           )}
         </div>
+        )}
 
         {/* Invoice Dialog */}
         {selectedInvoice && (

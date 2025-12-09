@@ -358,6 +358,61 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === 'listQBInvoices') {
+      const query = "SELECT * FROM Invoice MAXRESULTS 1000";
+      const response = await fetch(
+        `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(query)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch invoices: ${errorText}`);
+      }
+
+      const result = await response.json();
+      const qbInvoices = result.QueryResponse?.Invoice || [];
+
+      // Get local invoices to match
+      const localInvoices = await base44.asServiceRole.entities.Invoice.filter({});
+      
+      // Enrich QB invoices with local match info
+      const enrichedInvoices = qbInvoices.map(qbInv => {
+        const localMatch = localInvoices.find(l => l.quickbooks_id === qbInv.Id);
+        
+        let status = 'sent';
+        if (qbInv.Balance === 0) {
+          status = 'paid';
+        } else if (new Date(qbInv.DueDate) < new Date()) {
+          status = 'overdue';
+        }
+
+        return {
+          quickbooks_id: qbInv.Id,
+          invoice_number: qbInv.DocNumber,
+          customer_name: qbInv.CustomerRef?.name || 'Unknown',
+          total_amount: qbInv.TotalAmt,
+          balance: qbInv.Balance,
+          issue_date: qbInv.TxnDate,
+          due_date: qbInv.DueDate,
+          status,
+          local_invoice_id: localMatch?.id,
+          in_local_db: !!localMatch
+        };
+      });
+
+      return Response.json({
+        success: true,
+        invoices: enrichedInvoices,
+        total: enrichedInvoices.length
+      });
+    }
+
     return Response.json({ error: 'Invalid action' }, { status: 400 });
 
   } catch (error) {
