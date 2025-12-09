@@ -19,7 +19,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
     invoice_number: '',
     issue_date: new Date().toISOString().slice(0, 10),
     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-    line_items: [{ description: '', quantity: 1, rate: 0, amount: 0 }],
+    line_items: [{ name: '', description: '', quantity: 1, rate: 0, amount: 0 }],
     tax_rate: 0,
     memo: '',
     notes: ''
@@ -87,9 +87,9 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
         const catalogItem = productCatalog.workshops[workshopKey];
         if (catalogItem) {
           const itemId = `workshop_${workshopKey}`;
-          const description = `${catalogItem.name}\n${catalogItem.description}`;
           lineItems.push({
-            description: description,
+            name: catalogItem.name,
+            description: catalogItem.description,
             quantity: 1,
             rate: catalogItem.price,
             amount: catalogItem.price,
@@ -106,9 +106,9 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
         const catalogItem = productCatalog.challenges[challengeKey];
         if (catalogItem) {
           const itemId = `challenge_${challengeKey}`;
-          const description = `${catalogItem.name} (${catalogItem.duration})\n${catalogItem.description}`;
           lineItems.push({
-            description: description,
+            name: `${catalogItem.name} (${catalogItem.duration})`,
+            description: catalogItem.description,
             quantity: 1,
             rate: catalogItem.price,
             amount: catalogItem.price,
@@ -125,9 +125,9 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
         const catalogItem = productCatalog.leadership[leadershipKey];
         if (catalogItem) {
           const itemId = `leadership_${leadershipKey}`;
-          const description = `${catalogItem.name}\n${catalogItem.description}`;
           lineItems.push({
-            description: description,
+            name: catalogItem.name,
+            description: catalogItem.description,
             quantity: 1,
             rate: catalogItem.price,
             amount: catalogItem.price,
@@ -144,9 +144,9 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
         const catalogItem = productCatalog.movementClasses[classKey];
         if (catalogItem) {
           const itemId = `class_${classKey}`;
-          const description = `${catalogItem.name} (${catalogItem.duration})\n${catalogItem.description}`;
           lineItems.push({
-            description: description,
+            name: `${catalogItem.name} (${catalogItem.duration})`,
+            description: catalogItem.description,
             quantity: 1,
             rate: catalogItem.price,
             amount: catalogItem.price,
@@ -164,10 +164,10 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
           const catalogItem = productCatalog.wellnessBoxes[key];
           if (catalogItem) {
             const itemId = `box_${key}`;
-            const description = `${catalogItem.name}\n${catalogItem.description}`;
             const price = catalogItem.priceRange ? 75 : 0; // Use middle of range
             lineItems.push({
-              description: description,
+              name: catalogItem.name,
+              description: catalogItem.description,
               quantity: quantity,
               rate: price,
               amount: price * quantity,
@@ -197,7 +197,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
     setFormData({
       ...formData,
       proposal_id: proposalId,
-      line_items: lineItems.length > 0 ? lineItems : [{ description: '', quantity: 1, rate: 0, amount: 0 }],
+      line_items: lineItems.length > 0 ? lineItems : [{ name: '', description: '', quantity: 1, rate: 0, amount: 0 }],
       memo: proposal.narrative_summary || ''
     });
   };
@@ -216,7 +216,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
   const addLineItem = () => {
     setFormData({
       ...formData,
-      line_items: [...formData.line_items, { description: '', quantity: 1, rate: 0, amount: 0 }]
+      line_items: [...formData.line_items, { name: '', description: '', quantity: 1, rate: 0, amount: 0 }]
     });
   };
 
@@ -369,9 +369,9 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
               )}
             </div>
             
-            <div className="space-y-2">
+            <div className="space-y-3">
               {formData.line_items.map((item, idx) => (
-                <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-gray-50 p-2 rounded relative">
+                <div key={idx} className="bg-gray-50 p-3 rounded relative">
                   {item.already_invoiced && (
                     <div className="absolute -top-1 -right-1 z-10">
                       <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">
@@ -379,43 +379,53 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
                       </span>
                     </div>
                   )}
-                  <Textarea
-                    placeholder="Description"
-                    value={item.description}
-                    onChange={(e) => updateLineItem(idx, 'description', e.target.value)}
-                    className="col-span-5"
-                    rows={2}
-                    disabled={isReadOnly}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="Qty"
-                    value={item.quantity}
-                    onChange={(e) => updateLineItem(idx, 'quantity', Number(e.target.value))}
-                    className="col-span-2"
-                    disabled={isReadOnly}
-                  />
-                  <Input
-                    type="number"
-                    placeholder="Rate"
-                    value={item.rate}
-                    onChange={(e) => updateLineItem(idx, 'rate', Number(e.target.value))}
-                    className="col-span-2"
-                    disabled={isReadOnly}
-                  />
-                  <div className="col-span-2 text-right font-semibold">
-                    ${item.amount.toLocaleString()}
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Item Name"
+                      value={item.name || ''}
+                      onChange={(e) => updateLineItem(idx, 'name', e.target.value)}
+                      className="font-semibold"
+                      disabled={isReadOnly}
+                    />
+                    <Textarea
+                      placeholder="Description"
+                      value={item.description || ''}
+                      onChange={(e) => updateLineItem(idx, 'description', e.target.value)}
+                      rows={2}
+                      disabled={isReadOnly}
+                    />
+                    <div className="grid grid-cols-12 gap-2 items-center">
+                      <Input
+                        type="number"
+                        placeholder="Qty"
+                        value={item.quantity}
+                        onChange={(e) => updateLineItem(idx, 'quantity', Number(e.target.value))}
+                        className="col-span-3"
+                        disabled={isReadOnly}
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Rate"
+                        value={item.rate}
+                        onChange={(e) => updateLineItem(idx, 'rate', Number(e.target.value))}
+                        className="col-span-3"
+                        disabled={isReadOnly}
+                      />
+                      <div className="col-span-5 text-right font-semibold text-lg">
+                        ${item.amount.toLocaleString()}
+                      </div>
+                      {!isReadOnly && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="col-span-1 text-red-500"
+                          onClick={() => removeLineItem(idx)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  {!isReadOnly && (
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="col-span-1 text-red-500"
-                      onClick={() => removeLineItem(idx)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  )}
                 </div>
               ))}
             </div>
