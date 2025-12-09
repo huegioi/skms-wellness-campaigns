@@ -20,7 +20,15 @@ async function refreshAccessToken() {
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to refresh token: ${await response.text()}`);
+    const errorText = await response.text();
+    let errorMsg = 'Failed to refresh token';
+    try {
+      const errorData = JSON.parse(errorText);
+      errorMsg = errorData.error_description || errorData.error || errorMsg;
+    } catch {
+      errorMsg = errorText;
+    }
+    throw new Error(errorMsg);
   }
 
   const data = await response.json();
@@ -47,7 +55,15 @@ async function createQBCustomer(accessToken, realmId, clientData) {
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to create customer: ${await response.text()}`);
+    const errorText = await response.text();
+    let errorMsg = 'Failed to create customer';
+    try {
+      const errorData = JSON.parse(errorText);
+      errorMsg = errorData.Fault?.Error?.[0]?.Message || errorMsg;
+    } catch {
+      errorMsg = errorText;
+    }
+    throw new Error(errorMsg);
   }
 
   const result = await response.json();
@@ -100,7 +116,15 @@ async function createQBInvoice(accessToken, realmId, invoiceData, customerId) {
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to create invoice: ${await response.text()}`);
+    const errorText = await response.text();
+    let errorMsg = 'Failed to create invoice';
+    try {
+      const errorData = JSON.parse(errorText);
+      errorMsg = errorData.Fault?.Error?.[0]?.Message || errorMsg;
+    } catch {
+      errorMsg = errorText;
+    }
+    throw new Error(errorMsg);
   }
 
   const result = await response.json();
@@ -116,11 +140,37 @@ async function getQBInvoice(accessToken, realmId, invoiceId) {
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to get invoice: ${await response.text()}`);
+    const errorText = await response.text();
+    let errorMsg = 'Failed to get invoice';
+    try {
+      const errorData = JSON.parse(errorText);
+      errorMsg = errorData.Fault?.Error?.[0]?.Message || errorMsg;
+    } catch {
+      errorMsg = errorText;
+    }
+    throw new Error(errorMsg);
   }
 
   const result = await response.json();
   return result.Invoice;
+}
+
+async function getQBPayments(accessToken, realmId, invoiceId) {
+  const query = `SELECT * FROM Payment WHERE Line.LinkedTxn.TxnId = '${invoiceId}'`;
+  const response = await fetch(
+    `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(query)}`,
+    {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json'
+      }
+    }
+  );
+
+  if (!response.ok) return [];
+
+  const result = await response.json();
+  return result.QueryResponse?.Payment || [];
 }
 
 Deno.serve(async (req) => {
@@ -132,7 +182,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { action, invoiceId } = await req.json();
+    const { action, invoiceId, dateFrom, dateTo, statusFilter } = await req.json();
     const realmId = Deno.env.get('QUICKBOOK_REALM_ID');
 
     if (!realmId) {
@@ -185,11 +235,23 @@ Deno.serve(async (req) => {
 
       // Get latest from QuickBooks
       const qbInvoice = await getQBInvoice(accessToken, realmId, invoiceData.quickbooks_id);
+      const payments = await getQBPayments(accessToken, realmId, invoiceData.quickbooks_id);
 
       // Update status based on QB balance
       let status = invoiceData.status;
+      let paidDate = null;
+      
       if (qbInvoice.Balance === 0) {
         status = 'paid';
+        // Get the most recent payment date
+        if (payments.length > 0) {
+          const sortedPayments = payments.sort((a, b) => 
+            new Date(b.TxnDate) - new Date(a.TxnDate)
+          );
+          paidDate = sortedPayments[0].TxnDate;
+        } else {
+          paidDate = new Date().toISOString().split('T')[0];
+        }
       } else if (new Date(qbInvoice.DueDate) < new Date()) {
         status = 'overdue';
       } else {
@@ -199,46 +261,101 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Invoice.update(invoiceId, {
         status,
         quickbooks_sync_date: new Date().toISOString(),
-        paid_date: qbInvoice.Balance === 0 ? new Date().toISOString() : null
+        paid_date: paidDate
       });
 
       return Response.json({
         success: true,
         status,
-        balance: qbInvoice.Balance
+        balance: qbInvoice.Balance,
+        payments: payments.map(p => ({
+          date: p.TxnDate,
+          amount: p.TotalAmt
+        }))
       });
     }
 
     if (action === 'syncAll') {
-      const invoices = await base44.asServiceRole.entities.Invoice.filter({});
+      let invoices = await base44.asServiceRole.entities.Invoice.filter({});
+      
+      // Apply filters
+      invoices = invoices.filter(invoice => {
+        // Only sync invoices with QuickBooks ID
+        if (!invoice.quickbooks_id) return false;
+        
+        // Filter by status if provided
+        if (statusFilter && statusFilter !== 'all' && invoice.status !== statusFilter) {
+          return false;
+        }
+        
+        // Filter by date range if provided
+        if (dateFrom && new Date(invoice.issue_date) < new Date(dateFrom)) {
+          return false;
+        }
+        if (dateTo && new Date(invoice.issue_date) > new Date(dateTo)) {
+          return false;
+        }
+        
+        return true;
+      });
+
       const results = [];
 
       for (const invoice of invoices) {
-        if (invoice.quickbooks_id) {
-          try {
-            const qbInvoice = await getQBInvoice(accessToken, realmId, invoice.quickbooks_id);
-            let status = invoice.status;
-            if (qbInvoice.Balance === 0) {
-              status = 'paid';
-            } else if (new Date(qbInvoice.DueDate) < new Date()) {
-              status = 'overdue';
+        try {
+          const qbInvoice = await getQBInvoice(accessToken, realmId, invoice.quickbooks_id);
+          const payments = await getQBPayments(accessToken, realmId, invoice.quickbooks_id);
+          
+          let status = invoice.status;
+          let paidDate = null;
+          
+          if (qbInvoice.Balance === 0) {
+            status = 'paid';
+            if (payments.length > 0) {
+              const sortedPayments = payments.sort((a, b) => 
+                new Date(b.TxnDate) - new Date(a.TxnDate)
+              );
+              paidDate = sortedPayments[0].TxnDate;
             } else {
-              status = 'sent';
+              paidDate = new Date().toISOString().split('T')[0];
             }
-
-            await base44.asServiceRole.entities.Invoice.update(invoice.id, {
-              status,
-              quickbooks_sync_date: new Date().toISOString()
-            });
-
-            results.push({ id: invoice.id, status, synced: true });
-          } catch (error) {
-            results.push({ id: invoice.id, error: error.message, synced: false });
+          } else if (new Date(qbInvoice.DueDate) < new Date()) {
+            status = 'overdue';
+          } else {
+            status = 'sent';
           }
+
+          await base44.asServiceRole.entities.Invoice.update(invoice.id, {
+            status,
+            quickbooks_sync_date: new Date().toISOString(),
+            paid_date: paidDate
+          });
+
+          results.push({ 
+            id: invoice.id, 
+            invoice_number: invoice.invoice_number,
+            status, 
+            balance: qbInvoice.Balance,
+            paid_date: paidDate,
+            synced: true 
+          });
+        } catch (error) {
+          results.push({ 
+            id: invoice.id, 
+            invoice_number: invoice.invoice_number,
+            error: error.message, 
+            synced: false 
+          });
         }
       }
 
-      return Response.json({ success: true, results });
+      return Response.json({ 
+        success: true, 
+        results,
+        total: results.length,
+        synced: results.filter(r => r.synced).length,
+        failed: results.filter(r => !r.synced).length
+      });
     }
 
     return Response.json({ error: 'Invalid action' }, { status: 400 });
