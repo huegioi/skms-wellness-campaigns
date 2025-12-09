@@ -570,6 +570,24 @@ export default function Invoices() {
                     <p className="font-semibold">{new Date(selectedInvoice.invoice.due_date).toLocaleDateString()}</p>
                   </div>
                 </div>
+                {selectedInvoice.invoice.line_items && selectedInvoice.invoice.line_items.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Line Items</p>
+                    <div className="space-y-2">
+                      {selectedInvoice.invoice.line_items.map((item, idx) => (
+                        <div key={idx} className="bg-gray-50 rounded p-3">
+                          <div className="flex justify-between items-start mb-1">
+                            <span className="font-medium text-gray-800">{item.description}</span>
+                            <span className="font-semibold">${item.amount?.toLocaleString()}</span>
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            Qty: {item.quantity} × ${item.rate?.toLocaleString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="bg-gray-50 rounded-lg p-4 space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Total Amount:</span>

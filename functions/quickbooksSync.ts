@@ -392,6 +392,16 @@ Deno.serve(async (req) => {
           status = 'overdue';
         }
 
+        // Extract line items
+        const line_items = (qbInv.Line || [])
+          .filter(line => line.DetailType === 'SalesItemLineDetail')
+          .map(line => ({
+            description: line.Description || '',
+            quantity: line.SalesItemLineDetail?.Qty || 1,
+            rate: line.SalesItemLineDetail?.UnitPrice || 0,
+            amount: line.Amount || 0
+          }));
+
         return {
           quickbooks_id: qbInv.Id,
           invoice_number: qbInv.DocNumber,
@@ -402,7 +412,8 @@ Deno.serve(async (req) => {
           due_date: qbInv.DueDate,
           status,
           local_invoice_id: localMatch?.id,
-          in_local_db: !!localMatch
+          in_local_db: !!localMatch,
+          line_items
         };
       });
 
