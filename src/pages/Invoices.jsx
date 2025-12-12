@@ -176,17 +176,19 @@ export default function Invoices() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f0e9] p-2 sm:p-4 md:p-8">
+    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 md:mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#013f7c' }}>Invoices</h1>
             <p className="text-sm sm:text-base text-gray-600">Manage invoices and sync with QuickBooks</p>
           </div>
-          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap gap-2">
             <Button 
-              variant="outline" 
+              variant="outline"
+              size="sm"
+              className="sm:size-default"
               onClick={() => {
                 if (!showQBView) {
                   handleLoadQBInvoices();
@@ -199,41 +201,42 @@ export default function Invoices() {
             </Button>
             {!showQBView && (
               <Button 
-                variant="outline" 
+                variant="outline"
+                size="sm"
+                className="sm:size-default"
                 onClick={handleSyncAll}
                 disabled={syncingAll}
-                className="text-xs sm:text-sm"
               >
-                {syncingAll ? <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin" /> : <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />}
+                {syncingAll ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 sm:mr-2" />}
                 <span className="hidden sm:inline">Sync All</span>
-                <span className="sm:hidden">Sync</span>
               </Button>
             )}
             {showQBView && (
               <Button 
-                variant="outline" 
+                variant="outline"
+                size="sm"
+                className="sm:size-default"
                 onClick={handleLoadQBInvoices}
                 disabled={loadingQB}
-                className="text-xs sm:text-sm"
               >
-                {loadingQB ? <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin" /> : <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />}
+                {loadingQB ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 sm:mr-2" />}
                 <span className="hidden sm:inline">Refresh QB</span>
-                <span className="sm:hidden">Refresh</span>
               </Button>
             )}
             <Button 
-              className="bg-[#264d44] hover:bg-[#1a3830] text-xs sm:text-sm"
+              className="bg-[#264d44] hover:bg-[#1a3830]"
+              size="sm"
+              className="sm:size-default"
               onClick={() => setSelectedInvoice({ mode: 'create' })}
             >
-              <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" /> 
+              <FileText className="w-4 h-4 sm:mr-2" />
               <span className="hidden sm:inline">Create Invoice</span>
-              <span className="sm:hidden">Create</span>
             </Button>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg">
             <p className="text-xs sm:text-sm text-gray-500 mb-1">Total Invoiced</p>
             <p className="text-2xl sm:text-3xl font-bold text-gray-800">${(showQBView ? qbTotalAmount : totalAmount).toLocaleString()}</p>
@@ -248,7 +251,7 @@ export default function Invoices() {
               <p className="text-xs text-gray-400 mt-1">Local: ${paidAmount.toLocaleString()}</p>
             )}
           </div>
-          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg sm:col-span-2 lg:col-span-1">
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg">
             <p className="text-xs sm:text-sm text-gray-500 mb-1">Outstanding</p>
             <p className="text-2xl sm:text-3xl font-bold text-amber-600">${(showQBView ? qbOutstandingAmount : outstandingAmount).toLocaleString()}</p>
             {showQBView && qbInvoices.length > 0 && (
@@ -258,11 +261,11 @@ export default function Invoices() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-lg mb-4 sm:mb-6">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            <span className="text-xs sm:text-sm text-gray-600">Filter:</span>
+        <div className="bg-white rounded-xl p-4 shadow-lg mb-6">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center gap-3 sm:gap-4">
+            <span className="text-sm text-gray-600 hidden sm:inline">Filter:</span>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-full sm:w-[180px] text-xs sm:text-sm">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -276,27 +279,27 @@ export default function Invoices() {
             </Select>
 
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
-              <span className="text-xs sm:text-sm text-gray-600">Date Range:</span>
+              <span className="text-sm text-gray-600">Date Range:</span>
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Input 
                   type="date" 
                   value={dateFrom} 
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-full sm:w-[150px] text-xs sm:text-sm"
+                  className="flex-1 sm:w-[150px]"
                   placeholder="From"
                 />
-                <span className="text-gray-400 text-xs sm:text-sm">to</span>
+                <span className="text-gray-400">to</span>
                 <Input 
                   type="date" 
                   value={dateTo} 
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="w-full sm:w-[150px] text-xs sm:text-sm"
+                  className="flex-1 sm:w-[150px]"
                   placeholder="To"
                 />
               </div>
             </div>
 
-            <span className="text-xs sm:text-sm text-gray-500 w-full sm:w-auto sm:ml-auto mt-2 sm:mt-0">
+            <span className="text-sm text-gray-500 sm:ml-auto">
               {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''}
             </span>
           </div>
@@ -355,11 +358,11 @@ export default function Invoices() {
                   const StatusIcon = status.icon;
 
                   return (
-                    <div key={invoice.quickbooks_id} className="bg-white rounded-xl shadow-lg p-3 sm:p-5 hover:shadow-xl transition-shadow">
-                      <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-0">
-                        <div className="flex-1 w-full">
-                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-                            <h3 className="text-lg sm:text-xl font-bold" style={{ color: '#264d44' }}>
+                    <div key={invoice.quickbooks_id} className="bg-white rounded-xl shadow-lg p-5 hover:shadow-xl transition-shadow">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-xl font-bold" style={{ color: '#264d44' }}>
                               {invoice.invoice_number}
                             </h3>
                             <Badge className={status.color}>
@@ -377,12 +380,12 @@ export default function Invoices() {
                             )}
                           </div>
 
-                          <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-3">
+                          <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
                             <span className="flex items-center gap-1">
-                              <FileText className="w-3 h-3 sm:w-4 sm:h-4" /> {invoice.customer_name}
+                              <FileText className="w-4 h-4" /> {invoice.customer_name}
                             </span>
                             <span className="flex items-center gap-1">
-                              <DollarSign className="w-3 h-3 sm:w-4 sm:h-4" /> ${invoice.total_amount?.toLocaleString()}
+                              <DollarSign className="w-4 h-4" /> ${invoice.total_amount?.toLocaleString()}
                             </span>
                             {invoice.balance > 0 && (
                               <span className="flex items-center gap-1 text-amber-600">
@@ -390,12 +393,12 @@ export default function Invoices() {
                               </span>
                             )}
                             <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3 sm:w-4 sm:h-4" /> Due: {new Date(invoice.due_date).toLocaleDateString()}
+                              <Calendar className="w-4 h-4" /> Due: {new Date(invoice.due_date).toLocaleDateString()}
                             </span>
                           </div>
-                          </div>
+                        </div>
 
-                          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                        <div className="flex items-center gap-2">
                           <Button
                             size="sm"
                             variant="outline"
@@ -435,11 +438,11 @@ export default function Invoices() {
               const isSyncing = syncing === invoice.id;
 
               return (
-                <div key={invoice.id} className="bg-white rounded-xl shadow-lg p-3 sm:p-5 hover:shadow-xl transition-shadow">
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-0">
-                    <div className="flex-1 w-full">
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
-                        <h3 className="text-lg sm:text-xl font-bold" style={{ color: '#264d44' }}>
+                <div key={invoice.id} className="bg-white rounded-xl shadow-lg p-4 sm:p-5 hover:shadow-xl transition-shadow">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <h3 className="text-lg sm:text-xl font-bold truncate" style={{ color: '#264d44' }}>
                           {invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}
                         </h3>
                         <Badge className={status.color}>
@@ -447,36 +450,37 @@ export default function Invoices() {
                           {status.label}
                         </Badge>
                         {invoice.quickbooks_id && (
-                          <Badge variant="outline" className="text-green-600 border-green-200">
-                            QuickBooks Synced
+                          <Badge variant="outline" className="text-green-600 border-green-200 text-xs">
+                            QB Synced
                           </Badge>
                         )}
                       </div>
 
-                      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-3">
+                      <div className="flex flex-wrap gap-3 text-sm text-gray-600 mb-2">
                         <span className="flex items-center gap-1">
-                          <FileText className="w-3 h-3 sm:w-4 sm:h-4" /> {invoice.client_name}
+                          <FileText className="w-4 h-4 flex-shrink-0" /> 
+                          <span className="truncate">{invoice.client_name}</span>
                         </span>
-                        {invoice.company && <span className="hidden sm:inline">{invoice.company}</span>}
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="w-3 h-3 sm:w-4 sm:h-4" /> ${invoice.total_amount?.toLocaleString()}
+                        {invoice.company && <span className="truncate">{invoice.company}</span>}
+                        <span className="flex items-center gap-1 whitespace-nowrap">
+                          <DollarSign className="w-4 h-4 flex-shrink-0" /> ${invoice.total_amount?.toLocaleString()}
                         </span>
-                        <span className="flex items-center gap-1">
-                          <Calendar className="w-3 h-3 sm:w-4 sm:h-4" /> Due: {new Date(invoice.due_date).toLocaleDateString()}
+                        <span className="flex items-center gap-1 whitespace-nowrap">
+                          <Calendar className="w-4 h-4 flex-shrink-0" /> Due: {new Date(invoice.due_date).toLocaleDateString()}
                         </span>
                         {invoice.paid_date && (
-                          <span className="flex items-center gap-1 text-green-600">
-                            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" /> Paid: {new Date(invoice.paid_date).toLocaleDateString()}
+                          <span className="flex items-center gap-1 text-green-600 whitespace-nowrap">
+                            <CheckCircle className="w-4 h-4 flex-shrink-0" /> Paid: {new Date(invoice.paid_date).toLocaleDateString()}
                           </span>
                         )}
                       </div>
 
                       {invoice.memo && (
-                        <p className="text-xs sm:text-sm text-gray-500 italic line-clamp-2">{invoice.memo}</p>
+                        <p className="text-sm text-gray-500 italic line-clamp-2">{invoice.memo}</p>
                       )}
-                      </div>
+                    </div>
 
-                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                    <div className="flex sm:flex-col lg:flex-row items-start sm:items-end lg:items-center gap-2 flex-shrink-0">
                       {invoice.quickbooks_id ? (
                         <Button
                           size="sm"
@@ -489,15 +493,15 @@ export default function Invoices() {
                       ) : invoice.status === 'draft' ? (
                         <Button
                           size="sm"
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
                           onClick={() => handleSyncToQB(invoice)}
                           disabled={isSyncing}
                         >
-                          {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                          Send to QB
+                          {isSyncing ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" /> : <Send className="w-4 h-4 sm:mr-2" />}
+                          <span className="hidden sm:inline">Send to QB</span>
                         </Button>
                       ) : null}
-                      
+
                       <Button
                         size="sm"
                         variant="outline"
@@ -505,7 +509,7 @@ export default function Invoices() {
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
-                      
+
                       {invoice.status === 'draft' && (
                         <Button
                           size="sm"
@@ -515,7 +519,7 @@ export default function Invoices() {
                           <Pencil className="w-4 h-4" />
                         </Button>
                       )}
-                      
+
                       <Button
                         size="sm"
                         variant="outline"

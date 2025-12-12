@@ -1,112 +1,99 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Users, FileText, FolderOpen, BarChart3, Calendar, Package, Mail, UserCircle } from 'lucide-react';
+import { Users, FileText, FolderOpen, BarChart3, Calendar, Package, Mail, Menu, X } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   // Public pages - no navigation
   if (currentPageName === 'ViewProposal' || currentPageName === 'MyPortal') {
     return <>{children}</>;
   }
 
+  const navItems = [
+    { name: 'Builder', page: 'CurriculumDesigner', icon: FileText },
+    { name: 'Proposals', page: 'Proposals', icon: FolderOpen, altPage: 'EditProposal' },
+    { name: 'Clients', page: 'Clients', icon: Users },
+    { name: 'Analytics', page: 'Analytics', icon: BarChart3 },
+    { name: 'Calendar', page: 'Calendar', icon: Calendar },
+    { name: 'Services', page: 'ServiceCatalog', icon: Package },
+    { name: 'Templates', page: 'EmailTemplateManager', icon: Mail },
+    { name: 'Schedule', page: 'SchedulingHub', icon: Calendar },
+    { name: 'Invoices', page: 'Invoices', icon: FileText }
+  ];
+
   return (
     <div className="min-h-screen bg-[#f4f0e9]">
       {/* Navigation Header */}
-      <nav className="bg-white shadow-sm border-b">
-        <div className="max-w-6xl mx-auto px-2 sm:px-4 py-3 flex items-center justify-between">
-          <Link to={createPageUrl('CurriculumDesigner')} className="flex items-center gap-1 sm:gap-2">
-            <span className="font-bold text-sm sm:text-base lg:text-lg" style={{ color: '#013f7c' }}>SKMS Wellness</span>
-          </Link>
-          <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-wrap">
-            <Link 
-              to={createPageUrl('CurriculumDesigner')} 
-              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                currentPageName === 'CurriculumDesigner' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden md:inline">Builder</span>
-            </Link>
-            <Link 
-              to={createPageUrl('Proposals')} 
-              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                currentPageName === 'Proposals' || currentPageName === 'EditProposal' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden md:inline">Proposals</span>
-            </Link>
-            <Link 
-              to={createPageUrl('Clients')} 
-              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                currentPageName === 'Clients' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <Users className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden md:inline">Clients</span>
-            </Link>
-            <Link 
-              to={createPageUrl('Analytics')} 
-              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                currentPageName === 'Analytics' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden md:inline">Analytics</span>
-            </Link>
-            <Link 
-              to={createPageUrl('Calendar')} 
-              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                currentPageName === 'Calendar' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden lg:inline">Calendar</span>
-            </Link>
-            <Link 
-              to={createPageUrl('ServiceCatalog')} 
-              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                currentPageName === 'ServiceCatalog' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <Package className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden lg:inline">Services</span>
-            </Link>
-            <Link 
-              to={createPageUrl('EmailTemplateManager')} 
-              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                currentPageName === 'EmailTemplateManager' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden lg:inline">Templates</span>
+      <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link to={createPageUrl('CurriculumDesigner')} className="flex-shrink-0">
+              <span className="font-bold text-base sm:text-lg md:text-xl" style={{ color: '#013f7c' }}>
+                SKMS Wellness
+              </span>
             </Link>
 
-            <Link 
-              to={createPageUrl('SchedulingHub')} 
-              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                currentPageName === 'SchedulingHub' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden lg:inline">Schedule</span>
-            </Link>
-
-            <Link 
-              to={createPageUrl('Invoices')} 
-              className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                currentPageName === 'Invoices' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden lg:inline">Invoices</span>
-            </Link>
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center gap-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = currentPageName === item.page || (item.altPage && currentPageName === item.altPage);
+                return (
+                  <Link
+                    key={item.page}
+                    to={createPageUrl(item.page)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{item.name}</span>
+                  </Link>
+                );
+              })}
             </div>
+
+            {/* Mobile Menu Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden border-t bg-white">
+            <div className="px-4 py-3 space-y-1 max-h-[calc(100vh-4rem)] overflow-y-auto">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = currentPageName === item.page || (item.altPage && currentPageName === item.altPage);
+                return (
+                  <Link
+                    key={item.page}
+                    to={createPageUrl(item.page)}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors ${
+                      isActive ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span>{item.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Page Content */}
-      <main>
+      <main className="pb-6">
         {children}
       </main>
     </div>
