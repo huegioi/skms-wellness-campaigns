@@ -274,7 +274,7 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Event</DialogTitle>
         </DialogHeader>
@@ -481,9 +481,9 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
                 <label htmlFor="all_day" className="text-sm text-gray-600">All day event</label>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">
                     <Calendar className="w-4 h-4 inline mr-1" />
                     Start *
                   </label>
@@ -494,7 +494,7 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                  <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">
                     <Clock className="w-4 h-4 inline mr-1" />
                     End
                   </label>

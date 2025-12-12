@@ -195,22 +195,22 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-gray-50 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Total Proposals</p>
-          <p className="text-2xl font-bold" style={{ color: '#013f7c' }}>{proposals.length}</p>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-gray-500">Total Proposals</p>
+          <p className="text-xl sm:text-2xl font-bold" style={{ color: '#013f7c' }}>{proposals.length}</p>
         </div>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Total Value</p>
-          <p className="text-2xl font-bold text-green-600">${totalProposalValue.toLocaleString()}</p>
+        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-gray-500">Total Value</p>
+          <p className="text-xl sm:text-2xl font-bold text-green-600">${totalProposalValue.toLocaleString()}</p>
         </div>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Won Value</p>
-          <p className="text-2xl font-bold" style={{ color: '#770142' }}>${acceptedValue.toLocaleString()}</p>
+        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-gray-500">Won Value</p>
+          <p className="text-xl sm:text-2xl font-bold" style={{ color: '#770142' }}>${acceptedValue.toLocaleString()}</p>
         </div>
-        <div className="bg-gray-50 rounded-lg p-4">
-          <p className="text-sm text-gray-500">Interactions</p>
-          <p className="text-2xl font-bold text-blue-600">{interactions.length}</p>
+        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
+          <p className="text-xs sm:text-sm text-gray-500">Interactions</p>
+          <p className="text-xl sm:text-2xl font-bold text-blue-600">{interactions.length}</p>
         </div>
       </div>
 
@@ -466,7 +466,7 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
 
       {/* Add Contact Dialog */}
       <Dialog open={showAddContact} onOpenChange={setShowAddContact}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>{editingContact !== null ? 'Edit Contact' : 'Add Related Contact'}</DialogTitle>
           </DialogHeader>
@@ -485,7 +485,7 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
 
       {/* View Proposal Dialog */}
       <Dialog open={!!viewingProposal} onOpenChange={(open) => !open && setViewingProposal(null)}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Proposal Details</DialogTitle>
           </DialogHeader>
@@ -558,7 +558,7 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
 
       {/* Add Service Dialog */}
       <Dialog open={showAddService} onOpenChange={setShowAddService}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Add Service to Client</DialogTitle>
           </DialogHeader>
@@ -582,7 +582,7 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
 
       {/* Add Interaction Dialog */}
       <Dialog open={showAddInteraction} onOpenChange={setShowAddInteraction}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Log Interaction</DialogTitle>
           </DialogHeader>

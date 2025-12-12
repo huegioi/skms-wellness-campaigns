@@ -197,7 +197,7 @@ ${proposalHTML}
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg w-[95vw] sm:w-full">
         <DialogHeader>
           <DialogTitle>Send Proposal</DialogTitle>
         </DialogHeader>
