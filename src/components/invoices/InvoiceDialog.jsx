@@ -272,16 +272,16 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create' ? 'Create Invoice' : mode === 'edit' ? 'Edit Invoice' : 'View Invoice'}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 mt-4">
+        <div className="space-y-4 sm:space-y-6 mt-4">
           {/* Client Selection */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {mode === 'create' ? (
               <>
                 <Select value={formData.client_id} onValueChange={handleClientChange} disabled={isReadOnly}>
@@ -337,9 +337,9 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
           )}
 
           {/* Dates */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-gray-600">Issue Date</label>
+              <label className="text-xs sm:text-sm text-gray-600">Issue Date</label>
               <Input
                 type="date"
                 value={formData.issue_date}
@@ -348,7 +348,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
               />
             </div>
             <div>
-              <label className="text-sm text-gray-600">Due Date</label>
+              <label className="text-xs sm:text-sm text-gray-600">Due Date</label>
               <Input
                 type="date"
                 value={formData.due_date}
@@ -360,8 +360,8 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
 
           {/* Line Items */}
           <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-sm font-medium text-gray-700">Line Items</label>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 gap-2">
+              <label className="text-xs sm:text-sm font-medium text-gray-700">Line Items</label>
               {!isReadOnly && (
                 <Button size="sm" variant="outline" onClick={addLineItem}>
                   <Plus className="w-4 h-4 mr-1" /> Add Item
@@ -395,25 +395,25 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
                       disabled={isReadOnly}
                     />
                     <div className="grid grid-cols-12 gap-2 items-center">
-                      <Input
-                        type="number"
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e) => updateLineItem(idx, 'quantity', Number(e.target.value))}
-                        className="col-span-3"
-                        disabled={isReadOnly}
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Rate"
-                        value={item.rate}
-                        onChange={(e) => updateLineItem(idx, 'rate', Number(e.target.value))}
-                        className="col-span-3"
-                        disabled={isReadOnly}
-                      />
-                      <div className="col-span-5 text-right font-semibold text-lg">
-                        ${item.amount.toLocaleString()}
-                      </div>
+                    <Input
+                    type="number"
+                    placeholder="Qty"
+                    value={item.quantity}
+                    onChange={(e) => updateLineItem(idx, 'quantity', Number(e.target.value))}
+                    className="col-span-3 text-xs sm:text-sm"
+                    disabled={isReadOnly}
+                    />
+                    <Input
+                    type="number"
+                    placeholder="Rate"
+                    value={item.rate}
+                    onChange={(e) => updateLineItem(idx, 'rate', Number(e.target.value))}
+                    className="col-span-3 text-xs sm:text-sm"
+                    disabled={isReadOnly}
+                    />
+                    <div className="col-span-5 text-right font-semibold text-base sm:text-lg">
+                    ${item.amount.toLocaleString()}
+                    </div>
                       {!isReadOnly && (
                         <Button
                           size="icon"
@@ -432,12 +432,12 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
           </div>
 
           {/* Totals */}
-          <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+          <div className="bg-gray-50 rounded-lg p-3 sm:p-4 space-y-2 text-sm sm:text-base">
             <div className="flex justify-between">
               <span className="text-gray-600">Subtotal:</span>
               <span className="font-semibold">${subtotal.toLocaleString()}</span>
             </div>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
               <div className="flex items-center gap-2">
                 <span className="text-gray-600">Tax Rate:</span>
                 {!isReadOnly && (
@@ -445,24 +445,24 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
                     type="number"
                     value={formData.tax_rate}
                     onChange={(e) => setFormData({ ...formData, tax_rate: Number(e.target.value) })}
-                    className="w-20"
+                    className="w-16 sm:w-20 text-xs sm:text-sm"
                     disabled={isReadOnly}
                   />
                 )}
                 {isReadOnly && <span>{formData.tax_rate}%</span>}
                 <span className="text-gray-600">%</span>
-              </div>
-              <span className="font-semibold">${tax_amount.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between text-lg font-bold pt-2 border-t">
-              <span>Total:</span>
-              <span style={{ color: '#770142' }}>${total.toLocaleString()}</span>
+                </div>
+                <span className="font-semibold">${tax_amount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-base sm:text-lg font-bold pt-2 border-t">
+                <span>Total:</span>
+                <span style={{ color: '#770142' }}>${total.toLocaleString()}</span>
             </div>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="text-sm text-gray-600">Customer Memo</label>
+            <label className="text-xs sm:text-sm text-gray-600">Customer Memo</label>
             <Textarea
               placeholder="Visible to customer..."
               value={formData.memo}
@@ -473,7 +473,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
           </div>
 
           <div>
-            <label className="text-sm text-gray-600">Internal Notes</label>
+            <label className="text-xs sm:text-sm text-gray-600">Internal Notes</label>
             <Textarea
               placeholder="Private notes..."
               value={formData.notes}

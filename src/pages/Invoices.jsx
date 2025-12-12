@@ -176,15 +176,15 @@ export default function Invoices() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
+    <div className="min-h-screen bg-[#f4f0e9] p-2 sm:p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
           <div>
-            <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Invoices</h1>
-            <p className="text-gray-600">Manage invoices and sync with QuickBooks</p>
+            <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#013f7c' }}>Invoices</h1>
+            <p className="text-sm sm:text-base text-gray-600">Manage invoices and sync with QuickBooks</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <Button 
               variant="outline" 
               onClick={() => {
@@ -202,9 +202,11 @@ export default function Invoices() {
                 variant="outline" 
                 onClick={handleSyncAll}
                 disabled={syncingAll}
+                className="text-xs sm:text-sm"
               >
-                {syncingAll ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-                Sync All
+                {syncingAll ? <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin" /> : <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />}
+                <span className="hidden sm:inline">Sync All</span>
+                <span className="sm:hidden">Sync</span>
               </Button>
             )}
             {showQBView && (
@@ -212,39 +214,43 @@ export default function Invoices() {
                 variant="outline" 
                 onClick={handleLoadQBInvoices}
                 disabled={loadingQB}
+                className="text-xs sm:text-sm"
               >
-                {loadingQB ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-                Refresh QB
+                {loadingQB ? <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2 animate-spin" /> : <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />}
+                <span className="hidden sm:inline">Refresh QB</span>
+                <span className="sm:hidden">Refresh</span>
               </Button>
             )}
             <Button 
-              className="bg-[#264d44] hover:bg-[#1a3830]"
+              className="bg-[#264d44] hover:bg-[#1a3830] text-xs sm:text-sm"
               onClick={() => setSelectedInvoice({ mode: 'create' })}
             >
-              <FileText className="w-4 h-4 mr-2" /> Create Invoice
+              <FileText className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" /> 
+              <span className="hidden sm:inline">Create Invoice</span>
+              <span className="sm:hidden">Create</span>
             </Button>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-xl p-6 shadow-lg">
-            <p className="text-sm text-gray-500 mb-1">Total Invoiced</p>
-            <p className="text-3xl font-bold text-gray-800">${(showQBView ? qbTotalAmount : totalAmount).toLocaleString()}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg">
+            <p className="text-xs sm:text-sm text-gray-500 mb-1">Total Invoiced</p>
+            <p className="text-2xl sm:text-3xl font-bold text-gray-800">${(showQBView ? qbTotalAmount : totalAmount).toLocaleString()}</p>
             {showQBView && qbInvoices.length > 0 && (
               <p className="text-xs text-gray-400 mt-1">Local: ${totalAmount.toLocaleString()}</p>
             )}
           </div>
-          <div className="bg-white rounded-xl p-6 shadow-lg">
-            <p className="text-sm text-gray-500 mb-1">Paid</p>
-            <p className="text-3xl font-bold text-green-600">${(showQBView ? qbPaidAmount : paidAmount).toLocaleString()}</p>
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg">
+            <p className="text-xs sm:text-sm text-gray-500 mb-1">Paid</p>
+            <p className="text-2xl sm:text-3xl font-bold text-green-600">${(showQBView ? qbPaidAmount : paidAmount).toLocaleString()}</p>
             {showQBView && qbInvoices.length > 0 && (
               <p className="text-xs text-gray-400 mt-1">Local: ${paidAmount.toLocaleString()}</p>
             )}
           </div>
-          <div className="bg-white rounded-xl p-6 shadow-lg">
-            <p className="text-sm text-gray-500 mb-1">Outstanding</p>
-            <p className="text-3xl font-bold text-amber-600">${(showQBView ? qbOutstandingAmount : outstandingAmount).toLocaleString()}</p>
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-lg sm:col-span-2 lg:col-span-1">
+            <p className="text-xs sm:text-sm text-gray-500 mb-1">Outstanding</p>
+            <p className="text-2xl sm:text-3xl font-bold text-amber-600">${(showQBView ? qbOutstandingAmount : outstandingAmount).toLocaleString()}</p>
             {showQBView && qbInvoices.length > 0 && (
               <p className="text-xs text-gray-400 mt-1">Local: ${outstandingAmount.toLocaleString()}</p>
             )}
@@ -252,11 +258,11 @@ export default function Invoices() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-xl p-4 shadow-lg mb-6">
-          <div className="flex flex-wrap items-center gap-4">
-            <span className="text-sm text-gray-600">Filter:</span>
+        <div className="bg-white rounded-xl p-3 sm:p-4 shadow-lg mb-4 sm:mb-6">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+            <span className="text-xs sm:text-sm text-gray-600">Filter:</span>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px] text-xs sm:text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -268,27 +274,29 @@ export default function Invoices() {
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
-            
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Date Range:</span>
-              <Input 
-                type="date" 
-                value={dateFrom} 
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-[150px]"
-                placeholder="From"
-              />
-              <span className="text-gray-400">to</span>
-              <Input 
-                type="date" 
-                value={dateTo} 
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-[150px]"
-                placeholder="To"
-              />
+
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:w-auto">
+              <span className="text-xs sm:text-sm text-gray-600">Date Range:</span>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Input 
+                  type="date" 
+                  value={dateFrom} 
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full sm:w-[150px] text-xs sm:text-sm"
+                  placeholder="From"
+                />
+                <span className="text-gray-400 text-xs sm:text-sm">to</span>
+                <Input 
+                  type="date" 
+                  value={dateTo} 
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full sm:w-[150px] text-xs sm:text-sm"
+                  placeholder="To"
+                />
+              </div>
             </div>
-            
-            <span className="text-sm text-gray-500 ml-auto">
+
+            <span className="text-xs sm:text-sm text-gray-500 w-full sm:w-auto sm:ml-auto mt-2 sm:mt-0">
               {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''}
             </span>
           </div>
@@ -347,11 +355,11 @@ export default function Invoices() {
                   const StatusIcon = status.icon;
 
                   return (
-                    <div key={invoice.quickbooks_id} className="bg-white rounded-xl shadow-lg p-5 hover:shadow-xl transition-shadow">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-xl font-bold" style={{ color: '#264d44' }}>
+                    <div key={invoice.quickbooks_id} className="bg-white rounded-xl shadow-lg p-3 sm:p-5 hover:shadow-xl transition-shadow">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-0">
+                        <div className="flex-1 w-full">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                            <h3 className="text-lg sm:text-xl font-bold" style={{ color: '#264d44' }}>
                               {invoice.invoice_number}
                             </h3>
                             <Badge className={status.color}>
@@ -369,12 +377,12 @@ export default function Invoices() {
                             )}
                           </div>
 
-                          <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
+                          <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-3">
                             <span className="flex items-center gap-1">
-                              <FileText className="w-4 h-4" /> {invoice.customer_name}
+                              <FileText className="w-3 h-3 sm:w-4 sm:h-4" /> {invoice.customer_name}
                             </span>
                             <span className="flex items-center gap-1">
-                              <DollarSign className="w-4 h-4" /> ${invoice.total_amount?.toLocaleString()}
+                              <DollarSign className="w-3 h-3 sm:w-4 sm:h-4" /> ${invoice.total_amount?.toLocaleString()}
                             </span>
                             {invoice.balance > 0 && (
                               <span className="flex items-center gap-1 text-amber-600">
@@ -382,12 +390,12 @@ export default function Invoices() {
                               </span>
                             )}
                             <span className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4" /> Due: {new Date(invoice.due_date).toLocaleDateString()}
+                              <Calendar className="w-3 h-3 sm:w-4 sm:h-4" /> Due: {new Date(invoice.due_date).toLocaleDateString()}
                             </span>
                           </div>
-                        </div>
+                          </div>
 
-                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                           <Button
                             size="sm"
                             variant="outline"
@@ -427,11 +435,11 @@ export default function Invoices() {
               const isSyncing = syncing === invoice.id;
 
               return (
-                <div key={invoice.id} className="bg-white rounded-xl shadow-lg p-5 hover:shadow-xl transition-shadow">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-xl font-bold" style={{ color: '#264d44' }}>
+                <div key={invoice.id} className="bg-white rounded-xl shadow-lg p-3 sm:p-5 hover:shadow-xl transition-shadow">
+                  <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-0">
+                    <div className="flex-1 w-full">
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                        <h3 className="text-lg sm:text-xl font-bold" style={{ color: '#264d44' }}>
                           {invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}
                         </h3>
                         <Badge className={status.color}>
@@ -444,31 +452,31 @@ export default function Invoices() {
                           </Badge>
                         )}
                       </div>
-                      
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-3">
+
+                      <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600 mb-3">
                         <span className="flex items-center gap-1">
-                          <FileText className="w-4 h-4" /> {invoice.client_name}
+                          <FileText className="w-3 h-3 sm:w-4 sm:h-4" /> {invoice.client_name}
                         </span>
-                        {invoice.company && <span>{invoice.company}</span>}
+                        {invoice.company && <span className="hidden sm:inline">{invoice.company}</span>}
                         <span className="flex items-center gap-1">
-                          <DollarSign className="w-4 h-4" /> ${invoice.total_amount?.toLocaleString()}
+                          <DollarSign className="w-3 h-3 sm:w-4 sm:h-4" /> ${invoice.total_amount?.toLocaleString()}
                         </span>
                         <span className="flex items-center gap-1">
-                          <Calendar className="w-4 h-4" /> Due: {new Date(invoice.due_date).toLocaleDateString()}
+                          <Calendar className="w-3 h-3 sm:w-4 sm:h-4" /> Due: {new Date(invoice.due_date).toLocaleDateString()}
                         </span>
                         {invoice.paid_date && (
                           <span className="flex items-center gap-1 text-green-600">
-                            <CheckCircle className="w-4 h-4" /> Paid: {new Date(invoice.paid_date).toLocaleDateString()}
+                            <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4" /> Paid: {new Date(invoice.paid_date).toLocaleDateString()}
                           </span>
                         )}
                       </div>
 
                       {invoice.memo && (
-                        <p className="text-sm text-gray-500 italic">{invoice.memo}</p>
+                        <p className="text-xs sm:text-sm text-gray-500 italic line-clamp-2">{invoice.memo}</p>
                       )}
-                    </div>
+                      </div>
 
-                    <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
                       {invoice.quickbooks_id ? (
                         <Button
                           size="sm"
