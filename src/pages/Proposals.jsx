@@ -285,29 +285,29 @@ export default function Proposals() {
 
         {/* View Proposal Dialog */}
         <Dialog open={!!viewingProposal} onOpenChange={(open) => !open && setViewingProposal(null)}>
-          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Proposal Details</DialogTitle>
             </DialogHeader>
             {viewingProposal && (
               <div className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm text-gray-500">Client</label>
+                    <label className="text-xs sm:text-sm text-gray-500">Client</label>
                     <p className="font-semibold">{viewingProposal.client_name}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-500">Company</label>
+                    <label className="text-xs sm:text-sm text-gray-500">Company</label>
                     <p className="font-semibold">{viewingProposal.company || '-'}</p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-500">Total Amount</label>
+                    <label className="text-xs sm:text-sm text-gray-500">Total Amount</label>
                     <p className="font-semibold text-lg" style={{ color: '#770142' }}>
                       ${viewingProposal.total_amount?.toLocaleString()}
                     </p>
                   </div>
                   <div>
-                    <label className="text-sm text-gray-500">Status</label>
+                    <label className="text-xs sm:text-sm text-gray-500">Status</label>
                     <Badge className={statusConfig[viewingProposal.status || 'draft'].color}>
                       {statusConfig[viewingProposal.status || 'draft'].label}
                     </Badge>

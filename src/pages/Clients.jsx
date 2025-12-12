@@ -27,16 +27,16 @@ function ClientFormFields({ formData, setFormData, clients, isEdit, editingClien
         currentClientId={isEdit ? editingClient?.id : null}
         onSelectDuplicate={onSelectDuplicate}
       />
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input placeholder="Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
         <Input placeholder="Job Title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input type="email" placeholder="Email *" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
         <Input placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
       </div>
       <Input placeholder="Company" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input placeholder="Industry" value={formData.industry} onChange={(e) => setFormData({...formData, industry: e.target.value})} />
         <Select value={formData.company_size || "none"} onValueChange={(v) => setFormData({...formData, company_size: v === "none" ? "" : v})}>
           <SelectTrigger><SelectValue placeholder="Company Size" /></SelectTrigger>
@@ -56,14 +56,14 @@ function ClientFormFields({ formData, setFormData, clients, isEdit, editingClien
       <Input type="number" placeholder="Wellness Budget ($)" value={formData.wellness_budget} onChange={(e) => setFormData({...formData, wellness_budget: e.target.value ? Number(e.target.value) : ''})} />
       <div className="border-t pt-4 mt-2">
         <p className="text-sm font-medium text-gray-600 mb-2">Broker Information</p>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input placeholder="Broker Name" value={formData.broker_name} onChange={(e) => setFormData({...formData, broker_name: e.target.value})} />
           <Input type="email" placeholder="Broker Email" value={formData.broker_email} onChange={(e) => setFormData({...formData, broker_email: e.target.value})} />
         </div>
       </div>
       <div className="border-t pt-4 mt-2">
         <p className="text-sm font-medium text-gray-600 mb-2">Wellness Consultant Information</p>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input placeholder="Consultant Name" value={formData.wellness_consultant_name} onChange={(e) => setFormData({...formData, wellness_consultant_name: e.target.value})} />
           <Input type="email" placeholder="Consultant Email" value={formData.wellness_consultant_email} onChange={(e) => setFormData({...formData, wellness_consultant_email: e.target.value})} />
         </div>
@@ -344,7 +344,7 @@ export default function Clients() {
                 <Plus className="w-4 h-4 mr-2" /> Add Client
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-lg w-[95vw] sm:w-full">
               <DialogHeader>
                 <DialogTitle>Add New Client</DialogTitle>
               </DialogHeader>
@@ -472,7 +472,7 @@ export default function Clients() {
 
         {/* Edit Dialog */}
         <Dialog open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg w-[95vw] sm:w-full">
             <DialogHeader>
               <DialogTitle>Edit Client</DialogTitle>
             </DialogHeader>
@@ -492,7 +492,7 @@ export default function Clients() {
 
         {/* Client Detail View Dialog */}
         <Dialog open={!!viewingClient} onOpenChange={(open) => !open && setViewingClient(null)}>
-          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl w-[95vw] sm:w-full max-h-[85vh] overflow-y-auto">
             {viewingClient && (
               <ClientDetailView 
                 client={viewingClient} 
@@ -505,7 +505,7 @@ export default function Clients() {
 
         {/* Merge Clients Dialog */}
         <Dialog open={!!mergingClients} onOpenChange={(open) => !open && setMergingClients(null)}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg w-[95vw] sm:w-full">
             <DialogHeader>
               <DialogTitle>Merge Duplicate Clients</DialogTitle>
             </DialogHeader>

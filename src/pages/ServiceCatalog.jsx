@@ -259,7 +259,7 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{service.id ? 'Edit Service' : 'Add New Service'}</DialogTitle>
         </DialogHeader>
@@ -307,9 +307,9 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Price *</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Price *</label>
               <Input 
                 type="number"
                 value={formData.price || ''} 
@@ -318,7 +318,7 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Price Label</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Price Label</label>
               <Input 
                 value={formData.price_label || ''} 
                 onChange={(e) => setFormData({...formData, price_label: e.target.value})}
@@ -327,9 +327,9 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Duration</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Duration</label>
               <Input 
                 value={formData.duration || ''} 
                 onChange={(e) => setFormData({...formData, duration: e.target.value})}
@@ -337,7 +337,7 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Duration (hours)</label>
+              <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Duration (hours)</label>
               <Input 
                 type="number"
                 value={formData.duration_hours || ''} 
