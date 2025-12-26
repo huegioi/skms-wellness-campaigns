@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   FileText, Calendar, DollarSign, Copy, Pencil, Trash2, 
-  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock, Bell, Mail, Link2
+  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock, Bell, Mail, Link2, Search
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -19,6 +19,7 @@ export default function Proposals() {
   const [sortOrder, setSortOrder] = useState('desc');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterClient, setFilterClient] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [viewingProposal, setViewingProposal] = useState(null);
   const [sendingProposal, setSendingProposal] = useState(null);
   const [reminderProposal, setReminderProposal] = useState(null);
@@ -69,6 +70,16 @@ export default function Proposals() {
   const filteredProposals = proposals
     .filter(p => filterStatus === 'all' || p.status === filterStatus)
     .filter(p => filterClient === 'all' || p.client_id === filterClient)
+    .filter(p => {
+      if (!searchQuery) return true;
+      const query = searchQuery.toLowerCase();
+      return (
+        p.client_name?.toLowerCase().includes(query) ||
+        p.company?.toLowerCase().includes(query) ||
+        p.client_email?.toLowerCase().includes(query) ||
+        p.narrative_summary?.toLowerCase().includes(query)
+      );
+    })
     .sort((a, b) => {
       let comparison = 0;
       if (sortBy === 'date') {
@@ -102,12 +113,23 @@ export default function Proposals() {
           </Link>
         </div>
 
-        {/* Filters and Sort */}
-        <div className="bg-white rounded-xl p-4 shadow-lg mb-6 flex flex-wrap gap-4 items-center">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-600">Filters:</span>
+        {/* Search and Filters */}
+        <div className="bg-white rounded-xl p-4 shadow-lg mb-6 space-y-4">
+          <div className="flex-1 min-w-[200px] relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input 
+              placeholder="Search by client name, company, or email..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
           </div>
+          
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-600">Filters:</span>
+            </div>
           
           <Select value={filterStatus} onValueChange={setFilterStatus}>
             <SelectTrigger className="w-[140px]">
@@ -156,6 +178,13 @@ export default function Proposals() {
               {sortOrder === 'asc' ? '↑' : '↓'}
             </Button>
           </div>
+          </div>
+          
+          {(searchQuery || filterStatus !== 'all' || filterClient !== 'all') && (
+            <div className="text-sm text-gray-500">
+              Showing {filteredProposals.length} of {proposals.length} proposals
+            </div>
+          )}
         </div>
 
         {/* Proposals List */}
