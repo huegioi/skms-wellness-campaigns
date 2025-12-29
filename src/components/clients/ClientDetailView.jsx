@@ -16,6 +16,7 @@ import {
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { productCatalog } from '@/components/curriculum/catalogData';
+import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 
 const statusConfig = {
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
@@ -50,6 +51,7 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
   const [viewingProposal, setViewingProposal] = useState(null);
   const [showAddService, setShowAddService] = useState(false);
   const [serviceToAdd, setServiceToAdd] = useState('');
+  const [viewingInvoice, setViewingInvoice] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -70,6 +72,16 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
     queryKey: ['interactions', client.id],
     queryFn: () => base44.entities.ClientInteraction.filter({ client_id: client.id }, '-date')
   });
+
+  const { data: allInvoices = [] } = useQuery({
+    queryKey: ['invoices'],
+    queryFn: () => base44.entities.Invoice.list('-created_date')
+  });
+
+  const clientInvoices = allInvoices.filter(inv => 
+    client.invoice_ids?.includes(inv.id) || 
+    inv.client_email?.toLowerCase() === client.email?.toLowerCase()
+  );
 
   const createInteractionMutation = useMutation({
     mutationFn: (data) => base44.entities.ClientInteraction.create({ ...data, client_id: client.id }),
@@ -232,10 +244,11 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contacts">Contacts ({(client.related_contacts?.length || 0) + 1})</TabsTrigger>
           <TabsTrigger value="proposals">Proposals ({proposals.length})</TabsTrigger>
+          <TabsTrigger value="invoices">Invoices ({clientInvoices.length})</TabsTrigger>
           <TabsTrigger value="services">Services</TabsTrigger>
           <TabsTrigger value="interactions">Activity ({interactions.length})</TabsTrigger>
         </TabsList>
@@ -389,6 +402,61 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
                         <Link to={createPageUrl('EditProposal') + `?id=${proposal.id}`}>
                           <Button size="sm" variant="outline"><Pencil className="w-4 h-4" /></Button>
                         </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Invoices Tab */}
+        <TabsContent value="invoices" className="mt-4">
+          <div className="space-y-3">
+            {clientInvoices.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">No invoices yet</p>
+            ) : (
+              clientInvoices.map(invoice => {
+                const statusColors = {
+                  draft: 'bg-gray-100 text-gray-700',
+                  sent: 'bg-blue-100 text-blue-700',
+                  paid: 'bg-green-100 text-green-700',
+                  overdue: 'bg-red-100 text-red-700',
+                  cancelled: 'bg-gray-100 text-gray-500'
+                };
+                return (
+                  <div key={invoice.id} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setViewingInvoice(invoice)}>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-semibold text-lg">{invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}</p>
+                          <Badge className={statusColors[invoice.status || 'draft']}>
+                            {invoice.status || 'draft'}
+                          </Badge>
+                          {invoice.quickbooks_id && (
+                            <Badge variant="outline" className="text-green-600 border-green-200 text-xs">
+                              QB Synced
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          Issue: {new Date(invoice.issue_date).toLocaleDateString()}
+                          {' • '}
+                          Due: {new Date(invoice.due_date).toLocaleDateString()}
+                          {invoice.paid_date && ` • Paid: ${new Date(invoice.paid_date).toLocaleDateString()}`}
+                        </p>
+                        {invoice.memo && (
+                          <p className="text-sm text-gray-600 mt-1 line-clamp-1">{invoice.memo}</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="text-2xl font-bold" style={{ color: '#770142' }}>
+                          ${invoice.total_amount?.toLocaleString()}
+                        </p>
+                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setViewingInvoice(invoice); }}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -605,6 +673,17 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Invoice Detail Dialog */}
+      {viewingInvoice && (
+        <InvoiceDialog
+          open={!!viewingInvoice}
+          onOpenChange={(open) => !open && setViewingInvoice(null)}
+          invoice={viewingInvoice}
+          mode="view"
+          clients={[client]}
+        />
+      )}
 
       {/* Add Interaction Dialog */}
       <Dialog open={showAddInteraction} onOpenChange={setShowAddInteraction}>
