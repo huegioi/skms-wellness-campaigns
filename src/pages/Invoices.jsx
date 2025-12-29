@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   FileText, DollarSign, Calendar, CheckCircle, Clock, XCircle, AlertCircle,
-  RefreshCw, Eye, Pencil, Send, Loader2, Trash2
+  RefreshCw, Eye, Pencil, Send, Loader2, Trash2, Users
 } from 'lucide-react';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 
@@ -141,6 +141,23 @@ export default function Invoices() {
     }
   };
 
+  const handleSyncClients = async () => {
+    if (!confirm('Sync all customer data from QuickBooks to the Clients database?\n\nThis will create new clients or update existing ones based on QB customer and invoice data.')) return;
+    
+    setSyncingAll(true);
+    try {
+      const response = await base44.functions.invoke('quickbooksSync', {
+        action: 'syncClientsFromQB'
+      });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      alert(`✓ Client sync complete!\n\n${response.data.created} created, ${response.data.updated} updated, ${response.data.failed} failed`);
+    } catch (error) {
+      alert(`Failed to sync clients: ${error.message}`);
+    } finally {
+      setSyncingAll(false);
+    }
+  };
+
   const handleDeleteInvoice = async (invoice) => {
     const message = invoice.quickbooks_id 
       ? `Delete invoice ${invoice.invoice_number}?\n\nThis will delete it from both the app AND QuickBooks.`
@@ -200,16 +217,28 @@ export default function Invoices() {
               {showQBView ? 'Show Local' : 'View QuickBooks'}
             </Button>
             {!showQBView && (
-              <Button 
-                variant="outline"
-                size="sm"
-                className="sm:size-default"
-                onClick={handleSyncAll}
-                disabled={syncingAll}
-              >
-                {syncingAll ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 sm:mr-2" />}
-                <span className="hidden sm:inline">Sync All</span>
-              </Button>
+              <>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  className="sm:size-default"
+                  onClick={handleSyncAll}
+                  disabled={syncingAll}
+                >
+                  {syncingAll ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 sm:mr-2" />}
+                  <span className="hidden sm:inline">Sync Invoices</span>
+                </Button>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  className="sm:size-default bg-blue-50 hover:bg-blue-100"
+                  onClick={handleSyncClients}
+                  disabled={syncingAll}
+                >
+                  {syncingAll ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 sm:mr-2" />}
+                  <span className="hidden sm:inline">Sync Clients</span>
+                </Button>
+              </>
             )}
             {showQBView && (
               <Button 

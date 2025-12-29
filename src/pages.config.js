@@ -1,39 +1,41 @@
-import CurriculumDesigner from './pages/CurriculumDesigner';
-import Clients from './pages/Clients';
-import Proposals from './pages/Proposals';
-import EditProposal from './pages/EditProposal';
 import Analytics from './pages/Analytics';
 import Calendar from './pages/Calendar';
-import ServiceCatalog from './pages/ServiceCatalog';
 import ClientPortal from './pages/ClientPortal';
+import Clients from './pages/Clients';
+import CurriculumDesigner from './pages/CurriculumDesigner';
+import EditProposal from './pages/EditProposal';
 import EmailTemplateManager from './pages/EmailTemplateManager';
-import MyPortal from './pages/MyPortal';
-import ViewProposal from './pages/ViewProposal';
+import Home from './pages/Home';
 import Invoices from './pages/Invoices';
+import MyPortal from './pages/MyPortal';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import Proposals from './pages/Proposals';
 import QuickBooksOAuth from './pages/QuickBooksOAuth';
 import SchedulingHub from './pages/SchedulingHub';
+import ServiceCatalog from './pages/ServiceCatalog';
 import UserAgreement from './pages/UserAgreement';
-import PrivacyPolicy from './pages/PrivacyPolicy';
+import ViewProposal from './pages/ViewProposal';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "CurriculumDesigner": CurriculumDesigner,
-    "Clients": Clients,
-    "Proposals": Proposals,
-    "EditProposal": EditProposal,
     "Analytics": Analytics,
     "Calendar": Calendar,
-    "ServiceCatalog": ServiceCatalog,
     "ClientPortal": ClientPortal,
+    "Clients": Clients,
+    "CurriculumDesigner": CurriculumDesigner,
+    "EditProposal": EditProposal,
     "EmailTemplateManager": EmailTemplateManager,
-    "MyPortal": MyPortal,
-    "ViewProposal": ViewProposal,
+    "Home": Home,
     "Invoices": Invoices,
+    "MyPortal": MyPortal,
+    "PrivacyPolicy": PrivacyPolicy,
+    "Proposals": Proposals,
     "QuickBooksOAuth": QuickBooksOAuth,
     "SchedulingHub": SchedulingHub,
+    "ServiceCatalog": ServiceCatalog,
     "UserAgreement": UserAgreement,
-    "PrivacyPolicy": PrivacyPolicy,
+    "ViewProposal": ViewProposal,
 }
 
 export const pagesConfig = {
