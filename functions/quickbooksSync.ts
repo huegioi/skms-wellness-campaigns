@@ -446,8 +446,9 @@ Deno.serve(async (req) => {
         const customerResult = await customerResponse.json();
         const qbCustomers = customerResult.QueryResponse?.Customer || [];
 
-        // Get local clients
+        // Get local clients and invoices
         const localClients = await base44.asServiceRole.entities.Client.filter({});
+        const localInvoices = await base44.asServiceRole.entities.Invoice.filter({});
 
         // Fetch invoices to determine purchased services
         const invoiceQuery = "SELECT * FROM Invoice MAXRESULTS 1000";
@@ -488,6 +489,16 @@ Deno.serve(async (req) => {
                 });
             });
 
+            // Calculate total invoice value and count
+            const totalInvoiceValue = customerInvoices.reduce((sum, inv) => sum + (inv.TotalAmt || 0), 0);
+            const invoiceCount = customerInvoices.length;
+
+            // Find local invoice IDs for this client
+            const clientLocalInvoices = localInvoices.filter(inv => 
+              inv.client_email?.toLowerCase() === email.toLowerCase()
+            );
+            const invoiceIds = clientLocalInvoices.map(inv => inv.id);
+
             // Check if client exists
             const existingClient = localClients.find(c => 
               c.email?.toLowerCase() === email.toLowerCase()
@@ -503,25 +514,36 @@ Deno.serve(async (req) => {
               company_address: qbCustomer.BillAddr ? 
                 `${qbCustomer.BillAddr.Line1 || ''} ${qbCustomer.BillAddr.City || ''} ${qbCustomer.BillAddr.CountrySubDivisionCode || ''} ${qbCustomer.BillAddr.PostalCode || ''}`.trim() : '',
               notes: qbCustomer.Notes || '',
-              purchased_services: Array.from(purchasedServices)
+              purchased_services: Array.from(purchasedServices),
+              total_invoice_value: totalInvoiceValue,
+              invoice_count: invoiceCount,
+              invoice_ids: invoiceIds
             };
 
             if (existingClient) {
-              // Update existing client - merge purchased services
+              // Update existing client - merge purchased services and invoice IDs
               const mergedServices = new Set([
                 ...(existingClient.purchased_services || []),
                 ...clientData.purchased_services
               ]);
 
+              const mergedInvoiceIds = [...new Set([
+                ...(existingClient.invoice_ids || []),
+                ...clientData.invoice_ids
+              ])];
+
               await base44.asServiceRole.entities.Client.update(existingClient.id, {
                 ...clientData,
-                purchased_services: Array.from(mergedServices)
+                purchased_services: Array.from(mergedServices),
+                invoice_ids: mergedInvoiceIds
               });
 
               syncResults.push({
                 email,
                 action: 'updated',
-                client_id: existingClient.id
+                client_id: existingClient.id,
+                invoices: invoiceCount,
+                total_value: totalInvoiceValue
               });
             } else {
               // Create new client
@@ -529,7 +551,9 @@ Deno.serve(async (req) => {
               syncResults.push({
                 email,
                 action: 'created',
-                client_id: newClient.id
+                client_id: newClient.id,
+                invoices: invoiceCount,
+                total_value: totalInvoiceValue
               });
             }
           } catch (error) {
