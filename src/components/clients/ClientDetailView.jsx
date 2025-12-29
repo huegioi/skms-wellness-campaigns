@@ -33,7 +33,7 @@ const interactionIcons = {
   note: StickyNote
 };
 
-export default function ClientDetailView({ client, onClose, onUpdate }) {
+export default function ClientDetailView({ client: initialClient, onClose, onUpdate }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [showAddContact, setShowAddContact] = useState(false);
   const [showAddInteraction, setShowAddInteraction] = useState(false);
@@ -54,6 +54,18 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
   const [viewingInvoice, setViewingInvoice] = useState(null);
 
   const queryClient = useQueryClient();
+
+  // Fetch fresh client data to ensure we have latest invoice_ids
+  const { data: freshClient } = useQuery({
+    queryKey: ['client', initialClient.id],
+    queryFn: async () => {
+      const clients = await base44.entities.Client.filter({ id: initialClient.id });
+      return clients[0] || initialClient;
+    },
+    initialData: initialClient
+  });
+
+  const client = freshClient;
 
   const { data: allServices = [] } = useQuery({
     queryKey: ['services'],
