@@ -201,7 +201,7 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
           <p className="text-xl sm:text-2xl font-bold" style={{ color: '#013f7c' }}>{proposals.length}</p>
         </div>
         <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-gray-500">Total Value</p>
+          <p className="text-xs sm:text-sm text-gray-500">Proposal Value</p>
           <p className="text-xl sm:text-2xl font-bold text-green-600">${totalProposalValue.toLocaleString()}</p>
         </div>
         <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
@@ -213,6 +213,22 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
           <p className="text-xl sm:text-2xl font-bold text-blue-600">{interactions.length}</p>
         </div>
       </div>
+      
+      {/* QuickBooks Invoice Stats */}
+      {(client.total_invoice_value > 0 || client.invoice_count > 0) && (
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">QuickBooks Invoice Total</p>
+              <p className="text-3xl font-bold text-green-700">${(client.total_invoice_value || 0).toLocaleString()}</p>
+              <p className="text-sm text-gray-500 mt-1">{client.invoice_count || 0} invoice{client.invoice_count !== 1 ? 's' : ''} synced from QuickBooks</p>
+            </div>
+            <div className="text-green-600">
+              <DollarSign className="w-12 h-12" />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -244,6 +260,16 @@ export default function ClientDetailView({ client, onClose, onUpdate }) {
               {client.company_size && <p className="flex items-center gap-2 text-sm"><Users className="w-4 h-4 text-gray-400" /> {client.company_size} employees</p>}
               {client.wellness_budget && <p className="flex items-center gap-2 text-sm text-green-600"><DollarSign className="w-4 h-4" /> ${client.wellness_budget.toLocaleString()} budget</p>}
               {client.last_contacted && <p className="flex items-center gap-2 text-sm"><Calendar className="w-4 h-4 text-gray-400" /> Last contact: {new Date(client.last_contacted).toLocaleDateString()}</p>}
+              {(client.total_invoice_value > 0 || client.invoice_count > 0) && (
+                <>
+                  <p className="flex items-center gap-2 text-sm text-emerald-600 font-medium">
+                    <DollarSign className="w-4 h-4" /> ${(client.total_invoice_value || 0).toLocaleString()} invoiced (QB)
+                  </p>
+                  <p className="flex items-center gap-2 text-sm text-gray-600">
+                    <FileText className="w-4 h-4 text-gray-400" /> {client.invoice_count || 0} invoice{client.invoice_count !== 1 ? 's' : ''}
+                  </p>
+                </>
+              )}
             </div>
           </div>
           
