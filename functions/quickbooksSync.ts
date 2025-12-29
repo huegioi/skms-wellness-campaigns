@@ -477,6 +477,57 @@ Deno.serve(async (req) => {
               inv => inv.CustomerRef?.value === qbCustomer.Id
             );
 
+            // Sync QB invoices to local database
+            const invoiceIds = [];
+            for (const qbInv of customerInvoices) {
+              // Check if invoice already exists locally
+              let localInvoice = localInvoices.find(inv => inv.quickbooks_id === qbInv.Id);
+
+              // Extract line items
+              const line_items = (qbInv.Line || [])
+                .filter(line => line.DetailType === 'SalesItemLineDetail')
+                .map(line => ({
+                  description: line.Description || '',
+                  quantity: line.SalesItemLineDetail?.Qty || 1,
+                  rate: line.SalesItemLineDetail?.UnitPrice || 0,
+                  amount: line.Amount || 0
+                }));
+
+              // Determine status
+              let status = 'sent';
+              if (qbInv.Balance === 0) {
+                status = 'paid';
+              } else if (new Date(qbInv.DueDate) < new Date()) {
+                status = 'overdue';
+              }
+
+              const invoiceData = {
+                invoice_number: qbInv.DocNumber,
+                client_name: qbCustomer.DisplayName || email,
+                client_email: email,
+                company: qbCustomer.CompanyName || '',
+                line_items: line_items,
+                subtotal: qbInv.TotalAmt || 0,
+                total_amount: qbInv.TotalAmt || 0,
+                status: status,
+                issue_date: qbInv.TxnDate,
+                due_date: qbInv.DueDate,
+                quickbooks_id: qbInv.Id,
+                quickbooks_sync_date: new Date().toISOString(),
+                memo: qbInv.CustomerMemo?.value || ''
+              };
+
+              if (localInvoice) {
+                // Update existing invoice
+                await base44.asServiceRole.entities.Invoice.update(localInvoice.id, invoiceData);
+                invoiceIds.push(localInvoice.id);
+              } else {
+                // Create new invoice
+                const newInvoice = await base44.asServiceRole.entities.Invoice.create(invoiceData);
+                invoiceIds.push(newInvoice.id);
+              }
+            }
+
             // Extract purchased services from line items
             const purchasedServices = new Set();
             customerInvoices.forEach(invoice => {
@@ -492,12 +543,6 @@ Deno.serve(async (req) => {
             // Calculate total invoice value and count
             const totalInvoiceValue = customerInvoices.reduce((sum, inv) => sum + (inv.TotalAmt || 0), 0);
             const invoiceCount = customerInvoices.length;
-
-            // Find local invoice IDs for this client
-            const clientLocalInvoices = localInvoices.filter(inv => 
-              inv.client_email?.toLowerCase() === email.toLowerCase()
-            );
-            const invoiceIds = clientLocalInvoices.map(inv => inv.id);
 
             // Check if client exists
             const existingClient = localClients.find(c => 
