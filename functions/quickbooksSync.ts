@@ -359,70 +359,197 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'listQBInvoices') {
-      const query = "SELECT * FROM Invoice MAXRESULTS 1000";
-      const response = await fetch(
-        `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(query)}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/json'
+        const query = "SELECT * FROM Invoice MAXRESULTS 1000";
+        const response = await fetch(
+          `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(query)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Accept': 'application/json'
+            }
           }
-        }
-      );
+        );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch invoices: ${errorText}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to fetch invoices: ${errorText}`);
+        }
+
+        const result = await response.json();
+        const qbInvoices = result.QueryResponse?.Invoice || [];
+
+        // Get local invoices to match
+        const localInvoices = await base44.asServiceRole.entities.Invoice.filter({});
+
+        // Enrich QB invoices with local match info
+        const enrichedInvoices = qbInvoices.map(qbInv => {
+          const localMatch = localInvoices.find(l => l.quickbooks_id === qbInv.Id);
+
+          let status = 'sent';
+          if (qbInv.Balance === 0) {
+            status = 'paid';
+          } else if (new Date(qbInv.DueDate) < new Date()) {
+            status = 'overdue';
+          }
+
+          // Extract line items
+          const line_items = (qbInv.Line || [])
+            .filter(line => line.DetailType === 'SalesItemLineDetail')
+            .map(line => ({
+              description: line.Description || '',
+              quantity: line.SalesItemLineDetail?.Qty || 1,
+              rate: line.SalesItemLineDetail?.UnitPrice || 0,
+              amount: line.Amount || 0
+            }));
+
+          return {
+            quickbooks_id: qbInv.Id,
+            invoice_number: qbInv.DocNumber,
+            customer_name: qbInv.CustomerRef?.name || 'Unknown',
+            customer_id: qbInv.CustomerRef?.value,
+            total_amount: qbInv.TotalAmt,
+            balance: qbInv.Balance,
+            issue_date: qbInv.TxnDate,
+            due_date: qbInv.DueDate,
+            status,
+            local_invoice_id: localMatch?.id,
+            in_local_db: !!localMatch,
+            line_items
+          };
+        });
+
+        return Response.json({
+          success: true,
+          invoices: enrichedInvoices,
+          total: enrichedInvoices.length
+        });
       }
 
-      const result = await response.json();
-      const qbInvoices = result.QueryResponse?.Invoice || [];
+      if (action === 'syncClientsFromQB') {
+        // Fetch all QB customers
+        const customerQuery = "SELECT * FROM Customer MAXRESULTS 1000";
+        const customerResponse = await fetch(
+          `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(customerQuery)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Accept': 'application/json'
+            }
+          }
+        );
 
-      // Get local invoices to match
-      const localInvoices = await base44.asServiceRole.entities.Invoice.filter({});
-      
-      // Enrich QB invoices with local match info
-      const enrichedInvoices = qbInvoices.map(qbInv => {
-        const localMatch = localInvoices.find(l => l.quickbooks_id === qbInv.Id);
-        
-        let status = 'sent';
-        if (qbInv.Balance === 0) {
-          status = 'paid';
-        } else if (new Date(qbInv.DueDate) < new Date()) {
-          status = 'overdue';
+        if (!customerResponse.ok) {
+          const errorText = await customerResponse.text();
+          throw new Error(`Failed to fetch customers: ${errorText}`);
         }
 
-        // Extract line items
-        const line_items = (qbInv.Line || [])
-          .filter(line => line.DetailType === 'SalesItemLineDetail')
-          .map(line => ({
-            description: line.Description || '',
-            quantity: line.SalesItemLineDetail?.Qty || 1,
-            rate: line.SalesItemLineDetail?.UnitPrice || 0,
-            amount: line.Amount || 0
-          }));
+        const customerResult = await customerResponse.json();
+        const qbCustomers = customerResult.QueryResponse?.Customer || [];
 
-        return {
-          quickbooks_id: qbInv.Id,
-          invoice_number: qbInv.DocNumber,
-          customer_name: qbInv.CustomerRef?.name || 'Unknown',
-          total_amount: qbInv.TotalAmt,
-          balance: qbInv.Balance,
-          issue_date: qbInv.TxnDate,
-          due_date: qbInv.DueDate,
-          status,
-          local_invoice_id: localMatch?.id,
-          in_local_db: !!localMatch,
-          line_items
-        };
-      });
+        // Get local clients
+        const localClients = await base44.asServiceRole.entities.Client.filter({});
 
-      return Response.json({
-        success: true,
-        invoices: enrichedInvoices,
-        total: enrichedInvoices.length
-      });
-    }
+        // Fetch invoices to determine purchased services
+        const invoiceQuery = "SELECT * FROM Invoice MAXRESULTS 1000";
+        const invoiceResponse = await fetch(
+          `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(invoiceQuery)}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Accept': 'application/json'
+            }
+          }
+        );
+
+        const invoiceResult = await invoiceResponse.json();
+        const qbInvoices = invoiceResult.QueryResponse?.Invoice || [];
+
+        const syncResults = [];
+
+        for (const qbCustomer of qbCustomers) {
+          try {
+            const email = qbCustomer.PrimaryEmailAddr?.Address;
+            if (!email) continue;
+
+            // Find customer's invoices
+            const customerInvoices = qbInvoices.filter(
+              inv => inv.CustomerRef?.value === qbCustomer.Id
+            );
+
+            // Extract purchased services from line items
+            const purchasedServices = new Set();
+            customerInvoices.forEach(invoice => {
+              (invoice.Line || [])
+                .filter(line => line.DetailType === 'SalesItemLineDetail')
+                .forEach(line => {
+                  if (line.Description) {
+                    purchasedServices.add(line.Description);
+                  }
+                });
+            });
+
+            // Check if client exists
+            const existingClient = localClients.find(c => 
+              c.email?.toLowerCase() === email.toLowerCase()
+            );
+
+            const clientData = {
+              name: qbCustomer.DisplayName || 
+                    `${qbCustomer.GivenName || ''} ${qbCustomer.FamilyName || ''}`.trim() ||
+                    email,
+              email: email,
+              company: qbCustomer.CompanyName || '',
+              phone: qbCustomer.PrimaryPhone?.FreeFormNumber || '',
+              company_address: qbCustomer.BillAddr ? 
+                `${qbCustomer.BillAddr.Line1 || ''} ${qbCustomer.BillAddr.City || ''} ${qbCustomer.BillAddr.CountrySubDivisionCode || ''} ${qbCustomer.BillAddr.PostalCode || ''}`.trim() : '',
+              notes: qbCustomer.Notes || '',
+              purchased_services: Array.from(purchasedServices)
+            };
+
+            if (existingClient) {
+              // Update existing client - merge purchased services
+              const mergedServices = new Set([
+                ...(existingClient.purchased_services || []),
+                ...clientData.purchased_services
+              ]);
+
+              await base44.asServiceRole.entities.Client.update(existingClient.id, {
+                ...clientData,
+                purchased_services: Array.from(mergedServices)
+              });
+
+              syncResults.push({
+                email,
+                action: 'updated',
+                client_id: existingClient.id
+              });
+            } else {
+              // Create new client
+              const newClient = await base44.asServiceRole.entities.Client.create(clientData);
+              syncResults.push({
+                email,
+                action: 'created',
+                client_id: newClient.id
+              });
+            }
+          } catch (error) {
+            syncResults.push({
+              email: qbCustomer.PrimaryEmailAddr?.Address || 'unknown',
+              action: 'failed',
+              error: error.message
+            });
+          }
+        }
+
+        return Response.json({
+          success: true,
+          results: syncResults,
+          total: syncResults.length,
+          created: syncResults.filter(r => r.action === 'created').length,
+          updated: syncResults.filter(r => r.action === 'updated').length,
+          failed: syncResults.filter(r => r.action === 'failed').length
+        });
+      }
 
     if (action === 'deleteInvoice') {
       const invoice = await base44.asServiceRole.entities.Invoice.filter({ id: invoiceId });
