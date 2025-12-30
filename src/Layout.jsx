@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Users, FileText, FolderOpen, BarChart3, Calendar, Package, Mail, Menu, X } from 'lucide-react';
+import { Users, FileText, FolderOpen, BarChart3, Calendar, Package, Mail, Menu, X, Gift } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -20,7 +20,8 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Services', page: 'ServiceCatalog', icon: Package },
     { name: 'Templates', page: 'EmailTemplateManager', icon: Mail },
     { name: 'Schedule', page: 'SchedulingHub', icon: Calendar },
-    { name: 'Invoices', page: 'Invoices', icon: FileText }
+    { name: 'Invoices', page: 'Invoices', icon: FileText },
+    { name: 'Wellness Boxes', page: 'WellnessBoxes', icon: Gift }
   ];
 
   return (
