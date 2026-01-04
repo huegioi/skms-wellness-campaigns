@@ -498,6 +498,7 @@ export default function ReviewStep({ selections, onBack }) {
     setIsSubmitting(true);
     
     try {
+      console.log('Starting proposal submission...');
       // Check if client already exists by email
       const existingClients = await base44.entities.Client.filter({ email: clientEmail });
       let clientId = null;
@@ -584,7 +585,8 @@ export default function ReviewStep({ selections, onBack }) {
         status: 'draft'
       };
 
-      await base44.entities.Proposal.create(proposalData);
+      const newProposal = await base44.entities.Proposal.create(proposalData);
+      console.log('Proposal created successfully:', newProposal);
       
       setShowMessage(true);
     } catch (error) {
