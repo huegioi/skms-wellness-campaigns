@@ -27,9 +27,11 @@ export default function Proposals() {
 
   const queryClient = useQueryClient();
 
-  const { data: proposals = [], isLoading } = useQuery({
+  const { data: proposals = [], isLoading, error } = useQuery({
     queryKey: ['proposals'],
-    queryFn: () => base44.entities.Proposal.list('-created_date')
+    queryFn: () => base44.entities.Proposal.list('-created_date'),
+    refetchOnMount: true,
+    refetchOnWindowFocus: true
   });
 
   const { data: clients = [] } = useQuery({
@@ -96,7 +98,18 @@ export default function Proposals() {
     });
 
   if (isLoading) {
-    return <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">Loading...</div>;
+    return <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">Loading proposals...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Error loading proposals: {error.message}</p>
+          <Button onClick={() => window.location.reload()}>Retry</Button>
+        </div>
+      </div>
+    );
   }
 
   return (

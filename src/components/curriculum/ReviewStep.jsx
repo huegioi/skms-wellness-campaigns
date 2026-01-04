@@ -591,7 +591,7 @@ export default function ReviewStep({ selections, onBack }) {
       setShowMessage(true);
     } catch (error) {
       console.error('Error submitting proposal:', error);
-      alert('There was an error submitting the proposal. Please try again.');
+      alert(`Error submitting proposal: ${error.message || 'Please try again'}`);
     } finally {
       setIsSubmitting(false);
     }

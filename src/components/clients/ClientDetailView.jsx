@@ -72,12 +72,13 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
     queryFn: () => base44.entities.Service.list('sort_order')
   });
 
-  const { data: proposals = [] } = useQuery({
+  const { data: proposals = [], isLoading: proposalsLoading } = useQuery({
     queryKey: ['proposals', client.id],
     queryFn: async () => {
       const all = await base44.entities.Proposal.list('-created_date');
       return all.filter(p => p.client_id === client.id);
-    }
+    },
+    refetchOnMount: true
   });
 
   const { data: interactions = [] } = useQuery({
@@ -383,10 +384,13 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
 
         {/* Proposals Tab */}
         <TabsContent value="proposals" className="mt-4">
-          <div className="space-y-3">
-            {proposals.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">No proposals yet</p>
-            ) : (
+          {proposalsLoading ? (
+            <p className="text-center text-gray-500 py-8">Loading proposals...</p>
+          ) : (
+            <div className="space-y-3">
+              {proposals.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">No proposals yet</p>
+              ) : (
               proposals.map(proposal => {
                 const status = statusConfig[proposal.status || 'draft'];
                 const StatusIcon = status.icon;
