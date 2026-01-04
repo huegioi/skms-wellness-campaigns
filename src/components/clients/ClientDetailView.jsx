@@ -425,6 +425,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
               })
             )}
           </div>
+          )}
         </TabsContent>
 
         {/* Invoices Tab */}
