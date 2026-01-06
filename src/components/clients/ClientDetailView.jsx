@@ -387,44 +387,84 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           {proposalsLoading ? (
             <p className="text-center text-gray-500 py-8">Loading proposals...</p>
           ) : (
-            <div className="space-y-3">
-              {proposals.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">No proposals yet</p>
-              ) : (
-              proposals.map(proposal => {
-                const status = statusConfig[proposal.status || 'draft'];
-                const StatusIcon = status.icon;
-                return (
-                  <div key={proposal.id} className="bg-white border rounded-lg p-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="font-semibold text-lg">${proposal.total_amount?.toLocaleString()}</p>
-                        <p className="text-sm text-gray-500">
-                          Created: {new Date(proposal.created_date).toLocaleDateString()}
-                          {proposal.sent_date && ` • Sent: ${new Date(proposal.sent_date).toLocaleDateString()}`}
-                        </p>
-                        {proposal.narrative_summary && (
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-2">{proposal.narrative_summary}</p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={status.color}>
-                          <StatusIcon className="w-3 h-3 mr-1" />
+            <>
+              {/* Activity Timeline */}
+              <div className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-100">
+                <h4 className="font-semibold mb-3 text-gray-800 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Recent Activity
+                </h4>
+                <div className="space-y-2">
+                  {proposals.slice(0, 5).map(proposal => {
+                    const status = statusConfig[proposal.status || 'draft'];
+                    const StatusIcon = status.icon;
+                    const latestDate = proposal.viewed_date || proposal.sent_date || proposal.created_date;
+                    const latestAction = proposal.viewed_date ? 'Viewed' : proposal.sent_date ? 'Sent' : 'Created';
+
+                    return (
+                      <div key={proposal.id} className="flex items-center gap-3 text-sm bg-white rounded-lg p-2 border">
+                        <StatusIcon className={`w-4 h-4 ${status.color.split(' ')[1]}`} />
+                        <div className="flex-1">
+                          <span className="font-medium">${proposal.total_amount?.toLocaleString()}</span>
+                          <span className="text-gray-500 mx-2">•</span>
+                          <span className="text-gray-600">{latestAction}</span>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {new Date(latestDate).toLocaleDateString()}
+                        </span>
+                        <Badge className={`${status.color} text-xs`}>
                           {status.label}
                         </Badge>
-                        <Button size="sm" variant="outline" onClick={() => setViewingProposal(proposal)}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Link to={createPageUrl('EditProposal') + `?id=${proposal.id}`}>
-                          <Button size="sm" variant="outline"><Pencil className="w-4 h-4" /></Button>
-                        </Link>
+                      </div>
+                    );
+                  })}
+                  {proposals.length === 0 && (
+                    <p className="text-sm text-gray-500 text-center py-2">No activity yet</p>
+                  )}
+                </div>
+              </div>
+
+              {/* All Proposals */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-gray-700">All Proposals ({proposals.length})</h4>
+                {proposals.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">No proposals yet</p>
+                ) : (
+                proposals.map(proposal => {
+                  const status = statusConfig[proposal.status || 'draft'];
+                  const StatusIcon = status.icon;
+                  return (
+                    <div key={proposal.id} className="bg-white border rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold text-lg">${proposal.total_amount?.toLocaleString()}</p>
+                          <p className="text-sm text-gray-500">
+                            Created: {new Date(proposal.created_date).toLocaleDateString()}
+                            {proposal.sent_date && ` • Sent: ${new Date(proposal.sent_date).toLocaleDateString()}`}
+                          </p>
+                          {proposal.narrative_summary && (
+                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{proposal.narrative_summary}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={status.color}>
+                            <StatusIcon className="w-3 h-3 mr-1" />
+                            {status.label}
+                          </Badge>
+                          <Button size="sm" variant="outline" onClick={() => setViewingProposal(proposal)}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Link to={createPageUrl('EditProposal') + `?id=${proposal.id}`}>
+                            <Button size="sm" variant="outline"><Pencil className="w-4 h-4" /></Button>
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+                  );
+                })
+              )}
+            </div>
+          </>
           )}
         </TabsContent>
 
