@@ -54,6 +54,46 @@ export default function SchedulingHub() {
   const sheets = data?.sheets || [];
   const spreadsheetTitle = data?.title || 'Scheduling Hub';
 
+  // Parse upcoming events from all sheets
+  const getUpcomingEvents = () => {
+    const events = [];
+    const now = new Date();
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+
+    sheets.forEach(sheet => {
+      sheet.data.forEach(row => {
+        // Look for date columns (common names)
+        const dateValue = row['Date'] || row['date'] || row['Event Date'] || row['Start Date'] || row['DATE'];
+        if (!dateValue) return;
+
+        // Parse date
+        let eventDate;
+        try {
+          eventDate = new Date(dateValue);
+          if (isNaN(eventDate.getTime())) return;
+        } catch {
+          return;
+        }
+
+        // Check if within next month
+        if (eventDate >= now && eventDate <= nextMonth) {
+          events.push({
+            date: eventDate,
+            title: row['Event'] || row['Title'] || row['Name'] || row['EVENT'] || row['Service'] || 'Untitled Event',
+            client: row['Client'] || row['Company'] || row['CLIENT'] || row['client'] || '',
+            location: row['Location'] || row['LOCATION'] || row['location'] || '',
+            time: row['Time'] || row['TIME'] || row['time'] || '',
+            sheet: sheet.name
+          });
+        }
+      });
+    });
+
+    return events.sort((a, b) => a.date - b.date);
+  };
+
+  const upcomingEvents = getUpcomingEvents();
+
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -91,6 +131,60 @@ export default function SchedulingHub() {
             </a>
           </div>
         </div>
+
+        {/* Coming Up Section */}
+        {upcomingEvents.length > 0 && (
+          <Card className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: '#013f7c' }}>
+                <Clock className="w-5 h-5" />
+                Coming Up (Next 30 Days)
+              </h2>
+              <div className="space-y-3">
+                {upcomingEvents.slice(0, 8).map((event, idx) => (
+                  <div key={idx} className="bg-white rounded-lg p-4 border border-blue-100 hover:shadow-md transition-shadow">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                      <div className="flex items-center gap-3 min-w-[140px]">
+                        <Calendar className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <div className="font-semibold text-sm" style={{ color: '#013f7c' }}>
+                            {event.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                          </div>
+                          {event.time && (
+                            <div className="text-xs text-gray-600">{event.time}</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-800">{event.title}</div>
+                        <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600">
+                          {event.client && (
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              {event.client}
+                            </span>
+                          )}
+                          {event.location && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {event.location}
+                            </span>
+                          )}
+                          <span className="text-xs text-gray-400">• {event.sheet}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {upcomingEvents.length > 8 && (
+                <p className="text-sm text-gray-500 mt-3 text-center">
+                  +{upcomingEvents.length - 8} more event{upcomingEvents.length - 8 !== 1 ? 's' : ''} coming up
+                </p>
+              )}
+            </div>
+          </Card>
+        )}
 
         {/* Sheets Tabs */}
         {sheets.length === 0 ? (

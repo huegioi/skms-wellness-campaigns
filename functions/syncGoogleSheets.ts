@@ -65,10 +65,15 @@ Deno.serve(async (req) => {
       // Extract data rows
       const data = dataRows.map(row => {
         const rowData = {};
-        row.values?.forEach((cell, index) => {
-          const header = headers[index] || `Column ${index + 1}`;
+        headers.forEach((header, index) => {
+          const cell = row.values?.[index];
+          if (!cell) {
+            rowData[header] = '';
+            return;
+          }
           const value = cell.effectiveValue?.stringValue || 
                        cell.effectiveValue?.numberValue?.toString() || 
+                       cell.effectiveValue?.boolValue?.toString() ||
                        cell.formattedValue || 
                        '';
           rowData[header] = value;
