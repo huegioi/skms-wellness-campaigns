@@ -1,5 +1,4 @@
 import Analytics from './pages/Analytics';
-import Calendar from './pages/Calendar';
 import ClientPortal from './pages/ClientPortal';
 import Clients from './pages/Clients';
 import CurriculumDesigner from './pages/CurriculumDesigner';
@@ -21,7 +20,6 @@ import __Layout from './Layout.jsx';
 
 export const PAGES = {
     "Analytics": Analytics,
-    "Calendar": Calendar,
     "ClientPortal": ClientPortal,
     "Clients": Clients,
     "CurriculumDesigner": CurriculumDesigner,

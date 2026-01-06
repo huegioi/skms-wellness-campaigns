@@ -16,7 +16,6 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Proposals', page: 'Proposals', icon: FolderOpen, altPage: 'EditProposal' },
     { name: 'Clients', page: 'Clients', icon: Users },
     { name: 'Analytics', page: 'Analytics', icon: BarChart3 },
-    { name: 'Calendar', page: 'Calendar', icon: Calendar },
     { name: 'Services', page: 'ServiceCatalog', icon: Package },
     { name: 'Templates', page: 'EmailTemplateManager', icon: Mail },
     { name: 'Schedule', page: 'SchedulingHub', icon: Calendar },
