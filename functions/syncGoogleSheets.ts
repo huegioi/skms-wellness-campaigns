@@ -16,6 +16,37 @@ Deno.serve(async (req) => {
     // Hardcoded spreadsheet ID for the scheduling sheet
     const spreadsheetId = '1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0';
 
+    // Handle update requests
+    const body = await req.json().catch(() => ({}));
+    if (body.action === 'update') {
+      const { sheetName, rowIndex, columnIndex, value } = body;
+      
+      // Convert column index to A1 notation (A, B, C, etc.)
+      const columnLetter = String.fromCharCode(65 + columnIndex);
+      const range = `${sheetName}!${columnLetter}${rowIndex + 1}`;
+      
+      const updateResponse = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            values: [[value]]
+          })
+        }
+      );
+      
+      if (!updateResponse.ok) {
+        const error = await updateResponse.text();
+        return Response.json({ error: 'Failed to update cell', details: error }, { status: 500 });
+      }
+      
+      return Response.json({ success: true, message: 'Cell updated successfully' });
+    }
+
     // Fetch spreadsheet with full data using includeGridData
     const fullDataUrl = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?includeGridData=true`;
     const fullDataResponse = await fetch(fullDataUrl, {

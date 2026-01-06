@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink, Plus } from 'lucide-react';
+import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink, Plus, Pencil, Check, X } from 'lucide-react';
 import MonthlyCalendar from '@/components/scheduling/MonthlyCalendar';
 
 export default function SchedulingHub() {
   const SPREADSHEET_ID = '1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0';
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [editingCell, setEditingCell] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['schedule', SPREADSHEET_ID],
@@ -25,6 +29,38 @@ export default function SchedulingHub() {
     setIsRefreshing(true);
     await refetch();
     setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const handleCellEdit = (sheetName, rowIndex, columnIndex, currentValue) => {
+    setEditingCell({ sheetName, rowIndex, columnIndex });
+    setEditValue(currentValue || '');
+  };
+
+  const handleCellSave = async () => {
+    if (!editingCell) return;
+
+    try {
+      const response = await base44.functions.invoke('syncGoogleSheets', {
+        action: 'update',
+        sheetName: editingCell.sheetName,
+        rowIndex: editingCell.rowIndex,
+        columnIndex: editingCell.columnIndex,
+        value: editValue
+      });
+
+      if (response.data.success) {
+        queryClient.invalidateQueries({ queryKey: ['schedule', SPREADSHEET_ID] });
+        setEditingCell(null);
+        setEditValue('');
+      }
+    } catch (error) {
+      alert('Failed to save changes: ' + error.message);
+    }
+  };
+
+  const handleCellCancel = () => {
+    setEditingCell(null);
+    setEditValue('');
   };
 
   if (isLoading) {
@@ -301,11 +337,45 @@ export default function SchedulingHub() {
                         {sheet.data.length > 0 ? (
                           sheet.data.map((row, rowIdx) => (
                             <tr key={rowIdx} className="hover:bg-gray-50 transition-colors">
-                              {sheet.headers.map((header, colIdx) => (
-                                <td key={colIdx} className="px-4 py-3 text-sm text-gray-700">
-                                  {row[header] || '-'}
-                                </td>
-                              ))}
+                              {sheet.headers.map((header, colIdx) => {
+                                const isEditing = editingCell?.sheetName === sheet.name && 
+                                                 editingCell?.rowIndex === rowIdx && 
+                                                 editingCell?.columnIndex === colIdx;
+                                const cellValue = row[header] || '';
+                                
+                                return (
+                                  <td key={colIdx} className="px-4 py-3 text-sm text-gray-700">
+                                    {isEditing ? (
+                                      <div className="flex gap-1">
+                                        <Input
+                                          value={editValue}
+                                          onChange={(e) => setEditValue(e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleCellSave();
+                                            if (e.key === 'Escape') handleCellCancel();
+                                          }}
+                                          className="h-8 text-sm"
+                                          autoFocus
+                                        />
+                                        <Button size="sm" onClick={handleCellSave} className="h-8 px-2">
+                                          <Check className="w-4 h-4" />
+                                        </Button>
+                                        <Button size="sm" variant="ghost" onClick={handleCellCancel} className="h-8 px-2">
+                                          <X className="w-4 h-4" />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <div 
+                                        className="cursor-pointer hover:bg-blue-50 px-2 py-1 rounded group flex items-center gap-2"
+                                        onClick={() => handleCellEdit(sheet.name, rowIdx, colIdx, cellValue)}
+                                      >
+                                        <span>{cellValue || '-'}</span>
+                                        <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                                      </div>
+                                    )}
+                                  </td>
+                                );
+                              })}
                             </tr>
                           ))
                         ) : (
