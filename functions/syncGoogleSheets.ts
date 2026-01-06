@@ -19,11 +19,13 @@ Deno.serve(async (req) => {
     // Handle update requests
     const body = await req.json().catch(() => ({}));
     if (body.action === 'update') {
-      const { sheetName, rowIndex, columnIndex, value } = body;
+      const { sheetName, rowIndex, columnIndex, value, headerRowIndex } = body;
       
       // Convert column index to A1 notation (A, B, C, etc.)
       const columnLetter = String.fromCharCode(65 + columnIndex);
-      const range = `${sheetName}!${columnLetter}${rowIndex + 1}`;
+      // Account for header row: actual row = headerRowIndex + 1 (skip header) + rowIndex + 1 (1-based indexing)
+      const actualRow = (headerRowIndex || 0) + rowIndex + 2;
+      const range = `${sheetName}!${columnLetter}${actualRow}`;
       
       const updateResponse = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(range)}?valueInputOption=USER_ENTERED`,
@@ -165,7 +167,8 @@ Deno.serve(async (req) => {
       return {
         name: sheet.properties.title,
         headers: headers.filter(h => h && h.trim() !== ''),
-        data
+        data,
+        headerRowIndex: headerRowIndex
       };
     });
 

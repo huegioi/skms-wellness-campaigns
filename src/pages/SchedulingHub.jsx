@@ -31,8 +31,8 @@ export default function SchedulingHub() {
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
-  const handleCellEdit = (sheetName, rowIndex, columnIndex, currentValue) => {
-    setEditingCell({ sheetName, rowIndex, columnIndex });
+  const handleCellEdit = (sheetName, rowIndex, columnIndex, currentValue, headerRowIndex) => {
+    setEditingCell({ sheetName, rowIndex, columnIndex, headerRowIndex });
     setEditValue(currentValue || '');
   };
 
@@ -45,7 +45,8 @@ export default function SchedulingHub() {
         sheetName: editingCell.sheetName,
         rowIndex: editingCell.rowIndex,
         columnIndex: editingCell.columnIndex,
-        value: editValue
+        value: editValue,
+        headerRowIndex: editingCell.headerRowIndex
       });
 
       if (response.data.success) {
@@ -367,7 +368,10 @@ export default function SchedulingHub() {
                                     ) : (
                                       <div 
                                         className="cursor-pointer hover:bg-blue-50 px-2 py-1 rounded group flex items-center gap-2"
-                                        onClick={() => handleCellEdit(sheet.name, rowIdx, colIdx, cellValue)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleCellEdit(sheet.name, rowIdx, colIdx, cellValue, sheet.headerRowIndex || 0);
+                                        }}
                                       >
                                         <span>{cellValue || '-'}</span>
                                         <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
