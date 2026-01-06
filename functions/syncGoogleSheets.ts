@@ -40,37 +40,76 @@ Deno.serve(async (req) => {
       const sheetData = sheet.data?.[0];
       const rows = sheetData?.rowData || [];
       
-      // Always use first row as headers
-      const headers = rows[0]?.values?.map(cell => 
-        cell.effectiveValue?.stringValue || 
-        cell.formattedValue || 
-        ''
-      ).filter(h => h !== '') || [];
+      if (rows.length === 0) {
+        return {
+          name: sheet.properties.title,
+          headers: [],
+          data: []
+        };
+      }
       
-      const dataRows = rows.slice(1);
+      // Find first non-empty row as headers
+      let headerRowIndex = -1;
+      let headers = [];
+      
+      for (let i = 0; i < Math.min(5, rows.length); i++) {
+        const potentialHeaders = rows[i]?.values?.map(cell => 
+          cell.effectiveValue?.stringValue || 
+          cell.formattedValue || 
+          ''
+        ) || [];
+        
+        // Check if this row has actual text values (likely headers)
+        const nonEmpty = potentialHeaders.filter(h => h.trim() !== '');
+        if (nonEmpty.length > 0) {
+          headers = potentialHeaders;
+          headerRowIndex = i;
+          break;
+        }
+      }
+      
+      if (headerRowIndex === -1 || headers.length === 0) {
+        return {
+          name: sheet.properties.title,
+          headers: [],
+          data: []
+        };
+      }
+      
+      const dataRows = rows.slice(headerRowIndex + 1);
       
       // Extract data rows
       const data = dataRows.map(row => {
+        if (!row.values || row.values.length === 0) return null;
+        
         const rowData = {};
+        let hasData = false;
+        
         headers.forEach((header, index) => {
+          if (!header) return;
+          
           const cell = row.values?.[index];
           if (!cell) {
             rowData[header] = '';
             return;
           }
+          
           const value = cell.effectiveValue?.stringValue || 
                        cell.effectiveValue?.numberValue?.toString() || 
                        cell.effectiveValue?.boolValue?.toString() ||
                        cell.formattedValue || 
                        '';
+          
+          if (value) hasData = true;
           rowData[header] = value;
         });
-        return rowData;
-      }).filter(row => Object.values(row).some(val => val !== ''));
+        
+        return hasData ? rowData : null;
+      }).filter(row => row !== null);
 
       return {
         name: sheet.properties.title,
-        headers: headers.filter(h => h !== ''),
+        headers: headers.filter(h => h && h.trim() !== ''),
         data
       };
     });
