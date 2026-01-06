@@ -39,6 +39,13 @@ SkillfulMeans Team`);
       reminder_count: (proposal.reminder_count || 0) + 1
     });
 
+    // Update client's last contacted date
+    if (proposal.client_id) {
+      await base44.entities.Client.update(proposal.client_id, {
+        last_contacted: new Date().toISOString()
+      });
+    }
+
     setSending(false);
     onSent?.();
     onOpenChange(false);
