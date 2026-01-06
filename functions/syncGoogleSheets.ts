@@ -40,27 +40,14 @@ Deno.serve(async (req) => {
       const sheetData = sheet.data?.[0];
       const rows = sheetData?.rowData || [];
       
-      // Check if first row looks like headers (all strings, no empty values)
-      const firstRow = rows[0]?.values?.map(cell => 
+      // Always use first row as headers
+      const headers = rows[0]?.values?.map(cell => 
         cell.effectiveValue?.stringValue || 
-        cell.effectiveValue?.numberValue?.toString() || 
         cell.formattedValue || 
         ''
-      ) || [];
+      ).filter(h => h !== '') || [];
       
-      // Determine if first row is headers or data
-      const hasHeaders = firstRow.length > 0 && firstRow.every(val => val !== '');
-      
-      let headers, dataRows;
-      if (hasHeaders) {
-        headers = firstRow;
-        dataRows = rows.slice(1);
-      } else {
-        // Generate column headers if no header row
-        const maxCols = Math.max(...rows.map(r => r.values?.length || 0));
-        headers = Array.from({ length: maxCols }, (_, i) => `Column ${i + 1}`);
-        dataRows = rows;
-      }
+      const dataRows = rows.slice(1);
       
       // Extract data rows
       const data = dataRows.map(row => {

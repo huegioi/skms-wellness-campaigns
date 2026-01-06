@@ -62,14 +62,35 @@ export default function SchedulingHub() {
 
     sheets.forEach(sheet => {
       sheet.data.forEach(row => {
-        // Look for date columns (common names)
-        const dateValue = row['Date'] || row['date'] || row['Event Date'] || row['Start Date'] || row['DATE'];
+        // Look for date columns (common names and check all columns)
+        let dateValue = null;
+        let dateKey = null;
+        
+        for (const [key, value] of Object.entries(row)) {
+          if (key.toLowerCase().includes('date') || key.toLowerCase().includes('day')) {
+            dateValue = value;
+            dateKey = key;
+            break;
+          }
+        }
+        
         if (!dateValue) return;
 
-        // Parse date
+        // Parse date - handle various formats
         let eventDate;
         try {
+          // Try parsing as-is
           eventDate = new Date(dateValue);
+          
+          // If invalid, try common formats
+          if (isNaN(eventDate.getTime())) {
+            // Try MM/DD/YYYY or M/D/YYYY
+            const parts = dateValue.split('/');
+            if (parts.length === 3) {
+              eventDate = new Date(parts[2], parts[0] - 1, parts[1]);
+            }
+          }
+          
           if (isNaN(eventDate.getTime())) return;
         } catch {
           return;
@@ -77,13 +98,26 @@ export default function SchedulingHub() {
 
         // Check if within next month
         if (eventDate >= now && eventDate <= nextMonth) {
+          // Find event/service name
+          let title = 'Untitled Event';
+          for (const [key, value] of Object.entries(row)) {
+            if ((key.toLowerCase().includes('event') || 
+                 key.toLowerCase().includes('service') || 
+                 key.toLowerCase().includes('title') ||
+                 key.toLowerCase().includes('name')) && value) {
+              title = value;
+              break;
+            }
+          }
+          
           events.push({
             date: eventDate,
-            title: row['Event'] || row['Title'] || row['Name'] || row['EVENT'] || row['Service'] || 'Untitled Event',
-            client: row['Client'] || row['Company'] || row['CLIENT'] || row['client'] || '',
-            location: row['Location'] || row['LOCATION'] || row['location'] || '',
+            title,
+            client: row['Client'] || row['Payee'] || row['Company'] || row['CLIENT'] || row['client'] || row['PAYEE'] || '',
+            location: row['Location'] || row['LOCATION'] || row['location'] || row['Venue'] || row['VENUE'] || '',
             time: row['Time'] || row['TIME'] || row['time'] || '',
-            sheet: sheet.name
+            sheet: sheet.name,
+            rawRow: row
           });
         }
       });
