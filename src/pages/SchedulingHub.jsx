@@ -347,7 +347,7 @@ export default function SchedulingHub() {
                                 return (
                                   <td key={colIdx} className="px-4 py-3 text-sm text-gray-700">
                                     {isEditing ? (
-                                      <div className="flex gap-1">
+                                      <div className="flex gap-1 min-w-[200px]">
                                         <Input
                                           value={editValue}
                                           onChange={(e) => setEditValue(e.target.value)}
@@ -355,13 +355,14 @@ export default function SchedulingHub() {
                                             if (e.key === 'Enter') handleCellSave();
                                             if (e.key === 'Escape') handleCellCancel();
                                           }}
-                                          className="h-8 text-sm"
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="h-8 text-sm flex-1"
                                           autoFocus
                                         />
-                                        <Button size="sm" onClick={handleCellSave} className="h-8 px-2">
+                                        <Button size="sm" onClick={handleCellSave} className="h-8 px-2 flex-shrink-0">
                                           <Check className="w-4 h-4" />
                                         </Button>
-                                        <Button size="sm" variant="ghost" onClick={handleCellCancel} className="h-8 px-2">
+                                        <Button size="sm" variant="ghost" onClick={handleCellCancel} className="h-8 px-2 flex-shrink-0">
                                           <X className="w-4 h-4" />
                                         </Button>
                                       </div>
