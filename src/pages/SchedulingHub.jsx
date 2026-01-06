@@ -4,7 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink } from 'lucide-react';
+import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink, Plus } from 'lucide-react';
+import MonthlyCalendar from '@/components/scheduling/MonthlyCalendar';
 
 export default function SchedulingHub() {
   const SPREADSHEET_ID = '1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0';
@@ -130,6 +131,37 @@ export default function SchedulingHub() {
 
   const upcomingEvents = getUpcomingEvents();
 
+  const addToGoogleCalendar = async (event) => {
+    try {
+      const startDate = new Date(event.date);
+      const endDate = new Date(startDate);
+      endDate.setHours(startDate.getHours() + 1);
+
+      const response = await base44.functions.invoke('googleCalendarSync', {
+        action: 'create',
+        event: {
+          summary: event.title,
+          description: `Client: ${event.client}\nSheet: ${event.sheet}`,
+          location: event.location || '',
+          start: {
+            dateTime: startDate.toISOString(),
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          },
+          end: {
+            dateTime: endDate.toISOString(),
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+          }
+        }
+      });
+
+      if (response.data.success) {
+        alert('Event added to Google Calendar!');
+      }
+    } catch (error) {
+      alert('Failed to add to Google Calendar: ' + error.message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -209,6 +241,14 @@ export default function SchedulingHub() {
                           <span className="text-xs text-gray-400">• {event.sheet}</span>
                         </div>
                       </div>
+                      <Button
+                        size="sm"
+                        onClick={() => addToGoogleCalendar(event)}
+                        className="bg-[#264d44] hover:bg-[#1a3830] whitespace-nowrap"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add to Cal
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -220,6 +260,13 @@ export default function SchedulingHub() {
               )}
             </div>
           </Card>
+        )}
+
+        {/* Calendar View */}
+        {sheets.length > 0 && (
+          <div className="mb-6">
+            <MonthlyCalendar sheets={sheets} />
+          </div>
         )}
 
         {/* Sheets Tabs */}
