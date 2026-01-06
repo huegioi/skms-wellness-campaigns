@@ -138,19 +138,14 @@ export default function SchedulingHub() {
       endDate.setHours(startDate.getHours() + 1);
 
       const response = await base44.functions.invoke('googleCalendarSync', {
-        action: 'create',
-        event: {
-          summary: event.title,
+        action: 'createEvent',
+        eventData: {
+          title: event.title,
           description: `Client: ${event.client}\nSheet: ${event.sheet}`,
           location: event.location || '',
-          start: {
-            dateTime: startDate.toISOString(),
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-          },
-          end: {
-            dateTime: endDate.toISOString(),
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-          }
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          all_day: false
         }
       });
 
