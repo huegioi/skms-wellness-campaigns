@@ -559,28 +559,22 @@ export default function ReviewStep({ selections, onBack }) {
         total_amount: calculateTotal(),
         narrative_summary: narrative ? `Your team is currently facing challenges around ${narrative.challenges.join(', ')}. This customized mental fitness program addresses these needs through ${narrative.components.join(', ')}, creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.` : null,
         selections: {
-          workshops: selections.workshops,
-          challengePrograms: selections.challengePrograms,
-          leadership: selections.leadership,
-          movementClasses: selections.movementClasses,
-          wellnessBoxes: {
+          workshops: selections.workshops || [],
+          challengePrograms: selections.challengePrograms || [],
+          leadership: selections.leadership || [],
+          movementClasses: selections.movementClasses || [],
+          sampleBoxQuantities: {
             reduceStress: sampleBoxQuantities.reduceStress || 0,
             relaxationSleep: sampleBoxQuantities.relaxationSleep || 0,
             largeEmotional: sampleBoxQuantities.largeEmotional || 0,
             largeStressReduction: sampleBoxQuantities.largeStressReduction || 0
           },
-          wellnessBoxPrices: {
-            reduceStress: 65,
-            relaxationSleep: 65,
-            largeEmotional: 100,
-            largeStressReduction: 100
-          },
           challengePrice: challengePrice,
-          customBoxQuantity: selections.customBoxQuantity,
-          customBoxItems: customBoxItems,
-          customCharges: customCharges,
-          assessmentData: selections.assessmentData,
-          challenges: selections.challenges
+          customBoxQuantity: selections.customBoxQuantity || 0,
+          customBoxItems: customBoxItems || [],
+          customCharges: customCharges || [],
+          assessmentData: selections.assessmentData || {},
+          challenges: selections.challenges || []
         },
         status: 'draft'
       };
