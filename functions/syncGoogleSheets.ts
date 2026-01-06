@@ -48,20 +48,24 @@ Deno.serve(async (req) => {
         };
       }
       
-      // Find first non-empty row as headers
+      // Find first non-empty row as headers - scan more rows
       let headerRowIndex = -1;
       let headers = [];
       
-      for (let i = 0; i < Math.min(5, rows.length); i++) {
-        const potentialHeaders = rows[i]?.values?.map(cell => 
-          cell.effectiveValue?.stringValue || 
-          cell.formattedValue || 
-          ''
-        ) || [];
+      for (let i = 0; i < Math.min(10, rows.length); i++) {
+        const potentialHeaders = rows[i]?.values?.map(cell => {
+          // Try all possible value types
+          const value = cell.effectiveValue?.stringValue || 
+                       cell.effectiveValue?.numberValue?.toString() ||
+                       cell.userEnteredValue?.stringValue ||
+                       cell.formattedValue || 
+                       '';
+          return value;
+        }) || [];
         
         // Check if this row has actual text values (likely headers)
-        const nonEmpty = potentialHeaders.filter(h => h.trim() !== '');
-        if (nonEmpty.length > 0) {
+        const nonEmpty = potentialHeaders.filter(h => h && h.toString().trim() !== '');
+        if (nonEmpty.length >= 2) { // At least 2 headers
           headers = potentialHeaders;
           headerRowIndex = i;
           break;
@@ -86,7 +90,7 @@ Deno.serve(async (req) => {
         let hasData = false;
         
         headers.forEach((header, index) => {
-          if (!header) return;
+          if (!header || header.toString().trim() === '') return;
           
           const cell = row.values?.[index];
           if (!cell) {
@@ -94,11 +98,29 @@ Deno.serve(async (req) => {
             return;
           }
           
-          const value = cell.effectiveValue?.stringValue || 
-                       cell.effectiveValue?.numberValue?.toString() || 
-                       cell.effectiveValue?.boolValue?.toString() ||
-                       cell.formattedValue || 
-                       '';
+          // Handle different cell types properly
+          let value = '';
+          if (cell.effectiveValue) {
+            if (cell.effectiveValue.stringValue !== undefined) {
+              value = cell.effectiveValue.stringValue;
+            } else if (cell.effectiveValue.numberValue !== undefined) {
+              // Check if it's a date serial number (Google Sheets dates are numbers)
+              const num = cell.effectiveValue.numberValue;
+              // Google Sheets serial dates start from Dec 30, 1899
+              if (num > 40000 && num < 60000 && cell.formattedValue) {
+                // Use formatted value for dates
+                value = cell.formattedValue;
+              } else {
+                value = num.toString();
+              }
+            } else if (cell.effectiveValue.boolValue !== undefined) {
+              value = cell.effectiveValue.boolValue.toString();
+            } else if (cell.formattedValue) {
+              value = cell.formattedValue;
+            }
+          } else if (cell.formattedValue) {
+            value = cell.formattedValue;
+          }
           
           if (value) hasData = true;
           rowData[header] = value;

@@ -58,23 +58,25 @@ export default function SchedulingHub() {
   const getUpcomingEvents = () => {
     const events = [];
     const now = new Date();
+    now.setHours(0, 0, 0, 0);
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
 
     sheets.forEach(sheet => {
       sheet.data.forEach(row => {
-        // Look for date columns (common names and check all columns)
+        // Look for date columns - be more flexible
         let dateValue = null;
         let dateKey = null;
         
         for (const [key, value] of Object.entries(row)) {
-          if (key.toLowerCase().includes('date') || key.toLowerCase().includes('day')) {
+          const keyLower = key.toLowerCase();
+          if ((keyLower.includes('date') || keyLower.includes('day') || keyLower === 'when') && value && value.trim() !== '') {
             dateValue = value;
             dateKey = key;
             break;
           }
         }
         
-        if (!dateValue) return;
+        if (!dateValue || dateValue.trim() === '') return;
 
         // Parse date - handle various formats
         let eventDate;
