@@ -104,12 +104,14 @@ Deno.serve(async (req) => {
             if (cell.effectiveValue.stringValue !== undefined) {
               value = cell.effectiveValue.stringValue;
             } else if (cell.effectiveValue.numberValue !== undefined) {
-              // Check if it's a date serial number (Google Sheets dates are numbers)
               const num = cell.effectiveValue.numberValue;
-              // Google Sheets serial dates start from Dec 30, 1899
-              if (num > 40000 && num < 60000 && cell.formattedValue) {
+              // Check if it's a date serial number (dates > 40000)
+              if (num > 40000 && num < 60000) {
                 // Use formatted value for dates
-                value = cell.formattedValue;
+                value = cell.formattedValue || num.toString();
+              } else if (num > 0 && num < 1) {
+                // Time value (fraction of a day) - use formatted value
+                value = cell.formattedValue || num.toString();
               } else {
                 value = num.toString();
               }
