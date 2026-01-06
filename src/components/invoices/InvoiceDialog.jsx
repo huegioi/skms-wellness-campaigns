@@ -102,6 +102,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
 
     // Add challenge programs (stored as array)
     if (Array.isArray(selections.challengePrograms)) {
+      const challengePrice = selections.challengePrice || 4500;
       selections.challengePrograms.forEach(challengeKey => {
         const catalogItem = productCatalog.challenges[challengeKey];
         if (catalogItem) {
@@ -110,8 +111,8 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
             name: `${catalogItem.name} (${catalogItem.duration})`,
             description: catalogItem.description,
             quantity: 1,
-            rate: catalogItem.price,
-            amount: catalogItem.price,
+            rate: challengePrice,
+            amount: challengePrice,
             proposal_item_id: itemId,
             already_invoiced: invoicedItems.includes(itemId)
           });
@@ -159,12 +160,19 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
 
     // Add wellness boxes
     if (selections.sampleBoxQuantities) {
+      const boxPrices = {
+        reduceStress: 65,
+        relaxationSleep: 65,
+        largeEmotional: 100,
+        largeStressReduction: 100
+      };
+      
       Object.entries(selections.sampleBoxQuantities).forEach(([key, quantity]) => {
         if (quantity > 0) {
           const catalogItem = productCatalog.wellnessBoxes[key];
           if (catalogItem) {
             const itemId = `box_${key}`;
-            const price = catalogItem.priceRange ? 75 : 0; // Use middle of range
+            const price = boxPrices[key] || 65;
             lineItems.push({
               name: catalogItem.name,
               description: catalogItem.description,
@@ -184,7 +192,8 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
       selections.customCharges.forEach((charge, idx) => {
         const itemId = `custom_${idx}`;
         lineItems.push({
-          description: charge.description,
+          name: charge.label || 'Custom Charge',
+          description: charge.label || '',
           quantity: 1,
           rate: charge.amount,
           amount: charge.amount,
