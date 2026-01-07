@@ -22,6 +22,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
     clientName: selections.assessmentData?.clientName || '',
     clientEmail: selections.assessmentData?.clientEmail || '',
     companyName: selections.assessmentData?.companyName || '',
+    companyAddress: selections.assessmentData?.companyAddress || '',
     companySize: selections.assessmentData?.companySize || '',
     wellnessBudget: selections.assessmentData?.wellnessBudget || '',
     brokerName: selections.assessmentData?.brokerName || '',
@@ -409,6 +410,17 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
               onChange={(e) => handleInputChange('companySize', e.target.value)}
             />
           </div>
+        </div>
+
+        <div className="question-group">
+          <label className="question-label">Company Address</label>
+          <input
+            type="text"
+            className="neuro-input"
+            placeholder="Enter company address..."
+            value={formData.companyAddress}
+            onChange={(e) => handleInputChange('companyAddress', e.target.value)}
+          />
         </div>
 
         <div className="question-group">
