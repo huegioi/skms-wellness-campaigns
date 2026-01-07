@@ -156,6 +156,10 @@ export default function SchedulingHub() {
             client: row['Client'] || row['Payee'] || row['Company'] || row['CLIENT'] || row['client'] || row['PAYEE'] || '',
             location: row['Location'] || row['LOCATION'] || row['location'] || row['Venue'] || row['VENUE'] || '',
             time: row['Time'] || row['TIME'] || row['time'] || '',
+            presenter: row['Presenter'] || row['PRESENTER'] || row['presenter'] || '',
+            linkToHost: row['Link to Host Video'] || row['Link To Host Video'] || row['link to host video'] || row['LINK TO HOST VIDEO'] || '',
+            recording: row['Recording'] || row['RECORDING'] || row['recording'] || row['Need Recording'] || row['NEED RECORDING'] || '',
+            translation: row['Translation'] || row['TRANSLATION'] || row['translation'] || row['Need Translation'] || row['NEED TRANSLATION'] || '',
             sheet: sheet.name,
             rawRow: row
           });
@@ -174,11 +178,17 @@ export default function SchedulingHub() {
       const endDate = new Date(startDate);
       endDate.setHours(startDate.getHours() + 1);
 
+      let description = `Client: ${event.client}\nSheet: ${event.sheet}`;
+      if (event.presenter) description += `\nPresenter: ${event.presenter}`;
+      if (event.linkToHost) description += `\nLink to Host Video: ${event.linkToHost}`;
+      if (event.recording) description += `\nRecording: ${event.recording}`;
+      if (event.translation) description += `\nTranslation: ${event.translation}`;
+
       const response = await base44.functions.invoke('googleCalendarSync', {
         action: 'createEvent',
         eventData: {
           title: event.title,
-          description: `Client: ${event.client}\nSheet: ${event.sheet}`,
+          description: description,
           location: event.location || '',
           start_date: startDate.toISOString(),
           end_date: endDate.toISOString(),
@@ -262,6 +272,11 @@ export default function SchedulingHub() {
                             <span className="flex items-center gap-1">
                               <Users className="w-3 h-3" />
                               {event.client}
+                            </span>
+                          )}
+                          {event.presenter && (
+                            <span className="flex items-center gap-1">
+                              👤 {event.presenter}
                             </span>
                           )}
                           {event.location && (
