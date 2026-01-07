@@ -9,9 +9,10 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
   const [sampleBoxQuantities, setSampleBoxQuantities] = useState(
     selections.sampleBoxQuantities || {
       reduceStress: 0,
+      emotionalWellness: 0,
       relaxationSleep: 0,
-      largeEmotional: 0,
-      largeStressReduction: 0
+      wintertimeHealthy: 0,
+      newYearFreshStart: 0
     }
   );
 
@@ -36,10 +37,11 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
 
   const calculateWellnessBoxTotal = () => {
     let total = 0;
-    total += (sampleBoxQuantities.reduceStress || 0) * 65;
-    total += (sampleBoxQuantities.relaxationSleep || 0) * 65;
-    total += (sampleBoxQuantities.largeEmotional || 0) * 100;
-    total += (sampleBoxQuantities.largeStressReduction || 0) * 100;
+    total += (sampleBoxQuantities.reduceStress || 0) * 100;
+    total += (sampleBoxQuantities.emotionalWellness || 0) * 100;
+    total += (sampleBoxQuantities.relaxationSleep || 0) * 100;
+    total += (sampleBoxQuantities.wintertimeHealthy || 0) * 100;
+    total += (sampleBoxQuantities.newYearFreshStart || 0) * 100;
     // Add custom box total
     if (customBoxQuantity > 0 && customBoxItems.length > 0) {
       const customBoxTotal = customBoxItems.reduce((sum, item) => sum + item.price, 0);
@@ -104,66 +106,68 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
   const sampleBoxImages = {
     reduceStress: [
       "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/f85466826_HeywellCalmHydrateSparklingLime.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/f133641a7_CalmAromatherapyInhalerPatches.png",
+      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/108912f16_EucalyptusShowerSteamers.png",
       "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/3ef20e96d_SquishingDumplingStressBall.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/8d0c5d7c4_SleepGummies.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/a022c39d9_LavenderAromatherapyCandle.png"
+      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/f133641a7_CalmAromatherapyInhalerPatches.png"
+    ],
+    emotionalWellness: [
+      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/582be99d3_MindfulnessCards.png",
+      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/f133641a7_CalmAromatherapyInhalerPatches.png",
+      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/e5cc21c9f_CalmingTeaHerbalBlend.png",
+      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/57730873a_Dreamy_DarkChocolateHotCocoa.png"
     ],
     relaxationSleep: [
+      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/0bf578406_YogasleepSoundMachine.png",
+      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/f133641a7_CalmAromatherapyInhalerPatches.png",
       "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/9483b8c12_WeightedAromatherapyEyePillow.png",
       "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/d696c945f_HerbalBathSalts-Personalizable.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/e5cc21c9f_CalmingTeaHerbalBlend.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/108912f16_EucalyptusShowerSteamers.png",
       "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/8d0c5d7c4_SleepGummies.png"
     ],
-    largeEmotional: [
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/582be99d3_MindfulnessCards.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/916a98720_EssentialOilRoller.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/d696c945f_HerbalBathSalts-Personalizable.png",
+    wintertimeHealthy: [
       "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/e5cc21c9f_CalmingTeaHerbalBlend.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/57730873a_Dreamy_DarkChocolateHotCocoa.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/061e3a525_SpaBodyBrush.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/3ef042c0e_GoldUnderEyePatches-CollagenEyeMask.png"
+      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/377fd46e8_SinusReliefRoll-On.png",
+      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/4cfe0eb01_BreatheCongestionHelpingAromatherapyInhalerPatches.png"
     ],
-    largeStressReduction: [
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/f133641a7_CalmAromatherapyInhalerPatches.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/e5cc21c9f_CalmingTeaHerbalBlend.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/3ef20e96d_SquishingDumplingStressBall.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/916a98720_EssentialOilRoller.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/582be99d3_MindfulnessCards.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/d696c945f_HerbalBathSalts-Personalizable.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/57730873a_Dreamy_DarkChocolateHotCocoa.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/f85466826_HeywellCalmHydrateSparklingLime.png",
-      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/538527da8_CorkMassageBalls.png"
+    newYearFreshStart: [
+      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/a022c39d9_LavenderAromatherapyCandle.png",
+      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/3ef042c0e_GoldUnderEyePatches-CollagenEyeMask.png",
+      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/f17efc8d4_SkinnyTumbler-18oz.png",
+      "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/57730873a_Dreamy_DarkChocolateHotCocoa.png"
     ]
   };
 
-  const sampleBoxes = {
-    small: [
-      {
-        id: 'reduceStress',
-        name: "Reduce Stress Box",
-        items: ["Heywell Calm + Hydrate", "Calm Aromatherapy Patches", "Squishy Dumpling Stress Ball", "Sleep Gummies", "Lavender Candle"]
-      },
-      {
-        id: 'relaxationSleep',
-        name: "Relaxation & Sleep Box",
-        items: ["Weighted Eye Pillow", "Herbal Bath Soak", "Calming Tea", "Eucalyptus Shower Steamers", "Sleep Gummies"]
-      }
-    ],
-    large: [
-      {
-        id: 'largeEmotional',
-        name: "Large Emotional Wellness Box",
-        items: ["Mindfulness Cards", "Essential Oil Roller", "Herbal Bath Soak", "Calming Tea", "Dark Chocolate", "Spa Body Brush", "Gold Eye Patches"]
-      },
-      {
-        id: 'largeStressReduction',
-        name: "Large Stress Reduction Box",
-        items: ["Calm Patches", "Calming Tea", "Stress Ball", "Essential Oil Roller", "Mindfulness Cards", "Herbal Bath Soak", "Hot Cocoa", "Heywell Drink", "Cork Massage Balls"]
-      }
-    ]
-  };
+  const sampleBoxes = [
+    {
+      id: 'reduceStress',
+      name: "Reduce Stress Wellness Box",
+      items: ["Heywell Calm + Hydrate Sparkling Lime", "Eucalyptus Shower Steamers", "Creamy Milk Chocolate Bar", "Squishy Dumpling Stress Ball", "Calm Absorbent Vitamin Patch (2 boxes)", "2 Custom Printed Fliers"],
+      price: 100
+    },
+    {
+      id: 'emotionalWellness',
+      name: "Emotional Wellness Box",
+      items: ["Mindfulness Cards", "Calm Aromatherapy (2-count)", "Calming Tea", "Dreamy Dark Chocolate Bar", "Meditation Cushion", "2 Custom Printed Fliers"],
+      price: 100
+    },
+    {
+      id: 'relaxationSleep',
+      name: "Relaxation & Sleep Wellness Box",
+      items: ["Yogasleep Travel Sound Machine", "Calm Aromatherapy Patches (3-count)", "Weighted Aromatherapy Eye Pillow", "Herbal Bath Soak", "Juna 2-packs Sleep Gummies", "2 Custom Printed Fliers"],
+      price: 100
+    },
+    {
+      id: 'wintertimeHealthy',
+      name: "Wintertime Stay Healthy Box",
+      items: ["Evergreen + Eucalyptus Candle", "Calming Tea", "Sinus & Headache Relief Roll-On", "Breathe Aromatherapy Inhaler Patches (3-count)", "Daily Absorbent Vitamin Patch (2 boxes)", "2 Custom Printed Fliers"],
+      price: 100
+    },
+    {
+      id: 'newYearFreshStart',
+      name: "New Year Fresh Start Box",
+      items: ["Lavender Aromatherapy Candle", "2-count Bright Eyes Collagen Eye Mask", "20oz Tumbler", "Mind of a Champion Card Deck", "Dreamy Dark Chocolate Bar", "2 Custom Printed Fliers"],
+      price: 100
+    }
+  ];
 
   const hasAnyBoxes = calculateWellnessBoxTotal() > 0 || customBoxQuantity > 0;
 
@@ -346,84 +350,40 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
           Choose from our curated wellness box collections
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: '#770142' }}>
-              <Gift className="w-5 h-5" />
-              Small Boxes ($65 each)
-            </h4>
-            {sampleBoxes.small.map((box) => (
-              <div key={box.id} className="sample-box">
-                <div className="sample-images">
-                  {sampleBoxImages[box.id].map((img, i) => (
-                    <img key={i} src={img} alt="" />
-                  ))}
-                </div>
-                <h4>{box.name}</h4>
-                <ul>
-                  {box.items.map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
-                </ul>
-                <div className="neuro-stepper mt-3">
-                  <button 
-                    className="neuro-stepper-btn"
-                    onClick={() => updateSampleBoxQuantity(box.id, false)}
-                  >
-                    −
-                  </button>
-                  <span className="flex-1 text-center text-lg font-bold" style={{ color: '#333' }}>
-                    {sampleBoxQuantities[box.id]}
-                  </span>
-                  <button 
-                    className="neuro-stepper-btn"
-                    onClick={() => updateSampleBoxQuantity(box.id, true)}
-                  >
-                    +
-                  </button>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sampleBoxes.map((box) => (
+            <div key={box.id} className="sample-box">
+              <div className="sample-images">
+                {sampleBoxImages[box.id].map((img, i) => (
+                  <img key={i} src={img} alt="" />
+                ))}
               </div>
-            ))}
-          </div>
-
-          <div>
-            <h4 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: '#770142' }}>
-              <Gift className="w-5 h-5" />
-              Large Boxes ($100 each)
-            </h4>
-            {sampleBoxes.large.map((box) => (
-              <div key={box.id} className="sample-box">
-                <div className="sample-images">
-                  {sampleBoxImages[box.id].map((img, i) => (
-                    <img key={i} src={img} alt="" />
-                  ))}
-                </div>
-                <h4>{box.name}</h4>
-                <ul>
-                  {box.items.map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
-                </ul>
-                <div className="neuro-stepper mt-3">
-                  <button 
-                    className="neuro-stepper-btn"
-                    onClick={() => updateSampleBoxQuantity(box.id, false)}
-                  >
-                    −
-                  </button>
-                  <span className="flex-1 text-center text-lg font-bold" style={{ color: '#333' }}>
-                    {sampleBoxQuantities[box.id]}
-                  </span>
-                  <button 
-                    className="neuro-stepper-btn"
-                    onClick={() => updateSampleBoxQuantity(box.id, true)}
-                  >
-                    +
-                  </button>
-                </div>
+              <h4>{box.name}</h4>
+              <p className="text-sm font-bold mb-2" style={{ color: '#770142' }}>${box.price} per box (incl. shipping)</p>
+              <ul>
+                {box.items.map((item, i) => (
+                  <li key={i}>{item}</li>
+                ))}
+              </ul>
+              <div className="neuro-stepper mt-3">
+                <button 
+                  className="neuro-stepper-btn"
+                  onClick={() => updateSampleBoxQuantity(box.id, false)}
+                >
+                  −
+                </button>
+                <span className="flex-1 text-center text-lg font-bold" style={{ color: '#333' }}>
+                  {sampleBoxQuantities[box.id]}
+                </span>
+                <button 
+                  className="neuro-stepper-btn"
+                  onClick={() => updateSampleBoxQuantity(box.id, true)}
+                >
+                  +
+                </button>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -437,10 +397,11 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
           <div className="flex justify-between items-center">
             <span className="text-base md:text-lg">Pre-Designed Boxes</span>
             <span className="text-xl md:text-2xl font-bold">
-              ${((sampleBoxQuantities.reduceStress || 0) * 65 + 
-                 (sampleBoxQuantities.relaxationSleep || 0) * 65 + 
-                 (sampleBoxQuantities.largeEmotional || 0) * 100 + 
-                 (sampleBoxQuantities.largeStressReduction || 0) * 100).toLocaleString()}
+              ${((sampleBoxQuantities.reduceStress || 0) * 100 + 
+                 (sampleBoxQuantities.emotionalWellness || 0) * 100 + 
+                 (sampleBoxQuantities.relaxationSleep || 0) * 100 + 
+                 (sampleBoxQuantities.wintertimeHealthy || 0) * 100 + 
+                 (sampleBoxQuantities.newYearFreshStart || 0) * 100).toLocaleString()}
             </span>
           </div>
           {customBoxQuantity > 0 && customBoxItems.length > 0 && (
