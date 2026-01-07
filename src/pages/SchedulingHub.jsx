@@ -253,7 +253,7 @@ export default function SchedulingHub() {
               <div className="space-y-3">
                 {upcomingEvents.slice(0, 8).map((event, idx) => (
                   <div key={idx} className="bg-white rounded-lg p-4 border border-blue-100 hover:shadow-md transition-shadow">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
                       <div className="flex items-center gap-3 min-w-[140px]">
                         <Calendar className="w-5 h-5 text-blue-600" />
                         <div>
@@ -266,19 +266,19 @@ export default function SchedulingHub() {
                         </div>
                       </div>
                       <div className="flex-1">
-                        <div className="font-semibold text-gray-800">{event.title}</div>
-                        <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600">
-                          {event.client && (
-                            <span className="flex items-center gap-1">
-                              <Users className="w-3 h-3" />
-                              {event.client}
-                            </span>
-                          )}
-                          {event.presenter && (
-                            <span className="flex items-center gap-1">
-                              👤 {event.presenter}
-                            </span>
-                          )}
+                        <div className="font-semibold text-gray-800 mb-1">{event.title}</div>
+                        {event.client && (
+                          <div className="text-sm text-gray-600 flex items-center gap-1 mb-1">
+                            <Users className="w-3 h-3" />
+                            {event.client}
+                          </div>
+                        )}
+                        {event.presenter && (
+                          <div className="text-sm text-gray-600 mb-1">
+                            <span className="font-medium">Presenter:</span> {event.presenter}
+                          </div>
+                        )}
+                        <div className="flex flex-wrap gap-3 text-sm text-gray-600">
                           {event.location && (
                             <span className="flex items-center gap-1">
                               <MapPin className="w-3 h-3" />
@@ -291,7 +291,7 @@ export default function SchedulingHub() {
                       <Button
                         size="sm"
                         onClick={() => addToGoogleCalendar(event)}
-                        className="bg-[#264d44] hover:bg-[#1a3830] whitespace-nowrap"
+                        className="bg-[#264d44] hover:bg-[#1a3830] whitespace-nowrap self-start"
                       >
                         <Plus className="w-4 h-4 mr-1" />
                         Add to Cal
