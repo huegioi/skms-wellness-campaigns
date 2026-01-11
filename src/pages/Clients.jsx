@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ClientDetailView from '@/components/clients/ClientDetailView';
 import DuplicateChecker from '@/components/clients/DuplicateChecker';
+import { createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
 
 // Client Form Fields Component - defined outside to prevent re-renders
 function ClientFormFields({ formData, setFormData, clients, isEdit, editingClient, onSelectDuplicate }) {
@@ -104,8 +105,12 @@ export default function Clients() {
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Client.create(data),
-    onSuccess: () => {
+    onSuccess: async (newClient) => {
+      // Auto-create tasks for new client
+      await createDefaultTasksForClient(base44, newClient.id, newClient.name);
+      
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['clientTasks'] });
       setIsAddDialogOpen(false);
       resetForm();
     }
