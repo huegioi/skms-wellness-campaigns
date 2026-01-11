@@ -296,14 +296,14 @@ export default function Dashboard() {
 
         {/* Task Management Dialog */}
         <Dialog open={!!selectedClient} onOpenChange={(open) => !open && setSelectedClient(null)}>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="max-w-3xl max-h-[85vh]">
             <DialogHeader>
               <DialogTitle className="text-xl">
                 {selectedClient?.name} - Task Management
               </DialogTitle>
             </DialogHeader>
             {selectedClient && (
-              <div className="mt-4">
+              <div className="mt-4 overflow-y-auto max-h-[calc(85vh-8rem)] pr-2">
                 <TaskList clientId={selectedClient.id} />
               </div>
             )}
