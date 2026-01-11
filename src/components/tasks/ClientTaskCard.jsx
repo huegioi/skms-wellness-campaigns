@@ -8,13 +8,8 @@ import { ChevronRight, CheckCircle2, Circle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
-export default function ClientTaskCard({ client, onClick }) {
+export default function ClientTaskCard({ client, tasks = [], onClick }) {
   const navigate = useNavigate();
-
-  const { data: tasks = [] } = useQuery({
-    queryKey: ['clientTasks', client.id],
-    queryFn: () => base44.entities.ClientTask.filter({ client_id: client.id })
-  });
 
   const pendingTasks = tasks.filter(t => t.status === 'pending');
   const completedTasks = tasks.filter(t => t.status === 'completed');

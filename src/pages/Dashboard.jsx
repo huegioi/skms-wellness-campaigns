@@ -275,13 +275,17 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {clientsWithPendingTasks.map(client => (
-                  <ClientTaskCard 
-                    key={client.id} 
-                    client={client}
-                    onClick={(c) => window.location.href = createPageUrl('Clients')}
-                  />
-                ))}
+                {clientsWithPendingTasks.map(client => {
+                  const clientTasks = allTasks.filter(t => t.client_id === client.id);
+                  return (
+                    <ClientTaskCard 
+                      key={client.id} 
+                      client={client}
+                      tasks={clientTasks}
+                      onClick={(c) => window.location.href = createPageUrl('Clients')}
+                    />
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
