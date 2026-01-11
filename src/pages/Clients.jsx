@@ -381,23 +381,24 @@ export default function Clients() {
                   <Plus className="w-4 h-4 mr-2" /> Add Client
                 </Button>
               </DialogTrigger>
-            <DialogContent className="max-w-lg w-[95vw] sm:w-full">
-              <DialogHeader>
-                <DialogTitle>Add New Client</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-2">
-                <ClientFormFields 
-                  formData={formData} 
-                  setFormData={setFormData} 
-                  clients={clients}
-                  isEdit={false}
-                  editingClient={null}
-                  onSelectDuplicate={handleSelectDuplicate}
-                />
-                <Button type="submit" className="w-full bg-[#264d44] hover:bg-[#1a3830]">Add Client</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+              <DialogContent className="max-w-lg w-[95vw] sm:w-full">
+                <DialogHeader>
+                  <DialogTitle>Add New Client</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-2">
+                  <ClientFormFields 
+                    formData={formData} 
+                    setFormData={setFormData} 
+                    clients={clients}
+                    isEdit={false}
+                    editingClient={null}
+                    onSelectDuplicate={handleSelectDuplicate}
+                  />
+                  <Button type="submit" className="w-full bg-[#264d44] hover:bg-[#1a3830]">Add Client</Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Duplicate Alert */}
