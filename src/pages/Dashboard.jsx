@@ -4,10 +4,11 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, TrendingUp, AlertCircle, Clock, Users, FileText, Send, CheckCircle2, Eye } from 'lucide-react';
+import { DollarSign, TrendingUp, AlertCircle, Clock, Users, FileText, Send, CheckCircle2, Eye, ListTodo } from 'lucide-react';
 import { format } from 'date-fns';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { productCatalog } from '@/components/curriculum/catalogData';
+import ClientTaskCard from '@/components/tasks/ClientTaskCard';
 
 export default function Dashboard() {
   const [timeframe, setTimeframe] = useState('month');
@@ -250,6 +251,25 @@ export default function Dashboard() {
             </TabsList>
           </Tabs>
         </div>
+
+        {/* Open Clients Section */}
+        {clientsWithPendingTasks.length > 0 && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ListTodo className="w-5 h-5" />
+                Open Clients
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {clientsWithPendingTasks.map(client => (
+                  <ClientTaskCard key={client.id} client={client} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">

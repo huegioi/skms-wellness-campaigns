@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import TaskList from '@/components/tasks/TaskList';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 
@@ -612,6 +613,21 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
               })
             )}
           </div>
+        </TabsContent>
+
+        {/* Tasks Tab */}
+        <TabsContent value="tasks">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ListTodo className="w-5 h-5" />
+                Client Tasks
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TaskList clientId={client.id} showProposalGroups={true} />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
