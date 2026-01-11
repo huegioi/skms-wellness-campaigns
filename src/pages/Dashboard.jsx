@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import ClientTaskCard from '@/components/tasks/ClientTaskCard';
+import { createPageUrl } from '@/utils';
 
 export default function Dashboard() {
   const [timeframe, setTimeframe] = useState('month');
@@ -275,7 +276,11 @@ export default function Dashboard() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {clientsWithPendingTasks.map(client => (
-                  <ClientTaskCard key={client.id} client={client} />
+                  <ClientTaskCard 
+                    key={client.id} 
+                    client={client}
+                    onClick={(c) => window.location.href = createPageUrl('Clients')}
+                  />
                 ))}
               </div>
             </CardContent>

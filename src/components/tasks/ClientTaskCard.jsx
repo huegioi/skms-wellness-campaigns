@@ -8,7 +8,7 @@ import { ChevronRight, CheckCircle2, Circle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
-export default function ClientTaskCard({ client }) {
+export default function ClientTaskCard({ client, onClick }) {
   const navigate = useNavigate();
 
   const { data: tasks = [] } = useQuery({
@@ -22,8 +22,16 @@ export default function ClientTaskCard({ client }) {
 
   if (pendingTasks.length === 0) return null;
 
+  const handleClick = () => {
+    if (onClick) {
+      onClick(client);
+    } else {
+      navigate(createPageUrl('Clients') + `?clientId=${client.id}`);
+    }
+  };
+
   return (
-    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate(createPageUrl('Clients') + `?client=${client.id}`)}>
+    <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={handleClick}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1 min-w-0">

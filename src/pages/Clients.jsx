@@ -75,6 +75,9 @@ function ClientFormFields({ formData, setFormData, clients, isEdit, editingClien
 }
 
 export default function Clients() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const clientIdFromUrl = urlParams.get('clientId');
+  
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [viewingClient, setViewingClient] = useState(null);
@@ -97,6 +100,16 @@ export default function Clients() {
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list('-created_date')
   });
+
+  // Auto-open client detail if URL param is present
+  React.useEffect(() => {
+    if (clientIdFromUrl && clients.length > 0 && !viewingClient) {
+      const client = clients.find(c => c.id === clientIdFromUrl);
+      if (client) {
+        setViewingClient(client);
+      }
+    }
+  }, [clientIdFromUrl, clients, viewingClient]);
 
   const { data: proposals = [] } = useQuery({
     queryKey: ['proposals'],
