@@ -132,6 +132,12 @@ export default function Dashboard() {
   const metrics = calculateMetrics();
   const proposalAnalytics = calculateProposalAnalytics();
 
+  // Get clients with pending tasks
+  const clientsWithPendingTasks = clients.filter(client => {
+    const clientTasks = allTasks.filter(t => t.client_id === client.id && t.status === 'pending');
+    return clientTasks.length > 0;
+  }).slice(0, 6);
+
   // Generate activity feed
   const generateActivityFeed = () => {
     const activities = [];
