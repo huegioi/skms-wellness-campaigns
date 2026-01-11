@@ -269,10 +269,10 @@ export default function Dashboard() {
 
         {/* Open Clients Section */}
         {clientsWithPendingTasks.length > 0 && (
-          <Card className="mb-8">
+          <Card className="mb-8 bg-gradient-to-br from-blue-50 to-indigo-50">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ListTodo className="w-5 h-5" />
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <ListTodo className="w-6 h-6 text-blue-600" />
                 Open Clients
               </CardTitle>
             </CardHeader>
@@ -285,7 +285,7 @@ export default function Dashboard() {
                       key={client.id} 
                       client={client}
                       tasks={clientTasks}
-                      onClick={(c) => window.location.href = createPageUrl('Clients')}
+                      onClick={() => setSelectedClient(client)}
                     />
                   );
                 })}
@@ -293,6 +293,22 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         )}
+
+        {/* Task Management Dialog */}
+        <Dialog open={!!selectedClient} onOpenChange={(open) => !open && setSelectedClient(null)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl">
+                {selectedClient?.name} - Task Management
+              </DialogTitle>
+            </DialogHeader>
+            {selectedClient && (
+              <div className="mt-4">
+                <TaskList clientId={selectedClient.id} />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Metrics Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
