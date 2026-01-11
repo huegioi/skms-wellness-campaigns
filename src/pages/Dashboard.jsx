@@ -28,6 +28,11 @@ export default function Dashboard() {
     queryFn: () => base44.entities.Proposal.list()
   });
 
+  const { data: allTasks = [] } = useQuery({
+    queryKey: ['clientTasks'],
+    queryFn: () => base44.entities.ClientTask.list()
+  });
+
   const isLoading = loadingInvoices || loadingClients || loadingProposals;
 
   // Calculate proposal analytics
