@@ -19,7 +19,6 @@ import TaskList from '@/components/tasks/TaskList';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import TaskList from '@/components/tasks/TaskList';
 
 const statusConfig = {
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },

@@ -255,7 +255,6 @@ export default function Invoices() {
             <Button 
               className="bg-[#264d44] hover:bg-[#1a3830]"
               size="sm"
-              className="sm:size-default"
               onClick={() => setSelectedInvoice({ mode: 'create' })}
             >
               <FileText className="w-4 h-4 sm:mr-2" />
