@@ -4,15 +4,18 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DollarSign, TrendingUp, AlertCircle, Clock, Users, FileText, Send, CheckCircle2, Eye, ListTodo } from 'lucide-react';
 import { format } from 'date-fns';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import ClientTaskCard from '@/components/tasks/ClientTaskCard';
+import TaskList from '@/components/tasks/TaskList';
 import { createPageUrl } from '@/utils';
 
 export default function Dashboard() {
   const [timeframe, setTimeframe] = useState('month');
+  const [selectedClient, setSelectedClient] = useState(null);
 
   const { data: invoices = [], isLoading: loadingInvoices } = useQuery({
     queryKey: ['invoices'],
