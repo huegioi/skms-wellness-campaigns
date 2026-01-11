@@ -11,6 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { productCatalog, workforceChallenges } from '@/components/curriculum/catalogData';
 import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
+import { markTaskComplete } from '@/components/tasks/taskTemplates';
 
 export default function EditProposal() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -76,7 +77,18 @@ export default function EditProposal() {
 
   const updateMutation = useMutation({
     mutationFn: (data) => base44.entities.Proposal.update(proposalId, data),
-    onSuccess: () => navigate(createPageUrl('Proposals'))
+    onSuccess: async (updatedProposal, variables) => {
+      // Auto-mark tasks when proposal status changes
+      if (proposal && proposal.client_id) {
+        if (variables.status === 'sent' && proposal.status !== 'sent') {
+          await markTaskComplete(base44, proposal.client_id, 'Send or Accept Proposal', 'proposal_sent', proposalId);
+        }
+        if (variables.status === 'accepted' && proposal.status !== 'accepted') {
+          await markTaskComplete(base44, proposal.client_id, 'Send or Accept Proposal', 'proposal_accepted', proposalId);
+        }
+      }
+      navigate(createPageUrl('Proposals'));
+    }
   });
 
   const getPrice = (category, key) => {
