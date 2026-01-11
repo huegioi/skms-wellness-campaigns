@@ -310,8 +310,10 @@ export default function Dashboard() {
           </DialogContent>
         </Dialog>
 
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Financial Overview */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4" style={{ color: '#013f7c' }}>Financial Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
             title={`Total Invoiced (${timeframe === 'month' ? 'This Month' : 'This Quarter'})`}
             value={`$${metrics.totalInvoiced.toLocaleString()}`}
@@ -336,6 +338,7 @@ export default function Dashboard() {
             icon={Clock}
             color="text-red-600"
           />
+          </div>
         </div>
 
         {/* Proposal Analytics Section */}
@@ -536,14 +539,16 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Activity Feed */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="w-5 h-5" />
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
+        {/* Client Activity */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4" style={{ color: '#013f7c' }}>Client Activity</h2>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
           <CardContent>
             {activityFeed.length === 0 ? (
               <p className="text-center text-gray-500 py-8">No recent activity</p>
@@ -570,6 +575,7 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
