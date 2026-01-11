@@ -11,13 +11,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   User, Building, Mail, Phone, Globe, MapPin, DollarSign, Users, Calendar,
   Plus, Pencil, Trash2, FileText, MessageSquare, PhoneCall, Video, StickyNote,
-  ChevronRight, Clock, CheckCircle, XCircle, Eye, Send, Package, Award
+  ChevronRight, Clock, CheckCircle, XCircle, Eye, Send, Package, Award, ListTodo
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import TaskList from '@/components/tasks/TaskList';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const statusConfig = {
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
@@ -258,13 +259,14 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contacts">Contacts ({(client.related_contacts?.length || 0) + 1})</TabsTrigger>
           <TabsTrigger value="proposals">Proposals ({proposals.length})</TabsTrigger>
           <TabsTrigger value="invoices">Invoices ({clientInvoices.length})</TabsTrigger>
           <TabsTrigger value="services">Services</TabsTrigger>
           <TabsTrigger value="interactions">Activity ({interactions.length})</TabsTrigger>
+          <TabsTrigger value="tasks">Tasks</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -616,18 +618,14 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
         </TabsContent>
 
         {/* Tasks Tab */}
-        <TabsContent value="tasks">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ListTodo className="w-5 h-5" />
-                Client Tasks
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TaskList clientId={client.id} showProposalGroups={true} />
-            </CardContent>
-          </Card>
+        <TabsContent value="tasks" className="mt-4">
+          <div className="bg-white border rounded-lg p-6">
+            <h4 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+              <ListTodo className="w-5 h-5" />
+              Client Tasks
+            </h4>
+            <TaskList clientId={client.id} showProposalGroups={true} />
+          </div>
         </TabsContent>
       </Tabs>
 
