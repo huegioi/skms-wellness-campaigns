@@ -12,6 +12,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   const navItems = [
+    { name: 'Dashboard', page: 'Dashboard', icon: BarChart3 },
     { name: 'Builder', page: 'CurriculumDesigner', icon: FileText },
     { name: 'Proposals', page: 'Proposals', icon: FolderOpen, altPage: 'EditProposal' },
     { name: 'Clients', page: 'Clients', icon: Users },
