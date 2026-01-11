@@ -356,12 +356,31 @@ export default function Clients() {
             <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Clients</h1>
             <p className="text-gray-600">Manage your clients, contacts, and interactions</p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-[#264d44] hover:bg-[#1a3830]" onClick={resetForm}>
-                <Plus className="w-4 h-4 mr-2" /> Add Client
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              onClick={async () => {
+                if (!confirm('Generate default tasks for all clients that don\'t have tasks yet?')) return;
+                const allTasks = await base44.entities.ClientTask.list();
+                const clientsWithTasks = new Set(allTasks.map(t => t.client_id));
+                const clientsNeedingTasks = clients.filter(c => !clientsWithTasks.has(c.id));
+                
+                for (const client of clientsNeedingTasks) {
+                  await createDefaultTasksForClient(base44, client.id, client.name);
+                }
+                
+                queryClient.invalidateQueries({ queryKey: ['clientTasks'] });
+                alert(`✓ Tasks created for ${clientsNeedingTasks.length} clients!`);
+              }}
+            >
+              Generate Tasks
+            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-[#264d44] hover:bg-[#1a3830]" onClick={resetForm}>
+                  <Plus className="w-4 h-4 mr-2" /> Add Client
+                </Button>
+              </DialogTrigger>
             <DialogContent className="max-w-lg w-[95vw] sm:w-full">
               <DialogHeader>
                 <DialogTitle>Add New Client</DialogTitle>
