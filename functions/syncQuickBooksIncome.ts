@@ -9,7 +9,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
     }
 
-    const accessToken = Deno.env.get('Quickbooks_ACCESS_TOKEN');
+    // Refresh token first
+    const refreshResult = await base44.functions.invoke('refreshQuickBooksToken', {});
+    if (!refreshResult.data.success) {
+      return Response.json({ error: 'Failed to refresh QuickBooks token' }, { status: 500 });
+    }
+
+    const accessToken = refreshResult.data.access_token;
     const realmId = Deno.env.get('QUICKBOOK_REALM_ID');
 
     if (!accessToken || !realmId) {
