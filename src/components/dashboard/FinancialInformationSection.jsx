@@ -2,14 +2,16 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { DollarSign, TrendingUp, Clock, CheckCircle2, RefreshCw, TrendingDown, Wallet } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import ReportsSection from './ReportsSection';
 
 export default function FinancialInformationSection() {
   const [timeframe, setTimeframe] = useState('month');
   const [syncing, setSyncing] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
   const { data: invoices = [] } = useQuery({
     queryKey: ['invoices'],
@@ -123,19 +125,30 @@ export default function FinancialInformationSection() {
 
   return (
     <div className="space-y-8">
-      {/* Timeframe Selector and Sync Button */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <Tabs value={timeframe} onValueChange={setTimeframe}>
+      {/* Main Tabs: Overview and Reports */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <TabsList>
-            <TabsTrigger value="month">This Month</TabsTrigger>
-            <TabsTrigger value="quarter">This Quarter</TabsTrigger>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
           </TabsList>
-        </Tabs>
-        <Button onClick={handleSyncFinancials} disabled={syncing} className="bg-[#264d44] hover:bg-[#1a3830]">
-          <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? 'Syncing...' : 'Sync QuickBooks'}
-        </Button>
-      </div>
+          <Button onClick={handleSyncFinancials} disabled={syncing} className="bg-[#264d44] hover:bg-[#1a3830]">
+            <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Syncing...' : 'Sync QuickBooks'}
+          </Button>
+        </div>
+
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-8">
+          {/* Timeframe Selector */}
+          <div className="flex flex-wrap items-center gap-4">
+            <Tabs value={timeframe} onValueChange={setTimeframe}>
+              <TabsList>
+                <TabsTrigger value="month">This Month</TabsTrigger>
+                <TabsTrigger value="quarter">This Quarter</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
 
       {/* Financial KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -259,6 +272,13 @@ export default function FinancialInformationSection() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        {/* Reports Tab */}
+        <TabsContent value="reports">
+          <ReportsSection />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
