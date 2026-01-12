@@ -1,5 +1,42 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
+async function refreshAccessToken() {
+  const clientId = Deno.env.get('QUICKBOOKS_CLIENT_ID');
+  const clientSecret = Deno.env.get('QUICKBOOKS_CLIENT_SECRET');
+  const refreshToken = Deno.env.get('QUICKBOOKS_REFRSH_TOKEN');
+
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error('QuickBooks OAuth credentials not configured');
+  }
+
+  const response = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`
+    },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: refreshToken
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    let errorMsg = 'Failed to refresh token';
+    try {
+      const errorData = JSON.parse(errorText);
+      errorMsg = errorData.error_description || errorData.error || errorMsg;
+    } catch {
+      errorMsg = errorText;
+    }
+    throw new Error(errorMsg);
+  }
+
+  const data = await response.json();
+  return data.access_token;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -9,12 +46,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized: Admin access required' }, { status: 403 });
     }
 
-    const accessToken = Deno.env.get('Quickbooks_ACCESS_TOKEN');
     const realmId = Deno.env.get('QUICKBOOK_REALM_ID');
 
-    if (!accessToken || !realmId) {
-      return Response.json({ error: 'QuickBooks credentials not configured' }, { status: 500 });
+    if (!realmId) {
+      return Response.json({ error: 'QuickBooks realm ID not configured' }, { status: 500 });
     }
+
+    // Get fresh access token
+    const accessToken = await refreshAccessToken();
 
     // Fetch payments
     const paymentResponse = await fetch(
