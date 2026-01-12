@@ -98,29 +98,73 @@ Deno.serve(async (req) => {
     const incomeTransactions = [];
 
     payments.forEach(payment => {
-      incomeTransactions.push({
-        quickbooks_id: payment.Id,
-        transaction_date: payment.TxnDate,
-        customer_name: payment.CustomerRef?.name || 'Unknown',
-        amount: payment.TotalAmt || 0,
-        description: payment.PrivateNote || '',
-        payment_method: payment.PaymentMethodRef?.name || '',
-        transaction_type: 'Payment',
-        deposit_account: payment.DepositToAccountRef?.name || ''
+      const lineItems = payment.Line || [];
+      
+      lineItems.forEach(line => {
+        if (line.LinkedTxn && line.LinkedTxn[0]) {
+          const linkedTxn = line.LinkedTxn[0];
+          incomeTransactions.push({
+            quickbooks_id: `${payment.Id}-${line.LineNum}`,
+            transaction_date: payment.TxnDate,
+            customer_name: payment.CustomerRef?.name || 'Unknown',
+            amount: line.Amount || 0,
+            description: payment.PrivateNote || linkedTxn.TxnType || '',
+            payment_method: payment.PaymentMethodRef?.name || '',
+            transaction_type: 'Payment',
+            deposit_account: payment.DepositToAccountRef?.name || '',
+            service_line: linkedTxn.TxnType || 'General'
+          });
+        }
       });
+
+      if (lineItems.length === 0) {
+        incomeTransactions.push({
+          quickbooks_id: payment.Id,
+          transaction_date: payment.TxnDate,
+          customer_name: payment.CustomerRef?.name || 'Unknown',
+          amount: payment.TotalAmt || 0,
+          description: payment.PrivateNote || '',
+          payment_method: payment.PaymentMethodRef?.name || '',
+          transaction_type: 'Payment',
+          deposit_account: payment.DepositToAccountRef?.name || '',
+          service_line: 'General'
+        });
+      }
     });
 
     salesReceipts.forEach(receipt => {
-      incomeTransactions.push({
-        quickbooks_id: receipt.Id,
-        transaction_date: receipt.TxnDate,
-        customer_name: receipt.CustomerRef?.name || 'Unknown',
-        amount: receipt.TotalAmt || 0,
-        description: receipt.PrivateNote || '',
-        payment_method: receipt.PaymentMethodRef?.name || '',
-        transaction_type: 'Sales Receipt',
-        deposit_account: receipt.DepositToAccountRef?.name || ''
+      const lineItems = receipt.Line || [];
+      
+      lineItems.forEach(line => {
+        if (line.SalesItemLineDetail) {
+          const detail = line.SalesItemLineDetail;
+          incomeTransactions.push({
+            quickbooks_id: `${receipt.Id}-${line.Id}`,
+            transaction_date: receipt.TxnDate,
+            customer_name: receipt.CustomerRef?.name || 'Unknown',
+            amount: line.Amount || 0,
+            description: line.Description || detail?.ItemRef?.name || receipt.PrivateNote || '',
+            payment_method: receipt.PaymentMethodRef?.name || '',
+            transaction_type: 'Sales Receipt',
+            deposit_account: receipt.DepositToAccountRef?.name || '',
+            service_line: detail?.ItemRef?.name || 'General'
+          });
+        }
       });
+
+      if (lineItems.length === 0) {
+        incomeTransactions.push({
+          quickbooks_id: receipt.Id,
+          transaction_date: receipt.TxnDate,
+          customer_name: receipt.CustomerRef?.name || 'Unknown',
+          amount: receipt.TotalAmt || 0,
+          description: receipt.PrivateNote || '',
+          payment_method: receipt.PaymentMethodRef?.name || '',
+          transaction_type: 'Sales Receipt',
+          deposit_account: receipt.DepositToAccountRef?.name || '',
+          service_line: 'General'
+        });
+      }
     });
 
     // Delete existing income and insert new ones
