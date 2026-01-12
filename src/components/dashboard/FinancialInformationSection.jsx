@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { DollarSign, TrendingUp, Clock, CheckCircle2, RefreshCw, TrendingDown, Wallet } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import ReportsSection from './ReportsSection';
+import ExpenseManager from './ExpenseManager';
 
 export default function FinancialInformationSection() {
   const [timeframe, setTimeframe] = useState('month');
@@ -131,6 +132,7 @@ export default function FinancialInformationSection() {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
+            <TabsTrigger value="expenses">Manage Expenses</TabsTrigger>
           </TabsList>
           <Button onClick={handleSyncFinancials} disabled={syncing} className="bg-[#264d44] hover:bg-[#1a3830]">
             <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
@@ -277,6 +279,11 @@ export default function FinancialInformationSection() {
         {/* Reports Tab */}
         <TabsContent value="reports">
           <ReportsSection />
+        </TabsContent>
+
+        {/* Expense Manager Tab */}
+        <TabsContent value="expenses">
+          <ExpenseManager />
         </TabsContent>
       </Tabs>
     </div>

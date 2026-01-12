@@ -70,9 +70,20 @@ export default function ReportsSection() {
     const totalRevenue = filteredIncome.reduce((sum, inc) => sum + (inc.amount || 0), 0);
     
     const expensesByCategory = {};
+    const expensesBySubCategory = {};
+    
     filteredExpenses.forEach(exp => {
       const category = exp.category || 'Uncategorized';
+      const subCategory = exp.sub_category;
+      
+      // Main category
       expensesByCategory[category] = (expensesByCategory[category] || 0) + (exp.amount || 0);
+      
+      // Sub-category breakdown
+      if (subCategory) {
+        const key = `${category} - ${subCategory}`;
+        expensesBySubCategory[key] = (expensesBySubCategory[key] || 0) + (exp.amount || 0);
+      }
     });
 
     const totalExpenses = Object.values(expensesByCategory).reduce((sum, val) => sum + val, 0);
@@ -81,6 +92,7 @@ export default function ReportsSection() {
     return {
       revenue: totalRevenue,
       expenses: expensesByCategory,
+      expensesBySubCategory,
       totalExpenses,
       netIncome,
       netMargin: totalRevenue > 0 ? ((netIncome / totalRevenue) * 100).toFixed(2) : 0
@@ -266,9 +278,24 @@ export default function ReportsSection() {
                 <div className="border-b pb-3">
                   <div className="font-bold text-lg mb-3">Operating Expenses</div>
                   {Object.entries(profitLossData.expenses).map(([category, amount]) => (
-                    <div key={category} className="flex justify-between py-2 pl-4">
-                      <span className="text-gray-700">{category}</span>
-                      <span className="text-gray-900">${amount.toLocaleString()}</span>
+                    <div key={category}>
+                      <div className="flex justify-between py-2 pl-4">
+                        <span className="text-gray-700 font-medium">{category}</span>
+                        <span className="text-gray-900">${amount.toLocaleString()}</span>
+                      </div>
+                      {/* Show sub-categories under each main category */}
+                      {Object.entries(profitLossData.expensesBySubCategory)
+                        .filter(([key]) => key.startsWith(`${category} - `))
+                        .map(([key, subAmount]) => {
+                          const subCat = key.split(' - ')[1];
+                          return (
+                            <div key={key} className="flex justify-between py-1 pl-8">
+                              <span className="text-gray-500 text-sm">• {subCat}</span>
+                              <span className="text-gray-600 text-sm">${subAmount.toLocaleString()}</span>
+                            </div>
+                          );
+                        })
+                      }
                     </div>
                   ))}
                   <div className="flex justify-between pt-2 pl-4 font-semibold">

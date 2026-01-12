@@ -92,28 +92,89 @@ Deno.serve(async (req) => {
     const expenses = [];
 
     purchases.forEach(purchase => {
-      expenses.push({
-        quickbooks_id: purchase.Id,
-        transaction_date: purchase.TxnDate,
-        vendor_name: purchase.EntityRef?.name || 'Unknown',
-        amount: purchase.TotalAmt || 0,
-        description: purchase.PrivateNote || '',
-        payment_method: purchase.PaymentMethodRef?.name || '',
-        transaction_type: 'Purchase',
-        account_name: purchase.AccountRef?.name || ''
+      // Extract line item details for better categorization
+      const lineItems = purchase.Line || [];
+      
+      lineItems.forEach(line => {
+        if (line.DetailType === 'AccountBasedExpenseLineDetail') {
+          const detail = line.AccountBasedExpenseLineDetail;
+          expenses.push({
+            quickbooks_id: `${purchase.Id}-${line.Id}`,
+            transaction_date: purchase.TxnDate,
+            vendor_name: purchase.EntityRef?.name || 'Unknown',
+            amount: line.Amount || 0,
+            description: line.Description || purchase.PrivateNote || '',
+            payment_method: purchase.PaymentMethodRef?.name || '',
+            transaction_type: 'Purchase',
+            account_name: detail?.AccountRef?.name || purchase.AccountRef?.name || '',
+            account_type: detail?.AccountRef?.type || '',
+            category: detail?.AccountRef?.name || 'Uncategorized'
+          });
+        }
       });
+
+      // If no line items, add the purchase as a single expense
+      if (lineItems.length === 0) {
+        expenses.push({
+          quickbooks_id: purchase.Id,
+          transaction_date: purchase.TxnDate,
+          vendor_name: purchase.EntityRef?.name || 'Unknown',
+          amount: purchase.TotalAmt || 0,
+          description: purchase.PrivateNote || '',
+          payment_method: purchase.PaymentMethodRef?.name || '',
+          transaction_type: 'Purchase',
+          account_name: purchase.AccountRef?.name || '',
+          category: purchase.AccountRef?.name || 'Uncategorized'
+        });
+      }
     });
 
     bills.forEach(bill => {
-      expenses.push({
-        quickbooks_id: bill.Id,
-        transaction_date: bill.TxnDate,
-        vendor_name: bill.VendorRef?.name || 'Unknown',
-        amount: bill.TotalAmt || 0,
-        description: bill.PrivateNote || '',
-        transaction_type: 'Bill',
-        account_name: bill.APAccountRef?.name || ''
+      // Extract line item details for bills
+      const lineItems = bill.Line || [];
+      
+      lineItems.forEach(line => {
+        if (line.DetailType === 'AccountBasedExpenseLineDetail') {
+          const detail = line.AccountBasedExpenseLineDetail;
+          expenses.push({
+            quickbooks_id: `${bill.Id}-${line.Id}`,
+            transaction_date: bill.TxnDate,
+            vendor_name: bill.VendorRef?.name || 'Unknown',
+            amount: line.Amount || 0,
+            description: line.Description || bill.PrivateNote || '',
+            transaction_type: 'Bill',
+            account_name: detail?.AccountRef?.name || bill.APAccountRef?.name || '',
+            account_type: detail?.AccountRef?.type || '',
+            category: detail?.AccountRef?.name || 'Uncategorized'
+          });
+        } else if (line.DetailType === 'ItemBasedExpenseLineDetail') {
+          const detail = line.ItemBasedExpenseLineDetail;
+          expenses.push({
+            quickbooks_id: `${bill.Id}-${line.Id}`,
+            transaction_date: bill.TxnDate,
+            vendor_name: bill.VendorRef?.name || 'Unknown',
+            amount: line.Amount || 0,
+            description: line.Description || detail?.ItemRef?.name || bill.PrivateNote || '',
+            transaction_type: 'Bill',
+            account_name: bill.APAccountRef?.name || '',
+            category: detail?.ItemRef?.name || 'Uncategorized'
+          });
+        }
       });
+
+      // If no line items, add the bill as a single expense
+      if (lineItems.length === 0) {
+        expenses.push({
+          quickbooks_id: bill.Id,
+          transaction_date: bill.TxnDate,
+          vendor_name: bill.VendorRef?.name || 'Unknown',
+          amount: bill.TotalAmt || 0,
+          description: bill.PrivateNote || '',
+          transaction_type: 'Bill',
+          account_name: bill.APAccountRef?.name || '',
+          category: 'Uncategorized'
+        });
+      }
     });
 
     // Delete existing expenses and insert new ones
