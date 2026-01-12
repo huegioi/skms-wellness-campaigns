@@ -61,13 +61,15 @@ Deno.serve(async (req) => {
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         }
       }
     );
 
     if (!paymentResponse.ok) {
-      throw new Error(`QuickBooks API error: ${paymentResponse.statusText}`);
+      const errorText = await paymentResponse.text();
+      throw new Error(`QuickBooks Payment API error: ${paymentResponse.status} - ${errorText}`);
     }
 
     const paymentData = await paymentResponse.json();
@@ -79,13 +81,18 @@ Deno.serve(async (req) => {
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         }
       }
     );
 
-    const salesData = await salesResponse.json();
-    const salesReceipts = salesData.QueryResponse?.SalesReceipt || [];
+    // Sales receipts may not exist, so handle gracefully
+    let salesReceipts = [];
+    if (salesResponse.ok) {
+      const salesData = await salesResponse.json();
+      salesReceipts = salesData.QueryResponse?.SalesReceipt || [];
+    }
 
     // Transform and combine income
     const incomeTransactions = [];
