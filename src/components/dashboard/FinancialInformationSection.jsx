@@ -105,24 +105,111 @@ export default function FinancialInformationSection() {
 
   const monthlyData = generateMonthlyData();
 
-  const StatCard = ({ title, value, icon: Icon, trend, color = "text-gray-600" }) => (
-    <Card>
-      <CardContent className="p-6">
+  // Generate expense breakdown by sub-category
+  const generateExpenseBreakdown = () => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+    const startDate = timeframe === 'month' ? startOfMonth : startOfQuarter;
+
+    const periodExpenses = expenses.filter(exp => 
+      new Date(exp.transaction_date) >= startDate
+    );
+
+    const breakdown = {};
+    const contractorTotal = { total: 0, count: 0 };
+
+    periodExpenses.forEach(exp => {
+      const subCat = exp.sub_category || exp.category || 'Uncategorized';
+      if (!breakdown[subCat]) breakdown[subCat] = 0;
+      breakdown[subCat] += exp.amount || 0;
+
+      // Track contractor spending
+      if (subCat.toLowerCase().includes('contractor') || 
+          exp.vendor_name?.toLowerCase().includes('contractor')) {
+        contractorTotal.total += exp.amount || 0;
+        contractorTotal.count += 1;
+      }
+    });
+
+    const sorted = Object.entries(breakdown)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([name, value]) => ({ name, value }));
+
+    return { breakdown: sorted, contractorTotal };
+  };
+
+  // Generate income breakdown by customer
+  const generateIncomeBreakdown = () => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+    const startDate = timeframe === 'month' ? startOfMonth : startOfQuarter;
+
+    const periodIncome = income.filter(inc => 
+      new Date(inc.transaction_date) >= startDate
+    );
+
+    const byCustomer = {};
+    const byService = {};
+    const byType = {};
+
+    periodIncome.forEach(inc => {
+      const customer = inc.customer_name || 'Unknown';
+      const service = inc.service_line || 'General';
+      const type = inc.transaction_type || 'Other';
+
+      byCustomer[customer] = (byCustomer[customer] || 0) + (inc.amount || 0);
+      byService[service] = (byService[service] || 0) + (inc.amount || 0);
+      byType[type] = (byType[type] || 0) + (inc.amount || 0);
+    });
+
+    const topCustomers = Object.entries(byCustomer)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([name, value]) => ({ name, value }));
+
+    const serviceBreakdown = Object.entries(byService)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, value]) => ({ name, value }));
+
+    const typeBreakdown = Object.entries(byType)
+      .map(([name, value]) => ({ name, value }));
+
+    return { topCustomers, serviceBreakdown, typeBreakdown };
+  };
+
+  const expenseData = generateExpenseBreakdown();
+  const incomeData = generateIncomeBreakdown();
+
+  const StatCard = ({ title, value, icon: Icon, trend, colorClass }) => (
+    <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+      <CardContent className="p-6 z-10 relative">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-            <p className={`text-3xl font-bold ${color}`}>{value}</p>
+            <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
+            <p className={`text-3xl font-bold ${colorClass.value}`}>{value}</p>
             {trend && (
               <p className="text-sm text-gray-500 mt-1">{trend}</p>
             )}
           </div>
-          <div className={`p-4 rounded-full ${color.replace('text', 'bg').replace('600', '100')}`}>
-            <Icon className={`w-8 h-8 ${color}`} />
+          <div className={`p-3 rounded-full ${colorClass.bg} transition-all duration-300 group-hover:scale-110`}>
+            <Icon className={`w-6 h-6 ${colorClass.icon}`} />
           </div>
         </div>
       </CardContent>
+      <div className={`absolute inset-0 opacity-5 ${colorClass.bg} group-hover:opacity-10 transition-opacity`}></div>
     </Card>
   );
+
+  const colorMap = {
+    blue: { value: "text-blue-600", bg: "bg-blue-100", icon: "text-blue-600" },
+    green: { value: "text-green-600", bg: "bg-green-100", icon: "text-green-600" },
+    orange: { value: "text-orange-600", bg: "bg-orange-100", icon: "text-orange-600" },
+    red: { value: "text-red-600", bg: "bg-red-100", icon: "text-red-600" },
+    purple: { value: "text-purple-600", bg: "bg-purple-100", icon: "text-purple-600" },
+  };
 
   return (
     <div className="space-y-8">
@@ -158,77 +245,136 @@ export default function FinancialInformationSection() {
           title={`Total Invoiced (${timeframe === 'month' ? 'This Month' : 'This Quarter'})`}
           value={`$${metrics.totalInvoiced.toLocaleString()}`}
           icon={DollarSign}
-          color="text-blue-600"
+          colorClass={colorMap.blue}
         />
         <StatCard
           title="Total Paid"
           value={`$${metrics.totalPaid.toLocaleString()}`}
           icon={CheckCircle2}
-          color="text-green-600"
+          colorClass={colorMap.green}
         />
         <StatCard
           title="Outstanding"
           value={`$${metrics.outstanding.toLocaleString()}`}
           icon={TrendingUp}
-          color="text-orange-600"
+          colorClass={colorMap.orange}
         />
         <StatCard
           title="Due Soon (7 days)"
           value={metrics.dueSoon}
           icon={Clock}
-          color="text-red-600"
+          colorClass={colorMap.red}
         />
       </div>
 
       {/* Income vs Expenses */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-gradient-to-br from-green-50 to-emerald-50">
-          <CardContent className="p-6">
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-100 relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+          <CardContent className="p-6 z-10 relative">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Total Income</p>
+                <p className="text-sm font-medium text-gray-500 mb-1">Total Income</p>
                 <p className="text-3xl font-bold text-green-600">${metrics.totalIncome.toLocaleString()}</p>
               </div>
-              <div className="p-4 rounded-full bg-green-100">
+              <div className="p-4 rounded-full bg-green-100 transition-all duration-300 group-hover:scale-110">
                 <TrendingUp className="w-8 h-8 text-green-600" />
               </div>
             </div>
           </CardContent>
+          <div className="absolute inset-0 opacity-10 bg-green-200 blur-2xl"></div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-red-50 to-rose-50">
-          <CardContent className="p-6">
+        <Card className="bg-gradient-to-br from-red-50 to-rose-100 relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+          <CardContent className="p-6 z-10 relative">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Total Expenses</p>
+                <p className="text-sm font-medium text-gray-500 mb-1">Total Expenses</p>
                 <p className="text-3xl font-bold text-red-600">${metrics.totalExpenses.toLocaleString()}</p>
               </div>
-              <div className="p-4 rounded-full bg-red-100">
+              <div className="p-4 rounded-full bg-red-100 transition-all duration-300 group-hover:scale-110">
                 <TrendingDown className="w-8 h-8 text-red-600" />
               </div>
             </div>
           </CardContent>
+          <div className="absolute inset-0 opacity-10 bg-red-200 blur-2xl"></div>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-violet-50">
-          <CardContent className="p-6">
+        <Card className="bg-gradient-to-br from-purple-50 to-violet-100 relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+          <CardContent className="p-6 z-10 relative">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Net Profit</p>
+                <p className="text-sm font-medium text-gray-500 mb-1">Net Profit</p>
                 <p className={`text-3xl font-bold ${metrics.netProfit >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
                   ${metrics.netProfit.toLocaleString()}
                 </p>
               </div>
-              <div className="p-4 rounded-full bg-purple-100">
+              <div className="p-4 rounded-full bg-purple-100 transition-all duration-300 group-hover:scale-110">
                 <Wallet className="w-8 h-8 text-purple-600" />
               </div>
             </div>
+          </CardContent>
+          <div className="absolute inset-0 opacity-10 bg-purple-200 blur-2xl"></div>
+        </Card>
+      </div>
+
+      {/* Expense & Income Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Contractor & Major Expenses */}
+        <Card className="hover:shadow-lg transition-shadow duration-300">
+          <CardHeader>
+            <CardTitle style={{ color: '#264d44' }}>Major Expense Categories</CardTitle>
+            {expenseData.contractorTotal.total > 0 && (
+              <p className="text-sm text-gray-600 mt-1">
+                Contractor Spending: <span className="font-semibold text-red-600">${expenseData.contractorTotal.total.toLocaleString()}</span> ({expenseData.contractorTotal.count} transactions)
+              </p>
+            )}
+          </CardHeader>
+          <CardContent>
+            {expenseData.breakdown.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={expenseData.breakdown} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                  <Bar dataKey="value" name="Amount" fill="#F44336" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-gray-400">
+                No expense data yet
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Income by Customer */}
+        <Card className="hover:shadow-lg transition-shadow duration-300">
+          <CardHeader>
+            <CardTitle style={{ color: '#264d44' }}>Top Income Sources (by Customer)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {incomeData.topCustomers.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={incomeData.topCustomers} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                  <Bar dataKey="value" name="Amount" fill="#4CAF50" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-gray-400">
+                No income data yet
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
       {/* Income vs Expenses Chart */}
-      <Card>
+      <Card className="hover:shadow-lg transition-shadow duration-300">
         <CardHeader>
           <CardTitle style={{ color: '#264d44' }}>Income vs Expenses (Last 6 Months)</CardTitle>
         </CardHeader>
@@ -236,13 +382,16 @@ export default function FinancialInformationSection() {
           {monthlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
+                <Tooltip 
+                  formatter={(value) => `$${value.toLocaleString()}`}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
                 <Legend />
-                <Bar dataKey="income" name="Income" fill="#22C55E" />
-                <Bar dataKey="expenses" name="Expenses" fill="#EF4444" />
+                <Bar dataKey="income" name="Income" fill="#4CAF50" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="expenses" name="Expenses" fill="#F44336" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -253,8 +402,59 @@ export default function FinancialInformationSection() {
         </CardContent>
       </Card>
 
+      {/* Income Breakdown Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Income by Service Line */}
+        <Card className="hover:shadow-lg transition-shadow duration-300">
+          <CardHeader>
+            <CardTitle style={{ color: '#264d44' }}>Income by Service/Product</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {incomeData.serviceBreakdown.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={incomeData.serviceBreakdown}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                  <Bar dataKey="value" name="Amount" fill="#9C27B0" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[280px] flex items-center justify-center text-gray-400">
+                No service data yet
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Income by Transaction Type */}
+        <Card className="hover:shadow-lg transition-shadow duration-300">
+          <CardHeader>
+            <CardTitle style={{ color: '#264d44' }}>Income by Transaction Type</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {incomeData.typeBreakdown.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={incomeData.typeBreakdown}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                  <Bar dataKey="value" name="Amount" fill="#FF9800" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[280px] flex items-center justify-center text-gray-400">
+                No transaction type data yet
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Profit Trend */}
-      <Card>
+      <Card className="hover:shadow-lg transition-shadow duration-300">
         <CardHeader>
           <CardTitle style={{ color: '#264d44' }}>Net Profit Trend</CardTitle>
         </CardHeader>
@@ -262,11 +462,22 @@ export default function FinancialInformationSection() {
           {monthlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                <Line type="monotone" dataKey="profit" name="Net Profit" stroke="#7c3aed" strokeWidth={3} dot={{ fill: '#7c3aed', r: 5 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
+                <Tooltip 
+                  formatter={(value) => `$${value.toLocaleString()}`}
+                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="profit" 
+                  name="Net Profit" 
+                  stroke="#9C27B0" 
+                  strokeWidth={3} 
+                  dot={{ r: 4, fill: '#9C27B0', stroke: '#fff', strokeWidth: 2 }} 
+                  activeDot={{ r: 6, fill: '#fff', stroke: '#9C27B0', strokeWidth: 2 }} 
+                />
               </LineChart>
             </ResponsiveContainer>
           ) : (
