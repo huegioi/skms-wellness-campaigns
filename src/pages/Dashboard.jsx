@@ -3,7 +3,8 @@ import { Menu, Users, DollarSign, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClientInformationSection from '@/components/dashboard/ClientInformationSection';
 import FinancialInformationSection from '@/components/dashboard/FinancialInformationSection';
-import MarketingServicesSection from '@/components/dashboard/MarketingServicesSection';
+import MarketingDashboard from '@/components/dashboard/MarketingDashboard';
+import ServicesAnalytics from '@/components/dashboard/ServicesAnalytics';
 
 export default function Dashboard() {
   const [activeSection, setActiveSection] = useState('clients');
@@ -12,7 +13,8 @@ export default function Dashboard() {
   const sections = [
     { id: 'clients', label: 'Client Information', icon: Users },
     { id: 'financial', label: 'Financial Information', icon: DollarSign },
-    { id: 'marketing', label: 'Marketing & Services', icon: TrendingUp }
+    { id: 'marketing', label: 'Marketing', icon: TrendingUp },
+    { id: 'services', label: 'Services', icon: TrendingUp }
   ];
 
   return (
@@ -90,7 +92,8 @@ export default function Dashboard() {
           <div className="p-4 md:p-8">
             {activeSection === 'clients' && <ClientInformationSection />}
             {activeSection === 'financial' && <FinancialInformationSection />}
-            {activeSection === 'marketing' && <MarketingServicesSection />}
+            {activeSection === 'marketing' && <MarketingDashboard />}
+            {activeSection === 'services' && <ServicesAnalytics />}
           </div>
         </main>
       </div>
