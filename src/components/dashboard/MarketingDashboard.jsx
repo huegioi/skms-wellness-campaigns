@@ -126,12 +126,12 @@ export default function MarketingDashboard() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-end">
-              <Button onClick={() => refetch()} className="w-full bg-[#264d44] hover:bg-[#1a3830]">
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh
-              </Button>
-            </div>
+          </div>
+          <div className="mt-4 lg:col-span-4">
+            <Button onClick={() => refetch()} className="w-full sm:w-auto bg-[#264d44] hover:bg-[#1a3830]">
+              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -246,14 +246,70 @@ export default function MarketingDashboard() {
         </Card>
       </div>
 
+      {/* Stage Breakdown & Companies List */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        {/* Stage Breakdown */}
+        <Card className="hover:shadow-lg transition-shadow duration-300">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Opportunities by Stage</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            {stageData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={stageData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" name="Count" fill="#770142" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[280px] flex items-center justify-center text-gray-400">
+                No data available
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Companies */}
+        <Card className="hover:shadow-lg transition-shadow duration-300">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Recent Companies</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            {opportunities.length > 0 ? (
+              <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                {opportunities.slice(0, 10).map((opp, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{opp.company}</p>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{opp.source}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">{opp.stage}</span>
+                      </div>
+                    </div>
+                    <span className="text-xs text-gray-500 ml-2 whitespace-nowrap">{format(new Date(opp.created_time), 'MMM d')}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="h-[280px] flex items-center justify-center text-gray-400">
+                No opportunities yet
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Timeline Chart */}
       <Card className="hover:shadow-lg transition-shadow duration-300">
-        <CardHeader>
-          <CardTitle style={{ color: '#264d44' }}>Opportunities Over Time</CardTitle>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Opportunities Over Time</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           {timelineData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <LineChart data={timelineData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} />
@@ -273,7 +329,7 @@ export default function MarketingDashboard() {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-gray-400">
+            <div className="h-[250px] flex items-center justify-center text-gray-400">
               No data available
             </div>
           )}
