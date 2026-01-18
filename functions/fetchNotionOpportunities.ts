@@ -103,37 +103,50 @@ Deno.serve(async (req) => {
     const opportunities = allResults.map(page => {
       const properties = page.properties;
       
-      // Extract company name - try multiple property types
-      let companyName = 'Unknown';
-      const companyProp = properties.Company || properties.company || properties.Name;
+      // Log first property for debugging
+      if (allResults.indexOf(page) === 0) {
+        console.log('Sample Notion properties:', JSON.stringify(properties, null, 2));
+      }
       
-      if (companyProp) {
+      // Extract company name - try all possible property names and types
+      let companyName = 'Unknown';
+      
+      // Try common property names
+      const possibleCompanyProps = ['Company', 'company', 'Name', 'name', 'Client', 'client', 'Organization'];
+      
+      for (const propName of possibleCompanyProps) {
+        const prop = properties[propName];
+        if (!prop) continue;
+        
         // Title property type
-        if (companyProp.title && companyProp.title.length > 0) {
-          companyName = companyProp.title[0]?.plain_text;
+        if (prop.title && prop.title.length > 0 && prop.title[0]?.plain_text) {
+          companyName = prop.title[0].plain_text;
+          break;
         }
         // Rich text property type
-        else if (companyProp.rich_text && companyProp.rich_text.length > 0) {
-          companyName = companyProp.rich_text[0]?.plain_text;
+        if (prop.rich_text && prop.rich_text.length > 0 && prop.rich_text[0]?.plain_text) {
+          companyName = prop.rich_text[0].plain_text;
+          break;
         }
         // Formula property type
-        else if (companyProp.formula?.string) {
-          companyName = companyProp.formula.string;
+        if (prop.formula?.string) {
+          companyName = prop.formula.string;
+          break;
         }
         // Rollup property type
-        else if (companyProp.rollup?.array && companyProp.rollup.array.length > 0) {
-          companyName = companyProp.rollup.array[0]?.title?.[0]?.plain_text || companyProp.rollup.array[0]?.rich_text?.[0]?.plain_text;
-        }
-        // Relation property type - extract ID
-        else if (companyProp.relation && companyProp.relation.length > 0) {
-          companyName = companyProp.relation[0]?.id;
+        if (prop.rollup?.array && prop.rollup.array.length > 0) {
+          const rollupValue = prop.rollup.array[0]?.title?.[0]?.plain_text || prop.rollup.array[0]?.rich_text?.[0]?.plain_text;
+          if (rollupValue) {
+            companyName = rollupValue;
+            break;
+          }
         }
       }
       
       return {
         id: page.id,
         source: properties.Source?.select?.name || 'Unknown',
-        company: companyName || 'Unknown',
+        company: companyName,
         stage: properties.Stage?.select?.name || 'Unknown',
         created_time: properties['Created time']?.created_time || page.created_time
       };
