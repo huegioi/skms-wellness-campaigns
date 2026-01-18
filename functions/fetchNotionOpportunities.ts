@@ -11,8 +11,12 @@ Deno.serve(async (req) => {
 
     const { start_date, end_date, source } = await req.json();
 
-    const notionApiKey = 'ntn_W10292049351vH2C6wZO8RSjvTHLfCW56HHzUZpZYl0dgV';
+    const notionApiKey = Deno.env.get('Notion_Internal_Integration_Secret');
     const notionDatabaseId = 'aced5a3edf434ee793181c1ff4b7efb7';
+
+    if (!notionApiKey) {
+      return Response.json({ error: 'Notion API key not configured' }, { status: 500 });
+    }
 
     const filters = [];
 
