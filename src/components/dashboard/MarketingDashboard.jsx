@@ -42,6 +42,11 @@ export default function MarketingDashboard() {
     initialData: { opportunities: [], total: 0 }
   });
 
+  const { data: invoices = [] } = useQuery({
+    queryKey: ['invoices'],
+    queryFn: () => base44.entities.Invoice.list()
+  });
+
   const opportunities = (data?.opportunities || []).filter(opp => 
     selectedStage === 'all' || opp.stage === selectedStage
   );
@@ -74,9 +79,14 @@ export default function MarketingDashboard() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
+    // Get actual count of unique clients with paid invoices from QuickBooks
+    const paidClientCount = new Set(
+      invoices.filter(inv => inv.status === 'paid').map(inv => inv.client_id)
+    ).size;
+
     const stageData = DEAL_STAGES_CONFIG.map(config => ({
       name: config.name,
-      value: stageBreakdown[config.name] || 0,
+      value: config.name === 'Paid' ? paidClientCount : (stageBreakdown[config.name] || 0),
       color: config.color
     }));
 
