@@ -2,135 +2,115 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { FileText, CheckCircle2, Eye, Clock, DollarSign, Send } from 'lucide-react';
-import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { productCatalog } from '@/components/curriculum/catalogData';
+import { DollarSign, ShoppingCart, TrendingUp, Package } from 'lucide-react';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 export default function ServicesAnalytics() {
-  const { data: proposals = [] } = useQuery({
-    queryKey: ['proposals'],
-    queryFn: () => base44.entities.Proposal.list()
+  const { data: invoices = [] } = useQuery({
+    queryKey: ['invoices'],
+    queryFn: () => base44.entities.Invoice.list()
   });
 
-  const { data: qbIncome = [] } = useQuery({
-    queryKey: ['qbIncome'],
-    queryFn: () => base44.entities.QuickBooksIncome.list()
-  });
-
-  const calculateQuickBooksAnalytics = () => {
-    // Group by service_line
+  const calculateInvoiceAnalytics = () => {
+    const servicePurchases = {};
     const serviceRevenue = {};
-    const serviceCount = {};
+    const serviceHierarchy = {};
+    let totalRevenue = 0;
+    let totalItems = 0;
 
-    qbIncome.forEach(income => {
-      const service = income.service_line || 'Other';
-      serviceRevenue[service] = (serviceRevenue[service] || 0) + (income.amount || 0);
-      serviceCount[service] = (serviceCount[service] || 0) + 1;
+    // Process all invoice line items
+    invoices.forEach(invoice => {
+      if (invoice.line_items && Array.isArray(invoice.line_items)) {
+        invoice.line_items.forEach(item => {
+          const serviceName = item.description || 'Other';
+          const quantity = item.quantity || 1;
+          const amount = item.amount || 0;
+
+          // Count purchases
+          servicePurchases[serviceName] = (servicePurchases[serviceName] || 0) + quantity;
+          
+          // Sum revenue
+          serviceRevenue[serviceName] = (serviceRevenue[serviceName] || 0) + amount;
+          
+          // Build hierarchy (track individual line items)
+          if (!serviceHierarchy[serviceName]) {
+            serviceHierarchy[serviceName] = {
+              name: serviceName,
+              totalPurchases: 0,
+              totalRevenue: 0,
+              items: []
+            };
+          }
+          
+          serviceHierarchy[serviceName].totalPurchases += quantity;
+          serviceHierarchy[serviceName].totalRevenue += amount;
+          serviceHierarchy[serviceName].items.push({
+            invoiceId: invoice.invoice_number || invoice.id,
+            clientName: invoice.client_name,
+            quantity,
+            amount,
+            date: invoice.issue_date
+          });
+
+          totalRevenue += amount;
+          totalItems += quantity;
+        });
+      }
     });
 
+    // Top services by purchase count
+    const topServicesByCount = Object.entries(servicePurchases)
+      .map(([name, count]) => ({
+        name,
+        count,
+        revenue: serviceRevenue[name],
+        avgValue: serviceRevenue[name] / count
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    // Top services by revenue
     const topServicesByRevenue = Object.entries(serviceRevenue)
-      .map(([name, revenue]) => ({ 
-        name, 
-        revenue, 
-        count: serviceCount[name],
-        avgRevenue: revenue / serviceCount[name]
+      .map(([name, revenue]) => ({
+        name,
+        revenue,
+        count: servicePurchases[name],
+        avgValue: revenue / servicePurchases[name]
       }))
       .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 8);
+      .slice(0, 10);
 
-    const totalRevenue = Object.values(serviceRevenue).reduce((sum, val) => sum + val, 0);
-    const totalTransactions = qbIncome.length;
-
-    // Monthly revenue by service
-    const monthlyServiceData = {};
-    qbIncome.forEach(income => {
-      const month = new Date(income.transaction_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      if (!monthlyServiceData[month]) monthlyServiceData[month] = { month, total: 0 };
-      monthlyServiceData[month].total += income.amount || 0;
+    // Monthly service demand
+    const monthlyDemand = {};
+    invoices.forEach(invoice => {
+      if (invoice.issue_date && invoice.line_items) {
+        const month = new Date(invoice.issue_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        if (!monthlyDemand[month]) monthlyDemand[month] = { month, revenue: 0, items: 0 };
+        
+        invoice.line_items.forEach(item => {
+          monthlyDemand[month].revenue += item.amount || 0;
+          monthlyDemand[month].items += item.quantity || 1;
+        });
+      }
     });
-    const monthlyTrend = Object.values(monthlyServiceData).slice(-6);
+    const monthlyTrend = Object.values(monthlyDemand).slice(-12);
+
+    // Service hierarchy for display
+    const hierarchyData = Object.values(serviceHierarchy)
+      .sort((a, b) => b.totalPurchases - a.totalPurchases);
 
     return {
+      topServicesByCount,
       topServicesByRevenue,
-      totalRevenue,
-      totalTransactions,
       monthlyTrend,
-      serviceCount: Object.keys(serviceRevenue).length
+      hierarchyData,
+      totalRevenue,
+      totalItems,
+      uniqueServices: Object.keys(servicePurchases).length
     };
   };
 
-  const calculateProposalAnalytics = () => {
-    const totalProposals = proposals.length;
-    const sentProposals = proposals.filter(p => ['sent', 'viewed', 'accepted', 'declined'].includes(p.status)).length;
-    const acceptedProposals = proposals.filter(p => p.status === 'accepted').length;
-    const viewedProposals = proposals.filter(p => p.viewed_date).length;
-    const acceptanceRate = sentProposals > 0 ? ((acceptedProposals / sentProposals) * 100).toFixed(1) : 0;
-    const viewRate = sentProposals > 0 ? ((viewedProposals / sentProposals) * 100).toFixed(1) : 0;
-    const totalValue = proposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
-    const avgValue = totalProposals > 0 ? totalValue / totalProposals : 0;
-    const acceptedValue = proposals.filter(p => p.status === 'accepted').reduce((sum, p) => sum + (p.total_amount || 0), 0);
-
-    const statusData = [
-      { name: 'Draft', value: proposals.filter(p => p.status === 'draft').length, color: '#9CA3AF' },
-      { name: 'Sent', value: proposals.filter(p => p.status === 'sent').length, color: '#3B82F6' },
-      { name: 'Viewed', value: proposals.filter(p => p.status === 'viewed').length, color: '#8B5CF6' },
-      { name: 'Accepted', value: proposals.filter(p => p.status === 'accepted').length, color: '#22C55E' },
-      { name: 'Declined', value: proposals.filter(p => p.status === 'declined').length, color: '#EF4444' }
-    ].filter(d => d.value > 0);
-
-    const serviceCounts = { workshops: {}, challenges: {}, leadership: {}, classes: {} };
-    proposals.forEach(p => {
-      const sel = p.selections || {};
-      (sel.workshops || []).forEach(k => { serviceCounts.workshops[k] = (serviceCounts.workshops[k] || 0) + 1; });
-      (sel.challengePrograms || []).forEach(k => { serviceCounts.challenges[k] = (serviceCounts.challenges[k] || 0) + 1; });
-      (sel.leadership || []).forEach(k => { serviceCounts.leadership[k] = (serviceCounts.leadership[k] || 0) + 1; });
-      (sel.movementClasses || []).forEach(k => { serviceCounts.classes[k] = (serviceCounts.classes[k] || 0) + 1; });
-    });
-
-    const topServices = [
-      ...Object.entries(serviceCounts.workshops).map(([k, v]) => ({ name: productCatalog.workshops[k]?.name || k, count: v, type: 'Workshop' })),
-      ...Object.entries(serviceCounts.challenges).map(([k, v]) => ({ name: productCatalog.challenges[k]?.name || k, count: v, type: 'Challenge' })),
-      ...Object.entries(serviceCounts.leadership).map(([k, v]) => ({ name: productCatalog.leadership[k]?.name || k, count: v, type: 'Leadership' })),
-      ...Object.entries(serviceCounts.classes).map(([k, v]) => ({ name: productCatalog.movementClasses[k]?.name || k, count: v, type: 'Class' }))
-    ].sort((a, b) => b.count - a.count).slice(0, 8);
-
-    const monthlyData = {};
-    proposals.forEach(p => {
-      const month = new Date(p.created_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      if (!monthlyData[month]) monthlyData[month] = { month, count: 0, value: 0, accepted: 0 };
-      monthlyData[month].count++;
-      monthlyData[month].value += p.total_amount || 0;
-      if (p.status === 'accepted') monthlyData[month].accepted++;
-    });
-    const trendData = Object.values(monthlyData).slice(-6);
-
-    const responseTimes = proposals
-      .filter(p => p.sent_date && p.viewed_date)
-      .map(p => {
-        const sent = new Date(p.sent_date);
-        const viewed = new Date(p.viewed_date);
-        return (viewed - sent) / (1000 * 60 * 60);
-      });
-    const avgViewTime = responseTimes.length > 0 ? (responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length).toFixed(1) : 0;
-
-    return {
-      totalProposals,
-      sentProposals,
-      acceptanceRate,
-      viewRate,
-      avgValue,
-      acceptedValue,
-      totalValue,
-      avgViewTime,
-      statusData,
-      topServices,
-      trendData
-    };
-  };
-
-  const analytics = calculateProposalAnalytics();
-  const qbAnalytics = calculateQuickBooksAnalytics();
+  const analytics = calculateInvoiceAnalytics();
 
   return (
     <div className="space-y-8">
