@@ -13,6 +13,53 @@ export default function ServicesAnalytics() {
     queryFn: () => base44.entities.Proposal.list()
   });
 
+  const { data: qbIncome = [] } = useQuery({
+    queryKey: ['qbIncome'],
+    queryFn: () => base44.entities.QuickBooksIncome.list()
+  });
+
+  const calculateQuickBooksAnalytics = () => {
+    // Group by service_line
+    const serviceRevenue = {};
+    const serviceCount = {};
+
+    qbIncome.forEach(income => {
+      const service = income.service_line || 'Other';
+      serviceRevenue[service] = (serviceRevenue[service] || 0) + (income.amount || 0);
+      serviceCount[service] = (serviceCount[service] || 0) + 1;
+    });
+
+    const topServicesByRevenue = Object.entries(serviceRevenue)
+      .map(([name, revenue]) => ({ 
+        name, 
+        revenue, 
+        count: serviceCount[name],
+        avgRevenue: revenue / serviceCount[name]
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 8);
+
+    const totalRevenue = Object.values(serviceRevenue).reduce((sum, val) => sum + val, 0);
+    const totalTransactions = qbIncome.length;
+
+    // Monthly revenue by service
+    const monthlyServiceData = {};
+    qbIncome.forEach(income => {
+      const month = new Date(income.transaction_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      if (!monthlyServiceData[month]) monthlyServiceData[month] = { month, total: 0 };
+      monthlyServiceData[month].total += income.amount || 0;
+    });
+    const monthlyTrend = Object.values(monthlyServiceData).slice(-6);
+
+    return {
+      topServicesByRevenue,
+      totalRevenue,
+      totalTransactions,
+      monthlyTrend,
+      serviceCount: Object.keys(serviceRevenue).length
+    };
+  };
+
   const calculateProposalAnalytics = () => {
     const totalProposals = proposals.length;
     const sentProposals = proposals.filter(p => ['sent', 'viewed', 'accepted', 'declined'].includes(p.status)).length;
@@ -83,9 +130,69 @@ export default function ServicesAnalytics() {
   };
 
   const analytics = calculateProposalAnalytics();
+  const qbAnalytics = calculateQuickBooksAnalytics();
 
   return (
     <div className="space-y-8">
+      {/* QuickBooks Service Revenue KPIs */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-100">
+                <DollarSign className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Total Revenue</p>
+                <p className="text-2xl font-bold">${qbAnalytics.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-100">
+                <FileText className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Total Transactions</p>
+                <p className="text-2xl font-bold">{qbAnalytics.totalTransactions}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-purple-100">
+                <CheckCircle2 className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Service Types</p>
+                <p className="text-2xl font-bold">{qbAnalytics.serviceCount}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-100">
+                <DollarSign className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Avg. Transaction</p>
+                <p className="text-2xl font-bold">${qbAnalytics.totalTransactions > 0 ? (qbAnalytics.totalRevenue / qbAnalytics.totalTransactions).toLocaleString(undefined, { maximumFractionDigits: 0 }) : 0}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Proposal KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -185,6 +292,40 @@ export default function ServicesAnalytics() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        {/* Top Services by Revenue (QuickBooks) */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Top Services by Revenue</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            {qbAnalytics.topServicesByRevenue.length > 0 ? (
+              <div className="space-y-3">
+                {qbAnalytics.topServicesByRevenue.map((service, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm font-medium truncate">{service.name}</p>
+                        <span className="text-sm font-bold text-green-600 ml-2">${service.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-full bg-gray-100 rounded-full h-2">
+                          <div 
+                            className="h-2 rounded-full bg-gradient-to-r from-green-500 to-green-600" 
+                            style={{ width: `${(service.revenue / qbAnalytics.topServicesByRevenue[0].revenue) * 100}%` }} 
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">{service.count} transactions • Avg: ${service.avgRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-gray-400">No revenue data yet</div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Status Distribution */}
         <Card>
           <CardHeader>
@@ -214,7 +355,7 @@ export default function ServicesAnalytics() {
           </CardContent>
         </Card>
 
-        {/* Top Services */}
+        {/* Top Services (Proposals) */}
         <Card>
           <CardHeader className="pb-4">
             <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Most Popular Services</CardTitle>
@@ -253,10 +394,33 @@ export default function ServicesAnalytics() {
         </Card>
       </div>
 
+      {/* Monthly Revenue Trends */}
+      <Card>
+        <CardHeader>
+          <CardTitle style={{ color: '#264d44' }}>Monthly Revenue (QuickBooks)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {qbAnalytics.monthlyTrend.length > 0 ? (
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={qbAnalytics.monthlyTrend}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis />
+                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                <Legend />
+                <Line type="monotone" dataKey="total" name="Revenue" stroke="#22C55E" strokeWidth={3} dot={{ fill: '#22C55E', r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[250px] flex items-center justify-center text-gray-400">No revenue data yet</div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Monthly Trends */}
       <Card>
         <CardHeader>
-          <CardTitle style={{ color: '#264d44' }}>Monthly Trends</CardTitle>
+          <CardTitle style={{ color: '#264d44' }}>Proposal Trends</CardTitle>
         </CardHeader>
         <CardContent>
           {analytics.trendData.length > 0 ? (
