@@ -7,7 +7,7 @@ import { FileText, CheckCircle2, Eye, Clock, DollarSign, Send } from 'lucide-rea
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { productCatalog } from '@/components/curriculum/catalogData';
 
-export default function MarketingServicesSection() {
+export default function ServicesAnalytics() {
   const { data: proposals = [] } = useQuery({
     queryKey: ['proposals'],
     queryFn: () => base44.entities.Proposal.list()
