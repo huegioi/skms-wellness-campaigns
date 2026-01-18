@@ -195,7 +195,7 @@ export default function ReportsSection() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <Label>Start Date</Label>
               <Input
@@ -246,7 +246,7 @@ export default function ReportsSection() {
 
       {/* Report Tabs */}
       <Tabs value={reportType} onValueChange={setReportType}>
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-between gap-3 sm:gap-4 mb-4">
           <TabsList>
             <TabsTrigger value="pl">Profit & Loss</TabsTrigger>
             <TabsTrigger value="balance">Balance Sheet</TabsTrigger>
@@ -458,7 +458,7 @@ export default function ReportsSection() {
             </CardHeader>
             <CardContent>
               {cashFlowData.monthlyFlow.length > 0 ? (
-                <ResponsiveContainer width="100%" height={350}>
+                <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={cashFlowData.monthlyFlow}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />

@@ -65,7 +65,7 @@ export default function MarketingDashboard() {
       {/* Filters */}
       <Card>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">Start Date</label>
               <Input
@@ -109,7 +109,7 @@ export default function MarketingDashboard() {
       </Card>
 
       {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
           <CardContent className="p-6 z-10 relative">
             <div className="flex items-center justify-between">

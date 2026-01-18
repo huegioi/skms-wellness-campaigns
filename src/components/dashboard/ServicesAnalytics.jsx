@@ -87,7 +87,7 @@ export default function ServicesAnalytics() {
   return (
     <div className="space-y-8">
       {/* Proposal KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
@@ -146,7 +146,7 @@ export default function ServicesAnalytics() {
       </div>
 
       {/* Revenue Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-[#264d44] to-[#1a3830] rounded-xl p-5 text-white">
           <p className="text-sm opacity-80">Total Pipeline</p>
           <p className="text-2xl font-bold">${analytics.totalValue.toLocaleString()}</p>
@@ -192,7 +192,7 @@ export default function ServicesAnalytics() {
           </CardHeader>
           <CardContent>
             {analytics.statusData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
                   <Pie 
                     data={analytics.statusData} 
@@ -260,7 +260,7 @@ export default function ServicesAnalytics() {
         </CardHeader>
         <CardContent>
           {analytics.trendData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <LineChart data={analytics.trendData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
