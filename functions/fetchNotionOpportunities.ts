@@ -103,20 +103,37 @@ Deno.serve(async (req) => {
     const opportunities = allResults.map(page => {
       const properties = page.properties;
       
-      // Extract company name - handle both title and rich_text property types
+      // Extract company name - try multiple property types
       let companyName = 'Unknown';
-      if (properties.Company) {
-        if (properties.Company.title && properties.Company.title.length > 0) {
-          companyName = properties.Company.title[0]?.plain_text || 'Unknown';
-        } else if (properties.Company.rich_text && properties.Company.rich_text.length > 0) {
-          companyName = properties.Company.rich_text[0]?.plain_text || 'Unknown';
+      const companyProp = properties.Company || properties.company || properties.Name;
+      
+      if (companyProp) {
+        // Title property type
+        if (companyProp.title && companyProp.title.length > 0) {
+          companyName = companyProp.title[0]?.plain_text;
+        }
+        // Rich text property type
+        else if (companyProp.rich_text && companyProp.rich_text.length > 0) {
+          companyName = companyProp.rich_text[0]?.plain_text;
+        }
+        // Formula property type
+        else if (companyProp.formula?.string) {
+          companyName = companyProp.formula.string;
+        }
+        // Rollup property type
+        else if (companyProp.rollup?.array && companyProp.rollup.array.length > 0) {
+          companyName = companyProp.rollup.array[0]?.title?.[0]?.plain_text || companyProp.rollup.array[0]?.rich_text?.[0]?.plain_text;
+        }
+        // Relation property type - extract ID
+        else if (companyProp.relation && companyProp.relation.length > 0) {
+          companyName = companyProp.relation[0]?.id;
         }
       }
       
       return {
         id: page.id,
         source: properties.Source?.select?.name || 'Unknown',
-        company: companyName,
+        company: companyName || 'Unknown',
         stage: properties.Stage?.select?.name || 'Unknown',
         created_time: properties['Created time']?.created_time || page.created_time
       };
