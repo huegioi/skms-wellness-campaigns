@@ -328,7 +328,7 @@ export default function ReportsSection() {
               </CardHeader>
               <CardContent>
                 {expenseChartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
                       <Pie
                         data={expenseChartData}
@@ -360,7 +360,7 @@ export default function ReportsSection() {
               </CardHeader>
               <CardContent>
                 {incomeChartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={250}>
                     <BarChart data={incomeChartData} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" />

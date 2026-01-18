@@ -166,7 +166,7 @@ export default function MarketingDashboard() {
           </CardHeader>
           <CardContent>
             {sourceData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height={280}>
                 <PieChart>
                   <Pie
                     data={sourceData}
@@ -200,7 +200,7 @@ export default function MarketingDashboard() {
           </CardHeader>
           <CardContent>
             {sourceData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={350}>
+              <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={sourceData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" />
