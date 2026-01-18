@@ -101,10 +101,10 @@ export default function MarketingDashboard() {
   const { sourceData, stageData, timelineData } = calculateAnalytics();
 
   const SOURCE_COLORS = {
-    'Smartlead': '#C4B5FD',
-    'Networking': '#A7F3D0',
+    'Smartlead': '#A78BFA',
+    'Networking': '#86EFAC',
     'LinkedIn': '#93C5FD',
-    'Referral': '#FDE68A',
+    'Referral': '#FDB462',
     'Unknown': '#D1D5DB'
   };
 
