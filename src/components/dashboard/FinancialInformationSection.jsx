@@ -170,7 +170,7 @@ export default function FinancialInformationSection() {
           </TabsList>
           <Button onClick={handleSyncFinancials} disabled={syncing} className="bg-[#264d44] hover:bg-[#1a3830]">
             <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Syncing...' : 'Sync QuickBooks'}
+            {syncing ? 'Refreshing...' : 'Refresh Data'}
           </Button>
         </div>
 
