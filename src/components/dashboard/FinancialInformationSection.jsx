@@ -14,19 +14,9 @@ export default function FinancialInformationSection() {
   const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const { data: invoices = [] } = useQuery({
+  const { data: invoices = [], refetch: refetchInvoices } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list()
-  });
-
-  const { data: expenses = [], refetch: refetchExpenses } = useQuery({
-    queryKey: ['qbExpenses'],
-    queryFn: () => base44.entities.QuickBooksExpense.list()
-  });
-
-  const { data: income = [], refetch: refetchIncome } = useQuery({
-    queryKey: ['qbIncome'],
-    queryFn: () => base44.entities.QuickBooksIncome.list()
   });
 
   const calculateMetrics = () => {
@@ -36,15 +26,7 @@ export default function FinancialInformationSection() {
     const startDate = timeframe === 'month' ? startOfMonth : startOfQuarter;
 
     const periodInvoices = invoices.filter(inv => 
-      new Date(inv.created_date) >= startDate
-    );
-
-    const periodExpenses = expenses.filter(exp => 
-      new Date(exp.transaction_date) >= startDate
-    );
-
-    const periodIncome = income.filter(inc => 
-      new Date(inc.transaction_date) >= startDate
+      inv.issue_date && new Date(inv.issue_date) >= startDate
     );
 
     const totalInvoiced = periodInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
@@ -58,8 +40,13 @@ export default function FinancialInformationSection() {
       return daysUntilDue <= 7 && daysUntilDue >= 0;
     }).length;
 
-    const totalExpenses = periodExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0);
-    const totalIncome = periodIncome.reduce((sum, inc) => sum + (inc.amount || 0), 0);
+    // Calculate income from paid invoices
+    const paidInvoices = invoices.filter(inv => inv.status === 'paid' && inv.issue_date && new Date(inv.issue_date) >= startDate);
+    const totalIncome = paidInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+
+    // Calculate expenses from invoice line items with negative amounts (if any) or track costs
+    const totalExpenses = 0; // QuickBooks invoices typically don't track expenses
+
     const netProfit = totalIncome - totalExpenses;
 
     return { totalInvoiced, totalPaid, outstanding, dueSoon, totalExpenses, totalIncome, netProfit };
@@ -70,11 +57,7 @@ export default function FinancialInformationSection() {
   const handleSyncFinancials = async () => {
     setSyncing(true);
     try {
-      await Promise.all([
-        base44.functions.invoke('syncQuickBooksExpenses', {}),
-        base44.functions.invoke('syncQuickBooksIncome', {})
-      ]);
-      await Promise.all([refetchExpenses(), refetchIncome()]);
+      await refetchInvoices();
     } catch (error) {
       console.error('Sync error:', error);
     } finally {
@@ -85,16 +68,11 @@ export default function FinancialInformationSection() {
   const generateMonthlyData = () => {
     const monthlyData = {};
     
-    expenses.forEach(exp => {
-      const month = new Date(exp.transaction_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    // Track paid invoices as income
+    invoices.filter(inv => inv.status === 'paid' && inv.paid_date).forEach(inv => {
+      const month = new Date(inv.paid_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
       if (!monthlyData[month]) monthlyData[month] = { month, expenses: 0, income: 0 };
-      monthlyData[month].expenses += exp.amount || 0;
-    });
-
-    income.forEach(inc => {
-      const month = new Date(inc.transaction_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      if (!monthlyData[month]) monthlyData[month] = { month, expenses: 0, income: 0 };
-      monthlyData[month].income += inc.amount || 0;
+      monthlyData[month].income += inv.total_amount || 0;
     });
 
     return Object.values(monthlyData).slice(-6).map(data => ({
@@ -105,64 +83,36 @@ export default function FinancialInformationSection() {
 
   const monthlyData = generateMonthlyData();
 
-  // Generate expense breakdown by sub-category
+  // Generate expense breakdown - empty since we're only tracking invoices
   const generateExpenseBreakdown = () => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
-    const startDate = timeframe === 'month' ? startOfMonth : startOfQuarter;
-
-    const periodExpenses = expenses.filter(exp => 
-      new Date(exp.transaction_date) >= startDate
-    );
-
-    const breakdown = {};
-    const contractorTotal = { total: 0, count: 0 };
-
-    periodExpenses.forEach(exp => {
-      const subCat = exp.sub_category || exp.category || 'Uncategorized';
-      if (!breakdown[subCat]) breakdown[subCat] = 0;
-      breakdown[subCat] += exp.amount || 0;
-
-      // Track contractor spending
-      if (subCat.toLowerCase().includes('contractor') || 
-          exp.vendor_name?.toLowerCase().includes('contractor')) {
-        contractorTotal.total += exp.amount || 0;
-        contractorTotal.count += 1;
-      }
-    });
-
-    const sorted = Object.entries(breakdown)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([name, value]) => ({ name, value }));
-
-    return { breakdown: sorted, contractorTotal };
+    return { breakdown: [], contractorTotal: { total: 0, count: 0 } };
   };
 
-  // Generate income breakdown by customer
+  // Generate income breakdown from invoices
   const generateIncomeBreakdown = () => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
     const startDate = timeframe === 'month' ? startOfMonth : startOfQuarter;
 
-    const periodIncome = income.filter(inc => 
-      new Date(inc.transaction_date) >= startDate
+    const periodInvoices = invoices.filter(inv => 
+      inv.status === 'paid' && inv.paid_date && new Date(inv.paid_date) >= startDate
     );
 
     const byCustomer = {};
     const byService = {};
-    const byType = {};
 
-    periodIncome.forEach(inc => {
-      const customer = inc.customer_name || 'Unknown';
-      const service = inc.service_line || 'General';
-      const type = inc.transaction_type || 'Other';
+    periodInvoices.forEach(inv => {
+      const customer = inv.client_name || inv.company || 'Unknown';
+      byCustomer[customer] = (byCustomer[customer] || 0) + (inv.total_amount || 0);
 
-      byCustomer[customer] = (byCustomer[customer] || 0) + (inc.amount || 0);
-      byService[service] = (byService[service] || 0) + (inc.amount || 0);
-      byType[type] = (byType[type] || 0) + (inc.amount || 0);
+      // Extract services from line items
+      if (inv.line_items && Array.isArray(inv.line_items)) {
+        inv.line_items.forEach(item => {
+          const service = item.description || 'General';
+          byService[service] = (byService[service] || 0) + (item.amount || 0);
+        });
+      }
     });
 
     const topCustomers = Object.entries(byCustomer)
@@ -174,10 +124,7 @@ export default function FinancialInformationSection() {
       .sort((a, b) => b[1] - a[1])
       .map(([name, value]) => ({ name, value }));
 
-    const typeBreakdown = Object.entries(byType)
-      .map(([name, value]) => ({ name, value }));
-
-    return { topCustomers, serviceBreakdown, typeBreakdown };
+    return { topCustomers, serviceBreakdown, typeBreakdown: [] };
   };
 
   const expenseData = generateExpenseBreakdown();
