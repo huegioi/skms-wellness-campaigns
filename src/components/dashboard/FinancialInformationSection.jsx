@@ -16,7 +16,12 @@ export default function FinancialInformationSection() {
 
   const { data: invoices = [], refetch: refetchInvoices } = useQuery({
     queryKey: ['invoices'],
-    queryFn: () => base44.entities.Invoice.list()
+    queryFn: () => base44.entities.Invoice.list(),
+  });
+
+  const { data: quickBooksExpenses = [], refetch: refetchExpenses } = useQuery({
+    queryKey: ['quickBooksExpenses'],
+    queryFn: () => base44.entities.QuickBooksExpense.list(),
   });
 
   const calculateMetrics = () => {
@@ -44,8 +49,10 @@ export default function FinancialInformationSection() {
     const paidInvoices = invoices.filter(inv => inv.status === 'paid' && inv.issue_date && new Date(inv.issue_date) >= startDate);
     const totalIncome = paidInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
 
-    // Calculate expenses from invoice line items with negative amounts (if any) or track costs
-    const totalExpenses = 0; // QuickBooks invoices typically don't track expenses
+    // Calculate expenses from QuickBooks
+    const totalExpenses = quickBooksExpenses
+      .filter(exp => exp.transaction_date && new Date(exp.transaction_date) >= startDate)
+      .reduce((sum, exp) => sum + (exp.amount || 0), 0);
 
     const netProfit = totalIncome - totalExpenses;
 
@@ -58,6 +65,7 @@ export default function FinancialInformationSection() {
     setSyncing(true);
     try {
       await refetchInvoices();
+      await refetchExpenses();
     } catch (error) {
       console.error('Sync error:', error);
     } finally {
@@ -75,6 +83,13 @@ export default function FinancialInformationSection() {
       monthlyData[month].income += inv.total_amount || 0;
     });
 
+    // Track expenses
+    quickBooksExpenses.filter(exp => exp.transaction_date).forEach(exp => {
+      const month = new Date(exp.transaction_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      if (!monthlyData[month]) monthlyData[month] = { month, expenses: 0, income: 0 };
+      monthlyData[month].expenses += exp.amount || 0;
+    });
+
     return Object.values(monthlyData).slice(-6).map(data => ({
       ...data,
       profit: data.income - data.expenses
@@ -83,9 +98,35 @@ export default function FinancialInformationSection() {
 
   const monthlyData = generateMonthlyData();
 
-  // Generate expense breakdown - empty since we're only tracking invoices
   const generateExpenseBreakdown = () => {
-    return { breakdown: [], contractorTotal: { total: 0, count: 0 } };
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+    const startDate = timeframe === 'month' ? startOfMonth : startOfQuarter;
+
+    const periodExpenses = quickBooksExpenses.filter(exp => 
+      exp.transaction_date && new Date(exp.transaction_date) >= startDate
+    );
+
+    const categoryBreakdown = {};
+    let contractorTotalAmount = 0;
+    let contractorTotalCount = 0;
+
+    periodExpenses.forEach(exp => {
+      const category = exp.category || 'Other';
+      categoryBreakdown[category] = (categoryBreakdown[category] || 0) + (exp.amount || 0);
+
+      if (exp.vendor_name && exp.vendor_name.toLowerCase().includes('contractor')) {
+        contractorTotalAmount += exp.amount || 0;
+        contractorTotalCount++;
+      }
+    });
+
+    const breakdown = Object.entries(categoryBreakdown)
+      .sort((a, b) => b[1] - a[1])
+      .map(([name, value]) => ({ name, value }));
+
+    return { breakdown, contractorTotal: { total: contractorTotalAmount, count: contractorTotalCount } };
   };
 
   // Generate income breakdown from invoices
@@ -264,29 +305,61 @@ export default function FinancialInformationSection() {
         </Card>
       </div>
 
-      {/* Income by Customer */}
-      <Card className="hover:shadow-lg transition-shadow duration-300">
-        <CardHeader>
-          <CardTitle style={{ color: '#264d44' }}>Top Income Sources (by Customer)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {incomeData.topCustomers.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={incomeData.topCustomers} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={120} />
-                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                <Bar dataKey="value" name="Amount" fill="#4CAF50" />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-gray-400">
-              No income data yet
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Expense & Income Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        {/* Major Expense Categories */}
+        <Card className="hover:shadow-lg transition-shadow duration-300">
+          <CardHeader>
+            <CardTitle style={{ color: '#264d44' }}>Major Expense Categories</CardTitle>
+            {expenseData.contractorTotal.total > 0 && (
+              <p className="text-sm text-gray-600 mt-1">
+                Contractor Spending: <span className="font-semibold text-red-600">${expenseData.contractorTotal.total.toLocaleString()}</span> ({expenseData.contractorTotal.count} transactions)
+              </p>
+            )}
+          </CardHeader>
+          <CardContent>
+            {expenseData.breakdown.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={expenseData.breakdown} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                  <Bar dataKey="value" name="Amount" fill="#F44336" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-gray-400">
+                No expense data yet
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top Income Sources */}
+        <Card className="hover:shadow-lg transition-shadow duration-300">
+          <CardHeader>
+            <CardTitle style={{ color: '#264d44' }}>Top Income Sources (by Customer)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {incomeData.topCustomers.length > 0 ? (
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={incomeData.topCustomers} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                  <Bar dataKey="value" name="Amount" fill="#4CAF50" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-gray-400">
+                No income data yet
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Income vs Expenses Chart */}
       <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -311,7 +384,7 @@ export default function FinancialInformationSection() {
             </ResponsiveContainer>
           ) : (
             <div className="h-[300px] flex items-center justify-center text-gray-400">
-              No financial data yet. Click "Sync QuickBooks" to load data.
+              No financial data yet. Click "Refresh Data" to load data.
             </div>
           )}
         </CardContent>
