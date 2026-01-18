@@ -222,7 +222,7 @@ export default function MarketingDashboard() {
           </CardHeader>
           <CardContent>
             {sourceData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={280}>
+                  <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
                         data={sourceData}
@@ -230,16 +230,32 @@ export default function MarketingDashboard() {
                         cy="50%"
                         labelLine={true}
                         label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={90}
+                        outerRadius={95}
+                        innerRadius={35}
                         fill="#8884d8"
                         dataKey="value"
+                        paddingAngle={2}
                       >
                         {sourceData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={COLORS[index % COLORS.length]}
+                            style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' }}
+                          />
                         ))}
                       </Pie>
-                      <Tooltip />
-                      <Legend verticalAlign="bottom" height={36} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          borderRadius: '8px', 
+                          border: '1px solid #e5e7eb',
+                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                        }}
+                      />
+                      <Legend 
+                        verticalAlign="bottom" 
+                        height={36}
+                        wrapperStyle={{ paddingTop: '10px' }}
+                      />
                     </PieChart>
                   </ResponsiveContainer>
             ) : (
@@ -328,7 +344,7 @@ export default function MarketingDashboard() {
           <CardContent className="p-4 sm:p-6">
             {opportunities.length > 0 ? (
               <div className="space-y-2 max-h-[280px] overflow-y-auto">
-                {opportunities.slice(0, 10).map((opp, idx) => (
+                {opportunities.slice(0, 10).filter(opp => opp.company).map((opp, idx) => (
                   <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 truncate">{opp.company}</p>

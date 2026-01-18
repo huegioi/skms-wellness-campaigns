@@ -102,47 +102,38 @@ Deno.serve(async (req) => {
 
     const opportunities = allResults.map(page => {
       const properties = page.properties;
-      
+
       // Log first property for debugging
       if (allResults.indexOf(page) === 0) {
         console.log('Sample Notion properties:', JSON.stringify(properties, null, 2));
       }
-      
-      // Extract company name - try all possible property names and types
-      let companyName = 'Unknown';
-      
-      // Try common property names
-      const possibleCompanyProps = ['Company', 'company', 'Name', 'name', 'Client', 'client', 'Organization'];
-      
-      for (const propName of possibleCompanyProps) {
-        const prop = properties[propName];
-        if (!prop) continue;
-        
+
+      // Extract company name - ONLY from "Company" property
+      let companyName = '';
+      const companyProp = properties.Company;
+
+      if (companyProp) {
         // Title property type
-        if (prop.title && prop.title.length > 0 && prop.title[0]?.plain_text) {
-          companyName = prop.title[0].plain_text;
-          break;
+        if (companyProp.title && companyProp.title.length > 0 && companyProp.title[0]?.plain_text) {
+          companyName = companyProp.title[0].plain_text;
         }
         // Rich text property type
-        if (prop.rich_text && prop.rich_text.length > 0 && prop.rich_text[0]?.plain_text) {
-          companyName = prop.rich_text[0].plain_text;
-          break;
+        else if (companyProp.rich_text && companyProp.rich_text.length > 0 && companyProp.rich_text[0]?.plain_text) {
+          companyName = companyProp.rich_text[0].plain_text;
         }
         // Formula property type
-        if (prop.formula?.string) {
-          companyName = prop.formula.string;
-          break;
+        else if (companyProp.formula?.string) {
+          companyName = companyProp.formula.string;
         }
         // Rollup property type
-        if (prop.rollup?.array && prop.rollup.array.length > 0) {
-          const rollupValue = prop.rollup.array[0]?.title?.[0]?.plain_text || prop.rollup.array[0]?.rich_text?.[0]?.plain_text;
+        else if (companyProp.rollup?.array && companyProp.rollup.array.length > 0) {
+          const rollupValue = companyProp.rollup.array[0]?.title?.[0]?.plain_text || companyProp.rollup.array[0]?.rich_text?.[0]?.plain_text;
           if (rollupValue) {
             companyName = rollupValue;
-            break;
           }
         }
       }
-      
+
       return {
         id: page.id,
         source: properties.Source?.select?.name || 'Unknown',
