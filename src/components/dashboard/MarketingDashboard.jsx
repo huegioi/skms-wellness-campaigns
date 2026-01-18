@@ -9,6 +9,19 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { TrendingUp, Users, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 
+const DEAL_STAGES_CONFIG = [
+  { name: 'Cold', color: '#B0BEC5' },
+  { name: 'Wellness Box Sent', color: '#ADD8E6' },
+  { name: 'Sales Kit Sent', color: '#87CEEB' },
+  { name: 'Warm', color: '#FFD700' },
+  { name: 'Engaged', color: '#FFA500' },
+  { name: 'Call Booked', color: '#FF4500' },
+  { name: 'Negotiation', color: '#DC143C' },
+  { name: 'Service Booked', color: '#228B22' },
+  { name: 'Paid', color: '#008000' },
+  { name: 'Deal Lost', color: '#696969' }
+];
+
 export default function MarketingDashboard() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -61,9 +74,11 @@ export default function MarketingDashboard() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    const stageData = Object.entries(stageBreakdown)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
+    const stageData = DEAL_STAGES_CONFIG.map(config => ({
+      name: config.name,
+      value: stageBreakdown[config.name] || 0,
+      color: config.color
+    }));
 
     const timelineData = Object.values(monthlyData).slice(-6);
 
@@ -255,17 +270,32 @@ export default function MarketingDashboard() {
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
             {stageData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={320}>
                 <BarChart data={stageData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
+                  <XAxis 
+                    dataKey="name" 
+                    angle={-45} 
+                    textAnchor="end" 
+                    height={100} 
+                    interval={0}
+                    style={{ fontSize: '11px' }}
+                  />
                   <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="value" name="Count" fill="#770142" radius={[8, 8, 0, 0]} />
+                  <Tooltip 
+                    formatter={(value) => [`${value} opportunities`, 'Count']}
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
+                  />
+                  <Legend />
+                  <Bar dataKey="value" name="Count" radius={[8, 8, 0, 0]}>
+                    {stageData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[280px] flex items-center justify-center text-gray-400">
+              <div className="h-[320px] flex items-center justify-center text-gray-400">
                 No data available
               </div>
             )}
