@@ -90,56 +90,57 @@ export default function ExpenseManager() {
 
             <div className="border rounded-lg overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full min-w-[640px]">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vendor</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sub-Category</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                      <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                      <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vendor</th>
+                      <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Category</th>
+                      <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Sub-Category</th>
+                      <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                      <th className="px-2 sm:px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Edit</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredExpenses.slice(0, 50).map(expense => (
                       <tr key={expense.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {new Date(expense.transaction_date).toLocaleDateString()}
+                        <td className="px-2 sm:px-4 py-3 text-xs sm:text-sm text-gray-900 whitespace-nowrap">
+                          {new Date(expense.transaction_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-900">
-                          {expense.vendor_name}
+                        <td className="px-2 sm:px-4 py-3 text-xs sm:text-sm text-gray-900">
+                          <div className="max-w-[120px] sm:max-w-none truncate">{expense.vendor_name}</div>
                         </td>
-                        <td className="px-4 py-3 text-sm">
-                          <Badge variant="outline">{expense.category || 'Uncategorized'}</Badge>
+                        <td className="px-2 sm:px-4 py-3 text-xs sm:text-sm hidden sm:table-cell">
+                          <Badge variant="outline" className="text-xs">{expense.category || 'Uncategorized'}</Badge>
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-2 sm:px-4 py-3 text-xs sm:text-sm hidden md:table-cell">
                           {expense.sub_category ? (
-                            <Badge className="bg-purple-100 text-purple-700">
+                            <Badge className="bg-purple-100 text-purple-700 text-xs">
                               {expense.sub_category}
                             </Badge>
                           ) : (
                             <span className="text-gray-400 text-xs">Not set</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        <td className="px-2 sm:px-4 py-3 text-xs sm:text-sm font-medium text-gray-900 whitespace-nowrap">
                           ${expense.amount?.toLocaleString()}
                         </td>
-                        <td className="px-4 py-3 text-sm">
+                        <td className="px-2 sm:px-4 py-3 text-xs sm:text-sm">
                           <Dialog>
                             <DialogTrigger asChild>
                               <Button 
                                 variant="ghost" 
                                 size="sm"
+                                className="h-8 w-8 p-0"
                                 onClick={() => {
                                   setEditingExpense(expense);
                                   setSubCategory(expense.sub_category || '');
                                 }}
                               >
-                                <Edit2 className="w-4 h-4" />
+                                <Edit2 className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="max-w-[95vw] sm:max-w-md">
                               <DialogHeader>
                                 <DialogTitle>Edit Sub-Category</DialogTitle>
                               </DialogHeader>

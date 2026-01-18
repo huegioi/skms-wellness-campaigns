@@ -240,7 +240,7 @@ export default function FinancialInformationSection() {
           </div>
 
       {/* Financial KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard
           title={`Total Invoiced (${timeframe === 'month' ? 'This Month' : 'This Quarter'})`}
           value={`$${metrics.totalInvoiced.toLocaleString()}`}
@@ -268,7 +268,7 @@ export default function FinancialInformationSection() {
       </div>
 
       {/* Income vs Expenses */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <Card className="bg-gradient-to-br from-green-50 to-emerald-100 relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
           <CardContent className="p-6 z-10 relative">
             <div className="flex items-center justify-between">
@@ -318,7 +318,7 @@ export default function FinancialInformationSection() {
       </div>
 
       {/* Expense & Income Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Contractor & Major Expenses */}
         <Card className="hover:shadow-lg transition-shadow duration-300">
           <CardHeader>
@@ -331,7 +331,7 @@ export default function FinancialInformationSection() {
           </CardHeader>
           <CardContent>
             {expenseData.breakdown.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={expenseData.breakdown} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" />
@@ -355,7 +355,7 @@ export default function FinancialInformationSection() {
           </CardHeader>
           <CardContent>
             {incomeData.topCustomers.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={incomeData.topCustomers} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" />
@@ -403,7 +403,7 @@ export default function FinancialInformationSection() {
       </Card>
 
       {/* Income Breakdown Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Income by Service Line */}
         <Card className="hover:shadow-lg transition-shadow duration-300">
           <CardHeader>
