@@ -264,61 +264,29 @@ export default function FinancialInformationSection() {
         </Card>
       </div>
 
-      {/* Expense & Income Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Contractor & Major Expenses */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
-            <CardTitle style={{ color: '#264d44' }}>Major Expense Categories</CardTitle>
-            {expenseData.contractorTotal.total > 0 && (
-              <p className="text-sm text-gray-600 mt-1">
-                Contractor Spending: <span className="font-semibold text-red-600">${expenseData.contractorTotal.total.toLocaleString()}</span> ({expenseData.contractorTotal.count} transactions)
-              </p>
-            )}
-          </CardHeader>
-          <CardContent>
-            {expenseData.breakdown.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={expenseData.breakdown} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={120} />
-                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                  <Bar dataKey="value" name="Amount" fill="#F44336" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-gray-400">
-                No expense data yet
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Income by Customer */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
-            <CardTitle style={{ color: '#264d44' }}>Top Income Sources (by Customer)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {incomeData.topCustomers.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={incomeData.topCustomers} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={120} />
-                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                  <Bar dataKey="value" name="Amount" fill="#4CAF50" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-gray-400">
-                No income data yet
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      {/* Income by Customer */}
+      <Card className="hover:shadow-lg transition-shadow duration-300">
+        <CardHeader>
+          <CardTitle style={{ color: '#264d44' }}>Top Income Sources (by Customer)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {incomeData.topCustomers.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={incomeData.topCustomers} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" />
+                <YAxis dataKey="name" type="category" width={120} />
+                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                <Bar dataKey="value" name="Amount" fill="#4CAF50" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-gray-400">
+              No income data yet
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Income vs Expenses Chart */}
       <Card className="hover:shadow-lg transition-shadow duration-300">
