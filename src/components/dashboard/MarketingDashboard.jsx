@@ -13,9 +13,10 @@ export default function MarketingDashboard() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedSource, setSelectedSource] = useState('all');
+  const [selectedStage, setSelectedStage] = useState('all');
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['notionOpportunities', startDate, endDate, selectedSource],
+    queryKey: ['notionOpportunities', startDate, endDate, selectedSource, selectedStage],
     queryFn: async () => {
       const response = await base44.functions.invoke('fetchNotionOpportunities', {
         start_date: startDate || undefined,
@@ -24,22 +25,31 @@ export default function MarketingDashboard() {
       });
       return response.data;
     },
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchInterval: 30000,
     initialData: { opportunities: [], total: 0 }
   });
 
-  const opportunities = data?.opportunities || [];
-  const allSources = [...new Set(opportunities.map(o => o.source))].filter(s => s !== 'Unknown').sort();
+  const opportunities = (data?.opportunities || []).filter(opp => 
+    selectedStage === 'all' || opp.stage === selectedStage
+  );
+
+  const allSources = [...new Set((data?.opportunities || []).map(o => o.source))].filter(s => s !== 'Unknown').sort();
+  const allStages = [...new Set((data?.opportunities || []).map(o => o.stage))].filter(s => s !== 'Unknown').sort();
 
   // Calculate analytics
   const calculateAnalytics = () => {
     const sourceBreakdown = {};
+    const stageBreakdown = {};
     const monthlyData = {};
 
     opportunities.forEach(opp => {
       // Source breakdown
       const source = opp.source || 'Unknown';
       sourceBreakdown[source] = (sourceBreakdown[source] || 0) + 1;
+
+      // Stage breakdown
+      const stage = opp.stage || 'Unknown';
+      stageBreakdown[stage] = (stageBreakdown[stage] || 0) + 1;
 
       // Monthly breakdown
       const month = format(new Date(opp.created_time), 'MMM yy');
@@ -51,12 +61,16 @@ export default function MarketingDashboard() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
+    const stageData = Object.entries(stageBreakdown)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+
     const timelineData = Object.values(monthlyData).slice(-6);
 
-    return { sourceData, timelineData };
+    return { sourceData, stageData, timelineData };
   };
 
-  const { sourceData, timelineData } = calculateAnalytics();
+  const { sourceData, stageData, timelineData } = calculateAnalytics();
 
   const COLORS = ['#264d44', '#770142', '#013f7c', '#22C55E', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4'];
 
@@ -94,6 +108,20 @@ export default function MarketingDashboard() {
                   <SelectItem value="all">All Sources</SelectItem>
                   {allSources.map(source => (
                     <SelectItem key={source} value={source}>{source}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Stage</label>
+              <Select value={selectedStage} onValueChange={setSelectedStage}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Stages" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Stages</SelectItem>
+                  {allStages.map(stage => (
+                    <SelectItem key={stage} value={stage}>{stage}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

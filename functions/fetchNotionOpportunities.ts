@@ -89,6 +89,8 @@ Deno.serve(async (req) => {
       return {
         id: page.id,
         source: properties.Source?.select?.name || 'Unknown',
+        company: properties.Company?.title?.[0]?.plain_text || 'Unknown',
+        stage: properties.Stage?.select?.name || 'Unknown',
         created_time: properties['Created time']?.created_time || page.created_time
       };
     });
