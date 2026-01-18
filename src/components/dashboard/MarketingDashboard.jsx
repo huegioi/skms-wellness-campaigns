@@ -79,9 +79,12 @@ export default function MarketingDashboard() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    // Get actual count of unique clients with paid invoices from QuickBooks
+    // Get actual count of unique companies with paid invoices from QuickBooks
+    const paidInvoices = invoices.filter(inv => inv.status === 'paid');
     const paidClientCount = new Set(
-      invoices.filter(inv => inv.status === 'paid').map(inv => inv.client_id)
+      paidInvoices
+        .map(inv => inv.company || inv.client_name || inv.client_id)
+        .filter(Boolean)
     ).size;
 
     const stageData = DEAL_STAGES_CONFIG.map(config => ({
