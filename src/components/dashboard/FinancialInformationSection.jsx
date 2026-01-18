@@ -375,10 +375,10 @@ export default function FinancialInformationSection() {
 
       {/* Income vs Expenses Chart */}
       <Card className="hover:shadow-lg transition-shadow duration-300">
-        <CardHeader>
-          <CardTitle style={{ color: '#264d44' }}>Income vs Expenses (Last 6 Months)</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CardHeader className="pb-4">
+        <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Income vs Expenses (Last 6 Months)</CardTitle>
+      </CardHeader>
+      <CardContent className="p-4 sm:p-6">
           {monthlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={monthlyData}>
@@ -455,10 +455,10 @@ export default function FinancialInformationSection() {
 
       {/* Profit Trend */}
       <Card className="hover:shadow-lg transition-shadow duration-300">
-        <CardHeader>
-          <CardTitle style={{ color: '#264d44' }}>Net Profit Trend</CardTitle>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Net Profit Trend</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           {monthlyData.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={monthlyData}>

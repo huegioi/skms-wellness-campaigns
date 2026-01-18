@@ -216,10 +216,10 @@ export default function ServicesAnalytics() {
 
         {/* Top Services */}
         <Card>
-          <CardHeader>
-            <CardTitle style={{ color: '#264d44' }}>Most Popular Services</CardTitle>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Most Popular Services</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6">
             {analytics.topServices.length > 0 ? (
               <div className="space-y-3">
                 {analytics.topServices.map((service, i) => (
