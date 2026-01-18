@@ -375,29 +375,7 @@ export default function FinancialInformationSection() {
           </CardContent>
         </Card>
 
-        {/* Income by Transaction Type */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
-            <CardTitle style={{ color: '#264d44' }}>Income by Transaction Type</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {incomeData.typeBreakdown.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={incomeData.typeBreakdown}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                  <Bar dataKey="value" name="Amount" fill="#FF9800" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[280px] flex items-center justify-center text-gray-400">
-                No transaction type data yet
-              </div>
-            )}
-          </CardContent>
-        </Card>
+
       </div>
 
       {/* Profit Trend */}
