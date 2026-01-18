@@ -114,7 +114,7 @@ export default function ServicesAnalytics() {
 
   return (
     <div className="space-y-8">
-      {/* QuickBooks Service Revenue KPIs */}
+      {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-5">
@@ -124,7 +124,7 @@ export default function ServicesAnalytics() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Total Revenue</p>
-                <p className="text-2xl font-bold">${qbAnalytics.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                <p className="text-2xl font-bold">${analytics.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
               </div>
             </div>
           </CardContent>
@@ -134,11 +134,11 @@ export default function ServicesAnalytics() {
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-blue-100">
-                <FileText className="w-5 h-5 text-blue-600" />
+                <ShoppingCart className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total Transactions</p>
-                <p className="text-2xl font-bold">{qbAnalytics.totalTransactions}</p>
+                <p className="text-sm text-gray-500">Items Purchased</p>
+                <p className="text-2xl font-bold">{analytics.totalItems}</p>
               </div>
             </div>
           </CardContent>
@@ -148,11 +148,11 @@ export default function ServicesAnalytics() {
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-purple-100">
-                <CheckCircle2 className="w-5 h-5 text-purple-600" />
+                <Package className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Service Types</p>
-                <p className="text-2xl font-bold">{qbAnalytics.serviceCount}</p>
+                <p className="text-sm text-gray-500">Unique Services</p>
+                <p className="text-2xl font-bold">{analytics.uniqueServices}</p>
               </div>
             </div>
           </CardContent>
@@ -162,108 +162,11 @@ export default function ServicesAnalytics() {
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-amber-100">
-                <DollarSign className="w-5 h-5 text-amber-600" />
+                <TrendingUp className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Avg. Transaction</p>
-                <p className="text-2xl font-bold">${qbAnalytics.totalTransactions > 0 ? (qbAnalytics.totalRevenue / qbAnalytics.totalTransactions).toLocaleString(undefined, { maximumFractionDigits: 0 }) : 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Proposal KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <FileText className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Total Proposals</p>
-                <p className="text-2xl font-bold">{analytics.totalProposals}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Acceptance Rate</p>
-                <p className="text-2xl font-bold">{analytics.acceptanceRate}%</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100">
-                <DollarSign className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Avg. Value</p>
-                <p className="text-2xl font-bold">${analytics.avgValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-100">
-                <Clock className="w-5 h-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Avg. View Time</p>
-                <p className="text-2xl font-bold">{analytics.avgViewTime}h</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Revenue Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-[#264d44] to-[#1a3830] rounded-xl p-5 text-white">
-          <p className="text-sm opacity-80">Total Pipeline</p>
-          <p className="text-2xl font-bold">${analytics.totalValue.toLocaleString()}</p>
-        </div>
-        <div className="bg-gradient-to-br from-[#770142] to-[#441d37] rounded-xl p-5 text-white">
-          <p className="text-sm opacity-80">Won Revenue</p>
-          <p className="text-2xl font-bold">${analytics.acceptedValue.toLocaleString()}</p>
-        </div>
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100">
-                <Send className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Sent</p>
-                <p className="text-2xl font-bold">{analytics.sentProposals}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100">
-                <Eye className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">View Rate</p>
-                <p className="text-2xl font-bold">{analytics.viewRate}%</p>
+                <p className="text-sm text-gray-500">Avg. Item Value</p>
+                <p className="text-2xl font-bold">${analytics.totalItems > 0 ? (analytics.totalRevenue / analytics.totalItems).toLocaleString(undefined, { maximumFractionDigits: 0 }) : 0}</p>
               </div>
             </div>
           </CardContent>
@@ -272,153 +175,124 @@ export default function ServicesAnalytics() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Top Services by Revenue (QuickBooks) */}
+        {/* Top Services by Purchase Count */}
+        <Card>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Most Purchased Services</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 sm:p-6">
+            {analytics.topServicesByCount.length > 0 ? (
+              <div className="space-y-3">
+                {analytics.topServicesByCount.map((service, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm font-medium truncate">{service.name}</p>
+                        <span className="text-sm font-bold text-blue-600 ml-2">{service.count} units</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-full bg-gray-100 rounded-full h-2">
+                          <div 
+                            className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600" 
+                            style={{ width: `${(service.count / analytics.topServicesByCount[0].count) * 100}%` }} 
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">${service.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })} revenue • Avg: ${service.avgValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="h-[250px] flex items-center justify-center text-gray-400">No purchase data yet</div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Top Services by Revenue */}
         <Card>
           <CardHeader className="pb-4">
             <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Top Services by Revenue</CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
-            {qbAnalytics.topServicesByRevenue.length > 0 ? (
-              <div className="space-y-3">
-                {qbAnalytics.topServicesByRevenue.map((service, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-sm font-medium truncate">{service.name}</p>
-                        <span className="text-sm font-bold text-green-600 ml-2">${service.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-full bg-gray-100 rounded-full h-2">
-                          <div 
-                            className="h-2 rounded-full bg-gradient-to-r from-green-500 to-green-600" 
-                            style={{ width: `${(service.revenue / qbAnalytics.topServicesByRevenue[0].revenue) * 100}%` }} 
-                          />
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">{service.count} transactions • Avg: ${service.avgRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="h-[250px] flex items-center justify-center text-gray-400">No revenue data yet</div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Status Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle style={{ color: '#264d44' }}>Proposal Status Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {analytics.statusData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
-                <PieChart>
-                  <Pie 
-                    data={analytics.statusData} 
-                    cx="50%" 
-                    cy="50%" 
-                    innerRadius={60} 
-                    outerRadius={100} 
-                    dataKey="value" 
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {analytics.statusData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
+            {analytics.topServicesByRevenue.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={analytics.topServicesByRevenue} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                  <Bar dataKey="revenue" fill="#22C55E" radius={[0, 8, 8, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[250px] flex items-center justify-center text-gray-400">No data yet</div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Top Services (Proposals) */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Most Popular Services</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            {analytics.topServices.length > 0 ? (
-              <div className="space-y-3">
-                {analytics.topServices.map((service, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <span className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap" style={{
-                      background: service.type === 'Workshop' ? '#e0f2fe' : service.type === 'Challenge' ? '#fce7f3' : service.type === 'Leadership' ? '#f3e8ff' : '#dcfce7',
-                      color: service.type === 'Workshop' ? '#0369a1' : service.type === 'Challenge' ? '#be185d' : service.type === 'Leadership' ? '#7c3aed' : '#16a34a'
-                    }}>
-                      {service.type}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{service.name}</p>
-                      <div className="w-full bg-gray-100 rounded-full h-2 mt-1">
-                        <div 
-                          className="h-2 rounded-full" 
-                          style={{ 
-                            width: `${(service.count / analytics.topServices[0].count) * 100}%`, 
-                            background: '#264d44' 
-                          }} 
-                        />
-                      </div>
-                    </div>
-                    <span className="text-sm font-bold text-gray-700">{service.count}</span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="h-[250px] flex items-center justify-center text-gray-400">No data yet</div>
+              <div className="h-[300px] flex items-center justify-center text-gray-400">No revenue data yet</div>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Monthly Revenue Trends */}
+      {/* Service Purchase Hierarchy */}
       <Card>
-        <CardHeader>
-          <CardTitle style={{ color: '#264d44' }}>Monthly Revenue (QuickBooks)</CardTitle>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Service Purchase Hierarchy</CardTitle>
         </CardHeader>
-        <CardContent>
-          {qbAnalytics.monthlyTrend.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={qbAnalytics.monthlyTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                <Legend />
-                <Line type="monotone" dataKey="total" name="Revenue" stroke="#22C55E" strokeWidth={3} dot={{ fill: '#22C55E', r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
+        <CardContent className="p-4 sm:p-6">
+          {analytics.hierarchyData.length > 0 ? (
+            <div className="space-y-4 max-h-[500px] overflow-y-auto">
+              {analytics.hierarchyData.map((service, i) => (
+                <div key={i} className="border rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-gray-900">{service.name}</h4>
+                    <div className="flex gap-4 text-sm">
+                      <span className="text-blue-600 font-medium">{service.totalPurchases} units</span>
+                      <span className="text-green-600 font-medium">${service.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {service.items.slice(0, 5).map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-sm text-gray-600 bg-white p-2 rounded">
+                        <span className="truncate flex-1">{item.clientName}</span>
+                        <div className="flex gap-3 ml-2">
+                          <span>{item.quantity}x</span>
+                          <span className="font-medium">${item.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {service.items.length > 5 && (
+                      <p className="text-xs text-gray-500 text-center">+ {service.items.length - 5} more purchases</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
-            <div className="h-[250px] flex items-center justify-center text-gray-400">No revenue data yet</div>
+            <div className="h-[250px] flex items-center justify-center text-gray-400">No purchase data yet</div>
           )}
         </CardContent>
       </Card>
 
-      {/* Monthly Trends */}
+      {/* Monthly Service Demand Trends */}
       <Card>
         <CardHeader>
-          <CardTitle style={{ color: '#264d44' }}>Proposal Trends</CardTitle>
+          <CardTitle style={{ color: '#264d44' }}>Monthly Service Demand</CardTitle>
         </CardHeader>
         <CardContent>
-          {analytics.trendData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={analytics.trendData}>
+          {analytics.monthlyTrend.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={analytics.monthlyTrend}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis yAxisId="left" />
                 <YAxis yAxisId="right" orientation="right" />
-                <Tooltip formatter={(value, name) => name === 'value' ? `$${value.toLocaleString()}` : value} />
+                <Tooltip formatter={(value, name) => name === 'revenue' ? `$${value.toLocaleString()}` : `${value} items`} />
                 <Legend />
-                <Line yAxisId="left" type="monotone" dataKey="count" name="Proposals" stroke="#013f7c" strokeWidth={2} dot={{ fill: '#013f7c' }} />
-                <Line yAxisId="left" type="monotone" dataKey="accepted" name="Accepted" stroke="#22C55E" strokeWidth={2} dot={{ fill: '#22C55E' }} />
-                <Line yAxisId="right" type="monotone" dataKey="value" name="Total Value" stroke="#770142" strokeWidth={2} dot={{ fill: '#770142' }} />
+                <Line yAxisId="right" type="monotone" dataKey="items" name="Items Purchased" stroke="#3B82F6" strokeWidth={3} dot={{ fill: '#3B82F6', r: 4 }} />
+                <Line yAxisId="left" type="monotone" dataKey="revenue" name="Revenue" stroke="#22C55E" strokeWidth={3} dot={{ fill: '#22C55E', r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-gray-400">No data yet</div>
+            <div className="h-[300px] flex items-center justify-center text-gray-400">No demand data yet</div>
           )}
         </CardContent>
       </Card>
