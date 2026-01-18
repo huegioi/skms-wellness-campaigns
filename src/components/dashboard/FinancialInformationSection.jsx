@@ -317,34 +317,29 @@ export default function FinancialInformationSection() {
         </CardContent>
       </Card>
 
-      {/* Income Breakdown Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Income by Service Line */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
-            <CardTitle style={{ color: '#264d44' }}>Income by Service/Product</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {incomeData.serviceBreakdown.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={incomeData.serviceBreakdown}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                  <Bar dataKey="value" name="Amount" fill="#9C27B0" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[280px] flex items-center justify-center text-gray-400">
-                No service data yet
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-
-      </div>
+      {/* Income by Service/Product */}
+      <Card className="hover:shadow-lg transition-shadow duration-300">
+        <CardHeader>
+          <CardTitle style={{ color: '#264d44' }}>Income by Service/Product</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {incomeData.serviceBreakdown.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={incomeData.serviceBreakdown}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                <Bar dataKey="value" name="Amount" fill="#9C27B0" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-gray-400">
+              No service data yet
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Profit Trend */}
       <Card className="hover:shadow-lg transition-shadow duration-300">
