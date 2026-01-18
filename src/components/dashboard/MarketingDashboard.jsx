@@ -100,6 +100,16 @@ export default function MarketingDashboard() {
 
   const { sourceData, stageData, timelineData } = calculateAnalytics();
 
+  const SOURCE_COLORS = {
+    'Smartlead': '#C4B5FD',
+    'Networking': '#A7F3D0',
+    'LinkedIn': '#93C5FD',
+    'Referral': '#FDE68A',
+    'Unknown': '#D1D5DB'
+  };
+
+  const getSourceColor = (sourceName) => SOURCE_COLORS[sourceName] || '#E5E7EB';
+
   const COLORS = ['#264d44', '#770142', '#013f7c', '#22C55E', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4'];
 
   return (
@@ -239,7 +249,7 @@ export default function MarketingDashboard() {
                         {sourceData.map((entry, index) => (
                           <Cell 
                             key={`cell-${index}`} 
-                            fill={COLORS[index % COLORS.length]}
+                            fill={getSourceColor(entry.name)}
                             style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' }}
                           />
                         ))}
@@ -281,7 +291,7 @@ export default function MarketingDashboard() {
                   <Tooltip />
                   <Bar dataKey="value" name="Opportunities" radius={[0, 8, 8, 0]}>
                     {sourceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={getSourceColor(entry.name)} />
                     ))}
                   </Bar>
                 </BarChart>
