@@ -364,7 +364,7 @@ export default function EmailTemplateManager() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Upload Template File (Optional)</label>
-                <Input type="file" onChange={handleFileUpload} accept=".txt,.doc,.docx,.pdf" />
+                <Input type="file" onChange={handleFileUpload} accept=".txt,.doc,.docx,.pdf,.eml" />
                 {formData.file_url && (
                   <p className="text-sm text-green-600 mt-1">File uploaded successfully</p>
                 )}
