@@ -69,9 +69,12 @@ Deno.serve(async (req) => {
         // Split by boundary
         const parts = fileContent.split(new RegExp(`--${boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g'));
         
+        console.log('[PARSE] Split into', parts.length, 'parts');
+        
         for (const part of parts) {
           // Find HTML parts
           if (part.includes('Content-Type: text/html')) {
+            console.log('[PARSE] Found HTML part');
             const encodingMatch = part.match(/Content-Transfer-Encoding:\s*(\S+)/i);
             const encoding = encodingMatch ? encodingMatch[1].toLowerCase() : '';
             
