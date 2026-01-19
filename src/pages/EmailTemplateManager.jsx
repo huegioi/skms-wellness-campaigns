@@ -137,6 +137,7 @@ export default function EmailTemplateManager() {
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [selectedVersionTemplate, setSelectedVersionTemplate] = useState(null);
   const [previewClientId, setPreviewClientId] = useState('');
+  const [editorKey, setEditorKey] = useState(0);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.EmailTemplate.create(data),
@@ -613,6 +614,7 @@ export default function EmailTemplateManager() {
                       </div>
                     </div>
                     <ReactQuill
+                      key={editorKey}
                       ref={quillRef}
                       theme="snow"
                       value={formData.body}
