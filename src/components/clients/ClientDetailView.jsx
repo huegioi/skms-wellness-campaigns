@@ -283,7 +283,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           <TabsTrigger value="services">Services</TabsTrigger>
           <TabsTrigger value="interactions">Activity ({interactions.length})</TabsTrigger>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="portal">Portal</TabsTrigger>
+          <TabsTrigger value="portal">Portal Docs</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -647,66 +647,21 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
 
         {/* Portal Tab */}
         <TabsContent value="portal" className="mt-4 space-y-6">
-          {/* Templates Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Mail className="w-5 h-5" />
-                Email Templates
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600">
-                Select email templates that will be visible in this client's portal. Templates are auto-selected based on their proposal services by default.
-              </p>
-              
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {allTemplates.map(template => {
-                  const isSelected = selectedTemplateIds.includes(template.id);
-                  return (
-                    <div 
-                      key={template.id} 
-                      className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                        isSelected ? 'bg-green-50 border-green-200' : 'bg-gray-50 hover:bg-gray-100'
-                      }`}
-                      onClick={() => {
-                        const updated = isSelected 
-                          ? selectedTemplateIds.filter(id => id !== template.id)
-                          : [...selectedTemplateIds, template.id];
-                        setSelectedTemplateIds(updated);
-                      }}
-                    >
-                      <input 
-                        type="checkbox" 
-                        checked={isSelected}
-                        onChange={() => {}}
-                        className="mt-1"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-medium text-sm">{template.subject}</p>
-                          <Badge variant="outline" className="text-xs">
-                            {template.service_name}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-gray-500">
-                          {template.template_type} • {template.service_category}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+          {/* Templates Info */}
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-3">
+                <Mail className="w-5 h-5 text-blue-600 mt-1" />
+                <div>
+                  <h4 className="font-semibold text-blue-900 mb-1">Email Template Access</h4>
+                  <p className="text-sm text-blue-700">
+                    To assign email templates to this client's portal, go to <strong>Templates</strong> page and use the "Assign to Portals" button on any template.
+                  </p>
+                  <p className="text-sm text-blue-600 mt-2">
+                    {client.portal_template_ids?.length || 0} template(s) currently assigned to this portal
+                  </p>
+                </div>
               </div>
-
-              <Button 
-                onClick={async () => {
-                  await onUpdate({ portal_template_ids: selectedTemplateIds });
-                  queryClient.invalidateQueries({ queryKey: ['client', client.id] });
-                }}
-                className="w-full"
-              >
-                Save Template Selection
-              </Button>
             </CardContent>
           </Card>
 

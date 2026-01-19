@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Mail, Upload, Send, FileText, Search, Filter, X, Eye, Copy, History, Tag } from 'lucide-react';
+import { Plus, Pencil, Trash2, Mail, Upload, Send, FileText, Search, Filter, X, Eye, Copy, History, Tag, Users } from 'lucide-react';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -140,6 +140,8 @@ export default function EmailTemplateManager() {
   const [selectedVersionTemplate, setSelectedVersionTemplate] = useState(null);
   const [previewClientId, setPreviewClientId] = useState('');
   const [editorKey, setEditorKey] = useState(0);
+  const [assigningTemplate, setAssigningTemplate] = useState(null);
+  const [selectedClientIds, setSelectedClientIds] = useState([]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.EmailTemplate.create(data),
@@ -336,6 +338,27 @@ export default function EmailTemplateManager() {
     }
   };
 
+  const handleAssignToPortals = async () => {
+    if (!assigningTemplate) return;
+    
+    try {
+      // Update each selected client to include this template
+      for (const clientId of selectedClientIds) {
+        const client = clients.find(c => c.id === clientId);
+        if (client) {
+          const updatedTemplateIds = [...new Set([...(client.portal_template_ids || []), assigningTemplate.id])];
+          await base44.entities.Client.update(clientId, { portal_template_ids: updatedTemplateIds });
+        }
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      setAssigningTemplate(null);
+      setSelectedClientIds([]);
+    } catch (error) {
+      alert('Failed to assign template: ' + error.message);
+    }
+  };
+
   const removeTag = (tag) => {
     setFormData({ ...formData, tags: formData.tags.filter(t => t !== tag) });
   };
@@ -511,46 +534,72 @@ export default function EmailTemplateManager() {
                               </p>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => setViewingTemplate(template)}
-                            >
-                              <Eye className="w-4 h-4 mr-1" /> View
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => handleDuplicate(template)}
-                            >
-                              <Copy className="w-4 h-4 mr-1" /> Duplicate
-                            </Button>
-                            {template.version_history?.length > 0 && (
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedVersionTemplate(template);
-                                  setShowVersionHistory(true);
-                                }}
-                              >
-                                <History className="w-4 h-4 mr-1" /> v{template.version}
-                              </Button>
-                            )}
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => setSendingTo(template)}
-                            >
-                              <Send className="w-4 h-4 mr-1" /> Send
-                            </Button>
-                            <Button size="icon" variant="ghost" onClick={() => handleEdit(template)}>
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteMutation.mutate(template.id)}>
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                          <div className="flex flex-col gap-2">
+                           <div className="flex items-center gap-2 flex-wrap">
+                             <Button 
+                               size="sm" 
+                               variant="outline"
+                               onClick={() => setViewingTemplate(template)}
+                             >
+                               <Eye className="w-4 h-4 mr-1" /> View
+                             </Button>
+                             <Button 
+                               size="sm" 
+                               variant="outline"
+                               onClick={() => handleDuplicate(template)}
+                             >
+                               <Copy className="w-4 h-4 mr-1" /> Duplicate
+                             </Button>
+                             {template.version_history?.length > 0 && (
+                               <Button 
+                                 size="sm" 
+                                 variant="outline"
+                                 onClick={() => {
+                                   setSelectedVersionTemplate(template);
+                                   setShowVersionHistory(true);
+                                 }}
+                               >
+                                 <History className="w-4 h-4 mr-1" /> v{template.version}
+                               </Button>
+                             )}
+                             <Button 
+                               size="sm" 
+                               variant="outline"
+                               onClick={() => setSendingTo(template)}
+                             >
+                               <Send className="w-4 h-4 mr-1" /> Send
+                             </Button>
+                             <Button 
+                               size="sm" 
+                               variant="outline"
+                               onClick={() => {
+                                 setAssigningTemplate(template);
+                                 setSelectedClientIds(clients.filter(c => c.portal_template_ids?.includes(template.id)).map(c => c.id));
+                               }}
+                             >
+                               <Users className="w-4 h-4 mr-1" /> Assign to Portals
+                             </Button>
+                             <Button size="icon" variant="ghost" onClick={() => handleEdit(template)}>
+                               <Pencil className="w-4 h-4" />
+                             </Button>
+                             <Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteMutation.mutate(template.id)}>
+                               <Trash2 className="w-4 h-4" />
+                             </Button>
+                             </div>
+                           {/* Client Portal Assignments */}
+                           {(() => {
+                             const assignedClients = clients.filter(c => c.portal_template_ids?.includes(template.id));
+                             return assignedClients.length > 0 ? (
+                               <div className="flex items-center gap-2 flex-wrap">
+                                 <span className="text-xs text-gray-500">In portals:</span>
+                                 {assignedClients.map(c => (
+                                   <Badge key={c.id} variant="outline" className="text-xs bg-blue-50">
+                                     {c.name}
+                                   </Badge>
+                                 ))}
+                               </div>
+                             ) : null;
+                           })()}
                           </div>
                         </div>
                       </CardContent>
@@ -923,6 +972,72 @@ export default function EmailTemplateManager() {
                 <Button variant="outline" onClick={() => setSendingTo(null)} className="flex-1">Cancel</Button>
                 <Button onClick={handleSendToClient} className="flex-1 bg-[#770142] hover:bg-[#5a0132]">
                   <Send className="w-4 h-4 mr-2" /> Send Email
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Assign to Client Portals Dialog */}
+        <Dialog open={!!assigningTemplate} onOpenChange={(open) => !open && (setAssigningTemplate(null), setSelectedClientIds([]))}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Assign to Client Portals</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              <p className="text-sm text-gray-600">
+                Select which client portals should have access to "<strong>{assigningTemplate?.subject}</strong>"
+              </p>
+              <div className="border rounded-lg p-4 max-h-96 overflow-y-auto space-y-2">
+                {clients.map(client => {
+                  const isSelected = selectedClientIds.includes(client.id);
+                  return (
+                    <div 
+                      key={client.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        isSelected ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'
+                      }`}
+                      onClick={() => {
+                        setSelectedClientIds(prev => 
+                          prev.includes(client.id) 
+                            ? prev.filter(id => id !== client.id)
+                            : [...prev, client.id]
+                        );
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={isSelected}
+                        onChange={() => {}}
+                        className="cursor-pointer"
+                      />
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{client.name}</p>
+                        {client.company && (
+                          <p className="text-xs text-gray-500">{client.company}</p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-2 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setAssigningTemplate(null);
+                    setSelectedClientIds([]);
+                  }} 
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleAssignToPortals} 
+                  className="flex-1 bg-[#264d44] hover:bg-[#1a3830]"
+                >
+                  <Users className="w-4 h-4 mr-2" /> 
+                  Assign to {selectedClientIds.length} Portal{selectedClientIds.length !== 1 ? 's' : ''}
                 </Button>
               </div>
             </div>
