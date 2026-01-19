@@ -163,9 +163,10 @@ Deno.serve(async (req) => {
         // Clean up excessive whitespace but preserve structure
         body = body.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
         
-        console.log('Processed HTML body length:', body.length);
-        console.log('HTML body preview:', body.substring(0, 300));
+        console.log('[PARSE] Processed HTML body length:', body.length);
+        console.log('[PARSE] HTML body preview:', body.substring(0, 300));
       } else if (plainContent) {
+        console.log('[PARSE] Using plain text content');
         // Convert plain text to HTML with proper formatting
         body = plainContent
           .trim()
