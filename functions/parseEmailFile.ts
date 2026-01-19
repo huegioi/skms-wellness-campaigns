@@ -151,12 +151,17 @@ Deno.serve(async (req) => {
       // Use HTML content if available, otherwise plain text
       console.log('[PARSE] htmlContent length:', htmlContent.length);
       console.log('[PARSE] plainContent length:', plainContent.length);
-      
-      if (htmlContent) {
+
+      if (htmlContent && htmlContent.length > 0) {
         console.log('[PARSE] Using HTML content');
         // Extract just the body content
         const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         body = bodyMatch ? bodyMatch[1].trim() : htmlContent.trim();
+
+        // If body is still empty, use the full htmlContent
+        if (!body || body.length === 0) {
+          body = htmlContent;
+        }
         
         // Remove HTML/head tags but preserve body content
         body = body.replace(/<\/?html[^>]*>/gi, '').replace(/<head>[\s\S]*?<\/head>/gi, '');
