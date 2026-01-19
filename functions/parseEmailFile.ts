@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
       // Extract subject with proper decoding
       const subjectMatch = fileContent.match(/^Subject: (.*)$/m);
       subject = subjectMatch ? subjectMatch[1].trim() : '';
-      
+
       // Decode encoded subject (=?UTF-8?B?...?= format)
       subject = subject.replace(/=\?[^?]+\?[BQ]\?([^?]+)\?=/gi, (match, encoded) => {
         try {
@@ -55,50 +55,18 @@ Deno.serve(async (req) => {
         }
       });
 
-      // Find the boundary marker for multipart emails
-      const boundaryMatch = fileContent.match(/boundary="?([^"\s;]+)"?/i);
-      const boundary = boundaryMatch ? boundaryMatch[1] : null;
-      
-      console.log('[PARSE] Boundary found:', boundary);
-
-      // Simple approach: find first double newline after headers and extract everything after
-      const headerEnd = fileContent.indexOf('\n\n');
-      if (headerEnd > -1) {
-        let rawBody = fileContent.substring(headerEnd + 2);
-
-        // Check if content is base64 encoded
-        const transferEncoding = fileContent.match(/Content-Transfer-Encoding:\s*(\S+)/i);
-        if (transferEncoding && transferEncoding[1].toLowerCase() === 'base64') {
-          try {
-            rawBody = atob(rawBody.replace(/[\r\n\s]/g, ''));
-          } catch (e) {
-            console.error('[PARSE] Base64 decode failed:', e);
+      // Use LLM to extract body content reliably
+      const llmResponse = await base44.integrations.Core.InvokeLLM({
+        prompt: `Extract ONLY the email body content from this .eml file. Return the body as HTML format. If there are multiple parts (HTML and plain text), prefer the HTML version. Do NOT include the email headers, just the actual message content:\n\n${fileContent}`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            body: { type: "string" }
           }
         }
+      });
 
-        // Look for HTML content
-        const bodyMatch = rawBody.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        if (bodyMatch) {
-          body = bodyMatch[1];
-        } else if (rawBody.includes('<html') || rawBody.includes('<div')) {
-          // Has HTML tags but no body tag
-          body = rawBody;
-        } else {
-          // Plain text - convert to HTML
-          body = rawBody
-            .trim()
-            .split(/\n\s*\n/)
-            .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
-            .join('');
-        }
-
-        // Clean up
-        body = body
-          .replace(/<\/?html[^>]*>/gi, '')
-          .replace(/<head>[\s\S]*?<\/head>/gi, '')
-          .replace(/src=["']cid:([^"']+)["']/gi, 'src="https://placehold.co/400x300/e2e8f0/64748b?text=Image"')
-          .trim();
-      }
+      body = llmResponse.body || '';
     }
     // Parse text files
     else if (file_url.endsWith('.txt') || contentType?.includes('text/plain')) {
