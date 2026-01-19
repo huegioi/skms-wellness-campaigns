@@ -362,24 +362,6 @@ export default function Clients() {
                 <Eye className="w-4 h-4 mr-2" /> Client Portals
               </Button>
             </Link>
-            <Button 
-              variant="outline"
-              onClick={async () => {
-                if (!confirm('Generate default tasks for all clients that don\'t have tasks yet?')) return;
-                const allTasks = await base44.entities.ClientTask.list();
-                const clientsWithTasks = new Set(allTasks.map(t => t.client_id));
-                const clientsNeedingTasks = clients.filter(c => !clientsWithTasks.has(c.id));
-                
-                for (const client of clientsNeedingTasks) {
-                  await createDefaultTasksForClient(base44, client.id, client.name);
-                }
-                
-                queryClient.invalidateQueries({ queryKey: ['clientTasks'] });
-                alert(`✓ Tasks created for ${clientsNeedingTasks.length} clients!`);
-              }}
-            >
-              Generate Tasks
-            </Button>
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-[#264d44] hover:bg-[#1a3830]" onClick={resetForm}>
