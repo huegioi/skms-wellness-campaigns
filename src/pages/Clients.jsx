@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Plus, User, Building, Mail, Phone, FileText, Pencil, Trash2, Search, Filter, 
-  DollarSign, Users, Calendar, Globe, MapPin, Eye, AlertTriangle, XCircle
+  DollarSign, Users, Calendar, Globe, MapPin, Eye, AlertTriangle, XCircle, ExternalLink
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -357,6 +357,11 @@ export default function Clients() {
             <p className="text-gray-600">Manage your clients, contacts, and interactions</p>
           </div>
           <div className="flex gap-2">
+            <Link to={createPageUrl('ManageClientPortals')}>
+              <Button variant="outline" className="bg-white">
+                <Eye className="w-4 h-4 mr-2" /> Client Portals
+              </Button>
+            </Link>
             <Button 
               variant="outline"
               onClick={async () => {

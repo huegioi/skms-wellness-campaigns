@@ -7,9 +7,9 @@ export default function Layout({ children, currentPageName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Public pages - no navigation
-  if (currentPageName === 'ViewProposal' || currentPageName === 'MyPortal') {
-    return <>{children}</>;
-  }
+      if (currentPageName === 'ViewProposal' || currentPageName === 'MyPortal' || currentPageName === 'ClientPortal') {
+        return <>{children}</>;
+      }
 
   const navItems = [
     { name: 'Dashboard', page: 'Dashboard', icon: BarChart3 },

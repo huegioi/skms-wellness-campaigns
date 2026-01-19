@@ -12,21 +12,29 @@ import ClientProfileSettings from '@/components/portal/ClientProfileSettings';
 export default function ClientPortal() {
   const [activeTab, setActiveTab] = useState('proposal');
   const queryClient = useQueryClient();
+  const urlParams = new URLSearchParams(window.location.search);
+  const clientIdFromUrl = urlParams.get('clientId');
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me()
   });
 
-  // Find client by email
+  // Find client - either by URL param (admin view) or by logged-in user email
   const { data: client, isLoading: clientLoading } = useQuery({
-    queryKey: ['portalClient', user?.email],
+    queryKey: ['portalClient', clientIdFromUrl, user?.email],
     queryFn: async () => {
+      // If clientId in URL, fetch that specific client (admin viewing)
+      if (clientIdFromUrl) {
+        const clients = await base44.entities.Client.filter({ id: clientIdFromUrl });
+        return clients[0] || null;
+      }
+      // Otherwise, find by logged-in user email
       if (!user?.email) return null;
       const clients = await base44.entities.Client.filter({ email: user.email });
       return clients[0] || null;
     },
-    enabled: !!user?.email
+    enabled: !!clientIdFromUrl || !!user?.email
   });
 
   // Get proposals for this client
