@@ -61,138 +61,43 @@ Deno.serve(async (req) => {
       
       console.log('[PARSE] Boundary found:', boundary);
 
-      let htmlContent = '';
-      let plainContent = '';
+      // Simple approach: find first double newline after headers and extract everything after
+      const headerEnd = fileContent.indexOf('\n\n');
+      if (headerEnd > -1) {
+        let rawBody = fileContent.substring(headerEnd + 2);
 
-      if (boundary) {
-        console.log('[PARSE] Processing multipart email with boundary:', boundary);
-        // Split by boundary
-        const parts = fileContent.split(new RegExp(`--${boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g'));
-
-        console.log('[PARSE] Split into', parts.length, 'parts');
-
-        for (let i = 0; i < parts.length; i++) {
-          const part = parts[i];
-          console.log(`[PARSE] --- Processing part ${i} ---`);
-          console.log(`[PARSE] Part ${i} first 200 chars:`, part.substring(0, 200));
-          // Find HTML parts
-          if (part.includes('Content-Type: text/html')) {
-            console.log(`[PARSE] Part ${i} contains HTML content type`);
-            const encodingMatch = part.match(/Content-Transfer-Encoding:\s*(\S+)/i);
-            const encoding = encodingMatch ? encodingMatch[1].toLowerCase() : '';
-            console.log(`[PARSE] Part ${i} encoding:`, encoding);
-
-            // Extract content after headers (double newline)
-            const contentStart = part.indexOf('\n\n');
-            console.log(`[PARSE] Part ${i} content starts at position:`, contentStart);
-            if (contentStart > -1) {
-              let content = part.substring(contentStart + 2).trim();
-              console.log(`[PARSE] Part ${i} raw content length before decode:`, content.length);
-              console.log(`[PARSE] Part ${i} raw content preview:`, content.substring(0, 100));
-              
-              // Decode based on encoding
-              if (encoding === 'base64') {
-                try {
-                  content = atob(content.replace(/[\r\n\s]/g, ''));
-                  console.log(`[PARSE] Part ${i} decoded from base64, new length:`, content.length);
-                } catch (e) {
-                  console.error(`[PARSE] Part ${i} base64 decode error:`, e);
-                }
-              } else if (encoding === 'quoted-printable') {
-                // Decode quoted-printable
-                content = content
-                  .replace(/=\r?\n/g, '')
-                  .replace(/=([0-9A-F]{2})/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
-                console.log(`[PARSE] Part ${i} decoded from quoted-printable, new length:`, content.length);
-              }
-
-              htmlContent = content;
-              console.log(`[PARSE] Part ${i} FINAL htmlContent set, length:`, content.length);
-              } else {
-              console.log(`[PARSE] Part ${i} no double newline found - skipping`);
-              }
-              }
-          // Find plain text parts as fallback
-          else if (part.includes('Content-Type: text/plain') && !plainContent) {
-            console.log('[PARSE] Found plain text part');
-            const encodingMatch = part.match(/Content-Transfer-Encoding:\s*(\S+)/i);
-            const encoding = encodingMatch ? encodingMatch[1].toLowerCase() : '';
-            
-            const contentStart = part.indexOf('\n\n');
-            if (contentStart > -1) {
-              let content = part.substring(contentStart + 2).trim();
-              
-              if (encoding === 'base64') {
-                try {
-                  content = atob(content.replace(/[\r\n\s]/g, ''));
-                } catch (e) {
-                  console.error('Base64 decode error:', e);
-                }
-              } else if (encoding === 'quoted-printable') {
-                content = content
-                  .replace(/=\r?\n/g, '')
-                  .replace(/=([0-9A-F]{2})/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
-              }
-              
-              plainContent = content;
-              console.log('[PARSE] Plain text content extracted, length:', content.length);
-            }
+        // Check if content is base64 encoded
+        const transferEncoding = fileContent.match(/Content-Transfer-Encoding:\s*(\S+)/i);
+        if (transferEncoding && transferEncoding[1].toLowerCase() === 'base64') {
+          try {
+            rawBody = atob(rawBody.replace(/[\r\n\s]/g, ''));
+          } catch (e) {
+            console.error('[PARSE] Base64 decode failed:', e);
           }
         }
-      } else {
-        console.log('[PARSE] No boundary found, trying single part parsing');
-        const htmlMatch = fileContent.match(/Content-Type: text\/html[\s\S]*?\n\n([\s\S]+?)(?=\n--|\nContent-Type:|$)/i);
-        const plainMatch = fileContent.match(/Content-Type: text\/plain[\s\S]*?\n\n([\s\S]+?)(?=\n--|\nContent-Type:|$)/i);
-        
-        if (htmlMatch) htmlContent = htmlMatch[1];
-        if (plainMatch) plainContent = plainMatch[1];
-      }
 
-      // Use HTML content if available, otherwise plain text
-      console.log('[PARSE] htmlContent length:', htmlContent.length);
-      console.log('[PARSE] plainContent length:', plainContent.length);
-
-      if (htmlContent && htmlContent.length > 0) {
-        console.log('[PARSE] Using HTML content');
-        // Extract just the body content
-        const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-        body = bodyMatch ? bodyMatch[1].trim() : htmlContent.trim();
-
-        // If body is still empty, use the full htmlContent
-        if (!body || body.length === 0) {
-          body = htmlContent;
+        // Look for HTML content
+        const bodyMatch = rawBody.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        if (bodyMatch) {
+          body = bodyMatch[1];
+        } else if (rawBody.includes('<html') || rawBody.includes('<div')) {
+          // Has HTML tags but no body tag
+          body = rawBody;
+        } else {
+          // Plain text - convert to HTML
+          body = rawBody
+            .trim()
+            .split(/\n\s*\n/)
+            .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+            .join('');
         }
-        
-        // Remove HTML/head tags but preserve body content
-        body = body.replace(/<\/?html[^>]*>/gi, '').replace(/<head>[\s\S]*?<\/head>/gi, '');
-        
-        // Handle inline images - replace cid: with placeholder
-        body = body.replace(/src=["']cid:([^"']+)["']/gi, 'src="https://placehold.co/400x300/e2e8f0/64748b?text=Embedded+Image"');
-        
-        // Preserve email styling - convert inline styles to editor-friendly format
-        // Keep tables, divs, spans with styling
+
+        // Clean up
         body = body
-          .replace(/style=["']([^"']*font-family:[^"';]*)[^"']*["']/gi, (match) => match) // Keep font styles
-          .replace(/style=["']([^"']*color:[^"';]*)[^"']*["']/gi, (match) => match) // Keep colors
-          .replace(/style=["']([^"']*background[^"';]*)[^"';]*)[^"']*["']/gi, (match) => match); // Keep backgrounds
-        
-        // Clean up excessive whitespace but preserve structure
-        body = body.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
-        
-        console.log('[PARSE] Processed HTML body length:', body.length);
-        console.log('[PARSE] HTML body preview:', body.substring(0, 300));
-        } else if (plainContent && plainContent.length > 0) {
-        console.log('[PARSE] Using plain text content');
-        // Convert plain text to HTML with proper formatting
-        body = plainContent
-          .trim()
-          .split(/\n\s*\n/)
-          .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
-          .join('');
-        
-        console.log('[PARSE] Converted plain text to HTML, length:', body.length);
-      } else {
-        console.log('[PARSE] WARNING: No HTML or plain text content found!');
+          .replace(/<\/?html[^>]*>/gi, '')
+          .replace(/<head>[\s\S]*?<\/head>/gi, '')
+          .replace(/src=["']cid:([^"']+)["']/gi, 'src="https://placehold.co/400x300/e2e8f0/64748b?text=Image"')
+          .trim();
       }
     }
     // Parse text files
