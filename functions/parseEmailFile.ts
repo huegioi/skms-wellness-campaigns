@@ -174,7 +174,9 @@ Deno.serve(async (req) => {
           .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
           .join('');
         
-        console.log('Converted plain text to HTML, length:', body.length);
+        console.log('[PARSE] Converted plain text to HTML, length:', body.length);
+      } else {
+        console.log('[PARSE] WARNING: No HTML or plain text content found!');
       }
     }
     // Parse text files
