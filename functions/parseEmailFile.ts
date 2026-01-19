@@ -42,11 +42,11 @@ Deno.serve(async (req) => {
 
     // Parse .eml files
     if (file_url.endsWith('.eml') || contentType?.includes('message/rfc822')) {
-      // Extract subject with proper decoding
+      // Extract subject
       const subjectMatch = fileContent.match(/^Subject: (.*)$/m);
       subject = subjectMatch ? subjectMatch[1].trim() : '';
 
-      // Decode encoded subject (=?UTF-8?B?...?= format)
+      // Decode encoded subject
       subject = subject.replace(/=\?[^?]+\?[BQ]\?([^?]+)\?=/gi, (match, encoded) => {
         try {
           return atob(encoded);
@@ -55,18 +55,36 @@ Deno.serve(async (req) => {
         }
       });
 
-      // Use LLM to extract body content reliably
-      const llmResponse = await base44.integrations.Core.InvokeLLM({
-        prompt: `Extract ONLY the email body content from this .eml file. Return the body as HTML format. If there are multiple parts (HTML and plain text), prefer the HTML version. Do NOT include the email headers, just the actual message content:\n\n${fileContent}`,
-        response_json_schema: {
-          type: "object",
-          properties: {
-            body: { type: "string" }
+      // Find where headers end (blank line)
+      const lines = fileContent.split('\n');
+      let headerEndIndex = -1;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim() === '' && i > 0) {
+          headerEndIndex = i;
+          break;
+        }
+      }
+
+      if (headerEndIndex > -1) {
+        // Everything after headers is the body
+        const bodyContent = lines.slice(headerEndIndex + 1).join('\n');
+
+        // Try to find HTML content between <html> and </html> or <body> and </body>
+        const htmlMatch = bodyContent.match(/<html[\s\S]*<\/html>/i);
+        const bodyTagMatch = bodyContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+
+        if (bodyTagMatch) {
+          body = bodyTagMatch[1];
+        } else if (htmlMatch) {
+          body = htmlMatch[0];
+        } else {
+          // No HTML tags found - treat as plain text
+          const cleaned = bodyContent.trim();
+          if (cleaned) {
+            body = cleaned.split('\n\n').map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
           }
         }
-      });
-
-      body = llmResponse.body || '';
+      }
     }
     // Parse text files
     else if (file_url.endsWith('.txt') || contentType?.includes('text/plain')) {
