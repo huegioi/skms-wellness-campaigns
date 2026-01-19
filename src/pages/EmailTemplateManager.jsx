@@ -634,11 +634,14 @@ export default function EmailTemplateManager() {
                       </div>
                     </div>
                     <ReactQuill
-                      key={editorKey}
+                      key={`quill-${editorKey}`}
                       ref={quillRef}
                       theme="snow"
-                      value={formData.body}
-                      onChange={(content) => setFormData({ ...formData, body: content })}
+                      value={formData.body || ''}
+                      onChange={(content) => {
+                        console.log('Editor onChange called, content length:', content?.length || 0);
+                        setFormData(prev => ({ ...prev, body: content }));
+                      }}
                       modules={modules}
                       formats={formats}
                       placeholder="Write your email content here..."
