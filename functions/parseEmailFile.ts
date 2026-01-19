@@ -204,9 +204,10 @@ Deno.serve(async (req) => {
       body = llmResponse.body || '';
     }
 
-    console.log('Extracted subject:', subject);
-    console.log('Extracted body length:', body?.length || 0);
-    console.log('Body preview:', body?.substring(0, 100));
+    console.log('[PARSE] === FINAL RESULTS ===');
+    console.log('[PARSE] Extracted subject:', subject);
+    console.log('[PARSE] Extracted body length:', body?.length || 0);
+    console.log('[PARSE] Body preview:', body?.substring(0, 200));
     
     if (!subject && !body) {
       console.warn('No content extracted from file');
