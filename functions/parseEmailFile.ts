@@ -9,7 +9,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { file_url } = await req.json();
+    const body = await req.json();
+    console.log('Request body:', body);
+    const { file_url } = body;
 
     if (!file_url) {
       return Response.json({ error: 'file_url is required' }, { status: 400 });
@@ -159,9 +161,12 @@ Deno.serve(async (req) => {
       body = llmResponse.body || '';
     }
 
+    console.log('Extracted subject:', subject);
+    console.log('Extracted body length:', body.length);
+    
     return Response.json({ subject, body });
   } catch (error) {
     console.error('Parse error:', error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
   }
 });

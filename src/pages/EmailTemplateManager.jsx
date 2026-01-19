@@ -279,19 +279,26 @@ export default function EmailTemplateManager() {
         // Parse the file to extract subject and body
         const parseResponse = await base44.functions.invoke('parseEmailFile', { file_url });
         
-        if (parseResponse.data.subject || parseResponse.data.body) {
+        console.log('Parse response:', parseResponse);
+        
+        const parsedSubject = parseResponse.data?.subject || '';
+        const parsedBody = parseResponse.data?.body || '';
+        
+        if (parsedSubject || parsedBody) {
           setFormData({
             ...formData,
-            subject: parseResponse.data.subject || formData.subject,
-            body: parseResponse.data.body || formData.body,
+            subject: parsedSubject || formData.subject,
+            body: parsedBody || formData.body,
             file_url
           });
+          alert(`Content extracted successfully!\nSubject: ${parsedSubject ? '✓' : '✗'}\nBody: ${parsedBody ? '✓' : '✗'}`);
         } else {
           setFormData({ ...formData, file_url });
+          alert('File uploaded but no content could be extracted. You can manually enter the template content.');
         }
       } catch (error) {
         console.error('File upload error:', error);
-        alert('Failed to parse file. Please try again.');
+        alert(`Failed to parse file: ${error.message}`);
       } finally {
         setUploadingFile(false);
       }
