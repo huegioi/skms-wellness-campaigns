@@ -291,8 +291,10 @@ export default function EmailTemplateManager() {
         console.log('Parsed subject:', parsedSubject);
         console.log('Parsed body length:', parsedBody?.length || 0);
         console.log('Parsed body preview:', parsedBody?.substring(0, 500));
+        console.log('parsedBody is truthy?', !!parsedBody);
+        console.log('parsedSubject is truthy?', !!parsedSubject);
 
-        if (parsedBody) {
+        if (parsedSubject || parsedBody) {
           // Update body first, then increment key
           setFormData(prev => {
             const newData = {
