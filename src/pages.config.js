@@ -7,6 +7,7 @@ import EditProposal from './pages/EditProposal';
 import EmailTemplateManager from './pages/EmailTemplateManager';
 import Home from './pages/Home';
 import Invoices from './pages/Invoices';
+import ManageClientPortals from './pages/ManageClientPortals';
 import MyPortal from './pages/MyPortal';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Proposals from './pages/Proposals';
@@ -16,7 +17,6 @@ import ServiceCatalog from './pages/ServiceCatalog';
 import UserAgreement from './pages/UserAgreement';
 import ViewProposal from './pages/ViewProposal';
 import WellnessBoxes from './pages/WellnessBoxes';
-import ManageClientPortals from './pages/ManageClientPortals';
 import __Layout from './Layout.jsx';
 
 
@@ -30,6 +30,7 @@ export const PAGES = {
     "EmailTemplateManager": EmailTemplateManager,
     "Home": Home,
     "Invoices": Invoices,
+    "ManageClientPortals": ManageClientPortals,
     "MyPortal": MyPortal,
     "PrivacyPolicy": PrivacyPolicy,
     "Proposals": Proposals,
@@ -39,7 +40,6 @@ export const PAGES = {
     "UserAgreement": UserAgreement,
     "ViewProposal": ViewProposal,
     "WellnessBoxes": WellnessBoxes,
-    "ManageClientPortals": ManageClientPortals,
 }
 
 export const pagesConfig = {

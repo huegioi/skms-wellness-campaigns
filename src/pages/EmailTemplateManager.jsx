@@ -342,16 +342,26 @@ export default function EmailTemplateManager() {
     if (!assigningTemplate) return;
     
     try {
-      // Update each selected client to include this template
-      for (const clientId of selectedClientIds) {
-        const client = clients.find(c => c.id === clientId);
-        if (client) {
-          const updatedTemplateIds = [...new Set([...(client.portal_template_ids || []), assigningTemplate.id])];
-          await base44.entities.Client.update(clientId, { portal_template_ids: updatedTemplateIds });
+      // Update all clients - add template to selected, remove from unselected
+      for (const client of clients) {
+        const isSelected = selectedClientIds.includes(client.id);
+        const currentTemplateIds = client.portal_template_ids || [];
+        const hasTemplate = currentTemplateIds.includes(assigningTemplate.id);
+        
+        // Add template if selected and doesn't have it
+        if (isSelected && !hasTemplate) {
+          const updatedTemplateIds = [...currentTemplateIds, assigningTemplate.id];
+          await base44.entities.Client.update(client.id, { portal_template_ids: updatedTemplateIds });
+        }
+        // Remove template if not selected but has it
+        else if (!isSelected && hasTemplate) {
+          const updatedTemplateIds = currentTemplateIds.filter(id => id !== assigningTemplate.id);
+          await base44.entities.Client.update(client.id, { portal_template_ids: updatedTemplateIds });
         }
       }
       
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['portalClient'] });
       setAssigningTemplate(null);
       setSelectedClientIds([]);
     } catch (error) {
