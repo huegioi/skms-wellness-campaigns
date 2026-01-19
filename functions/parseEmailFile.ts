@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     let subject = '';
     let body = '';
 
-    // Parse .eml files
+    // Parse .eml files - just extract everything after headers
     if (file_url.endsWith('.eml') || contentType?.includes('message/rfc822')) {
       // Extract subject
       const subjectMatch = fileContent.match(/^Subject: (.*)$/m);
@@ -55,35 +55,23 @@ Deno.serve(async (req) => {
         }
       });
 
-      // Find where headers end (blank line)
-      const lines = fileContent.split('\n');
-      let headerEndIndex = -1;
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].trim() === '' && i > 0) {
-          headerEndIndex = i;
-          break;
+      // Find double newline that separates headers from body
+      const doubleLF = fileContent.indexOf('\n\n');
+      const doubleCRLF = fileContent.indexOf('\r\n\r\n');
+      const splitPoint = doubleCRLF > -1 ? doubleCRLF + 4 : (doubleLF > -1 ? doubleLF + 2 : -1);
+
+      if (splitPoint > -1) {
+        // Get everything after headers
+        body = fileContent.substring(splitPoint).trim();
+
+        // If body is still empty or very short, just return the last 80% of the file
+        if (!body || body.length < 100) {
+          const startFrom = Math.floor(fileContent.length * 0.2);
+          body = fileContent.substring(startFrom);
         }
-      }
 
-      if (headerEndIndex > -1) {
-        // Everything after headers is the body
-        const bodyContent = lines.slice(headerEndIndex + 1).join('\n');
-
-        // Try to find HTML content between <html> and </html> or <body> and </body>
-        const htmlMatch = bodyContent.match(/<html[\s\S]*<\/html>/i);
-        const bodyTagMatch = bodyContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-
-        if (bodyTagMatch) {
-          body = bodyTagMatch[1];
-        } else if (htmlMatch) {
-          body = htmlMatch[0];
-        } else {
-          // No HTML tags found - treat as plain text
-          const cleaned = bodyContent.trim();
-          if (cleaned) {
-            body = cleaned.split('\n\n').map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
-          }
-        }
+        console.log('[PARSE] Raw body length:', body.length);
+        console.log('[PARSE] Raw body preview:', body.substring(0, 500));
       }
     }
     // Parse text files
