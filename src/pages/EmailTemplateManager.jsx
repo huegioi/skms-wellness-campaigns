@@ -741,7 +741,7 @@ export default function EmailTemplateManager() {
               </div>
 
               <Button type="submit" className="w-full bg-[#264d44] hover:bg-[#1a3830]">
-                {editingTemplate ? 'Save Changes' : 'Create Template'}
+                {editingTemplate ? 'Save Changes' : 'Save Template'}
               </Button>
             </form>
           </DialogContent>
