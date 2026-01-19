@@ -138,7 +138,11 @@ Deno.serve(async (req) => {
       }
 
       // Use HTML content if available, otherwise plain text
+      console.log('[PARSE] htmlContent length:', htmlContent.length);
+      console.log('[PARSE] plainContent length:', plainContent.length);
+      
       if (htmlContent) {
+        console.log('[PARSE] Using HTML content');
         // Extract just the body content
         const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         body = bodyMatch ? bodyMatch[1].trim() : htmlContent.trim();
