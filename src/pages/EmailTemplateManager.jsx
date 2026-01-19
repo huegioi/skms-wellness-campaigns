@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Pencil, Trash2, Mail, Upload, Send, FileText, Search, Filter, X, Eye } from 'lucide-react';
 import { productCatalog } from '@/components/curriculum/catalogData';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 
 export default function EmailTemplateManager() {
   const [showDialog, setShowDialog] = useState(false);
@@ -21,8 +22,51 @@ export default function EmailTemplateManager() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [activeCategory, setActiveCategory] = useState('workshop');
+  const [editorTab, setEditorTab] = useState('edit');
+  const quillRef = useRef(null);
   
   const queryClient = useQueryClient();
+
+  const placeholders = [
+    { label: 'Client Name', value: '{{client_name}}' },
+    { label: 'Company Name', value: '{{company}}' },
+    { label: 'Invoice Amount', value: '{{invoice_amount}}' },
+    { label: 'Invoice Number', value: '{{invoice_number}}' },
+    { label: 'Service Name', value: '{{service_name}}' },
+    { label: 'Event Date', value: '{{event_date}}' },
+    { label: 'Event Time', value: '{{event_time}}' },
+    { label: 'Event Location', value: '{{event_location}}' }
+  ];
+
+  const insertPlaceholder = (placeholder) => {
+    const editor = quillRef.current?.getEditor();
+    if (editor) {
+      const cursorPosition = editor.getSelection()?.index || 0;
+      editor.insertText(cursorPosition, placeholder);
+      editor.setSelection(cursorPosition + placeholder.length);
+    }
+  };
+
+  const modules = {
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'align': [] }],
+      ['link'],
+      ['clean']
+    ]
+  };
+
+  const formats = [
+    'header',
+    'bold', 'italic', 'underline', 'strike',
+    'list', 'bullet',
+    'color', 'background',
+    'align',
+    'link'
+  ];
 
   const { data: templates = [], isLoading } = useQuery({
     queryKey: ['emailTemplates'],
@@ -361,13 +405,71 @@ export default function EmailTemplateManager() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Email Body</label>
-                <Textarea 
-                  value={formData.body} 
-                  onChange={(e) => setFormData({ ...formData, body: e.target.value })}
-                  placeholder="Write your email content here..."
-                  rows={8}
-                />
+                <label className="block text-sm font-medium text-gray-600 mb-2">Email Body</label>
+                
+                <Tabs value={editorTab} onValueChange={setEditorTab} className="w-full">
+                  <TabsList className="mb-2">
+                    <TabsTrigger value="edit">Edit</TabsTrigger>
+                    <TabsTrigger value="preview">Preview</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="edit" className="mt-0">
+                    <div className="mb-2">
+                      <p className="text-xs text-gray-500 mb-2">Insert placeholders:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {placeholders.map(p => (
+                          <Button
+                            key={p.value}
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => insertPlaceholder(p.value)}
+                            className="text-xs"
+                          >
+                            {p.label}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    <ReactQuill
+                      ref={quillRef}
+                      theme="snow"
+                      value={formData.body}
+                      onChange={(content) => setFormData({ ...formData, body: content })}
+                      modules={modules}
+                      formats={formats}
+                      placeholder="Write your email content here..."
+                      className="bg-white rounded-md"
+                      style={{ height: '300px', marginBottom: '50px' }}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="preview" className="mt-0">
+                    <div className="border rounded-lg p-6 bg-white min-h-[300px]">
+                      <div className="mb-4 pb-4 border-b">
+                        <p className="text-sm text-gray-500">Subject:</p>
+                        <p className="font-semibold text-gray-900">{formData.subject || 'No subject'}</p>
+                      </div>
+                      <div 
+                        className="prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ 
+                          __html: formData.body
+                            .replace(/{{client_name}}/g, '<span class="bg-yellow-100 px-1 rounded">Jane Doe</span>')
+                            .replace(/{{company}}/g, '<span class="bg-yellow-100 px-1 rounded">Acme Corp</span>')
+                            .replace(/{{invoice_amount}}/g, '<span class="bg-yellow-100 px-1 rounded">$1,500</span>')
+                            .replace(/{{invoice_number}}/g, '<span class="bg-yellow-100 px-1 rounded">INV-001</span>')
+                            .replace(/{{service_name}}/g, '<span class="bg-yellow-100 px-1 rounded">Wellness Workshop</span>')
+                            .replace(/{{event_date}}/g, '<span class="bg-yellow-100 px-1 rounded">Jan 25, 2026</span>')
+                            .replace(/{{event_time}}/g, '<span class="bg-yellow-100 px-1 rounded">2:00 PM</span>')
+                            .replace(/{{event_location}}/g, '<span class="bg-yellow-100 px-1 rounded">Main Conference Room</span>')
+                        }}
+                      />
+                      {!formData.body && (
+                        <p className="text-gray-400 italic">No content to preview</p>
+                      )}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </div>
 
               <div>
@@ -416,9 +518,10 @@ export default function EmailTemplateManager() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-500 mb-1">Email Body</label>
-                  <div className="border rounded-lg p-4 bg-gray-50 whitespace-pre-wrap text-gray-900">
-                    {viewingTemplate.body || <span className="text-gray-400 italic">No body content</span>}
-                  </div>
+                  <div 
+                    className="border rounded-lg p-4 bg-gray-50 prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: viewingTemplate.body || '<span class="text-gray-400 italic">No body content</span>' }}
+                  />
                 </div>
 
                 {viewingTemplate.file_url && (
