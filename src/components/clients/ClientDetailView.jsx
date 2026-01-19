@@ -699,7 +699,10 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
               </div>
 
               <Button 
-                onClick={() => onUpdate({ portal_template_ids: selectedTemplateIds })}
+                onClick={async () => {
+                  await onUpdate({ portal_template_ids: selectedTemplateIds });
+                  queryClient.invalidateQueries({ queryKey: ['client', client.id] });
+                }}
                 className="w-full"
               >
                 Save Template Selection
@@ -745,9 +748,10 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
                         size="sm" 
                         variant="ghost"
                         className="text-red-500"
-                        onClick={() => {
+                        onClick={async () => {
                           const updated = (client.portal_documents || []).filter((_, i) => i !== index);
-                          onUpdate({ portal_documents: updated });
+                          await onUpdate({ portal_documents: updated });
+                          queryClient.invalidateQueries({ queryKey: ['client', client.id] });
                         }}
                       >
                         <X className="w-4 h-4" />
@@ -791,7 +795,8 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
                             uploaded_date: new Date().toISOString()
                           };
                           const updated = [...(client.portal_documents || []), newDoc];
-                          onUpdate({ portal_documents: updated });
+                          await onUpdate({ portal_documents: updated });
+                          queryClient.invalidateQueries({ queryKey: ['client', client.id] });
                           setDocumentForm({ name: '', description: '' });
                           e.target.value = '';
                         } catch (error) {
