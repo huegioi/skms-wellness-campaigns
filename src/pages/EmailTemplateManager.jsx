@@ -291,6 +291,7 @@ export default function EmailTemplateManager() {
             body: parsedBody || formData.body,
             file_url
           });
+          setEditorKey(prev => prev + 1); // Force editor to re-render with new content
           alert(`Content extracted successfully!\nSubject: ${parsedSubject ? '✓' : '✗'}\nBody: ${parsedBody ? '✓' : '✗'}`);
         } else {
           setFormData({ ...formData, file_url });
