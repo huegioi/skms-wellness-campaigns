@@ -55,7 +55,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   const [showAddService, setShowAddService] = useState(false);
   const [serviceToAdd, setServiceToAdd] = useState('');
   const [viewingInvoice, setViewingInvoice] = useState(null);
-  const [selectedTemplateIds, setSelectedTemplateIds] = useState(client.portal_template_ids || []);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [documentForm, setDocumentForm] = useState({ name: '', description: '' });
 
@@ -72,6 +72,13 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   });
 
   const client = freshClient;
+
+  // Initialize selected templates when client data loads
+  React.useEffect(() => {
+    if (client?.portal_template_ids) {
+      setSelectedTemplateIds(client.portal_template_ids);
+    }
+  }, [client?.id]);
 
   const { data: allServices = [] } = useQuery({
     queryKey: ['services'],
