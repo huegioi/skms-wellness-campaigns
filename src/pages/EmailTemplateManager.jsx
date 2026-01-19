@@ -35,7 +35,8 @@ export default function EmailTemplateManager() {
     { label: 'Service Name', value: '{{service_name}}' },
     { label: 'Event Date', value: '{{event_date}}' },
     { label: 'Event Time', value: '{{event_time}}' },
-    { label: 'Event Location', value: '{{event_location}}' }
+    { label: 'Event Location', value: '{{event_location}}' },
+    { label: 'Event Link', value: '{{event_link}}' }
   ];
 
   const insertPlaceholder = (placeholder) => {
@@ -83,6 +84,42 @@ export default function EmailTemplateManager() {
     queryFn: () => base44.entities.Client.list()
   });
 
+  const { data: events = [] } = useQuery({
+    queryKey: ['events'],
+    queryFn: () => base44.entities.CalendarEvent.list()
+  });
+
+  const getPreviewData = () => {
+    if (previewClientId) {
+      const client = clients.find(c => c.id === previewClientId);
+      const clientEvent = events.find(e => e.client_id === previewClientId);
+      
+      return {
+        client_name: client?.name || 'Jane Doe',
+        company: client?.company || 'Acme Corp',
+        invoice_amount: '$1,500',
+        invoice_number: 'INV-001',
+        service_name: formData.service_name || 'Wellness Workshop',
+        event_date: clientEvent?.start_date ? new Date(clientEvent.start_date).toLocaleDateString() : 'Jan 25, 2026',
+        event_time: clientEvent?.start_date ? new Date(clientEvent.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '2:00 PM',
+        event_location: clientEvent?.location || 'Main Conference Room',
+        event_link: clientEvent?.location?.includes('http') ? clientEvent.location : 'https://zoom.us/j/example123'
+      };
+    }
+    
+    return {
+      client_name: 'Jane Doe',
+      company: 'Acme Corp',
+      invoice_amount: '$1,500',
+      invoice_number: 'INV-001',
+      service_name: formData.service_name || 'Wellness Workshop',
+      event_date: 'Jan 25, 2026',
+      event_time: '2:00 PM',
+      event_location: 'Main Conference Room',
+      event_link: 'https://zoom.us/j/example123'
+    };
+  };
+
   const [formData, setFormData] = useState({
     service_name: '',
     service_category: 'workshop',
@@ -99,6 +136,7 @@ export default function EmailTemplateManager() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const [selectedVersionTemplate, setSelectedVersionTemplate] = useState(null);
+  const [previewClientId, setPreviewClientId] = useState('');
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.EmailTemplate.create(data),
@@ -580,6 +618,25 @@ export default function EmailTemplateManager() {
                   </TabsContent>
 
                   <TabsContent value="preview" className="mt-0">
+                    <div className="mb-3">
+                      <label className="block text-sm font-medium text-gray-600 mb-1">
+                        Preview with Client Data (Optional)
+                      </label>
+                      <Select value={previewClientId} onValueChange={setPreviewClientId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Use sample data" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={null}>Sample Data</SelectItem>
+                          {clients.map(client => (
+                            <SelectItem key={client.id} value={client.id}>
+                              {client.name} {client.company ? `(${client.company})` : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
                     <div className="border rounded-lg p-6 bg-white min-h-[300px]">
                       <div className="mb-4 pb-4 border-b">
                         <p className="text-sm text-gray-500">Subject:</p>
@@ -589,14 +646,15 @@ export default function EmailTemplateManager() {
                         className="prose prose-sm max-w-none"
                         dangerouslySetInnerHTML={{ 
                           __html: formData.body
-                            .replace(/{{client_name}}/g, '<span class="bg-yellow-100 px-1 rounded">Jane Doe</span>')
-                            .replace(/{{company}}/g, '<span class="bg-yellow-100 px-1 rounded">Acme Corp</span>')
-                            .replace(/{{invoice_amount}}/g, '<span class="bg-yellow-100 px-1 rounded">$1,500</span>')
-                            .replace(/{{invoice_number}}/g, '<span class="bg-yellow-100 px-1 rounded">INV-001</span>')
-                            .replace(/{{service_name}}/g, '<span class="bg-yellow-100 px-1 rounded">Wellness Workshop</span>')
-                            .replace(/{{event_date}}/g, '<span class="bg-yellow-100 px-1 rounded">Jan 25, 2026</span>')
-                            .replace(/{{event_time}}/g, '<span class="bg-yellow-100 px-1 rounded">2:00 PM</span>')
-                            .replace(/{{event_location}}/g, '<span class="bg-yellow-100 px-1 rounded">Main Conference Room</span>')
+                            .replace(/{{client_name}}/g, `<span class="bg-yellow-100 px-1 rounded">${getPreviewData().client_name}</span>`)
+                            .replace(/{{company}}/g, `<span class="bg-yellow-100 px-1 rounded">${getPreviewData().company}</span>`)
+                            .replace(/{{invoice_amount}}/g, `<span class="bg-yellow-100 px-1 rounded">${getPreviewData().invoice_amount}</span>`)
+                            .replace(/{{invoice_number}}/g, `<span class="bg-yellow-100 px-1 rounded">${getPreviewData().invoice_number}</span>`)
+                            .replace(/{{service_name}}/g, `<span class="bg-yellow-100 px-1 rounded">${getPreviewData().service_name}</span>`)
+                            .replace(/{{event_date}}/g, `<span class="bg-yellow-100 px-1 rounded">${getPreviewData().event_date}</span>`)
+                            .replace(/{{event_time}}/g, `<span class="bg-yellow-100 px-1 rounded">${getPreviewData().event_time}</span>`)
+                            .replace(/{{event_location}}/g, `<span class="bg-yellow-100 px-1 rounded">${getPreviewData().event_location}</span>`)
+                            .replace(/{{event_link}}/g, `<span class="bg-yellow-100 px-1 rounded"><a href="${getPreviewData().event_link}" target="_blank">${getPreviewData().event_link}</a></span>`)
                         }}
                       />
                       {!formData.body && (
