@@ -9,12 +9,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Mail, Upload, Send, FileText, Search, Filter, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Mail, Upload, Send, FileText, Search, Filter, X, Eye } from 'lucide-react';
 import { productCatalog } from '@/components/curriculum/catalogData';
 
 export default function EmailTemplateManager() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState(null);
+  const [viewingTemplate, setViewingTemplate] = useState(null);
   const [sendingTo, setSendingTo] = useState(null);
   const [sendEmail, setSendEmail] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -285,6 +286,13 @@ export default function EmailTemplateManager() {
                             <Button 
                               size="sm" 
                               variant="outline"
+                              onClick={() => setViewingTemplate(template)}
+                            >
+                              <Eye className="w-4 h-4 mr-1" /> View
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
                               onClick={() => setSendingTo(template)}
                             >
                               <Send className="w-4 h-4 mr-1" /> Send
@@ -374,6 +382,77 @@ export default function EmailTemplateManager() {
                 {editingTemplate ? 'Save Changes' : 'Create Template'}
               </Button>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* View Template Dialog */}
+        <Dialog open={!!viewingTemplate} onOpenChange={(open) => !open && setViewingTemplate(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>View Template</DialogTitle>
+            </DialogHeader>
+            {viewingTemplate && (
+              <div className="space-y-4 mt-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">Service</label>
+                    <p className="text-gray-900">{viewingTemplate.service_name}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">Category</label>
+                    <p className="text-gray-900">{categoryLabels[viewingTemplate.service_category]}</p>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Template Type</label>
+                  <p className="text-gray-900">{templateTypeLabels[viewingTemplate.template_type]}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Subject Line</label>
+                  <p className="text-gray-900 font-medium">{viewingTemplate.subject}</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Email Body</label>
+                  <div className="border rounded-lg p-4 bg-gray-50 whitespace-pre-wrap text-gray-900">
+                    {viewingTemplate.body || <span className="text-gray-400 italic">No body content</span>}
+                  </div>
+                </div>
+
+                {viewingTemplate.file_url && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">Attached File</label>
+                    <a 
+                      href={viewingTemplate.file_url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline flex items-center gap-2"
+                    >
+                      <FileText className="w-4 h-4" />
+                      View attached file
+                    </a>
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setViewingTemplate(null);
+                      handleEdit(viewingTemplate);
+                    }}
+                    className="flex-1"
+                  >
+                    <Pencil className="w-4 h-4 mr-2" /> Edit
+                  </Button>
+                  <Button onClick={() => setViewingTemplate(null)} className="flex-1">
+                    Close
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
