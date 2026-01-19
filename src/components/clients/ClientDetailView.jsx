@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   User, Building, Mail, Phone, Globe, MapPin, DollarSign, Users, Calendar,
   Plus, Pencil, Trash2, FileText, MessageSquare, PhoneCall, Video, StickyNote,
-  ChevronRight, Clock, CheckCircle, XCircle, Eye, Send, Package, Award, ListTodo
+  ChevronRight, Clock, CheckCircle, XCircle, Eye, Send, Package, Award, ListTodo,
+  Upload, ExternalLink, X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -54,6 +55,9 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   const [showAddService, setShowAddService] = useState(false);
   const [serviceToAdd, setServiceToAdd] = useState('');
   const [viewingInvoice, setViewingInvoice] = useState(null);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState(client.portal_template_ids || []);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+  const [documentForm, setDocumentForm] = useState({ name: '', description: '' });
 
   const queryClient = useQueryClient();
 
@@ -91,6 +95,11 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   const { data: allInvoices = [] } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list('-created_date')
+  });
+
+  const { data: allTemplates = [] } = useQuery({
+    queryKey: ['emailTemplates'],
+    queryFn: () => base44.entities.EmailTemplate.list('-created_date')
   });
 
   const clientInvoices = allInvoices.filter(inv => 
@@ -259,7 +268,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contacts">Contacts ({(client.related_contacts?.length || 0) + 1})</TabsTrigger>
           <TabsTrigger value="proposals">Proposals ({proposals.length})</TabsTrigger>
@@ -267,6 +276,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           <TabsTrigger value="services">Services</TabsTrigger>
           <TabsTrigger value="interactions">Activity ({interactions.length})</TabsTrigger>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="portal">Portal</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -626,6 +636,195 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             </h4>
             <TaskList clientId={client.id} showProposalGroups={true} />
           </div>
+        </TabsContent>
+
+        {/* Portal Tab */}
+        <TabsContent value="portal" className="mt-4 space-y-6">
+          {/* Templates Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="w-5 h-5" />
+                Email Templates
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Select email templates that will be visible in this client's portal. Templates are auto-selected based on their proposal services by default.
+              </p>
+              
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {allTemplates.map(template => {
+                  const isSelected = selectedTemplateIds.includes(template.id);
+                  return (
+                    <div 
+                      key={template.id} 
+                      className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        isSelected ? 'bg-green-50 border-green-200' : 'bg-gray-50 hover:bg-gray-100'
+                      }`}
+                      onClick={() => {
+                        const updated = isSelected 
+                          ? selectedTemplateIds.filter(id => id !== template.id)
+                          : [...selectedTemplateIds, template.id];
+                        setSelectedTemplateIds(updated);
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={isSelected}
+                        onChange={() => {}}
+                        className="mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-medium text-sm">{template.subject}</p>
+                          <Badge variant="outline" className="text-xs">
+                            {template.service_name}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          {template.template_type} • {template.service_category}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <Button 
+                onClick={() => onUpdate({ portal_template_ids: selectedTemplateIds })}
+                className="w-full"
+              >
+                Save Template Selection
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Documents Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Custom Documents
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Upload custom documents that will be available in this client's portal.
+              </p>
+
+              {/* Existing Documents */}
+              <div className="space-y-2">
+                {(client.portal_documents || []).map((doc, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{doc.name}</p>
+                      {doc.description && (
+                        <p className="text-xs text-gray-500">{doc.description}</p>
+                      )}
+                      <p className="text-xs text-gray-400 mt-1">
+                        Uploaded: {new Date(doc.uploaded_date).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => window.open(doc.file_url, '_blank')}
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        className="text-red-500"
+                        onClick={() => {
+                          const updated = (client.portal_documents || []).filter((_, i) => i !== index);
+                          onUpdate({ portal_documents: updated });
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Upload Form */}
+              <div className="border-t pt-4">
+                <h5 className="font-medium text-sm mb-3">Upload New Document</h5>
+                <div className="space-y-3">
+                  <Input 
+                    placeholder="Document name *" 
+                    value={documentForm.name}
+                    onChange={(e) => setDocumentForm({...documentForm, name: e.target.value})}
+                  />
+                  <Input 
+                    placeholder="Description (optional)" 
+                    value={documentForm.description}
+                    onChange={(e) => setDocumentForm({...documentForm, description: e.target.value})}
+                  />
+                  <div>
+                    <Input 
+                      type="file"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file || !documentForm.name) {
+                          alert('Please enter a document name first');
+                          return;
+                        }
+                        
+                        setUploadingDocument(true);
+                        try {
+                          const { file_url } = await base44.integrations.Core.UploadFile({ file });
+                          const newDoc = {
+                            name: documentForm.name,
+                            description: documentForm.description,
+                            file_url,
+                            uploaded_date: new Date().toISOString()
+                          };
+                          const updated = [...(client.portal_documents || []), newDoc];
+                          onUpdate({ portal_documents: updated });
+                          setDocumentForm({ name: '', description: '' });
+                          e.target.value = '';
+                        } catch (error) {
+                          alert('Failed to upload file: ' + error.message);
+                        } finally {
+                          setUploadingDocument(false);
+                        }
+                      }}
+                      disabled={uploadingDocument || !documentForm.name}
+                    />
+                    {uploadingDocument && (
+                      <p className="text-sm text-blue-600 mt-2">Uploading...</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Portal Link */}
+              <div className="border-t pt-4">
+                <h5 className="font-medium text-sm mb-2">Client Portal Access</h5>
+                <div className="flex gap-2">
+                  <Input 
+                    readOnly 
+                    value={`${window.location.origin}${createPageUrl('ClientPortal')}?clientId=${client.id}`}
+                    className="text-xs"
+                  />
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}${createPageUrl('ClientPortal')}?clientId=${client.id}`);
+                      alert('Portal link copied to clipboard!');
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

@@ -60,6 +60,12 @@ export default function ClientPortal() {
     enabled: !!client?.id
   });
 
+  // Get email templates
+  const { data: allTemplates = [] } = useQuery({
+    queryKey: ['emailTemplates'],
+    queryFn: () => base44.entities.EmailTemplate.list()
+  });
+
   if (clientLoading) {
     return (
       <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
@@ -139,7 +145,7 @@ export default function ClientPortal() {
           </TabsContent>
 
           <TabsContent value="templates">
-            <ClientEmailTemplates proposal={acceptedProposal} />
+            <ClientEmailTemplates proposal={acceptedProposal} templates={allTemplates} client={client} />
           </TabsContent>
 
           <TabsContent value="profile">

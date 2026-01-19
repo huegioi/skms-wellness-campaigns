@@ -6,9 +6,14 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Mail, Download, FileText, Award, Dumbbell, Users, Package } from 'lucide-react';
 import { productCatalog } from '@/components/curriculum/catalogData';
 
-export default function ClientEmailTemplates({ proposal, templates = [] }) {
+export default function ClientEmailTemplates({ proposal, templates = [], client }) {
 
   const selections = proposal?.selections || {};
+  
+  // Filter templates based on client's manual selection if available
+  const availableTemplates = client?.portal_template_ids?.length > 0
+    ? templates.filter(t => client.portal_template_ids.includes(t.id))
+    : templates;
 
   // Get all services included in the proposal
   const getProposalServices = () => {
@@ -98,7 +103,7 @@ export default function ClientEmailTemplates({ proposal, templates = [] }) {
 
   // Group templates by service
   const getTemplatesForService = (serviceName) => {
-    return templates.filter(t => 
+    return availableTemplates.filter(t => 
       t.service_name?.toLowerCase() === serviceName?.toLowerCase()
     );
   };
@@ -117,6 +122,40 @@ export default function ClientEmailTemplates({ proposal, templates = [] }) {
 
   return (
     <div className="space-y-6">
+      {/* Custom Documents */}
+      {client?.portal_documents?.length > 0 && (
+        <Card className="border-l-4 border-l-purple-500">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-purple-600" />
+              Custom Documents
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {client.portal_documents.map((doc, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                  <div className="flex-1">
+                    <p className="font-medium">{doc.name}</p>
+                    {doc.description && (
+                      <p className="text-sm text-gray-600 mt-1">{doc.description}</p>
+                    )}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => window.open(doc.file_url, '_blank')}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Open
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header Info */}
       <Card className="border-l-4" style={{ borderLeftColor: '#013f7c' }}>
         <CardContent className="pt-6">
