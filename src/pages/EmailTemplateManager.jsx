@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Mail, Upload, Send, FileText, Search, Filter, X, Eye } from 'lucide-react';
+import { Plus, Pencil, Trash2, Mail, Upload, Send, FileText, Search, Filter, X, Eye, Copy, History, Tag } from 'lucide-react';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
@@ -78,14 +78,27 @@ export default function EmailTemplateManager() {
     queryFn: () => base44.entities.Proposal.filter({ status: 'accepted' })
   });
 
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => base44.entities.Client.list()
+  });
+
   const [formData, setFormData] = useState({
     service_name: '',
     service_category: 'workshop',
     template_type: 'announcement',
     subject: '',
     body: '',
-    file_url: ''
+    file_url: '',
+    tags: [],
+    client_id: '',
+    version: 1
   });
+  
+  const [newTag, setNewTag] = useState('');
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [showVersionHistory, setShowVersionHistory] = useState(false);
+  const [selectedVersionTemplate, setSelectedVersionTemplate] = useState(null);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.EmailTemplate.create(data),
@@ -97,7 +110,31 @@ export default function EmailTemplateManager() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.EmailTemplate.update(id, data),
+    mutationFn: async ({ id, data }) => {
+      // Get the current template to save version history
+      const currentTemplate = templates.find(t => t.id === id);
+      
+      if (currentTemplate) {
+        const versionHistory = currentTemplate.version_history || [];
+        versionHistory.push({
+          version: currentTemplate.version || 1,
+          subject: currentTemplate.subject,
+          body: currentTemplate.body,
+          updated_date: new Date().toISOString(),
+          updated_by: (await base44.auth.me()).email
+        });
+
+        const updatedData = {
+          ...data,
+          version: (currentTemplate.version || 1) + 1,
+          version_history: versionHistory
+        };
+
+        return base44.entities.EmailTemplate.update(id, updatedData);
+      }
+
+      return base44.entities.EmailTemplate.update(id, data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['emailTemplates'] });
       setShowDialog(false);
@@ -118,8 +155,13 @@ export default function EmailTemplateManager() {
       template_type: 'announcement',
       subject: '',
       body: '',
-      file_url: ''
+      file_url: '',
+      tags: [],
+      client_id: '',
+      version: 1
     });
+    setNewTag('');
+    setEditorTab('edit');
   };
 
   const handleEdit = (template) => {
@@ -129,10 +171,42 @@ export default function EmailTemplateManager() {
       template_type: template.template_type || 'announcement',
       subject: template.subject || '',
       body: template.body || '',
-      file_url: template.file_url || ''
+      file_url: template.file_url || '',
+      tags: template.tags || [],
+      client_id: template.client_id || '',
+      version: template.version || 1
     });
     setEditingTemplate(template);
     setShowDialog(true);
+  };
+
+  const handleDuplicate = (template) => {
+    setFormData({
+      service_name: template.service_name || '',
+      service_category: template.service_category || 'workshop',
+      template_type: template.template_type || 'announcement',
+      subject: `${template.subject} (Copy)`,
+      body: template.body || '',
+      file_url: template.file_url || '',
+      tags: template.tags || [],
+      client_id: template.client_id || '',
+      version: 1
+    });
+    setEditingTemplate(null);
+    setShowDialog(true);
+  };
+
+  const handleRevertToVersion = async (template, versionData) => {
+    await updateMutation.mutateAsync({
+      id: template.id,
+      data: {
+        ...template,
+        subject: versionData.subject,
+        body: versionData.body
+      }
+    });
+    setShowVersionHistory(false);
+    setSelectedVersionTemplate(null);
   };
 
   const handleSubmit = (e) => {
@@ -160,9 +234,41 @@ export default function EmailTemplateManager() {
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      setFormData({ ...formData, file_url });
+      setUploadingFile(true);
+      try {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file });
+        
+        // Parse the file to extract subject and body
+        const parseResponse = await base44.functions.invoke('parseEmailFile', { file_url });
+        
+        if (parseResponse.data.subject || parseResponse.data.body) {
+          setFormData({
+            ...formData,
+            subject: parseResponse.data.subject || formData.subject,
+            body: parseResponse.data.body || formData.body,
+            file_url
+          });
+        } else {
+          setFormData({ ...formData, file_url });
+        }
+      } catch (error) {
+        console.error('File upload error:', error);
+        alert('Failed to parse file. Please try again.');
+      } finally {
+        setUploadingFile(false);
+      }
     }
+  };
+
+  const addTag = () => {
+    if (newTag && !formData.tags.includes(newTag)) {
+      setFormData({ ...formData, tags: [...formData.tags, newTag] });
+      setNewTag('');
+    }
+  };
+
+  const removeTag = (tag) => {
+    setFormData({ ...formData, tags: formData.tags.filter(t => t !== tag) });
   };
 
   // Get all available services from catalog
@@ -311,11 +417,21 @@ export default function EmailTemplateManager() {
                       <CardContent className="p-4">
                         <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
                               <h3 className="font-semibold text-gray-800">{template.service_name}</h3>
                               <Badge variant="outline">
                                 {templateTypeLabels[template.template_type]}
                               </Badge>
+                              {template.tags?.map(tag => (
+                                <Badge key={tag} className="bg-blue-100 text-blue-700">
+                                  <Tag className="w-3 h-3 mr-1" /> {tag}
+                                </Badge>
+                              ))}
+                              {template.client_id && (
+                                <Badge className="bg-purple-100 text-purple-700">
+                                  Client-Specific
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-sm text-gray-600 mb-1">
                               <strong>Subject:</strong> {template.subject}
@@ -326,7 +442,7 @@ export default function EmailTemplateManager() {
                               </p>
                             )}
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Button 
                               size="sm" 
                               variant="outline"
@@ -334,6 +450,25 @@ export default function EmailTemplateManager() {
                             >
                               <Eye className="w-4 h-4 mr-1" /> View
                             </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleDuplicate(template)}
+                            >
+                              <Copy className="w-4 h-4 mr-1" /> Duplicate
+                            </Button>
+                            {template.version_history?.length > 0 && (
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedVersionTemplate(template);
+                                  setShowVersionHistory(true);
+                                }}
+                              >
+                                <History className="w-4 h-4 mr-1" /> v{template.version}
+                              </Button>
+                            )}
                             <Button 
                               size="sm" 
                               variant="outline"
@@ -473,10 +608,67 @@ export default function EmailTemplateManager() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Upload Template File (Optional)</label>
-                <Input type="file" onChange={handleFileUpload} accept=".txt,.doc,.docx,.pdf,.eml" />
-                {formData.file_url && (
-                  <p className="text-sm text-green-600 mt-1">File uploaded successfully</p>
+                <label className="block text-sm font-medium text-gray-600 mb-1">
+                  Upload Template File (Optional)
+                  <span className="text-xs text-gray-500 ml-2">Supports .eml, .txt, .doc, .docx, .pdf</span>
+                </label>
+                <Input 
+                  type="file" 
+                  onChange={handleFileUpload} 
+                  accept=".txt,.doc,.docx,.pdf,.eml" 
+                  disabled={uploadingFile}
+                />
+                {uploadingFile && (
+                  <p className="text-sm text-blue-600 mt-1">Parsing file...</p>
+                )}
+                {formData.file_url && !uploadingFile && (
+                  <p className="text-sm text-green-600 mt-1">✓ File uploaded and content extracted</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Client (Optional)</label>
+                <Select value={formData.client_id} onValueChange={(v) => setFormData({ ...formData, client_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="None - General template" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={null}>None - General template</SelectItem>
+                    {clients.map(client => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.name} {client.company ? `(${client.company})` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Tags</label>
+                <div className="flex gap-2 mb-2">
+                  <Input 
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    placeholder="Add tag..."
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                  />
+                  <Button type="button" onClick={addTag} variant="outline">
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+                {formData.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {formData.tags.map(tag => (
+                      <Badge key={tag} className="bg-blue-100 text-blue-700">
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(tag)}
+                          className="ml-1 hover:text-red-600"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
                 )}
               </div>
 
@@ -554,6 +746,62 @@ export default function EmailTemplateManager() {
                     Close
                   </Button>
                 </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Version History Dialog */}
+        <Dialog open={showVersionHistory} onOpenChange={(open) => !open && (setShowVersionHistory(false), setSelectedVersionTemplate(null))}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Version History - {selectedVersionTemplate?.service_name}</DialogTitle>
+            </DialogHeader>
+            {selectedVersionTemplate && (
+              <div className="space-y-4 mt-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-green-800">Current Version {selectedVersionTemplate.version}</h4>
+                    <Badge className="bg-green-600">Active</Badge>
+                  </div>
+                  <p className="text-sm text-gray-700 mb-1"><strong>Subject:</strong> {selectedVersionTemplate.subject}</p>
+                  <div 
+                    className="text-sm prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: selectedVersionTemplate.body?.substring(0, 200) + '...' }}
+                  />
+                </div>
+
+                <h4 className="font-semibold text-gray-700 pt-4 border-t">Previous Versions</h4>
+                {selectedVersionTemplate.version_history?.length > 0 ? (
+                  <div className="space-y-3">
+                    {[...selectedVersionTemplate.version_history].reverse().map((version, idx) => (
+                      <div key={idx} className="border rounded-lg p-4 hover:bg-gray-50">
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <h4 className="font-semibold text-gray-800">Version {version.version}</h4>
+                            <p className="text-xs text-gray-500">
+                              {new Date(version.updated_date).toLocaleString()} by {version.updated_by}
+                            </p>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleRevertToVersion(selectedVersionTemplate, version)}
+                          >
+                            Revert to this version
+                          </Button>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-1"><strong>Subject:</strong> {version.subject}</p>
+                        <div 
+                          className="text-sm prose prose-sm max-w-none"
+                          dangerouslySetInnerHTML={{ __html: version.body?.substring(0, 200) + '...' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No previous versions</p>
+                )}
               </div>
             )}
           </DialogContent>
