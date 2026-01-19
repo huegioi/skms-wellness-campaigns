@@ -98,10 +98,12 @@ Deno.serve(async (req) => {
               }
               
               htmlContent = content;
+              console.log('[PARSE] HTML content extracted, length:', content.length);
             }
           }
           // Find plain text parts as fallback
           else if (part.includes('Content-Type: text/plain') && !plainContent) {
+            console.log('[PARSE] Found plain text part');
             const encodingMatch = part.match(/Content-Transfer-Encoding:\s*(\S+)/i);
             const encoding = encodingMatch ? encodingMatch[1].toLowerCase() : '';
             
