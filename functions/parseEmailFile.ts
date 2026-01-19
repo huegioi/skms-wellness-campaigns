@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     let subject = '';
     let body = '';
 
-    // Parse .eml files - just extract everything after headers
+    // Parse .eml files - return entire file content for now
     if (file_url.endsWith('.eml') || contentType?.includes('message/rfc822')) {
       // Extract subject
       const subjectMatch = fileContent.match(/^Subject: (.*)$/m);
@@ -55,24 +55,8 @@ Deno.serve(async (req) => {
         }
       });
 
-      // Find double newline that separates headers from body
-      const doubleLF = fileContent.indexOf('\n\n');
-      const doubleCRLF = fileContent.indexOf('\r\n\r\n');
-      const splitPoint = doubleCRLF > -1 ? doubleCRLF + 4 : (doubleLF > -1 ? doubleLF + 2 : -1);
-
-      if (splitPoint > -1) {
-        // Get everything after headers
-        body = fileContent.substring(splitPoint).trim();
-
-        // If body is still empty or very short, just return the last 80% of the file
-        if (!body || body.length < 100) {
-          const startFrom = Math.floor(fileContent.length * 0.2);
-          body = fileContent.substring(startFrom);
-        }
-
-        console.log('[PARSE] Raw body length:', body.length);
-        console.log('[PARSE] Raw body preview:', body.substring(0, 500));
-      }
+      // Just return the entire file content so you can see it
+      body = `<pre>${fileContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`;
     }
     // Parse text files
     else if (file_url.endsWith('.txt') || contentType?.includes('text/plain')) {
