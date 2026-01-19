@@ -30,10 +30,12 @@ Deno.serve(async (req) => {
     const contentType = fileResponse.headers.get('content-type');
     const fileContent = await fileResponse.text();
     
-    console.log('File fetched successfully');
-    console.log('Content type:', contentType);
-    console.log('Content length:', fileContent.length);
-    console.log('First 200 chars:', fileContent.substring(0, 200));
+    console.log('[PARSE] File fetched successfully');
+    console.log('[PARSE] Content type:', contentType);
+    console.log('[PARSE] Content length:', fileContent.length);
+    console.log('[PARSE] First 500 chars:', fileContent.substring(0, 500));
+    console.log('[PARSE] file_url ends with .eml?', file_url.endsWith('.eml'));
+    console.log('[PARSE] contentType includes message/rfc822?', contentType?.includes('message/rfc822'));
 
     let subject = '';
     let body = '';
