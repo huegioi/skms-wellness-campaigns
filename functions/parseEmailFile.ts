@@ -131,21 +131,33 @@ Deno.serve(async (req) => {
         const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         body = bodyMatch ? bodyMatch[1].trim() : htmlContent.trim();
         
-        // Remove extra HTML/head tags if present
-        body = body.replace(/<\/?html[^>]*>/gi, '').replace(/<\/?head[^>]*>/gi, '').replace(/<head>[\s\S]*?<\/head>/gi, '');
+        // Remove HTML/head tags but preserve body content
+        body = body.replace(/<\/?html[^>]*>/gi, '').replace(/<head>[\s\S]*?<\/head>/gi, '');
         
         // Handle inline images - replace cid: with placeholder
         body = body.replace(/src=["']cid:([^"']+)["']/gi, 'src="https://placehold.co/400x300/e2e8f0/64748b?text=Embedded+Image"');
         
-        // Clean up extra whitespace
-        body = body.trim();
+        // Preserve email styling - convert inline styles to editor-friendly format
+        // Keep tables, divs, spans with styling
+        body = body
+          .replace(/style=["']([^"']*font-family:[^"';]*)[^"']*["']/gi, (match) => match) // Keep font styles
+          .replace(/style=["']([^"']*color:[^"';]*)[^"']*["']/gi, (match) => match) // Keep colors
+          .replace(/style=["']([^"']*background[^"';]*)[^"';]*)[^"']*["']/gi, (match) => match); // Keep backgrounds
+        
+        // Clean up excessive whitespace but preserve structure
+        body = body.replace(/\n\s*\n\s*\n/g, '\n\n').trim();
+        
+        console.log('Processed HTML body length:', body.length);
+        console.log('HTML body preview:', body.substring(0, 300));
       } else if (plainContent) {
-        // Convert plain text to HTML
+        // Convert plain text to HTML with proper formatting
         body = plainContent
           .trim()
           .split(/\n\s*\n/)
           .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
           .join('');
+        
+        console.log('Converted plain text to HTML, length:', body.length);
       }
     }
     // Parse text files
