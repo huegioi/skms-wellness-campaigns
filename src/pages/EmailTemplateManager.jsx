@@ -283,28 +283,37 @@ export default function EmailTemplateManager() {
         const parseResponse = await base44.functions.invoke('parseEmailFile', { file_url });
 
         console.log('Parse response:', parseResponse);
+        console.log('Response data:', parseResponse.data);
 
         const parsedSubject = parseResponse.data?.subject || '';
         const parsedBody = parseResponse.data?.body || '';
 
         console.log('Parsed subject:', parsedSubject);
-        console.log('Parsed body length:', parsedBody.length);
-        console.log('Parsed body content:', parsedBody);
+        console.log('Parsed body length:', parsedBody?.length || 0);
+        console.log('Parsed body preview:', parsedBody?.substring(0, 500));
 
-        if (parsedSubject || parsedBody) {
-          // Update form data and force re-render
-          setFormData(prev => ({
-            ...prev,
-            subject: parsedSubject || prev.subject,
-            body: parsedBody || prev.body,
-            file_url
-          }));
+        if (parsedBody) {
+          // Update body first, then increment key
+          setFormData(prev => {
+            const newData = {
+              ...prev,
+              subject: parsedSubject || prev.subject,
+              body: parsedBody,
+              file_url
+            };
+            console.log('Setting new form data body length:', newData.body.length);
+            return newData;
+          });
 
-          // Force editor to completely re-mount with new content
-          setEditorKey(prev => prev + 1);
+          // Wait a tick then force editor re-render
+          setTimeout(() => {
+            setEditorKey(prev => {
+              console.log('Incrementing editor key from', prev, 'to', prev + 1);
+              return prev + 1;
+            });
+          }, 50);
 
-          console.log('Form data updated with body');
-          alert(`Content extracted successfully!\nSubject: ${parsedSubject ? '✓' : '✗'}\nBody: ${parsedBody ? '✓' : '✗'}`);
+          alert(`Content extracted!\nSubject: ${parsedSubject ? 'Yes' : 'No'}\nBody: ${parsedBody.length} characters`);
         } else {
           setFormData({ ...formData, file_url });
           alert('File uploaded but no content could be extracted. You can manually enter the template content.');
