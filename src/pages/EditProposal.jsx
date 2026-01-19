@@ -11,7 +11,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { productCatalog, workforceChallenges } from '@/components/curriculum/catalogData';
 import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
-import { markTaskComplete } from '@/components/tasks/taskTemplates';
+import { markTaskComplete, createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
 
 export default function EditProposal() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -84,6 +84,12 @@ export default function EditProposal() {
           await markTaskComplete(base44, proposal.client_id, 'Send or Accept Proposal', 'proposal_sent', proposalId);
         }
         if (variables.status === 'accepted' && proposal.status !== 'accepted') {
+          // Create tasks if they don't exist
+          const existingTasks = await base44.entities.ClientTask.filter({ client_id: proposal.client_id });
+          if (existingTasks.length === 0) {
+            await createDefaultTasksForClient(base44, proposal.client_id, proposal.client_name);
+          }
+          // Mark proposal as accepted
           await markTaskComplete(base44, proposal.client_id, 'Send or Accept Proposal', 'proposal_accepted', proposalId);
         }
       }
