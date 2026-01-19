@@ -40,11 +40,19 @@ Deno.serve(async (req) => {
     let subject = '';
     let body = '';
 
+    console.log('[PARSE] About to check file type...');
+    console.log('[PARSE] file_url.endsWith(.eml):', file_url.endsWith('.eml'));
+    console.log('[PARSE] contentType:', contentType);
+
     // Parse .eml files - return entire file content for now
     if (file_url.endsWith('.eml') || contentType?.includes('message/rfc822')) {
+      console.log('[PARSE] INSIDE EML BRANCH');
+
       // Extract subject
       const subjectMatch = fileContent.match(/^Subject: (.*)$/m);
       subject = subjectMatch ? subjectMatch[1].trim() : '';
+
+      console.log('[PARSE] Subject extracted:', subject);
 
       // Decode encoded subject
       subject = subject.replace(/=\?[^?]+\?[BQ]\?([^?]+)\?=/gi, (match, encoded) => {
@@ -57,6 +65,11 @@ Deno.serve(async (req) => {
 
       // Just return the entire file content so you can see it
       body = `<pre>${fileContent.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`;
+
+      console.log('[PARSE] Body set to length:', body.length);
+      console.log('[PARSE] Body preview:', body.substring(0, 200));
+    } else {
+      console.log('[PARSE] NOT IN EML BRANCH - file type not matched');
     }
     // Parse text files
     else if (file_url.endsWith('.txt') || contentType?.includes('text/plain')) {
