@@ -286,13 +286,27 @@ export default function EmailTemplateManager() {
         const parsedBody = parseResponse.data?.body || '';
         
         if (parsedSubject || parsedBody) {
-          setFormData({
+          console.log('Setting body content:', parsedBody);
+          console.log('Body length:', parsedBody?.length);
+
+          const newFormData = {
             ...formData,
             subject: parsedSubject || formData.subject,
             body: parsedBody || formData.body,
             file_url
-          });
-          setEditorKey(prev => prev + 1); // Force editor to re-render with new content
+          };
+
+          console.log('New form data body:', newFormData.body);
+          console.log('New form data body length:', newFormData.body?.length);
+
+          setFormData(newFormData);
+
+          // Force editor to re-render after state update
+          setTimeout(() => {
+            setEditorKey(prev => prev + 1);
+            console.log('Editor key incremented');
+          }, 100);
+
           alert(`Content extracted successfully!\nSubject: ${parsedSubject ? '✓' : '✗'}\nBody: ${parsedBody ? '✓' : '✗'}`);
         } else {
           setFormData({ ...formData, file_url });
