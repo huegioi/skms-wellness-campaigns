@@ -281,14 +281,18 @@ export default function EmailTemplateManager() {
         
         // Parse the file to extract subject and body
         const parseResponse = await base44.functions.invoke('parseEmailFile', { file_url });
-        
+
         console.log('Parse response:', parseResponse);
-        
+
         const parsedSubject = parseResponse.data?.subject || '';
         const parsedBody = parseResponse.data?.body || '';
-        
+
+        console.log('Parsed subject:', parsedSubject);
+        console.log('Parsed body length:', parsedBody.length);
+        console.log('Parsed body content:', parsedBody);
+
         if (parsedSubject || parsedBody) {
-          // Update form data first
+          // Update form data and force re-render
           setFormData(prev => ({
             ...prev,
             subject: parsedSubject || prev.subject,
@@ -296,9 +300,10 @@ export default function EmailTemplateManager() {
             file_url
           }));
 
-          // Force editor re-render
+          // Force editor to completely re-mount with new content
           setEditorKey(prev => prev + 1);
 
+          console.log('Form data updated with body');
           alert(`Content extracted successfully!\nSubject: ${parsedSubject ? '✓' : '✗'}\nBody: ${parsedBody ? '✓' : '✗'}`);
         } else {
           setFormData({ ...formData, file_url });
