@@ -58,11 +58,14 @@ Deno.serve(async (req) => {
       // Find the boundary marker for multipart emails
       const boundaryMatch = fileContent.match(/boundary="?([^"\s;]+)"?/i);
       const boundary = boundaryMatch ? boundaryMatch[1] : null;
+      
+      console.log('[PARSE] Boundary found:', boundary);
 
       let htmlContent = '';
       let plainContent = '';
 
       if (boundary) {
+        console.log('[PARSE] Processing multipart email with boundary');
         // Split by boundary
         const parts = fileContent.split(new RegExp(`--${boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g'));
         
