@@ -25,68 +25,113 @@ Deno.serve(async (req) => {
 
     // Parse .eml files
     if (file_url.endsWith('.eml') || contentType?.includes('message/rfc822')) {
-      // Extract subject
+      // Extract subject with proper decoding
       const subjectMatch = fileContent.match(/^Subject: (.*)$/m);
       subject = subjectMatch ? subjectMatch[1].trim() : '';
-
-      // Find HTML content boundary
-      const htmlBoundaryMatch = fileContent.match(/Content-Type: text\/html[^\n]*\n(?:Content-Transfer-Encoding: [^\n]*\n)?(?:\n)?([\s\S]*?)(?=\n--|\n\nContent-Type:|$)/i);
       
-      if (htmlBoundaryMatch) {
-        let htmlContent = htmlBoundaryMatch[1];
+      // Decode encoded subject (=?UTF-8?B?...?= format)
+      subject = subject.replace(/=\?[^?]+\?[BQ]\?([^?]+)\?=/gi, (match, encoded) => {
+        try {
+          return atob(encoded);
+        } catch {
+          return match;
+        }
+      });
+
+      // Find the boundary marker for multipart emails
+      const boundaryMatch = fileContent.match(/boundary="?([^"\s;]+)"?/i);
+      const boundary = boundaryMatch ? boundaryMatch[1] : null;
+
+      let htmlContent = '';
+      let plainContent = '';
+
+      if (boundary) {
+        // Split by boundary
+        const parts = fileContent.split(new RegExp(`--${boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g'));
         
-        // Decode if base64
-        if (fileContent.includes('Content-Transfer-Encoding: base64')) {
-          try {
-            htmlContent = atob(htmlContent.replace(/\s/g, ''));
-          } catch (e) {
-            // If decode fails, keep original
+        for (const part of parts) {
+          // Find HTML parts
+          if (part.includes('Content-Type: text/html')) {
+            const encodingMatch = part.match(/Content-Transfer-Encoding:\s*(\S+)/i);
+            const encoding = encodingMatch ? encodingMatch[1].toLowerCase() : '';
+            
+            // Extract content after headers (double newline)
+            const contentStart = part.indexOf('\n\n');
+            if (contentStart > -1) {
+              let content = part.substring(contentStart + 2).trim();
+              
+              // Decode based on encoding
+              if (encoding === 'base64') {
+                try {
+                  content = atob(content.replace(/[\r\n\s]/g, ''));
+                } catch (e) {
+                  console.error('Base64 decode error:', e);
+                }
+              } else if (encoding === 'quoted-printable') {
+                // Decode quoted-printable
+                content = content
+                  .replace(/=\r?\n/g, '')
+                  .replace(/=([0-9A-F]{2})/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+              }
+              
+              htmlContent = content;
+            }
+          }
+          // Find plain text parts as fallback
+          else if (part.includes('Content-Type: text/plain') && !plainContent) {
+            const encodingMatch = part.match(/Content-Transfer-Encoding:\s*(\S+)/i);
+            const encoding = encodingMatch ? encodingMatch[1].toLowerCase() : '';
+            
+            const contentStart = part.indexOf('\n\n');
+            if (contentStart > -1) {
+              let content = part.substring(contentStart + 2).trim();
+              
+              if (encoding === 'base64') {
+                try {
+                  content = atob(content.replace(/[\r\n\s]/g, ''));
+                } catch (e) {
+                  console.error('Base64 decode error:', e);
+                }
+              } else if (encoding === 'quoted-printable') {
+                content = content
+                  .replace(/=\r?\n/g, '')
+                  .replace(/=([0-9A-F]{2})/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+              }
+              
+              plainContent = content;
+            }
           }
         }
+      } else {
+        // No boundary - try single part parsing
+        const htmlMatch = fileContent.match(/Content-Type: text\/html[\s\S]*?\n\n([\s\S]+?)(?=\n--|\nContent-Type:|$)/i);
+        const plainMatch = fileContent.match(/Content-Type: text\/plain[\s\S]*?\n\n([\s\S]+?)(?=\n--|\nContent-Type:|$)/i);
         
-        // Extract body content from HTML (remove html, head, body tags but keep inner content)
+        if (htmlMatch) htmlContent = htmlMatch[1];
+        if (plainMatch) plainContent = plainMatch[1];
+      }
+
+      // Use HTML content if available, otherwise plain text
+      if (htmlContent) {
+        // Extract just the body content
         const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
         body = bodyMatch ? bodyMatch[1].trim() : htmlContent.trim();
         
-        // Handle inline images - convert cid: references to placeholder
-        body = body.replace(/src="cid:([^"]+)"/g, 'src="https://via.placeholder.com/150?text=Image"');
+        // Remove extra HTML/head tags if present
+        body = body.replace(/<\/?html[^>]*>/gi, '').replace(/<\/?head[^>]*>/gi, '').replace(/<head>[\s\S]*?<\/head>/gi, '');
         
-      } else {
-        // Fallback to plain text
-        const textBoundaryMatch = fileContent.match(/Content-Type: text\/plain[^\n]*\n(?:Content-Transfer-Encoding: [^\n]*\n)?(?:\n)?([\s\S]*?)(?=\n--|\n\nContent-Type:|$)/i);
+        // Handle inline images - replace cid: with placeholder
+        body = body.replace(/src=["']cid:([^"']+)["']/gi, 'src="https://placehold.co/400x300/e2e8f0/64748b?text=Embedded+Image"');
         
-        if (textBoundaryMatch) {
-          let textContent = textBoundaryMatch[1];
-          
-          // Decode if base64
-          if (fileContent.includes('Content-Transfer-Encoding: base64')) {
-            try {
-              textContent = atob(textContent.replace(/\s/g, ''));
-            } catch (e) {
-              // Keep original
-            }
-          }
-          
-          body = textContent.trim().split('\n\n').map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`).join('');
-        } else {
-          // Last resort: basic parsing
-          const lines = fileContent.split('\n');
-          let inBody = false;
-          let bodyLines = [];
-
-          for (let line of lines) {
-            if (inBody) {
-              bodyLines.push(line);
-            } else if (line.trim() === '') {
-              inBody = true;
-            }
-          }
-
-          body = bodyLines.join('\n').trim();
-          if (!body.includes('<')) {
-            body = body.split('\n\n').map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`).join('');
-          }
-        }
+        // Clean up extra whitespace
+        body = body.trim();
+      } else if (plainContent) {
+        // Convert plain text to HTML
+        body = plainContent
+          .trim()
+          .split(/\n\s*\n/)
+          .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+          .join('');
       }
     }
     // Parse text files
