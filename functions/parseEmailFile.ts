@@ -124,11 +124,12 @@ Deno.serve(async (req) => {
               }
               
               plainContent = content;
+              console.log('[PARSE] Plain text content extracted, length:', content.length);
             }
           }
         }
       } else {
-        // No boundary - try single part parsing
+        console.log('[PARSE] No boundary found, trying single part parsing');
         const htmlMatch = fileContent.match(/Content-Type: text\/html[\s\S]*?\n\n([\s\S]+?)(?=\n--|\nContent-Type:|$)/i);
         const plainMatch = fileContent.match(/Content-Type: text\/plain[\s\S]*?\n\n([\s\S]+?)(?=\n--|\nContent-Type:|$)/i);
         
