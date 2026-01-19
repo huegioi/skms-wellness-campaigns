@@ -65,42 +65,53 @@ Deno.serve(async (req) => {
       let plainContent = '';
 
       if (boundary) {
-        console.log('[PARSE] Processing multipart email with boundary');
+        console.log('[PARSE] Processing multipart email with boundary:', boundary);
         // Split by boundary
         const parts = fileContent.split(new RegExp(`--${boundary.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g'));
-        
+
         console.log('[PARSE] Split into', parts.length, 'parts');
-        
-        for (const part of parts) {
+
+        for (let i = 0; i < parts.length; i++) {
+          const part = parts[i];
+          console.log(`[PARSE] --- Processing part ${i} ---`);
+          console.log(`[PARSE] Part ${i} first 200 chars:`, part.substring(0, 200));
           // Find HTML parts
           if (part.includes('Content-Type: text/html')) {
-            console.log('[PARSE] Found HTML part');
+            console.log(`[PARSE] Part ${i} contains HTML content type`);
             const encodingMatch = part.match(/Content-Transfer-Encoding:\s*(\S+)/i);
             const encoding = encodingMatch ? encodingMatch[1].toLowerCase() : '';
-            
+            console.log(`[PARSE] Part ${i} encoding:`, encoding);
+
             // Extract content after headers (double newline)
             const contentStart = part.indexOf('\n\n');
+            console.log(`[PARSE] Part ${i} content starts at position:`, contentStart);
             if (contentStart > -1) {
               let content = part.substring(contentStart + 2).trim();
+              console.log(`[PARSE] Part ${i} raw content length before decode:`, content.length);
+              console.log(`[PARSE] Part ${i} raw content preview:`, content.substring(0, 100));
               
               // Decode based on encoding
               if (encoding === 'base64') {
                 try {
                   content = atob(content.replace(/[\r\n\s]/g, ''));
+                  console.log(`[PARSE] Part ${i} decoded from base64, new length:`, content.length);
                 } catch (e) {
-                  console.error('Base64 decode error:', e);
+                  console.error(`[PARSE] Part ${i} base64 decode error:`, e);
                 }
               } else if (encoding === 'quoted-printable') {
                 // Decode quoted-printable
                 content = content
                   .replace(/=\r?\n/g, '')
                   .replace(/=([0-9A-F]{2})/gi, (match, hex) => String.fromCharCode(parseInt(hex, 16)));
+                console.log(`[PARSE] Part ${i} decoded from quoted-printable, new length:`, content.length);
               }
-              
+
               htmlContent = content;
-              console.log('[PARSE] HTML content extracted, length:', content.length);
-            }
-          }
+              console.log(`[PARSE] Part ${i} FINAL htmlContent set, length:`, content.length);
+              } else {
+              console.log(`[PARSE] Part ${i} no double newline found - skipping`);
+              }
+              }
           // Find plain text parts as fallback
           else if (part.includes('Content-Type: text/plain') && !plainContent) {
             console.log('[PARSE] Found plain text part');
