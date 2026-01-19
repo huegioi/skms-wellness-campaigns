@@ -10,15 +10,16 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    console.log('Request body:', body);
+    console.log('[PARSE] Request body:', body);
     const { file_url } = body;
 
     if (!file_url) {
+      console.log('[PARSE] ERROR: No file_url provided');
       return Response.json({ error: 'file_url is required' }, { status: 400 });
     }
 
     // Fetch the file content
-    console.log('Fetching file from:', file_url);
+    console.log('[PARSE] Fetching file from:', file_url);
     const fileResponse = await fetch(file_url);
     
     if (!fileResponse.ok) {
