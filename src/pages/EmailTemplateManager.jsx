@@ -51,22 +51,24 @@ export default function EmailTemplateManager() {
   const modules = {
     toolbar: [
       [{ 'header': [1, 2, 3, false] }],
+      [{ 'font': [] }],
+      [{ 'size': ['small', false, 'large', 'huge'] }],
       ['bold', 'italic', 'underline', 'strike'],
       [{ 'list': 'ordered'}, { 'list': 'bullet' }],
       [{ 'color': [] }, { 'background': [] }],
       [{ 'align': [] }],
-      ['link'],
+      ['link', 'image'],
       ['clean']
     ]
   };
 
   const formats = [
-    'header',
+    'header', 'font', 'size',
     'bold', 'italic', 'underline', 'strike',
     'list', 'bullet',
     'color', 'background',
     'align',
-    'link'
+    'link', 'image'
   ];
 
   const { data: templates = [], isLoading } = useQuery({
