@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
         
         console.log('[PARSE] Processed HTML body length:', body.length);
         console.log('[PARSE] HTML body preview:', body.substring(0, 300));
-      } else if (plainContent) {
+        } else if (plainContent && plainContent.length > 0) {
         console.log('[PARSE] Using plain text content');
         // Convert plain text to HTML with proper formatting
         body = plainContent
