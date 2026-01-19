@@ -16,6 +16,7 @@ import ServiceCatalog from './pages/ServiceCatalog';
 import UserAgreement from './pages/UserAgreement';
 import ViewProposal from './pages/ViewProposal';
 import WellnessBoxes from './pages/WellnessBoxes';
+import ManageClientPortals from './pages/ManageClientPortals';
 import __Layout from './Layout.jsx';
 
 
@@ -38,6 +39,7 @@ export const PAGES = {
     "UserAgreement": UserAgreement,
     "ViewProposal": ViewProposal,
     "WellnessBoxes": WellnessBoxes,
+    "ManageClientPortals": ManageClientPortals,
 }
 
 export const pagesConfig = {
