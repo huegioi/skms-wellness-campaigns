@@ -18,9 +18,21 @@ Deno.serve(async (req) => {
     }
 
     // Fetch the file content
+    console.log('Fetching file from:', file_url);
     const fileResponse = await fetch(file_url);
+    
+    if (!fileResponse.ok) {
+      console.error('File fetch failed:', fileResponse.status, fileResponse.statusText);
+      return Response.json({ error: `Failed to fetch file: ${fileResponse.statusText}` }, { status: 500 });
+    }
+    
     const contentType = fileResponse.headers.get('content-type');
     const fileContent = await fileResponse.text();
+    
+    console.log('File fetched successfully');
+    console.log('Content type:', contentType);
+    console.log('Content length:', fileContent.length);
+    console.log('First 200 chars:', fileContent.substring(0, 200));
 
     let subject = '';
     let body = '';
@@ -162,9 +174,14 @@ Deno.serve(async (req) => {
     }
 
     console.log('Extracted subject:', subject);
-    console.log('Extracted body length:', body.length);
+    console.log('Extracted body length:', body?.length || 0);
+    console.log('Body preview:', body?.substring(0, 100));
     
-    return Response.json({ subject, body });
+    if (!subject && !body) {
+      console.warn('No content extracted from file');
+    }
+    
+    return Response.json({ subject: subject || '', body: body || '' });
   } catch (error) {
     console.error('Parse error:', error);
     return Response.json({ error: error.message, stack: error.stack }, { status: 500 });
