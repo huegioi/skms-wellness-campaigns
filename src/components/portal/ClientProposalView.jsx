@@ -31,26 +31,6 @@ export default function ClientProposalView({ proposals = [], client }) {
     return categoryMap[category]?.[key];
   };
 
-  const getServicePrice = (category, key) => {
-    const priceOverrides = selections.priceOverrides || {};
-    const overrideKey = `${category}_${key}`;
-    
-    if (priceOverrides[overrideKey] !== undefined) {
-      return priceOverrides[overrideKey];
-    }
-    
-    if (category === 'challengePrograms') {
-      // Use saved challenge price or calculate from company size
-      const savedPrice = selections.challengePrice;
-      if (savedPrice) return savedPrice;
-      const companySize = selections.assessmentData?.companySize;
-      return calculateChallengePrice(companySize);
-    }
-    
-    const service = getServiceDetails(category, key);
-    return service?.price || 0;
-  };
-
   const categoryIcons = {
     workshops: Award,
     challengePrograms: Dumbbell,
