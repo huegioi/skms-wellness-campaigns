@@ -12,6 +12,7 @@ import ClientProfileSettings from '@/components/portal/ClientProfileSettings';
 
 export default function ClientPortal() {
   const [activeTab, setActiveTab] = useState('proposal');
+  const [copied, setCopied] = useState(false);
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const clientIdFromUrl = urlParams.get('clientId');
@@ -19,9 +20,11 @@ export default function ClientPortal() {
   const handleSharePortal = () => {
     const portalUrl = window.location.origin + window.location.pathname + (clientIdFromUrl ? `?clientId=${clientIdFromUrl}` : '');
     navigator.clipboard.writeText(portalUrl);
+    setCopied(true);
     toast.success('Portal link copied to clipboard!', {
       description: 'Share this link with your client to give them access to their portal.'
     });
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const { data: user } = useQuery({
@@ -118,7 +121,7 @@ export default function ClientPortal() {
                 className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               >
                 <Share2 className="w-4 h-4 mr-2" />
-                Share Portal
+                {copied ? 'Copied!' : 'Share Portal'}
               </Button>
               <div className="flex items-center gap-2 text-sm text-white/70">
                 <Clock className="w-4 h-4" />
