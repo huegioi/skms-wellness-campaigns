@@ -116,8 +116,8 @@ export default function ClientPortal() {
           <TabsList className="grid w-full grid-cols-4 mb-8">
             <TabsTrigger value="proposal" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">My Proposal</span>
-              <span className="sm:hidden">Proposal</span>
+              <span className="hidden sm:inline">My Wellness Programming</span>
+              <span className="sm:hidden">Programming</span>
             </TabsTrigger>
             <TabsTrigger value="timeline" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
@@ -137,7 +137,7 @@ export default function ClientPortal() {
           </TabsList>
 
           <TabsContent value="proposal">
-            <ClientProposalView proposal={acceptedProposal} client={client} />
+            <ClientProposalView proposals={proposals} client={client} />
           </TabsContent>
 
           <TabsContent value="timeline">
