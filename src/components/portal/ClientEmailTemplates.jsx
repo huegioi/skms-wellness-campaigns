@@ -74,13 +74,27 @@ export default function ClientEmailTemplates({ proposal, templates = [], client 
     const sanitizedName = `${template.service_name.replace(/\s+/g, '-')}-${template.template_type}`;
 
     if (format === 'eml') {
-      // Create .eml format (email file)
+      // Create .eml format (email file) with proper MIME formatting
+      const boundary = '----=_Part_0_' + Date.now();
       content = `Subject: ${template.subject}\r\n`;
-      content += `From: noreply@skillfulmeans.life\r\n`;
+      content += `From: SKMS Wellness <noreply@skillfulmeans.life>\r\n`;
       content += `To: \r\n`;
+      content += `MIME-Version: 1.0\r\n`;
+      content += `Content-Type: multipart/alternative; boundary="${boundary}"\r\n`;
+      content += `\r\n`;
+      content += `--${boundary}\r\n`;
+      content += `Content-Type: text/plain; charset=UTF-8\r\n`;
+      content += `Content-Transfer-Encoding: 7bit\r\n`;
+      content += `\r\n`;
+      content += (template.body || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim() + '\r\n';
+      content += `\r\n`;
+      content += `--${boundary}\r\n`;
       content += `Content-Type: text/html; charset=UTF-8\r\n`;
+      content += `Content-Transfer-Encoding: 7bit\r\n`;
       content += `\r\n`;
       content += template.body || '';
+      content += `\r\n`;
+      content += `--${boundary}--\r\n`;
       
       blob = new Blob([content], { type: 'message/rfc822' });
       fileName = `${sanitizedName}.eml`;
