@@ -19,7 +19,9 @@ export default function ClientPortal() {
   const handleSharePortal = () => {
     const portalUrl = window.location.origin + window.location.pathname + (clientIdFromUrl ? `?clientId=${clientIdFromUrl}` : '');
     navigator.clipboard.writeText(portalUrl);
-    toast.success('Portal link copied to clipboard!');
+    toast.success('Portal link copied to clipboard!', {
+      description: 'Share this link with your client to give them access to their portal.'
+    });
   };
 
   const { data: user } = useQuery({
