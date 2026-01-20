@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Calendar, Mail, Building, Clock, Settings } from 'lucide-react';
+import { FileText, Calendar, Mail, Building, Clock, Settings, Share2 } from 'lucide-react';
+import { toast } from 'sonner';
 import ClientProposalView from '@/components/portal/ClientProposalView';
 import ClientTimeline from '@/components/portal/ClientTimeline';
 import ClientEmailTemplates from '@/components/portal/ClientEmailTemplates';
@@ -14,6 +15,12 @@ export default function ClientPortal() {
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const clientIdFromUrl = urlParams.get('clientId');
+
+  const handleSharePortal = () => {
+    const portalUrl = window.location.origin + window.location.pathname + (clientIdFromUrl ? `?clientId=${clientIdFromUrl}` : '');
+    navigator.clipboard.writeText(portalUrl);
+    toast.success('Portal link copied to clipboard!');
+  };
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -102,9 +109,19 @@ export default function ClientPortal() {
               <h1 className="text-2xl md:text-3xl font-bold">Welcome, {client.name}</h1>
               <p className="text-white/80 mt-1">{client.company || 'Your Wellness Portal'}</p>
             </div>
-            <div className="flex items-center gap-2 text-sm text-white/70">
-              <Clock className="w-4 h-4" />
-              Last updated: {new Date().toLocaleDateString()}
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={handleSharePortal}
+                variant="outline"
+                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              >
+                <Share2 className="w-4 h-4 mr-2" />
+                Share Portal
+              </Button>
+              <div className="flex items-center gap-2 text-sm text-white/70">
+                <Clock className="w-4 h-4" />
+                Last updated: {new Date().toLocaleDateString()}
+              </div>
             </div>
           </div>
         </div>
