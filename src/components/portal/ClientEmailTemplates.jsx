@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Mail, Download, FileText, Award, Dumbbell, Users, Package } from 'lucide-react';
+import { Mail, Download, FileText, Award, Dumbbell, Users, Package, Eye } from 'lucide-react';
 import { productCatalog } from '@/components/curriculum/catalogData';
 
 export default function ClientEmailTemplates({ proposal, templates = [], client }) {
+  const [viewingTemplate, setViewingTemplate] = useState(null);
 
   const selections = proposal?.selections || {};
   
@@ -67,34 +69,45 @@ export default function ClientEmailTemplates({ proposal, templates = [], client 
     follow_up: 'Post-Event Follow-up'
   };
 
-  const handleDownload = async (template) => {
-    // If there's a file URL, fetch and download it
-    if (template.file_url) {
-      try {
-        const response = await fetch(template.file_url);
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const extension = template.file_url.split('.').pop() || 'txt';
-        a.download = `${template.service_name.replace(/\s+/g, '-')}-${template.template_type}.${extension}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        return;
-      } catch (e) {
-        console.error('Error downloading file:', e);
-      }
+  const handleDownload = async (template, format = 'eml') => {
+    let content, blob, fileName, mimeType;
+    const sanitizedName = `${template.service_name.replace(/\s+/g, '-')}-${template.template_type}`;
+
+    if (format === 'eml') {
+      // Create .eml format (email file)
+      content = `Subject: ${template.subject}\r\n`;
+      content += `From: noreply@skillfulmeans.life\r\n`;
+      content += `To: \r\n`;
+      content += `Content-Type: text/html; charset=UTF-8\r\n`;
+      content += `\r\n`;
+      content += template.body || '';
+      
+      blob = new Blob([content], { type: 'message/rfc822' });
+      fileName = `${sanitizedName}.eml`;
+    } else if (format === 'doc') {
+      // Create HTML document that opens in Word
+      const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${template.subject}</title>
+</head>
+<body>
+  <h2>Subject: ${template.subject}</h2>
+  <hr>
+  ${template.body || ''}
+</body>
+</html>`;
+      
+      blob = new Blob([htmlContent], { type: 'application/msword' });
+      fileName = `${sanitizedName}.doc`;
     }
-    
-    // Fallback: create text file from content
-    const content = `Subject: ${template.subject}\n\n${template.body?.replace(/<[^>]*>/g, '') || 'Template content'}`;
-    const blob = new Blob([content], { type: 'text/plain' });
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${template.service_name.replace(/\s+/g, '-')}-${template.template_type}.txt`;
+    a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -229,24 +242,31 @@ export default function ClientEmailTemplates({ proposal, templates = [], client 
                                 </p>
                               )}
                             </div>
-                            <div className="flex gap-2 shrink-0">
+                            <div className="flex gap-2 shrink-0 flex-wrap">
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => handleDownload(template)}
+                                onClick={() => setViewingTemplate(template)}
+                              >
+                                <Eye className="w-4 h-4 mr-2" />
+                                View
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleDownload(template, 'eml')}
                               >
                                 <Download className="w-4 h-4 mr-2" />
-                                Download
+                                .EML
                               </Button>
-                              {template.file_url && (
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => window.open(template.file_url, '_blank')}
-                                >
-                                  <FileText className="w-4 h-4" />
-                                </Button>
-                              )}
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleDownload(template, 'doc')}
+                              >
+                                <Download className="w-4 h-4 mr-2" />
+                                .DOC
+                              </Button>
                             </div>
                           </div>
                         </div>
@@ -281,6 +301,62 @@ export default function ClientEmailTemplates({ proposal, templates = [], client 
           </p>
         </CardContent>
       </Card>
+
+      {/* View Template Dialog */}
+      <Dialog open={!!viewingTemplate} onOpenChange={(open) => !open && setViewingTemplate(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Email Template</DialogTitle>
+          </DialogHeader>
+          {viewingTemplate && (
+            <div className="space-y-4 mt-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Service</label>
+                  <p className="text-gray-900">{viewingTemplate.service_name}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 mb-1">Template Type</label>
+                  <p className="text-gray-900">{templateTypeLabels[viewingTemplate.template_type]}</p>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Subject Line</label>
+                <p className="text-gray-900 font-medium">{viewingTemplate.subject}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">Email Body</label>
+                <div 
+                  className="border rounded-lg p-4 bg-gray-50 prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: viewingTemplate.body || '<span class="text-gray-400 italic">No body content</span>' }}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleDownload(viewingTemplate, 'eml')}
+                  className="flex-1"
+                >
+                  <Download className="w-4 h-4 mr-2" /> Download as .EML
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => handleDownload(viewingTemplate, 'doc')}
+                  className="flex-1"
+                >
+                  <Download className="w-4 h-4 mr-2" /> Download as .DOC
+                </Button>
+                <Button onClick={() => setViewingTemplate(null)} className="flex-1 bg-[#264d44] hover:bg-[#1a3830]">
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
