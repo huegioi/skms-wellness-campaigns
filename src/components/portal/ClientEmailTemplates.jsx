@@ -74,8 +74,23 @@ export default function ClientEmailTemplates({ proposal, templates = [], client 
     const sanitizedName = `${template.service_name.replace(/\s+/g, '-')}-${template.template_type}`;
 
     if (format === 'eml') {
-      // Create .eml format (email file) with proper MIME formatting
+      // Create .eml format with proper email HTML formatting
       const boundary = '----=_Part_0_' + Date.now();
+      
+      // Wrap body in email-friendly HTML with inline styles
+      const emailHtml = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333;">
+  <div style="max-width: 600px; margin: 0 auto;">
+    ${(template.body || '').replace(/<img([^>]*)>/g, '<img$1 style="max-width: 100%; height: auto; display: block; margin: 10px 0;">')}
+  </div>
+</body>
+</html>`;
+
       content = `Subject: ${template.subject}\r\n`;
       content += `From: SKMS Wellness <noreply@skillfulmeans.life>\r\n`;
       content += `To: \r\n`;
@@ -92,7 +107,7 @@ export default function ClientEmailTemplates({ proposal, templates = [], client 
       content += `Content-Type: text/html; charset=UTF-8\r\n`;
       content += `Content-Transfer-Encoding: 7bit\r\n`;
       content += `\r\n`;
-      content += template.body || '';
+      content += emailHtml;
       content += `\r\n`;
       content += `--${boundary}--\r\n`;
       
