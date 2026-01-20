@@ -78,15 +78,30 @@ export default function ClientEmailTemplates({ proposal, templates = [], client 
       const boundary = '----=_Part_0_' + Date.now();
       
       // Wrap body in email-friendly HTML with inline styles
+      let styledBody = template.body || '';
+      
+      // Add inline styles to common elements
+      styledBody = styledBody
+        .replace(/<img([^>]*)>/g, '<img$1 style="max-width: 100%; height: auto; display: block; margin: 15px 0;">')
+        .replace(/<p>/g, '<p style="margin: 0 0 15px 0; font-size: 14px; line-height: 1.6;">')
+        .replace(/<h1>/g, '<h1 style="margin: 20px 0 10px 0; font-size: 24px; line-height: 1.3;">')
+        .replace(/<h2>/g, '<h2 style="margin: 18px 0 10px 0; font-size: 20px; line-height: 1.3;">')
+        .replace(/<h3>/g, '<h3 style="margin: 16px 0 8px 0; font-size: 16px; line-height: 1.3;">')
+        .replace(/<ul>/g, '<ul style="margin: 10px 0; padding-left: 25px;">')
+        .replace(/<ol>/g, '<ol style="margin: 10px 0; padding-left: 25px;">')
+        .replace(/<li>/g, '<li style="margin: 5px 0; font-size: 14px; line-height: 1.6;">')
+        .replace(/<strong>/g, '<strong style="font-weight: 600;">')
+        .replace(/<a /g, '<a style="color: #0066cc; text-decoration: underline;" ');
+
       const emailHtml = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333;">
-  <div style="max-width: 600px; margin: 0 auto;">
-    ${(template.body || '').replace(/<img([^>]*)>/g, '<img$1 style="max-width: 100%; height: auto; display: block; margin: 10px 0;">')}
+<body style="margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333; background-color: #f5f5f5;">
+  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 30px; border-radius: 8px;">
+    ${styledBody}
   </div>
 </body>
 </html>`;
