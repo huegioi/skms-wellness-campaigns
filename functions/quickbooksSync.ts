@@ -96,7 +96,7 @@ async function createQBInvoice(accessToken, realmId, invoiceData, customerId) {
     Line: invoiceData.line_items.map((item, idx) => ({
       DetailType: 'SalesItemLineDetail',
       Amount: item.amount,
-      Description: item.description || 'Service',
+      Description: item.name || item.description || 'Service',
       SalesItemLineDetail: {
         Qty: item.quantity || 1,
         UnitPrice: item.rate || 0
