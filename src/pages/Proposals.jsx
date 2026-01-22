@@ -120,7 +120,7 @@ export default function Proposals() {
             <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Proposals</h1>
             <p className="text-gray-600">Manage and track all your proposals</p>
           </div>
-          <Link to={createPageUrl('CurriculumDesigner')}>
+          <Link to={createPageUrl('EditProposal')}>
             <Button className="bg-[#770142] hover:bg-[#5a0132]">
               <FileText className="w-4 h-4 mr-2" /> New Proposal
             </Button>
