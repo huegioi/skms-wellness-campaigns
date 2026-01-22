@@ -199,6 +199,15 @@ Deno.serve(async (req) => {
 
       const invoiceData = invoice[0];
 
+      // Validate required fields
+      if (!invoiceData.client_email) {
+        return Response.json({ error: 'Invoice missing client email' }, { status: 400 });
+      }
+
+      if (!invoiceData.line_items || invoiceData.line_items.length === 0) {
+        return Response.json({ error: 'Invoice must have at least one line item' }, { status: 400 });
+      }
+
       // Find or create customer
       let customerId = await findQBCustomer(accessToken, realmId, invoiceData.client_email);
       if (!customerId) {
