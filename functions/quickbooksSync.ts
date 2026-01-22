@@ -2,7 +2,17 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 const QB_API_URL = 'https://quickbooks.api.intuit.com/v3/company';
 
-async function refreshAccessToken() {
+// Token cache to avoid refreshing on every request
+let cachedAccessToken = null;
+let tokenExpiresAt = null;
+
+async function getAccessToken() {
+  // Check if we have a valid cached token
+  if (cachedAccessToken && tokenExpiresAt && Date.now() < tokenExpiresAt) {
+    return cachedAccessToken;
+  }
+
+  // Token expired or doesn't exist, refresh it
   const clientId = Deno.env.get('QUICKBOOKS_CLIENT_ID');
   const clientSecret = Deno.env.get('QUICKBOOKS_CLIENT_SECRET');
   const refreshToken = Deno.env.get('QUICKBOOKS_REFRSH_TOKEN');
@@ -32,7 +42,12 @@ async function refreshAccessToken() {
   }
 
   const data = await response.json();
-  return data.access_token;
+  
+  // Cache the token (expires in 3600 seconds = 1 hour, refresh 5 min early for safety)
+  cachedAccessToken = data.access_token;
+  tokenExpiresAt = Date.now() + ((data.expires_in || 3600) - 300) * 1000;
+  
+  return cachedAccessToken;
 }
 
 async function createQBCustomer(accessToken, realmId, clientData) {
@@ -189,7 +204,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'QuickBooks not configured' }, { status: 500 });
     }
 
-    const accessToken = await refreshAccessToken();
+    const accessToken = await getAccessToken();
 
     if (action === 'createInvoice') {
       const invoice = await base44.asServiceRole.entities.Invoice.filter({ id: invoiceId });
