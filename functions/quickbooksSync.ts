@@ -108,15 +108,26 @@ async function createQBInvoice(accessToken, realmId, invoiceData, customerId) {
     CustomerRef: { value: customerId },
     TxnDate: invoiceData.issue_date,
     DueDate: invoiceData.due_date,
-    Line: invoiceData.line_items.map((item, idx) => ({
-      DetailType: 'SalesItemLineDetail',
-      Amount: item.amount,
-      Description: item.name || item.description || 'Service',
-      SalesItemLineDetail: {
-        Qty: item.quantity || 1,
-        UnitPrice: item.rate || 0
+    Line: invoiceData.line_items.map((item, idx) => {
+      const lineDetail = {
+        DetailType: 'SalesItemLineDetail',
+        Amount: item.amount,
+        Description: item.name || item.description || 'Service',
+        SalesItemLineDetail: {
+          Qty: item.quantity || 1,
+          UnitPrice: item.rate || 0
+        }
+      };
+      
+      // Add ItemRef if quickbooks_item_id is provided
+      if (item.quickbooks_item_id) {
+        lineDetail.SalesItemLineDetail.ItemRef = {
+          value: item.quickbooks_item_id
+        };
       }
-    })),
+      
+      return lineDetail;
+    }),
     CustomerMemo: invoiceData.memo ? { value: invoiceData.memo } : undefined
   };
 
