@@ -16,9 +16,11 @@ import { markTaskComplete, createDefaultTasksForClient } from '@/components/task
 export default function EditProposal() {
   const urlParams = new URLSearchParams(window.location.search);
   const proposalId = urlParams.get('id');
+  const isNewProposal = !proposalId;
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
+    client_id: '',
     client_name: '',
     company: '',
     status: 'draft',
@@ -42,6 +44,11 @@ export default function EditProposal() {
   const [newChargeLabel, setNewChargeLabel] = useState('');
   const [newChargeAmount, setNewChargeAmount] = useState('');
 
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => base44.entities.Client.list()
+  });
+
   const { data: proposal, isLoading } = useQuery({
     queryKey: ['proposal', proposalId],
     queryFn: async () => {
@@ -54,6 +61,7 @@ export default function EditProposal() {
   useEffect(() => {
     if (proposal) {
       setFormData({
+        client_id: proposal.client_id || '',
         client_name: proposal.client_name || '',
         company: proposal.company || '',
         status: proposal.status || 'draft',
@@ -75,9 +83,14 @@ export default function EditProposal() {
     }
   }, [proposal]);
 
-  const updateMutation = useMutation({
-    mutationFn: (data) => base44.entities.Proposal.update(proposalId, data),
-    onSuccess: async (updatedProposal, variables) => {
+  const saveMutation = useMutation({
+    mutationFn: (data) => {
+      if (isNewProposal) {
+        return base44.entities.Proposal.create(data);
+      }
+      return base44.entities.Proposal.update(proposalId, data);
+    },
+    onSuccess: async (savedProposal, variables) => {
       // Auto-mark tasks when proposal status changes
       if (proposal && proposal.client_id) {
         if (variables.status === 'sent' && proposal.status !== 'sent') {
@@ -213,8 +226,26 @@ export default function EditProposal() {
     setFormData(prev => ({ ...prev, narrative_summary: narrative }));
   };
 
+  const handleClientSelect = (clientId) => {
+    const selectedClient = clients.find(c => c.id === clientId);
+    if (selectedClient) {
+      setFormData({
+        ...formData,
+        client_id: clientId,
+        client_name: selectedClient.name,
+        client_email: selectedClient.email,
+        company: selectedClient.company || ''
+      });
+    }
+  };
+
   const handleSave = () => {
-    updateMutation.mutate({
+    if (isNewProposal && !formData.client_id) {
+      alert('Please select a client first');
+      return;
+    }
+
+    saveMutation.mutate({
       ...formData,
       total_amount: calculateTotal(),
       selections: { ...selections, priceOverrides, customCharges }
@@ -351,7 +382,7 @@ export default function EditProposal() {
     return <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">Loading...</div>;
   }
 
-  if (!proposal) {
+  if (!isNewProposal && !proposal) {
     return (
       <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
         <div className="text-center">
@@ -370,23 +401,54 @@ export default function EditProposal() {
             <Button variant="outline" size="icon"><ArrowLeft className="w-4 h-4" /></Button>
           </Link>
           <div className="flex-1">
-            <h1 className="text-2xl font-bold" style={{ color: '#013f7c' }}>Edit Proposal</h1>
+            <h1 className="text-2xl font-bold" style={{ color: '#013f7c' }}>
+              {isNewProposal ? 'New Proposal' : 'Edit Proposal'}
+            </h1>
           </div>
-          <Button variant="outline" onClick={generatePDF}><Download className="w-4 h-4 mr-2" /> Download</Button>
-          <Button onClick={handleSave} className="bg-[#264d44] hover:bg-[#1a3830]"><Save className="w-4 h-4 mr-2" /> Save</Button>
+          {!isNewProposal && (
+            <Button variant="outline" onClick={generatePDF}><Download className="w-4 h-4 mr-2" /> Download</Button>
+          )}
+          <Button onClick={handleSave} className="bg-[#264d44] hover:bg-[#1a3830]" disabled={saveMutation.isPending}>
+            <Save className="w-4 h-4 mr-2" /> {saveMutation.isPending ? 'Saving...' : (isNewProposal ? 'Create' : 'Save')}
+          </Button>
         </div>
 
         {/* Client Info */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Client Information</h2>
+          {isNewProposal && !formData.client_id && (
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <label className="block text-sm font-semibold text-blue-900 mb-2">Select Client *</label>
+              <Select onValueChange={handleClientSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a client..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map(client => (
+                    <SelectItem key={client.id} value={client.id}>
+                      {client.name} {client.company ? `- ${client.company}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Client Name</label>
-              <Input value={formData.client_name} onChange={(e) => setFormData({...formData, client_name: e.target.value})} />
+              <Input 
+                value={formData.client_name} 
+                onChange={(e) => setFormData({...formData, client_name: e.target.value})}
+                disabled={isNewProposal && !formData.client_id}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Company</label>
-              <Input value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
+              <Input 
+                value={formData.company} 
+                onChange={(e) => setFormData({...formData, company: e.target.value})}
+                disabled={isNewProposal && !formData.client_id}
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Status</label>
