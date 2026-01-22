@@ -105,7 +105,32 @@ export default function Invoices() {
   };
 
   const handleSyncToQB = async (invoice) => {
-    if (!confirm(`Send invoice ${invoice.invoice_number} to QuickBooks?`)) return;
+    // Validate invoice has required fields for QuickBooks
+    const missingFields = [];
+    
+    if (!invoice.client_email) missingFields.push('Client Email');
+    if (!invoice.client_name) missingFields.push('Client Name');
+    if (!invoice.line_items || invoice.line_items.length === 0) missingFields.push('Line Items (at least one)');
+    if (!invoice.issue_date) missingFields.push('Issue Date');
+    if (!invoice.due_date) missingFields.push('Due Date');
+    
+    // Check if line items have required fields
+    const invalidLineItems = invoice.line_items?.filter(item => 
+      !item.name && !item.description
+    ) || [];
+    
+    if (invalidLineItems.length > 0) {
+      missingFields.push(`Line Item Names/Descriptions (${invalidLineItems.length} items missing)`);
+    }
+    
+    if (missingFields.length > 0) {
+      alert(
+        `Cannot send to QuickBooks - Missing required information:\n\n${missingFields.map(f => `• ${f}`).join('\n')}\n\nPlease edit the invoice to add this information before sending to QuickBooks.`
+      );
+      return;
+    }
+    
+    if (!confirm(`Send invoice ${invoice.invoice_number || 'draft'} to QuickBooks?`)) return;
     setSyncing(invoice.id);
     try {
       await syncToQBMutation.mutateAsync(invoice.id);
