@@ -336,8 +336,8 @@ export default function Analytics() {
         </div>
 
         {/* Monthly Trends */}
-        <div className="bg-white rounded-xl p-6 shadow-lg">
-          <h3 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Monthly Trends</h3>
+        <div className="bg-white rounded-xl p-6 shadow-lg mb-8">
+          <h3 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Proposal Trends (Monthly)</h3>
           {trendData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={trendData}>
@@ -356,6 +356,98 @@ export default function Analytics() {
             <div className="h-[300px] flex items-center justify-center text-gray-400">No data yet</div>
           )}
         </div>
+
+        {/* Kajabi Contact Growth Charts */}
+        {kajabiContacts.length > 0 && (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Weekly Contact Growth */}
+              <div className="bg-white rounded-xl p-6 shadow-lg">
+                <h3 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Contact Growth (Weekly)</h3>
+                {kajabiTrendData.weekly.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={kajabiTrendData.weekly}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="week" angle={-45} textAnchor="end" height={80} />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="subscribed" name="Subscribed" stackId="a" fill="#22C55E" />
+                      <Bar dataKey="unsubscribed" name="Unsubscribed" stackId="a" fill="#EF4444" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-gray-400">No data yet</div>
+                )}
+              </div>
+
+              {/* Monthly Contact Growth */}
+              <div className="bg-white rounded-xl p-6 shadow-lg">
+                <h3 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Contact Growth (Monthly)</h3>
+                {kajabiTrendData.monthly.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={kajabiTrendData.monthly}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line type="monotone" dataKey="subscribed" name="Subscribed" stroke="#22C55E" strokeWidth={2} dot={{ fill: '#22C55E' }} />
+                      <Line type="monotone" dataKey="unsubscribed" name="Unsubscribed" stroke="#EF4444" strokeWidth={2} dot={{ fill: '#EF4444' }} />
+                      <Line type="monotone" dataKey="total" name="Total" stroke="#3B82F6" strokeWidth={2} dot={{ fill: '#3B82F6' }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-gray-400">No data yet</div>
+                )}
+              </div>
+            </div>
+
+            {/* Tag Tracking */}
+            <div className="bg-white rounded-xl p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold" style={{ color: '#264d44' }}>Tag Performance</h3>
+                {tagData.length > 10 && (
+                  <Select
+                    value={selectedTags.length > 0 ? selectedTags.join(',') : 'top10'}
+                    onValueChange={(value) => {
+                      if (value === 'top10') {
+                        setSelectedTags([]);
+                      } else {
+                        setSelectedTags(value.split(','));
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select tags" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="top10">Top 10 Tags</SelectItem>
+                      {tagData.slice(0, 20).map(tag => (
+                        <SelectItem key={tag.name} value={tag.name}>{tag.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              {filteredTagData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={filteredTagData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" width={150} />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="subscribed" name="Subscribed" fill="#22C55E" />
+                    <Bar dataKey="unsubscribed" name="Unsubscribed" fill="#EF4444" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-[300px] flex items-center justify-center text-gray-400">No tags yet</div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
