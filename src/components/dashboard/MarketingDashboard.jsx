@@ -412,71 +412,76 @@ export default function MarketingDashboard() {
         <CardHeader>
           <CardTitle style={{ color: '#264d44' }}>Source Performance by Stage</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {sourceData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={480}>
-              <BarChart 
-                margin={{ top: 10, right: 40, left: 70, bottom: 90 }}
-                data={(() => {
-                  const sourceStageData = {};
-                  opportunities.forEach(opp => {
-                    const source = opp.source || 'Unknown';
-                    if (!sourceStageData[source]) {
-                      sourceStageData[source] = { source };
-                      DEAL_STAGES_CONFIG.forEach(stage => {
-                        sourceStageData[source][stage.name] = 0;
-                      });
-                    }
-                    const stage = opp.stage || 'Unknown';
-                    if (sourceStageData[source][stage] !== undefined) {
-                      sourceStageData[source][stage]++;
-                    }
-                  });
-                  return Object.values(sourceStageData).filter(d => d.source !== 'Unknown');
-                })()}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis 
-                  dataKey="source" 
-                  angle={-45} 
-                  textAnchor="end" 
-                  height={110} 
-                  interval={0}
-                  style={{ fontSize: '13px', fontWeight: '500' }}
-                />
-                <YAxis 
-                  label={{ 
-                    value: 'Number of Opportunities', 
-                    angle: -90, 
-                    position: 'insideLeft',
-                    style: { fontSize: '14px', fontWeight: '500' }
-                  }}
-                  style={{ fontSize: '12px' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    borderRadius: '8px', 
-                    border: '1px solid #e5e7eb',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                  }}
-                />
-                <Legend 
-                  wrapperStyle={{ paddingTop: '20px' }}
-                  iconType="circle"
-                />
-                {DEAL_STAGES_CONFIG.map((stage) => (
-                  <Bar 
-                    key={stage.name}
-                    dataKey={stage.name} 
-                    stackId="a" 
-                    fill={stage.color}
-                    name={stage.name}
+            <div className="w-full" style={{ height: '500px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart 
+                  margin={{ top: 10, right: 20, left: 80, bottom: 100 }}
+                  data={(() => {
+                    const sourceStageData = {};
+                    opportunities.forEach(opp => {
+                      const source = opp.source || 'Unknown';
+                      if (!sourceStageData[source]) {
+                        sourceStageData[source] = { source };
+                        DEAL_STAGES_CONFIG.forEach(stage => {
+                          sourceStageData[source][stage.name] = 0;
+                        });
+                      }
+                      const stage = opp.stage || 'Unknown';
+                      if (sourceStageData[source][stage] !== undefined) {
+                        sourceStageData[source][stage]++;
+                      }
+                    });
+                    return Object.values(sourceStageData).filter(d => d.source !== 'Unknown');
+                  })()}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis 
+                    dataKey="source" 
+                    angle={-45} 
+                    textAnchor="end" 
+                    height={95}
+                    interval={0}
+                    tick={{ fontSize: 12, fill: '#374151' }}
                   />
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
+                  <YAxis 
+                    label={{ 
+                      value: 'Opportunities', 
+                      angle: -90, 
+                      position: 'insideLeft',
+                      offset: 20,
+                      style: { fontSize: '13px', fill: '#374151', fontWeight: '600' }
+                    }}
+                    tick={{ fontSize: 11, fill: '#6B7280' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      borderRadius: '8px', 
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      backgroundColor: '#fff'
+                    }}
+                  />
+                  <Legend 
+                    wrapperStyle={{ paddingTop: '15px' }}
+                    iconType="circle"
+                    iconSize={8}
+                  />
+                  {DEAL_STAGES_CONFIG.map((stage) => (
+                    <Bar 
+                      key={stage.name}
+                      dataKey={stage.name} 
+                      stackId="a" 
+                      fill={stage.color}
+                      name={stage.name}
+                    />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           ) : (
-            <div className="h-[480px] flex items-center justify-center text-gray-400">
+            <div className="h-[500px] flex items-center justify-center text-gray-400">
               No data available
             </div>
           )}
@@ -492,44 +497,48 @@ export default function MarketingDashboard() {
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
             {stageData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={460}>
-                <BarChart data={stageData} margin={{ top: 10, right: 30, left: 40, bottom: 90 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45} 
-                    textAnchor="end" 
-                    height={110} 
-                    interval={0}
-                    style={{ fontSize: '12px', fontWeight: '500' }}
-                  />
-                  <YAxis 
-                    label={{ 
-                      value: 'Count', 
-                      angle: -90, 
-                      position: 'insideLeft',
-                      style: { fontSize: '14px', fontWeight: '500' }
-                    }}
-                    style={{ fontSize: '12px' }}
-                  />
-                  <Tooltip 
-                    formatter={(value) => [`${value} opportunities`, 'Count']}
-                    contentStyle={{ 
-                      borderRadius: '8px', 
-                      border: '1px solid #e5e7eb',
-                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                    }}
-                  />
-                  <Legend wrapperStyle={{ paddingTop: '15px' }} />
-                  <Bar dataKey="value" name="Count" radius={[8, 8, 0, 0]}>
-                    {stageData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="w-full" style={{ height: '450px' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stageData} margin={{ top: 10, right: 20, left: 60, bottom: 100 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis 
+                      dataKey="name" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      height={95}
+                      interval={0}
+                      tick={{ fontSize: 11, fill: '#374151' }}
+                    />
+                    <YAxis 
+                      label={{ 
+                        value: 'Count', 
+                        angle: -90, 
+                        position: 'insideLeft',
+                        offset: 15,
+                        style: { fontSize: '13px', fill: '#374151', fontWeight: '600' }
+                      }}
+                      tick={{ fontSize: 11, fill: '#6B7280' }}
+                    />
+                    <Tooltip 
+                      formatter={(value) => [`${value} opportunities`, 'Count']}
+                      contentStyle={{ 
+                        borderRadius: '8px', 
+                        border: '1px solid #e5e7eb',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        backgroundColor: '#fff'
+                      }}
+                    />
+                    <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                    <Bar dataKey="value" name="Count" radius={[8, 8, 0, 0]}>
+                      {stageData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             ) : (
-              <div className="h-[460px] flex items-center justify-center text-gray-400">
+              <div className="h-[450px] flex items-center justify-center text-gray-400">
                 No data available
               </div>
             )}
