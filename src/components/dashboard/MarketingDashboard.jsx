@@ -386,7 +386,7 @@ export default function MarketingDashboard() {
           <CardContent>
             {sourceData.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={sourceData} layout="vertical">
+                <BarChart data={sourceData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" label={{ value: 'Number of Opportunities', position: 'insideBottom', offset: -5 }} />
                   <YAxis dataKey="name" type="category" width={120} />
@@ -416,6 +416,7 @@ export default function MarketingDashboard() {
           {sourceData.length > 0 ? (
             <ResponsiveContainer width="100%" height={350}>
               <BarChart 
+                margin={{ top: 5, right: 30, left: 20, bottom: 100 }}
                 data={(() => {
                   const sourceStageData = {};
                   opportunities.forEach(opp => {
@@ -468,7 +469,7 @@ export default function MarketingDashboard() {
           <CardContent className="p-4 sm:p-6">
             {stageData.length > 0 ? (
               <ResponsiveContainer width="100%" height={320}>
-                <BarChart data={stageData}>
+                <BarChart data={stageData} margin={{ top: 5, right: 30, left: 20, bottom: 100 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis 
                     dataKey="name" 
@@ -537,7 +538,7 @@ export default function MarketingDashboard() {
         <CardContent className="p-4 sm:p-6">
           {timelineData.length > 0 ? (
             <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={timelineData}>
+              <LineChart data={timelineData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
@@ -722,7 +723,7 @@ export default function MarketingDashboard() {
                     </CardHeader>
                     <CardContent>
                       <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={kajabiStats.engagement.topEvents}>
+                        <BarChart data={kajabiStats.engagement.topEvents} margin={{ top: 5, right: 30, left: 20, bottom: 100 }}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} interval={0} />
                           <YAxis />
@@ -744,7 +745,7 @@ export default function MarketingDashboard() {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={kajabiStats.topTags}>
+                    <BarChart data={kajabiStats.topTags} margin={{ top: 5, right: 30, left: 20, bottom: 100 }}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} interval={0} />
                       <YAxis />
@@ -809,7 +810,7 @@ export default function MarketingDashboard() {
                     {kajabiTrendData.length > 0 ? (
                       <ResponsiveContainer width="100%" height={350}>
                         {timePeriod === 'day' || timePeriod === 'week' ? (
-                          <BarChart data={kajabiTrendData}>
+                          <BarChart data={kajabiTrendData} margin={{ top: 5, right: 30, left: 20, bottom: 80 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="label" angle={-45} textAnchor="end" height={80} />
                             <YAxis />
@@ -818,8 +819,8 @@ export default function MarketingDashboard() {
                             <Bar dataKey="subscribed" name="Subscribed" stackId="a" fill="#22C55E" />
                             <Bar dataKey="unsubscribed" name="Unsubscribed" stackId="a" fill="#EF4444" />
                           </BarChart>
-                        ) : (
-                          <LineChart data={kajabiTrendData}>
+                          ) : (
+                          <LineChart data={kajabiTrendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="label" />
                             <YAxis />
@@ -869,7 +870,7 @@ export default function MarketingDashboard() {
                   <CardContent>
                     {filteredTagData.length > 0 ? (
                       <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={filteredTagData} layout="vertical">
+                        <BarChart data={filteredTagData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis type="number" />
                           <YAxis dataKey="name" type="category" width={150} />
