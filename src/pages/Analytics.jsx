@@ -479,6 +479,47 @@ export default function Analytics() {
             </div>
           </>
         )}
+
+        {/* Notion Conversion by Source */}
+        {notionConversionData.length > 0 && (
+          <div className="bg-white rounded-xl p-6 shadow-lg mt-8">
+            <h3 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Sales Conversion by Source (Notion)</h3>
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart data={notionConversionData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="source" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="paid" name="Paid" stackId="a" fill="#22C55E" />
+                <Bar dataKey="other" name="In Progress" stackId="a" fill="#3B82F6" />
+                <Bar dataKey="lost" name="Deal Lost" stackId="a" fill="#EF4444" />
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+              {notionConversionData.map((source, idx) => {
+                const winRate = source.total > 0 ? ((source.paid / source.total) * 100).toFixed(1) : 0;
+                const lossRate = source.total > 0 ? ((source.lost / source.total) * 100).toFixed(1) : 0;
+                return (
+                  <div key={idx} className="p-3 bg-gray-50 rounded-lg">
+                    <p className="text-sm font-semibold text-gray-700">{source.source}</p>
+                    <p className="text-xs text-gray-500 mt-1">Total: {source.total}</p>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-green-600">Win Rate:</span>
+                        <span className="font-semibold">{winRate}%</span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-red-600">Loss Rate:</span>
+                        <span className="font-semibold">{lossRate}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
