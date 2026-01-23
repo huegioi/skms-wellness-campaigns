@@ -141,51 +141,50 @@ export default function MarketingDashboard() {
 
   const COLORS = ['#264d44', '#770142', '#013f7c', '#22C55E', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4'];
 
-  // Calculate Kajabi contact growth trends (weekly/monthly)
+  // Calculate Kajabi contact growth trends with filters
   const kajabiTrendData = React.useMemo(() => {
-    if (!kajabiContacts.length) return { weekly: [], monthly: [] };
+    if (!kajabiContacts.length) return [];
 
-    const now = new Date();
-    const weeklyBuckets = {};
-    const monthlyBuckets = {};
-
-    kajabiContacts.forEach(contact => {
+    const filteredContacts = kajabiContacts.filter(contact => {
       const createdDate = new Date(contact.kajabi_created_at);
+      const start = contactStartDate ? new Date(contactStartDate) : null;
+      const end = contactEndDate ? new Date(contactEndDate) : null;
       
-      // Weekly data (last 12 weeks)
-      const weekStart = new Date(createdDate);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-      const weekKey = weekStart.toISOString().split('T')[0];
-      
-      if (!weeklyBuckets[weekKey]) {
-        weeklyBuckets[weekKey] = { date: weekKey, subscribed: 0, unsubscribed: 0, total: 0 };
-      }
-      weeklyBuckets[weekKey].total++;
-      if (contact.subscribed) weeklyBuckets[weekKey].subscribed++;
-      else weeklyBuckets[weekKey].unsubscribed++;
-
-      // Monthly data
-      const monthKey = createdDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      if (!monthlyBuckets[monthKey]) {
-        monthlyBuckets[monthKey] = { month: monthKey, subscribed: 0, unsubscribed: 0, total: 0 };
-      }
-      monthlyBuckets[monthKey].total++;
-      if (contact.subscribed) monthlyBuckets[monthKey].subscribed++;
-      else monthlyBuckets[monthKey].unsubscribed++;
+      if (start && createdDate < start) return false;
+      if (end && createdDate > end) return false;
+      return true;
     });
 
-    const weeklyData = Object.values(weeklyBuckets)
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-      .slice(-12)
-      .map(w => ({
-        ...w,
-        week: new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      }));
+    const buckets = {};
 
-    const monthlyData = Object.values(monthlyBuckets).slice(-6);
+    filteredContacts.forEach(contact => {
+      const createdDate = new Date(contact.kajabi_created_at);
+      let key, label;
 
-    return { weekly: weeklyData, monthly: monthlyData };
-  }, [kajabiContacts]);
+      if (timePeriod === 'day') {
+        key = createdDate.toISOString().split('T')[0];
+        label = createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      } else if (timePeriod === 'week') {
+        const weekStart = new Date(createdDate);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        key = weekStart.toISOString().split('T')[0];
+        label = weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      } else {
+        key = createdDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        label = key;
+      }
+
+      if (!buckets[key]) {
+        buckets[key] = { key, label, subscribed: 0, unsubscribed: 0, total: 0 };
+      }
+      buckets[key].total++;
+      if (contact.subscribed) buckets[key].subscribed++;
+      else buckets[key].unsubscribed++;
+    });
+
+    return Object.values(buckets)
+      .sort((a, b) => new Date(a.key) - new Date(b.key));
+  }, [kajabiContacts, contactStartDate, contactEndDate, timePeriod]);
 
   // Tag tracking
   const tagData = React.useMemo(() => {
