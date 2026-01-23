@@ -412,9 +412,9 @@ export default function MarketingDashboard() {
         <CardHeader>
           <CardTitle style={{ color: '#264d44' }}>Source Performance by Stage</CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 pb-6">
           {sourceData.length > 0 ? (
-            <div className="w-full" style={{ height: '500px' }}>
+            <div className="w-full" style={{ height: '450px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart 
                   margin={{ top: 10, right: 20, left: 80, bottom: 100 }}
@@ -481,7 +481,7 @@ export default function MarketingDashboard() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-[500px] flex items-center justify-center text-gray-400">
+            <div className="h-[450px] flex items-center justify-center text-gray-400">
               No data available
             </div>
           )}
@@ -495,9 +495,9 @@ export default function MarketingDashboard() {
           <CardHeader className="pb-4">
             <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Opportunities by Stage</CardTitle>
           </CardHeader>
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="px-4 sm:px-6 pt-4 pb-6">
             {stageData.length > 0 ? (
-              <div className="w-full" style={{ height: '450px' }}>
+              <div className="w-full" style={{ height: '420px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={stageData} margin={{ top: 10, right: 20, left: 60, bottom: 100 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -538,7 +538,7 @@ export default function MarketingDashboard() {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-[450px] flex items-center justify-center text-gray-400">
+              <div className="h-[420px] flex items-center justify-center text-gray-400">
                 No data available
               </div>
             )}
