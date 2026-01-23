@@ -708,42 +708,69 @@ export default function MarketingDashboard() {
             {/* Contact Growth Charts */}
             {kajabiContacts.length > 0 && (
               <>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Weekly Contact Growth */}
-                  <Card className="hover:shadow-lg transition-shadow duration-300">
-                    <CardHeader>
-                      <CardTitle style={{ color: '#264d44' }}>Contact Growth (Weekly)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {kajabiTrendData.weekly.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={300}>
-                          <BarChart data={kajabiTrendData.weekly}>
+                {/* Contact Growth Filters */}
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">Start Date</label>
+                        <Input
+                          type="date"
+                          value={contactStartDate}
+                          onChange={(e) => setContactStartDate(e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">End Date</label>
+                        <Input
+                          type="date"
+                          value={contactEndDate}
+                          onChange={(e) => setContactEndDate(e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">Time Period</label>
+                        <Select value={timePeriod} onValueChange={setTimePeriod}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="day">Daily</SelectItem>
+                            <SelectItem value="week">Weekly</SelectItem>
+                            <SelectItem value="month">Monthly</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Contact Growth Chart */}
+                <Card className="hover:shadow-lg transition-shadow duration-300">
+                  <CardHeader>
+                    <CardTitle style={{ color: '#264d44' }}>
+                      Contact Growth ({timePeriod === 'day' ? 'Daily' : timePeriod === 'week' ? 'Weekly' : 'Monthly'})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {kajabiTrendData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={350}>
+                        {timePeriod === 'day' || timePeriod === 'week' ? (
+                          <BarChart data={kajabiTrendData}>
                             <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="week" angle={-45} textAnchor="end" height={80} />
+                            <XAxis dataKey="label" angle={-45} textAnchor="end" height={80} />
                             <YAxis />
                             <Tooltip />
                             <Legend />
                             <Bar dataKey="subscribed" name="Subscribed" stackId="a" fill="#22C55E" />
                             <Bar dataKey="unsubscribed" name="Unsubscribed" stackId="a" fill="#EF4444" />
                           </BarChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <div className="h-[300px] flex items-center justify-center text-gray-400">No data yet</div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* Monthly Contact Growth */}
-                  <Card className="hover:shadow-lg transition-shadow duration-300">
-                    <CardHeader>
-                      <CardTitle style={{ color: '#264d44' }}>Contact Growth (Monthly)</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      {kajabiTrendData.monthly.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={300}>
-                          <LineChart data={kajabiTrendData.monthly}>
+                        ) : (
+                          <LineChart data={kajabiTrendData}>
                             <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="month" />
+                            <XAxis dataKey="label" />
                             <YAxis />
                             <Tooltip />
                             <Legend />
@@ -751,13 +778,13 @@ export default function MarketingDashboard() {
                             <Line type="monotone" dataKey="unsubscribed" name="Unsubscribed" stroke="#EF4444" strokeWidth={2} dot={{ fill: '#EF4444' }} />
                             <Line type="monotone" dataKey="total" name="Total" stroke="#3B82F6" strokeWidth={2} dot={{ fill: '#3B82F6' }} />
                           </LineChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <div className="h-[300px] flex items-center justify-center text-gray-400">No data yet</div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </div>
+                        )}
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-[350px] flex items-center justify-center text-gray-400">No data in selected range</div>
+                    )}
+                  </CardContent>
+                </Card>
 
                 {/* Tag Performance */}
                 <Card className="hover:shadow-lg transition-shadow duration-300">
