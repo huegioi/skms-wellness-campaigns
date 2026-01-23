@@ -172,6 +172,27 @@ export default function Analytics() {
     ? tagData.filter(t => selectedTags.includes(t.name))
     : tagData.slice(0, 10);
 
+  // Notion conversion tracking by source
+  const notionConversionData = React.useMemo(() => {
+    const opportunities = notionData?.opportunities || [];
+    const sourceStats = {};
+
+    opportunities.forEach(opp => {
+      const source = opp.source || 'Unknown';
+      if (!sourceStats[source]) {
+        sourceStats[source] = { source, paid: 0, lost: 0, other: 0, total: 0 };
+      }
+      sourceStats[source].total++;
+      if (opp.stage === 'Paid') sourceStats[source].paid++;
+      else if (opp.stage === 'Deal Lost') sourceStats[source].lost++;
+      else sourceStats[source].other++;
+    });
+
+    return Object.values(sourceStats)
+      .filter(s => s.total > 0)
+      .sort((a, b) => b.total - a.total);
+  }, [notionData]);
+
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
