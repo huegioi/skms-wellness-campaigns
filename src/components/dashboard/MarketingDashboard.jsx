@@ -17,8 +17,8 @@ const DEAL_STAGES_CONFIG = [
   { name: 'Engaged', color: '#FFA500' },
   { name: 'Call Booked', color: '#FF4500' },
   { name: 'Negotiation', color: '#DC143C' },
-  { name: 'Service Booked', color: '#228B22' },
-  { name: 'Paid', color: '#008000' },
+  { name: 'Service Booked', color: '#10B981' },
+  { name: 'Paid', color: '#065F46' },
   { name: 'Deal Lost', color: '#696969' }
 ];
 
