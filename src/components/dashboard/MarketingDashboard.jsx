@@ -388,7 +388,7 @@ export default function MarketingDashboard() {
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={sourceData} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
+                  <XAxis type="number" label={{ value: 'Number of Opportunities', position: 'insideBottom', offset: -5 }} />
                   <YAxis dataKey="name" type="category" width={120} />
                   <Tooltip />
                   <Bar dataKey="value" name="Opportunities" radius={[0, 8, 8, 0]}>
