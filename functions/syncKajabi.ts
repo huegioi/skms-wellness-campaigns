@@ -30,20 +30,15 @@ async function getAccessToken() {
 async function fetchAllContacts(accessToken) {
   const siteId = Deno.env.get('KAJABI_SITE_ID');
   let allContacts = [];
-  let page = 1;
-  let hasMore = true;
-  const pageSize = 100;
+  let nextUrl = `${KAJABI_API_URL}/contacts?filter[site_id]=${siteId}&page[size]=100`;
 
-  while (hasMore) {
-    const response = await fetch(
-      `${KAJABI_API_URL}/contacts?filter[site_id]=${siteId}&page[number]=${page}&page[size]=${pageSize}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json'
-        }
+  while (nextUrl) {
+    const response = await fetch(nextUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json'
       }
-    );
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -54,14 +49,19 @@ async function fetchAllContacts(accessToken) {
     const contacts = result.data || [];
     allContacts = allContacts.concat(contacts);
 
-    console.log(`Fetched page ${page}: ${contacts.length} contacts (total: ${allContacts.length})`);
+    console.log(`Fetched ${contacts.length} contacts (total so far: ${allContacts.length})`);
 
-    // Continue if we got a full page, meaning there might be more
-    hasMore = contacts.length === pageSize;
-    page++;
+    // Check for next page URL in links
+    nextUrl = result.links?.next || null;
+    
+    // Safety limit to prevent infinite loops
+    if (allContacts.length > 50000) {
+      console.log('Safety limit reached at 50k contacts');
+      break;
+    }
   }
 
-  console.log(`Total contacts fetched: ${allContacts.length}`);
+  console.log(`Total contacts fetched from Kajabi: ${allContacts.length}`);
   return allContacts;
 }
 
