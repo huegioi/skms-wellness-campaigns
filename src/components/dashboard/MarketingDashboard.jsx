@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, Users, RefreshCw, Mail, UserPlus, UserMinus, Tag, MousePointerClick, FileText, ShoppingCart } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 const DEAL_STAGES_CONFIG = [
 { name: 'Cold', color: '#B0BEC5' },
@@ -69,10 +70,13 @@ export default function MarketingDashboard() {
 
   const syncKajabiContacts = async () => {
     try {
-      await base44.functions.invoke('syncKajabi', { action: 'syncAll' });
-      refetchKajabi();
+      toast.loading('Syncing Kajabi contacts...', { id: 'kajabi-sync' });
+      const response = await base44.functions.invoke('syncKajabi', { action: 'syncAll' });
+      await refetchKajabi();
+      toast.success(response.data?.message || 'Kajabi contacts synced successfully', { id: 'kajabi-sync' });
     } catch (error) {
       console.error('Kajabi sync failed:', error);
+      toast.error('Failed to sync Kajabi contacts: ' + error.message, { id: 'kajabi-sync' });
     }
   };
 
