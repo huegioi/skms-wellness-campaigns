@@ -418,7 +418,21 @@ export default function MarketingDashboard() {
               <BarChart 
                 margin={{ top: 5, right: 30, left: 60, bottom: 100 }}
                 data={(() => {
-            ...
+                  const sourceStageData = {};
+                  opportunities.forEach(opp => {
+                    const source = opp.source || 'Unknown';
+                    if (!sourceStageData[source]) {
+                      sourceStageData[source] = { source };
+                      DEAL_STAGES_CONFIG.forEach(stage => {
+                        sourceStageData[source][stage.name] = 0;
+                      });
+                    }
+                    const stage = opp.stage || 'Unknown';
+                    if (sourceStageData[source][stage] !== undefined) {
+                      sourceStageData[source][stage]++;
+                    }
+                  });
+                  return Object.values(sourceStageData).filter(d => d.source !== 'Unknown');
                 })()}
               >
                 <CartesianGrid strokeDasharray="3 3" />
