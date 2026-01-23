@@ -32,10 +32,11 @@ async function fetchAllContacts(accessToken) {
   let allContacts = [];
   let page = 1;
   let hasMore = true;
+  const pageSize = 100;
 
   while (hasMore) {
     const response = await fetch(
-      `${KAJABI_API_URL}/contacts?filter[site_id]=${siteId}&page[number]=${page}&page[size]=100`,
+      `${KAJABI_API_URL}/contacts?filter[site_id]=${siteId}&page[number]=${page}&page[size]=${pageSize}`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -50,13 +51,17 @@ async function fetchAllContacts(accessToken) {
     }
 
     const result = await response.json();
-    allContacts = allContacts.concat(result.data || []);
+    const contacts = result.data || [];
+    allContacts = allContacts.concat(contacts);
 
-    // Check if there are more pages
-    hasMore = result.meta?.has_more || false;
+    console.log(`Fetched page ${page}: ${contacts.length} contacts (total: ${allContacts.length})`);
+
+    // Continue if we got a full page, meaning there might be more
+    hasMore = contacts.length === pageSize;
     page++;
   }
 
+  console.log(`Total contacts fetched: ${allContacts.length}`);
   return allContacts;
 }
 
