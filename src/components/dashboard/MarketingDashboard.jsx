@@ -702,6 +702,110 @@ export default function MarketingDashboard() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Contact Growth Charts */}
+            {kajabiContacts.length > 0 && (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Weekly Contact Growth */}
+                  <Card className="hover:shadow-lg transition-shadow duration-300">
+                    <CardHeader>
+                      <CardTitle style={{ color: '#264d44' }}>Contact Growth (Weekly)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {kajabiTrendData.weekly.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={kajabiTrendData.weekly}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="week" angle={-45} textAnchor="end" height={80} />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="subscribed" name="Subscribed" stackId="a" fill="#22C55E" />
+                            <Bar dataKey="unsubscribed" name="Unsubscribed" stackId="a" fill="#EF4444" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-[300px] flex items-center justify-center text-gray-400">No data yet</div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Monthly Contact Growth */}
+                  <Card className="hover:shadow-lg transition-shadow duration-300">
+                    <CardHeader>
+                      <CardTitle style={{ color: '#264d44' }}>Contact Growth (Monthly)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {kajabiTrendData.monthly.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={300}>
+                          <LineChart data={kajabiTrendData.monthly}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="month" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Line type="monotone" dataKey="subscribed" name="Subscribed" stroke="#22C55E" strokeWidth={2} dot={{ fill: '#22C55E' }} />
+                            <Line type="monotone" dataKey="unsubscribed" name="Unsubscribed" stroke="#EF4444" strokeWidth={2} dot={{ fill: '#EF4444' }} />
+                            <Line type="monotone" dataKey="total" name="Total" stroke="#3B82F6" strokeWidth={2} dot={{ fill: '#3B82F6' }} />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-[300px] flex items-center justify-center text-gray-400">No data yet</div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Tag Performance */}
+                <Card className="hover:shadow-lg transition-shadow duration-300">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle style={{ color: '#264d44' }}>Tag Performance</CardTitle>
+                      {tagData.length > 10 && (
+                        <Select
+                          value={selectedTags.length > 0 ? selectedTags.join(',') : 'top10'}
+                          onValueChange={(value) => {
+                            if (value === 'top10') {
+                              setSelectedTags([]);
+                            } else {
+                              setSelectedTags(value.split(','));
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-[200px]">
+                            <SelectValue placeholder="Select tags" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="top10">Top 10 Tags</SelectItem>
+                            {tagData.slice(0, 20).map(tag => (
+                              <SelectItem key={tag.name} value={tag.name}>{tag.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {filteredTagData.length > 0 ? (
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={filteredTagData} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" />
+                          <YAxis dataKey="name" type="category" width={150} />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="subscribed" name="Subscribed" fill="#22C55E" />
+                          <Bar dataKey="unsubscribed" name="Unsubscribed" fill="#EF4444" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-[300px] flex items-center justify-center text-gray-400">No tags yet</div>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
+            )}
           </>
         ) : (
           <Card>
