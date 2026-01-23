@@ -32,6 +32,7 @@ export default function MarketingDashboard() {
   const [contactStartDate, setContactStartDate] = useState('');
   const [contactEndDate, setContactEndDate] = useState('');
   const [timePeriod, setTimePeriod] = useState('week');
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['notionOpportunities', startDate, endDate, selectedSource, selectedStage],
@@ -70,13 +71,16 @@ export default function MarketingDashboard() {
 
   const syncKajabiContacts = async () => {
     try {
+      setIsSyncing(true);
       toast.loading('Syncing Kajabi contacts...', { id: 'kajabi-sync' });
       const response = await base44.functions.invoke('syncKajabi', { action: 'syncAll' });
       await refetchKajabi();
-      toast.success(response.data?.message || 'Kajabi contacts synced successfully', { id: 'kajabi-sync' });
+      toast.success(response.data?.message || 'Kajabi contacts synced successfully!', { id: 'kajabi-sync' });
     } catch (error) {
       console.error('Kajabi sync failed:', error);
       toast.error('Failed to sync Kajabi contacts: ' + error.message, { id: 'kajabi-sync' });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -626,10 +630,10 @@ export default function MarketingDashboard() {
             onClick={syncKajabiContacts}
             variant="outline"
             className="border-[#264d44] text-[#264d44] hover:bg-[#264d44] hover:text-white"
-            disabled={kajabiLoading}>
+            disabled={isSyncing || kajabiLoading}>
 
-            <RefreshCw className={`w-4 h-4 mr-2 ${kajabiLoading ? 'animate-spin' : ''}`} />
-            Sync Kajabi
+            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+            {isSyncing ? 'Syncing...' : 'Sync Kajabi'}
           </Button>
         </div>
 
