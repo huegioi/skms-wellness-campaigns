@@ -94,7 +94,8 @@ Deno.serve(async (req) => {
       const accessToken = await getAccessToken();
       const kajabiContacts = await fetchAllContacts(accessToken);
       
-      const localContacts = await base44.asServiceRole.entities.KajabiContact.filter({});
+      // Fetch ALL local contacts (no limit)
+      const localContacts = await base44.asServiceRole.entities.KajabiContact.list('', 100000);
       const localContactMap = new Map(localContacts.map(c => [c.kajabi_id, c]));
 
       const results = {
