@@ -407,6 +407,57 @@ export default function MarketingDashboard() {
         </Card>
       </div>
 
+      {/* Source to Stage Conversion */}
+      <Card className="hover:shadow-lg transition-shadow duration-300">
+        <CardHeader>
+          <CardTitle style={{ color: '#264d44' }}>Source Performance by Stage</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {sourceData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart 
+                data={(() => {
+                  const sourceStageData = {};
+                  opportunities.forEach(opp => {
+                    const source = opp.source || 'Unknown';
+                    if (!sourceStageData[source]) {
+                      sourceStageData[source] = { source };
+                      DEAL_STAGES_CONFIG.forEach(stage => {
+                        sourceStageData[source][stage.name] = 0;
+                      });
+                    }
+                    const stage = opp.stage || 'Unknown';
+                    if (sourceStageData[source][stage] !== undefined) {
+                      sourceStageData[source][stage]++;
+                    }
+                  });
+                  return Object.values(sourceStageData).filter(d => d.source !== 'Unknown');
+                })()}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="source" angle={-45} textAnchor="end" height={100} />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                {DEAL_STAGES_CONFIG.map((stage) => (
+                  <Bar 
+                    key={stage.name}
+                    dataKey={stage.name} 
+                    stackId="a" 
+                    fill={stage.color}
+                    name={stage.name}
+                  />
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[350px] flex items-center justify-center text-gray-400">
+              No data available
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Stage Breakdown & Companies List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {/* Stage Breakdown */}
