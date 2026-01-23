@@ -27,6 +27,7 @@ export default function MarketingDashboard() {
   const [endDate, setEndDate] = useState('');
   const [selectedSource, setSelectedSource] = useState('all');
   const [selectedStage, setSelectedStage] = useState('all');
+  const [selectedTags, setSelectedTags] = useState([]);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['notionOpportunities', startDate, endDate, selectedSource, selectedStage],
