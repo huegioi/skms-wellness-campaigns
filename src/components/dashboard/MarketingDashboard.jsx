@@ -436,7 +436,7 @@ export default function MarketingDashboard() {
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="source" angle={-45} textAnchor="end" height={100} />
-                <YAxis />
+                <YAxis label={{ value: 'Number of Opportunities', angle: -90, position: 'insideLeft' }} />
                 <Tooltip />
                 <Legend />
                 {DEAL_STAGES_CONFIG.map((stage) => (
