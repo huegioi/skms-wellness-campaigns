@@ -513,7 +513,7 @@ export default function MarketingDashboard() {
                       tick={{ fontSize: 11, fill: '#6B7280' }}
                     />
                     <Tooltip 
-                      formatter={(value) => [`${value} opportunities`, 'Count']}
+                      formatter={(value) => [`${value} opportunities`]}
                       contentStyle={{ 
                         borderRadius: '8px', 
                         border: '1px solid #e5e7eb',
@@ -521,8 +521,7 @@ export default function MarketingDashboard() {
                         backgroundColor: '#fff'
                       }}
                     />
-                    <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                    <Bar dataKey="value" name="Count" radius={[8, 8, 0, 0]}>
+                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
                       {stageData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
