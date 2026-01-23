@@ -14,6 +14,16 @@ export default function Analytics() {
     queryFn: () => base44.entities.Proposal.list('-created_date')
   });
 
+  const { data: notionData } = useQuery({
+    queryKey: ['notionOpportunities'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('fetchNotionOpportunities', {});
+      return response.data;
+    },
+    refetchInterval: 300000,
+    initialData: { opportunities: [], total: 0 }
+  });
+
   const { data: kajabiStats } = useQuery({
     queryKey: ['kajabiStats'],
     queryFn: async () => {
