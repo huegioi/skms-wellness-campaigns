@@ -414,9 +414,9 @@ export default function MarketingDashboard() {
         </CardHeader>
         <CardContent>
           {sourceData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={420}>
+            <ResponsiveContainer width="100%" height={480}>
               <BarChart 
-                margin={{ top: 20, right: 40, left: 70, bottom: 90 }}
+                margin={{ top: 10, right: 40, left: 70, bottom: 90 }}
                 data={(() => {
                   const sourceStageData = {};
                   opportunities.forEach(opp => {
@@ -476,7 +476,7 @@ export default function MarketingDashboard() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[420px] flex items-center justify-center text-gray-400">
+            <div className="h-[480px] flex items-center justify-center text-gray-400">
               No data available
             </div>
           )}
@@ -492,8 +492,8 @@ export default function MarketingDashboard() {
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
             {stageData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={stageData} margin={{ top: 20, right: 30, left: 40, bottom: 90 }}>
+              <ResponsiveContainer width="100%" height={460}>
+                <BarChart data={stageData} margin={{ top: 10, right: 30, left: 40, bottom: 90 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis 
                     dataKey="name" 
@@ -529,7 +529,7 @@ export default function MarketingDashboard() {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-[400px] flex items-center justify-center text-gray-400">
+              <div className="h-[460px] flex items-center justify-center text-gray-400">
                 No data available
               </div>
             )}
