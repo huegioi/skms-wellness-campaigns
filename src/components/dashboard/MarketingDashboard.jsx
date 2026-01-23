@@ -10,17 +10,17 @@ import { TrendingUp, Users, RefreshCw, Mail, UserPlus, UserMinus, Tag, MousePoin
 import { format } from 'date-fns';
 
 const DEAL_STAGES_CONFIG = [
-  { name: 'Cold', color: '#B0BEC5' },
-  { name: 'Wellness Box Sent', color: '#ADD8E6' },
-  { name: 'Sales Kit Sent', color: '#87CEEB' },
-  { name: 'Warm', color: '#FFD700' },
-  { name: 'Engaged', color: '#FFA500' },
-  { name: 'Call Booked', color: '#FF4500' },
-  { name: 'Negotiation', color: '#DC143C' },
-  { name: 'Service Booked', color: '#10B981' },
-  { name: 'Paid', color: '#065F46' },
-  { name: 'Deal Lost', color: '#696969' }
-];
+{ name: 'Cold', color: '#B0BEC5' },
+{ name: 'Wellness Box Sent', color: '#ADD8E6' },
+{ name: 'Sales Kit Sent', color: '#87CEEB' },
+{ name: 'Warm', color: '#FFD700' },
+{ name: 'Engaged', color: '#FFA500' },
+{ name: 'Call Booked', color: '#FF4500' },
+{ name: 'Negotiation', color: '#DC143C' },
+{ name: 'Service Booked', color: '#10B981' },
+{ name: 'Paid', color: '#065F46' },
+{ name: 'Deal Lost', color: '#696969' }];
+
 
 export default function MarketingDashboard() {
   const [startDate, setStartDate] = useState('');
@@ -76,12 +76,12 @@ export default function MarketingDashboard() {
     }
   };
 
-  const opportunities = (data?.opportunities || []).filter(opp => 
-    selectedStage === 'all' || opp.stage === selectedStage
+  const opportunities = (data?.opportunities || []).filter((opp) =>
+  selectedStage === 'all' || opp.stage === selectedStage
   );
 
-  const allSources = [...new Set((data?.opportunities || []).map(o => o.source))].filter(s => s !== 'Unknown').sort();
-  const allStages = [...new Set((data?.opportunities || []).map(o => o.stage))].filter(s => s !== 'Unknown').sort();
+  const allSources = [...new Set((data?.opportunities || []).map((o) => o.source))].filter((s) => s !== 'Unknown').sort();
+  const allStages = [...new Set((data?.opportunities || []).map((o) => o.stage))].filter((s) => s !== 'Unknown').sort();
 
   // Calculate analytics
   const calculateAnalytics = () => {
@@ -89,7 +89,7 @@ export default function MarketingDashboard() {
     const stageBreakdown = {};
     const monthlyData = {};
 
-    opportunities.forEach(opp => {
+    opportunities.forEach((opp) => {
       // Source breakdown
       const source = opp.source || 'Unknown';
       sourceBreakdown[source] = (sourceBreakdown[source] || 0) + 1;
@@ -104,21 +104,21 @@ export default function MarketingDashboard() {
       monthlyData[month].count++;
     });
 
-    const sourceData = Object.entries(sourceBreakdown)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
+    const sourceData = Object.entries(sourceBreakdown).
+    map(([name, value]) => ({ name, value })).
+    sort((a, b) => b.value - a.value);
 
     // Get actual count of unique companies with paid invoices from QuickBooks
-    const paidInvoices = invoices.filter(inv => inv.status === 'paid');
+    const paidInvoices = invoices.filter((inv) => inv.status === 'paid');
     const paidClientCount = new Set(
-      paidInvoices
-        .map(inv => inv.company || inv.client_name || inv.client_id)
-        .filter(Boolean)
+      paidInvoices.
+      map((inv) => inv.company || inv.client_name || inv.client_id).
+      filter(Boolean)
     ).size;
 
-    const stageData = DEAL_STAGES_CONFIG.map(config => ({
+    const stageData = DEAL_STAGES_CONFIG.map((config) => ({
       name: config.name,
-      value: config.name === 'Paid' ? paidClientCount : (stageBreakdown[config.name] || 0),
+      value: config.name === 'Paid' ? paidClientCount : stageBreakdown[config.name] || 0,
       color: config.color
     }));
 
@@ -145,11 +145,11 @@ export default function MarketingDashboard() {
   const kajabiTrendData = React.useMemo(() => {
     if (!kajabiContacts.length) return [];
 
-    const filteredContacts = kajabiContacts.filter(contact => {
+    const filteredContacts = kajabiContacts.filter((contact) => {
       const createdDate = new Date(contact.kajabi_created_at);
       const start = contactStartDate ? new Date(contactStartDate) : null;
       const end = contactEndDate ? new Date(contactEndDate) : null;
-      
+
       if (start && createdDate < start) return false;
       if (end && createdDate > end) return false;
       return true;
@@ -157,7 +157,7 @@ export default function MarketingDashboard() {
 
     const buckets = {};
 
-    filteredContacts.forEach(contact => {
+    filteredContacts.forEach((contact) => {
       const createdDate = new Date(contact.kajabi_created_at);
       let key, label;
 
@@ -178,36 +178,36 @@ export default function MarketingDashboard() {
         buckets[key] = { key, label, subscribed: 0, unsubscribed: 0, total: 0 };
       }
       buckets[key].total++;
-      if (contact.subscribed) buckets[key].subscribed++;
-      else buckets[key].unsubscribed++;
+      if (contact.subscribed) buckets[key].subscribed++;else
+      buckets[key].unsubscribed++;
     });
 
-    return Object.values(buckets)
-      .sort((a, b) => new Date(a.key) - new Date(b.key));
+    return Object.values(buckets).
+    sort((a, b) => new Date(a.key) - new Date(b.key));
   }, [kajabiContacts, contactStartDate, contactEndDate, timePeriod]);
 
   // Tag tracking
   const tagData = React.useMemo(() => {
     if (!kajabiContacts.length) return [];
-    
+
     const tagCounts = {};
-    kajabiContacts.forEach(contact => {
-      (contact.tags || []).forEach(tag => {
+    kajabiContacts.forEach((contact) => {
+      (contact.tags || []).forEach((tag) => {
         if (!tagCounts[tag]) {
           tagCounts[tag] = { name: tag, subscribed: 0, unsubscribed: 0, total: 0 };
         }
         tagCounts[tag].total++;
-        if (contact.subscribed) tagCounts[tag].subscribed++;
-        else tagCounts[tag].unsubscribed++;
+        if (contact.subscribed) tagCounts[tag].subscribed++;else
+        tagCounts[tag].unsubscribed++;
       });
     });
 
     return Object.values(tagCounts).sort((a, b) => b.total - a.total);
   }, [kajabiContacts]);
 
-  const filteredTagData = selectedTags.length > 0 
-    ? tagData.filter(t => selectedTags.includes(t.name))
-    : tagData.slice(0, 10);
+  const filteredTagData = selectedTags.length > 0 ?
+  tagData.filter((t) => selectedTags.includes(t.name)) :
+  tagData.slice(0, 10);
 
   return (
     <div className="space-y-8">
@@ -226,8 +226,8 @@ export default function MarketingDashboard() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full"
-              />
+                className="w-full" />
+
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">End Date</label>
@@ -235,8 +235,8 @@ export default function MarketingDashboard() {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full"
-              />
+                className="w-full" />
+
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 mb-2 block">Source</label>
@@ -246,9 +246,9 @@ export default function MarketingDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Sources</SelectItem>
-                  {allSources.map(source => (
-                    <SelectItem key={source} value={source}>{source}</SelectItem>
-                  ))}
+                  {allSources.map((source) =>
+                  <SelectItem key={source} value={source}>{source}</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -260,9 +260,9 @@ export default function MarketingDashboard() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Stages</SelectItem>
-                  {allStages.map(stage => (
-                    <SelectItem key={stage} value={stage}>{stage}</SelectItem>
-                  ))}
+                  {allStages.map((stage) =>
+                  <SelectItem key={stage} value={stage}>{stage}</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -333,48 +333,48 @@ export default function MarketingDashboard() {
             <CardTitle style={{ color: '#264d44' }}>Opportunities by Source</CardTitle>
           </CardHeader>
           <CardContent>
-            {sourceData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
+            {sourceData.length > 0 ?
+            <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
-                        data={sourceData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={true}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={95}
-                        innerRadius={35}
-                        fill="#8884d8"
-                        dataKey="value"
-                        paddingAngle={2}
-                      >
-                        {sourceData.map((entry, index) => (
-                          <Cell 
-                            key={`cell-${index}`} 
-                            fill={getSourceColor(entry.name)}
-                            style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' }}
-                          />
-                        ))}
+                  data={sourceData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={true}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={95}
+                  innerRadius={35}
+                  fill="#8884d8"
+                  dataKey="value"
+                  paddingAngle={2}>
+
+                        {sourceData.map((entry, index) =>
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={getSourceColor(entry.name)}
+                    style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' }} />
+
+                  )}
                       </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          borderRadius: '8px', 
-                          border: '1px solid #e5e7eb',
-                          boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                        }}
-                      />
-                      <Legend 
-                        verticalAlign="bottom" 
-                        height={36}
-                        wrapperStyle={{ paddingTop: '10px' }}
-                      />
+                      <Tooltip
+                  contentStyle={{
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                  }} />
+
+                      <Legend
+                  verticalAlign="bottom"
+                  height={36}
+                  wrapperStyle={{ paddingTop: '10px' }} />
+
                     </PieChart>
-                  </ResponsiveContainer>
-            ) : (
-              <div className="h-[350px] flex items-center justify-center text-gray-400">
+                  </ResponsiveContainer> :
+
+            <div className="h-[350px] flex items-center justify-center text-gray-400">
                 No data available
               </div>
-            )}
+            }
           </CardContent>
         </Card>
 
@@ -384,25 +384,25 @@ export default function MarketingDashboard() {
             <CardTitle style={{ color: '#264d44' }}>Source Breakdown</CardTitle>
           </CardHeader>
           <CardContent>
-            {sourceData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
+            {sourceData.length > 0 ?
+            <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={sourceData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis type="number" label={{ value: 'Number of Opportunities', position: 'insideBottom', offset: -5 }} />
                   <YAxis dataKey="name" type="category" width={120} />
                   <Tooltip />
                   <Bar dataKey="value" name="Opportunities" radius={[0, 8, 8, 0]}>
-                    {sourceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={getSourceColor(entry.name)} />
-                    ))}
+                    {sourceData.map((entry, index) =>
+                  <Cell key={`cell-${index}`} fill={getSourceColor(entry.name)} />
+                  )}
                   </Bar>
                 </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[350px] flex items-center justify-center text-gray-400">
+              </ResponsiveContainer> :
+
+            <div className="h-[350px] flex items-center justify-center text-gray-400">
                 No data available
               </div>
-            )}
+            }
           </CardContent>
         </Card>
       </div>
@@ -412,79 +412,79 @@ export default function MarketingDashboard() {
         <CardHeader>
           <CardTitle style={{ color: '#264d44' }}>Source Performance by Stage</CardTitle>
         </CardHeader>
-        <CardContent className="pt-6 pb-6">
-          {sourceData.length > 0 ? (
-            <div className="w-full" style={{ height: '550px' }}>
+        <CardContent className="px-6 py-4">
+          {sourceData.length > 0 ?
+          <div className="w-full" style={{ height: '500px' }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart 
-                  margin={{ top: 10, right: 20, left: 80, bottom: 100 }}
-                  data={(() => {
-                    const sourceStageData = {};
-                    opportunities.forEach(opp => {
-                      const source = opp.source || 'Unknown';
-                      if (!sourceStageData[source]) {
-                        sourceStageData[source] = { source };
-                        DEAL_STAGES_CONFIG.forEach(stage => {
-                          sourceStageData[source][stage.name] = 0;
-                        });
-                      }
-                      const stage = opp.stage || 'Unknown';
-                      if (sourceStageData[source][stage] !== undefined) {
-                        sourceStageData[source][stage]++;
-                      }
-                    });
-                    return Object.values(sourceStageData).filter(d => d.source !== 'Unknown');
-                  })()}
-                >
+                <BarChart
+                margin={{ top: 10, right: 20, left: 80, bottom: 100 }}
+                data={(() => {
+                  const sourceStageData = {};
+                  opportunities.forEach((opp) => {
+                    const source = opp.source || 'Unknown';
+                    if (!sourceStageData[source]) {
+                      sourceStageData[source] = { source };
+                      DEAL_STAGES_CONFIG.forEach((stage) => {
+                        sourceStageData[source][stage.name] = 0;
+                      });
+                    }
+                    const stage = opp.stage || 'Unknown';
+                    if (sourceStageData[source][stage] !== undefined) {
+                      sourceStageData[source][stage]++;
+                    }
+                  });
+                  return Object.values(sourceStageData).filter((d) => d.source !== 'Unknown');
+                })()}>
+
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey="source" 
-                    angle={-45} 
-                    textAnchor="end" 
-                    height={95}
-                    interval={0}
-                    tick={{ fontSize: 12, fill: '#374151' }}
-                  />
-                  <YAxis 
-                    label={{ 
-                      value: 'Opportunities', 
-                      angle: -90, 
-                      position: 'insideLeft',
-                      offset: 20,
-                      style: { fontSize: '13px', fill: '#374151', fontWeight: '600' }
-                    }}
-                    tick={{ fontSize: 11, fill: '#6B7280' }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      borderRadius: '8px', 
-                      border: '1px solid #e5e7eb',
-                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                      backgroundColor: '#fff'
-                    }}
-                  />
-                  <Legend 
-                    wrapperStyle={{ paddingTop: '15px' }}
-                    iconType="circle"
-                    iconSize={8}
-                  />
-                  {DEAL_STAGES_CONFIG.map((stage) => (
-                    <Bar 
-                      key={stage.name}
-                      dataKey={stage.name} 
-                      stackId="a" 
-                      fill={stage.color}
-                      name={stage.name}
-                    />
-                  ))}
+                  <XAxis
+                  dataKey="source"
+                  angle={-45}
+                  textAnchor="end"
+                  height={95}
+                  interval={0}
+                  tick={{ fontSize: 12, fill: '#374151' }} />
+
+                  <YAxis
+                  label={{
+                    value: 'Opportunities',
+                    angle: -90,
+                    position: 'insideLeft',
+                    offset: 20,
+                    style: { fontSize: '13px', fill: '#374151', fontWeight: '600' }
+                  }}
+                  tick={{ fontSize: 11, fill: '#6B7280' }} />
+
+                  <Tooltip
+                  contentStyle={{
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    backgroundColor: '#fff'
+                  }} />
+
+                  <Legend
+                  wrapperStyle={{ paddingTop: '15px' }}
+                  iconType="circle"
+                  iconSize={8} />
+
+                  {DEAL_STAGES_CONFIG.map((stage) =>
+                <Bar
+                  key={stage.name}
+                  dataKey={stage.name}
+                  stackId="a"
+                  fill={stage.color}
+                  name={stage.name} />
+
+                )}
                 </BarChart>
               </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="h-[550px] flex items-center justify-center text-gray-400">
+            </div> :
+
+          <div className="h-[500px] flex items-center justify-center text-gray-400">
               No data available
             </div>
-          )}
+          }
         </CardContent>
       </Card>
 
@@ -495,45 +495,53 @@ export default function MarketingDashboard() {
           <CardHeader className="pb-4">
             <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Opportunities by Stage</CardTitle>
           </CardHeader>
-          <CardContent className="px-4 sm:px-6 pt-4 pb-6">
-            {stageData.length > 0 ? (
-              <div className="w-full" style={{ height: '520px' }}>
+          <CardContent className="my-2 pt-6 pr-4 pb-2 pl-4 sm:px-6">
+            {stageData.length > 0 ?
+            <div className="w-full" style={{ height: '450px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stageData} margin={{ top: 10, right: 20, left: 40, bottom: 100 }}>
+                  <BarChart data={stageData} margin={{ top: 10, right: 20, left: 60, bottom: 100 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45} 
-                      textAnchor="end" 
-                      height={95}
-                      interval={0}
-                      tick={{ fontSize: 11, fill: '#374151' }}
-                    />
-                    <YAxis 
-                      tick={{ fontSize: 11, fill: '#6B7280' }}
-                    />
-                    <Tooltip 
-                      formatter={(value) => [`${value} opportunities`]}
-                      contentStyle={{ 
-                        borderRadius: '8px', 
-                        border: '1px solid #e5e7eb',
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                        backgroundColor: '#fff'
-                      }}
-                    />
-                    <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                      {stageData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
+                    <XAxis
+                    dataKey="name"
+                    angle={-45}
+                    textAnchor="end"
+                    height={95}
+                    interval={0}
+                    tick={{ fontSize: 11, fill: '#374151' }} />
+
+                    <YAxis
+                    label={{
+                      value: 'Count',
+                      angle: -90,
+                      position: 'insideLeft',
+                      offset: 15,
+                      style: { fontSize: '13px', fill: '#374151', fontWeight: '600' }
+                    }}
+                    tick={{ fontSize: 11, fill: '#6B7280' }} />
+
+                    <Tooltip
+                    formatter={(value) => [`${value} opportunities`, 'Count']}
+                    contentStyle={{
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      backgroundColor: '#fff'
+                    }} />
+
+                    <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                    <Bar dataKey="value" name="Count" radius={[8, 8, 0, 0]}>
+                      {stageData.map((entry, index) =>
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    )}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className="h-[520px] flex items-center justify-center text-gray-400">
+              </div> :
+
+            <div className="h-[450px] flex items-center justify-center text-gray-400">
                 No data available
               </div>
-            )}
+            }
           </CardContent>
         </Card>
 
@@ -543,10 +551,10 @@ export default function MarketingDashboard() {
             <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Recent Companies</CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
-            {opportunities.length > 0 ? (
-              <div className="space-y-2 max-h-[280px] overflow-y-auto">
-                {opportunities.slice(0, 10).filter(opp => opp.company).map((opp, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+            {opportunities.length > 0 ?
+            <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                {opportunities.slice(0, 10).filter((opp) => opp.company).map((opp, idx) =>
+              <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 truncate">{opp.company}</p>
                       <div className="flex flex-wrap gap-2 mt-1">
@@ -556,13 +564,13 @@ export default function MarketingDashboard() {
                     </div>
                     <span className="text-xs text-gray-500 ml-2 whitespace-nowrap">{format(new Date(opp.created_time), 'MMM d')}</span>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="h-[280px] flex items-center justify-center text-gray-400">
+              )}
+              </div> :
+
+            <div className="h-[280px] flex items-center justify-center text-gray-400">
                 No opportunities yet
               </div>
-            )}
+            }
           </CardContent>
         </Card>
       </div>
@@ -573,31 +581,31 @@ export default function MarketingDashboard() {
           <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Opportunities Over Time</CardTitle>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
-          {timelineData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
+          {timelineData.length > 0 ?
+          <ResponsiveContainer width="100%" height={250}>
               <LineChart data={timelineData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} />
                 <YAxis axisLine={false} tickLine={false} />
-                <Tooltip 
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="count" 
-                  name="Opportunities" 
-                  stroke="#264d44" 
-                  strokeWidth={3} 
-                  dot={{ r: 4, fill: '#264d44', stroke: '#fff', strokeWidth: 2 }} 
-                  activeDot={{ r: 6, fill: '#fff', stroke: '#264d44', strokeWidth: 2 }} 
-                />
+                <Tooltip
+                contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+
+                <Line
+                type="monotone"
+                dataKey="count"
+                name="Opportunities"
+                stroke="#264d44"
+                strokeWidth={3}
+                dot={{ r: 4, fill: '#264d44', stroke: '#fff', strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: '#fff', stroke: '#264d44', strokeWidth: 2 }} />
+
               </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[250px] flex items-center justify-center text-gray-400">
+            </ResponsiveContainer> :
+
+          <div className="h-[250px] flex items-center justify-center text-gray-400">
               No data available
             </div>
-          )}
+          }
         </CardContent>
       </Card>
 
@@ -611,19 +619,19 @@ export default function MarketingDashboard() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold" style={{ color: '#264d44' }}>Email Marketing (Kajabi)</h2>
-          <Button 
-            onClick={syncKajabiContacts} 
+          <Button
+            onClick={syncKajabiContacts}
             variant="outline"
             className="border-[#264d44] text-[#264d44] hover:bg-[#264d44] hover:text-white"
-            disabled={kajabiLoading}
-          >
+            disabled={kajabiLoading}>
+
             <RefreshCw className={`w-4 h-4 mr-2 ${kajabiLoading ? 'animate-spin' : ''}`} />
             Sync Kajabi
           </Button>
         </div>
 
-        {kajabiStats ? (
-          <>
+        {kajabiStats ?
+        <>
             {/* Kajabi Contact KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
@@ -688,8 +696,8 @@ export default function MarketingDashboard() {
             </div>
 
             {/* Engagement Metrics (Webhook-based) */}
-            {kajabiStats.engagement && (
-              <>
+            {kajabiStats.engagement &&
+          <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
                     <CardContent className="p-6 z-10 relative">
@@ -753,8 +761,8 @@ export default function MarketingDashboard() {
                 </div>
 
                 {/* Event Activity Chart */}
-                {kajabiStats.engagement.topEvents && kajabiStats.engagement.topEvents.length > 0 && (
-                  <Card className="hover:shadow-lg transition-shadow duration-300">
+                {kajabiStats.engagement.topEvents && kajabiStats.engagement.topEvents.length > 0 &&
+            <Card className="hover:shadow-lg transition-shadow duration-300">
                     <CardHeader>
                       <CardTitle style={{ color: '#264d44' }}>Top Engagement Events (Last 30 Days)</CardTitle>
                     </CardHeader>
@@ -770,13 +778,13 @@ export default function MarketingDashboard() {
                       </ResponsiveContainer>
                     </CardContent>
                   </Card>
-                )}
+            }
               </>
-            )}
+          }
 
             {/* Top Tags Chart */}
-            {kajabiStats.topTags && kajabiStats.topTags.length > 0 && (
-              <Card className="hover:shadow-lg transition-shadow duration-300">
+            {kajabiStats.topTags && kajabiStats.topTags.length > 0 &&
+          <Card className="hover:shadow-lg transition-shadow duration-300">
                 <CardHeader>
                   <CardTitle style={{ color: '#264d44' }}>Top Contact Tags</CardTitle>
                 </CardHeader>
@@ -792,11 +800,11 @@ export default function MarketingDashboard() {
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
-            )}
+          }
 
             {/* Contact Growth Charts */}
-            {kajabiContacts.length > 0 && (
-              <>
+            {kajabiContacts.length > 0 &&
+          <>
                 {/* Contact Growth Filters */}
                 <Card>
                   <CardContent className="p-6">
@@ -804,20 +812,20 @@ export default function MarketingDashboard() {
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-2 block">Start Date</label>
                         <Input
-                          type="date"
-                          value={contactStartDate}
-                          onChange={(e) => setContactStartDate(e.target.value)}
-                          className="w-full"
-                        />
+                      type="date"
+                      value={contactStartDate}
+                      onChange={(e) => setContactStartDate(e.target.value)}
+                      className="w-full" />
+
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-2 block">End Date</label>
                         <Input
-                          type="date"
-                          value={contactEndDate}
-                          onChange={(e) => setContactEndDate(e.target.value)}
-                          className="w-full"
-                        />
+                      type="date"
+                      value={contactEndDate}
+                      onChange={(e) => setContactEndDate(e.target.value)}
+                      className="w-full" />
+
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-2 block">Time Period</label>
@@ -844,10 +852,10 @@ export default function MarketingDashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {kajabiTrendData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={350}>
-                        {timePeriod === 'day' || timePeriod === 'week' ? (
-                          <BarChart data={kajabiTrendData} margin={{ top: 5, right: 30, left: 20, bottom: 80 }}>
+                    {kajabiTrendData.length > 0 ?
+                <ResponsiveContainer width="100%" height={350}>
+                        {timePeriod === 'day' || timePeriod === 'week' ?
+                  <BarChart data={kajabiTrendData} margin={{ top: 5, right: 30, left: 20, bottom: 80 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="label" angle={-45} textAnchor="end" height={80} />
                             <YAxis />
@@ -855,9 +863,9 @@ export default function MarketingDashboard() {
                             <Legend />
                             <Bar dataKey="subscribed" name="Subscribed" stackId="a" fill="#22C55E" />
                             <Bar dataKey="unsubscribed" name="Unsubscribed" stackId="a" fill="#EF4444" />
-                          </BarChart>
-                          ) : (
-                          <LineChart data={kajabiTrendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                          </BarChart> :
+
+                  <LineChart data={kajabiTrendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="label" />
                             <YAxis />
@@ -867,11 +875,11 @@ export default function MarketingDashboard() {
                             <Line type="monotone" dataKey="unsubscribed" name="Unsubscribed" stroke="#EF4444" strokeWidth={2} dot={{ fill: '#EF4444' }} />
                             <Line type="monotone" dataKey="total" name="Total" stroke="#3B82F6" strokeWidth={2} dot={{ fill: '#3B82F6' }} />
                           </LineChart>
-                        )}
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="h-[350px] flex items-center justify-center text-gray-400">No data in selected range</div>
-                    )}
+                  }
+                      </ResponsiveContainer> :
+
+                <div className="h-[350px] flex items-center justify-center text-gray-400">No data in selected range</div>
+                }
                   </CardContent>
                 </Card>
 
@@ -880,33 +888,33 @@ export default function MarketingDashboard() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle style={{ color: '#264d44' }}>Tag Performance</CardTitle>
-                      {tagData.length > 10 && (
-                        <Select
-                          value={selectedTags.length > 0 ? selectedTags.join(',') : 'top10'}
-                          onValueChange={(value) => {
-                            if (value === 'top10') {
-                              setSelectedTags([]);
-                            } else {
-                              setSelectedTags(value.split(','));
-                            }
-                          }}
-                        >
+                      {tagData.length > 10 &&
+                  <Select
+                    value={selectedTags.length > 0 ? selectedTags.join(',') : 'top10'}
+                    onValueChange={(value) => {
+                      if (value === 'top10') {
+                        setSelectedTags([]);
+                      } else {
+                        setSelectedTags(value.split(','));
+                      }
+                    }}>
+
                           <SelectTrigger className="w-[200px]">
                             <SelectValue placeholder="Select tags" />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="top10">Top 10 Tags</SelectItem>
-                            {tagData.slice(0, 20).map(tag => (
-                              <SelectItem key={tag.name} value={tag.name}>{tag.name}</SelectItem>
-                            ))}
+                            {tagData.slice(0, 20).map((tag) =>
+                      <SelectItem key={tag.name} value={tag.name}>{tag.name}</SelectItem>
+                      )}
                           </SelectContent>
                         </Select>
-                      )}
+                  }
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {filteredTagData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={300}>
+                    {filteredTagData.length > 0 ?
+                <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={filteredTagData} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis type="number" />
@@ -916,17 +924,17 @@ export default function MarketingDashboard() {
                           <Bar dataKey="subscribed" name="Subscribed" fill="#22C55E" />
                           <Bar dataKey="unsubscribed" name="Unsubscribed" fill="#EF4444" />
                         </BarChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="h-[300px] flex items-center justify-center text-gray-400">No tags yet</div>
-                    )}
+                      </ResponsiveContainer> :
+
+                <div className="h-[300px] flex items-center justify-center text-gray-400">No tags yet</div>
+                }
                   </CardContent>
                 </Card>
               </>
-            )}
-          </>
-        ) : (
-          <Card>
+          }
+          </> :
+
+        <Card>
             <CardContent className="p-8 text-center">
               <Mail className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-500 mb-4">No Kajabi data available yet</p>
@@ -936,8 +944,8 @@ export default function MarketingDashboard() {
               </Button>
             </CardContent>
           </Card>
-        )}
+        }
       </div>
-    </div>
-  );
+    </div>);
+
 }
