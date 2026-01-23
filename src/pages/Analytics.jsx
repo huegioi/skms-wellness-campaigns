@@ -170,45 +170,93 @@ export default function Analytics() {
           <p className="text-gray-600">Insights into your proposal and marketing performance</p>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-xl p-5 shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-100"><FileText className="w-5 h-5 text-blue-600" /></div>
-              <div>
-                <p className="text-sm text-gray-500">Total Proposals</p>
-                <p className="text-2xl font-bold">{totalProposals}</p>
+        {/* Proposal KPI Cards */}
+        <div className="mb-6">
+          <h2 className="text-xl font-bold mb-4" style={{ color: '#264d44' }}>Proposal Metrics</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white rounded-xl p-5 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-100"><FileText className="w-5 h-5 text-blue-600" /></div>
+                <div>
+                  <p className="text-sm text-gray-500">Total Proposals</p>
+                  <p className="text-2xl font-bold">{totalProposals}</p>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="bg-white rounded-xl p-5 shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100"><CheckCircle className="w-5 h-5 text-green-600" /></div>
-              <div>
-                <p className="text-sm text-gray-500">Acceptance Rate</p>
-                <p className="text-2xl font-bold">{acceptanceRate}%</p>
+            <div className="bg-white rounded-xl p-5 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-100"><CheckCircle className="w-5 h-5 text-green-600" /></div>
+                <div>
+                  <p className="text-sm text-gray-500">Acceptance Rate</p>
+                  <p className="text-2xl font-bold">{acceptanceRate}%</p>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="bg-white rounded-xl p-5 shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100"><DollarSign className="w-5 h-5 text-purple-600" /></div>
-              <div>
-                <p className="text-sm text-gray-500">Avg. Value</p>
-                <p className="text-2xl font-bold">${avgValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+            <div className="bg-white rounded-xl p-5 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-purple-100"><DollarSign className="w-5 h-5 text-purple-600" /></div>
+                <div>
+                  <p className="text-sm text-gray-500">Avg. Value</p>
+                  <p className="text-2xl font-bold">${avgValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="bg-white rounded-xl p-5 shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-100"><Clock className="w-5 h-5 text-amber-600" /></div>
-              <div>
-                <p className="text-sm text-gray-500">Avg. View Time</p>
-                <p className="text-2xl font-bold">{avgViewTime}h</p>
+            <div className="bg-white rounded-xl p-5 shadow-lg">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-amber-100"><Clock className="w-5 h-5 text-amber-600" /></div>
+                <div>
+                  <p className="text-sm text-gray-500">Avg. View Time</p>
+                  <p className="text-2xl font-bold">{avgViewTime}h</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Kajabi Marketing KPI Cards */}
+        {kajabiStats && (
+          <div className="mb-8">
+            <h2 className="text-xl font-bold mb-4" style={{ color: '#264d44' }}>Marketing Metrics (Kajabi)</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl p-5 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-blue-100"><Users className="w-5 h-5 text-blue-600" /></div>
+                  <div>
+                    <p className="text-sm text-gray-500">Total Contacts</p>
+                    <p className="text-2xl font-bold">{kajabiStats.total}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-5 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-green-100"><Mail className="w-5 h-5 text-green-600" /></div>
+                  <div>
+                    <p className="text-sm text-gray-500">Subscribed</p>
+                    <p className="text-2xl font-bold">{kajabiStats.subscribed}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-5 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-purple-100"><UserPlus className="w-5 h-5 text-purple-600" /></div>
+                  <div>
+                    <p className="text-sm text-gray-500">New (30 days)</p>
+                    <p className="text-2xl font-bold">{kajabiStats.newLast30Days}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-5 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-red-100"><Mail className="w-5 h-5 text-red-600" /></div>
+                  <div>
+                    <p className="text-sm text-gray-500">Unsubscribed</p>
+                    <p className="text-2xl font-bold">{kajabiStats.unsubscribed}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Additional metrics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
