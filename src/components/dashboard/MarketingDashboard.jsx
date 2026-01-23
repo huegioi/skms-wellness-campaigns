@@ -58,6 +58,12 @@ export default function MarketingDashboard() {
     initialData: null
   });
 
+  const { data: kajabiContacts = [] } = useQuery({
+    queryKey: ['kajabiContacts'],
+    queryFn: () => base44.entities.KajabiContact.list('-last_synced'),
+    initialData: []
+  });
+
   const syncKajabiContacts = async () => {
     try {
       await base44.functions.invoke('syncKajabi', { action: 'syncAll' });
