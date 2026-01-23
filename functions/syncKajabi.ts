@@ -149,6 +149,7 @@ Deno.serve(async (req) => {
 
     if (action === 'getStats') {
       const contacts = await base44.asServiceRole.entities.KajabiContact.filter({});
+      const events = await base44.asServiceRole.entities.KajabiEvent.filter({});
       
       const subscribed = contacts.filter(c => c.subscribed).length;
       const unsubscribed = contacts.filter(c => !c.subscribed).length;
@@ -174,6 +175,37 @@ Deno.serve(async (req) => {
         .slice(0, 10)
         .map(([name, count]) => ({ name, count }));
 
+      // Event-based engagement metrics (last 30 days)
+      const recentEvents = events.filter(e => 
+        e.event_date && new Date(e.event_date) > thirtyDaysAgo
+      );
+
+      const eventTypeCounts = {};
+      recentEvents.forEach(e => {
+        const type = e.event_type || 'unknown';
+        eventTypeCounts[type] = (eventTypeCounts[type] || 0) + 1;
+      });
+
+      const topEvents = Object.entries(eventTypeCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([name, count]) => ({ name, count }));
+
+      // Form submissions
+      const formSubmissions = recentEvents.filter(e => 
+        e.event_type?.includes('form')
+      ).length;
+
+      // Tag engagements
+      const tagEngagements = recentEvents.filter(e => 
+        e.event_type?.includes('tag')
+      ).length;
+
+      // Purchases/conversions
+      const conversions = recentEvents.filter(e => 
+        e.event_type?.includes('purchase') || e.event_type?.includes('subscription')
+      ).length;
+
       return Response.json({
         success: true,
         stats: {
@@ -181,7 +213,14 @@ Deno.serve(async (req) => {
           subscribed,
           unsubscribed,
           newLast30Days,
-          topTags
+          topTags,
+          engagement: {
+            totalEvents: recentEvents.length,
+            formSubmissions,
+            tagEngagements,
+            conversions,
+            topEvents
+          }
         }
       });
     }

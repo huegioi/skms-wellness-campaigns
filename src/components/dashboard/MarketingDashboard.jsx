@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, Users, RefreshCw, Mail, UserPlus, UserMinus, Tag } from 'lucide-react';
+import { TrendingUp, Users, RefreshCw, Mail, UserPlus, UserMinus, Tag, MousePointerClick, FileText, ShoppingCart } from 'lucide-react';
 import { format } from 'date-fns';
 
 const DEAL_STAGES_CONFIG = [
@@ -133,120 +133,6 @@ export default function MarketingDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Kajabi Email Marketing Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold" style={{ color: '#264d44' }}>Email Marketing (Kajabi)</h2>
-          <Button 
-            onClick={syncKajabiContacts} 
-            variant="outline"
-            className="border-[#264d44] text-[#264d44] hover:bg-[#264d44] hover:text-white"
-            disabled={kajabiLoading}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${kajabiLoading ? 'animate-spin' : ''}`} />
-            Sync Kajabi
-          </Button>
-        </div>
-
-        {kajabiStats ? (
-          <>
-            {/* Kajabi KPIs */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-                <CardContent className="p-6 z-10 relative">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 mb-1">Total Contacts</p>
-                      <p className="text-3xl font-bold text-blue-600">{kajabiStats.total}</p>
-                    </div>
-                    <div className="p-3 rounded-full bg-blue-100 transition-all duration-300 group-hover:scale-110">
-                      <Users className="w-6 h-6 text-blue-600" />
-                    </div>
-                  </div>
-                </CardContent>
-                <div className="absolute inset-0 opacity-5 bg-blue-100 group-hover:opacity-10 transition-opacity"></div>
-              </Card>
-
-              <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-                <CardContent className="p-6 z-10 relative">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 mb-1">Subscribed</p>
-                      <p className="text-3xl font-bold text-green-600">{kajabiStats.subscribed}</p>
-                    </div>
-                    <div className="p-3 rounded-full bg-green-100 transition-all duration-300 group-hover:scale-110">
-                      <Mail className="w-6 h-6 text-green-600" />
-                    </div>
-                  </div>
-                </CardContent>
-                <div className="absolute inset-0 opacity-5 bg-green-100 group-hover:opacity-10 transition-opacity"></div>
-              </Card>
-
-              <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-                <CardContent className="p-6 z-10 relative">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 mb-1">New (30 days)</p>
-                      <p className="text-3xl font-bold text-purple-600">{kajabiStats.newLast30Days}</p>
-                    </div>
-                    <div className="p-3 rounded-full bg-purple-100 transition-all duration-300 group-hover:scale-110">
-                      <UserPlus className="w-6 h-6 text-purple-600" />
-                    </div>
-                  </div>
-                </CardContent>
-                <div className="absolute inset-0 opacity-5 bg-purple-100 group-hover:opacity-10 transition-opacity"></div>
-              </Card>
-
-              <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-                <CardContent className="p-6 z-10 relative">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 mb-1">Unsubscribed</p>
-                      <p className="text-3xl font-bold text-red-600">{kajabiStats.unsubscribed}</p>
-                    </div>
-                    <div className="p-3 rounded-full bg-red-100 transition-all duration-300 group-hover:scale-110">
-                      <UserMinus className="w-6 h-6 text-red-600" />
-                    </div>
-                  </div>
-                </CardContent>
-                <div className="absolute inset-0 opacity-5 bg-red-100 group-hover:opacity-10 transition-opacity"></div>
-              </Card>
-            </div>
-
-            {/* Top Tags Chart */}
-            {kajabiStats.topTags && kajabiStats.topTags.length > 0 && (
-              <Card className="hover:shadow-lg transition-shadow duration-300">
-                <CardHeader>
-                  <CardTitle style={{ color: '#264d44' }}>Top Contact Tags</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={kajabiStats.topTags}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} interval={0} />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="count" name="Contacts" fill="#264d44" radius={[8, 8, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            )}
-          </>
-        ) : (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Mail className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 mb-4">No Kajabi data available yet</p>
-              <Button onClick={syncKajabiContacts} className="bg-[#264d44] hover:bg-[#1a3830]">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Sync Kajabi Contacts
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
       {/* Notion Opportunities Section */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold" style={{ color: '#264d44' }}>Sales Pipeline (Notion)</h2>
@@ -552,6 +438,207 @@ export default function MarketingDashboard() {
       <div className="text-center text-sm text-gray-500">
         <RefreshCw className="w-4 h-4 inline mr-1" />
         Auto-refreshing every 30 seconds
+      </div>
+
+      {/* Kajabi Email Marketing Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold" style={{ color: '#264d44' }}>Email Marketing (Kajabi)</h2>
+          <Button 
+            onClick={syncKajabiContacts} 
+            variant="outline"
+            className="border-[#264d44] text-[#264d44] hover:bg-[#264d44] hover:text-white"
+            disabled={kajabiLoading}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${kajabiLoading ? 'animate-spin' : ''}`} />
+            Sync Kajabi
+          </Button>
+        </div>
+
+        {kajabiStats ? (
+          <>
+            {/* Kajabi Contact KPIs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+                <CardContent className="p-6 z-10 relative">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 mb-1">Total Contacts</p>
+                      <p className="text-3xl font-bold text-blue-600">{kajabiStats.total}</p>
+                    </div>
+                    <div className="p-3 rounded-full bg-blue-100 transition-all duration-300 group-hover:scale-110">
+                      <Users className="w-6 h-6 text-blue-600" />
+                    </div>
+                  </div>
+                </CardContent>
+                <div className="absolute inset-0 opacity-5 bg-blue-100 group-hover:opacity-10 transition-opacity"></div>
+              </Card>
+
+              <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+                <CardContent className="p-6 z-10 relative">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 mb-1">Subscribed</p>
+                      <p className="text-3xl font-bold text-green-600">{kajabiStats.subscribed}</p>
+                    </div>
+                    <div className="p-3 rounded-full bg-green-100 transition-all duration-300 group-hover:scale-110">
+                      <Mail className="w-6 h-6 text-green-600" />
+                    </div>
+                  </div>
+                </CardContent>
+                <div className="absolute inset-0 opacity-5 bg-green-100 group-hover:opacity-10 transition-opacity"></div>
+              </Card>
+
+              <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+                <CardContent className="p-6 z-10 relative">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 mb-1">New (30 days)</p>
+                      <p className="text-3xl font-bold text-purple-600">{kajabiStats.newLast30Days}</p>
+                    </div>
+                    <div className="p-3 rounded-full bg-purple-100 transition-all duration-300 group-hover:scale-110">
+                      <UserPlus className="w-6 h-6 text-purple-600" />
+                    </div>
+                  </div>
+                </CardContent>
+                <div className="absolute inset-0 opacity-5 bg-purple-100 group-hover:opacity-10 transition-opacity"></div>
+              </Card>
+
+              <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+                <CardContent className="p-6 z-10 relative">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-500 mb-1">Unsubscribed</p>
+                      <p className="text-3xl font-bold text-red-600">{kajabiStats.unsubscribed}</p>
+                    </div>
+                    <div className="p-3 rounded-full bg-red-100 transition-all duration-300 group-hover:scale-110">
+                      <UserMinus className="w-6 h-6 text-red-600" />
+                    </div>
+                  </div>
+                </CardContent>
+                <div className="absolute inset-0 opacity-5 bg-red-100 group-hover:opacity-10 transition-opacity"></div>
+              </Card>
+            </div>
+
+            {/* Engagement Metrics (Webhook-based) */}
+            {kajabiStats.engagement && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+                    <CardContent className="p-6 z-10 relative">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 mb-1">Total Events (30d)</p>
+                          <p className="text-3xl font-bold text-indigo-600">{kajabiStats.engagement.totalEvents}</p>
+                        </div>
+                        <div className="p-3 rounded-full bg-indigo-100 transition-all duration-300 group-hover:scale-110">
+                          <MousePointerClick className="w-6 h-6 text-indigo-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                    <div className="absolute inset-0 opacity-5 bg-indigo-100 group-hover:opacity-10 transition-opacity"></div>
+                  </Card>
+
+                  <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+                    <CardContent className="p-6 z-10 relative">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 mb-1">Form Submissions</p>
+                          <p className="text-3xl font-bold text-cyan-600">{kajabiStats.engagement.formSubmissions}</p>
+                        </div>
+                        <div className="p-3 rounded-full bg-cyan-100 transition-all duration-300 group-hover:scale-110">
+                          <FileText className="w-6 h-6 text-cyan-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                    <div className="absolute inset-0 opacity-5 bg-cyan-100 group-hover:opacity-10 transition-opacity"></div>
+                  </Card>
+
+                  <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+                    <CardContent className="p-6 z-10 relative">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 mb-1">Tag Actions</p>
+                          <p className="text-3xl font-bold text-amber-600">{kajabiStats.engagement.tagEngagements}</p>
+                        </div>
+                        <div className="p-3 rounded-full bg-amber-100 transition-all duration-300 group-hover:scale-110">
+                          <Tag className="w-6 h-6 text-amber-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                    <div className="absolute inset-0 opacity-5 bg-amber-100 group-hover:opacity-10 transition-opacity"></div>
+                  </Card>
+
+                  <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
+                    <CardContent className="p-6 z-10 relative">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 mb-1">Conversions</p>
+                          <p className="text-3xl font-bold text-emerald-600">{kajabiStats.engagement.conversions}</p>
+                        </div>
+                        <div className="p-3 rounded-full bg-emerald-100 transition-all duration-300 group-hover:scale-110">
+                          <ShoppingCart className="w-6 h-6 text-emerald-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                    <div className="absolute inset-0 opacity-5 bg-emerald-100 group-hover:opacity-10 transition-opacity"></div>
+                  </Card>
+                </div>
+
+                {/* Event Activity Chart */}
+                {kajabiStats.engagement.topEvents && kajabiStats.engagement.topEvents.length > 0 && (
+                  <Card className="hover:shadow-lg transition-shadow duration-300">
+                    <CardHeader>
+                      <CardTitle style={{ color: '#264d44' }}>Top Engagement Events (Last 30 Days)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={kajabiStats.engagement.topEvents}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} interval={0} />
+                          <YAxis />
+                          <Tooltip />
+                          <Bar dataKey="count" name="Events" fill="#770142" radius={[8, 8, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            )}
+
+            {/* Top Tags Chart */}
+            {kajabiStats.topTags && kajabiStats.topTags.length > 0 && (
+              <Card className="hover:shadow-lg transition-shadow duration-300">
+                <CardHeader>
+                  <CardTitle style={{ color: '#264d44' }}>Top Contact Tags</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={kajabiStats.topTags}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} interval={0} />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="count" name="Contacts" fill="#264d44" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        ) : (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Mail className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500 mb-4">No Kajabi data available yet</p>
+              <Button onClick={syncKajabiContacts} className="bg-[#264d44] hover:bg-[#1a3830]">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Sync Kajabi Contacts
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
