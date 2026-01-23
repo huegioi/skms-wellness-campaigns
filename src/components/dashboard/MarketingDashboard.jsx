@@ -138,6 +138,75 @@ export default function MarketingDashboard() {
 
   const COLORS = ['#264d44', '#770142', '#013f7c', '#22C55E', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4'];
 
+  // Calculate Kajabi contact growth trends (weekly/monthly)
+  const kajabiTrendData = React.useMemo(() => {
+    if (!kajabiContacts.length) return { weekly: [], monthly: [] };
+
+    const now = new Date();
+    const weeklyBuckets = {};
+    const monthlyBuckets = {};
+
+    kajabiContacts.forEach(contact => {
+      const createdDate = new Date(contact.kajabi_created_at);
+      
+      // Weekly data (last 12 weeks)
+      const weekStart = new Date(createdDate);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      const weekKey = weekStart.toISOString().split('T')[0];
+      
+      if (!weeklyBuckets[weekKey]) {
+        weeklyBuckets[weekKey] = { date: weekKey, subscribed: 0, unsubscribed: 0, total: 0 };
+      }
+      weeklyBuckets[weekKey].total++;
+      if (contact.subscribed) weeklyBuckets[weekKey].subscribed++;
+      else weeklyBuckets[weekKey].unsubscribed++;
+
+      // Monthly data
+      const monthKey = createdDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      if (!monthlyBuckets[monthKey]) {
+        monthlyBuckets[monthKey] = { month: monthKey, subscribed: 0, unsubscribed: 0, total: 0 };
+      }
+      monthlyBuckets[monthKey].total++;
+      if (contact.subscribed) monthlyBuckets[monthKey].subscribed++;
+      else monthlyBuckets[monthKey].unsubscribed++;
+    });
+
+    const weeklyData = Object.values(weeklyBuckets)
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+      .slice(-12)
+      .map(w => ({
+        ...w,
+        week: new Date(w.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      }));
+
+    const monthlyData = Object.values(monthlyBuckets).slice(-6);
+
+    return { weekly: weeklyData, monthly: monthlyData };
+  }, [kajabiContacts]);
+
+  // Tag tracking
+  const tagData = React.useMemo(() => {
+    if (!kajabiContacts.length) return [];
+    
+    const tagCounts = {};
+    kajabiContacts.forEach(contact => {
+      (contact.tags || []).forEach(tag => {
+        if (!tagCounts[tag]) {
+          tagCounts[tag] = { name: tag, subscribed: 0, unsubscribed: 0, total: 0 };
+        }
+        tagCounts[tag].total++;
+        if (contact.subscribed) tagCounts[tag].subscribed++;
+        else tagCounts[tag].unsubscribed++;
+      });
+    });
+
+    return Object.values(tagCounts).sort((a, b) => b.total - a.total);
+  }, [kajabiContacts]);
+
+  const filteredTagData = selectedTags.length > 0 
+    ? tagData.filter(t => selectedTags.includes(t.name))
+    : tagData.slice(0, 10);
+
   return (
     <div className="space-y-8">
       {/* Notion Opportunities Section */}
