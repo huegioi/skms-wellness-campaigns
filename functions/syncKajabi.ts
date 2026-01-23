@@ -28,13 +28,14 @@ async function getAccessToken() {
 }
 
 async function fetchAllContacts(accessToken) {
+  const siteId = Deno.env.get('KAJABI_SITE_ID');
   let allContacts = [];
   let page = 1;
   let hasMore = true;
 
   while (hasMore) {
     const response = await fetch(
-      `${KAJABI_API_URL}/contacts?page[number]=${page}&page[size]=100`,
+      `${KAJABI_API_URL}/contacts?filter[site_id]=${siteId}&page[number]=${page}&page[size]=100`,
       {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
