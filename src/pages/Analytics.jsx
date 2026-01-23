@@ -1,14 +1,32 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { TrendingUp, DollarSign, FileText, Clock, Eye, CheckCircle, Send } from 'lucide-react';
+import { TrendingUp, DollarSign, FileText, Clock, Eye, CheckCircle, Send, Users, Mail, UserPlus, Tag } from 'lucide-react';
 import { productCatalog } from '@/components/curriculum/catalogData';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function Analytics() {
+  const [selectedTags, setSelectedTags] = useState([]);
+  
   const { data: proposals = [], isLoading } = useQuery({
     queryKey: ['proposals'],
     queryFn: () => base44.entities.Proposal.list('-created_date')
+  });
+
+  const { data: kajabiStats } = useQuery({
+    queryKey: ['kajabiStats'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('syncKajabi', { action: 'getStats' });
+      return response.data?.stats || null;
+    },
+    refetchInterval: 300000
+  });
+
+  const { data: kajabiContacts = [] } = useQuery({
+    queryKey: ['kajabiContacts'],
+    queryFn: () => base44.entities.KajabiContact.list('-last_synced'),
+    initialData: []
   });
 
   if (isLoading) {
