@@ -414,7 +414,7 @@ export default function MarketingDashboard() {
         </CardHeader>
         <CardContent className="pt-6 pb-6">
           {sourceData.length > 0 ? (
-            <div className="w-full" style={{ height: '450px' }}>
+            <div className="w-full" style={{ height: '550px' }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart 
                   margin={{ top: 10, right: 20, left: 80, bottom: 100 }}
@@ -481,7 +481,7 @@ export default function MarketingDashboard() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="h-[450px] flex items-center justify-center text-gray-400">
+            <div className="h-[550px] flex items-center justify-center text-gray-400">
               No data available
             </div>
           )}
@@ -497,9 +497,9 @@ export default function MarketingDashboard() {
           </CardHeader>
           <CardContent className="px-4 sm:px-6 pt-4 pb-6">
             {stageData.length > 0 ? (
-              <div className="w-full" style={{ height: '420px' }}>
+              <div className="w-full" style={{ height: '520px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stageData} margin={{ top: 10, right: 20, left: 60, bottom: 100 }}>
+                  <BarChart data={stageData} margin={{ top: 10, right: 20, left: 40, bottom: 100 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis 
                       dataKey="name" 
@@ -510,13 +510,6 @@ export default function MarketingDashboard() {
                       tick={{ fontSize: 11, fill: '#374151' }}
                     />
                     <YAxis 
-                      label={{ 
-                        value: 'Count', 
-                        angle: -90, 
-                        position: 'insideLeft',
-                        offset: 15,
-                        style: { fontSize: '13px', fill: '#374151', fontWeight: '600' }
-                      }}
                       tick={{ fontSize: 11, fill: '#6B7280' }}
                     />
                     <Tooltip 
@@ -538,7 +531,7 @@ export default function MarketingDashboard() {
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-[420px] flex items-center justify-center text-gray-400">
+              <div className="h-[520px] flex items-center justify-center text-gray-400">
                 No data available
               </div>
             )}
