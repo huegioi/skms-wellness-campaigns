@@ -70,20 +70,21 @@ export default function MarketingDashboard() {
     initialData: []
   });
 
-  const { data: syncStatus } = useQuery({
-    queryKey: ['kajabiSyncStatus'],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('getKajabiSyncStatus', {});
-      return response.data;
-    },
-    refetchInterval: 30000
-  });
-
+  // Check automation status on mount
   React.useEffect(() => {
-    if (syncStatus?.isActive !== undefined) {
-      setAutoSyncEnabled(syncStatus.isActive);
-    }
-  }, [syncStatus]);
+    const checkStatus = async () => {
+      try {
+        const automations = await base44.functions.invoke('listAutomations', {});
+        const kajabiSync = automations.data?.find(a => a.name === 'Continue Kajabi Sync');
+        if (kajabiSync) {
+          setAutoSyncEnabled(kajabiSync.is_active);
+        }
+      } catch (error) {
+        console.error('Failed to check automation status:', error);
+      }
+    };
+    checkStatus();
+  }, []);
 
   const syncKajabiContacts = async () => {
     try {
@@ -103,8 +104,8 @@ export default function MarketingDashboard() {
   const toggleAutoSync = async () => {
     try {
       toast.loading('Toggling auto-sync...', { id: 'toggle-sync' });
-      const response = await base44.functions.invoke('toggleKajabiSync', {});
-      const newStatus = response.data?.isActive;
+      const response = await base44.functions.invoke('manageKajabiAutomation', { action: 'toggle' });
+      const newStatus = response.data?.is_active;
       setAutoSyncEnabled(newStatus);
       toast.success(newStatus ? 'Auto-sync enabled - will continue every 5 minutes' : 'Auto-sync disabled', { id: 'toggle-sync' });
     } catch (error) {
