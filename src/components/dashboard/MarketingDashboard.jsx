@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, Users, RefreshCw, Mail, UserPlus, UserMinus, Tag, MousePointerClick, FileText, ShoppingCart } from 'lucide-react';
+import { TrendingUp, Users, RefreshCw, Mail, UserPlus, UserMinus, Tag, MousePointerClick, FileText, ShoppingCart, Power } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -33,6 +33,7 @@ export default function MarketingDashboard() {
   const [contactEndDate, setContactEndDate] = useState('');
   const [timePeriod, setTimePeriod] = useState('week');
   const [isSyncing, setIsSyncing] = useState(false);
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['notionOpportunities', startDate, endDate, selectedSource, selectedStage],
@@ -69,6 +70,20 @@ export default function MarketingDashboard() {
     initialData: []
   });
 
+  const { data: syncStatus } = useQuery({
+    queryKey: ['kajabiSyncStatus'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('getKajabiSyncStatus', {});
+      return response.data;
+    },
+    refetchInterval: 30000,
+    onSuccess: (data) => {
+      if (data?.isActive !== undefined) {
+        setAutoSyncEnabled(data.isActive);
+      }
+    }
+  });
+
   const syncKajabiContacts = async () => {
     try {
       setIsSyncing(true);
@@ -81,6 +96,17 @@ export default function MarketingDashboard() {
       toast.error('Failed to sync Kajabi contacts: ' + error.message, { id: 'kajabi-sync' });
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const toggleAutoSync = async () => {
+    try {
+      const response = await base44.functions.invoke('toggleKajabiSync', {});
+      const newStatus = response.data?.isActive;
+      setAutoSyncEnabled(newStatus);
+      toast.success(newStatus ? 'Auto-sync enabled - will continue every 5 minutes' : 'Auto-sync disabled');
+    } catch (error) {
+      toast.error('Failed to toggle auto-sync: ' + error.message);
     }
   };
 
@@ -626,15 +652,23 @@ export default function MarketingDashboard() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold" style={{ color: '#264d44' }}>Email Marketing (Kajabi)</h2>
-          <Button
-            onClick={syncKajabiContacts}
-            variant="outline"
-            className="border-[#264d44] text-[#264d44] hover:bg-[#264d44] hover:text-white"
-            disabled={isSyncing || kajabiLoading}>
-
-            <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Syncing...' : 'Sync Kajabi'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={toggleAutoSync}
+              variant="outline"
+              className={`${autoSyncEnabled ? 'bg-green-50 border-green-600 text-green-700 hover:bg-green-100' : 'border-gray-300 text-gray-600 hover:bg-gray-100'}`}>
+              <Power className={`w-4 h-4 mr-2 ${autoSyncEnabled ? 'text-green-600' : ''}`} />
+              {autoSyncEnabled ? 'Auto-Sync ON' : 'Auto-Sync OFF'}
+            </Button>
+            <Button
+              onClick={syncKajabiContacts}
+              variant="outline"
+              className="border-[#264d44] text-[#264d44] hover:bg-[#264d44] hover:text-white"
+              disabled={isSyncing || kajabiLoading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Syncing...' : 'Sync Kajabi'}
+            </Button>
+          </div>
         </div>
 
         {kajabiStats ?
