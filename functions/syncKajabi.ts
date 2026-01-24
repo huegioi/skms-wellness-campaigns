@@ -106,9 +106,9 @@ Deno.serve(async (req) => {
 
     if (action === 'syncAll') {
       const accessToken = await getAccessToken();
-      const kajabiContacts = await fetchAllContacts(accessToken);
-      
-      // Fetch ALL local contacts (no limit)
+      const siteId = Deno.env.get('KAJABI_SITE_ID');
+
+      // Fetch local contacts once
       const localContacts = await base44.asServiceRole.entities.KajabiContact.list('', 100000);
       const localContactMap = new Map(localContacts.map(c => [c.kajabi_id, c]));
 
@@ -116,69 +116,89 @@ Deno.serve(async (req) => {
         new: 0,
         updated: 0,
         unsubscribed: 0,
-        total: kajabiContacts.length
+        total: 0,
+        pages: 0
       };
 
-      // Process in batches for better performance
-      const toCreate = [];
-      const toUpdate = [];
+      // Process page by page to avoid timeout
+      let nextUrl = `${KAJABI_API_URL}/contacts?filter[site_id]=${siteId}&page[size]=100`;
+      let pageCount = 0;
 
-      for (const kajabiContact of kajabiContacts) {
-        const attrs = kajabiContact.attributes;
-        const kajabiId = kajabiContact.id;
+      while (nextUrl && pageCount < 300) { // Max 300 pages (30k contacts)
+        pageCount++;
 
-        const contactData = {
-          kajabi_id: kajabiId,
-          name: attrs.name || '',
-          email: attrs.email,
-          subscribed: attrs.subscribed || false,
-          phone_number: attrs.phone_number || '',
-          tags: [],
-          kajabi_created_at: attrs.created_at,
-          last_synced: new Date().toISOString()
-        };
-
-        const existingContact = localContactMap.get(kajabiId);
-
-        if (existingContact) {
-          if (existingContact.subscribed && !contactData.subscribed) {
-            results.unsubscribed++;
+        const response = await fetch(nextUrl, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/json'
           }
-          toUpdate.push({ id: existingContact.id, data: contactData });
-        } else {
-          toCreate.push(contactData);
+        });
+
+        if (!response.ok) {
+          break;
         }
-      }
 
-      console.log(`Processing ${kajabiContacts.length} total contacts from Kajabi`);
-      console.log(`Found ${toCreate.length} new contacts to create`);
-      console.log(`Found ${toUpdate.length} existing contacts to update`);
+        const result = await response.json();
+        const contacts = result.data || [];
 
-      // Batch create new contacts (chunks of 100)
-      if (toCreate.length > 0) {
-        console.log(`Creating ${toCreate.length} new contacts in batches...`);
-        for (let i = 0; i < toCreate.length; i += 100) {
-          const batch = toCreate.slice(i, i + 100);
-          await base44.asServiceRole.entities.KajabiContact.bulkCreate(batch);
-          results.new += batch.length;
-          console.log(`Created batch ${Math.floor(i / 100) + 1}/${Math.ceil(toCreate.length / 100)} (${results.new} total)`);
+        // Process this batch immediately
+        const toCreate = [];
+        const toUpdate = [];
+
+        for (const kajabiContact of contacts) {
+          const attrs = kajabiContact.attributes;
+          const kajabiId = kajabiContact.id;
+
+          const contactData = {
+            kajabi_id: kajabiId,
+            name: attrs.name || '',
+            email: attrs.email,
+            subscribed: attrs.subscribed || false,
+            phone_number: attrs.phone_number || '',
+            tags: [],
+            kajabi_created_at: attrs.created_at,
+            last_synced: new Date().toISOString()
+          };
+
+          const existingContact = localContactMap.get(kajabiId);
+
+          if (existingContact) {
+            if (existingContact.subscribed && !contactData.subscribed) {
+              results.unsubscribed++;
+            }
+            toUpdate.push({ id: existingContact.id, data: contactData });
+          } else {
+            toCreate.push(contactData);
+            localContactMap.set(kajabiId, contactData); // Add to map
+          }
         }
-      }
 
-      // Update existing contacts in batches (chunks of 50 for safety)
-      if (toUpdate.length > 0) {
-        console.log(`Updating ${toUpdate.length} existing contacts...`);
-        for (let i = 0; i < toUpdate.length; i++) {
-          const { id, data } = toUpdate[i];
+        // Create new contacts
+        if (toCreate.length > 0) {
+          await base44.asServiceRole.entities.KajabiContact.bulkCreate(toCreate);
+          results.new += toCreate.length;
+        }
+
+        // Update existing contacts
+        for (const { id, data } of toUpdate) {
           await base44.asServiceRole.entities.KajabiContact.update(id, data);
           results.updated++;
-          if ((i + 1) % 100 === 0 || i === toUpdate.length - 1) {
-            console.log(`Updated ${results.updated}/${toUpdate.length} contacts`);
-          }
+        }
+
+        results.total += contacts.length;
+        results.pages = pageCount;
+
+        console.log(`Page ${pageCount}: Processed ${contacts.length} contacts (new: ${toCreate.length}, updated: ${toUpdate.length}, total: ${results.total})`);
+
+        nextUrl = result.links?.next || null;
+
+        if (!nextUrl) {
+          console.log('No more pages - sync complete');
+          break;
         }
       }
 
-      // Get updated stats after sync
+      // Get final stats
       const finalContacts = await base44.asServiceRole.entities.KajabiContact.list('', 100000);
       const finalSubscribed = finalContacts.filter(c => c.subscribed).length;
       const finalUnsubscribed = finalContacts.filter(c => !c.subscribed).length;
@@ -191,7 +211,7 @@ Deno.serve(async (req) => {
           subscribedInDatabase: finalSubscribed,
           unsubscribedInDatabase: finalUnsubscribed
         },
-        message: `Synced ${results.total} contacts from Kajabi: ${results.new} new, ${results.updated} updated, ${results.unsubscribed} unsubscribed. Database now has ${finalContacts.length} total contacts.`
+        message: `Synced ${results.total} contacts from Kajabi across ${results.pages} pages: ${results.new} new, ${results.updated} updated. Database now has ${finalContacts.length} total contacts.`
       });
     }
 
