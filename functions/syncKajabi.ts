@@ -31,8 +31,12 @@ async function fetchAllContacts(accessToken) {
   const siteId = Deno.env.get('KAJABI_SITE_ID');
   let allContacts = [];
   let nextUrl = `${KAJABI_API_URL}/contacts?filter[site_id]=${siteId}&page[size]=100`;
+  let pageCount = 0;
 
   while (nextUrl) {
+    pageCount++;
+    console.log(`Fetching page ${pageCount}: ${nextUrl}`);
+    
     const response = await fetch(nextUrl, {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
@@ -49,10 +53,15 @@ async function fetchAllContacts(accessToken) {
     const contacts = result.data || [];
     allContacts = allContacts.concat(contacts);
 
-    console.log(`Fetched ${contacts.length} contacts (total so far: ${allContacts.length})`);
+    console.log(`Page ${pageCount}: Fetched ${contacts.length} contacts (total so far: ${allContacts.length})`);
+    console.log(`Next URL from API: ${result.links?.next || 'NONE'}`);
 
     // Check for next page URL in links
     nextUrl = result.links?.next || null;
+    
+    if (!nextUrl) {
+      console.log('No more pages - pagination complete');
+    }
     
     // Safety limit to prevent infinite loops
     if (allContacts.length > 50000) {
@@ -61,7 +70,7 @@ async function fetchAllContacts(accessToken) {
     }
   }
 
-  console.log(`Total contacts fetched from Kajabi: ${allContacts.length}`);
+  console.log(`Total contacts fetched from Kajabi: ${allContacts.length} across ${pageCount} pages`);
   return allContacts;
 }
 
