@@ -169,10 +169,20 @@ Deno.serve(async (req) => {
         }
       }
 
+      // Get updated stats after sync
+      const finalContacts = await base44.asServiceRole.entities.KajabiContact.list('', 100000);
+      const finalSubscribed = finalContacts.filter(c => c.subscribed).length;
+      const finalUnsubscribed = finalContacts.filter(c => !c.subscribed).length;
+
       return Response.json({
         success: true,
-        results,
-        message: `Synced ${results.total} contacts: ${results.new} new, ${results.updated} updated, ${results.unsubscribed} unsubscribed`
+        results: {
+          ...results,
+          totalInDatabase: finalContacts.length,
+          subscribedInDatabase: finalSubscribed,
+          unsubscribedInDatabase: finalUnsubscribed
+        },
+        message: `Synced ${results.total} contacts from Kajabi: ${results.new} new, ${results.updated} updated, ${results.unsubscribed} unsubscribed. Database now has ${finalContacts.length} total contacts.`
       });
     }
 
