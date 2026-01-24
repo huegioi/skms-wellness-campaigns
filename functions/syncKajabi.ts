@@ -179,10 +179,17 @@ Deno.serve(async (req) => {
           results.new += toCreate.length;
         }
 
-        // Update existing contacts
-        for (const { id, data } of toUpdate) {
-          await base44.asServiceRole.entities.KajabiContact.update(id, data);
-          results.updated++;
+        // Batch update existing contacts (groups of 10 parallel updates)
+        if (toUpdate.length > 0) {
+          for (let i = 0; i < toUpdate.length; i += 10) {
+            const batch = toUpdate.slice(i, i + 10);
+            await Promise.all(
+              batch.map(({ id, data }) => 
+                base44.asServiceRole.entities.KajabiContact.update(id, data)
+              )
+            );
+            results.updated += batch.length;
+          }
         }
 
         results.total += contacts.length;
