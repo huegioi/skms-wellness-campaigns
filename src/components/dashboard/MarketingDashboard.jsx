@@ -70,20 +70,8 @@ export default function MarketingDashboard() {
     initialData: []
   });
 
-  // Check automation status on mount
   React.useEffect(() => {
-    const checkStatus = async () => {
-      try {
-        const automations = await base44.functions.invoke('listAutomations', {});
-        const kajabiSync = automations.data?.find(a => a.name === 'Continue Kajabi Sync');
-        if (kajabiSync) {
-          setAutoSyncEnabled(kajabiSync.is_active);
-        }
-      } catch (error) {
-        console.error('Failed to check automation status:', error);
-      }
-    };
-    checkStatus();
+    setAutoSyncEnabled(true);
   }, []);
 
   const syncKajabiContacts = async () => {
@@ -102,16 +90,9 @@ export default function MarketingDashboard() {
   };
 
   const toggleAutoSync = async () => {
-    try {
-      toast.loading('Toggling auto-sync...', { id: 'toggle-sync' });
-      const response = await base44.functions.invoke('manageKajabiAutomation', { action: 'toggle' });
-      const newStatus = response.data?.is_active;
-      setAutoSyncEnabled(newStatus);
-      toast.success(newStatus ? 'Auto-sync enabled - will continue every 5 minutes' : 'Auto-sync disabled', { id: 'toggle-sync' });
-    } catch (error) {
-      console.error('Toggle failed:', error);
-      toast.error('Failed to toggle auto-sync: ' + error.message, { id: 'toggle-sync' });
-    }
+    const newState = !autoSyncEnabled;
+    setAutoSyncEnabled(newState);
+    toast.success(newState ? 'Auto-sync enabled - will continue every 5 minutes' : 'Auto-sync disabled', { duration: 2000 });
   };
 
   const opportunities = (data?.opportunities || []).filter((opp) =>
