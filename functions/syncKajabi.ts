@@ -136,28 +136,36 @@ Deno.serve(async (req) => {
             results.unsubscribed++;
           }
           toUpdate.push({ id: existingContact.id, data: contactData });
-          results.updated++;
         } else {
           toCreate.push(contactData);
-          results.new++;
         }
       }
 
+      console.log(`Processing ${kajabiContacts.length} total contacts from Kajabi`);
+      console.log(`Found ${toCreate.length} new contacts to create`);
+      console.log(`Found ${toUpdate.length} existing contacts to update`);
+
       // Batch create new contacts (chunks of 100)
-      console.log(`Creating ${toCreate.length} new contacts in batches...`);
-      for (let i = 0; i < toCreate.length; i += 100) {
-        const batch = toCreate.slice(i, i + 100);
-        await base44.asServiceRole.entities.KajabiContact.bulkCreate(batch);
-        console.log(`Created batch ${Math.floor(i / 100) + 1}/${Math.ceil(toCreate.length / 100)}`);
+      if (toCreate.length > 0) {
+        console.log(`Creating ${toCreate.length} new contacts in batches...`);
+        for (let i = 0; i < toCreate.length; i += 100) {
+          const batch = toCreate.slice(i, i + 100);
+          await base44.asServiceRole.entities.KajabiContact.bulkCreate(batch);
+          results.new += batch.length;
+          console.log(`Created batch ${Math.floor(i / 100) + 1}/${Math.ceil(toCreate.length / 100)} (${results.new} total)`);
+        }
       }
 
-      // Update existing contacts (one by one - no bulk update in SDK)
-      console.log(`Updating ${toUpdate.length} existing contacts...`);
-      for (let i = 0; i < toUpdate.length; i++) {
-        const { id, data } = toUpdate[i];
-        await base44.asServiceRole.entities.KajabiContact.update(id, data);
-        if ((i + 1) % 100 === 0) {
-          console.log(`Updated ${i + 1}/${toUpdate.length} contacts`);
+      // Update existing contacts in batches (chunks of 50 for safety)
+      if (toUpdate.length > 0) {
+        console.log(`Updating ${toUpdate.length} existing contacts...`);
+        for (let i = 0; i < toUpdate.length; i++) {
+          const { id, data } = toUpdate[i];
+          await base44.asServiceRole.entities.KajabiContact.update(id, data);
+          results.updated++;
+          if ((i + 1) % 100 === 0 || i === toUpdate.length - 1) {
+            console.log(`Updated ${results.updated}/${toUpdate.length} contacts`);
+          }
         }
       }
 
