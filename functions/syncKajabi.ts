@@ -114,16 +114,14 @@ Deno.serve(async (req) => {
         const attrs = kajabiContact.attributes;
         const kajabiId = kajabiContact.id;
 
-        // Fetch tags for this contact (batch this in production for better performance)
-        const tags = await fetchContactTags(accessToken, kajabiId);
-
+        // Skip tag fetching during bulk sync for performance - tags can be synced separately if needed
         const contactData = {
           kajabi_id: kajabiId,
           name: attrs.name || '',
           email: attrs.email,
           subscribed: attrs.subscribed || false,
           phone_number: attrs.phone_number || '',
-          tags: tags,
+          tags: [], // Empty for bulk sync - fetch tags separately if needed
           kajabi_created_at: attrs.created_at,
           last_synced: new Date().toISOString()
         };
