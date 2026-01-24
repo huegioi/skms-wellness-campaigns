@@ -9,20 +9,27 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const automationId = '697435cc6df3932d19ca6a62';
+    // Use manage_automation tool via API
+    const apiKey = Deno.env.get('BASE44_API_KEY');
+    const appId = Deno.env.get('BASE44_APP_ID');
     
-    // Get current automation state
-    const automation = await base44.asServiceRole.automations.get(automationId);
-    const newState = !automation.is_active;
-    
-    // Toggle it
-    await base44.asServiceRole.automations.update(automationId, {
-      is_active: newState
+    const response = await fetch(`https://api.base44.com/v1/apps/${appId}/automations/697435cc6df3932d19ca6a62/toggle`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
     });
+
+    if (!response.ok) {
+      throw new Error('Failed to toggle automation');
+    }
+
+    const result = await response.json();
     
     return Response.json({
       success: true,
-      isActive: newState
+      isActive: result.is_active
     });
 
   } catch (error) {

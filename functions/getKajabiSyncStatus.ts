@@ -9,8 +9,22 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const automationId = '697435cc6df3932d19ca6a62';
-    const automation = await base44.asServiceRole.automations.get(automationId);
+    const apiKey = Deno.env.get('BASE44_API_KEY');
+    const appId = Deno.env.get('BASE44_APP_ID');
+    
+    const response = await fetch(`https://api.base44.com/v1/apps/${appId}/automations/697435cc6df3932d19ca6a62`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get automation status');
+    }
+
+    const automation = await response.json();
     
     return Response.json({
       success: true,
