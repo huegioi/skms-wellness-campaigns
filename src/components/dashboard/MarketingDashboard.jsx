@@ -76,13 +76,14 @@ export default function MarketingDashboard() {
       const response = await base44.functions.invoke('getKajabiSyncStatus', {});
       return response.data;
     },
-    refetchInterval: 30000,
-    onSuccess: (data) => {
-      if (data?.isActive !== undefined) {
-        setAutoSyncEnabled(data.isActive);
-      }
-    }
+    refetchInterval: 30000
   });
+
+  React.useEffect(() => {
+    if (syncStatus?.isActive !== undefined) {
+      setAutoSyncEnabled(syncStatus.isActive);
+    }
+  }, [syncStatus]);
 
   const syncKajabiContacts = async () => {
     try {
@@ -101,12 +102,14 @@ export default function MarketingDashboard() {
 
   const toggleAutoSync = async () => {
     try {
+      toast.loading('Toggling auto-sync...', { id: 'toggle-sync' });
       const response = await base44.functions.invoke('toggleKajabiSync', {});
       const newStatus = response.data?.isActive;
       setAutoSyncEnabled(newStatus);
-      toast.success(newStatus ? 'Auto-sync enabled - will continue every 5 minutes' : 'Auto-sync disabled');
+      toast.success(newStatus ? 'Auto-sync enabled - will continue every 5 minutes' : 'Auto-sync disabled', { id: 'toggle-sync' });
     } catch (error) {
-      toast.error('Failed to toggle auto-sync: ' + error.message);
+      console.error('Toggle failed:', error);
+      toast.error('Failed to toggle auto-sync: ' + error.message, { id: 'toggle-sync' });
     }
   };
 
