@@ -110,18 +110,21 @@ Deno.serve(async (req) => {
         total: kajabiContacts.length
       };
 
+      // Process in batches for better performance
+      const toCreate = [];
+      const toUpdate = [];
+
       for (const kajabiContact of kajabiContacts) {
         const attrs = kajabiContact.attributes;
         const kajabiId = kajabiContact.id;
 
-        // Skip tag fetching during bulk sync for performance - tags can be synced separately if needed
         const contactData = {
           kajabi_id: kajabiId,
           name: attrs.name || '',
           email: attrs.email,
           subscribed: attrs.subscribed || false,
           phone_number: attrs.phone_number || '',
-          tags: [], // Empty for bulk sync - fetch tags separately if needed
+          tags: [],
           kajabi_created_at: attrs.created_at,
           last_synced: new Date().toISOString()
         };
@@ -129,19 +132,32 @@ Deno.serve(async (req) => {
         const existingContact = localContactMap.get(kajabiId);
 
         if (existingContact) {
-          // Track if they unsubscribed
           if (existingContact.subscribed && !contactData.subscribed) {
             results.unsubscribed++;
           }
-          
-          await base44.asServiceRole.entities.KajabiContact.update(
-            existingContact.id,
-            contactData
-          );
+          toUpdate.push({ id: existingContact.id, data: contactData });
           results.updated++;
         } else {
-          await base44.asServiceRole.entities.KajabiContact.create(contactData);
+          toCreate.push(contactData);
           results.new++;
+        }
+      }
+
+      // Batch create new contacts (chunks of 100)
+      console.log(`Creating ${toCreate.length} new contacts in batches...`);
+      for (let i = 0; i < toCreate.length; i += 100) {
+        const batch = toCreate.slice(i, i + 100);
+        await base44.asServiceRole.entities.KajabiContact.bulkCreate(batch);
+        console.log(`Created batch ${Math.floor(i / 100) + 1}/${Math.ceil(toCreate.length / 100)}`);
+      }
+
+      // Update existing contacts (one by one - no bulk update in SDK)
+      console.log(`Updating ${toUpdate.length} existing contacts...`);
+      for (let i = 0; i < toUpdate.length; i++) {
+        const { id, data } = toUpdate[i];
+        await base44.asServiceRole.entities.KajabiContact.update(id, data);
+        if ((i + 1) % 100 === 0) {
+          console.log(`Updated ${i + 1}/${toUpdate.length} contacts`);
         }
       }
 
