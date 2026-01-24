@@ -9,8 +9,16 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const automations = await base44.asServiceRole.automations.list();
+    const apiKey = Deno.env.get('BASE44_API_KEY');
+    const appId = Deno.env.get('BASE44_APP_ID');
     
+    const response = await fetch(`https://api.base44.com/v1/apps/${appId}/automations`, {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`
+      }
+    });
+
+    const automations = await response.json();
     return Response.json(automations);
 
   } catch (error) {

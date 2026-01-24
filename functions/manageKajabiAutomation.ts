@@ -11,9 +11,18 @@ Deno.serve(async (req) => {
 
     const { action } = await req.json();
     const automationId = '697435cc6df3932d19ca6a62';
+    const apiKey = Deno.env.get('BASE44_API_KEY');
+    const appId = Deno.env.get('BASE44_APP_ID');
     
-    const result = await base44.asServiceRole.automations.manage(automationId, action);
-    
+    const response = await fetch(`https://api.base44.com/v1/apps/${appId}/automations/${automationId}/${action}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    const result = await response.json();
     return Response.json(result);
 
   } catch (error) {
