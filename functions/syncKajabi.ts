@@ -139,9 +139,13 @@ Deno.serve(async (req) => {
       console.log(`Loaded ${localContacts.length} existing contacts from database`);
 
       let pagesThisRun = 0;
-      const maxPagesPerRun = 50; // Process 50 pages per invocation to avoid timeout
+      const maxPagesPerRun = 10; // Process 10 pages per invocation to avoid rate limits
 
       while (progress.next_url && pagesThisRun < maxPagesPerRun) {
+        // Add 200ms delay between pages to respect rate limits
+        if (pagesThisRun > 0) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
         console.log(`Fetching page ${progress.page_count + 1} from: ${progress.next_url}`);
 
         const response = await fetch(progress.next_url, {
