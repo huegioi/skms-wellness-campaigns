@@ -641,8 +641,8 @@ export default function MarketingDashboard() {
             <Button
               onClick={toggleAutoSync}
               variant="outline"
-              className={`${autoSyncEnabled ? 'bg-green-50 border-green-600 text-green-700 hover:bg-green-100' : 'border-gray-300 text-gray-600 hover:bg-gray-100'}`}>
-              <Power className={`w-4 h-4 mr-2 ${autoSyncEnabled ? 'text-green-600' : ''}`} />
+              className={`transition-all ${autoSyncEnabled ? 'bg-green-50 border-green-600 text-green-700 hover:bg-green-100' : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'}`}>
+              <Power className={`w-4 h-4 mr-2 transition-colors ${autoSyncEnabled ? 'text-green-600' : 'text-gray-400'}`} />
               {autoSyncEnabled ? 'Auto-Sync ON' : 'Auto-Sync OFF'}
             </Button>
             <Button
