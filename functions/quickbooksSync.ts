@@ -31,10 +31,14 @@ async function getAccessToken() {
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMsg = 'Failed to refresh token';
+    let errorMsg = 'QuickBooks refresh token expired or invalid. Please reconnect QuickBooks in the Dashboard settings.';
     try {
       const errorData = JSON.parse(errorText);
-      errorMsg = errorData.error_description || errorData.error || errorMsg;
+      if (errorData.error === 'invalid_grant') {
+        errorMsg = 'QuickBooks connection expired. Please reconnect: The refresh token is no longer valid (tokens expire after 100 days of inactivity).';
+      } else {
+        errorMsg = errorData.error_description || errorData.error || errorMsg;
+      }
     } catch {
       errorMsg = errorText;
     }
