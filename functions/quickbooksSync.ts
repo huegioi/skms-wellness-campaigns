@@ -47,20 +47,6 @@ async function getAccessToken() {
   cachedAccessToken = data.access_token;
   tokenExpiresAt = Date.now() + ((data.expires_in || 3600) - 300) * 1000;
   
-  // Track refresh count (fire and forget, don't wait for response)
-  try {
-    fetch(Deno.env.get('BASE44_FUNCTION_URL') + '/incrementQuickBooksRefresh', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('BASE44_SERVICE_TOKEN')}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({})
-    }).catch(() => {}); // Silent fail if tracking doesn't work
-  } catch (e) {
-    // Ignore tracking errors
-  }
-  
   return cachedAccessToken;
 }
 
