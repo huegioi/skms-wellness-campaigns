@@ -27,10 +27,10 @@ Deno.serve(async (req) => {
         location: eventData.location || '',
         start: eventData.all_day 
           ? { date: eventData.start_date.split('T')[0] }
-          : { dateTime: new Date(eventData.start_date).toISOString(), timeZone: 'UTC' },
+          : { dateTime: eventData.start_date, timeZone: 'America/New_York' },
         end: eventData.all_day
           ? { date: (eventData.end_date || eventData.start_date).split('T')[0] }
-          : { dateTime: new Date(eventData.end_date || eventData.start_date).toISOString(), timeZone: 'UTC' },
+          : { dateTime: eventData.end_date || eventData.start_date, timeZone: 'America/New_York' },
         extendedProperties: {
           private: {
             skms_event_id: eventData.id || '',
@@ -61,10 +61,10 @@ Deno.serve(async (req) => {
         location: eventData.location || '',
         start: eventData.all_day 
           ? { date: eventData.start_date.split('T')[0] }
-          : { dateTime: new Date(eventData.start_date).toISOString(), timeZone: 'UTC' },
+          : { dateTime: eventData.start_date, timeZone: 'America/New_York' },
         end: eventData.all_day
           ? { date: (eventData.end_date || eventData.start_date).split('T')[0] }
-          : { dateTime: new Date(eventData.end_date || eventData.start_date).toISOString(), timeZone: 'UTC' }
+          : { dateTime: eventData.end_date || eventData.start_date, timeZone: 'America/New_York' }
       };
 
       const targetCalendar = calendarId || 'primary';
