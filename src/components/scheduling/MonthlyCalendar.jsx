@@ -5,12 +5,33 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
+import EventDetailDialog from '@/components/calendar/EventDetailDialog';
+import { parseISO } from 'date-fns';
 
 export default function MonthlyCalendar({ sheets }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedEvents, setSelectedEvents] = useState([]);
   const [addingToGoogleCal, setAddingToGoogleCal] = useState(null);
+  const [selectedCalendarEvent, setSelectedCalendarEvent] = useState(null);
+
+  // Fetch CalendarEvent entities
+  const { data: calendarEvents = [], refetch: refetchEvents } = useQuery({
+    queryKey: ['calendarEvents'],
+    queryFn: () => base44.entities.CalendarEvent.list()
+  });
+
+  const eventTypeConfig = {
+    meeting: { label: 'Meeting', color: '#3B82F6', icon: CalendarIcon },
+    workshop: { label: 'Workshop', color: '#8B5CF6', icon: CalendarIcon },
+    challenge: { label: 'Challenge', color: '#10B981', icon: CalendarIcon },
+    leadership: { label: 'Leadership', color: '#F59E0B', icon: CalendarIcon },
+    class: { label: 'Class', color: '#EC4899', icon: CalendarIcon },
+    delivery: { label: 'Delivery', color: '#06B6D4', icon: CalendarIcon },
+    follow_up: { label: 'Follow Up', color: '#14B8A6', icon: CalendarIcon },
+    other: { label: 'Other', color: '#264d44', icon: CalendarIcon }
+  };
 
   const sheetColors = [
     'bg-blue-500',
@@ -90,12 +111,26 @@ export default function MonthlyCalendar({ sheets }) {
   };
 
   const getEventsForDate = (date) => {
-    return events.filter(event => {
+    const sheetEvents = events.filter(event => {
       const eventDate = new Date(event.date);
       return eventDate.getFullYear() === date.getFullYear() &&
              eventDate.getMonth() === date.getMonth() &&
              eventDate.getDate() === date.getDate();
     });
+
+    const dbEvents = calendarEvents.filter(event => {
+      const eventDate = parseISO(event.start_date);
+      return eventDate.getFullYear() === date.getFullYear() &&
+             eventDate.getMonth() === date.getMonth() &&
+             eventDate.getDate() === date.getDate();
+    }).map(event => ({
+      ...event,
+      isCalendarEvent: true,
+      title: event.title,
+      date: parseISO(event.start_date)
+    }));
+
+    return [...sheetEvents, ...dbEvents];
   };
 
   const handleDateClick = (day) => {
@@ -205,7 +240,11 @@ export default function MonthlyCalendar({ sheets }) {
                       {dayEvents.slice(0, 3).map((event, idx) => (
                         <div
                           key={idx}
-                          className={`text-xs px-1 py-0.5 rounded text-white truncate ${sheetColors[event.sheetIndex % sheetColors.length]}`}
+                          className={`text-xs px-1 py-0.5 rounded text-white truncate ${
+                            event.isCalendarEvent 
+                              ? 'bg-[#264d44]' 
+                              : sheetColors[event.sheetIndex % sheetColors.length]
+                          }`}
                           title={event.title}
                         >
                           {event.title}
@@ -246,40 +285,76 @@ export default function MonthlyCalendar({ sheets }) {
             ) : (
               selectedEvents.map((event, idx) => (
                 <div key={idx} className="bg-gray-50 rounded-lg p-4 border">
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex-1">
+                  {event.isCalendarEvent ? (
+                    <div 
+                      className="cursor-pointer hover:bg-gray-100 transition-colors rounded p-2 -m-2"
+                      onClick={() => setSelectedCalendarEvent(event)}
+                    >
                       <div className="flex items-center gap-2 mb-2">
-                        <Badge className={`${sheetColors[event.sheetIndex % sheetColors.length]} text-white`}>
-                          {event.sheet}
+                        <Badge style={{ backgroundColor: event.color || '#264d44' }} className="text-white">
+                          {eventTypeConfig[event.event_type]?.label || 'Event'}
                         </Badge>
-                        {event.time && (
-                          <span className="text-sm text-gray-600">{event.time}</span>
-                        )}
                       </div>
                       <h4 className="font-semibold text-lg text-gray-800 mb-1">{event.title}</h4>
-                      {event.client && (
-                        <p className="text-sm text-gray-600">Client: {event.client}</p>
+                      {event.client_name && (
+                        <p className="text-sm text-gray-600">Client: {event.client_name}</p>
                       )}
                       {event.location && (
                         <p className="text-sm text-gray-600">Location: {event.location}</p>
                       )}
+                      <p className="text-xs text-[#264d44] mt-2">Click to edit or delete</p>
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={() => addToGoogleCalendar(event)}
-                      disabled={addingToGoogleCal === event.title}
-                      className="bg-[#264d44] hover:bg-[#1a3830]"
-                    >
-                      <Plus className="w-4 h-4 mr-1" />
-                      {addingToGoogleCal === event.title ? 'Adding...' : 'Add to Google Cal'}
-                    </Button>
-                  </div>
+                  ) : (
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge className={`${sheetColors[event.sheetIndex % sheetColors.length]} text-white`}>
+                            {event.sheet}
+                          </Badge>
+                          {event.time && (
+                            <span className="text-sm text-gray-600">{event.time}</span>
+                          )}
+                        </div>
+                        <h4 className="font-semibold text-lg text-gray-800 mb-1">{event.title}</h4>
+                        {event.client && (
+                          <p className="text-sm text-gray-600">Client: {event.client}</p>
+                        )}
+                        {event.location && (
+                          <p className="text-sm text-gray-600">Location: {event.location}</p>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => addToGoogleCalendar(event)}
+                        disabled={addingToGoogleCal === event.title}
+                        className="bg-[#264d44] hover:bg-[#1a3830]"
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        {addingToGoogleCal === event.title ? 'Adding...' : 'Add to Google Cal'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))
             )}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Calendar Event Detail Dialog */}
+      {selectedCalendarEvent && (
+        <EventDetailDialog
+          event={selectedCalendarEvent}
+          open={!!selectedCalendarEvent}
+          onOpenChange={(open) => !open && setSelectedCalendarEvent(null)}
+          eventTypeConfig={eventTypeConfig}
+          onUpdated={() => {
+            refetchEvents();
+            setSelectedDate(null);
+            setSelectedCalendarEvent(null);
+          }}
+        />
+      )}
     </div>
   );
 }
