@@ -86,15 +86,14 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Content Area */}
-          <div className="p-4 md:p-8">
-            {activeSection === 'clients' && <ClientInformationSection />}
-            {activeSection === 'financial' && <FinancialInformationSection />}
-            {activeSection === 'marketing' && <MarketingDashboard />}
-            {activeSection === 'services' && <ServicesAnalytics />}
-          </div>
-        </main>
-      </div>
+        {/* Content Area */}
+        <div className="p-4 md:p-8">
+          {activeSection === 'clients' && <ClientInformationSection />}
+          {activeSection === 'financial' && <FinancialInformationSection />}
+          {activeSection === 'marketing' && <MarketingDashboard />}
+          {activeSection === 'services' && <ServicesAnalytics />}
+        </div>
+      </main>
     </div>
   );
 }
