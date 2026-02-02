@@ -19,35 +19,33 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#f4f0e9]">
-      <div className="flex">
-        {/* Desktop Sidebar */}
-        <aside className="hidden lg:block w-64 bg-white border-r min-h-screen sticky top-16">
-          <div className="p-6">
-            <h2 className="text-lg font-bold mb-4" style={{ color: '#013f7c' }}>Dashboard</h2>
-            <nav className="space-y-2">
-              {sections.map(section => {
-                const Icon = section.icon;
-                return (
-                  <button
-                    key={section.id}
-                    onClick={() => setActiveSection(section.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                      activeSection === section.id
-                        ? 'bg-[#264d44] text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium">{section.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
+      {/* Desktop Tabs */}
+      <div className="hidden lg:block bg-white border-b sticky top-16 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex gap-1 py-3">
+            {sections.map(section => {
+              const Icon = section.icon;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    activeSection === section.id
+                      ? 'bg-[#264d44] text-white'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{section.label}</span>
+                </button>
+              );
+            })}
           </div>
-        </aside>
+        </div>
+      </div>
 
-        {/* Main Content */}
-        <main className="flex-1">
+      {/* Main Content */}
+      <main className="flex-1">
           {/* Mobile Header */}
           <div className="lg:hidden bg-white border-b p-4 sticky top-16 z-10">
             <div className="flex items-center justify-between">
