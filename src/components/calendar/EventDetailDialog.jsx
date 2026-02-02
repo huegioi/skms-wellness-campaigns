@@ -1,26 +1,106 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { toast } from 'sonner';
 
 export default function EventDetailDialog({ event, open, onOpenChange, eventTypeConfig, onUpdated }) {
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: event.title,
+    description: event.description || '',
+    location: event.location || '',
+    start_date: event.start_date?.split('T')[0] || '',
+    start_time: event.start_date ? format(parseISO(event.start_date), 'HH:mm') : '',
+    end_date: event.end_date?.split('T')[0] || '',
+    end_time: event.end_date ? format(parseISO(event.end_date), 'HH:mm') : '',
+    all_day: event.all_day || false
+  });
   
   const config = eventTypeConfig[event.event_type] || eventTypeConfig.other;
   const Icon = config.icon;
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this event?')) return;
+    
     setDeleting(true);
-    await base44.entities.CalendarEvent.delete(event.id);
-    setDeleting(false);
-    onUpdated?.();
-    onOpenChange(false);
+    try {
+      // Delete from Google Calendar if synced
+      if (event.google_event_id) {
+        await base44.functions.invoke('googleCalendarSync', {
+          action: 'deleteEvent',
+          eventData: { googleEventId: event.google_event_id }
+        });
+      }
+      
+      // Delete from internal database
+      await base44.entities.CalendarEvent.delete(event.id);
+      
+      toast.success('Event deleted successfully');
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      toast.error('Failed to delete event: ' + error.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editForm.title || !editForm.start_date) {
+      toast.error('Please fill in the title and start date');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const startDateTime = `${editForm.start_date}T${editForm.start_time || '00:00'}:00`;
+      const endDateTime = editForm.end_date && editForm.end_time
+        ? `${editForm.end_date}T${editForm.end_time}:00`
+        : new Date(new Date(startDateTime).getTime() + 60 * 60 * 1000).toISOString();
+
+      const updatedData = {
+        title: editForm.title,
+        description: editForm.description,
+        location: editForm.location,
+        start_date: startDateTime,
+        end_date: endDateTime,
+        all_day: editForm.all_day
+      };
+
+      // Update in CalendarEvent entity
+      await base44.entities.CalendarEvent.update(event.id, updatedData);
+
+      // Update in Google Calendar if synced
+      if (event.google_event_id) {
+        await base44.functions.invoke('googleCalendarSync', {
+          action: 'updateEvent',
+          eventData: {
+            ...updatedData,
+            googleEventId: event.google_event_id
+          }
+        });
+      }
+
+      toast.success('Event updated successfully');
+      setEditing(false);
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      toast.error('Failed to update event: ' + error.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const exportToGoogleCalendar = () => {
@@ -82,25 +162,124 @@ END:VCALENDAR`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md w-[95vw] sm:w-full">
+      <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center gap-3">
-            <div 
-              className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: event.color || config.color }}
-            >
-              <Icon className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-10 h-10 rounded-lg flex items-center justify-center"
+                style={{ backgroundColor: event.color || config.color }}
+              >
+                <Icon className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <DialogTitle>{editing ? 'Edit Event' : event.title}</DialogTitle>
+                <Badge style={{ backgroundColor: event.color || config.color }} className="text-white mt-1">
+                  {config.label}
+                </Badge>
+              </div>
             </div>
-            <div>
-              <DialogTitle>{event.title}</DialogTitle>
-              <Badge style={{ backgroundColor: event.color || config.color }} className="text-white mt-1">
-                {config.label}
-              </Badge>
-            </div>
+            {!editing && (
+              <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
+                <Edit className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </DialogHeader>
         
-        <div className="space-y-4 mt-4">
+        {editing ? (
+          <div className="space-y-4 mt-4">
+            <div>
+              <Label>Event Title</Label>
+              <Input
+                value={editForm.title}
+                onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Enter event title"
+              />
+            </div>
+
+            <div>
+              <Label>Description</Label>
+              <Textarea
+                value={editForm.description}
+                onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Event description..."
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label>Location</Label>
+              <Input
+                value={editForm.location}
+                onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
+                placeholder="Location or meeting link"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Start Date</Label>
+                <Input
+                  type="date"
+                  value={editForm.start_date}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, start_date: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Start Time</Label>
+                <Input
+                  type="time"
+                  value={editForm.start_time}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, start_time: e.target.value }))}
+                  disabled={editForm.all_day}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>End Date</Label>
+                <Input
+                  type="date"
+                  value={editForm.end_date}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, end_date: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>End Time</Label>
+                <Input
+                  type="time"
+                  value={editForm.end_time}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, end_time: e.target.value }))}
+                  disabled={editForm.all_day}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="edit_all_day"
+                checked={editForm.all_day}
+                onChange={(e) => setEditForm(prev => ({ ...prev, all_day: e.target.checked }))}
+                className="rounded"
+              />
+              <Label htmlFor="edit_all_day" className="cursor-pointer">All-day event</Label>
+            </div>
+
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={() => setEditing(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEdit} disabled={saving} className="bg-[#264d44] hover:bg-[#1a3830]">
+                {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </div>
+        ) : (
+          <div className="space-y-4 mt-4">
           <div className="flex items-start gap-3">
             <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
             <div>
@@ -169,13 +348,14 @@ END:VCALENDAR`;
             </div>
           </div>
 
-          <div className="pt-3 border-t flex justify-end">
-            <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleDelete} disabled={deleting}>
-              {deleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
-              Delete Event
-            </Button>
+            <div className="pt-3 border-t flex justify-end">
+              <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleDelete} disabled={deleting}>
+                {deleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
+                Delete Event
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );
