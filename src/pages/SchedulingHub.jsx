@@ -1,18 +1,37 @@
 import React, { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink, Plus, Pencil, Check, X } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink, Plus, Pencil, Check, X, FileText } from 'lucide-react';
 import MonthlyCalendar from '@/components/scheduling/MonthlyCalendar';
+import { toast } from 'sonner';
 
 export default function SchedulingHub() {
   const SPREADSHEET_ID = '1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0';
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState('');
+  const [bookServiceDialogOpen, setBookServiceDialogOpen] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
+  const [selectedLineItem, setSelectedLineItem] = useState(null);
+  const [bookingForm, setBookingForm] = useState({
+    title: '',
+    description: '',
+    start_date: '',
+    start_time: '',
+    end_date: '',
+    end_time: '',
+    location: '',
+    client_name: '',
+    all_day: false
+  });
   const queryClient = useQueryClient();
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -23,6 +42,11 @@ export default function SchedulingHub() {
     },
     refetchInterval: 30000, // Auto-refresh every 30 seconds
     refetchOnWindowFocus: true
+  });
+
+  const { data: invoices = [] } = useQuery({
+    queryKey: ['invoices'],
+    queryFn: () => base44.entities.Invoice.list('-created_date')
   });
 
   const handleManualRefresh = async () => {
@@ -204,6 +228,109 @@ export default function SchedulingHub() {
     }
   };
 
+  const bookServiceMutation = useMutation({
+    mutationFn: async (eventData) => {
+      const startDateTime = `${eventData.start_date}T${eventData.start_time || '09:00'}:00`;
+      const endDateTime = eventData.end_date && eventData.end_time 
+        ? `${eventData.end_date}T${eventData.end_time}:00`
+        : new Date(new Date(startDateTime).getTime() + 60 * 60 * 1000).toISOString();
+
+      // Create event in CalendarEvent entity
+      const calendarEvent = await base44.entities.CalendarEvent.create({
+        title: eventData.title,
+        description: eventData.description || '',
+        location: eventData.location || '',
+        start_date: startDateTime,
+        end_date: endDateTime,
+        all_day: eventData.all_day,
+        event_type: 'other',
+        client_name: eventData.client_name || '',
+        color: '#264d44'
+      });
+
+      // Sync to Google Calendar
+      const response = await base44.functions.invoke('googleCalendarSync', {
+        action: 'createEvent',
+        eventData: {
+          id: calendarEvent.id,
+          title: eventData.title,
+          description: eventData.description || '',
+          location: eventData.location || '',
+          start_date: startDateTime,
+          end_date: endDateTime,
+          all_day: eventData.all_day,
+          event_type: 'other'
+        }
+      });
+
+      if (response.data.success) {
+        // Update with Google Calendar event ID
+        await base44.entities.CalendarEvent.update(calendarEvent.id, {
+          google_event_id: response.data.googleEventId
+        });
+      }
+
+      return calendarEvent;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
+      toast.success('Service booked successfully!');
+      setBookServiceDialogOpen(false);
+      resetBookingForm();
+    },
+    onError: (error) => {
+      toast.error('Failed to book service: ' + error.message);
+    }
+  });
+
+  const handleInvoiceSelect = (invoiceId) => {
+    setSelectedInvoiceId(invoiceId);
+    setSelectedLineItem(null);
+    
+    const invoice = invoices.find(inv => inv.id === invoiceId);
+    if (invoice) {
+      setBookingForm(prev => ({
+        ...prev,
+        client_name: invoice.client_name || invoice.company || ''
+      }));
+    }
+  };
+
+  const handleLineItemSelect = (lineItem) => {
+    setSelectedLineItem(lineItem);
+    setBookingForm(prev => ({
+      ...prev,
+      title: lineItem.description || lineItem.name || '',
+      description: `Service from invoice\n\nQuantity: ${lineItem.quantity || 1}\nRate: $${lineItem.rate || 0}`
+    }));
+  };
+
+  const resetBookingForm = () => {
+    setSelectedInvoiceId('');
+    setSelectedLineItem(null);
+    setBookingForm({
+      title: '',
+      description: '',
+      start_date: '',
+      start_time: '',
+      end_date: '',
+      end_time: '',
+      location: '',
+      client_name: '',
+      all_day: false
+    });
+  };
+
+  const handleBookService = () => {
+    if (!bookingForm.title || !bookingForm.start_date) {
+      toast.error('Please fill in the service name and start date');
+      return;
+    }
+    bookServiceMutation.mutate(bookingForm);
+  };
+
+  const selectedInvoice = invoices.find(inv => inv.id === selectedInvoiceId);
+
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -221,6 +348,13 @@ export default function SchedulingHub() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Button
+              onClick={() => setBookServiceDialogOpen(true)}
+              className="bg-[#770142] hover:bg-[#5a0132]"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Book from Invoice
+            </Button>
             <Button
               onClick={handleManualRefresh}
               variant="outline"
@@ -425,6 +559,163 @@ export default function SchedulingHub() {
           </div>
         </div>
       </div>
+
+      {/* Book Service Dialog */}
+      <Dialog open={bookServiceDialogOpen} onOpenChange={setBookServiceDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Book Service from Invoice</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Invoice Selection */}
+            <div>
+              <Label>Select Invoice</Label>
+              <Select value={selectedInvoiceId} onValueChange={handleInvoiceSelect}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose an invoice..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {invoices.map(invoice => (
+                    <SelectItem key={invoice.id} value={invoice.id}>
+                      {invoice.invoice_number || `Invoice #${invoice.id.slice(0, 8)}`} - {invoice.client_name || invoice.company} - ${invoice.total_amount}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Line Items Selection */}
+            {selectedInvoice && selectedInvoice.line_items && selectedInvoice.line_items.length > 0 && (
+              <div>
+                <Label>Select Service</Label>
+                <div className="space-y-2 mt-2">
+                  {selectedInvoice.line_items.map((item, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => handleLineItemSelect(item)}
+                      className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                        selectedLineItem === item 
+                          ? 'border-[#264d44] bg-[#264d44]/5' 
+                          : 'border-gray-200 hover:border-[#264d44]/50'
+                      }`}
+                    >
+                      <div className="font-medium">{item.description || item.name || 'Service'}</div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        Qty: {item.quantity || 1} × ${item.rate || 0} = ${item.amount || 0}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Booking Form */}
+            {selectedLineItem && (
+              <>
+                <div>
+                  <Label>Event Title</Label>
+                  <Input
+                    value={bookingForm.title}
+                    onChange={(e) => setBookingForm(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Enter event title"
+                  />
+                </div>
+
+                <div>
+                  <Label>Description</Label>
+                  <Textarea
+                    value={bookingForm.description}
+                    onChange={(e) => setBookingForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Event description..."
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <Label>Client Name</Label>
+                  <Input
+                    value={bookingForm.client_name}
+                    onChange={(e) => setBookingForm(prev => ({ ...prev, client_name: e.target.value }))}
+                    placeholder="Client name"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>Start Date</Label>
+                    <Input
+                      type="date"
+                      value={bookingForm.start_date}
+                      onChange={(e) => setBookingForm(prev => ({ ...prev, start_date: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>Start Time</Label>
+                    <Input
+                      type="time"
+                      value={bookingForm.start_time}
+                      onChange={(e) => setBookingForm(prev => ({ ...prev, start_time: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label>End Date (optional)</Label>
+                    <Input
+                      type="date"
+                      value={bookingForm.end_date}
+                      onChange={(e) => setBookingForm(prev => ({ ...prev, end_date: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label>End Time (optional)</Label>
+                    <Input
+                      type="time"
+                      value={bookingForm.end_time}
+                      onChange={(e) => setBookingForm(prev => ({ ...prev, end_time: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label>Location</Label>
+                  <Input
+                    value={bookingForm.location}
+                    onChange={(e) => setBookingForm(prev => ({ ...prev, location: e.target.value }))}
+                    placeholder="Event location or meeting link"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="all_day"
+                    checked={bookingForm.all_day}
+                    onChange={(e) => setBookingForm(prev => ({ ...prev, all_day: e.target.checked }))}
+                    className="rounded"
+                  />
+                  <Label htmlFor="all_day" className="cursor-pointer">All-day event</Label>
+                </div>
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBookServiceDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBookService}
+              disabled={!selectedLineItem || !bookingForm.title || !bookingForm.start_date || bookServiceMutation.isPending}
+              className="bg-[#264d44] hover:bg-[#1a3830]"
+            >
+              {bookServiceMutation.isPending ? 'Booking...' : 'Book Service'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
