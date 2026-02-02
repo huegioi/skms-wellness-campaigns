@@ -49,6 +49,61 @@ export default function SchedulingHub() {
     queryFn: () => base44.entities.Invoice.list('-created_date')
   });
 
+  const bookServiceMutation = useMutation({
+    mutationFn: async (eventData) => {
+      const startDateTime = `${eventData.start_date}T${eventData.start_time || '09:00'}:00`;
+      const endDateTime = eventData.end_date && eventData.end_time 
+        ? `${eventData.end_date}T${eventData.end_time}:00`
+        : new Date(new Date(startDateTime).getTime() + 60 * 60 * 1000).toISOString();
+
+      // Create event in CalendarEvent entity
+      const calendarEvent = await base44.entities.CalendarEvent.create({
+        title: eventData.title,
+        description: eventData.description || '',
+        location: eventData.location || '',
+        start_date: startDateTime,
+        end_date: endDateTime,
+        all_day: eventData.all_day,
+        event_type: 'other',
+        client_name: eventData.client_name || '',
+        color: '#264d44'
+      });
+
+      // Sync to Google Calendar
+      const response = await base44.functions.invoke('googleCalendarSync', {
+        action: 'createEvent',
+        eventData: {
+          id: calendarEvent.id,
+          title: eventData.title,
+          description: eventData.description || '',
+          location: eventData.location || '',
+          start_date: startDateTime,
+          end_date: endDateTime,
+          all_day: eventData.all_day,
+          event_type: 'other'
+        }
+      });
+
+      if (response.data.success) {
+        // Update with Google Calendar event ID
+        await base44.entities.CalendarEvent.update(calendarEvent.id, {
+          google_event_id: response.data.googleEventId
+        });
+      }
+
+      return calendarEvent;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
+      toast.success('Service booked successfully!');
+      setBookServiceDialogOpen(false);
+      resetBookingForm();
+    },
+    onError: (error) => {
+      toast.error('Failed to book service: ' + error.message);
+    }
+  });
+
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
     await refetch();
@@ -227,61 +282,6 @@ export default function SchedulingHub() {
       alert('Failed to add to Google Calendar: ' + error.message);
     }
   };
-
-  const bookServiceMutation = useMutation({
-    mutationFn: async (eventData) => {
-      const startDateTime = `${eventData.start_date}T${eventData.start_time || '09:00'}:00`;
-      const endDateTime = eventData.end_date && eventData.end_time 
-        ? `${eventData.end_date}T${eventData.end_time}:00`
-        : new Date(new Date(startDateTime).getTime() + 60 * 60 * 1000).toISOString();
-
-      // Create event in CalendarEvent entity
-      const calendarEvent = await base44.entities.CalendarEvent.create({
-        title: eventData.title,
-        description: eventData.description || '',
-        location: eventData.location || '',
-        start_date: startDateTime,
-        end_date: endDateTime,
-        all_day: eventData.all_day,
-        event_type: 'other',
-        client_name: eventData.client_name || '',
-        color: '#264d44'
-      });
-
-      // Sync to Google Calendar
-      const response = await base44.functions.invoke('googleCalendarSync', {
-        action: 'createEvent',
-        eventData: {
-          id: calendarEvent.id,
-          title: eventData.title,
-          description: eventData.description || '',
-          location: eventData.location || '',
-          start_date: startDateTime,
-          end_date: endDateTime,
-          all_day: eventData.all_day,
-          event_type: 'other'
-        }
-      });
-
-      if (response.data.success) {
-        // Update with Google Calendar event ID
-        await base44.entities.CalendarEvent.update(calendarEvent.id, {
-          google_event_id: response.data.googleEventId
-        });
-      }
-
-      return calendarEvent;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
-      toast.success('Service booked successfully!');
-      setBookServiceDialogOpen(false);
-      resetBookingForm();
-    },
-    onError: (error) => {
-      toast.error('Failed to book service: ' + error.message);
-    }
-  });
 
   const handleInvoiceSelect = (invoiceId) => {
     setSelectedInvoiceId(invoiceId);
