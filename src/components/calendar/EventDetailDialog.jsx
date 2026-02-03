@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit, Upload, CheckCircle2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -16,6 +16,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const [editForm, setEditForm] = useState({
     title: event.title,
     description: event.description || '',
@@ -160,6 +161,32 @@ END:VCALENDAR`;
     URL.revokeObjectURL(url);
   };
 
+  const handleSyncToGoogle = async () => {
+    setSyncing(true);
+    try {
+      const response = await base44.functions.invoke('googleCalendarSync', {
+        action: 'createEvent',
+        eventData: {
+          ...event,
+          id: event.id
+        }
+      });
+
+      if (response.data.success) {
+        await base44.entities.CalendarEvent.update(event.id, {
+          google_event_id: response.data.googleEventId
+        });
+        toast.success('Event synced to Google Calendar!');
+        onUpdated?.();
+        onOpenChange(false);
+      }
+    } catch (error) {
+      toast.error('Failed to sync to Google Calendar: ' + error.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
@@ -174,9 +201,17 @@ END:VCALENDAR`;
               </div>
               <div>
                 <DialogTitle>{editing ? 'Edit Event' : event.title}</DialogTitle>
-                <Badge style={{ backgroundColor: event.color || config.color }} className="text-white mt-1">
-                  {config.label}
-                </Badge>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge style={{ backgroundColor: event.color || config.color }} className="text-white">
+                    {config.label}
+                  </Badge>
+                  {event.google_event_id && (
+                    <Badge variant="outline" className="text-green-600 border-green-600">
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      Synced
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
             {!editing && (
@@ -332,9 +367,23 @@ END:VCALENDAR`;
             </div>
           )}
 
+          {/* Sync to Google Calendar */}
+          {!event.google_event_id && (
+            <div className="pt-3 border-t">
+              <Button 
+                onClick={handleSyncToGoogle} 
+                disabled={syncing}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+              >
+                {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                {syncing ? 'Syncing...' : 'Sync to Google Calendar'}
+              </Button>
+            </div>
+          )}
+
           {/* Export Options */}
           <div className="pt-3 border-t">
-            <p className="text-sm font-medium text-gray-600 mb-2">Add to Calendar:</p>
+            <p className="text-sm font-medium text-gray-600 mb-2">Add to Other Calendars:</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={exportToGoogleCalendar}>
                 <ExternalLink className="w-3 h-3 mr-1" /> Google
