@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, CheckCircle2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import EventDetailDialog from '@/components/calendar/EventDetailDialog';
@@ -240,14 +240,17 @@ export default function MonthlyCalendar({ sheets }) {
                       {dayEvents.slice(0, 3).map((event, idx) => (
                         <div
                           key={idx}
-                          className={`text-xs px-1 py-0.5 rounded text-white truncate ${
+                          className={`text-xs px-1 py-0.5 rounded text-white truncate flex items-center gap-1 ${
                             event.isCalendarEvent 
                               ? 'bg-[#264d44]' 
                               : sheetColors[event.sheetIndex % sheetColors.length]
                           }`}
                           title={event.title}
                         >
-                          {event.title}
+                          {event.isCalendarEvent && event.google_event_id && (
+                            <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
+                          )}
+                          <span className="truncate">{event.title}</span>
                         </div>
                       ))}
                       {dayEvents.length > 3 && (
@@ -285,55 +288,45 @@ export default function MonthlyCalendar({ sheets }) {
             ) : (
               selectedEvents.map((event, idx) => (
                 <div key={idx} className="bg-gray-50 rounded-lg p-4 border">
-                  {event.isCalendarEvent ? (
-                    <div 
-                      className="cursor-pointer hover:bg-gray-100 transition-colors rounded p-2 -m-2"
-                      onClick={() => setSelectedCalendarEvent(event)}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <Badge style={{ backgroundColor: event.color || '#264d44' }} className="text-white">
-                          {eventTypeConfig[event.event_type]?.label || 'Event'}
-                        </Badge>
-                      </div>
-                      <h4 className="font-semibold text-lg text-gray-800 mb-1">{event.title}</h4>
-                      {event.client_name && (
-                        <p className="text-sm text-gray-600">Client: {event.client_name}</p>
-                      )}
-                      {event.location && (
-                        <p className="text-sm text-gray-600">Location: {event.location}</p>
-                      )}
-                      <p className="text-xs text-[#264d44] mt-2">Click to edit or delete</p>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between items-start gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                  <div 
+                    className="cursor-pointer hover:bg-gray-100 transition-colors rounded p-2 -m-2"
+                    onClick={() => event.isCalendarEvent && setSelectedCalendarEvent(event)}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      {event.isCalendarEvent ? (
+                        <>
+                          <Badge style={{ backgroundColor: event.color || '#264d44' }} className="text-white">
+                            {eventTypeConfig[event.event_type]?.label || 'Event'}
+                          </Badge>
+                          {event.google_event_id && (
+                            <Badge variant="outline" className="text-green-600 border-green-600">
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              Synced
+                            </Badge>
+                          )}
+                        </>
+                      ) : (
+                        <>
                           <Badge className={`${sheetColors[event.sheetIndex % sheetColors.length]} text-white`}>
                             {event.sheet}
                           </Badge>
                           {event.time && (
                             <span className="text-sm text-gray-600">{event.time}</span>
                           )}
-                        </div>
-                        <h4 className="font-semibold text-lg text-gray-800 mb-1">{event.title}</h4>
-                        {event.client && (
-                          <p className="text-sm text-gray-600">Client: {event.client}</p>
-                        )}
-                        {event.location && (
-                          <p className="text-sm text-gray-600">Location: {event.location}</p>
-                        )}
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => addToGoogleCalendar(event)}
-                        disabled={addingToGoogleCal === event.title}
-                        className="bg-[#264d44] hover:bg-[#1a3830]"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        {addingToGoogleCal === event.title ? 'Adding...' : 'Add to Google Cal'}
-                      </Button>
+                        </>
+                      )}
                     </div>
-                  )}
+                    <h4 className="font-semibold text-lg text-gray-800 mb-1">{event.title}</h4>
+                    {(event.client_name || event.client) && (
+                      <p className="text-sm text-gray-600">Client: {event.client_name || event.client}</p>
+                    )}
+                    {event.location && (
+                      <p className="text-sm text-gray-600">Location: {event.location}</p>
+                    )}
+                    {event.isCalendarEvent && (
+                      <p className="text-xs text-[#264d44] mt-2">Click to edit or delete</p>
+                    )}
+                  </div>
                 </div>
               ))
             )}
