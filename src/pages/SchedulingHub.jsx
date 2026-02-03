@@ -9,9 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink, Plus, Pencil, Check, X, FileText } from 'lucide-react';
+import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink, Plus, Pencil, Check, X, FileText, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
 import MonthlyCalendar from '@/components/scheduling/MonthlyCalendar';
+import EventDetailDialog from '@/components/calendar/EventDetailDialog';
 import { toast } from 'sonner';
+import { format, parseISO } from 'date-fns';
 
 export default function SchedulingHub() {
   const SPREADSHEET_ID = '1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0';
@@ -32,7 +34,20 @@ export default function SchedulingHub() {
     client_name: '',
     all_day: false
   });
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [addingToCalendar, setAddingToCalendar] = useState(null);
   const queryClient = useQueryClient();
+
+  const eventTypeConfig = {
+    meeting: { label: 'Meeting', color: '#3B82F6', icon: Calendar },
+    workshop: { label: 'Workshop', color: '#8B5CF6', icon: Calendar },
+    challenge: { label: 'Challenge', color: '#10B981', icon: Calendar },
+    leadership: { label: 'Leadership', color: '#F59E0B', icon: Calendar },
+    class: { label: 'Class', color: '#EC4899', icon: Calendar },
+    delivery: { label: 'Delivery', color: '#06B6D4', icon: Calendar },
+    follow_up: { label: 'Follow Up', color: '#14B8A6', icon: Calendar },
+    other: { label: 'Other', color: '#264d44', icon: Calendar }
+  };
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['schedule', SPREADSHEET_ID],
@@ -47,6 +62,11 @@ export default function SchedulingHub() {
   const { data: invoices = [] } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list('-created_date')
+  });
+
+  const { data: calendarEvents = [], refetch: refetchCalendarEvents } = useQuery({
+    queryKey: ['calendarEvents'],
+    queryFn: () => base44.entities.CalendarEvent.list('-start_date')
   });
 
   const bookServiceMutation = useMutation({
@@ -171,8 +191,8 @@ export default function SchedulingHub() {
   const sheets = data?.sheets || [];
   const spreadsheetTitle = data?.title || 'Scheduling Hub';
 
-  // Parse upcoming events from all sheets
-  const getUpcomingEvents = () => {
+  // Parse sheet events for potential import (not added to app yet)
+  const parseSheetEventsForImport = () => {
     const events = [];
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -249,37 +269,49 @@ export default function SchedulingHub() {
     return events.sort((a, b) => a.date - b.date);
   };
 
-  const upcomingEvents = getUpcomingEvents();
+  const sheetEventsForImport = parseSheetEventsForImport();
 
-  const addToGoogleCalendar = async (event) => {
+  // Get upcoming CalendarEvent entities (next 30 days)
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+  const upcomingCalendarEvents = (calendarEvents || [])
+    .filter(event => {
+      const eventDate = parseISO(event.start_date);
+      return eventDate >= new Date() && eventDate <= thirtyDaysFromNow;
+    })
+    .sort((a, b) => parseISO(a.start_date) - parseISO(b.start_date));
+
+  const addSheetEventToAppCalendar = async (event) => {
+    setAddingToCalendar(event.title);
     try {
       const startDate = new Date(event.date);
       const endDate = new Date(startDate);
       endDate.setHours(startDate.getHours() + 1);
 
-      let description = `Client: ${event.client}\nSheet: ${event.sheet}`;
+      let description = `Client: ${event.client}\nSource: ${event.sheet}`;
       if (event.presenter) description += `\nPresenter: ${event.presenter}`;
       if (event.linkToHost) description += `\nLink to Host Video: ${event.linkToHost}`;
       if (event.recording) description += `\nRecording: ${event.recording}`;
       if (event.translation) description += `\nTranslation: ${event.translation}`;
 
-      const response = await base44.functions.invoke('googleCalendarSync', {
-        action: 'createEvent',
-        eventData: {
-          title: event.title,
-          description: description,
-          location: event.location || '',
-          start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
-          all_day: false
-        }
+      await base44.entities.CalendarEvent.create({
+        title: event.title,
+        description,
+        location: event.location || '',
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        all_day: false,
+        event_type: 'other',
+        client_name: event.client,
+        color: '#264d44'
       });
 
-      if (response.data.success) {
-        alert('Event added to Google Calendar!');
-      }
+      toast.success('Event added to app calendar!');
+      refetchCalendarEvents();
     } catch (error) {
-      alert('Failed to add to Google Calendar: ' + error.message);
+      toast.error('Failed to add event: ' + error.message);
+    } finally {
+      setAddingToCalendar(null);
     }
   };
 
@@ -376,8 +408,8 @@ export default function SchedulingHub() {
           </div>
         </div>
 
-        {/* Coming Up Section */}
-        {upcomingEvents.length > 0 && (
+        {/* Coming Up Section - CalendarEvent Entities */}
+        {upcomingCalendarEvents.length > 0 && (
           <Card className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
             <div className="p-6">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: '#013f7c' }}>
@@ -385,13 +417,75 @@ export default function SchedulingHub() {
                 Coming Up (Next 30 Days)
               </h2>
               <div className="space-y-3">
-                {upcomingEvents.slice(0, 8).map((event, idx) => (
-                  <div key={idx} className="bg-white rounded-lg p-4 border border-blue-100 hover:shadow-md transition-shadow">
+                {upcomingCalendarEvents.slice(0, 8).map((event) => (
+                  <div 
+                    key={event.id} 
+                    className="bg-white rounded-lg p-4 border border-blue-100 hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => setSelectedEvent(event)}
+                  >
                     <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
                       <div className="flex items-center gap-3 min-w-[140px]">
                         <Calendar className="w-5 h-5 text-blue-600" />
                         <div>
                           <div className="font-semibold text-sm" style={{ color: '#013f7c' }}>
+                            {format(parseISO(event.start_date), 'MMM d')}
+                          </div>
+                          {!event.all_day && (
+                            <div className="text-xs text-gray-600">{format(parseISO(event.start_date), 'h:mm a')}</div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-semibold text-gray-800">{event.title}</div>
+                          {event.google_event_id && (
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          )}
+                        </div>
+                        {event.client_name && (
+                          <div className="text-sm text-gray-600 flex items-center gap-1 mb-1">
+                            <Users className="w-3 h-3" />
+                            {event.client_name}
+                          </div>
+                        )}
+                        <div className="flex flex-wrap gap-3 text-sm text-gray-600">
+                          {event.location && (
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3" />
+                              {event.location}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {upcomingCalendarEvents.length > 8 && (
+                <p className="text-sm text-gray-500 mt-3 text-center">
+                  +{upcomingCalendarEvents.length - 8} more event{upcomingCalendarEvents.length - 8 !== 1 ? 's' : ''} coming up
+                </p>
+              )}
+            </div>
+          </Card>
+        )}
+
+        {/* Sheet Events Available for Import */}
+        {sheetEventsForImport.length > 0 && (
+          <Card className="mb-6">
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: '#013f7c' }}>
+                <FileSpreadsheet className="w-5 h-5" />
+                Events from Google Sheets (Not Yet Added)
+              </h2>
+              <div className="space-y-3">
+                {sheetEventsForImport.slice(0, 8).map((event, idx) => (
+                  <div key={idx} className="bg-gray-50 rounded-lg p-4 border">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
+                      <div className="flex items-center gap-3 min-w-[140px]">
+                        <Calendar className="w-5 h-5 text-gray-600" />
+                        <div>
+                          <div className="font-semibold text-sm text-gray-700">
                             {event.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                           </div>
                           {event.time && (
@@ -407,11 +501,6 @@ export default function SchedulingHub() {
                             {event.client}
                           </div>
                         )}
-                        {event.presenter && (
-                          <div className="text-sm text-gray-600 mb-1">
-                            <span className="font-medium">Presenter:</span> {event.presenter}
-                          </div>
-                        )}
                         <div className="flex flex-wrap gap-3 text-sm text-gray-600">
                           {event.location && (
                             <span className="flex items-center gap-1">
@@ -424,19 +513,20 @@ export default function SchedulingHub() {
                       </div>
                       <Button
                         size="sm"
-                        onClick={() => addToGoogleCalendar(event)}
+                        onClick={() => addSheetEventToAppCalendar(event)}
+                        disabled={addingToCalendar === event.title}
                         className="bg-[#264d44] hover:bg-[#1a3830] whitespace-nowrap self-start"
                       >
                         <Plus className="w-4 h-4 mr-1" />
-                        Add to Cal
+                        {addingToCalendar === event.title ? 'Adding...' : 'Add to App'}
                       </Button>
                     </div>
                   </div>
                 ))}
               </div>
-              {upcomingEvents.length > 8 && (
+              {sheetEventsForImport.length > 8 && (
                 <p className="text-sm text-gray-500 mt-3 text-center">
-                  +{upcomingEvents.length - 8} more event{upcomingEvents.length - 8 !== 1 ? 's' : ''} coming up
+                  +{sheetEventsForImport.length - 8} more event{sheetEventsForImport.length - 8 !== 1 ? 's' : ''} available
                 </p>
               )}
             </div>
@@ -716,6 +806,20 @@ export default function SchedulingHub() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Event Detail Dialog */}
+      {selectedEvent && (
+        <EventDetailDialog
+          event={selectedEvent}
+          open={!!selectedEvent}
+          onOpenChange={(open) => !open && setSelectedEvent(null)}
+          eventTypeConfig={eventTypeConfig}
+          onUpdated={() => {
+            refetchCalendarEvents();
+            setSelectedEvent(null);
+          }}
+        />
+      )}
     </div>
   );
 }
