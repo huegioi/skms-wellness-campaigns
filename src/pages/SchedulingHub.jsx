@@ -262,25 +262,58 @@ export default function SchedulingHub() {
   const addSheetEventToAppCalendar = async (event) => {
     setAddingToCalendar(event.title);
     try {
+      // Parse the date and set time in America/New_York timezone
       const startDate = new Date(event.date);
+
+      // If there's a time string, parse it
+      if (event.time) {
+        const timeParts = event.time.match(/(\d+):(\d+)\s*(AM|PM)?/i);
+        if (timeParts) {
+          let hours = parseInt(timeParts[1]);
+          const minutes = parseInt(timeParts[2]);
+          const period = timeParts[3];
+
+          if (period && period.toUpperCase() === 'PM' && hours !== 12) {
+            hours += 12;
+          } else if (period && period.toUpperCase() === 'AM' && hours === 12) {
+            hours = 0;
+          }
+
+          startDate.setHours(hours, minutes, 0, 0);
+        }
+      } else {
+        // Default to 9 AM if no time specified
+        startDate.setHours(9, 0, 0, 0);
+      }
+
       const endDate = new Date(startDate);
       endDate.setHours(startDate.getHours() + 1);
 
       let description = `Client: ${event.client}\nSource: ${event.sheet}`;
-      if (event.presenter) description += `\nPresenter: ${event.presenter}`;
       if (event.linkToHost) description += `\nLink to Host Video: ${event.linkToHost}`;
       if (event.recording) description += `\nRecording: ${event.recording}`;
       if (event.translation) description += `\nTranslation: ${event.translation}`;
+
+      // Format as ISO string but treat as local time (America/New_York)
+      const formatLocalAsISO = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}:00`;
+      };
 
       await base44.entities.CalendarEvent.create({
         title: event.title,
         description,
         location: event.location || '',
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
+        start_date: formatLocalAsISO(startDate),
+        end_date: formatLocalAsISO(endDate),
         all_day: false,
         event_type: 'other',
         client_name: event.client,
+        presenter: event.presenter || '',
         color: '#264d44'
       });
 
@@ -424,6 +457,11 @@ export default function SchedulingHub() {
                           <div className="text-sm text-gray-600 flex items-center gap-1 mb-1">
                             <Users className="w-3 h-3" />
                             {event.client_name}
+                          </div>
+                        )}
+                        {event.presenter && (
+                          <div className="text-sm text-gray-600">
+                            Presenter: {event.presenter}
                           </div>
                         )}
                         <div className="flex flex-wrap gap-3 text-sm text-gray-600">
