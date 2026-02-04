@@ -38,16 +38,14 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
     try {
       // Delete from Google Calendar if synced
       if (event.google_event_id) {
-        await base44.functions.invoke('googleCalendarSync', {
-          action: 'deleteEvent',
-          eventData: { googleEventId: event.google_event_id }
+        await base44.functions.invoke('syncCalendarEventToGoogle', {
+          eventId: event.id,
+          action: 'delete'
         });
       }
       
-      // Delete from internal database
       await base44.entities.CalendarEvent.delete(event.id);
-      
-      toast.success('Event deleted successfully');
+      toast.success('Event deleted');
       onUpdated?.();
       onOpenChange(false);
     } catch (error) {
@@ -79,19 +77,8 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
         all_day: editForm.all_day
       };
 
-      // Update in CalendarEvent entity
+      // Update in CalendarEvent entity (automation will handle Google sync)
       await base44.entities.CalendarEvent.update(event.id, updatedData);
-
-      // Update in Google Calendar if synced
-      if (event.google_event_id) {
-        await base44.functions.invoke('googleCalendarSync', {
-          action: 'updateEvent',
-          eventData: {
-            ...updatedData,
-            googleEventId: event.google_event_id
-          }
-        });
-      }
 
       toast.success('Event updated successfully');
       setEditing(false);
