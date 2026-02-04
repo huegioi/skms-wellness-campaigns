@@ -164,24 +164,36 @@ END:VCALENDAR`;
   const handleSyncToGoogle = async () => {
     setSyncing(true);
     try {
-      const response = await base44.functions.invoke('googleCalendarSync', {
-        action: 'createEvent',
-        eventData: {
-          ...event,
-          id: event.id
-        }
+      const response = await base44.functions.invoke('syncCalendarEventToGoogle', {
+        eventId: event.id,
+        action: 'sync'
       });
 
       if (response.data.success) {
-        await base44.entities.CalendarEvent.update(event.id, {
-          google_event_id: response.data.googleEventId
-        });
         toast.success('Event synced to Google Calendar!');
         onUpdated?.();
-        onOpenChange(false);
       }
     } catch (error) {
       toast.error('Failed to sync to Google Calendar: ' + error.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleUnsyncFromGoogle = async () => {
+    setSyncing(true);
+    try {
+      const response = await base44.functions.invoke('syncCalendarEventToGoogle', {
+        eventId: event.id,
+        action: 'unsync'
+      });
+
+      if (response.data.success) {
+        toast.success('Event removed from Google Calendar');
+        onUpdated?.();
+      }
+    } catch (error) {
+      toast.error('Failed to unsync: ' + error.message);
     } finally {
       setSyncing(false);
     }
@@ -368,8 +380,24 @@ END:VCALENDAR`;
           )}
 
           {/* Sync to Google Calendar */}
-          {!event.google_event_id && (
-            <div className="pt-3 border-t">
+          <div className="pt-3 border-t">
+            {event.google_event_id ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Synced to Google Calendar</span>
+                </div>
+                <Button 
+                  onClick={handleUnsyncFromGoogle} 
+                  disabled={syncing}
+                  variant="outline"
+                  className="w-full"
+                >
+                  {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                  {syncing ? 'Removing...' : 'Remove from Google Calendar'}
+                </Button>
+              </div>
+            ) : (
               <Button 
                 onClick={handleSyncToGoogle} 
                 disabled={syncing}
@@ -378,8 +406,8 @@ END:VCALENDAR`;
                 {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
                 {syncing ? 'Syncing...' : 'Sync to Google Calendar'}
               </Button>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Export Options */}
           <div className="pt-3 border-t">
