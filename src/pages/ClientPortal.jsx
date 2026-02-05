@@ -62,14 +62,18 @@ export default function ClientPortal() {
   // Get accepted proposal
   const acceptedProposal = proposals.find(p => p.status === 'accepted') || proposals[0];
 
-  // Get events for this client
+  // Get events for this client (filter by client_id OR client_name)
   const { data: events = [] } = useQuery({
-    queryKey: ['portalEvents', client?.id],
+    queryKey: ['portalEvents', client?.id, client?.name],
     queryFn: async () => {
-      if (!client?.id) return [];
-      return base44.entities.CalendarEvent.filter({ client_id: client.id }, 'start_date');
+      if (!client) return [];
+      // Get events by client_id OR client_name to catch all related events
+      const allEvents = await base44.entities.CalendarEvent.list('start_date');
+      return allEvents.filter(event => 
+        event.client_id === client.id || event.client_name === client.name || event.client_name === client.company
+      );
     },
-    enabled: !!client?.id
+    enabled: !!client
   });
 
   // Get email templates
