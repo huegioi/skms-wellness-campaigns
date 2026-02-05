@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink, Plus, Pencil, Check, X, FileText, FileSpreadsheet, CheckCircle2 } from 'lucide-react';
+import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink, Plus, Pencil, Check, X, FileText, FileSpreadsheet, CheckCircle2, LayoutGrid, List, Filter } from 'lucide-react';
 import MonthlyCalendar from '@/components/scheduling/MonthlyCalendar';
+import WeeklyCalendar from '@/components/scheduling/WeeklyCalendar';
 import EventDetailDialog from '@/components/calendar/EventDetailDialog';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
@@ -36,6 +37,9 @@ export default function SchedulingHub() {
   });
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [addingToCalendar, setAddingToCalendar] = useState(null);
+  const [calendarView, setCalendarView] = useState('month'); // 'month', 'week', 'list'
+  const [filterType, setFilterType] = useState('all');
+  const [filterPresenter, setFilterPresenter] = useState('all');
   const queryClient = useQueryClient();
 
   const eventTypeConfig = {
@@ -252,7 +256,22 @@ export default function SchedulingHub() {
   // Get upcoming CalendarEvent entities (next 30 days)
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-  const upcomingCalendarEvents = (calendarEvents || [])
+  
+  // Get unique presenters for filter
+  const allPresenters = [...new Set(calendarEvents
+    .filter(e => e.presenter)
+    .map(e => e.presenter)
+  )];
+  
+  // Filter events based on selected filters
+  const filteredCalendarEvents = (calendarEvents || [])
+    .filter(event => {
+      const typeMatch = filterType === 'all' || event.event_type === filterType;
+      const presenterMatch = filterPresenter === 'all' || event.presenter === filterPresenter;
+      return typeMatch && presenterMatch;
+    });
+  
+  const upcomingCalendarEvents = filteredCalendarEvents
     .filter(event => {
       const eventDate = parseISO(event.start_date);
       return eventDate >= new Date() && eventDate <= thirtyDaysFromNow;
@@ -549,10 +568,149 @@ export default function SchedulingHub() {
           </Card>
         )}
 
+        {/* Calendar View Controls */}
+        <Card className="mb-6 p-4">
+          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-gray-700">Calendar View:</h3>
+              <div className="flex gap-1 border rounded-lg p-1">
+                <Button
+                  variant={calendarView === 'month' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setCalendarView('month')}
+                  className={calendarView === 'month' ? 'bg-[#264d44] hover:bg-[#1a3830]' : ''}
+                >
+                  <LayoutGrid className="w-4 h-4 mr-1" />
+                  Month
+                </Button>
+                <Button
+                  variant={calendarView === 'week' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setCalendarView('week')}
+                  className={calendarView === 'week' ? 'bg-[#264d44] hover:bg-[#1a3830]' : ''}
+                >
+                  <Calendar className="w-4 h-4 mr-1" />
+                  Week
+                </Button>
+                <Button
+                  variant={calendarView === 'list' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setCalendarView('list')}
+                  className={calendarView === 'list' ? 'bg-[#264d44] hover:bg-[#1a3830]' : ''}
+                >
+                  <List className="w-4 h-4 mr-1" />
+                  List
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+              <div className="flex items-center gap-2">
+                <Filter className="w-4 h-4 text-gray-500" />
+                <Select value={filterType} onValueChange={setFilterType}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Event Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="meeting">Meeting</SelectItem>
+                    <SelectItem value="workshop">Workshop</SelectItem>
+                    <SelectItem value="challenge">Challenge</SelectItem>
+                    <SelectItem value="leadership">Leadership</SelectItem>
+                    <SelectItem value="class">Class</SelectItem>
+                    <SelectItem value="delivery">Delivery</SelectItem>
+                    <SelectItem value="follow_up">Follow Up</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {allPresenters.length > 0 && (
+                <Select value={filterPresenter} onValueChange={setFilterPresenter}>
+                  <SelectTrigger className="w-[160px]">
+                    <SelectValue placeholder="Presenter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Presenters</SelectItem>
+                    {allPresenters.map(presenter => (
+                      <SelectItem key={presenter} value={presenter}>
+                        {presenter}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+        </Card>
+
         {/* Calendar View */}
         {sheets.length > 0 && (
           <div className="mb-6">
-            <MonthlyCalendar sheets={sheets} />
+            {calendarView === 'month' && <MonthlyCalendar sheets={sheets} />}
+            {calendarView === 'week' && <WeeklyCalendar sheets={sheets} />}
+            {calendarView === 'list' && (
+              <Card className="p-6">
+                <h2 className="text-2xl font-bold mb-4" style={{ color: '#013f7c' }}>All Events</h2>
+                {filteredCalendarEvents.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">No events match your filters</p>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredCalendarEvents.slice(0, 50).map((event) => (
+                      <div 
+                        key={event.id}
+                        className="bg-white rounded-lg p-4 border hover:shadow-md transition-shadow cursor-pointer"
+                        onClick={() => setSelectedEvent(event)}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
+                          <div className="flex items-center gap-3 min-w-[140px]">
+                            <Calendar className="w-5 h-5 text-blue-600" />
+                            <div>
+                              <div className="font-semibold text-sm" style={{ color: '#013f7c' }}>
+                                {format(parseISO(event.start_date), 'MMM d, yyyy')}
+                              </div>
+                              {!event.all_day && (
+                                <div className="text-xs text-gray-600">{format(parseISO(event.start_date), 'h:mm a')}</div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="font-semibold text-gray-800">{event.title}</div>
+                              {event.google_event_id && (
+                                <CheckCircle2 className="w-4 h-4 text-green-600" />
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: event.color || '#264d44', color: 'white' }}>
+                                {eventTypeConfig[event.event_type]?.label || 'Event'}
+                              </span>
+                            </div>
+                            {event.client_name && (
+                              <div className="text-sm text-gray-600 flex items-center gap-1 mb-1">
+                                <Users className="w-3 h-3" />
+                                {event.client_name}
+                              </div>
+                            )}
+                            {event.presenter && (
+                              <div className="text-sm text-gray-600">
+                                Presenter: {event.presenter}
+                              </div>
+                            )}
+                            {event.location && (
+                              <div className="text-sm text-gray-600 flex items-center gap-1 mt-1">
+                                <MapPin className="w-3 h-3" />
+                                {event.location}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            )}
           </div>
         )}
 
