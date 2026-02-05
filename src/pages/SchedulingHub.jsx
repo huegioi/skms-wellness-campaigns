@@ -281,11 +281,36 @@ export default function SchedulingHub() {
   const addSheetEventToAppCalendar = async (event) => {
     setAddingToCalendar(event.title);
     try {
+      // Validate required fields
+      if (!event.title || event.title.trim() === '') {
+        throw new Error('Event title is required');
+      }
+
+      if (!event.date || isNaN(new Date(event.date).getTime())) {
+        throw new Error('Invalid event date');
+      }
+
+      // Check if event already exists
+      const existingEvents = await base44.entities.CalendarEvent.filter({ 
+        title: event.title, 
+        client_name: event.client 
+      });
+      
+      if (existingEvents.length > 0) {
+        const existingDate = new Date(existingEvents[0].start_date).toLocaleDateString();
+        const newDate = new Date(event.date).toLocaleDateString();
+        if (existingDate === newDate) {
+          toast.error('This event already exists in the calendar');
+          setAddingToCalendar(null);
+          return;
+        }
+      }
+
       // Parse the date and set time in America/New_York timezone
       const startDate = new Date(event.date);
 
       // If there's a time string, parse it
-      if (event.time) {
+      if (event.time && event.time.trim() !== '') {
         const timeParts = event.time.match(/(\d+):(\d+)\s*(AM|PM)?/i);
         if (timeParts) {
           let hours = parseInt(timeParts[1]);
@@ -308,7 +333,7 @@ export default function SchedulingHub() {
       const endDate = new Date(startDate);
       endDate.setHours(startDate.getHours() + 1);
 
-      let description = `Client: ${event.client}\nSource: ${event.sheet}`;
+      let description = `Client: ${event.client || 'N/A'}\nSource: ${event.sheet}`;
       if (event.linkToHost) description += `\nLink to Host Video: ${event.linkToHost}`;
       if (event.recording) description += `\nRecording: ${event.recording}`;
       if (event.translation) description += `\nTranslation: ${event.translation}`;
@@ -331,7 +356,7 @@ export default function SchedulingHub() {
         end_date: formatLocalAsISO(endDate),
         all_day: false,
         event_type: 'other',
-        client_name: event.client,
+        client_name: event.client || '',
         presenter: event.presenter || '',
         color: '#264d44'
       });
@@ -339,7 +364,8 @@ export default function SchedulingHub() {
       toast.success('Event added to app calendar!');
       refetchCalendarEvents();
     } catch (error) {
-      toast.error('Failed to add event: ' + error.message);
+      console.error('Error adding event:', error);
+      toast.error(error.message || 'Failed to add event');
     } finally {
       setAddingToCalendar(null);
     }
