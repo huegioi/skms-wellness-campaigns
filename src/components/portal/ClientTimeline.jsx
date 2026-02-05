@@ -82,7 +82,9 @@ export default function ClientTimeline({ events, proposal }) {
         event: event,
         icon: config.icon,
         color: config.color,
-        isEvent: true
+        isEvent: true,
+        completed: event.completed,
+        completed_date: event.completed_date
       });
     });
 
@@ -94,6 +96,9 @@ export default function ClientTimeline({ events, proposal }) {
   const timelineItems = generateTimelineItems();
 
   const getItemStatus = (item) => {
+    // If event is marked completed, always show as past
+    if (item.completed) return 'past';
+    
     const itemDate = new Date(item.date);
     if (isPast(itemDate) && !isToday(itemDate)) return 'past';
     if (isToday(itemDate)) return 'today';
@@ -221,10 +226,15 @@ export default function ClientTimeline({ events, proposal }) {
                         {item.description}
                       </p>
                       
-                      {status === 'past' && (
+                      {status === 'past' && !item.isReminder && (
                         <div className="flex items-center gap-1 mt-2 text-green-600 text-sm">
                           <CheckCircle2 className="w-4 h-4" />
-                          Completed
+                          {item.completed ? 'Completed' : 'Past Event'}
+                        </div>
+                      )}
+                      {item.completed && item.completed_date && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Completed on {format(new Date(item.completed_date), 'MMM d, yyyy')}
                         </div>
                       )}
                     </div>
