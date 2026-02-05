@@ -17,6 +17,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [markingComplete, setMarkingComplete] = useState(false);
   const [editForm, setEditForm] = useState({
     title: event.title,
     description: event.description || '',
@@ -186,6 +187,40 @@ END:VCALENDAR`;
     }
   };
 
+  const handleMarkComplete = async () => {
+    setMarkingComplete(true);
+    try {
+      await base44.entities.CalendarEvent.update(event.id, {
+        completed: true,
+        completed_date: new Date().toISOString()
+      });
+      toast.success('Event marked as completed');
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      toast.error('Failed to mark as complete: ' + error.message);
+    } finally {
+      setMarkingComplete(false);
+    }
+  };
+
+  const handleMarkIncomplete = async () => {
+    setMarkingComplete(true);
+    try {
+      await base44.entities.CalendarEvent.update(event.id, {
+        completed: false,
+        completed_date: null
+      });
+      toast.success('Event marked as incomplete');
+      onUpdated?.();
+      onOpenChange(false);
+    } catch (error) {
+      toast.error('Failed to mark as incomplete: ' + error.message);
+    } finally {
+      setMarkingComplete(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
@@ -208,6 +243,12 @@ END:VCALENDAR`;
                     <Badge variant="outline" className="text-green-600 border-green-600">
                       <CheckCircle2 className="w-3 h-3 mr-1" />
                       Synced
+                    </Badge>
+                  )}
+                  {event.completed && (
+                    <Badge variant="outline" className="text-blue-600 border-blue-600">
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      Completed
                     </Badge>
                   )}
                 </div>
@@ -422,7 +463,30 @@ END:VCALENDAR`;
             </div>
           </div>
 
-            <div className="pt-3 border-t flex justify-end">
+            <div className="pt-3 border-t flex flex-col sm:flex-row justify-between gap-2">
+              {!event.completed ? (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleMarkComplete} 
+                  disabled={markingComplete}
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
+                >
+                  {markingComplete ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+                  Mark as Completed
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleMarkIncomplete} 
+                  disabled={markingComplete}
+                  className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                >
+                  {markingComplete ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <X className="w-4 h-4 mr-1" />}
+                  Mark as Incomplete
+                </Button>
+              )}
               <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleDelete} disabled={deleting}>
                 {deleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
                 Delete Event
