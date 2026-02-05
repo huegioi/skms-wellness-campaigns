@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit, Upload, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit, Upload, CheckCircle2, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
