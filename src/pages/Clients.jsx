@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Plus, User, Building, Mail, Phone, FileText, Pencil, Trash2, Search, Filter, 
-  DollarSign, Users, Calendar, Globe, MapPin, Eye, AlertTriangle, XCircle, ExternalLink
+  DollarSign, Users, Calendar, Globe, MapPin, Eye, AlertTriangle, XCircle, ExternalLink, CheckCircle
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -637,6 +637,31 @@ export default function Clients() {
                       <div className="flex items-center gap-2">
                         <Button size="sm" variant="outline" onClick={() => setViewingClient(client)}>
                           <Eye className="w-4 h-4 mr-1" /> View
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          onClick={async () => {
+                            if (!confirm(`Mark all tasks complete for ${client.name}?`)) return;
+                            try {
+                              const allTasks = await base44.entities.ClientTask.filter({ client_id: client.id });
+                              const pendingTasks = allTasks.filter(t => t.status !== 'completed');
+                              
+                              for (const task of pendingTasks) {
+                                await base44.entities.ClientTask.update(task.id, {
+                                  status: 'completed',
+                                  completed_date: new Date().toISOString()
+                                });
+                              }
+                              
+                              queryClient.invalidateQueries({ queryKey: ['clientTasks'] });
+                              alert(`${pendingTasks.length} task(s) marked as complete!`);
+                            } catch (error) {
+                              alert('Failed to complete tasks: ' + error.message);
+                            }
+                          }}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" /> Complete Tasks
                         </Button>
                         <Link to={createPageUrl('CurriculumDesigner') + `?clientId=${client.id}`}>
                           <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132]">
