@@ -644,8 +644,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
               </h4>
               <Button
                 size="sm"
-                variant="outline"
-                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                className="bg-green-600 hover:bg-green-700 text-white"
                 onClick={async () => {
                   if (!confirm('Mark all tasks as complete for this client?')) return;
                   try {
