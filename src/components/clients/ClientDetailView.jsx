@@ -637,10 +637,39 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
         {/* Tasks Tab */}
         <TabsContent value="tasks" className="mt-4">
           <div className="bg-white border rounded-lg p-6">
-            <h4 className="font-semibold text-gray-700 mb-4 flex items-center gap-2">
-              <ListTodo className="w-5 h-5" />
-              Client Tasks
-            </h4>
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="font-semibold text-gray-700 flex items-center gap-2">
+                <ListTodo className="w-5 h-5" />
+                Client Tasks
+              </h4>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-green-50 hover:bg-green-100 text-green-700 border-green-300"
+                onClick={async () => {
+                  if (!confirm('Mark all tasks as complete for this client?')) return;
+                  try {
+                    const allTasks = await base44.entities.ClientTask.filter({ client_id: client.id });
+                    const pendingTasks = allTasks.filter(t => t.status !== 'completed');
+                    
+                    for (const task of pendingTasks) {
+                      await base44.entities.ClientTask.update(task.id, {
+                        status: 'completed',
+                        completed_date: new Date().toISOString()
+                      });
+                    }
+                    
+                    queryClient.invalidateQueries({ queryKey: ['clientTasks'] });
+                    alert(`${pendingTasks.length} task(s) marked as complete!`);
+                  } catch (error) {
+                    alert('Failed to complete tasks: ' + error.message);
+                  }
+                }}
+              >
+                <CheckCircle className="w-4 h-4 mr-1" />
+                All Tasks Complete
+              </Button>
+            </div>
             <TaskList clientId={client.id} showProposalGroups={true} />
           </div>
         </TabsContent>
