@@ -549,18 +549,16 @@ export default function SchedulingHub() {
                           </div>
                         )}
                         {event.presenter && (
-                          <div className="text-sm text-gray-600">
-                            Presenter: {event.presenter}
+                          <div className="text-sm text-gray-600 mb-1">
+                            <span className="font-medium">Presenter:</span> {event.presenter}
                           </div>
                         )}
-                        <div className="flex flex-wrap gap-3 text-sm text-gray-600">
-                          {event.location && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {event.location}
-                            </span>
-                          )}
-                        </div>
+                        {event.location && (
+                          <div className="text-sm text-gray-600 flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {event.location}
+                          </div>
+                        )}
                       </div>
                       {event.source === 'sheet' && (
                         <Button
