@@ -173,12 +173,13 @@ export default function SchedulingHub() {
   const sheets = data?.sheets || [];
   const spreadsheetTitle = data?.title || 'Scheduling Hub';
 
-  // Parse sheet events for potential import (not added to app yet)
-  const parseSheetEventsForImport = () => {
+  // Parse all sheet events for upcoming section
+  const parseSheetEvents = () => {
     const events = [];
     const now = new Date();
     now.setHours(0, 0, 0, 0);
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
     sheets.forEach(sheet => {
       sheet.data.forEach(row => {
@@ -217,8 +218,8 @@ export default function SchedulingHub() {
           return;
         }
 
-        // Check if within next month
-        if (eventDate >= now && eventDate <= nextMonth) {
+        // Check if within next 30 days
+        if (eventDate >= now && eventDate <= thirtyDaysFromNow) {
           // Find event/service name
           let title = 'Untitled Event';
           for (const [key, value] of Object.entries(row)) {
@@ -242,16 +243,17 @@ export default function SchedulingHub() {
             recording: row['Recording'] || row['RECORDING'] || row['recording'] || row['Need Recording'] || row['NEED RECORDING'] || '',
             translation: row['Translation'] || row['TRANSLATION'] || row['translation'] || row['Need Translation'] || row['NEED TRANSLATION'] || '',
             sheet: sheet.name,
-            rawRow: row
+            rawRow: row,
+            source: 'sheet'
           });
         }
       });
     });
 
-    return events.sort((a, b) => a.date - b.date);
+    return events;
   };
 
-  const sheetEventsForImport = parseSheetEventsForImport();
+  const sheetEvents = parseSheetEvents();
 
   // Get upcoming CalendarEvent entities (next 30 days)
   const thirtyDaysFromNow = new Date();
@@ -277,6 +279,37 @@ export default function SchedulingHub() {
       return eventDate >= new Date() && eventDate <= thirtyDaysFromNow;
     })
     .sort((a, b) => parseISO(a.start_date) - parseISO(b.start_date));
+
+  // Combine sheet events with calendar events
+  const combinedUpcomingEvents = (() => {
+    const combined = [];
+    const addedKeys = new Set();
+
+    // Add calendar events first
+    upcomingCalendarEvents.forEach(event => {
+      const key = `${event.title}|${event.client_name}|${parseISO(event.start_date).toLocaleDateString()}`;
+      addedKeys.add(key);
+      combined.push({
+        ...event,
+        source: 'calendar',
+        date: parseISO(event.start_date)
+      });
+    });
+
+    // Add sheet events that aren't already in calendar
+    sheetEvents.forEach(sheetEvent => {
+      const key = `${sheetEvent.title}|${sheetEvent.client}|${sheetEvent.date.toLocaleDateString()}`;
+      if (!addedKeys.has(key)) {
+        combined.push({
+          ...sheetEvent,
+          source: 'sheet',
+          client_name: sheetEvent.client
+        });
+      }
+    });
+
+    return combined.sort((a, b) => a.date - b.date);
+  })();
 
   const addSheetEventToAppCalendar = async (event) => {
     setAddingToCalendar(event.title);
@@ -464,8 +497,8 @@ export default function SchedulingHub() {
           </div>
         </div>
 
-        {/* Coming Up Section - CalendarEvent Entities */}
-        {upcomingCalendarEvents.length > 0 && (
+        {/* Coming Up Section - Combined Events */}
+        {combinedUpcomingEvents.length > 0 && (
           <Card className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
             <div className="p-6">
               <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: '#013f7c' }}>
@@ -473,29 +506,40 @@ export default function SchedulingHub() {
                 Coming Up (Next 30 Days)
               </h2>
               <div className="space-y-3">
-                {upcomingCalendarEvents.slice(0, 8).map((event) => (
+                {combinedUpcomingEvents.slice(0, 10).map((event, idx) => (
                   <div 
-                    key={event.id} 
-                    className="bg-white rounded-lg p-4 border border-blue-100 hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => setSelectedEvent(event)}
+                    key={event.source === 'calendar' ? event.id : `sheet-${idx}`} 
+                    className={`bg-white rounded-lg p-4 border hover:shadow-md transition-shadow ${event.source === 'calendar' ? 'cursor-pointer border-blue-100' : 'border-gray-200'}`}
+                    onClick={() => event.source === 'calendar' && setSelectedEvent(event)}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
                       <div className="flex items-center gap-3 min-w-[140px]">
-                        <Calendar className="w-5 h-5 text-blue-600" />
+                        <Calendar className={`w-5 h-5 ${event.source === 'calendar' ? 'text-blue-600' : 'text-gray-500'}`} />
                         <div>
                           <div className="font-semibold text-sm" style={{ color: '#013f7c' }}>
-                            {format(parseISO(event.start_date), 'MMM d')}
+                            {event.source === 'calendar' 
+                              ? format(parseISO(event.start_date), 'MMM d')
+                              : event.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                            }
                           </div>
-                          {!event.all_day && (
+                          {event.source === 'calendar' && !event.all_day && (
                             <div className="text-xs text-gray-600">{format(parseISO(event.start_date), 'h:mm a')}</div>
+                          )}
+                          {event.source === 'sheet' && event.time && (
+                            <div className="text-xs text-gray-600">{event.time}</div>
                           )}
                         </div>
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <div className="font-semibold text-gray-800">{event.title}</div>
-                          {event.google_event_id && (
+                          {event.source === 'calendar' && event.google_event_id && (
                             <CheckCircle2 className="w-4 h-4 text-green-600" />
+                          )}
+                          {event.source === 'sheet' && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+                              From Sheet
+                            </span>
                           )}
                         </div>
                         {event.client_name && (
@@ -518,81 +562,34 @@ export default function SchedulingHub() {
                           )}
                         </div>
                       </div>
+                      {event.source === 'sheet' && (
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addSheetEventToAppCalendar(event);
+                          }}
+                          disabled={addingToCalendar === event.title}
+                          className="bg-[#264d44] hover:bg-[#1a3830] whitespace-nowrap self-start"
+                        >
+                          <Plus className="w-4 h-4 mr-1" />
+                          {addingToCalendar === event.title ? 'Adding...' : 'Add to Calendar'}
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
               </div>
-              {upcomingCalendarEvents.length > 8 && (
+              {combinedUpcomingEvents.length > 10 && (
                 <p className="text-sm text-gray-500 mt-3 text-center">
-                  +{upcomingCalendarEvents.length - 8} more event{upcomingCalendarEvents.length - 8 !== 1 ? 's' : ''} coming up
+                  +{combinedUpcomingEvents.length - 10} more event{combinedUpcomingEvents.length - 10 !== 1 ? 's' : ''} coming up
                 </p>
               )}
             </div>
           </Card>
         )}
 
-        {/* Sheet Events Available for Import */}
-        {sheetEventsForImport.length > 0 && (
-          <Card className="mb-6">
-            <div className="p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: '#013f7c' }}>
-                <FileSpreadsheet className="w-5 h-5" />
-                Events from Google Sheets (Not Yet Added)
-              </h2>
-              <div className="space-y-3">
-                {sheetEventsForImport.slice(0, 8).map((event, idx) => (
-                  <div key={idx} className="bg-gray-50 rounded-lg p-4 border">
-                    <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
-                      <div className="flex items-center gap-3 min-w-[140px]">
-                        <Calendar className="w-5 h-5 text-gray-600" />
-                        <div>
-                          <div className="font-semibold text-sm text-gray-700">
-                            {event.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </div>
-                          {event.time && (
-                            <div className="text-xs text-gray-600">{event.time}</div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-semibold text-gray-800 mb-1">{event.title}</div>
-                        {event.client && (
-                          <div className="text-sm text-gray-600 flex items-center gap-1 mb-1">
-                            <Users className="w-3 h-3" />
-                            {event.client}
-                          </div>
-                        )}
-                        <div className="flex flex-wrap gap-3 text-sm text-gray-600">
-                          {event.location && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3" />
-                              {event.location}
-                            </span>
-                          )}
-                          <span className="text-xs text-gray-400">• {event.sheet}</span>
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => addSheetEventToAppCalendar(event)}
-                        disabled={addingToCalendar === event.title}
-                        className="bg-[#264d44] hover:bg-[#1a3830] whitespace-nowrap self-start"
-                      >
-                        <Plus className="w-4 h-4 mr-1" />
-                        {addingToCalendar === event.title ? 'Adding...' : 'Add to App'}
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {sheetEventsForImport.length > 8 && (
-                <p className="text-sm text-gray-500 mt-3 text-center">
-                  +{sheetEventsForImport.length - 8} more event{sheetEventsForImport.length - 8 !== 1 ? 's' : ''} available
-                </p>
-              )}
-            </div>
-          </Card>
-        )}
+
 
         {/* Calendar View Controls */}
         <Card className="mb-6 p-4">
