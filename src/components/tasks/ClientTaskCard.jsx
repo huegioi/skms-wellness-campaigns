@@ -1,9 +1,13 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Building } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Building, CheckCircle } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import { useQueryClient } from '@tanstack/react-query';
 
 export default function ClientTaskCard({ client, tasks = [], onClick }) {
+  const queryClient = useQueryClient();
   const pendingTasks = tasks.filter(t => t.status === 'pending');
   const completedTasks = tasks.filter(t => t.status === 'completed');
   const progress = tasks.length > 0 ? (completedTasks.length / tasks.length) * 100 : 0;
@@ -58,6 +62,30 @@ export default function ClientTaskCard({ client, tasks = [], onClick }) {
             </p>
           </div>
         </div>
+
+        {/* Complete All Button */}
+        <Button
+          size="sm"
+          className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white"
+          onClick={async (e) => {
+            e.stopPropagation();
+            if (!confirm(`Mark all tasks complete for ${client.name}?`)) return;
+            try {
+              for (const task of pendingTasks) {
+                await base44.entities.ClientTask.update(task.id, {
+                  status: 'completed',
+                  completed_date: new Date().toISOString()
+                });
+              }
+              queryClient.invalidateQueries({ queryKey: ['clientTasks'] });
+            } catch (error) {
+              alert('Failed to complete tasks: ' + error.message);
+            }
+          }}
+        >
+          <CheckCircle className="w-4 h-4 mr-1" />
+          Complete All Tasks
+        </Button>
       </CardContent>
     </Card>
   );
