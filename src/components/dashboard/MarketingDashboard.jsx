@@ -563,32 +563,38 @@ export default function MarketingDashboard() {
           </CardContent>
         </Card>
 
-        {/* Recent Companies */}
+        {/* Paid Stage Details */}
         <Card className="hover:shadow-lg transition-shadow duration-300">
           <CardHeader className="pb-4">
-            <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Recent Companies</CardTitle>
+            <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Paid Clients</CardTitle>
           </CardHeader>
           <CardContent className="p-4 sm:p-6">
-            {opportunities.length > 0 ?
-            <div className="space-y-2 max-h-[280px] overflow-y-auto">
-                {opportunities.slice(0, 10).filter((opp) => opp.company).map((opp, idx) =>
-              <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{opp.company}</p>
-                      <div className="flex flex-wrap gap-2 mt-1">
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{opp.source}</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">{opp.stage}</span>
+            {(() => {
+              const paidOpportunities = opportunities.filter(opp => opp.stage === 'Paid' && opp.company);
+              return paidOpportunities.length > 0 ?
+              <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                  {paidOpportunities.slice(0, 10).map((opp, idx) =>
+                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{opp.company}</p>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">{opp.source}</span>
+                          {opp.post_event_notes_survey && 
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">✓ Survey</span>
+                          }
+                          {opp.complete && 
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">✓ Complete</span>
+                          }
+                        </div>
                       </div>
+                      <span className="text-xs text-gray-500 ml-2 whitespace-nowrap">{format(new Date(opp.created_time), 'MMM d')}</span>
                     </div>
-                    <span className="text-xs text-gray-500 ml-2 whitespace-nowrap">{format(new Date(opp.created_time), 'MMM d')}</span>
-                  </div>
-              )}
-              </div> :
-
-            <div className="h-[280px] flex items-center justify-center text-gray-400">
-                No opportunities yet
-              </div>
-            }
+                )}
+                </div> :
+              <div className="h-[280px] flex items-center justify-center text-gray-400">
+                  No paid clients yet
+                </div>
+            })()}
           </CardContent>
         </Card>
       </div>

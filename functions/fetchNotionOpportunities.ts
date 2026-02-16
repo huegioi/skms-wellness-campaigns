@@ -139,7 +139,9 @@ Deno.serve(async (req) => {
         source: properties.Source?.select?.name || 'Unknown',
         company: companyName,
         stage: properties.Stage?.select?.name || 'Unknown',
-        created_time: properties['Created time']?.created_time || page.created_time
+        created_time: properties['Created time']?.created_time || page.created_time,
+        post_event_notes_survey: properties['Post Event Notes & Survey']?.checkbox || false,
+        complete: properties['Complete']?.checkbox || false
       };
     });
 
