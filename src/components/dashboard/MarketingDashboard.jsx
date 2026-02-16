@@ -97,34 +97,36 @@ export default function MarketingDashboard() {
   };
 
   const clearAllContacts = async () => {
-    if (!confirm('Are you sure you want to delete ALL Kajabi contacts? This cannot be undone.')) {
+    if (!confirm('Are you sure you want to PURGE ALL Kajabi contacts and sync data? This cannot be undone and will delete everything.')) {
       return;
     }
 
     try {
       setIsClearing(true);
-      toast.loading('Clearing contacts...', { id: 'clear-contacts' });
+      toast.loading('Purging all contacts...', { id: 'purge-contacts' });
       
       let completed = false;
       let totalDeleted = 0;
       
       while (!completed) {
-        const response = await base44.functions.invoke('cleanupKajabiContacts', { batchSize: 50 });
+        const response = await base44.functions.invoke('purgeKajabiData');
         const data = response.data;
         
         if (data.completed) {
           completed = true;
-          toast.success(`Successfully deleted all contacts!`, { id: 'clear-contacts' });
+          toast.success(data.message || 'Successfully purged all contacts!', { id: 'purge-contacts' });
         } else {
-          totalDeleted += data.deletedThisBatch || 0;
-          toast.loading(`Deleted ${totalDeleted} contacts so far...`, { id: 'clear-contacts' });
+          totalDeleted += data.totalContactsDeleted || 0;
+          toast.loading(`Deleted ${totalDeleted} contacts so far...`, { id: 'purge-contacts' });
+          // Small delay between calls to avoid overwhelming the system
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
       }
       
       await refetchKajabi();
     } catch (error) {
-      console.error('Clear failed:', error);
-      toast.error('Failed to clear contacts: ' + error.message, { id: 'clear-contacts' });
+      console.error('Purge failed:', error);
+      toast.error('Failed to purge contacts: ' + error.message, { id: 'purge-contacts' });
     } finally {
       setIsClearing(false);
     }
@@ -740,7 +742,7 @@ export default function MarketingDashboard() {
               className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
               disabled={isClearing || kajabiLoading}>
               <RefreshCw className={`w-4 h-4 mr-2 ${isClearing ? 'animate-spin' : ''}`} />
-              {isClearing ? 'Clearing...' : 'Clear All'}
+              {isClearing ? 'Purging...' : 'Purge All Data'}
             </Button>
             <Button
               onClick={syncKajabiContacts}
