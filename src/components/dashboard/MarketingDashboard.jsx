@@ -480,6 +480,54 @@ export default function MarketingDashboard() {
                     border: '1px solid #e5e7eb',
                     boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
                     backgroundColor: '#fff'
+                  }}
+                  content={({ payload }) => {
+                    if (!payload || !payload.length) return null;
+                    const data = payload[0].payload;
+                    
+                    return (
+                      <div className="bg-white p-3 rounded-lg border shadow-lg">
+                        <p className="font-semibold mb-2">{data.source}</p>
+                        {payload.map((entry, index) => {
+                          if (entry.value > 0) {
+                            const stageName = entry.name;
+                            const count = entry.value;
+                            
+                            // For Paid stage, show additional details
+                            if (stageName === 'Paid') {
+                              const paidOpps = opportunities.filter(opp => 
+                                opp.source === data.source && opp.stage === 'Paid'
+                              );
+                              const withSurvey = paidOpps.filter(opp => opp.post_event_notes_survey).length;
+                              const complete = paidOpps.filter(opp => opp.complete).length;
+                              
+                              return (
+                                <div key={index} className="mb-1">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
+                                    <span className="font-medium">{stageName}: {count}</span>
+                                  </div>
+                                  {(withSurvey > 0 || complete > 0) && (
+                                    <div className="ml-5 mt-1 text-xs text-gray-600 space-y-0.5">
+                                      {withSurvey > 0 && <div>✓ Survey: {withSurvey}</div>}
+                                      {complete > 0 && <div>✓ Complete: {complete}</div>}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            }
+                            
+                            return (
+                              <div key={index} className="flex items-center gap-2 mb-1">
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.color }} />
+                                <span>{stageName}: {count}</span>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })}
+                      </div>
+                    );
                   }} />
 
                   <Legend
