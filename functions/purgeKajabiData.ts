@@ -10,8 +10,8 @@ Deno.serve(async (req) => {
     }
 
     let totalDeleted = 0;
-    const batchSize = 50;
-    const maxBatches = 3; // Process only 3 batches per call to avoid timeout
+    const batchSize = 100;
+    const maxBatches = 5; // Process 5 batches per call
     let batchesProcessed = 0;
     
     // Delete KajabiContacts in limited batches
@@ -38,23 +38,20 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Delete this batch
-      for (const contact of contacts) {
-        try {
-          await base44.asServiceRole.entities.KajabiContact.delete(contact.id);
-          totalDeleted++;
-          // Delay between each delete to avoid rate limits
-          await new Promise(resolve => setTimeout(resolve, 100));
-        } catch (err) {
-          console.error(`Failed to delete contact ${contact.id}:`, err.message);
-        }
-      }
-
+      // Delete this batch with parallel operations
+      const deletePromises = contacts.map(contact => 
+        base44.asServiceRole.entities.KajabiContact.delete(contact.id)
+          .catch(err => console.error(`Failed to delete contact ${contact.id}:`, err.message))
+      );
+      
+      await Promise.all(deletePromises);
+      totalDeleted += contacts.length;
+      
       console.log(`Deleted batch of ${contacts.length}, total: ${totalDeleted}`);
       batchesProcessed++;
       
-      // Delay between batches
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Small delay between batches
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
 
     // More contacts remain
