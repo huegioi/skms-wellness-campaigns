@@ -34,6 +34,7 @@ export default function MarketingDashboard() {
   const [timePeriod, setTimePeriod] = useState('week');
   const [isSyncing, setIsSyncing] = useState(false);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['notionOpportunities', startDate, endDate, selectedSource, selectedStage],
@@ -93,6 +94,40 @@ export default function MarketingDashboard() {
     const newState = !autoSyncEnabled;
     setAutoSyncEnabled(newState);
     toast.success(newState ? 'Auto-sync enabled - will continue every 5 minutes' : 'Auto-sync disabled', { duration: 2000 });
+  };
+
+  const clearAllContacts = async () => {
+    if (!confirm('Are you sure you want to delete ALL Kajabi contacts? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setIsClearing(true);
+      toast.loading('Clearing contacts...', { id: 'clear-contacts' });
+      
+      let completed = false;
+      let totalDeleted = 0;
+      
+      while (!completed) {
+        const response = await base44.functions.invoke('cleanupKajabiContacts', { batchSize: 50 });
+        const data = response.data;
+        
+        if (data.completed) {
+          completed = true;
+          toast.success(`Successfully deleted all contacts!`, { id: 'clear-contacts' });
+        } else {
+          totalDeleted += data.deletedThisBatch || 0;
+          toast.loading(`Deleted ${totalDeleted} contacts so far...`, { id: 'clear-contacts' });
+        }
+      }
+      
+      await refetchKajabi();
+    } catch (error) {
+      console.error('Clear failed:', error);
+      toast.error('Failed to clear contacts: ' + error.message, { id: 'clear-contacts' });
+    } finally {
+      setIsClearing(false);
+    }
   };
 
   const opportunities = (data?.opportunities || []).filter((opp) =>
@@ -698,6 +733,14 @@ export default function MarketingDashboard() {
               className={`transition-all ${autoSyncEnabled ? 'bg-green-50 border-green-600 text-green-700 hover:bg-green-100' : 'bg-gray-50 border-gray-300 text-gray-600 hover:bg-gray-100'}`}>
               <Power className={`w-4 h-4 mr-2 transition-colors ${autoSyncEnabled ? 'text-green-600' : 'text-gray-400'}`} />
               {autoSyncEnabled ? 'Auto-Sync ON' : 'Auto-Sync OFF'}
+            </Button>
+            <Button
+              onClick={clearAllContacts}
+              variant="outline"
+              className="border-red-600 text-red-600 hover:bg-red-600 hover:text-white"
+              disabled={isClearing || kajabiLoading}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${isClearing ? 'animate-spin' : ''}`} />
+              {isClearing ? 'Clearing...' : 'Clear All'}
             </Button>
             <Button
               onClick={syncKajabiContacts}
