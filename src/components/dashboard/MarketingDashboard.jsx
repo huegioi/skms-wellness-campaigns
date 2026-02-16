@@ -20,8 +20,6 @@ const DEAL_STAGES_CONFIG = [
 { name: 'Negotiation', color: '#DC143C' },
 { name: 'Service Booked', color: '#10B981' },
 { name: 'Paid', color: '#065F46' },
-{ name: 'Paid + Survey', color: '#059669' },
-{ name: 'Paid + Complete', color: '#047857' },
 { name: 'Deal Lost', color: '#696969' }];
 
 
@@ -450,17 +448,7 @@ export default function MarketingDashboard() {
                       });
                     }
                     const stage = opp.stage || 'Unknown';
-                    
-                    // For Paid stage, break down by survey and complete status
-                    if (stage === 'Paid') {
-                      if (opp.post_event_notes_survey && opp.complete) {
-                        sourceStageData[source]['Paid + Complete']++;
-                      } else if (opp.post_event_notes_survey) {
-                        sourceStageData[source]['Paid + Survey']++;
-                      } else {
-                        sourceStageData[source]['Paid']++;
-                      }
-                    } else if (sourceStageData[source][stage] !== undefined) {
+                    if (sourceStageData[source][stage] !== undefined) {
                       sourceStageData[source][stage]++;
                     }
                   });
