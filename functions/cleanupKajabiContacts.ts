@@ -32,8 +32,8 @@ Deno.serve(async (req) => {
       
       console.log(`Deleted batch ${batchCount}: ${contacts.length} contacts (total: ${totalDeleted})`);
       
-      // Small delay between batches
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Longer delay between batches to avoid rate limits
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     return Response.json({
