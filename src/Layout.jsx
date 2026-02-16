@@ -12,7 +12,7 @@ export default function Layout({ children, currentPageName }) {
       }
 
   const navItems = [
-    { name: 'Dashboard', page: 'Dashboard', icon: BarChart3 },
+    { name: 'Dashboard', page: 'Home', icon: BarChart3 },
     { name: 'Builder', page: 'CurriculumDesigner', icon: FileText },
     { name: 'Proposals', page: 'Proposals', icon: FolderOpen, altPage: 'EditProposal' },
     { name: 'Clients', page: 'Clients', icon: Users, altPage: 'ManageClientPortals' },
@@ -30,7 +30,7 @@ export default function Layout({ children, currentPageName }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to={createPageUrl('CurriculumDesigner')} className="flex-shrink-0">
+            <Link to={createPageUrl('Home')} className="flex-shrink-0">
               <span className="font-bold text-base sm:text-lg md:text-xl" style={{ color: '#013f7c' }}>
                 SKMS Wellness
               </span>
