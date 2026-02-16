@@ -12,28 +12,23 @@ Deno.serve(async (req) => {
     let totalDeleted = 0;
     let batchCount = 0;
 
-    // Delete in batches to avoid timeout
+    // Delete in smaller batches to avoid rate limits
     while (true) {
-      const contacts = await base44.asServiceRole.entities.KajabiContact.list('', 100);
+      const contacts = await base44.asServiceRole.entities.KajabiContact.list('', 50);
       
       if (contacts.length === 0) {
         break;
       }
 
-      // Delete batch
-      await Promise.all(
-        contacts.map(contact => 
-          base44.asServiceRole.entities.KajabiContact.delete(contact.id)
-        )
-      );
+      // Delete one at a time with delay to avoid rate limits
+      for (const contact of contacts) {
+        await base44.asServiceRole.entities.KajabiContact.delete(contact.id);
+        totalDeleted++;
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
 
-      totalDeleted += contacts.length;
       batchCount++;
-      
-      console.log(`Deleted batch ${batchCount}: ${contacts.length} contacts (total: ${totalDeleted})`);
-      
-      // Longer delay between batches to avoid rate limits
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log(`Completed batch ${batchCount}: ${contacts.length} contacts (total: ${totalDeleted})`);
     }
 
     return Response.json({
