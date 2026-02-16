@@ -1,12 +1,44 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
 const KAJABI_API_URL = 'https://api.kajabi.com/v1';
+const CORPORATE_LEADS_TAG = 'corporate leads';
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
+
+// Exponential backoff retry helper
+async function fetchWithRetry(url, options, retries = MAX_RETRIES) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      // If rate limited, wait and retry
+      if (response.status === 429) {
+        if (attempt < retries) {
+          const waitTime = RETRY_DELAY_MS * Math.pow(2, attempt);
+          console.log(`Rate limited. Waiting ${waitTime}ms before retry ${attempt + 1}/${retries}`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          continue;
+        }
+      }
+      
+      return response;
+    } catch (error) {
+      if (attempt < retries) {
+        const waitTime = RETRY_DELAY_MS * Math.pow(2, attempt);
+        console.log(`Request failed: ${error.message}. Retrying in ${waitTime}ms (${attempt + 1}/${retries})`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      } else {
+        throw error;
+      }
+    }
+  }
+}
 
 async function getAccessToken() {
   const clientId = Deno.env.get('KAJABI_CLIENT_ID');
   const clientSecret = Deno.env.get('KAJABI_CLIENT_SECRET');
 
-  const response = await fetch('https://api.kajabi.com/v1/oauth/token', {
+  const response = await fetchWithRetry('https://api.kajabi.com/v1/oauth/token', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded'
@@ -25,6 +57,23 @@ async function getAccessToken() {
 
   const data = await response.json();
   return data.access_token;
+}
+
+// Validate contact data against schema
+function validateContactData(data) {
+  if (!data.email || typeof data.email !== 'string') {
+    throw new Error('Invalid contact: email is required and must be a string');
+  }
+  if (!data.kajabi_id || typeof data.kajabi_id !== 'string') {
+    throw new Error('Invalid contact: kajabi_id is required and must be a string');
+  }
+  if (data.subscribed !== undefined && typeof data.subscribed !== 'boolean') {
+    throw new Error('Invalid contact: subscribed must be a boolean');
+  }
+  if (data.tags && !Array.isArray(data.tags)) {
+    throw new Error('Invalid contact: tags must be an array');
+  }
+  return true;
 }
 
 async function fetchAllContacts(accessToken) {
@@ -75,7 +124,7 @@ async function fetchAllContacts(accessToken) {
 }
 
 async function fetchContactTags(accessToken, contactId) {
-  const response = await fetch(
+  const response = await fetchWithRetry(
     `${KAJABI_API_URL}/contacts/${contactId}/tags`,
     {
       headers: {
@@ -86,11 +135,20 @@ async function fetchContactTags(accessToken, contactId) {
   );
 
   if (!response.ok) {
+    console.warn(`Failed to fetch tags for contact ${contactId}: ${response.status}`);
     return [];
   }
 
   const result = await response.json();
   return (result.data || []).map(tag => tag.attributes?.name).filter(Boolean);
+}
+
+// Check if contact has corporate leads tag
+function hasCorporateLeadsTag(tags) {
+  if (!Array.isArray(tags)) return false;
+  return tags.some(tag => 
+    tag.toLowerCase().trim() === CORPORATE_LEADS_TAG.toLowerCase()
+  );
 }
 
 Deno.serve(async (req) => {
@@ -139,121 +197,178 @@ Deno.serve(async (req) => {
       console.log(`Loaded ${localContacts.length} existing contacts from database`);
 
       let pagesThisRun = 0;
-      const maxPagesPerRun = 10; // Process 10 pages per invocation to avoid rate limits
+      const maxPagesPerRun = 10;
+      let errorDetails = progress.error_details || [];
 
       while (progress.next_url && pagesThisRun < maxPagesPerRun) {
-        // Add 200ms delay between pages to respect rate limits
         if (pagesThisRun > 0) {
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
         console.log(`Fetching page ${progress.page_count + 1} from: ${progress.next_url}`);
 
-        const response = await fetch(progress.next_url, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/json'
-          }
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`API Error: ${response.status} - ${errorText}`);
-          await base44.asServiceRole.entities.KajabiSyncProgress.update(progress.id, {
-            status: 'failed',
-            error_message: `API Error: ${response.status} - ${errorText}`,
-            completed_at: new Date().toISOString()
-          });
-          return Response.json({ success: false, error: `API request failed: ${errorText}` }, { status: 500 });
-        }
-
-        const result = await response.json();
-        const contacts = result.data || [];
-
-        console.log(`Page ${progress.page_count + 1}: Received ${contacts.length} contacts`);
-        console.log(`Next URL in response: ${result.links?.next || 'NONE'}`);
-
-        // Process contacts
-        const toCreate = [];
-        const toUpdate = [];
-
-        for (const kajabiContact of contacts) {
-          const attrs = kajabiContact.attributes;
-          const kajabiId = kajabiContact.id;
-
-          const contactData = {
-            kajabi_id: kajabiId,
-            name: attrs.name || '',
-            email: attrs.email,
-            subscribed: attrs.subscribed || false,
-            phone_number: attrs.phone_number || '',
-            tags: [],
-            kajabi_created_at: attrs.created_at,
-            last_synced: new Date().toISOString()
-          };
-
-          const existingContact = localContactMap.get(kajabiId);
-
-          if (existingContact) {
-            // Only update if data changed
-            const hasChanges = 
-              existingContact.name !== contactData.name ||
-              existingContact.email !== contactData.email ||
-              existingContact.subscribed !== contactData.subscribed ||
-              existingContact.phone_number !== contactData.phone_number;
-
-            if (hasChanges) {
-              toUpdate.push({ id: existingContact.id, data: contactData });
+        try {
+          const response = await fetchWithRetry(progress.next_url, {
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Accept': 'application/json'
             }
-          } else {
-            toCreate.push(contactData);
-            localContactMap.set(kajabiId, contactData);
-          }
-        }
-
-        // Create new contacts
-        if (toCreate.length > 0) {
-          await base44.asServiceRole.entities.KajabiContact.bulkCreate(toCreate);
-          progress.new_count += toCreate.length;
-        }
-
-        // Batch update (10 at a time)
-        if (toUpdate.length > 0) {
-          for (let i = 0; i < toUpdate.length; i += 10) {
-            const batch = toUpdate.slice(i, i + 10);
-            await Promise.all(
-              batch.map(({ id, data }) => 
-                base44.asServiceRole.entities.KajabiContact.update(id, data)
-              )
-            );
-            progress.updated_count += batch.length;
-          }
-        }
-
-        progress.total_processed += contacts.length;
-        progress.page_count++;
-        pagesThisRun++;
-
-        console.log(`Processed page ${progress.page_count}: ${toCreate.length} new, ${toUpdate.length} updated (${contacts.length - toCreate.length - toUpdate.length} unchanged)`);
-
-        // Update progress
-        const nextUrl = result.links?.next || null;
-        await base44.asServiceRole.entities.KajabiSyncProgress.update(progress.id, {
-          next_url: nextUrl,
-          page_count: progress.page_count,
-          total_processed: progress.total_processed,
-          new_count: progress.new_count,
-          updated_count: progress.updated_count
-        });
-
-        progress.next_url = nextUrl;
-
-        if (!nextUrl) {
-          console.log('No more pages - sync complete!');
-          await base44.asServiceRole.entities.KajabiSyncProgress.update(progress.id, {
-            status: 'completed',
-            completed_at: new Date().toISOString()
           });
-          break;
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            const errorMsg = `API Error: ${response.status} - ${errorText}`;
+            console.error(errorMsg);
+            
+            errorDetails.push({
+              page: progress.page_count + 1,
+              error: errorMsg,
+              timestamp: new Date().toISOString()
+            });
+            
+            progress.error_count = (progress.error_count || 0) + 1;
+            progress.retry_count = (progress.retry_count || 0) + MAX_RETRIES;
+            
+            await base44.asServiceRole.entities.KajabiSyncProgress.update(progress.id, {
+              status: 'failed',
+              error_message: errorMsg,
+              error_details: errorDetails,
+              error_count: progress.error_count,
+              retry_count: progress.retry_count,
+              completed_at: new Date().toISOString()
+            });
+            return Response.json({ success: false, error: errorMsg }, { status: 500 });
+          }
+
+          const result = await response.json();
+          const contacts = result.data || [];
+
+          console.log(`Page ${progress.page_count + 1}: Received ${contacts.length} contacts`);
+
+          const toCreate = [];
+          const toUpdate = [];
+          let skippedThisPage = 0;
+
+          for (const kajabiContact of contacts) {
+            try {
+              const attrs = kajabiContact.attributes;
+              const kajabiId = kajabiContact.id;
+
+              // Fetch tags for this contact
+              const tags = await fetchContactTags(accessToken, kajabiId);
+              
+              // Filter: Only process contacts with "corporate leads" tag
+              if (!hasCorporateLeadsTag(tags)) {
+                skippedThisPage++;
+                continue;
+              }
+
+              const contactData = {
+                kajabi_id: kajabiId,
+                name: attrs.name || '',
+                email: attrs.email,
+                subscribed: attrs.subscribed || false,
+                phone_number: attrs.phone_number || '',
+                tags: tags,
+                kajabi_created_at: attrs.created_at,
+                last_synced: new Date().toISOString()
+              };
+
+              // Validate data
+              validateContactData(contactData);
+
+              const existingContact = localContactMap.get(kajabiId);
+
+              if (existingContact) {
+                // Idempotency: Only update if data actually changed
+                const hasChanges = 
+                  existingContact.name !== contactData.name ||
+                  existingContact.email !== contactData.email ||
+                  existingContact.subscribed !== contactData.subscribed ||
+                  existingContact.phone_number !== contactData.phone_number ||
+                  JSON.stringify(existingContact.tags || []) !== JSON.stringify(contactData.tags);
+
+                if (hasChanges) {
+                  toUpdate.push({ id: existingContact.id, data: contactData });
+                }
+              } else {
+                toCreate.push(contactData);
+                localContactMap.set(kajabiId, contactData);
+              }
+            } catch (validationError) {
+              console.warn(`Skipping invalid contact ${kajabiContact.id}: ${validationError.message}`);
+              skippedThisPage++;
+            }
+          }
+
+          // Create new contacts
+          if (toCreate.length > 0) {
+            await base44.asServiceRole.entities.KajabiContact.bulkCreate(toCreate);
+            progress.new_count += toCreate.length;
+          }
+
+          // Batch update
+          if (toUpdate.length > 0) {
+            for (let i = 0; i < toUpdate.length; i += 10) {
+              const batch = toUpdate.slice(i, i + 10);
+              await Promise.all(
+                batch.map(({ id, data }) => 
+                  base44.asServiceRole.entities.KajabiContact.update(id, data)
+                )
+              );
+              progress.updated_count += batch.length;
+            }
+          }
+
+          progress.total_processed += contacts.length;
+          progress.skipped_count = (progress.skipped_count || 0) + skippedThisPage;
+          progress.page_count++;
+          progress.last_successful_page = progress.page_count;
+          pagesThisRun++;
+
+          console.log(`Page ${progress.page_count}: ${toCreate.length} new, ${toUpdate.length} updated, ${skippedThisPage} skipped (no corporate leads tag)`);
+
+          const nextUrl = result.links?.next || null;
+          await base44.asServiceRole.entities.KajabiSyncProgress.update(progress.id, {
+            next_url: nextUrl,
+            page_count: progress.page_count,
+            total_processed: progress.total_processed,
+            new_count: progress.new_count,
+            updated_count: progress.updated_count,
+            skipped_count: progress.skipped_count,
+            last_successful_page: progress.last_successful_page,
+            error_details: errorDetails
+          });
+
+          progress.next_url = nextUrl;
+
+          if (!nextUrl) {
+            console.log('Sync complete!');
+            await base44.asServiceRole.entities.KajabiSyncProgress.update(progress.id, {
+              status: 'completed',
+              completed_at: new Date().toISOString()
+            });
+            break;
+          }
+        } catch (pageError) {
+          console.error(`Error processing page ${progress.page_count + 1}:`, pageError);
+          
+          errorDetails.push({
+            page: progress.page_count + 1,
+            error: pageError.message,
+            timestamp: new Date().toISOString()
+          });
+          
+          progress.error_count = (progress.error_count || 0) + 1;
+          
+          await base44.asServiceRole.entities.KajabiSyncProgress.update(progress.id, {
+            error_details: errorDetails,
+            error_count: progress.error_count
+          });
+          
+          // Continue to next page instead of failing completely
+          progress.page_count++;
+          const tempResult = { links: { next: progress.next_url } };
+          progress.next_url = tempResult.links?.next || null;
         }
       }
 
@@ -268,13 +383,16 @@ Deno.serve(async (req) => {
           totalProcessed: progress.total_processed,
           new: progress.new_count,
           updated: progress.updated_count,
+          skipped: progress.skipped_count || 0,
+          errors: progress.error_count || 0,
+          retries: progress.retry_count || 0,
           totalInDatabase: finalContacts.length,
           subscribedInDatabase: finalContacts.filter(c => c.subscribed).length,
           unsubscribedInDatabase: finalContacts.filter(c => !c.subscribed).length
         },
         message: isComplete 
-          ? `✅ Sync complete! Processed ${progress.total_processed} contacts across ${progress.page_count} pages. Database has ${finalContacts.length} total contacts.`
-          : `📊 Processed ${pagesThisRun} pages this run (${progress.page_count} total pages so far, ${progress.total_processed} contacts). More pages remaining - call sync again to continue.`
+          ? `✅ Sync complete! Processed ${progress.total_processed} contacts (${progress.new_count} new, ${progress.updated_count} updated, ${progress.skipped_count || 0} skipped without "corporate leads" tag). Database: ${finalContacts.length} contacts.`
+          : `📊 Processed ${pagesThisRun} pages (${progress.page_count} total, ${progress.total_processed} contacts, ${progress.skipped_count || 0} skipped). More pages remaining.`
       });
     }
 
