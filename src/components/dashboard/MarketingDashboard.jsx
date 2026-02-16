@@ -9,6 +9,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { TrendingUp, Users, RefreshCw, Mail, UserPlus, UserMinus, Tag, MousePointerClick, FileText, ShoppingCart, Power } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import KajabiSyncProgress from './KajabiSyncProgress';
 
 const DEAL_STAGES_CONFIG = [
 { name: 'Cold', color: '#B0BEC5' },
@@ -728,6 +729,13 @@ export default function MarketingDashboard() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold" style={{ color: '#264d44' }}>Email Marketing (Kajabi)</h2>
+        </div>
+
+        {/* Sync Progress Dashboard */}
+        <KajabiSyncProgress />
+
+        <div className="flex items-center justify-between pt-4">
+          <h3 className="text-xl font-semibold" style={{ color: '#264d44' }}>Contact Analytics</h3>
           <div className="flex items-center gap-2">
             <Button
               onClick={toggleAutoSync}
