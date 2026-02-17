@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
     
     // Delete KajabiContacts in limited batches
     while (batchesProcessed < maxBatches) {
-      const contacts = await base44.asServiceRole.entities.KajabiContact.list('', batchSize);
+      const contacts = await base44.asServiceRole.entities.KajabiContact.list('id', batchSize);
       
       if (contacts.length === 0) {
         // All done - also delete sync progress
