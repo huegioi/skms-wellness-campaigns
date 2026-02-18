@@ -256,8 +256,11 @@ export default function SchedulingHub() {
   const sheetEvents = parseSheetEvents();
 
   // Get upcoming CalendarEvent entities (next 30 days)
+  const now = new Date();
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   
   // Get unique presenters for filter
   const allPresenters = [...new Set(calendarEvents
@@ -276,11 +279,11 @@ export default function SchedulingHub() {
   const upcomingCalendarEvents = filteredCalendarEvents
     .filter(event => {
       const eventDate = parseISO(event.start_date);
-      return eventDate >= new Date() && eventDate <= thirtyDaysFromNow;
+      return eventDate >= sevenDaysAgo && eventDate <= thirtyDaysFromNow;
     })
     .sort((a, b) => parseISO(a.start_date) - parseISO(b.start_date));
 
-  // Combine sheet events with calendar events
+  // Combine sheet events with calendar events (including recent past)
   const combinedUpcomingEvents = (() => {
     const combined = [];
     const addedKeys = new Set();
@@ -292,7 +295,8 @@ export default function SchedulingHub() {
       combined.push({
         ...event,
         source: 'calendar',
-        date: parseISO(event.start_date)
+        date: parseISO(event.start_date),
+        isPast: parseISO(event.start_date) < now
       });
     });
 
@@ -303,7 +307,8 @@ export default function SchedulingHub() {
         combined.push({
           ...sheetEvent,
           source: 'sheet',
-          client_name: sheetEvent.client
+          client_name: sheetEvent.client,
+          isPast: sheetEvent.date < now
         });
       }
     });
