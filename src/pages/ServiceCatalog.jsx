@@ -105,7 +105,17 @@ export default function ServiceCatalog() {
             <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Service Catalog</h1>
             <p className="text-gray-600">Manage your workshops, challenges, and programs</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <a 
+              href={SERVICES_SHEET_URL} 
+              target="_blank" 
+              rel="noopener noreferrer"
+            >
+              <Button variant="outline" className="border-gray-300 text-gray-600 hover:bg-gray-100">
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Open Sheet
+              </Button>
+            </a>
             <Button onClick={syncFromSheet} variant="outline" disabled={isSyncing} className="border-[#264d44] text-[#264d44] hover:bg-[#264d44] hover:text-white">
               <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
               {isSyncing ? 'Syncing...' : 'Sync from Sheet'}
