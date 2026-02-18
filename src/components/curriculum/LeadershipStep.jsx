@@ -55,7 +55,7 @@ export default function LeadershipStep({ selections, updateSelections, onNext, o
       <StepNavigation
         onNext={onNext}
         onBack={onBack}
-        nextLabel="Continue to Review"
+        nextLabel="Continue to Incentives"
       />
     </div>
   );
