@@ -4,9 +4,11 @@ import SelectionCard from './SelectionCard';
 import StepNavigation from './StepNavigation';
 
 export default function LeadershipStep({ selections, updateSelections, onNext, onBack, catalogServices }) {
-  const leadership = catalogServices && catalogServices.length > 0
-    ? catalogServices.map(s => [s.id, { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Crown' }])
-    : Object.entries(productCatalog.leadership);
+  // Only use active services from catalog — no static fallback
+  const leadership = (catalogServices || []).map(s => [
+    s.id,
+    { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Crown' }
+  ]);
 
   const toggleSelection = (key) => {
     const current = selections.leadership || [];
