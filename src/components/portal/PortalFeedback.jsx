@@ -114,6 +114,24 @@ export default function PortalFeedback({ client, proposals = [] }) {
         <p className="text-gray-500 text-sm">Share your experience to help us improve our programs.</p>
       </div>
 
+      {/* Shareable feedback link */}
+      <div className="bg-white rounded-xl shadow-lg p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+            <Link className="w-4 h-4" style={{ color: '#013f7c' }} />
+            Share Feedback Link with Your Team
+          </p>
+          <p className="text-xs text-gray-400 mt-0.5 break-all">{feedbackUrl}</p>
+        </div>
+        <Button
+          onClick={copyFeedbackLink}
+          variant="outline"
+          className="shrink-0 border-[#013f7c] text-[#013f7c] hover:bg-[#013f7c]/10"
+        >
+          {linkCopied ? <><Check className="w-4 h-4 mr-1" /> Copied!</> : <><Copy className="w-4 h-4 mr-1" /> Copy Link</>}
+        </Button>
+      </div>
+
       <div className="bg-white rounded-xl shadow-lg p-6 space-y-6">
         {/* Pre-filled company info */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
