@@ -12,8 +12,10 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, Award, Dumbbell, Package, Users, Clock,
-  DollarSign, Target, Loader2, GripVertical, RefreshCw
+  DollarSign, Target, Loader2, GripVertical, RefreshCw, ExternalLink
 } from 'lucide-react';
+
+const SERVICES_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1qYMjE_ZWwUVl3nFC4k4RGHLpmDCG8lg1hEY9cGZZ-P8/edit';
 
 const categoryConfig = {
   workshop: { label: 'Workshops', color: '#264d44', icon: Award },
