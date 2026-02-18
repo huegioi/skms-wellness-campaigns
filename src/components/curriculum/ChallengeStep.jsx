@@ -173,7 +173,7 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
       <StepNavigation
         onNext={onNext}
         onBack={onBack}
-        nextLabel="Continue to Wellness Boxes"
+        nextLabel="Continue to Classes"
       />
     </div>
   );
