@@ -4,8 +4,10 @@ import SelectionCard from './SelectionCard';
 import StepNavigation from './StepNavigation';
 import { Sparkles } from 'lucide-react';
 
-export default function ChallengeStep({ selections, updateSelections, onNext, onBack }) {
-  const challenges = Object.entries(productCatalog.challenges);
+export default function ChallengeStep({ selections, updateSelections, onNext, onBack, catalogServices }) {
+  const challenges = catalogServices && catalogServices.length > 0
+    ? catalogServices.map(s => [s.id, { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Flame', duration: s.duration || '14 days' }])
+    : Object.entries(productCatalog.challenges);
   const assessmentData = selections.assessmentData || {};
 
   // Calculate challenge price based on company size
