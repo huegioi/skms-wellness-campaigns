@@ -436,7 +436,7 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
       <StepNavigation
         onNext={onNext}
         onBack={onBack}
-        nextLabel="Continue to Classes"
+        nextLabel="Continue to Review"
       />
     </div>
   );
