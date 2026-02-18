@@ -27,6 +27,7 @@ export default function ServiceCatalog() {
   const [activeTab, setActiveTab] = useState('workshop');
   const [editingService, setEditingService] = useState(null);
   const [showDialog, setShowDialog] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   
   const queryClient = useQueryClient();
 
