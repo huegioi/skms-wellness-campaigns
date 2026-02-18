@@ -74,14 +74,35 @@ export default function SelectionCard({ title, description, price, icon, badge, 
       )}
 
       {/* Title */}
-      <h3 style={{
-        fontSize: '18px',
-        fontWeight: '700',
-        marginBottom: '8px',
-        lineHeight: '1.3'
-      }}>
-        {title}
-      </h3>
+      {(() => {
+        // Split on newline or " - " to detect title/subtitle pattern
+        const parts = title.replace(/:\s*\n/, '\n').replace(/:\s+/, '\n').split('\n');
+        const mainTitle = parts[0].replace(/:$/, '').trim();
+        const subtitle = parts[1] ? parts[1].replace(/^:\s*/, '').trim() : null;
+        return (
+          <>
+            <h3 style={{
+              fontSize: '20px',
+              fontWeight: '700',
+              marginBottom: subtitle ? '4px' : '8px',
+              lineHeight: '1.3'
+            }}>
+              {mainTitle}
+            </h3>
+            {subtitle && (
+              <p style={{
+                fontSize: '13px',
+                fontWeight: '600',
+                marginBottom: '8px',
+                opacity: isSelected ? 0.85 : 0.6,
+                lineHeight: '1.3'
+              }}>
+                {subtitle}
+              </p>
+            )}
+          </>
+        );
+      })()}
 
       {/* Description */}
       <p style={{
