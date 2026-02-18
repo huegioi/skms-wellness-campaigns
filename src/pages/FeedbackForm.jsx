@@ -11,9 +11,11 @@ import { toast } from 'sonner';
 export default function FeedbackForm() {
   const urlParams = new URLSearchParams(window.location.search);
   const preselectedSurveyId = urlParams.get('survey_id');
+  const prefilledCompany = urlParams.get('company') || '';
+  const prefilledClientId = urlParams.get('clientId') || '';
 
   const [selectedSurveyId, setSelectedSurveyId] = useState(preselectedSurveyId || '');
-  const [formData, setFormData] = useState({ full_name: '', company_name: '', email_address: '' });
+  const [formData, setFormData] = useState({ full_name: '', company_name: prefilledCompany, email_address: '' });
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
