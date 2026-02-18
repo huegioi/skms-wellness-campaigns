@@ -4,8 +4,9 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CheckCircle2, Loader2, ClipboardList } from 'lucide-react';
+import { CheckCircle2, Loader2, ClipboardList, Link, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { productCatalog } from '@/components/curriculum/catalogData';
 
 export default function PortalFeedback({ client, proposals = [] }) {
   const [selectedSurveyId, setSelectedSurveyId] = useState('');
