@@ -33,16 +33,17 @@ export default function PortalFeedback({ client, proposals = [] }) {
     queryFn: () => base44.entities.FeedbackSurvey.filter({ is_active: true })
   });
 
-  // Filter surveys: show only those matching purchased workshops/challenges
-  // If no purchased services found, show all surveys
-  const availableSurveys = purchasedServiceNames.length === 0
-    ? allSurveys
-    : allSurveys.filter(s =>
+  // Filter surveys to those matching purchased workshops/challenges.
+  // If no match is found (or no surveys at all), fall back to showing ALL active surveys.
+  const matchedSurveys = purchasedServiceNames.length > 0
+    ? allSurveys.filter(s =>
         purchasedServiceNames.some(name =>
           s.service_name.toLowerCase().includes(name.toLowerCase()) ||
           name.toLowerCase().includes(s.service_name.toLowerCase())
         )
-      );
+      )
+    : [];
+  const availableSurveys = matchedSurveys.length > 0 ? matchedSurveys : allSurveys;
 
   const selectedSurvey = availableSurveys.find(s => s.id === selectedSurveyId);
 
