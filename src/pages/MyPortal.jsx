@@ -142,27 +142,36 @@ export default function MyPortal() {
               <span className="sm:hidden">Emails</span>
             </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
-              <span className="hidden sm:inline">Profile</span>
-              <span className="sm:hidden">Profile</span>
-            </TabsTrigger>
-          </TabsList>
+                <Settings className="w-4 h-4" />
+                <span className="hidden sm:inline">Profile</span>
+                <span className="sm:hidden">Profile</span>
+              </TabsTrigger>
+              <TabsTrigger value="feedback" className="flex items-center gap-2">
+                <ClipboardList className="w-4 h-4" />
+                <span className="hidden sm:inline">Feedback</span>
+                <span className="sm:hidden">Feedback</span>
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="proposal">
-            <ClientProposalView proposal={acceptedProposal} client={client} />
-          </TabsContent>
+            <TabsContent value="proposal">
+              <ClientProposalView proposal={acceptedProposal} client={client} />
+            </TabsContent>
 
-          <TabsContent value="timeline">
-            <ClientTimeline events={events} proposal={acceptedProposal} />
-          </TabsContent>
+            <TabsContent value="timeline">
+              <ClientTimeline events={events} proposal={acceptedProposal} />
+            </TabsContent>
 
-          <TabsContent value="templates">
-            <ClientEmailTemplates proposal={acceptedProposal} />
-          </TabsContent>
+            <TabsContent value="templates">
+              <ClientEmailTemplates proposal={acceptedProposal} />
+            </TabsContent>
 
-          <TabsContent value="profile">
-            <ClientProfileSettings client={client} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['portalClient'] })} />
-          </TabsContent>
+            <TabsContent value="profile">
+              <ClientProfileSettings client={client} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['portalClient'] })} />
+            </TabsContent>
+
+            <TabsContent value="feedback">
+              <PortalFeedback client={client} proposals={proposals} />
+            </TabsContent>
         </Tabs>
       </div>
 

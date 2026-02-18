@@ -161,6 +161,11 @@ export default function ClientPortal() {
               <span className="hidden sm:inline">My Profile</span>
               <span className="sm:hidden">Profile</span>
             </TabsTrigger>
+            <TabsTrigger value="feedback" className="flex items-center gap-2">
+              <ClipboardList className="w-4 h-4" />
+              <span className="hidden sm:inline">Feedback</span>
+              <span className="sm:hidden">Feedback</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="proposal">
@@ -177,6 +182,10 @@ export default function ClientPortal() {
 
           <TabsContent value="profile">
             <ClientProfileSettings client={client} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['portalClient'] })} />
+          </TabsContent>
+
+          <TabsContent value="feedback">
+            <PortalFeedback client={client} proposals={proposals} />
           </TabsContent>
         </Tabs>
       </div>
