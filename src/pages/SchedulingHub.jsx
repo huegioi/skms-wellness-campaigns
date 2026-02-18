@@ -176,8 +176,9 @@ export default function SchedulingHub() {
   // Parse all sheet events for upcoming section
   const parseSheetEvents = () => {
     const events = [];
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    const sevenDaysAgoParsed = new Date();
+    sevenDaysAgoParsed.setDate(sevenDaysAgoParsed.getDate() - 7);
+    sevenDaysAgoParsed.setHours(0, 0, 0, 0);
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
