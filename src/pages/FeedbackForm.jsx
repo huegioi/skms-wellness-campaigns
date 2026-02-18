@@ -137,7 +137,7 @@ export default function FeedbackForm() {
                   <SelectValue placeholder="Select a workshop..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {surveys.map(s => (
+                  {availableSurveys.map(s => (
                     <SelectItem key={s.id} value={s.id}>{s.service_name}</SelectItem>
                   ))}
                 </SelectContent>
