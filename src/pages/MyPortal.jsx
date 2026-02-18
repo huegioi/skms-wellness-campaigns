@@ -3,11 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Calendar, Mail, Building, Clock, Settings, LogOut } from 'lucide-react';
+import { FileText, Calendar, Mail, Building, Clock, Settings, LogOut, ClipboardList } from 'lucide-react';
 import ClientProposalView from '@/components/portal/ClientProposalView';
 import ClientTimeline from '@/components/portal/ClientTimeline';
 import ClientEmailTemplates from '@/components/portal/ClientEmailTemplates';
 import ClientProfileSettings from '@/components/portal/ClientProfileSettings';
+import PortalFeedback from '@/components/portal/PortalFeedback';
 
 export default function MyPortal() {
   const [activeTab, setActiveTab] = useState('proposal');
