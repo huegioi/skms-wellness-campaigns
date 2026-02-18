@@ -28,9 +28,40 @@ export default function PortalFeedback({ client, proposals = [] }) {
   };
 
   // Load active surveys
-  const { data: allSurveys = [], isLoading: surveysLoading } = useQuery({
+  const { data: allSurveys = [], isLoading: surveysLoading, refetch: refetchSurveys } = useQuery({
     queryKey: ['feedback-surveys-portal'],
     queryFn: () => base44.entities.FeedbackSurvey.filter({ is_active: true })
+  });
+
+  // Auto-create missing surveys for purchased services
+  const { isLoading: creatingMissing } = useQuery({
+    queryKey: ['ensure-surveys', purchasedServiceNames.join(',')],
+    queryFn: async () => {
+      if (purchasedServiceNames.length === 0 || allSurveys.length === 0 && surveysLoading) return null;
+      const existingNames = allSurveys.map(s => s.service_name.toLowerCase());
+      const missing = purchasedServiceNames.filter(name =>
+        !existingNames.some(en => en.includes(name.toLowerCase()) || name.toLowerCase().includes(en))
+      );
+      if (missing.length === 0) return null;
+      // Create a basic survey for each missing service
+      await Promise.all(missing.map(name =>
+        base44.entities.FeedbackSurvey.create({
+          service_name: name,
+          is_active: true,
+          questions: [
+            { id: 'q1', text: 'How would you rate this workshop overall?', type: 'rating_5' },
+            { id: 'q2', text: 'How likely are you to recommend this workshop to a colleague? (0-10)', type: 'rating_10' },
+            { id: 'q3', text: 'What did you find most valuable about this workshop?', type: 'long_text' },
+            { id: 'q4', text: 'What could be improved?', type: 'long_text' },
+            { id: 'q5', text: 'Would you participate in future wellness programs?', type: 'boolean' }
+          ]
+        })
+      ));
+      await refetchSurveys();
+      return missing;
+    },
+    enabled: purchasedServiceNames.length > 0 && !surveysLoading,
+    staleTime: 60000
   });
 
   // Filter surveys to those matching purchased workshops/challenges.
