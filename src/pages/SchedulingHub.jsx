@@ -562,24 +562,24 @@ export default function SchedulingHub() {
                           )}
                         </div>
                         {event.client_name && (
-                          <div className="text-sm text-gray-600 flex items-center gap-1 mb-1">
+                          <div className={`text-sm flex items-center gap-1 mb-1 ${event.isPast ? 'text-gray-400' : 'text-gray-600'}`}>
                             <Users className="w-3 h-3" />
                             {event.client_name}
                           </div>
                         )}
                         {event.presenter && (
-                          <div className="text-sm text-gray-600 mb-1">
+                          <div className={`text-sm mb-1 ${event.isPast ? 'text-gray-400' : 'text-gray-600'}`}>
                             <span className="font-medium">Presenter:</span> {event.presenter}
                           </div>
                         )}
                         {event.location && (
-                          <div className="text-sm text-gray-600 flex items-center gap-1">
+                          <div className={`text-sm flex items-center gap-1 ${event.isPast ? 'text-gray-400' : 'text-gray-600'}`}>
                             <MapPin className="w-3 h-3" />
                             {event.location}
                           </div>
                         )}
                       </div>
-                      {event.source === 'sheet' && (
+                      {!event.isPast && event.source === 'sheet' && (
                         <Button
                           size="sm"
                           onClick={(e) => {
