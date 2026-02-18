@@ -24,7 +24,27 @@ export default function FeedbackForm() {
     queryFn: () => base44.entities.FeedbackSurvey.filter({ is_active: true })
   });
 
-  const selectedSurvey = surveys.find(s => s.id === selectedSurveyId);
+  // If clientId is in URL, fetch that client's proposals to filter surveys
+  const { data: clientProposals = [] } = useQuery({
+    queryKey: ['feedback-client-proposals', prefilledClientId],
+    queryFn: async () => {
+      if (!prefilledClientId) return [];
+      return base44.entities.Proposal.filter({ client_id: prefilledClientId });
+    },
+    enabled: !!prefilledClientId
+  });
+
+  // Build purchased service names from proposals (same logic as portal)
+  const purchasedNames = getPurchasedServiceNames(clientProposals);
+  const filteredSurveys = purchasedNames.length > 0
+    ? surveys.filter(s => purchasedNames.some(name =>
+        s.service_name.toLowerCase().includes(name.toLowerCase()) ||
+        name.toLowerCase().includes(s.service_name.toLowerCase())
+      ))
+    : surveys;
+  const availableSurveys = filteredSurveys.length > 0 ? filteredSurveys : surveys;
+
+  const selectedSurvey = availableSurveys.find(s => s.id === selectedSurveyId);
 
   const submitMutation = useMutation({
     mutationFn: async (data) => {
