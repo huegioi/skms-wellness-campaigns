@@ -73,6 +73,7 @@ export default function FeedbackForm() {
       return base44.entities.FeedbackResponse.create({
         survey_id: selectedSurveyId,
         service_name: selectedSurvey?.service_name,
+        client_id: prefilledClientId || '',
         full_name: formData.full_name,
         company_name: formData.company_name,
         email_address: formData.email_address,
