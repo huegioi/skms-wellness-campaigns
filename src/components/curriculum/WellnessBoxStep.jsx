@@ -327,6 +327,12 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
       `}</style>
 
       <div className="mb-6 md:mb-8">
+        <img
+          src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/0e643c189_Screenshot2026-02-18at32939PM.png"
+          alt="Wellness Box"
+          className="w-full rounded-2xl mb-5 object-cover"
+          style={{ maxHeight: '260px' }}
+        />
         <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-3" style={{ color: '#013f7c' }}>
           Wellness Box Incentives
         </h2>
