@@ -3,8 +3,10 @@ import { productCatalog } from './catalogData';
 import SelectionCard from './SelectionCard';
 import StepNavigation from './StepNavigation';
 
-export default function MovementStep({ selections, updateSelections, onNext, onBack }) {
-  const movementClasses = Object.entries(productCatalog.movementClasses);
+export default function MovementStep({ selections, updateSelections, onNext, onBack, catalogServices }) {
+  const movementClasses = catalogServices && catalogServices.length > 0
+    ? catalogServices.map(s => [s.id, { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Activity' }])
+    : Object.entries(productCatalog.movementClasses);
 
   const toggleSelection = (key) => {
     const current = selections.movementClasses || [];
