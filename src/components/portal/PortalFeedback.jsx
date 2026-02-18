@@ -180,8 +180,8 @@ export default function PortalFeedback({ client, proposals = [] }) {
         {/* Workshop selector */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2">Which workshop are you providing feedback for? *</label>
-          {surveysLoading ? (
-            <div className="flex items-center gap-2 text-gray-500"><Loader2 className="w-4 h-4 animate-spin" /> Loading...</div>
+          {surveysLoading || creatingMissing ? (
+                    <div className="flex items-center gap-2 text-gray-500"><Loader2 className="w-4 h-4 animate-spin" /> Loading surveys...</div>
           ) : availableSurveys.length === 0 ? (
             <p className="text-gray-500 text-sm italic">No feedback surveys are currently available for your purchased services.</p>
           ) : (
