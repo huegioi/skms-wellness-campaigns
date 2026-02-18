@@ -55,7 +55,7 @@ export default function MovementStep({ selections, updateSelections, onNext, onB
       <StepNavigation
         onNext={onNext}
         onBack={onBack}
-        nextLabel="Continue to Leadership"
+        nextLabel="Continue to Leadership Programs"
       />
     </div>
   );
