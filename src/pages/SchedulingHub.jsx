@@ -514,35 +514,49 @@ export default function SchedulingHub() {
                 {combinedUpcomingEvents.slice(0, 10).map((event, idx) => (
                   <div 
                     key={event.source === 'calendar' ? event.id : `sheet-${idx}`} 
-                    className={`bg-white rounded-lg p-4 border hover:shadow-md transition-shadow ${event.source === 'calendar' ? 'cursor-pointer border-blue-100' : 'border-gray-200'}`}
-                    onClick={() => event.source === 'calendar' && setSelectedEvent(event)}
+                    className={`rounded-lg p-4 border hover:shadow-md transition-shadow ${
+                      event.isPast 
+                        ? 'bg-gray-50 border-gray-200 opacity-70' 
+                        : event.source === 'calendar' 
+                          ? 'bg-white cursor-pointer border-blue-100' 
+                          : 'bg-white border-gray-200'
+                    }`}
+                    onClick={() => !event.isPast && event.source === 'calendar' && setSelectedEvent(event)}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
                       <div className="flex items-center gap-3 min-w-[140px]">
-                        <Calendar className={`w-5 h-5 ${event.source === 'calendar' ? 'text-blue-600' : 'text-gray-500'}`} />
+                        <Calendar className={`w-5 h-5 ${event.isPast ? 'text-gray-400' : event.source === 'calendar' ? 'text-blue-600' : 'text-gray-500'}`} />
                         <div>
-                          <div className="font-semibold text-sm" style={{ color: '#013f7c' }}>
+                          <div className={`font-semibold text-sm ${event.isPast ? 'text-gray-400' : ''}`} style={event.isPast ? {} : { color: '#013f7c' }}>
                             {event.source === 'calendar' 
                               ? format(parseISO(event.start_date), 'MMM d')
                               : event.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                             }
                           </div>
                           {event.source === 'calendar' && !event.all_day && (
-                            <div className="text-xs text-gray-600">{format(parseISO(event.start_date), 'h:mm a')}</div>
+                            <div className="text-xs text-gray-500">{format(parseISO(event.start_date), 'h:mm a')}</div>
                           )}
                           {event.source === 'sheet' && event.time && (
-                            <div className="text-xs text-gray-600">{event.time}</div>
+                            <div className="text-xs text-gray-500">{event.time}</div>
                           )}
                         </div>
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <div className="font-semibold text-gray-800">{event.title}</div>
-                          {event.source === 'calendar' && event.google_event_id && (
+                          <div className={`font-semibold ${event.isPast ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{event.title}</div>
+                          {event.isPast && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-gray-200 text-gray-500">Past</span>
+                          )}
+                          {!event.isPast && event.source === 'calendar' && event.google_event_id && (
                             <CheckCircle2 className="w-4 h-4 text-green-600" />
                           )}
-                          {event.source === 'sheet' && (
+                          {!event.isPast && event.source === 'sheet' && (
                             <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+                              From Sheet
+                            </span>
+                          )}
+                          {event.isPast && event.source === 'sheet' && (
+                            <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-400">
                               From Sheet
                             </span>
                           )}
