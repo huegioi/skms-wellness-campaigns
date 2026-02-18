@@ -4,8 +4,11 @@ import SelectionCard from './SelectionCard';
 import StepNavigation from './StepNavigation';
 import { Sparkles, Snowflake } from 'lucide-react';
 
-export default function WorkshopStep({ selections, updateSelections, onNext, onBack }) {
-  const workshops = Object.entries(productCatalog.workshops);
+export default function WorkshopStep({ selections, updateSelections, onNext, onBack, catalogServices }) {
+  // Use live catalog services if provided, otherwise fall back to static data
+  const workshops = catalogServices && catalogServices.length > 0
+    ? catalogServices.map(s => [s.id, { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Award', seasonal: false }])
+    : Object.entries(productCatalog.workshops);
 
   // Get suggested workshops based on selected challenges
   const getSuggestedWorkshops = () => {
