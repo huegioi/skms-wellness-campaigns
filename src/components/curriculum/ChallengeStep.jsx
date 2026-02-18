@@ -5,9 +5,11 @@ import StepNavigation from './StepNavigation';
 import { Sparkles } from 'lucide-react';
 
 export default function ChallengeStep({ selections, updateSelections, onNext, onBack, catalogServices }) {
-  const challenges = catalogServices && catalogServices.length > 0
-    ? catalogServices.map(s => [s.id, { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Flame', duration: s.duration || '14 days' }])
-    : Object.entries(productCatalog.challenges);
+  // Only use active services from catalog — no static fallback
+  const challenges = (catalogServices || []).map(s => [
+    s.id,
+    { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Flame', duration: s.duration || '14 days' }
+  ]);
   const assessmentData = selections.assessmentData || {};
 
   // Calculate challenge price based on company size
