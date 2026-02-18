@@ -5,10 +5,11 @@ import StepNavigation from './StepNavigation';
 import { Sparkles, Snowflake } from 'lucide-react';
 
 export default function WorkshopStep({ selections, updateSelections, onNext, onBack, catalogServices }) {
-  // Use live catalog services if provided, otherwise fall back to static data
-  const workshops = catalogServices && catalogServices.length > 0
-    ? catalogServices.map(s => [s.id, { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Award', seasonal: false }])
-    : Object.entries(productCatalog.workshops);
+  // Only use active services from catalog — no static fallback
+  const workshops = (catalogServices || []).map(s => [
+    s.id,
+    { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Award', seasonal: false }
+  ]);
 
   // Get suggested workshops based on selected challenges
   const getSuggestedWorkshops = () => {
