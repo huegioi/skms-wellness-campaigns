@@ -103,9 +103,15 @@ export default function ServiceCatalog() {
             <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Service Catalog</h1>
             <p className="text-gray-600">Manage your workshops, challenges, and programs</p>
           </div>
-          <Button onClick={openNewService} className="bg-[#770142] hover:bg-[#5a0132]">
-            <Plus className="w-4 h-4 mr-2" /> Add Service
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={syncFromSheet} variant="outline" disabled={isSyncing} className="border-[#264d44] text-[#264d44] hover:bg-[#264d44] hover:text-white">
+              <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+              {isSyncing ? 'Syncing...' : 'Sync from Sheet'}
+            </Button>
+            <Button onClick={openNewService} className="bg-[#770142] hover:bg-[#5a0132]">
+              <Plus className="w-4 h-4 mr-2" /> Add Service
+            </Button>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
