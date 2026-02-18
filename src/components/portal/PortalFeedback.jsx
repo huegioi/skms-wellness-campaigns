@@ -12,25 +12,37 @@ export default function PortalFeedback({ client, proposals = [] }) {
   const [selectedSurveyId, setSelectedSurveyId] = useState('');
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
-  // Extract purchased service names from accepted/latest proposal
-  const acceptedProposal = proposals.find(p => p.status === 'accepted') || proposals[0];
-  const purchasedServiceNames = getPurchasedServiceNames(acceptedProposal);
+  // Extract purchased service names from ALL proposals (workshops + challenges)
+  const purchasedServiceNames = getPurchasedServiceNames(proposals);
 
-  // Load active surveys that match purchased services
+  // Build shareable feedback URL for this client
+  const feedbackUrl = `${window.location.origin}/FeedbackForm?clientId=${client?.id || ''}&company=${encodeURIComponent(client?.company || '')}`;
+
+  const copyFeedbackLink = () => {
+    navigator.clipboard.writeText(feedbackUrl);
+    setLinkCopied(true);
+    toast.success('Feedback link copied! Share with your team members.');
+    setTimeout(() => setLinkCopied(false), 2500);
+  };
+
+  // Load active surveys
   const { data: allSurveys = [], isLoading: surveysLoading } = useQuery({
     queryKey: ['feedback-surveys-portal'],
     queryFn: () => base44.entities.FeedbackSurvey.filter({ is_active: true })
   });
 
-  // Filter surveys to only show ones matching purchased services
-  const availableSurveys = allSurveys.filter(s =>
-    purchasedServiceNames.length === 0 || // show all if no services found
-    purchasedServiceNames.some(name =>
-      s.service_name.toLowerCase().includes(name.toLowerCase()) ||
-      name.toLowerCase().includes(s.service_name.toLowerCase())
-    )
-  );
+  // Filter surveys: show only those matching purchased workshops/challenges
+  // If no purchased services found, show all surveys
+  const availableSurveys = purchasedServiceNames.length === 0
+    ? allSurveys
+    : allSurveys.filter(s =>
+        purchasedServiceNames.some(name =>
+          s.service_name.toLowerCase().includes(name.toLowerCase()) ||
+          name.toLowerCase().includes(s.service_name.toLowerCase())
+        )
+      );
 
   const selectedSurvey = availableSurveys.find(s => s.id === selectedSurveyId);
 
