@@ -188,6 +188,30 @@ export default function FeedbackForm() {
   );
 }
 
+function getPurchasedServiceNames(proposals = []) {
+  const names = [];
+  const catalogMap = {
+    workshops: productCatalog.workshops,
+    challengePrograms: productCatalog.challenges,
+    leadership: productCatalog.leadership,
+    movementClasses: productCatalog.movementClasses
+  };
+  proposals.forEach(proposal => {
+    const sel = proposal?.selections;
+    if (!sel) return;
+    ['workshops', 'challengePrograms', 'leadership', 'movementClasses'].forEach(category => {
+      const items = sel[category];
+      if (!Array.isArray(items)) return;
+      items.forEach(key => {
+        const service = catalogMap[category]?.[key];
+        if (service?.name) names.push(service.name);
+        else if (typeof key === 'string') names.push(key);
+      });
+    });
+  });
+  return [...new Set(names)];
+}
+
 function QuestionField({ question, value, onChange }) {
   if (question.type === 'rating_5') {
     return (
