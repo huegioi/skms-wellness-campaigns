@@ -219,8 +219,8 @@ export default function SchedulingHub() {
           return;
         }
 
-        // Check if within next 30 days
-        if (eventDate >= now && eventDate <= thirtyDaysFromNow) {
+        // Check if within last 7 days or next 30 days
+        if (eventDate >= sevenDaysAgoParsed && eventDate <= thirtyDaysFromNow) {
           // Find event/service name
           let title = 'Untitled Event';
           for (const [key, value] of Object.entries(row)) {
