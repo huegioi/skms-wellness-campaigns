@@ -20,7 +20,8 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Templates', page: 'EmailTemplateManager', icon: Mail },
     { name: 'Schedule', page: 'SchedulingHub', icon: Calendar },
     { name: 'Invoices', page: 'Invoices', icon: FileText },
-    { name: 'Wellness Boxes', page: 'WellnessBoxes', icon: Gift }
+    { name: 'Wellness Boxes', page: 'WellnessBoxes', icon: Gift },
+    { name: 'Feedback', page: 'FeedbackAnalytics', icon: ClipboardList }
   ];
 
   return (
