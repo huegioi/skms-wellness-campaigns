@@ -191,29 +191,35 @@ export default function PortalFeedback({ client, proposals = [] }) {
   );
 }
 
-function getPurchasedServiceNames(proposal) {
-  if (!proposal?.selections) return [];
+function getPurchasedServiceNames(proposals = []) {
   const names = [];
-  const sel = proposal.selections;
 
-  // Extract names from various selection structures
-  const extractFromArray = (arr) => {
-    if (!Array.isArray(arr)) return;
-    arr.forEach(item => {
-      if (typeof item === 'string') names.push(item);
-      else if (item?.name) names.push(item.name);
-      else if (item?.service_name) names.push(item.service_name);
-    });
+  // Map catalog keys to actual service names
+  const catalogMap = {
+    workshops: productCatalog.workshops,
+    challengePrograms: productCatalog.challenges,
+    leadership: productCatalog.leadership,
+    movementClasses: productCatalog.movementClasses
   };
 
-  extractFromArray(sel.workshops);
-  extractFromArray(sel.challengePrograms);
-  extractFromArray(sel.leadership);
-  extractFromArray(sel.movementClasses);
+  proposals.forEach(proposal => {
+    const sel = proposal?.selections;
+    if (!sel) return;
 
-  // Also check for objects with service names as keys
-  Object.values(sel).forEach(val => {
-    if (Array.isArray(val)) extractFromArray(val);
+    ['workshops', 'challengePrograms', 'leadership', 'movementClasses'].forEach(category => {
+      const items = sel[category];
+      if (!Array.isArray(items)) return;
+      items.forEach(key => {
+        // key is a catalog key string (e.g. "beyondBurnout")
+        const service = catalogMap[category]?.[key];
+        if (service?.name) {
+          names.push(service.name);
+        } else if (typeof key === 'string') {
+          // fallback: use the key itself
+          names.push(key);
+        }
+      });
+    });
   });
 
   return [...new Set(names)];
