@@ -82,6 +82,7 @@ export default function CurriculumDesigner() {
             updateSelections={updateSelections}
             onNext={handleNext}
             onBack={handleBack}
+            catalogServices={workshopServices}
           />
         );
       case 3:
@@ -91,29 +92,32 @@ export default function CurriculumDesigner() {
             updateSelections={updateSelections}
             onNext={handleNext}
             onBack={handleBack}
+            catalogServices={challengeServices}
           />
         );
       case 4:
-        return (
-          <WellnessBoxStep
-            selections={selections}
-            updateSelections={updateSelections}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        );
-      case 5:
         return (
           <MovementStep
             selections={selections}
             updateSelections={updateSelections}
             onNext={handleNext}
             onBack={handleBack}
+            catalogServices={classServices}
+          />
+        );
+      case 5:
+        return (
+          <LeadershipStep
+            selections={selections}
+            updateSelections={updateSelections}
+            onNext={handleNext}
+            onBack={handleBack}
+            catalogServices={leadershipServices}
           />
         );
       case 6:
         return (
-          <LeadershipStep
+          <WellnessBoxStep
             selections={selections}
             updateSelections={updateSelections}
             onNext={handleNext}
