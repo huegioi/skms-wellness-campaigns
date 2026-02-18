@@ -78,6 +78,19 @@ export default function ServiceCatalog() {
     setShowDialog(true);
   };
 
+  const syncFromSheet = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await base44.functions.invoke('syncServicesFromSheet');
+      toast.success(response.data?.message || 'Sync complete!');
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+    } catch (error) {
+      toast.error('Sync failed: ' + error.message);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   if (isLoading) {
     return <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">Loading...</div>;
   }
