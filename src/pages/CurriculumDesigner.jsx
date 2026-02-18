@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import StepIndicator from '../components/curriculum/StepIndicator';
 import AssessmentStep from '../components/curriculum/AssessmentStep';
 import WorkshopStep from '../components/curriculum/WorkshopStep';
@@ -21,13 +23,23 @@ export default function CurriculumDesigner() {
     largeBoxes: 0
   });
 
+  const { data: allServices = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => base44.entities.Service.list('sort_order')
+  });
+
+  const workshopServices = allServices.filter(s => s.category === 'workshop' && s.is_active !== false);
+  const challengeServices = allServices.filter(s => s.category === 'challenge' && s.is_active !== false);
+  const classServices = allServices.filter(s => s.category === 'class' && s.is_active !== false);
+  const leadershipServices = allServices.filter(s => s.category === 'leadership' && s.is_active !== false);
+
   const steps = [
     { number: 1, name: 'Assessment' },
     { number: 2, name: 'Workshops' },
     { number: 3, name: 'Challenges' },
-    { number: 4, name: 'Wellness' },
-    { number: 5, name: 'Classes' },
-    { number: 6, name: 'Leadership' },
+    { number: 4, name: 'Classes' },
+    { number: 5, name: 'Leadership' },
+    { number: 6, name: 'Incentives' },
     { number: 7, name: 'Review' }
   ];
 
