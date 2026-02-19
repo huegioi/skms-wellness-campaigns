@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
 
       while (progress.next_url && pagesThisRun < maxPagesPerRun) {
         if (pagesThisRun > 0) {
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
         console.log(`Fetching page ${progress.page_count + 1} from: ${progress.next_url}`);
 
