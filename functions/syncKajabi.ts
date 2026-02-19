@@ -248,10 +248,16 @@ Deno.serve(async (req) => {
           const toUpdate = [];
           let skippedThisPage = 0;
 
-          for (const kajabiContact of contacts) {
+          for (let i = 0; i < contacts.length; i++) {
+            const kajabiContact = contacts[i];
             try {
               const attrs = kajabiContact.attributes;
               const kajabiId = kajabiContact.id;
+
+              // Add delay between tag fetches to avoid rate limiting (500ms)
+              if (i > 0) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+              }
 
               // Fetch tags for this contact
               const tags = await fetchContactTags(accessToken, kajabiId);
