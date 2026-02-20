@@ -60,6 +60,8 @@ export default function MarketingDashboard() {
     queryKey: ['kajabiStats'],
     queryFn: async () => {
       const contacts = await base44.entities.KajabiContact.list('', 100000);
+      const events = await base44.entities.KajabiEvent.list('', 100000);
+      
       const subscribed = contacts.filter(c => c.subscribed).length;
       const unsubscribed = contacts.filter(c => !c.subscribed).length;
       
@@ -80,12 +82,47 @@ export default function MarketingDashboard() {
         .slice(0, 10)
         .map(([name, count]) => ({ name, count }));
 
+      // Calculate engagement metrics from events
+      const recentEvents = events.filter(e => 
+        e.event_date && new Date(e.event_date) > thirtyDaysAgo
+      );
+
+      const eventTypeCounts = {};
+      recentEvents.forEach(e => {
+        const type = e.event_type || 'unknown';
+        eventTypeCounts[type] = (eventTypeCounts[type] || 0) + 1;
+      });
+
+      const topEvents = Object.entries(eventTypeCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([name, count]) => ({ name, count }));
+
+      const formSubmissions = recentEvents.filter(e => 
+        e.event_type?.includes('form')
+      ).length;
+
+      const tagEngagements = recentEvents.filter(e => 
+        e.event_type?.includes('tag')
+      ).length;
+
+      const conversions = recentEvents.filter(e => 
+        e.event_type?.includes('purchase') || e.event_type?.includes('subscription')
+      ).length;
+
       return {
         total: contacts.length,
         subscribed,
         unsubscribed,
         newLast30Days,
-        topTags
+        topTags,
+        engagement: {
+          totalEvents: recentEvents.length,
+          formSubmissions,
+          tagEngagements,
+          conversions,
+          topEvents
+        }
       };
     },
     refetchInterval: 300000,

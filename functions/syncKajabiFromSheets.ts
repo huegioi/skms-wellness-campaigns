@@ -133,6 +133,32 @@ Deno.serve(async (req) => {
 
     const finalContacts = await base44.asServiceRole.entities.KajabiContact.list('', 100000);
 
+    // Update/create sync progress record
+    const progressRecords = await base44.asServiceRole.entities.KajabiSyncProgress.filter({ 
+      sync_type: 'contacts'
+    });
+
+    if (progressRecords.length > 0) {
+      const latest = progressRecords[0];
+      await base44.asServiceRole.entities.KajabiSyncProgress.update(latest.id, {
+        status: 'completed',
+        new_count: newCount,
+        updated_count: updatedCount,
+        total_processed: dataRows.length,
+        completed_at: new Date().toISOString()
+      });
+    } else {
+      await base44.asServiceRole.entities.KajabiSyncProgress.create({
+        sync_type: 'contacts',
+        status: 'completed',
+        new_count: newCount,
+        updated_count: updatedCount,
+        total_processed: dataRows.length,
+        started_at: new Date().toISOString(),
+        completed_at: new Date().toISOString()
+      });
+    }
+
     return Response.json({
       success: true,
       results: {
