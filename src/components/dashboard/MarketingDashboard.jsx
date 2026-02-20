@@ -59,10 +59,36 @@ export default function MarketingDashboard() {
   const { data: kajabiStats, isLoading: kajabiLoading, refetch: refetchKajabi } = useQuery({
     queryKey: ['kajabiStats'],
     queryFn: async () => {
-      const response = await base44.functions.invoke('syncKajabi', { action: 'getStats' });
-      return response.data?.stats || null;
+      const contacts = await base44.entities.KajabiContact.list('', 100000);
+      const subscribed = contacts.filter(c => c.subscribed).length;
+      const unsubscribed = contacts.filter(c => !c.subscribed).length;
+      
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const newLast30Days = contacts.filter(c => 
+        c.kajabi_created_at && new Date(c.kajabi_created_at) > thirtyDaysAgo
+      ).length;
+
+      const tagCounts = {};
+      contacts.forEach(c => {
+        (c.tags || []).forEach(tag => {
+          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+        });
+      });
+      const topTags = Object.entries(tagCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([name, count]) => ({ name, count }));
+
+      return {
+        total: contacts.length,
+        subscribed,
+        unsubscribed,
+        newLast30Days,
+        topTags
+      };
     },
-    refetchInterval: 300000, // Refresh every 5 minutes
+    refetchInterval: 300000,
     initialData: null
   });
 
@@ -73,28 +99,50 @@ export default function MarketingDashboard() {
   });
 
   React.useEffect(() => {
-    setAutoSyncEnabled(true);
+    // Check if automation exists and is enabled
+    base44.functions.invoke('listDailyKajabiSync')
+      .then(res => {
+        const automation = res.data?.[0];
+        setAutoSyncEnabled(automation?.is_active || false);
+      })
+      .catch(() => setAutoSyncEnabled(false));
   }, []);
 
   const syncKajabiContacts = async () => {
     try {
       setIsSyncing(true);
-      toast.loading('Syncing Kajabi contacts...', { id: 'kajabi-sync' });
-      const response = await base44.functions.invoke('syncKajabi', { action: 'syncAll' });
+      toast.loading('Syncing from Google Sheets...', { id: 'kajabi-sync' });
+      const response = await base44.functions.invoke('appendNewKajabiContacts');
       await refetchKajabi();
-      toast.success(response.data?.message || 'Kajabi contacts synced successfully!', { id: 'kajabi-sync' });
+      toast.success(response.data?.message || 'Contacts synced successfully!', { id: 'kajabi-sync' });
     } catch (error) {
-      console.error('Kajabi sync failed:', error);
-      toast.error('Failed to sync Kajabi contacts: ' + error.message, { id: 'kajabi-sync' });
+      console.error('Sync failed:', error);
+      toast.error('Failed to sync: ' + error.message, { id: 'kajabi-sync' });
     } finally {
       setIsSyncing(false);
     }
   };
 
   const toggleAutoSync = async () => {
-    const newState = !autoSyncEnabled;
-    setAutoSyncEnabled(newState);
-    toast.success(newState ? 'Auto-sync enabled - will continue every 5 minutes' : 'Auto-sync disabled', { duration: 2000 });
+    try {
+      const automations = await base44.functions.invoke('listDailyKajabiSync');
+      const automation = automations.data?.[0];
+      
+      if (!automation) {
+        // Create automation
+        await base44.functions.invoke('createDailyKajabiSync');
+        setAutoSyncEnabled(true);
+        toast.success('Auto-sync enabled - runs daily', { duration: 2000 });
+      } else {
+        // Toggle automation
+        const newState = !automation.is_active;
+        await base44.functions.invoke('toggleDailyKajabiSync', { automation_id: automation.id, enabled: newState });
+        setAutoSyncEnabled(newState);
+        toast.success(newState ? 'Auto-sync enabled - runs daily' : 'Auto-sync disabled', { duration: 2000 });
+      }
+    } catch (error) {
+      toast.error('Failed to toggle auto-sync: ' + error.message);
+    }
   };
 
   const clearAllContacts = async () => {
