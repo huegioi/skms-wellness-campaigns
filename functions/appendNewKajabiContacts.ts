@@ -197,6 +197,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Run analytics on the updated spreadsheet
+    await base44.asServiceRole.functions.invoke('analyzeKajabiSheet');
+
     return Response.json({
       success: true,
       results: {

@@ -59,71 +59,8 @@ export default function MarketingDashboard() {
   const { data: kajabiStats, isLoading: kajabiLoading, refetch: refetchKajabi } = useQuery({
     queryKey: ['kajabiStats'],
     queryFn: async () => {
-      const contacts = await base44.entities.KajabiContact.list('', 100000);
-      const events = await base44.entities.KajabiEvent.list('', 100000);
-      
-      const subscribed = contacts.filter(c => c.subscribed).length;
-      const unsubscribed = contacts.filter(c => !c.subscribed).length;
-      
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const newLast30Days = contacts.filter(c => 
-        c.kajabi_created_at && new Date(c.kajabi_created_at) > thirtyDaysAgo
-      ).length;
-
-      const tagCounts = {};
-      contacts.forEach(c => {
-        (c.tags || []).forEach(tag => {
-          tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-        });
-      });
-      const topTags = Object.entries(tagCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([name, count]) => ({ name, count }));
-
-      // Calculate engagement metrics from events
-      const recentEvents = events.filter(e => 
-        e.event_date && new Date(e.event_date) > thirtyDaysAgo
-      );
-
-      const eventTypeCounts = {};
-      recentEvents.forEach(e => {
-        const type = e.event_type || 'unknown';
-        eventTypeCounts[type] = (eventTypeCounts[type] || 0) + 1;
-      });
-
-      const topEvents = Object.entries(eventTypeCounts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-        .map(([name, count]) => ({ name, count }));
-
-      const formSubmissions = recentEvents.filter(e => 
-        e.event_type?.includes('form')
-      ).length;
-
-      const tagEngagements = recentEvents.filter(e => 
-        e.event_type?.includes('tag')
-      ).length;
-
-      const conversions = recentEvents.filter(e => 
-        e.event_type?.includes('purchase') || e.event_type?.includes('subscription')
-      ).length;
-
-      return {
-        total: contacts.length,
-        subscribed,
-        unsubscribed,
-        newLast30Days,
-        topTags,
-        engagement: {
-          totalEvents: recentEvents.length,
-          formSubmissions,
-          tagEngagements,
-          conversions,
-          topEvents
-        }
-      };
+      const response = await base44.functions.invoke('analyzeKajabiSheet');
+      return response.data?.stats || null;
     },
     refetchInterval: 300000,
     initialData: null
