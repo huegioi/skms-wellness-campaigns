@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Plus, User, Building, Mail, Phone, FileText, Pencil, Trash2, Search, Filter, 
-  DollarSign, Users, Calendar, Globe, MapPin, Eye, AlertTriangle, XCircle, ExternalLink, CheckCircle
+  DollarSign, Users, Calendar, Globe, MapPin, Eye, AlertTriangle, XCircle, ExternalLink, FolderOpen, Mail as MailIcon
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
