@@ -48,10 +48,17 @@ export default function FinancialSummary() {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const thisMonthPaid = invoices
-    .filter(i => i.status === 'paid' && i.issue_date && new Date(i.issue_date) >= startOfMonth)
+    .filter(i => {
+      if (i.status !== 'paid') return false;
+      const p = parseDateParts(i.issue_date || i.paid_date);
+      return p && p.year === now.getFullYear() && p.month === now.getMonth();
+    })
     .reduce((s, i) => s + (i.total_amount || 0), 0);
   const thisMonthExpenses = expenses
-    .filter(e => e.transaction_date && new Date(e.transaction_date) >= startOfMonth)
+    .filter(e => {
+      const p = parseDateParts(e.transaction_date);
+      return p && p.year === now.getFullYear() && p.month === now.getMonth();
+    })
     .reduce((s, e) => s + (e.amount || 0), 0);
 
   // Last 6 months — stacked by invoice status (same logic as RevenueChart)
