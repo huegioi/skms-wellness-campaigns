@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Plus, User, Building, Mail, Phone, FileText, Pencil, Trash2, Search, Filter, 
-  DollarSign, Users, Calendar, Globe, MapPin, Eye, AlertTriangle, XCircle, ExternalLink, FolderOpen, Mail as MailIcon
+  DollarSign, Users, Calendar, Eye, AlertTriangle, XCircle, FolderOpen, ChevronDown
 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ClientDetailView from '@/components/clients/ClientDetailView';
