@@ -10,7 +10,70 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+const boxOptions = [
+  {
+    id: 'physical',
+    name: 'Custom Wellness Boxes (Physical)',
+    priceRange: '$40-$100',
+    description: 'Custom-curated physical gift boxes delivered to your team. Perfect for tangible appreciation.',
+    themes: ['Mental Health/Stress Relief', 'Gratitude', 'New Year New You', 'Self-Care', 'Relaxation'],
+    icon: Gift,
+    color: 'from-purple-500 to-pink-500',
+    image: 'https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=800'
+  },
+  {
+    id: 'digital',
+    name: 'Digital Wellness Boxes',
+    priceRange: '$50-$75',
+    description: 'Global incentive solution with digital gift cards plus curated wellness content. Ideal for remote teams.',
+    themes: ['Mental Health/Stress Relief', 'Mindfulness', 'Emotional Resilience', 'Work-Life Balance'],
+    icon: Sparkles,
+    color: 'from-blue-500 to-cyan-500',
+    image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800'
+  }
+];
+
+const incentiveUses = [
+  { title: 'Workshop Attendance Incentive', description: 'Reward employees who attend wellness workshops with themed boxes that reinforce the workshop content.', icon: Users, color: 'bg-blue-50 border-blue-200' },
+  { title: 'Challenge Completion Prizes', description: 'Celebrate employees who complete wellness challenges (14-day programs) with meaningful prizes.', icon: Award, color: 'bg-green-50 border-green-200' },
+  { title: 'Monthly Recognition', description: 'Recognize outstanding team members or milestones with curated wellness boxes.', icon: Target, color: 'bg-purple-50 border-purple-200' },
+  { title: 'Onboarding Gifts', description: "Welcome new employees with a wellness box that sets the tone for your company culture.", icon: Heart, color: 'bg-pink-50 border-pink-200' }
+];
+
 export default function WellnessBoxStep({ selections, updateSelections, onNext, onBack }) {
+  const [builderForm, setBuilderForm] = useState({ budget: '', theme: '', preferences: '', quantity: '', purpose: '', contactName: '', contactEmail: '', notes: '' });
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedSuggestions, setGeneratedSuggestions] = useState(null);
+  const [isSending, setIsSending] = useState(false);
+  const [showAIBuilder, setShowAIBuilder] = useState(false);
+
+  const generateSuggestions = async () => {
+    if (!builderForm.budget || !builderForm.theme) { alert('Please fill in at least Budget and Theme.'); return; }
+    setIsGenerating(true);
+    try {
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: `Create a detailed wellness box suggestion with the following criteria:\n- Budget: ${builderForm.budget}\n- Theme: ${builderForm.theme}\n- Preferences: ${builderForm.preferences || 'None specified'}\n- Purpose: ${builderForm.purpose || 'General wellness'}\n\nSuggest 5-8 specific items to include, with estimated costs and brief descriptions.`,
+        response_json_schema: { type: 'object', properties: { box_name: { type: 'string' }, total_estimated_cost: { type: 'number' }, items: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, description: { type: 'string' }, estimated_cost: { type: 'number' } } } }, rationale: { type: 'string' } } }
+      });
+      setGeneratedSuggestions(response);
+    } catch (error) { alert('Failed to generate suggestions.'); } finally { setIsGenerating(false); }
+  };
+
+  const handleSendRequest = async () => {
+    if (!builderForm.contactName || !builderForm.contactEmail) { alert('Please provide your name and email.'); return; }
+    setIsSending(true);
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: 'wellness@example.com',
+        subject: `Custom Wellness Box Request - ${builderForm.contactName}`,
+        body: `<h2>Custom Wellness Box Request</h2><p><strong>Name:</strong> ${builderForm.contactName}</p><p><strong>Email:</strong> ${builderForm.contactEmail}</p><p><strong>Budget:</strong> ${builderForm.budget}</p><p><strong>Theme:</strong> ${builderForm.theme}</p><p><strong>Quantity:</strong> ${builderForm.quantity || 'Not specified'}</p><p><strong>Purpose:</strong> ${builderForm.purpose || 'Not specified'}</p><p><strong>Preferences:</strong> ${builderForm.preferences || 'None'}</p><p><strong>Notes:</strong> ${builderForm.notes || 'None'}</p>`
+      });
+      alert("Request sent successfully! We'll be in touch soon.");
+      setBuilderForm({ budget: '', theme: '', preferences: '', quantity: '', purpose: '', contactName: '', contactEmail: '', notes: '' });
+      setGeneratedSuggestions(null);
+      setShowAIBuilder(false);
+    } catch (error) { alert('Failed to send request.'); } finally { setIsSending(false); }
+  };
   const [customBoxQuantity, setCustomBoxQuantity] = useState(selections.customBoxQuantity || 0);
   const [customBoxItems, setCustomBoxItems] = useState(selections.customBoxItems || []);
   const [sampleBoxQuantities, setSampleBoxQuantities] = useState(
