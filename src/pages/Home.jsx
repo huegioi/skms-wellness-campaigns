@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Menu, Users, DollarSign, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ClientInformationSection from '@/components/dashboard/ClientInformationSection';
-import FinancialInformationSection from '@/components/dashboard/FinancialInformationSection';
+import FinancialSummary from '@/components/dashboard/FinancialSummary';
 import MarketingDashboard from '@/components/dashboard/MarketingDashboard';
 import ServicesAnalytics from '@/components/dashboard/ServicesAnalytics';
 
@@ -89,7 +89,7 @@ export default function Home() {
         {/* Content Area */}
         <div className="p-4 md:p-8">
           {activeSection === 'clients' && <ClientInformationSection />}
-          {activeSection === 'financial' && <FinancialInformationSection />}
+          {activeSection === 'financial' && <FinancialSummary />}
           {activeSection === 'marketing' && <MarketingDashboard />}
           {activeSection === 'services' && <ServicesAnalytics />}
         </div>
