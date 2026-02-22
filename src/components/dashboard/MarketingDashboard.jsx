@@ -1012,15 +1012,29 @@ export default function MarketingDashboard() {
                 {/* Contact Growth Chart */}
                 <Card className="hover:shadow-lg transition-shadow duration-300">
                   <CardHeader>
-                    <CardTitle style={{ color: '#264d44' }}>
-                      Contact Growth ({timePeriod === 'day' ? 'Daily' : timePeriod === 'week' ? 'Weekly' : 'Monthly'})
-                    </CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle style={{ color: '#264d44' }}>
+                        Contact Growth ({timePeriod === 'day' ? 'Daily' : timePeriod === 'week' ? 'Weekly' : 'Monthly'})
+                      </CardTitle>
+                      {timePeriod === 'week' && (
+                        <button
+                          onClick={() => setHideOutliers(!hideOutliers)}
+                          className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${
+                            hideOutliers
+                              ? 'bg-[#264d44] text-white border-[#264d44]'
+                              : 'bg-white text-gray-600 border-gray-300 hover:border-[#264d44] hover:text-[#264d44]'
+                          }`}
+                        >
+                          {hideOutliers ? 'Outliers Hidden' : 'Hide Outliers'}
+                        </button>
+                      )}
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    {kajabiTrendData.length > 0 ?
+                    {kajabiTrendDataFiltered.length > 0 ?
                 <ResponsiveContainer width="100%" height={350}>
                         {timePeriod === 'day' || timePeriod === 'week' ?
-                  <BarChart data={kajabiTrendData} margin={{ top: 5, right: 30, left: 20, bottom: 80 }}>
+                  <BarChart data={kajabiTrendDataFiltered} margin={{ top: 5, right: 30, left: 20, bottom: 80 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="label" angle={-45} textAnchor="end" height={80} />
                             <YAxis />
