@@ -36,6 +36,7 @@ export default function MarketingDashboard() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [hideOutliers, setHideOutliers] = useState(false);
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['notionOpportunities', startDate, endDate, selectedSource, selectedStage],
