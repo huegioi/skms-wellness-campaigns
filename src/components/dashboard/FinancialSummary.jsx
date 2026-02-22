@@ -9,6 +9,23 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 const BRAND = { blue: '#013f7c', green: '#264d44', orange: '#e87040' };
 const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+const STATUS_CONFIG = {
+  paid:      { color: '#264d44', label: 'Paid' },
+  sent:      { color: '#013f7c', label: 'Sent' },
+  overdue:   { color: '#e87040', label: 'Overdue' },
+  draft:     { color: '#a0aec0', label: 'Draft' },
+  cancelled: { color: '#e53e3e', label: 'Cancelled' },
+};
+const STATUSES = Object.keys(STATUS_CONFIG);
+
+// Safe parse of YYYY-MM-DD without timezone drift
+function parseDateParts(dateStr) {
+  if (!dateStr) return null;
+  const parts = dateStr.split('T')[0].split('-');
+  if (parts.length < 3) return null;
+  return { year: parseInt(parts[0]), month: parseInt(parts[1]) - 1 }; // month 0-indexed
+}
+
 export default function FinancialSummary() {
   const { data: invoices = [] } = useQuery({
     queryKey: ['invoices'],
