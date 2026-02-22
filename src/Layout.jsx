@@ -54,6 +54,18 @@ export default function Layout({ children, currentPageName }) {
                   </Link>
                 );
               })}
+              {/* Builder callout */}
+              <Link
+                to={createPageUrl('CurriculumDesigner')}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold transition-colors ml-2 border-2 ${
+                  currentPageName === 'CurriculumDesigner'
+                    ? 'bg-[#013f7c] text-white border-[#013f7c]'
+                    : 'text-[#013f7c] border-[#013f7c] hover:bg-[#013f7c] hover:text-white'
+                }`}
+              >
+                <Wand2 className="w-4 h-4" />
+                <span>Builder</span>
+              </Link>
             </div>
 
             {/* Mobile Menu Button */}
