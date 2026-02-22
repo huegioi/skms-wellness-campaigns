@@ -13,7 +13,6 @@ export default function Layout({ children, currentPageName }) {
 
   const navItems = [
     { name: 'Dashboard', page: 'Home', icon: BarChart3 },
-    { name: 'Builder', page: 'CurriculumDesigner', icon: FileText },
     { name: 'Proposals', page: 'Proposals', icon: FolderOpen, altPage: 'EditProposal' },
     { name: 'Clients', page: 'Clients', icon: Users, altPage: 'ManageClientPortals' },
     { name: 'Services', page: 'ServiceCatalog', icon: Package },
