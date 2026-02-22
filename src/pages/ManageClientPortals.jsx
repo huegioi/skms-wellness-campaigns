@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Search, ExternalLink, Building2, Mail, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import ClientsSubNav from '@/components/clients/ClientsSubNav';
 
 export default function ManageClientPortals() {
   const [searchQuery, setSearchQuery] = useState('');
