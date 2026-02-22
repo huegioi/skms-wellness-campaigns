@@ -358,64 +358,35 @@ export default function Clients() {
 
   return (
     <div className="min-h-screen bg-[#f4f0e9]">
-      {/* Page Header with sub-tabs */}
-      <div className="bg-white border-b px-4 md:px-8 pt-6 pb-0">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#013f7c' }}>Clients</h1>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-[#264d44] hover:bg-[#1a3830]" onClick={resetForm}>
-                  <Plus className="w-4 h-4 mr-2" /> Add Client
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg w-[95vw] sm:w-full">
-                <DialogHeader>
-                  <DialogTitle>Add New Client</DialogTitle>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-2">
-                  <ClientFormFields 
-                    formData={formData} 
-                    setFormData={setFormData} 
-                    clients={clients}
-                    isEdit={false}
-                    editingClient={null}
-                    onSelectDuplicate={handleSelectDuplicate}
-                  />
-                  <Button type="submit" className="w-full bg-[#264d44] hover:bg-[#1a3830]">Add Client</Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-          {/* Sub-menu tabs */}
-          <div className="flex gap-1">
-            {CLIENT_TABS.map(tab => {
-              const Icon = tab.icon;
-              if (tab.page) {
-                return (
-                  <Link key={tab.id} to={createPageUrl(tab.page)}
-                    className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-t-xl border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-all"
-                  >
-                    <Icon className="w-4 h-4" />
-                    <span className="hidden sm:inline">{tab.label}</span>
-                    <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
-                  </Link>
-                );
-              }
-              return (
-                <button key={tab.id}
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-t-xl border-b-2 border-[#264d44] text-[#264d44] bg-[#f4f0e9] transition-all"
-                >
-                  <Icon className="w-4 h-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+      <ClientsSubNav activePage="Clients" />
 
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-6">
+        {/* Add Client Button */}
+        <div className="flex justify-end mb-6">
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-[#264d44] hover:bg-[#1a3830]" onClick={resetForm}>
+                <Plus className="w-4 h-4 mr-2" /> Add Client
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg w-[95vw] sm:w-full">
+              <DialogHeader>
+                <DialogTitle>Add New Client</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-2">
+                <ClientFormFields 
+                  formData={formData} 
+                  setFormData={setFormData} 
+                  clients={clients}
+                  isEdit={false}
+                  editingClient={null}
+                  onSelectDuplicate={handleSelectDuplicate}
+                />
+                <Button type="submit" className="w-full bg-[#264d44] hover:bg-[#1a3830]">Add Client</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         {/* Duplicate Alert */}
         {showDuplicates && duplicateGroups.length > 0 && (
