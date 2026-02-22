@@ -54,31 +54,29 @@ export default function FinancialSummary() {
     .filter(e => e.transaction_date && new Date(e.transaction_date) >= startOfMonth)
     .reduce((s, e) => s + (e.amount || 0), 0);
 
-  // Last 6 months income vs expenses chart
+  // Last 6 months — stacked by invoice status (same logic as RevenueChart)
   const monthlyMap = {};
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const key = `${MONTH_ORDER[d.getMonth()]} '${String(d.getFullYear()).slice(2)}`;
-    monthlyMap[key] = { month: key, monthIdx: d.getMonth(), year: d.getFullYear(), income: 0, expenses: 0 };
+    const entry = { month: key, _monthIdx: d.getMonth(), _year: d.getFullYear(), expenses: 0 };
+    STATUSES.forEach(s => { entry[s] = 0; });
+    monthlyMap[key] = entry;
   }
 
-  invoices.filter(i => i.status === 'paid').forEach(inv => {
-    const dateStr = (inv.paid_date || inv.issue_date || '').split('T')[0];
-    const parts = dateStr.split('-');
-    if (parts.length < 3) return;
-    const mIdx = parseInt(parts[1]) - 1;
-    const yr = parseInt(parts[0]);
-    const key = `${MONTH_ORDER[mIdx]} '${String(yr).slice(2)}`;
-    if (monthlyMap[key]) monthlyMap[key].income += inv.total_amount || 0;
+  invoices.forEach(inv => {
+    const parsed = parseDateParts(inv.issue_date || inv.paid_date);
+    if (!parsed) return;
+    const key = `${MONTH_ORDER[parsed.month]} '${String(parsed.year).slice(2)}`;
+    if (!monthlyMap[key]) return;
+    const status = STATUSES.includes(inv.status) ? inv.status : 'draft';
+    monthlyMap[key][status] += inv.total_amount || 0;
   });
 
   expenses.forEach(exp => {
-    const dateStr = (exp.transaction_date || '').split('T')[0];
-    const parts = dateStr.split('-');
-    if (parts.length < 3) return;
-    const mIdx = parseInt(parts[1]) - 1;
-    const yr = parseInt(parts[0]);
-    const key = `${MONTH_ORDER[mIdx]} '${String(yr).slice(2)}`;
+    const parsed = parseDateParts(exp.transaction_date);
+    if (!parsed) return;
+    const key = `${MONTH_ORDER[parsed.month]} '${String(parsed.year).slice(2)}`;
     if (monthlyMap[key]) monthlyMap[key].expenses += exp.amount || 0;
   });
 
