@@ -120,23 +120,33 @@ export default function FinancialSummary() {
         </div>
       </div>
 
-      {/* Income vs Expenses Chart */}
+      {/* Income vs Expenses Chart — stacked by status */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <h3 className="text-sm font-bold mb-4" style={{ color: BRAND.blue }}>Income vs Expenses — Last 6 Months</h3>
-        {chartData.some(d => d.income > 0 || d.expenses > 0) ? (
-          <ResponsiveContainer width="100%" height={220}>
+        <h3 className="text-sm font-bold mb-4" style={{ color: BRAND.blue }}>Invoice Revenue by Status — Last 6 Months</h3>
+        {chartData.some(d => STATUSES.some(s => d[s] > 0)) ? (
+          <ResponsiveContainer width="100%" height={240}>
             <BarChart data={chartData} barCategoryGap="35%">
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#4a5568' }} axisLine={false} tickLine={false} />
               <YAxis tickFormatter={v => `$${(v/1000).toFixed(0)}k`} tick={{ fontSize: 11, fill: '#4a5568' }} axisLine={false} tickLine={false} width={46} />
-              <Tooltip formatter={v => `$${v.toLocaleString()}`} contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }} />
-              <Legend />
-              <Bar dataKey="income" name="Income" fill={BRAND.green} radius={[6, 6, 0, 0]} />
-              <Bar dataKey="expenses" name="Expenses" fill="#e87040" radius={[6, 6, 0, 0]} />
+              <Tooltip
+                formatter={(value, name) => [`$${value.toLocaleString()}`, STATUS_CONFIG[name]?.label || name]}
+                contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }}
+              />
+              <Legend formatter={name => STATUS_CONFIG[name]?.label || name} />
+              {STATUSES.map((status, i) => (
+                <Bar
+                  key={status}
+                  dataKey={status}
+                  stackId="a"
+                  fill={STATUS_CONFIG[status].color}
+                  radius={i === STATUSES.length - 1 ? [6, 6, 0, 0] : [0, 0, 0, 0]}
+                />
+              ))}
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-[220px] flex items-center justify-center text-gray-300 text-sm">No data yet</div>
+          <div className="h-[240px] flex items-center justify-center text-gray-300 text-sm">No data yet</div>
         )}
       </div>
 
