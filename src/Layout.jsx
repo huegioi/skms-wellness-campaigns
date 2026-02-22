@@ -37,7 +37,7 @@ export default function Layout({ children, currentPageName }) {
             <div className="hidden lg:flex items-center gap-0.5 flex-wrap">
               {navItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = currentPageName === item.page || (item.altPage && currentPageName === item.altPage);
+                const isActive = currentPageName === item.page || (item.altPages && item.altPages.includes(currentPageName));
                 return (
                   <Link
                     key={item.page}
@@ -81,7 +81,7 @@ export default function Layout({ children, currentPageName }) {
           <div className="px-4 py-3 space-y-1 max-h-[calc(100vh-4rem)] overflow-y-auto">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const isActive = currentPageName === item.page || (item.altPage && currentPageName === item.altPage);
+              const isActive = currentPageName === item.page || (item.altPages && item.altPages.includes(currentPageName));
               return (
                 <Link
                   key={item.page}
