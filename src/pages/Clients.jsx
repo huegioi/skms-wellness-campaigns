@@ -356,7 +356,17 @@ export default function Clients() {
             <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Clients</h1>
             <p className="text-gray-600">Manage your clients, contacts, and interactions</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Link to={createPageUrl('Proposals')}>
+              <Button variant="outline" className="bg-white">
+                <FolderOpen className="w-4 h-4 mr-2" /> Proposals
+              </Button>
+            </Link>
+            <Link to={createPageUrl('EmailTemplateManager')}>
+              <Button variant="outline" className="bg-white">
+                <Mail className="w-4 h-4 mr-2" /> Templates
+              </Button>
+            </Link>
             <Link to={createPageUrl('ManageClientPortals')}>
               <Button variant="outline" className="bg-white">
                 <Eye className="w-4 h-4 mr-2" /> Client Portals
