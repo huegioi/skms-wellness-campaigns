@@ -349,13 +349,6 @@ export default function Clients() {
     setViewingClient(client);
   };
 
-  const CLIENT_TABS = [
-    { id: 'clients', label: 'Clients', icon: Users },
-    { id: 'proposals', label: 'Proposals', icon: FolderOpen, page: 'Proposals' },
-    { id: 'templates', label: 'Templates', icon: Mail, page: 'EmailTemplateManager' },
-    { id: 'portals', label: 'Client Portals', icon: Eye, page: 'ManageClientPortals' },
-  ];
-
   return (
     <div className="min-h-screen bg-[#f4f0e9]">
       <ClientsSubNav activePage="Clients" />
