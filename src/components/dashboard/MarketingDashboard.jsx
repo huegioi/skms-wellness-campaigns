@@ -1044,7 +1044,7 @@ export default function MarketingDashboard() {
                             <Bar dataKey="unsubscribed" name="Unsubscribed" stackId="a" fill="#EF4444" />
                           </BarChart> :
 
-                  <LineChart data={kajabiTrendData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <LineChart data={kajabiTrendDataFiltered} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="label" />
                             <YAxis />
