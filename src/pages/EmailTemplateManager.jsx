@@ -437,13 +437,10 @@ export default function EmailTemplateManager() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Email Templates</h1>
-            <p className="text-gray-600">Manage email templates for services</p>
-          </div>
+    <div className="min-h-screen bg-[#f4f0e9]">
+      <ClientsSubNav activePage="EmailTemplateManager" />
+      <div className="max-w-6xl mx-auto p-4 md:p-8">
+        <div className="flex justify-end mb-6">
           <Button onClick={() => { resetForm(); setShowDialog(true); }} className="bg-[#770142] hover:bg-[#5a0132]">
             <Plus className="w-4 h-4 mr-2" /> Add Template
           </Button>
