@@ -130,36 +130,121 @@ export default function RevenueChart() {
       {/* Chart Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         {/* Chart Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div>
-            <h2 className="text-lg font-bold" style={{ color: BRAND.blue }}>Monthly Revenue</h2>
-            <p className="text-sm text-gray-400 mt-0.5">Grouped by invoice {statusFilter === 'paid' ? 'paid date' : 'date'}</p>
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold" style={{ color: BRAND.blue }}>Monthly Revenue</h2>
+              <p className="text-sm text-gray-400 mt-0.5">Grouped by invoice {statusFilter === 'paid' ? 'paid date' : 'date'}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Status filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[130px] text-sm rounded-xl border-gray-200">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="sent">Sent</SelectItem>
+                  <SelectItem value="overdue">Overdue</SelectItem>
+                  <SelectItem value="draft">Draft</SelectItem>
+                </SelectContent>
+              </Select>
+              {/* Sort order */}
+              <Select value={sortOrder} onValueChange={setSortOrder}>
+                <SelectTrigger className="w-[190px] text-sm rounded-xl border-gray-200">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="chronological">Chronological (Jan→Dec)</SelectItem>
+                  <SelectItem value="reverse">Reverse (Dec→Jan)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Status filter */}
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[130px] text-sm rounded-xl border-gray-200">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="sent">Sent</SelectItem>
-                <SelectItem value="overdue">Overdue</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-              </SelectContent>
-            </Select>
 
-            {/* Sort order */}
-            <Select value={sortOrder} onValueChange={setSortOrder}>
-              <SelectTrigger className="w-[180px] text-sm rounded-xl border-gray-200">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="chronological">Chronological (Jan→Dec)</SelectItem>
-                <SelectItem value="reverse">Reverse (Dec→Jan)</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Date Range Picker */}
+          <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+            <div className="flex items-center gap-2 text-sm text-gray-500 font-medium">
+              <CalendarRange className="w-4 h-4" style={{ color: BRAND.green }} />
+              <span>Date Range:</span>
+            </div>
+
+            {/* From */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">From</span>
+              <Select value={String(fromMonth)} onValueChange={v => setFromMonth(Number(v))}>
+                <SelectTrigger className="w-[120px] text-sm rounded-lg border-gray-200 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTH_NAMES_FULL.map((m, i) => (
+                    <SelectItem key={i} value={String(i)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={String(fromYear)} onValueChange={v => setFromYear(Number(v))}>
+                <SelectTrigger className="w-[90px] text-sm rounded-lg border-gray-200 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {YEARS.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <span className="text-gray-300">→</span>
+
+            {/* To */}
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-400">To</span>
+              <Select value={String(toMonth)} onValueChange={v => setToMonth(Number(v))}>
+                <SelectTrigger className="w-[120px] text-sm rounded-lg border-gray-200 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MONTH_NAMES_FULL.map((m, i) => (
+                    <SelectItem key={i} value={String(i)}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={String(toYear)} onValueChange={v => setToYear(Number(v))}>
+                <SelectTrigger className="w-[90px] text-sm rounded-lg border-gray-200 h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {YEARS.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Quick presets */}
+            <div className="flex items-center gap-2 ml-auto flex-wrap">
+              {[
+                { label: 'Last 3M', months: 3 },
+                { label: 'Last 6M', months: 6 },
+                { label: 'Last 12M', months: 12 },
+                { label: 'This Year', preset: 'year' },
+              ].map(p => (
+                <button
+                  key={p.label}
+                  onClick={() => {
+                    const now = new Date();
+                    if (p.preset === 'year') {
+                      setFromMonth(0); setFromYear(now.getFullYear());
+                    } else {
+                      const d = new Date(now.getFullYear(), now.getMonth() - (p.months - 1), 1);
+                      setFromMonth(d.getMonth()); setFromYear(d.getFullYear());
+                    }
+                    setToMonth(now.getMonth()); setToYear(now.getFullYear());
+                  }}
+                  className="px-3 py-1 text-xs font-semibold rounded-lg border border-gray-200 bg-white hover:border-[#264d44] hover:text-[#264d44] transition-colors"
+                  style={{ color: BRAND.grey }}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
