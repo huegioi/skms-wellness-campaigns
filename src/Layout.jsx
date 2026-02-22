@@ -37,7 +37,7 @@ export default function Layout({ children, currentPageName }) {
             </Link>
 
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center gap-1">
+            <div className="hidden lg:flex items-center gap-0.5 flex-wrap">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = currentPageName === item.page || (item.altPage && currentPageName === item.altPage);
