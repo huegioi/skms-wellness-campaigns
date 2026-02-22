@@ -67,12 +67,14 @@ export default function RevenueChart() {
 
     const byMonth = {};
     filtered.forEach(inv => {
-      const dateStr = inv.issue_date || inv.paid_date;
-      const date = new Date(dateStr);
-      const month = MONTH_ORDER[date.getMonth()];
-      const year = date.getFullYear();
+      const dateStr = (inv.issue_date || inv.paid_date || '').split('T')[0];
+      const parts = dateStr.split('-');
+      if (parts.length < 3) return;
+      const monthIdx = parseInt(parts[1]) - 1;
+      const year = parseInt(parts[0]);
+      const month = MONTH_ORDER[monthIdx];
       const key = `${month} ${year}`;
-      if (!byMonth[key]) byMonth[key] = { month: key, monthIndex: date.getMonth(), year, amount: 0, count: 0 };
+      if (!byMonth[key]) byMonth[key] = { month: key, monthIndex: monthIdx, year, amount: 0, count: 0 };
       byMonth[key].amount += inv.total_amount || 0;
       byMonth[key].count += 1;
     });
