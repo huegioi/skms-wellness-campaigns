@@ -16,6 +16,7 @@ import { createPageUrl } from '@/utils';
 import ClientDetailView from '@/components/clients/ClientDetailView';
 import DuplicateChecker from '@/components/clients/DuplicateChecker';
 import { createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
+import ClientsSubNav from '@/components/clients/ClientsSubNav';
 
 // Client Form Fields Component - defined outside to prevent re-renders
 function ClientFormFields({ formData, setFormData, clients, isEdit, editingClient, onSelectDuplicate }) {
