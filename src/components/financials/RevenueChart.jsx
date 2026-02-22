@@ -1,0 +1,192 @@
+import React, { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell
+} from 'recharts';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TrendingUp, DollarSign, FileCheck } from 'lucide-react';
+
+const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+const BRAND = {
+  blue: '#013f7c',
+  green: '#264d44',
+  orange: '#e87040',
+  grey: '#4a5568',
+};
+
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload || !payload.length) return null;
+  return (
+    <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-4 py-3">
+      <p className="text-sm font-semibold text-gray-700 mb-1">{label}</p>
+      <p className="text-lg font-bold" style={{ color: BRAND.green }}>
+        ${payload[0].value.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+      </p>
+      <p className="text-xs text-gray-400">{payload[0].payload.count} invoice{payload[0].payload.count !== 1 ? 's' : ''}</p>
+    </div>
+  );
+}
+
+export default function RevenueChart() {
+  const [sortOrder, setSortOrder] = useState('chronological');
+  const [statusFilter, setStatusFilter] = useState('paid');
+  const [hoveredBar, setHoveredBar] = useState(null);
+
+  const { data: invoices = [], isLoading } = useQuery({
+    queryKey: ['invoices-chart'],
+    queryFn: () => base44.entities.Invoice.list('-created_date', 10000),
+  });
+
+  const { chartData, totalRevenue, invoiceCount } = useMemo(() => {
+    const filtered = invoices.filter(inv =>
+      statusFilter === 'all' ? true : inv.status === statusFilter
+    );
+
+    const byMonth = {};
+    filtered.forEach(inv => {
+      const dateStr = inv.paid_date || inv.issue_date;
+      if (!dateStr) return;
+      const date = new Date(dateStr);
+      const month = MONTH_ORDER[date.getMonth()];
+      const year = date.getFullYear();
+      const key = `${month} ${year}`;
+      if (!byMonth[key]) byMonth[key] = { month: key, monthIndex: date.getMonth(), year, amount: 0, count: 0 };
+      byMonth[key].amount += inv.total_amount || 0;
+      byMonth[key].count += 1;
+    });
+
+    let data = Object.values(byMonth);
+
+    data.sort((a, b) => {
+      const diff = a.year - b.year;
+      if (diff !== 0) return sortOrder === 'chronological' ? diff : -diff;
+      const monthDiff = a.monthIndex - b.monthIndex;
+      return sortOrder === 'chronological' ? monthDiff : -monthDiff;
+    });
+
+    const totalRevenue = data.reduce((s, d) => s + d.amount, 0);
+    const invoiceCount = filtered.length;
+
+    return { chartData: data, totalRevenue, invoiceCount };
+  }, [invoices, sortOrder, statusFilter]);
+
+  return (
+    <div className="space-y-6">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#e8f4f0' }}>
+              <DollarSign className="w-5 h-5" style={{ color: BRAND.green }} />
+            </div>
+            <p className="text-sm text-gray-500 font-medium">Total Revenue</p>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: BRAND.blue }}>
+            ${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#e8f0f8' }}>
+              <FileCheck className="w-5 h-5" style={{ color: BRAND.blue }} />
+            </div>
+            <p className="text-sm text-gray-500 font-medium">Invoices</p>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: BRAND.blue }}>{invoiceCount}</p>
+        </div>
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#fdf0ea' }}>
+              <TrendingUp className="w-5 h-5" style={{ color: BRAND.orange }} />
+            </div>
+            <p className="text-sm text-gray-500 font-medium">Avg / Invoice</p>
+          </div>
+          <p className="text-2xl font-bold" style={{ color: BRAND.blue }}>
+            ${invoiceCount > 0 ? (totalRevenue / invoiceCount).toLocaleString('en-US', { maximumFractionDigits: 0 }) : '0'}
+          </p>
+        </div>
+      </div>
+
+      {/* Chart Card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+        {/* Chart Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-lg font-bold" style={{ color: BRAND.blue }}>Monthly Revenue</h2>
+            <p className="text-sm text-gray-400 mt-0.5">Grouped by invoice {statusFilter === 'paid' ? 'paid date' : 'date'}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Status filter */}
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[130px] text-sm rounded-xl border-gray-200">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="sent">Sent</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Sort order */}
+            <Select value={sortOrder} onValueChange={setSortOrder}>
+              <SelectTrigger className="w-[180px] text-sm rounded-xl border-gray-200">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="chronological">Chronological (Jan→Dec)</SelectItem>
+                <SelectItem value="reverse">Reverse (Dec→Jan)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="h-72 flex items-center justify-center text-gray-400">Loading chart data...</div>
+        ) : chartData.length === 0 ? (
+          <div className="h-72 flex flex-col items-center justify-center text-gray-400 gap-2">
+            <TrendingUp className="w-10 h-10 opacity-30" />
+            <p className="text-sm">No invoice data found for the selected filter.</p>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={chartData} margin={{ top: 4, right: 8, left: 12, bottom: 4 }}
+              barCategoryGap="35%"
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+              <XAxis
+                dataKey="month"
+                tick={{ fontSize: 12, fill: BRAND.grey }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis
+                tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                tick={{ fontSize: 12, fill: BRAND.grey }}
+                axisLine={false}
+                tickLine={false}
+                width={52}
+              />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(38,77,68,0.06)', radius: 8 }} />
+              <Bar dataKey="amount" radius={[8, 8, 0, 0]}
+                onMouseEnter={(_, idx) => setHoveredBar(idx)}
+                onMouseLeave={() => setHoveredBar(null)}
+              >
+                {chartData.map((_, idx) => (
+                  <Cell
+                    key={idx}
+                    fill={hoveredBar === idx ? BRAND.orange : BRAND.green}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
+  );
+}

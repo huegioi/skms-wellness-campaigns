@@ -54,6 +54,8 @@ import CurriculumDesigner from './pages/CurriculumDesigner';
 import Dashboard from './pages/Dashboard';
 import EditProposal from './pages/EditProposal';
 import EmailTemplateManager from './pages/EmailTemplateManager';
+import FeedbackAnalytics from './pages/FeedbackAnalytics';
+import FeedbackForm from './pages/FeedbackForm';
 import Home from './pages/Home';
 import Invoices from './pages/Invoices';
 import ManageClientPortals from './pages/ManageClientPortals';
@@ -66,8 +68,7 @@ import ServiceCatalog from './pages/ServiceCatalog';
 import UserAgreement from './pages/UserAgreement';
 import ViewProposal from './pages/ViewProposal';
 import WellnessBoxes from './pages/WellnessBoxes';
-import FeedbackForm from './pages/FeedbackForm';
-import FeedbackAnalytics from './pages/FeedbackAnalytics';
+import Financials from './pages/Financials';
 import __Layout from './Layout.jsx';
 
 
@@ -79,6 +80,8 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "EditProposal": EditProposal,
     "EmailTemplateManager": EmailTemplateManager,
+    "FeedbackAnalytics": FeedbackAnalytics,
+    "FeedbackForm": FeedbackForm,
     "Home": Home,
     "Invoices": Invoices,
     "ManageClientPortals": ManageClientPortals,
@@ -91,8 +94,7 @@ export const PAGES = {
     "UserAgreement": UserAgreement,
     "ViewProposal": ViewProposal,
     "WellnessBoxes": WellnessBoxes,
-    "FeedbackForm": FeedbackForm,
-    "FeedbackAnalytics": FeedbackAnalytics,
+    "Financials": Financials,
 }
 
 export const pagesConfig = {
