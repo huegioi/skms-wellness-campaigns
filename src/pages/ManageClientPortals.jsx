@@ -36,16 +36,9 @@ export default function ManageClientPortals() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2" style={{ color: '#013f7c' }}>
-            Manage Client Portals
-          </h1>
-          <p className="text-gray-600">
-            Select a client to view and edit their portal
-          </p>
-        </div>
+    <div className="min-h-screen bg-[#f4f0e9]">
+      <ClientsSubNav activePage="ManageClientPortals" />
+      <div className="max-w-6xl mx-auto p-4 md:p-8">
 
         {/* Search */}
         <Card className="mb-6">
