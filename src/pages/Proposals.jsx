@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import SendProposalDialog from '@/components/proposals/SendProposalDialog';
 import SendReminderDialog from '@/components/proposals/SendReminderDialog';
+import ClientsSubNav from '@/components/clients/ClientsSubNav';
 
 export default function Proposals() {
   const [sortBy, setSortBy] = useState('date');
