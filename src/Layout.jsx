@@ -19,7 +19,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Services', page: 'ServiceCatalog', icon: Package },
     { name: 'Templates', page: 'EmailTemplateManager', icon: Mail },
     { name: 'Schedule', page: 'SchedulingHub', icon: Calendar },
-    { name: 'Invoices', page: 'Invoices', icon: FileText },
+    { name: 'Financials', page: 'Financials', icon: Landmark },
     { name: 'Wellness Boxes', page: 'WellnessBoxes', icon: Gift },
     { name: 'Feedback', page: 'FeedbackAnalytics', icon: ClipboardList }
   ];
