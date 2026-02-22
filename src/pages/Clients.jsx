@@ -357,22 +357,54 @@ export default function Clients() {
             <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Clients</h1>
             <p className="text-gray-600">Manage your clients, contacts, and interactions</p>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Link to={createPageUrl('Proposals')}>
-              <Button variant="outline" className="bg-white">
-                <FolderOpen className="w-4 h-4 mr-2" /> Proposals
-              </Button>
-            </Link>
-            <Link to={createPageUrl('EmailTemplateManager')}>
-              <Button variant="outline" className="bg-white">
-                <Mail className="w-4 h-4 mr-2" /> Templates
-              </Button>
-            </Link>
-            <Link to={createPageUrl('ManageClientPortals')}>
-              <Button variant="outline" className="bg-white">
-                <Eye className="w-4 h-4 mr-2" /> Client Portals
-              </Button>
-            </Link>
+          <div className="flex gap-2 items-center">
+            {/* Desktop sub-nav buttons */}
+            <div className="hidden sm:flex gap-2">
+              <Link to={createPageUrl('Proposals')}>
+                <Button variant="outline" className="bg-white">
+                  <FolderOpen className="w-4 h-4 mr-2" /> Proposals
+                </Button>
+              </Link>
+              <Link to={createPageUrl('EmailTemplateManager')}>
+                <Button variant="outline" className="bg-white">
+                  <Mail className="w-4 h-4 mr-2" /> Templates
+                </Button>
+              </Link>
+              <Link to={createPageUrl('ManageClientPortals')}>
+                <Button variant="outline" className="bg-white">
+                  <Eye className="w-4 h-4 mr-2" /> Client Portals
+                </Button>
+              </Link>
+            </div>
+
+            {/* Mobile dropdown */}
+            <div className="sm:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="bg-white">
+                    More <ChevronDown className="w-4 h-4 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link to={createPageUrl('Proposals')} className="flex items-center gap-2 w-full">
+                      <FolderOpen className="w-4 h-4" /> Proposals
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to={createPageUrl('EmailTemplateManager')} className="flex items-center gap-2 w-full">
+                      <Mail className="w-4 h-4" /> Templates
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to={createPageUrl('ManageClientPortals')} className="flex items-center gap-2 w-full">
+                      <Eye className="w-4 h-4" /> Client Portals
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-[#264d44] hover:bg-[#1a3830]" onClick={resetForm}>
