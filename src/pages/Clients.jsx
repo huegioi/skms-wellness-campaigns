@@ -648,31 +648,6 @@ export default function Clients() {
                         <Button size="sm" variant="outline" onClick={() => setViewingClient(client)}>
                           <Eye className="w-4 h-4 mr-1" /> View
                         </Button>
-                        <Button 
-                          size="sm" 
-                          className="bg-green-600 hover:bg-green-700 text-white"
-                          onClick={async () => {
-                            if (!confirm(`Mark all tasks complete for ${client.name}?`)) return;
-                            try {
-                              const allTasks = await base44.entities.ClientTask.filter({ client_id: client.id });
-                              const pendingTasks = allTasks.filter(t => t.status !== 'completed');
-                              
-                              for (const task of pendingTasks) {
-                                await base44.entities.ClientTask.update(task.id, {
-                                  status: 'completed',
-                                  completed_date: new Date().toISOString()
-                                });
-                              }
-                              
-                              queryClient.invalidateQueries({ queryKey: ['clientTasks'] });
-                              alert(`${pendingTasks.length} task(s) marked as complete!`);
-                            } catch (error) {
-                              alert('Failed to complete tasks: ' + error.message);
-                            }
-                          }}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-1" /> Complete Tasks
-                        </Button>
                         <Link to={createPageUrl('CurriculumDesigner') + `?clientId=${client.id}`}>
                           <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132]">
                             <FileText className="w-4 h-4 mr-1" /> Proposal
