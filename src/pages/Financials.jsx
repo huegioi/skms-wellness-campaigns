@@ -8,13 +8,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   FileText, DollarSign, Calendar, CheckCircle, Clock, XCircle, AlertCircle,
-  RefreshCw, Eye, Pencil, Send, Loader2, Trash2, BarChart2
+  RefreshCw, Eye, Pencil, Send, Loader2, Trash2, BarChart2, TrendingUp
 } from 'lucide-react';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 import RevenueChart from '@/components/financials/RevenueChart';
+import FinancialInformationSection from '@/components/dashboard/FinancialInformationSection';
 
 const TABS = [
-  { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
+  { id: 'dashboard', label: 'Revenue Chart', icon: BarChart2 },
+  { id: 'overview', label: 'Overview', icon: TrendingUp },
   { id: 'invoices', label: 'Invoices', icon: FileText },
 ];
 
@@ -62,6 +64,7 @@ export default function Financials() {
       {/* Tab content */}
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6">
         {activeTab === 'dashboard' && <RevenueChart />}
+        {activeTab === 'overview' && <FinancialInformationSection />}
         {activeTab === 'invoices' && <InvoicesPanel />}
       </div>
     </div>
