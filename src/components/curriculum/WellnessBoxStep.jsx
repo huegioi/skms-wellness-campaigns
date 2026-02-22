@@ -411,6 +411,168 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
         </p>
       </div>
 
+      {/* Box Options */}
+      <div className="mb-8">
+        <h3 className="text-xl font-bold mb-4" style={{ color: '#013f7c' }}>Our Wellness Box Options</h3>
+        <div className="grid md:grid-cols-2 gap-4">
+          {boxOptions.map((box) => {
+            const Icon = box.icon;
+            return (
+              <Card key={box.id} className="overflow-hidden">
+                <div className={`h-36 bg-gradient-to-br ${box.color} relative`}>
+                  <img src={box.image} alt={box.name} className="w-full h-full object-cover opacity-40" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Icon className="w-16 h-16 text-white" />
+                  </div>
+                </div>
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <CardTitle className="text-base">{box.name}</CardTitle>
+                    <Badge variant="outline">{box.priceRange}</Badge>
+                  </div>
+                  <CardDescription>{box.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-1">
+                    {box.themes.map((theme, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-xs">{theme}</Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Why Wellness Boxes */}
+      <div className="mb-8">
+        <h3 className="text-xl font-bold mb-4" style={{ color: '#013f7c' }}>Why Wellness Boxes?</h3>
+        <div className="grid md:grid-cols-2 gap-3">
+          {incentiveUses.map((use, idx) => {
+            const Icon = use.icon;
+            return (
+              <Card key={idx} className={`border-2 ${use.color}`}>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-white">
+                      <Icon className="w-5 h-5 text-[#264d44]" />
+                    </div>
+                    <CardTitle className="text-base">{use.title}</CardTitle>
+                  </div>
+                  <CardDescription>{use.description}</CardDescription>
+                </CardHeader>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* AI Custom Box Builder Toggle */}
+      <div className="mb-8">
+        <button
+          onClick={() => setShowAIBuilder(!showAIBuilder)}
+          className="w-full flex items-center justify-between px-5 py-4 rounded-xl font-semibold text-white transition-all"
+          style={{ background: 'linear-gradient(to right, #264d44, #013f7c)' }}
+        >
+          <span className="flex items-center gap-2"><Zap className="w-5 h-5" /> AI-Powered Custom Box Builder</span>
+          <span>{showAIBuilder ? '▲' : '▼'}</span>
+        </button>
+        {showAIBuilder && (
+          <Card className="border-2 border-[#264d44] rounded-t-none">
+            <CardContent className="p-5 space-y-4">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Budget per Box *</label>
+                  <Select value={builderForm.budget} onValueChange={(v) => setBuilderForm({...builderForm, budget: v})}>
+                    <SelectTrigger><SelectValue placeholder="Select budget range..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="$25-$50">$25-$50</SelectItem>
+                      <SelectItem value="$50-$75">$50-$75</SelectItem>
+                      <SelectItem value="$75-$100">$75-$100</SelectItem>
+                      <SelectItem value="$100-$150">$100-$150</SelectItem>
+                      <SelectItem value="$150+">$150+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Theme *</label>
+                  <Select value={builderForm.theme} onValueChange={(v) => setBuilderForm({...builderForm, theme: v})}>
+                    <SelectTrigger><SelectValue placeholder="Select theme..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Mental Health/Stress Relief">Mental Health/Stress Relief</SelectItem>
+                      <SelectItem value="Gratitude">Gratitude</SelectItem>
+                      <SelectItem value="Self-Care">Self-Care</SelectItem>
+                      <SelectItem value="Mindfulness">Mindfulness</SelectItem>
+                      <SelectItem value="Emotional Resilience">Emotional Resilience</SelectItem>
+                      <SelectItem value="Work-Life Balance">Work-Life Balance</SelectItem>
+                      <SelectItem value="New Year New You">New Year New You</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Quantity Needed</label>
+                  <Input type="number" placeholder="How many boxes?" value={builderForm.quantity} onChange={(e) => setBuilderForm({...builderForm, quantity: e.target.value})} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-1 block">Purpose</label>
+                  <Select value={builderForm.purpose} onValueChange={(v) => setBuilderForm({...builderForm, purpose: v})}>
+                    <SelectTrigger><SelectValue placeholder="What's this for?" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Workshop Attendance Incentive">Workshop Attendance Incentive</SelectItem>
+                      <SelectItem value="Challenge Completion Prize">Challenge Completion Prize</SelectItem>
+                      <SelectItem value="Monthly Recognition">Monthly Recognition</SelectItem>
+                      <SelectItem value="Onboarding Gift">Onboarding Gift</SelectItem>
+                      <SelectItem value="Holiday Gift">Holiday Gift</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">Item Preferences</label>
+                <Textarea placeholder="Any specific items you'd like included?" value={builderForm.preferences} onChange={(e) => setBuilderForm({...builderForm, preferences: e.target.value})} rows={2} />
+              </div>
+              <Button onClick={generateSuggestions} disabled={isGenerating || !builderForm.budget || !builderForm.theme} className="w-full bg-[#770142] hover:bg-[#5a0132]">
+                {isGenerating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating...</> : <><Brain className="w-4 h-4 mr-2" />Generate AI Suggestions</>}
+              </Button>
+              {generatedSuggestions && (
+                <div className="p-4 bg-green-50 border-2 border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    <h3 className="text-lg font-bold text-green-900">{generatedSuggestions.box_name}</h3>
+                  </div>
+                  <p className="text-sm text-gray-700 mb-3">{generatedSuggestions.rationale}</p>
+                  <div className="space-y-2 mb-3">
+                    {generatedSuggestions.items.map((item, idx) => (
+                      <div key={idx} className="bg-white p-2 rounded border border-green-200">
+                        <div className="flex justify-between items-start mb-1">
+                          <p className="font-semibold text-sm text-gray-800">{item.name}</p>
+                          <Badge>${item.estimated_cost}</Badge>
+                        </div>
+                        <p className="text-xs text-gray-600">{item.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-right font-bold text-green-900">Total: ${generatedSuggestions.total_estimated_cost}</p>
+                </div>
+              )}
+              <div className="border-t pt-4">
+                <h3 className="text-base font-semibold text-gray-800 mb-3">Send This Request</h3>
+                <div className="grid md:grid-cols-2 gap-3">
+                  <Input placeholder="Your Name *" value={builderForm.contactName} onChange={(e) => setBuilderForm({...builderForm, contactName: e.target.value})} />
+                  <Input type="email" placeholder="Your Email *" value={builderForm.contactEmail} onChange={(e) => setBuilderForm({...builderForm, contactEmail: e.target.value})} />
+                </div>
+                <Textarea className="mt-3" placeholder="Additional notes..." value={builderForm.notes} onChange={(e) => setBuilderForm({...builderForm, notes: e.target.value})} rows={2} />
+                <Button onClick={handleSendRequest} disabled={isSending || !builderForm.contactName || !builderForm.contactEmail} className="w-full mt-3 bg-[#264d44] hover:bg-[#1a3830]">
+                  {isSending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending...</> : <><Send className="w-4 h-4 mr-2" />Send Custom Box Request</>}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
       {/* Custom Box Builder */}
       <WellnessBoxBuilder 
         wellnessItems={wellnessItems} 
