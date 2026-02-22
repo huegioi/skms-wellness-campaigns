@@ -52,14 +52,20 @@ export default function RevenueChart() {
   });
 
   const { chartData, totalRevenue, invoiceCount } = useMemo(() => {
-    const filtered = invoices.filter(inv =>
-      statusFilter === 'all' ? true : inv.status === statusFilter
-    );
+    const fromDate = new Date(fromYear, fromMonth, 1);
+    const toDate = new Date(toYear, toMonth + 1, 0); // last day of toMonth
+
+    const filtered = invoices.filter(inv => {
+      if (statusFilter !== 'all' && inv.status !== statusFilter) return false;
+      const dateStr = inv.paid_date || inv.issue_date;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      return d >= fromDate && d <= toDate;
+    });
 
     const byMonth = {};
     filtered.forEach(inv => {
       const dateStr = inv.paid_date || inv.issue_date;
-      if (!dateStr) return;
       const date = new Date(dateStr);
       const month = MONTH_ORDER[date.getMonth()];
       const year = date.getFullYear();
@@ -82,7 +88,7 @@ export default function RevenueChart() {
     const invoiceCount = filtered.length;
 
     return { chartData: data, totalRevenue, invoiceCount };
-  }, [invoices, sortOrder, statusFilter]);
+  }, [invoices, sortOrder, statusFilter, fromMonth, fromYear, toMonth, toYear]);
 
   return (
     <div className="space-y-6">
