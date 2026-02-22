@@ -266,6 +266,15 @@ export default function MarketingDashboard() {
     sort((a, b) => new Date(a.key) - new Date(b.key));
   }, [kajabiContacts, contactStartDate, contactEndDate, timePeriod]);
 
+  // Filter outliers from trend data (values > 2 std deviations from mean)
+  const kajabiTrendDataFiltered = React.useMemo(() => {
+    if (!hideOutliers || kajabiTrendData.length === 0) return kajabiTrendData;
+    const totals = kajabiTrendData.map(d => d.total);
+    const mean = totals.reduce((a, b) => a + b, 0) / totals.length;
+    const stdDev = Math.sqrt(totals.map(v => Math.pow(v - mean, 2)).reduce((a, b) => a + b, 0) / totals.length);
+    return kajabiTrendData.filter(d => Math.abs(d.total - mean) <= 2 * stdDev);
+  }, [kajabiTrendData, hideOutliers]);
+
   // Tag tracking
   const tagData = React.useMemo(() => {
     if (!kajabiContacts.length) return [];
