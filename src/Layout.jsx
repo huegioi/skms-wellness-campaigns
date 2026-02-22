@@ -81,25 +81,38 @@ export default function Layout({ children, currentPageName }) {
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
           <div className="lg:hidden border-t bg-white">
-            <div className="px-4 py-3 space-y-1 max-h-[calc(100vh-4rem)] overflow-y-auto">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = currentPageName === item.page || (item.altPage && currentPageName === item.altPage);
-                return (
-                  <Link
-                    key={item.page}
-                    to={createPageUrl(item.page)}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors ${
-                      isActive ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span>{item.name}</span>
-                  </Link>
-                );
-              })}
-            </div>
+          <div className="px-4 py-3 space-y-1 max-h-[calc(100vh-4rem)] overflow-y-auto">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentPageName === item.page || (item.altPage && currentPageName === item.altPage);
+              return (
+                <Link
+                  key={item.page}
+                  to={createPageUrl(item.page)}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors ${
+                    isActive ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span>{item.name}</span>
+                </Link>
+              );
+            })}
+            {/* Builder callout in mobile menu */}
+            <Link
+              to={createPageUrl('CurriculumDesigner')}
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg text-base font-semibold border-2 transition-colors ${
+                currentPageName === 'CurriculumDesigner'
+                  ? 'bg-[#013f7c] text-white border-[#013f7c]'
+                  : 'text-[#013f7c] border-[#013f7c] hover:bg-[#013f7c] hover:text-white'
+              }`}
+            >
+              <Wand2 className="w-5 h-5" />
+              <span>Builder</span>
+            </Link>
+          </div>
           </div>
         )}
       </nav>
