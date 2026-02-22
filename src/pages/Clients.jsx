@@ -348,68 +348,27 @@ export default function Clients() {
     setViewingClient(client);
   };
 
+  const CLIENT_TABS = [
+    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'proposals', label: 'Proposals', icon: FolderOpen, page: 'Proposals' },
+    { id: 'templates', label: 'Templates', icon: Mail, page: 'EmailTemplateManager' },
+    { id: 'portals', label: 'Client Portals', icon: Eye, page: 'ManageClientPortals' },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Clients</h1>
-            <p className="text-gray-600">Manage your clients, contacts, and interactions</p>
-          </div>
-          <div className="flex gap-2 items-center">
-            {/* Desktop sub-nav buttons */}
-            <div className="hidden sm:flex gap-2">
-              <Link to={createPageUrl('Proposals')}>
-                <Button variant="outline" className="bg-white">
-                  <FolderOpen className="w-4 h-4 mr-2" /> Proposals
-                </Button>
-              </Link>
-              <Link to={createPageUrl('EmailTemplateManager')}>
-                <Button variant="outline" className="bg-white">
-                  <Mail className="w-4 h-4 mr-2" /> Templates
-                </Button>
-              </Link>
-              <Link to={createPageUrl('ManageClientPortals')}>
-                <Button variant="outline" className="bg-white">
-                  <Eye className="w-4 h-4 mr-2" /> Client Portals
-                </Button>
-              </Link>
-            </div>
-
-            {/* Mobile dropdown */}
-            <div className="sm:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="bg-white">
-                    More <ChevronDown className="w-4 h-4 ml-1" />
+    <div className="min-h-screen bg-[#f4f0e9]">
+      {/* Page Header with sub-tabs */}
+      <div className="bg-white border-b px-4 md:px-8 pt-6 pb-0">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex justify-between items-end mb-0">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-4" style={{ color: '#013f7c' }}>Clients</h1>
+            <div className="mb-4">
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-[#264d44] hover:bg-[#1a3830]" onClick={resetForm}>
+                    <Plus className="w-4 h-4 mr-2" /> Add Client
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link to={createPageUrl('Proposals')} className="flex items-center gap-2 w-full">
-                      <FolderOpen className="w-4 h-4" /> Proposals
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to={createPageUrl('EmailTemplateManager')} className="flex items-center gap-2 w-full">
-                      <Mail className="w-4 h-4" /> Templates
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to={createPageUrl('ManageClientPortals')} className="flex items-center gap-2 w-full">
-                      <Eye className="w-4 h-4" /> Client Portals
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-[#264d44] hover:bg-[#1a3830]" onClick={resetForm}>
-                  <Plus className="w-4 h-4 mr-2" /> Add Client
-                </Button>
-              </DialogTrigger>
+                </DialogTrigger>
               <DialogContent className="max-w-lg w-[95vw] sm:w-full">
                 <DialogHeader>
                   <DialogTitle>Add New Client</DialogTitle>
