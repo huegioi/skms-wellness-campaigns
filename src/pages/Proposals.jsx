@@ -114,13 +114,10 @@ export default function Proposals() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Proposals</h1>
-            <p className="text-gray-600">Manage and track all your proposals</p>
-          </div>
+    <div className="min-h-screen bg-[#f4f0e9]">
+      <ClientsSubNav activePage="Proposals" />
+      <div className="max-w-6xl mx-auto p-4 md:p-8">
+        <div className="flex justify-end mb-6">
           <Link to={createPageUrl('EditProposal')}>
             <Button className="bg-[#770142] hover:bg-[#5a0132]">
               <FileText className="w-4 h-4 mr-2" /> New Proposal
