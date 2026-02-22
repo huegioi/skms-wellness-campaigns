@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import StepNavigation from './StepNavigation';
 import WellnessBoxBuilder from './WellnessBoxBuilder';
-import { Gift, Sparkles, DollarSign } from 'lucide-react';
+import { Gift, Sparkles, DollarSign, Users, Award, Target, Heart, Brain, CheckCircle, Send, Loader2, Zap } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function WellnessBoxStep({ selections, updateSelections, onNext, onBack }) {
   const [customBoxQuantity, setCustomBoxQuantity] = useState(selections.customBoxQuantity || 0);
