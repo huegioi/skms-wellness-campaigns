@@ -34,14 +34,14 @@ function CustomTooltip({ active, payload, label }) {
 
 export default function RevenueChart() {
   const [sortOrder, setSortOrder] = useState('chronological');
-  const [statusFilter, setStatusFilter] = useState('paid');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [hoveredBar, setHoveredBar] = useState(null);
 
-  // Date range: default to last 12 months
+  // Date range: default to last 2 years
   const defaultTo = new Date();
   const defaultFrom = new Date();
-  defaultFrom.setMonth(defaultFrom.getMonth() - 11);
-  const [fromMonth, setFromMonth] = useState(defaultFrom.getMonth()); // 0-indexed
+  defaultFrom.setFullYear(defaultFrom.getFullYear() - 2);
+  const [fromMonth, setFromMonth] = useState(defaultFrom.getMonth());
   const [fromYear, setFromYear] = useState(defaultFrom.getFullYear());
   const [toMonth, setToMonth] = useState(defaultTo.getMonth());
   const [toYear, setToYear] = useState(defaultTo.getFullYear());
@@ -57,15 +57,17 @@ export default function RevenueChart() {
 
     const filtered = invoices.filter(inv => {
       if (statusFilter !== 'all' && inv.status !== statusFilter) return false;
-      const dateStr = inv.paid_date || inv.issue_date;
+      const dateStr = inv.issue_date || inv.paid_date;
       if (!dateStr) return false;
-      const d = new Date(dateStr);
+      // Parse YYYY-MM-DD safely without timezone issues
+      const parts = dateStr.split('T')[0].split('-');
+      const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
       return d >= fromDate && d <= toDate;
     });
 
     const byMonth = {};
     filtered.forEach(inv => {
-      const dateStr = inv.paid_date || inv.issue_date;
+      const dateStr = inv.issue_date || inv.paid_date;
       const date = new Date(dateStr);
       const month = MONTH_ORDER[date.getMonth()];
       const year = date.getFullYear();
