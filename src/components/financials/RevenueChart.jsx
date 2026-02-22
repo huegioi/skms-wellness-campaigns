@@ -37,6 +37,15 @@ export default function RevenueChart() {
   const [statusFilter, setStatusFilter] = useState('paid');
   const [hoveredBar, setHoveredBar] = useState(null);
 
+  // Date range: default to last 12 months
+  const defaultTo = new Date();
+  const defaultFrom = new Date();
+  defaultFrom.setMonth(defaultFrom.getMonth() - 11);
+  const [fromMonth, setFromMonth] = useState(defaultFrom.getMonth()); // 0-indexed
+  const [fromYear, setFromYear] = useState(defaultFrom.getFullYear());
+  const [toMonth, setToMonth] = useState(defaultTo.getMonth());
+  const [toYear, setToYear] = useState(defaultTo.getFullYear());
+
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['invoices-chart'],
     queryFn: () => base44.entities.Invoice.list('-created_date', 10000),
