@@ -558,6 +558,13 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
         clientId = newClient.id;
       }
 
+      // Build enriched service data for the proposal (name + description)
+      const buildServiceData = (ids, catalogCategory) =>
+        (ids || []).map(id => {
+          const svc = getServiceById(id, catalogCategory);
+          return { id, name: svc?.name || id, description: svc?.description || '', price: svc?.price || 0 };
+        });
+
       // Create proposal linked to client
       const proposalData = {
         client_id: clientId,
@@ -571,6 +578,11 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
           challengePrograms: selections.challengePrograms || [],
           leadership: selections.leadership || [],
           movementClasses: selections.movementClasses || [],
+          // Enriched data with names and descriptions
+          workshopsData: buildServiceData(selections.workshops, 'workshops'),
+          challengeProgramsData: buildServiceData(selections.challengePrograms, 'challenges'),
+          leadershipData: buildServiceData(selections.leadership, 'leadership'),
+          movementClassesData: buildServiceData(selections.movementClasses, 'movementClasses'),
           sampleBoxQuantities: {
             reduceStress: sampleBoxQuantities.reduceStress || 0,
             relaxationSleep: sampleBoxQuantities.relaxationSleep || 0,
