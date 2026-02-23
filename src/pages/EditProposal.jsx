@@ -316,8 +316,9 @@ export default function EditProposal() {
           <div class="section">
             <div class="section-title">Workshops (${selections.workshops.length})</div>
             ${selections.workshops.map(key => {
-              const workshop = productCatalog.workshops[key];
-              return workshop ? `<div class="item"><div class="item-title">${workshop.name}</div><div class="item-price">$${getPrice('workshops', key).toLocaleString()}</div><div class="item-description">${workshop.description}</div></div>` : '';
+              const name = getServiceName('workshops', key);
+              const desc = (selections.workshopsData || []).find(s => s.id === key)?.description || productCatalog.workshops[key]?.description || '';
+              return `<div class="item"><div class="item-title">${name}</div><div class="item-price">$${getPrice('workshops', key).toLocaleString()}</div>${desc ? `<div class="item-description">${desc}</div>` : ''}</div>`;
             }).join('')}
           </div>
         ` : ''}
@@ -326,8 +327,9 @@ export default function EditProposal() {
           <div class="section">
             <div class="section-title">14-Day Challenges (${selections.challengePrograms.length})</div>
             ${selections.challengePrograms.map(key => {
-              const challenge = productCatalog.challenges[key];
-              return challenge ? `<div class="item"><div class="item-title">${challenge.name}</div><div class="item-price">$${getPrice('challenges', key).toLocaleString()}</div><div class="item-description">${challenge.description}</div></div>` : '';
+              const name = getServiceName('challenges', key);
+              const desc = (selections.challengeProgramsData || []).find(s => s.id === key)?.description || productCatalog.challenges[key]?.description || '';
+              return `<div class="item"><div class="item-title">${name}</div><div class="item-price">$${getPrice('challenges', key).toLocaleString()}</div>${desc ? `<div class="item-description">${desc}</div>` : ''}</div>`;
             }).join('')}
           </div>
         ` : ''}
@@ -336,8 +338,9 @@ export default function EditProposal() {
           <div class="section">
             <div class="section-title">Leadership Programs (${selections.leadership.length})</div>
             ${selections.leadership.map(key => {
-              const program = productCatalog.leadership[key];
-              return program ? `<div class="item"><div class="item-title">${program.name}</div><div class="item-price">$${getPrice('leadership', key).toLocaleString()}</div><div class="item-description">${program.description}</div></div>` : '';
+              const name = getServiceName('leadership', key);
+              const desc = (selections.leadershipData || []).find(s => s.id === key)?.description || productCatalog.leadership[key]?.description || '';
+              return `<div class="item"><div class="item-title">${name}</div><div class="item-price">$${getPrice('leadership', key).toLocaleString()}</div>${desc ? `<div class="item-description">${desc}</div>` : ''}</div>`;
             }).join('')}
           </div>
         ` : ''}
@@ -346,8 +349,9 @@ export default function EditProposal() {
           <div class="section">
             <div class="section-title">Classes (${selections.movementClasses.length})</div>
             ${selections.movementClasses.map(key => {
-              const classItem = productCatalog.movementClasses[key];
-              return classItem ? `<div class="item"><div class="item-title">${classItem.name}</div><div class="item-price">$${getPrice('movementClasses', key).toLocaleString()}</div><div class="item-description">${classItem.description}</div></div>` : '';
+              const name = getServiceName('movementClasses', key);
+              const desc = (selections.movementClassesData || []).find(s => s.id === key)?.description || productCatalog.movementClasses[key]?.description || '';
+              return `<div class="item"><div class="item-title">${name}</div><div class="item-price">$${getPrice('movementClasses', key).toLocaleString()}</div>${desc ? `<div class="item-description">${desc}</div>` : ''}</div>`;
             }).join('')}
           </div>
         ` : ''}
