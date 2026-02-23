@@ -895,48 +895,60 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
         {selections.workshops && selections.workshops.length > 0 && (
             <div className="review-section">
               <div className="review-section-title">Workshops ({selections.workshops.length})</div>
-              {selections.workshops.map(key => (
-                <div key={key} className="review-item">
-                  <span>{productCatalog.workshops[key]?.name}</span>
-                  <span className="font-semibold">${productCatalog.workshops[key]?.price.toLocaleString()}</span>
-                </div>
-              ))}
+              {selections.workshops.map(key => {
+                const svc = getServiceById(key, 'workshops');
+                return (
+                  <div key={key} className="review-item">
+                    <span>{svc?.name || key}</span>
+                    <span className="font-semibold">${(svc?.price || 0).toLocaleString()}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
 
         {selections.challengePrograms && selections.challengePrograms.length > 0 && (
             <div className="review-section">
               <div className="review-section-title">14-Day Challenges ({selections.challengePrograms.length})</div>
-              {selections.challengePrograms.map(key => (
-                <div key={key} className="review-item">
-                  <span>{productCatalog.challenges[key]?.name}</span>
-                  <span className="font-semibold">${productCatalog.challenges[key]?.price.toLocaleString()}</span>
-                </div>
-              ))}
+              {selections.challengePrograms.map(key => {
+                const svc = getServiceById(key, 'challenges');
+                return (
+                  <div key={key} className="review-item">
+                    <span>{svc?.name || key}</span>
+                    <span className="font-semibold">${challengePrice.toLocaleString()}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
 
         {selections.leadership && selections.leadership.length > 0 && (
             <div className="review-section">
               <div className="review-section-title">Leadership Programs</div>
-              {selections.leadership.map(key => (
-                <div key={key} className="review-item">
-                  <span>{productCatalog.leadership[key]?.name}</span>
-                  <span className="font-semibold">${productCatalog.leadership[key]?.price.toLocaleString()}</span>
-                </div>
-              ))}
+              {selections.leadership.map(key => {
+                const svc = getServiceById(key, 'leadership');
+                return (
+                  <div key={key} className="review-item">
+                    <span>{svc?.name || key}</span>
+                    <span className="font-semibold">${(svc?.price || 0).toLocaleString()}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
 
         {selections.movementClasses && selections.movementClasses.length > 0 && (
             <div className="review-section">
               <div className="review-section-title">Classes</div>
-              {selections.movementClasses.map(key => (
-                <div key={key} className="review-item">
-                  <span>{productCatalog.movementClasses[key]?.name}</span>
-                  <span className="font-semibold">${productCatalog.movementClasses[key]?.price.toLocaleString()}</span>
-                </div>
-              ))}
+              {selections.movementClasses.map(key => {
+                const svc = getServiceById(key, 'movementClasses');
+                return (
+                  <div key={key} className="review-item">
+                    <span>{svc?.name || key}</span>
+                    <span className="font-semibold">${(svc?.price || 0).toLocaleString()}</span>
+                  </div>
+                );
+              })}
             </div>
           )}
 
