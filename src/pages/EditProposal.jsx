@@ -200,22 +200,22 @@ export default function EditProposal() {
     const parts = [];
     
     if (selections.workshops.length > 0) {
-      const workshopNames = selections.workshops.map(k => productCatalog.workshops[k]?.name).filter(Boolean);
+      const workshopNames = selections.workshops.map(k => getServiceName('workshops', k)).filter(Boolean);
       parts.push(`interactive workshops including ${workshopNames.slice(0, 3).join(', ')}${workshopNames.length > 3 ? ' and more' : ''} to build essential mental fitness skills`);
     }
     
     if (selections.challengePrograms.length > 0) {
-      const challengeNames = selections.challengePrograms.map(k => productCatalog.challenges[k]?.name).filter(Boolean);
+      const challengeNames = selections.challengePrograms.map(k => getServiceName('challenges', k)).filter(Boolean);
       parts.push(`engaging 14-day challenges such as ${challengeNames.slice(0, 2).join(' and ')} to reinforce healthy habits and team engagement`);
     }
     
     if (selections.leadership.length > 0) {
-      const leadershipNames = selections.leadership.map(k => productCatalog.leadership[k]?.name).filter(Boolean);
+      const leadershipNames = selections.leadership.map(k => getServiceName('leadership', k)).filter(Boolean);
       parts.push(`specialized leadership development through ${leadershipNames.join(' and ')} to equip managers with emotional intelligence and people management skills`);
     }
     
     if (selections.movementClasses.length > 0) {
-      const classNames = selections.movementClasses.map(k => productCatalog.movementClasses[k]?.name).filter(Boolean);
+      const classNames = selections.movementClasses.map(k => getServiceName('movementClasses', k)).filter(Boolean);
       parts.push(`ongoing wellness classes including ${classNames.slice(0, 2).join(' and ')} to support physical and mental well-being`);
     }
     
