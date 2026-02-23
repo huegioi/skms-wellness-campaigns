@@ -622,7 +622,7 @@ export default function EditProposal() {
               <div key={key} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.movementClasses.includes(key) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
                 <Checkbox checked={selections.movementClasses.includes(key)} onCheckedChange={() => toggleItem('movementClasses', key)} />
                 <div className="flex-1">
-                  <p className="font-medium">{classItem.name}</p>
+                  <p className="font-medium">{getServiceName('movementClasses', key)}</p>
                   <p className="text-sm text-gray-500">{classItem.duration}</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -633,6 +633,16 @@ export default function EditProposal() {
                     value={getPrice('movementClasses', key)} 
                     onChange={(e) => setPrice('movementClasses', key, e.target.value)}
                   />
+                </div>
+              </div>
+            ))}
+            {(selections.movementClassesData || []).filter(s => !productCatalog.movementClasses[s.id]).map(svc => (
+              <div key={svc.id} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.movementClasses.includes(svc.id) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+                <Checkbox checked={selections.movementClasses.includes(svc.id)} onCheckedChange={() => toggleItem('movementClasses', svc.id)} />
+                <div className="flex-1"><p className="font-medium">{svc.name}</p></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">$</span>
+                  <Input type="number" className="w-24" value={getPrice('movementClasses', svc.id)} onChange={(e) => setPrice('movementClasses', svc.id, e.target.value)} />
                 </div>
               </div>
             ))}
