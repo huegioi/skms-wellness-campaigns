@@ -517,7 +517,7 @@ export default function EditProposal() {
               <div key={key} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.workshops.includes(key) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
                 <Checkbox checked={selections.workshops.includes(key)} onCheckedChange={() => toggleItem('workshops', key)} />
                 <div className="flex-1">
-                  <p className="font-medium">{workshop.name}</p>
+                  <p className="font-medium">{getServiceName('workshops', key)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">$</span>
@@ -527,6 +527,19 @@ export default function EditProposal() {
                     value={getPrice('workshops', key)} 
                     onChange={(e) => setPrice('workshops', key, e.target.value)}
                   />
+                </div>
+              </div>
+            ))}
+            {/* Show any services from the builder that aren't in the static catalog */}
+            {(selections.workshopsData || []).filter(s => !productCatalog.workshops[s.id]).map(svc => (
+              <div key={svc.id} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.workshops.includes(svc.id) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+                <Checkbox checked={selections.workshops.includes(svc.id)} onCheckedChange={() => toggleItem('workshops', svc.id)} />
+                <div className="flex-1">
+                  <p className="font-medium">{svc.name}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">$</span>
+                  <Input type="number" className="w-24" value={getPrice('workshops', svc.id)} onChange={(e) => setPrice('workshops', svc.id, e.target.value)} />
                 </div>
               </div>
             ))}
