@@ -876,16 +876,16 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
                 const items = [];
                 
                 if (sel.workshops?.length > 0) {
-                  items.push({ category: 'Workshops', services: sel.workshops });
+                  items.push({ category: 'Workshops', services: sel.workshops, dataKey: 'workshopsData' });
                 }
                 if (sel.challengePrograms?.length > 0) {
-                  items.push({ category: '14-Day Challenges', services: sel.challengePrograms });
+                  items.push({ category: '14-Day Challenges', services: sel.challengePrograms, dataKey: 'challengeProgramsData' });
                 }
                 if (sel.leadership?.length > 0) {
-                  items.push({ category: 'Leadership', services: sel.leadership });
+                  items.push({ category: 'Leadership', services: sel.leadership, dataKey: 'leadershipData' });
                 }
                 if (sel.movementClasses?.length > 0) {
-                  items.push({ category: 'Classes', services: sel.movementClasses });
+                  items.push({ category: 'Classes', services: sel.movementClasses, dataKey: 'movementClassesData' });
                 }
 
                 return items.map(({ category, services, dataKey }, idx) => (
