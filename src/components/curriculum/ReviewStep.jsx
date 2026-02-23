@@ -37,16 +37,16 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
   const calculateTotal = () => {
     let total = 0;
     (selections.workshops || []).forEach(key => {
-      total += productCatalog.workshops[key]?.price || 0;
+      total += getServiceById(key, 'workshops')?.price || 0;
     });
     (selections.challengePrograms || []).forEach(key => {
       total += challengePrice;
     });
     (selections.leadership || []).forEach(key => {
-      total += productCatalog.leadership[key]?.price || 0;
+      total += getServiceById(key, 'leadership')?.price || 0;
     });
     (selections.movementClasses || []).forEach(key => {
-      total += productCatalog.movementClasses[key]?.price || 0;
+      total += getServiceById(key, 'movementClasses')?.price || 0;
     });
     total += (sampleBoxQuantities.reduceStress || 0) * 65;
     total += (sampleBoxQuantities.relaxationSleep || 0) * 65;
