@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   FileText, Calendar, DollarSign, Copy, Pencil, Trash2, 
-  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock, Bell, Mail, Link2, Search
+  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock, Bell, Mail, Link2, Search, Download
 } from 'lucide-react';
+import { productCatalog } from '@/components/curriculum/catalogData';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import SendProposalDialog from '@/components/proposals/SendProposalDialog';
