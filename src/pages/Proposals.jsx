@@ -373,6 +373,9 @@ export default function Proposals() {
                         >
                           <Link2 className="w-4 h-4" />
                         </Button>
+                        <Button size="icon" variant="outline" title="Download proposal" onClick={() => downloadProposalPDF(proposal)}>
+                          <Download className="w-4 h-4" />
+                        </Button>
                         <Button size="icon" variant="outline" onClick={() => setViewingProposal(proposal)}>
                           <Eye className="w-4 h-4" />
                         </Button>
