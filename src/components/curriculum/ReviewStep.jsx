@@ -322,12 +322,12 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
           <div class="section">
             <div class="section-title">Workshops (${selections.workshops.length})</div>
             ${selections.workshops.map(key => {
-              const workshop = productCatalog.workshops[key];
-              return workshop ? `
+              const svc = getServiceById(key, 'workshops');
+              return svc ? `
                 <div class="item">
-                  <div class="item-title">${workshop.name}</div>
-                  <div class="item-price">$${workshop.price.toLocaleString()}</div>
-                  <div class="item-description">${workshop.description}</div>
+                  <div class="item-title">${svc.name}</div>
+                  <div class="item-price">$${svc.price.toLocaleString()}</div>
+                  <div class="item-description">${svc.description}</div>
                 </div>
               ` : '';
             }).join('')}
@@ -338,12 +338,12 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
           <div class="section">
             <div class="section-title">14-Day Challenges (${selections.challengePrograms.length})</div>
             ${selections.challengePrograms.map(key => {
-              const challenge = productCatalog.challenges[key];
-              return challenge ? `
+              const svc = getServiceById(key, 'challenges');
+              return svc ? `
                 <div class="item">
-                  <div class="item-title">${challenge.name}</div>
-                  <div class="item-price">$${challenge.price.toLocaleString()}</div>
-                  <div class="item-description">${challenge.description}</div>
+                  <div class="item-title">${svc.name}</div>
+                  <div class="item-price">$${challengePrice.toLocaleString()}</div>
+                  <div class="item-description">${svc.description}</div>
                 </div>
               ` : '';
             }).join('')}
@@ -354,12 +354,12 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
           <div class="section">
             <div class="section-title">Leadership Programs (${selections.leadership.length})</div>
             ${selections.leadership.map(key => {
-              const program = productCatalog.leadership[key];
-              return program ? `
+              const svc = getServiceById(key, 'leadership');
+              return svc ? `
                 <div class="item">
-                  <div class="item-title">${program.name}</div>
-                  <div class="item-price">$${program.price.toLocaleString()}</div>
-                  <div class="item-description">${program.description}</div>
+                  <div class="item-title">${svc.name}</div>
+                  <div class="item-price">$${svc.price.toLocaleString()}</div>
+                  <div class="item-description">${svc.description}</div>
                 </div>
               ` : '';
             }).join('')}
@@ -370,12 +370,12 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
           <div class="section">
             <div class="section-title">Classes (${selections.movementClasses.length})</div>
             ${selections.movementClasses.map(key => {
-              const classItem = productCatalog.movementClasses[key];
-              return classItem ? `
+              const svc = getServiceById(key, 'movementClasses');
+              return svc ? `
                 <div class="item">
-                  <div class="item-title">${classItem.name}</div>
-                  <div class="item-price">$${classItem.price.toLocaleString()}</div>
-                  <div class="item-description"><strong>Duration:</strong> ${classItem.duration}<br>${classItem.description}</div>
+                  <div class="item-title">${svc.name}</div>
+                  <div class="item-price">$${svc.price.toLocaleString()}</div>
+                  <div class="item-description">${svc.description}</div>
                 </div>
               ` : '';
             }).join('')}
