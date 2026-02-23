@@ -128,6 +128,7 @@ export default function CurriculumDesigner() {
         return (
           <ReviewStep
             selections={selections}
+            allServices={allServices}
             onBack={handleBack}
           />
         );
