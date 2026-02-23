@@ -411,16 +411,44 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="question-group">
+          <div className="question-group" style={{ position: 'relative' }}>
             <label className="question-label">Client Name *</label>
             <input
+              ref={clientNameRef}
               type="text"
               className="neuro-input"
               placeholder="Enter client name..."
               value={formData.clientName}
-              onChange={(e) => handleInputChange('clientName', e.target.value)}
+              onChange={(e) => { handleInputChange('clientName', e.target.value); setShowSuggestions(true); }}
+              onFocus={() => setShowSuggestions(true)}
+              autoComplete="off"
               required
             />
+            {showSuggestions && filteredClients(formData).length > 0 && (
+              <div
+                ref={suggestionsRef}
+                style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
+                  background: 'white', borderRadius: '10px', marginTop: '4px',
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                  border: '1px solid #e5e5e5', overflow: 'hidden'
+                }}
+              >
+                {filteredClients(formData).map(client => (
+                  <div
+                    key={client.id}
+                    onMouseDown={() => selectClient(client)}
+                    style={{ padding: '10px 16px', cursor: 'pointer', borderBottom: '1px solid #f0f0f0' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#f4f0e9'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'white'}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: '14px', color: '#013f7c' }}>{client.name}</div>
+                    {client.company && <div style={{ fontSize: '12px', color: '#666' }}>{client.company}</div>}
+                    {client.email && <div style={{ fontSize: '11px', color: '#999' }}>{client.email}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="question-group">
