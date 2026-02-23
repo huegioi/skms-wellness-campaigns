@@ -554,7 +554,7 @@ export default function EditProposal() {
               <div key={key} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.challengePrograms.includes(key) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
                 <Checkbox checked={selections.challengePrograms.includes(key)} onCheckedChange={() => toggleItem('challengePrograms', key)} />
                 <div className="flex-1">
-                  <p className="font-medium">{challenge.name}</p>
+                  <p className="font-medium">{getServiceName('challenges', key)}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-500">$</span>
@@ -564,6 +564,16 @@ export default function EditProposal() {
                     value={getPrice('challenges', key)} 
                     onChange={(e) => setPrice('challenges', key, e.target.value)}
                   />
+                </div>
+              </div>
+            ))}
+            {(selections.challengeProgramsData || []).filter(s => !productCatalog.challenges[s.id]).map(svc => (
+              <div key={svc.id} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.challengePrograms.includes(svc.id) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+                <Checkbox checked={selections.challengePrograms.includes(svc.id)} onCheckedChange={() => toggleItem('challengePrograms', svc.id)} />
+                <div className="flex-1"><p className="font-medium">{svc.name}</p></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">$</span>
+                  <Input type="number" className="w-24" value={getPrice('challenges', svc.id)} onChange={(e) => setPrice('challenges', svc.id, e.target.value)} />
                 </div>
               </div>
             ))}
