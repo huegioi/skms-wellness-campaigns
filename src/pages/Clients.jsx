@@ -631,11 +631,19 @@ export default function Clients() {
                         <Button size="sm" variant="outline" onClick={() => setViewingClient(client)}>
                           <Eye className="w-4 h-4 mr-1" /> View
                         </Button>
-                        <Link to={createPageUrl('CurriculumDesigner') + `?clientId=${client.id}`}>
-                          <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132]">
-                            <FileText className="w-4 h-4 mr-1" /> Proposal
-                          </Button>
-                        </Link>
+                        {clientProposals.length > 0 ? (
+                          <Link to={createPageUrl('EditProposal') + `?id=${clientProposals.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0].id}`}>
+                            <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132]">
+                              <FileText className="w-4 h-4 mr-1" /> Proposal
+                            </Button>
+                          </Link>
+                        ) : (
+                          <Link to={createPageUrl('CurriculumDesigner') + `?clientId=${client.id}`}>
+                            <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132]">
+                              <FileText className="w-4 h-4 mr-1" /> Proposal
+                            </Button>
+                          </Link>
+                        )}
                         <Button size="icon" variant="ghost" onClick={() => openEditDialog(client)}>
                           <Pencil className="w-4 h-4" />
                         </Button>
