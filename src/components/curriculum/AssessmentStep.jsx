@@ -5,6 +5,55 @@ import { Brain, Users, Target, TrendingUp, DollarSign, Flame, MessageCircle, Mon
 import { base44 } from '@/api/base44Client';
 
 export default function AssessmentStep({ selections, updateSelections, onNext, isFirstStep }) {
+  const [clients, setClients] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const clientNameRef = useRef(null);
+  const suggestionsRef = useRef(null);
+
+  useEffect(() => {
+    base44.entities.Client.list().then(setClients).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target) && !clientNameRef.current?.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const filteredClients = formData => {
+    const q = formData.clientName.toLowerCase();
+    if (!q) return [];
+    return clients.filter(c =>
+      c.name?.toLowerCase().includes(q) ||
+      c.company?.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q)
+    ).slice(0, 6);
+  };
+
+  const selectClient = (client) => {
+    setFormData(prev => ({
+      ...prev,
+      clientName: client.name || '',
+      clientEmail: client.email || '',
+      companyName: client.company || '',
+      companyAddress: client.company_address || '',
+      companySize: client.company_size || '',
+      wellnessBudget: client.wellness_budget || '',
+      brokerName: client.broker_name || '',
+      brokerEmail: client.broker_email || '',
+      brokerCompany: '',
+      consultantName: client.wellness_consultant_name || '',
+      consultantEmail: client.wellness_consultant_email || '',
+      consultantCompany: '',
+      industry: client.industry || '',
+    }));
+    setShowSuggestions(false);
+  };
+
   const iconMap = {
     Flame: Flame,
     MessageCircle: MessageCircle,
