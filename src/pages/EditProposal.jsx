@@ -110,12 +110,27 @@ export default function EditProposal() {
     }
   });
 
+  // Look up service name from enriched data stored on proposal, or fall back to static catalog
+  const getServiceName = (category, key) => {
+    const dataKey = `${category === 'workshops' ? 'workshops' : category === 'challenges' ? 'challengePrograms' : category}Data`;
+    const enriched = (selections[dataKey] || []).find(s => s.id === key);
+    if (enriched) return enriched.name;
+    if (category === 'workshops') return productCatalog.workshops[key]?.name || key;
+    if (category === 'challenges') return productCatalog.challenges[key]?.name || key;
+    if (category === 'leadership') return productCatalog.leadership[key]?.name || key;
+    if (category === 'movementClasses') return productCatalog.movementClasses[key]?.name || key;
+    return key;
+  };
+
   const getPrice = (category, key) => {
     const overrideKey = `${category}_${key}`;
     if (priceOverrides[overrideKey] !== undefined) return priceOverrides[overrideKey];
+    // Check enriched data first (from builder)
+    const dataKey = `${category === 'workshops' ? 'workshops' : category === 'challenges' ? 'challengePrograms' : category}Data`;
+    const enriched = (selections[dataKey] || []).find(s => s.id === key);
+    if (enriched?.price) return enriched.price;
     if (category === 'workshops') return productCatalog.workshops[key]?.price || 0;
     if (category === 'challenges') {
-      // Use saved challenge price or calculate from company size
       const savedPrice = selections.challengePrice;
       if (savedPrice) return savedPrice;
       const companySize = selections.assessmentData?.companySize;
