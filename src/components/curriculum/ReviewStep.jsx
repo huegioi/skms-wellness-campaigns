@@ -7,7 +7,15 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
-export default function ReviewStep({ selections, onBack }) {
+export default function ReviewStep({ selections, onBack, allServices = [] }) {
+  // Helper: look up a service by ID in allServices, fall back to productCatalog static data
+  const getServiceById = (id, catalogCategory) => {
+    const fromDb = allServices.find(s => s.id === id);
+    if (fromDb) return { name: fromDb.name, price: fromDb.price, description: fromDb.short_description || fromDb.description || '' };
+    const fromCatalog = productCatalog[catalogCategory]?.[id];
+    if (fromCatalog) return { name: fromCatalog.name, price: fromCatalog.price, description: fromCatalog.description || '' };
+    return null;
+  };
   const navigate = useNavigate();
   const [showMessage, setShowMessage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
