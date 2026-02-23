@@ -51,6 +51,77 @@ export default function Proposals() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['proposals'] })
   });
 
+  const downloadProposalPDF = (proposal) => {
+    const sel = proposal.selections || {};
+    const getEnrichedName = (category, key) => {
+      const dataKeyMap = { workshops: 'workshopsData', challengePrograms: 'challengeProgramsData', leadership: 'leadershipData', movementClasses: 'movementClassesData' };
+      const catMap = { workshops: 'workshops', challengePrograms: 'challenges', leadership: 'leadership', movementClasses: 'movementClasses' };
+      const enriched = (sel[dataKeyMap[category]] || []).find(s => s.id === key);
+      if (enriched) return { name: enriched.name, description: enriched.description, price: enriched.price };
+      const staticItem = productCatalog[catMap[category]]?.[key];
+      return staticItem ? { name: staticItem.name, description: staticItem.description, price: staticItem.price } : { name: key, description: '', price: 0 };
+    };
+
+    const renderSection = (title, items, category) => {
+      if (!items?.length) return '';
+      return `<div class="section"><div class="section-title">${title} (${items.length})</div>${items.map(key => {
+        const { name, description, price } = getEnrichedName(category, key);
+        const overrideKey = `${category}_${key}`;
+        const finalPrice = sel.priceOverrides?.[overrideKey] ?? price ?? 0;
+        return `<div class="item"><div class="item-title">${name}</div><div class="item-price">$${Number(finalPrice).toLocaleString()}</div>${description ? `<div class="item-description">${description}</div>` : ''}</div>`;
+      }).join('')}</div>`;
+    };
+
+    const boxes = sel.sampleBoxQuantities || sel.wellnessBoxes || {};
+    const totalBoxes = (boxes.reduceStress||0)+(boxes.relaxationSleep||0)+(boxes.largeEmotional||0)+(boxes.largeStressReduction||0);
+    const boxSection = totalBoxes > 0 ? `<div class="section"><div class="section-title">Wellness Boxes</div>
+      ${boxes.reduceStress > 0 ? `<div class="item"><div class="item-title">Reduce Stress Boxes (${boxes.reduceStress})</div><div class="item-price">$${(boxes.reduceStress*65).toLocaleString()}</div></div>` : ''}
+      ${boxes.relaxationSleep > 0 ? `<div class="item"><div class="item-title">Relaxation & Sleep Boxes (${boxes.relaxationSleep})</div><div class="item-price">$${(boxes.relaxationSleep*65).toLocaleString()}</div></div>` : ''}
+      ${boxes.largeEmotional > 0 ? `<div class="item"><div class="item-title">Large Emotional Wellness Boxes (${boxes.largeEmotional})</div><div class="item-price">$${(boxes.largeEmotional*125).toLocaleString()}</div></div>` : ''}
+      ${boxes.largeStressReduction > 0 ? `<div class="item"><div class="item-title">Large Stress Reduction Boxes (${boxes.largeStressReduction})</div><div class="item-price">$${(boxes.largeStressReduction*125).toLocaleString()}</div></div>` : ''}
+    </div>` : '';
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Proposal - ${proposal.client_name}</title>
+    <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333;line-height:1.6}
+    .header{text-align:center;margin-bottom:40px;padding-bottom:20px;border-bottom:3px solid #013f7c}
+    h1{color:#013f7c;font-size:32px;margin-bottom:10px}.subtitle{color:#666;font-size:16px}
+    .contact-info{background:#f4f0e9;padding:20px;border-radius:8px;margin-bottom:30px}
+    .contact-row{margin-bottom:8px}.contact-label{font-weight:700;color:#264d44;display:inline-block;width:130px}
+    .section{margin-bottom:30px}.section-title{color:#013f7c;font-size:20px;font-weight:700;margin-bottom:15px;padding-bottom:8px;border-bottom:2px solid #cae5e3}
+    .item{margin-bottom:16px;padding:15px;background:#f9f9f9;border-radius:8px}
+    .item-title{color:#264d44;font-weight:700;font-size:16px;margin-bottom:4px}
+    .item-price{color:#770142;font-weight:700;margin-bottom:6px}
+    .item-description{color:#555;font-size:14px;line-height:1.5}
+    .narrative{background:linear-gradient(135deg,rgba(119,1,66,0.08),rgba(1,63,124,0.08));border-left:4px solid #770142;padding:20px;border-radius:8px;margin-bottom:30px}
+    .total-box{background:linear-gradient(135deg,#770142,#441d37);color:white;padding:25px;border-radius:12px;text-align:center}
+    .total-amount{font-size:36px;font-weight:700;margin:10px 0}
+    @media print{body{padding:20px}.section{page-break-inside:avoid}}</style></head><body>
+    <div class="header"><h1>Mental Fitness Campaign Proposal</h1><div class="subtitle">Prepared by SKMS Wellness</div></div>
+    <div class="contact-info">
+      <div class="contact-row"><span class="contact-label">Prepared For:</span>${proposal.client_name}</div>
+      ${proposal.company ? `<div class="contact-row"><span class="contact-label">Company:</span>${proposal.company}</div>` : ''}
+      <div class="contact-row"><span class="contact-label">Date:</span>${new Date(proposal.created_date).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
+    </div>
+    ${proposal.narrative_summary ? `<div class="narrative"><div style="color:#770142;font-size:18px;font-weight:700;margin-bottom:10px">Program Overview</div><p style="white-space:pre-line">${proposal.narrative_summary}</p></div>` : ''}
+    ${renderSection('Workshops', sel.workshops, 'workshops')}
+    ${renderSection('14-Day Challenges', sel.challengePrograms, 'challengePrograms')}
+    ${renderSection('Leadership Programs', sel.leadership, 'leadership')}
+    ${renderSection('Classes', sel.movementClasses, 'movementClasses')}
+    ${boxSection}
+    <div class="total-box"><div style="font-size:18px">Estimated Total Investment</div><div class="total-amount">$${(proposal.total_amount||0).toLocaleString()}</div></div>
+    </body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Proposal-${proposal.client_name.replace(/\s+/g,'-')}-${new Date(proposal.created_date).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'}).replace(/\//g,'-')}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   const duplicateMutation = useMutation({
     mutationFn: async (proposal) => {
       const { id, created_date, updated_date, ...rest } = proposal;
