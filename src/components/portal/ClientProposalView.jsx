@@ -21,14 +21,31 @@ export default function ClientProposalView({ proposals = [], client }) {
 
 
 
-  const getServiceDetails = (category, key) => {
-    const categoryMap = {
-      workshops: productCatalog.workshops,
-      challengePrograms: productCatalog.challenges,
-      leadership: productCatalog.leadership,
-      movementClasses: productCatalog.movementClasses
-    };
-    return categoryMap[category]?.[key];
+  // Map category -> enriched data key stored on proposal
+  const enrichedDataKey = {
+    workshops: 'workshopsData',
+    challengePrograms: 'challengeProgramsData',
+    leadership: 'leadershipData',
+    movementClasses: 'movementClassesData'
+  };
+
+  const catalogCategoryKey = {
+    workshops: 'workshops',
+    challengePrograms: 'challenges',
+    leadership: 'leadership',
+    movementClasses: 'movementClasses'
+  };
+
+  const getServiceDetails = (category, key, selections) => {
+    // 1. Try enriched data saved on the proposal
+    const dataKey = enrichedDataKey[category];
+    if (dataKey && selections[dataKey]) {
+      const enriched = selections[dataKey].find(s => s.id === key);
+      if (enriched) return enriched;
+    }
+    // 2. Fall back to static catalog
+    const catKey = catalogCategoryKey[category];
+    return catKey ? productCatalog[catKey]?.[key] : null;
   };
 
   const categoryIcons = {
