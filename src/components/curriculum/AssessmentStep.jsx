@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { workforceChallenges } from './catalogData';
 import StepNavigation from './StepNavigation';
 import { Brain, Users, Target, TrendingUp, DollarSign, Flame, MessageCircle, Monitor, Heart, Crown, Activity, Scale, ChevronDown, ChevronUp } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 
 export default function AssessmentStep({ selections, updateSelections, onNext, isFirstStep }) {
   const iconMap = {
