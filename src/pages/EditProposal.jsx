@@ -517,36 +517,12 @@ export default function EditProposal() {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Workshops</h2>
           <div className="space-y-3">
-            {Object.entries(productCatalog.workshops).map(([key, workshop]) => (
-              <div key={key} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.workshops.includes(key) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
-                <Checkbox checked={selections.workshops.includes(key)} onCheckedChange={() => toggleItem('workshops', key)} />
-                <div className="flex-1">
-                  <p className="font-medium">{getServiceName('workshops', key)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">$</span>
-                  <Input 
-                    type="number" 
-                    className="w-24" 
-                    value={getPrice('workshops', key)} 
-                    onChange={(e) => setPrice('workshops', key, e.target.value)}
-                  />
-                </div>
-              </div>
-            ))}
-            {/* Show any services from the builder that aren't in the static catalog */}
-            {(selections.workshopsData || []).filter(s => !productCatalog.workshops[s.id]).map(svc => (
-              <div key={svc.id} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.workshops.includes(svc.id) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
-                <Checkbox checked={selections.workshops.includes(svc.id)} onCheckedChange={() => toggleItem('workshops', svc.id)} />
-                <div className="flex-1">
-                  <p className="font-medium">{svc.name}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">$</span>
-                  <Input type="number" className="w-24" value={getPrice('workshops', svc.id)} onChange={(e) => setPrice('workshops', svc.id, e.target.value)} />
-                </div>
-              </div>
-            ))}
+            {renderServiceList(
+              selections.workshopsData?.length > 0
+                ? selections.workshopsData.map(s => ({ key: s.id, name: s.name }))
+                : Object.entries(productCatalog.workshops).map(([key, w]) => ({ key, name: w.name })),
+              'workshops'
+            )}
           </div>
         </div>
 
@@ -554,33 +530,12 @@ export default function EditProposal() {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>14-Day Challenges</h2>
           <div className="space-y-3">
-            {Object.entries(productCatalog.challenges).map(([key, challenge]) => (
-              <div key={key} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.challengePrograms.includes(key) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
-                <Checkbox checked={selections.challengePrograms.includes(key)} onCheckedChange={() => toggleItem('challengePrograms', key)} />
-                <div className="flex-1">
-                  <p className="font-medium">{getServiceName('challenges', key)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">$</span>
-                  <Input 
-                    type="number" 
-                    className="w-24" 
-                    value={getPrice('challenges', key)} 
-                    onChange={(e) => setPrice('challenges', key, e.target.value)}
-                  />
-                </div>
-              </div>
-            ))}
-            {(selections.challengeProgramsData || []).filter(s => !productCatalog.challenges[s.id]).map(svc => (
-              <div key={svc.id} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.challengePrograms.includes(svc.id) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
-                <Checkbox checked={selections.challengePrograms.includes(svc.id)} onCheckedChange={() => toggleItem('challengePrograms', svc.id)} />
-                <div className="flex-1"><p className="font-medium">{svc.name}</p></div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">$</span>
-                  <Input type="number" className="w-24" value={getPrice('challenges', svc.id)} onChange={(e) => setPrice('challenges', svc.id, e.target.value)} />
-                </div>
-              </div>
-            ))}
+            {renderServiceList(
+              selections.challengeProgramsData?.length > 0
+                ? selections.challengeProgramsData.map(s => ({ key: s.id, name: s.name }))
+                : Object.entries(productCatalog.challenges).map(([key, c]) => ({ key, name: c.name })),
+              'challengePrograms'
+            )}
           </div>
         </div>
 
@@ -588,33 +543,12 @@ export default function EditProposal() {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Leadership Programs</h2>
           <div className="space-y-3">
-            {Object.entries(productCatalog.leadership).map(([key, program]) => (
-              <div key={key} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.leadership.includes(key) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
-                <Checkbox checked={selections.leadership.includes(key)} onCheckedChange={() => toggleItem('leadership', key)} />
-                <div className="flex-1">
-                  <p className="font-medium">{getServiceName('leadership', key)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">$</span>
-                  <Input 
-                    type="number" 
-                    className="w-24" 
-                    value={getPrice('leadership', key)} 
-                    onChange={(e) => setPrice('leadership', key, e.target.value)}
-                  />
-                </div>
-              </div>
-            ))}
-            {(selections.leadershipData || []).filter(s => !productCatalog.leadership[s.id]).map(svc => (
-              <div key={svc.id} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.leadership.includes(svc.id) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
-                <Checkbox checked={selections.leadership.includes(svc.id)} onCheckedChange={() => toggleItem('leadership', svc.id)} />
-                <div className="flex-1"><p className="font-medium">{svc.name}</p></div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">$</span>
-                  <Input type="number" className="w-24" value={getPrice('leadership', svc.id)} onChange={(e) => setPrice('leadership', svc.id, e.target.value)} />
-                </div>
-              </div>
-            ))}
+            {renderServiceList(
+              selections.leadershipData?.length > 0
+                ? selections.leadershipData.map(s => ({ key: s.id, name: s.name }))
+                : Object.entries(productCatalog.leadership).map(([key, l]) => ({ key, name: l.name })),
+              'leadership'
+            )}
           </div>
         </div>
 
@@ -622,34 +556,12 @@ export default function EditProposal() {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Classes</h2>
           <div className="space-y-3">
-            {Object.entries(productCatalog.movementClasses).map(([key, classItem]) => (
-              <div key={key} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.movementClasses.includes(key) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
-                <Checkbox checked={selections.movementClasses.includes(key)} onCheckedChange={() => toggleItem('movementClasses', key)} />
-                <div className="flex-1">
-                  <p className="font-medium">{getServiceName('movementClasses', key)}</p>
-                  <p className="text-sm text-gray-500">{classItem.duration}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">$</span>
-                  <Input 
-                    type="number" 
-                    className="w-24" 
-                    value={getPrice('movementClasses', key)} 
-                    onChange={(e) => setPrice('movementClasses', key, e.target.value)}
-                  />
-                </div>
-              </div>
-            ))}
-            {(selections.movementClassesData || []).filter(s => !productCatalog.movementClasses[s.id]).map(svc => (
-              <div key={svc.id} className={`flex items-center gap-4 p-3 rounded-lg border ${selections.movementClasses.includes(svc.id) ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
-                <Checkbox checked={selections.movementClasses.includes(svc.id)} onCheckedChange={() => toggleItem('movementClasses', svc.id)} />
-                <div className="flex-1"><p className="font-medium">{svc.name}</p></div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">$</span>
-                  <Input type="number" className="w-24" value={getPrice('movementClasses', svc.id)} onChange={(e) => setPrice('movementClasses', svc.id, e.target.value)} />
-                </div>
-              </div>
-            ))}
+            {renderServiceList(
+              selections.movementClassesData?.length > 0
+                ? selections.movementClassesData.map(s => ({ key: s.id, name: s.name }))
+                : Object.entries(productCatalog.movementClasses).map(([key, c]) => ({ key, name: c.name })),
+              'movementClasses'
+            )}
           </div>
         </div>
 
