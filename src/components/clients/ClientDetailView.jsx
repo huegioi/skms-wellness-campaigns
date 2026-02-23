@@ -888,15 +888,20 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
                   items.push({ category: 'Classes', services: sel.movementClasses });
                 }
 
-                return items.map(({ category, services }, idx) => (
+                return items.map(({ category, services, dataKey }, idx) => (
                   <div key={idx} className="bg-white border rounded-lg p-4">
                     <h4 className="font-semibold mb-2" style={{ color: '#264d44' }}>{category}</h4>
                     <ul className="space-y-1">
                       {services.map(serviceId => {
-                        const service = allServices.find(s => s.id === serviceId);
+                        // Try enriched data first, then DB services, then static catalog
+                        const enriched = (sel[dataKey] || []).find(s => s.id === serviceId);
+                        const dbService = allServices.find(s => s.id === serviceId);
+                        const name = enriched?.name || dbService?.name || getServiceName(serviceId);
+                        const desc = enriched?.description || dbService?.short_description || dbService?.description;
                         return (
                           <li key={serviceId} className="text-sm text-gray-600">
-                            • {service?.name || getServiceName(serviceId)}
+                            <span className="font-medium text-gray-800">• {name}</span>
+                            {desc && <span className="block pl-4 text-xs text-gray-500 mt-0.5">{desc.slice(0, 120)}{desc.length > 120 ? '…' : ''}</span>}
                           </li>
                         );
                       })}
