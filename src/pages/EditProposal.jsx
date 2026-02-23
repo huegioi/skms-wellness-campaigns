@@ -254,6 +254,38 @@ export default function EditProposal() {
     }
   };
 
+  // Determine which selection array a category uses
+  const selectionKey = {
+    workshops: 'workshops',
+    challengePrograms: 'challengePrograms',
+    leadership: 'leadership',
+    movementClasses: 'movementClasses'
+  };
+
+  const renderServiceList = (items, category) => {
+    const selKey = selectionKey[category];
+    return items.map(({ key, name }) => {
+      const isSelected = (selections[selKey] || []).includes(key);
+      return (
+        <div key={key} className={`flex items-center gap-4 p-3 rounded-lg border ${isSelected ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+          <Checkbox checked={isSelected} onCheckedChange={() => toggleItem(selKey, key)} />
+          <div className="flex-1">
+            <p className="font-medium">{name}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">$</span>
+            <Input
+              type="number"
+              className="w-24"
+              value={getPrice(category === 'challengePrograms' ? 'challenges' : category, key)}
+              onChange={(e) => setPrice(category === 'challengePrograms' ? 'challenges' : category, key, e.target.value)}
+            />
+          </div>
+        </div>
+      );
+    });
+  };
+
   const handleSave = () => {
     if (isNewProposal && !formData.client_id) {
       alert('Please select a client first');
