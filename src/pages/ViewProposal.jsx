@@ -154,7 +154,7 @@ export default function ViewProposal() {
           </TabsList>
 
           <TabsContent value="proposal">
-            <ClientProposalView proposal={proposal} client={client} />
+            <ClientProposalView proposal={proposal} client={client} services={services} />
           </TabsContent>
 
           <TabsContent value="timeline">
