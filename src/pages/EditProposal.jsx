@@ -114,6 +114,13 @@ export default function EditProposal() {
     return services.filter(s => s.category === category && s.is_active !== false);
   };
 
+  // Build a lookup map for fast access by ID
+  const serviceMap = React.useMemo(() => {
+    const map = {};
+    services.forEach(s => { map[s.id] = s; });
+    return map;
+  }, [services]);
+
   // Get price for a service: check overrides first, then the live Service entity price
   const getPrice = (serviceId) => {
     if (priceOverrides[serviceId] !== undefined) return priceOverrides[serviceId];
