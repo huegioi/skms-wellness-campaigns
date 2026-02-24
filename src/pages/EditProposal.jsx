@@ -9,7 +9,6 @@ import { ArrowLeft, Save, Download, Plus, Minus, X, Sparkles, RefreshCw } from '
 import { Textarea } from '@/components/ui/textarea';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { productCatalog, workforceChallenges } from '@/components/curriculum/catalogData';
 import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
 import { markTaskComplete, createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
 
@@ -35,7 +34,6 @@ export default function EditProposal() {
     sampleBoxQuantities: { reduceStress: 0, relaxationSleep: 0, largeEmotional: 0, largeStressReduction: 0 },
     customBoxQuantity: 0,
     customBoxItems: [],
-    challenges: [],
     assessmentData: {}
   });
   
@@ -47,6 +45,11 @@ export default function EditProposal() {
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list()
+  });
+
+  const { data: services = [], isLoading: isLoadingServices } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => base44.entities.Service.list('sort_order')
   });
 
   const { data: proposal, isLoading } = useQuery({
@@ -75,7 +78,6 @@ export default function EditProposal() {
         sampleBoxQuantities: proposal.selections?.sampleBoxQuantities || { reduceStress: 0, relaxationSleep: 0, largeEmotional: 0, largeStressReduction: 0 },
         customBoxQuantity: proposal.selections?.customBoxQuantity || 0,
         customBoxItems: proposal.selections?.customBoxItems || [],
-        challenges: proposal.selections?.challenges || [],
         assessmentData: proposal.selections?.assessmentData || {}
       });
       setPriceOverrides(proposal.selections?.priceOverrides || {});
@@ -91,18 +93,15 @@ export default function EditProposal() {
       return base44.entities.Proposal.update(proposalId, data);
     },
     onSuccess: async (savedProposal, variables) => {
-      // Auto-mark tasks when proposal status changes
       if (proposal && proposal.client_id) {
         if (variables.status === 'sent' && proposal.status !== 'sent') {
           await markTaskComplete(base44, proposal.client_id, 'Send or Accept Proposal', 'proposal_sent', proposalId);
         }
         if (variables.status === 'accepted' && proposal.status !== 'accepted') {
-          // Create tasks if they don't exist
           const existingTasks = await base44.entities.ClientTask.filter({ client_id: proposal.client_id });
           if (existingTasks.length === 0) {
             await createDefaultTasksForClient(base44, proposal.client_id, proposal.client_name);
           }
-          // Mark proposal as accepted
           await markTaskComplete(base44, proposal.client_id, 'Send or Accept Proposal', 'proposal_accepted', proposalId);
         }
       }
@@ -110,49 +109,29 @@ export default function EditProposal() {
     }
   });
 
-  // Look up service name from enriched data stored on proposal, or fall back to static catalog
-  const getServiceName = (category, key) => {
-    const dataKey = `${category === 'workshops' ? 'workshops' : category === 'challenges' ? 'challengePrograms' : category}Data`;
-    const enriched = (selections[dataKey] || []).find(s => s.id === key);
-    if (enriched) return enriched.name;
-    if (category === 'workshops') return productCatalog.workshops[key]?.name || key;
-    if (category === 'challenges') return productCatalog.challenges[key]?.name || key;
-    if (category === 'leadership') return productCatalog.leadership[key]?.name || key;
-    if (category === 'movementClasses') return productCatalog.movementClasses[key]?.name || key;
-    return key;
+  // Helper: get services by their entity category
+  const getServicesByCategory = (category) => {
+    return services.filter(s => s.category === category && s.is_active !== false);
   };
 
-  const getPrice = (category, key) => {
-    const overrideKey = `${category}_${key}`;
-    if (priceOverrides[overrideKey] !== undefined) return priceOverrides[overrideKey];
-    // Check enriched data first (from builder)
-    const dataKey = `${category === 'workshops' ? 'workshops' : category === 'challenges' ? 'challengePrograms' : category}Data`;
-    const enriched = (selections[dataKey] || []).find(s => s.id === key);
-    if (enriched?.price) return enriched.price;
-    if (category === 'workshops') return productCatalog.workshops[key]?.price || 0;
-    if (category === 'challenges') {
-      const savedPrice = selections.challengePrice;
-      if (savedPrice) return savedPrice;
-      const companySize = selections.assessmentData?.companySize;
-      return calculateChallengePrice(companySize);
-    }
-    if (category === 'leadership') return productCatalog.leadership[key]?.price || 0;
-    if (category === 'movementClasses') return productCatalog.movementClasses[key]?.price || 0;
-    return 0;
+  // Get price for a service: check overrides first, then the live Service entity price
+  const getPrice = (serviceId) => {
+    if (priceOverrides[serviceId] !== undefined) return priceOverrides[serviceId];
+    const service = services.find(s => s.id === serviceId);
+    return service?.price || 0;
   };
 
-  const setPrice = (category, key, value) => {
-    const overrideKey = `${category}_${key}`;
-    setPriceOverrides(prev => ({ ...prev, [overrideKey]: parseFloat(value) || 0 }));
+  const setPrice = (serviceId, value) => {
+    setPriceOverrides(prev => ({ ...prev, [serviceId]: parseFloat(value) || 0 }));
   };
 
-  const toggleItem = (category, key) => {
+  const toggleItem = (category, id) => {
     setSelections(prev => {
       const current = prev[category] || [];
-      if (current.includes(key)) {
-        return { ...prev, [category]: current.filter(k => k !== key) };
+      if (current.includes(id)) {
+        return { ...prev, [category]: current.filter(k => k !== id) };
       }
-      return { ...prev, [category]: [...current, key] };
+      return { ...prev, [category]: [...current, id] };
     });
   };
 
@@ -168,10 +147,10 @@ export default function EditProposal() {
 
   const calculateTotal = () => {
     let total = 0;
-    selections.workshops.forEach(key => total += getPrice('workshops', key));
-    selections.challengePrograms.forEach(key => total += getPrice('challenges', key));
-    selections.leadership.forEach(key => total += getPrice('leadership', key));
-    selections.movementClasses.forEach(key => total += getPrice('movementClasses', key));
+    selections.workshops.forEach(id => total += getPrice(id));
+    selections.challengePrograms.forEach(id => total += getPrice(id));
+    selections.leadership.forEach(id => total += getPrice(id));
+    selections.movementClasses.forEach(id => total += getPrice(id));
     
     const boxes = selections.sampleBoxQuantities;
     total += (boxes.reduceStress || 0) * 65;
@@ -197,28 +176,25 @@ export default function EditProposal() {
   };
 
   const generateNarrativeSummary = () => {
+    const getName = (id) => services.find(s => s.id === id)?.name || id;
     const parts = [];
     
     if (selections.workshops.length > 0) {
-      const workshopNames = selections.workshops.map(k => getServiceName('workshops', k)).filter(Boolean);
-      parts.push(`interactive workshops including ${workshopNames.slice(0, 3).join(', ')}${workshopNames.length > 3 ? ' and more' : ''} to build essential mental fitness skills`);
+      const names = selections.workshops.map(getName).filter(Boolean);
+      parts.push(`interactive workshops including ${names.slice(0, 3).join(', ')}${names.length > 3 ? ' and more' : ''} to build essential mental fitness skills`);
     }
-    
     if (selections.challengePrograms.length > 0) {
-      const challengeNames = selections.challengePrograms.map(k => getServiceName('challenges', k)).filter(Boolean);
-      parts.push(`engaging 14-day challenges such as ${challengeNames.slice(0, 2).join(' and ')} to reinforce healthy habits and team engagement`);
+      const names = selections.challengePrograms.map(getName).filter(Boolean);
+      parts.push(`engaging 14-day challenges such as ${names.slice(0, 2).join(' and ')} to reinforce healthy habits and team engagement`);
     }
-    
     if (selections.leadership.length > 0) {
-      const leadershipNames = selections.leadership.map(k => getServiceName('leadership', k)).filter(Boolean);
-      parts.push(`specialized leadership development through ${leadershipNames.join(' and ')} to equip managers with emotional intelligence and people management skills`);
+      const names = selections.leadership.map(getName).filter(Boolean);
+      parts.push(`specialized leadership development through ${names.join(' and ')} to equip managers with emotional intelligence and people management skills`);
     }
-    
     if (selections.movementClasses.length > 0) {
-      const classNames = selections.movementClasses.map(k => getServiceName('movementClasses', k)).filter(Boolean);
-      parts.push(`ongoing wellness classes including ${classNames.slice(0, 2).join(' and ')} to support physical and mental well-being`);
+      const names = selections.movementClasses.map(getName).filter(Boolean);
+      parts.push(`ongoing wellness classes including ${names.slice(0, 2).join(' and ')} to support physical and mental well-being`);
     }
-    
     const boxes = selections.sampleBoxQuantities;
     const totalBoxes = (boxes.reduceStress || 0) + (boxes.relaxationSleep || 0) + (boxes.largeEmotional || 0) + (boxes.largeStressReduction || 0);
     if (totalBoxes > 0) {
@@ -232,13 +208,11 @@ export default function EditProposal() {
     const intro = `This customized mental fitness campaign is designed to support ${formData.company || 'your organization'}'s workforce well-being and productivity goals.`;
     const body = `The program includes ${parts.join('; ')}.`;
     const outro = `Together, these elements create a comprehensive approach to building resilience, reducing stress, and fostering a healthier, more engaged workplace culture.`;
-    
     return `${intro}\n\n${body}\n\n${outro}`;
   };
 
   const handleGenerateNarrative = () => {
-    const narrative = generateNarrativeSummary();
-    setFormData(prev => ({ ...prev, narrative_summary: narrative }));
+    setFormData(prev => ({ ...prev, narrative_summary: generateNarrativeSummary() }));
   };
 
   const handleClientSelect = (clientId) => {
@@ -254,44 +228,11 @@ export default function EditProposal() {
     }
   };
 
-  // Determine which selection array a category uses
-  const selectionKey = {
-    workshops: 'workshops',
-    challengePrograms: 'challengePrograms',
-    leadership: 'leadership',
-    movementClasses: 'movementClasses'
-  };
-
-  const renderServiceList = (items, category) => {
-    const selKey = selectionKey[category];
-    return items.map(({ key, name }) => {
-      const isSelected = (selections[selKey] || []).includes(key);
-      return (
-        <div key={key} className={`flex items-center gap-4 p-3 rounded-lg border ${isSelected ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
-          <Checkbox checked={isSelected} onCheckedChange={() => toggleItem(selKey, key)} />
-          <div className="flex-1">
-            <p className="font-medium">{name}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-500">$</span>
-            <Input
-              type="number"
-              className="w-24"
-              value={getPrice(category === 'challengePrograms' ? 'challenges' : category, key)}
-              onChange={(e) => setPrice(category === 'challengePrograms' ? 'challenges' : category, key, e.target.value)}
-            />
-          </div>
-        </div>
-      );
-    });
-  };
-
   const handleSave = () => {
     if (isNewProposal && !formData.client_id) {
       alert('Please select a client first');
       return;
     }
-
     saveMutation.mutate({
       ...formData,
       total_amount: calculateTotal(),
@@ -299,7 +240,37 @@ export default function EditProposal() {
     });
   };
 
+  const renderServiceList = (serviceList, selectionKey) => {
+    if (serviceList.length === 0) {
+      return <p className="text-gray-400 text-sm italic">No services found. Add services in the Service Catalog.</p>;
+    }
+    return serviceList.map((service) => {
+      const isSelected = (selections[selectionKey] || []).includes(service.id);
+      return (
+        <div key={service.id} className={`flex items-center gap-4 p-3 rounded-lg border ${isSelected ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+          <Checkbox checked={isSelected} onCheckedChange={() => toggleItem(selectionKey, service.id)} />
+          <div className="flex-1">
+            <p className="font-medium">{service.name}</p>
+            {service.duration && <p className="text-xs text-gray-400">{service.duration}</p>}
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">$</span>
+            <Input
+              type="number"
+              className="w-24"
+              value={getPrice(service.id)}
+              onChange={(e) => setPrice(service.id, e.target.value)}
+            />
+          </div>
+        </div>
+      );
+    });
+  };
+
   const generatePDF = () => {
+    const getName = (id) => services.find(s => s.id === id)?.name || id;
+    const getDesc = (id) => services.find(s => s.id === id)?.description || '';
+
     const pdfContent = `
       <!DOCTYPE html>
       <html>
@@ -347,44 +318,28 @@ export default function EditProposal() {
         ${selections.workshops.length > 0 ? `
           <div class="section">
             <div class="section-title">Workshops (${selections.workshops.length})</div>
-            ${selections.workshops.map(key => {
-              const name = getServiceName('workshops', key);
-              const desc = (selections.workshopsData || []).find(s => s.id === key)?.description || productCatalog.workshops[key]?.description || '';
-              return `<div class="item"><div class="item-title">${name}</div><div class="item-price">$${getPrice('workshops', key).toLocaleString()}</div>${desc ? `<div class="item-description">${desc}</div>` : ''}</div>`;
-            }).join('')}
+            ${selections.workshops.map(id => `<div class="item"><div class="item-title">${getName(id)}</div><div class="item-price">$${getPrice(id).toLocaleString()}</div>${getDesc(id) ? `<div class="item-description">${getDesc(id)}</div>` : ''}</div>`).join('')}
           </div>
         ` : ''}
 
         ${selections.challengePrograms.length > 0 ? `
           <div class="section">
             <div class="section-title">14-Day Challenges (${selections.challengePrograms.length})</div>
-            ${selections.challengePrograms.map(key => {
-              const name = getServiceName('challenges', key);
-              const desc = (selections.challengeProgramsData || []).find(s => s.id === key)?.description || productCatalog.challenges[key]?.description || '';
-              return `<div class="item"><div class="item-title">${name}</div><div class="item-price">$${getPrice('challenges', key).toLocaleString()}</div>${desc ? `<div class="item-description">${desc}</div>` : ''}</div>`;
-            }).join('')}
+            ${selections.challengePrograms.map(id => `<div class="item"><div class="item-title">${getName(id)}</div><div class="item-price">$${getPrice(id).toLocaleString()}</div>${getDesc(id) ? `<div class="item-description">${getDesc(id)}</div>` : ''}</div>`).join('')}
           </div>
         ` : ''}
 
         ${selections.leadership.length > 0 ? `
           <div class="section">
             <div class="section-title">Leadership Programs (${selections.leadership.length})</div>
-            ${selections.leadership.map(key => {
-              const name = getServiceName('leadership', key);
-              const desc = (selections.leadershipData || []).find(s => s.id === key)?.description || productCatalog.leadership[key]?.description || '';
-              return `<div class="item"><div class="item-title">${name}</div><div class="item-price">$${getPrice('leadership', key).toLocaleString()}</div>${desc ? `<div class="item-description">${desc}</div>` : ''}</div>`;
-            }).join('')}
+            ${selections.leadership.map(id => `<div class="item"><div class="item-title">${getName(id)}</div><div class="item-price">$${getPrice(id).toLocaleString()}</div>${getDesc(id) ? `<div class="item-description">${getDesc(id)}</div>` : ''}</div>`).join('')}
           </div>
         ` : ''}
 
         ${selections.movementClasses.length > 0 ? `
           <div class="section">
             <div class="section-title">Classes (${selections.movementClasses.length})</div>
-            ${selections.movementClasses.map(key => {
-              const name = getServiceName('movementClasses', key);
-              const desc = (selections.movementClassesData || []).find(s => s.id === key)?.description || productCatalog.movementClasses[key]?.description || '';
-              return `<div class="item"><div class="item-title">${name}</div><div class="item-price">$${getPrice('movementClasses', key).toLocaleString()}</div>${desc ? `<div class="item-description">${desc}</div>` : ''}</div>`;
-            }).join('')}
+            ${selections.movementClasses.map(id => `<div class="item"><div class="item-title">${getName(id)}</div><div class="item-price">$${getPrice(id).toLocaleString()}</div>${getDesc(id) ? `<div class="item-description">${getDesc(id)}</div>` : ''}</div>`).join('')}
           </div>
         ` : ''}
 
@@ -429,7 +384,7 @@ export default function EditProposal() {
     URL.revokeObjectURL(url);
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingServices) {
     return <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">Loading...</div>;
   }
 
@@ -533,9 +488,6 @@ export default function EditProposal() {
               Auto-Generate
             </Button>
           </div>
-          <p className="text-sm text-gray-500 mb-3">
-            This narrative will appear in the proposal download and sent emails. Edit it to customize the message for your client.
-          </p>
           <Textarea 
             value={formData.narrative_summary} 
             onChange={(e) => setFormData({...formData, narrative_summary: e.target.value})}
@@ -549,12 +501,7 @@ export default function EditProposal() {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Workshops</h2>
           <div className="space-y-3">
-            {renderServiceList(
-              selections.workshopsData?.length > 0
-                ? selections.workshopsData.map(s => ({ key: s.id, name: s.name }))
-                : Object.entries(productCatalog.workshops).map(([key, w]) => ({ key, name: w.name })),
-              'workshops'
-            )}
+            {renderServiceList(getServicesByCategory('workshop'), 'workshops')}
           </div>
         </div>
 
@@ -562,12 +509,7 @@ export default function EditProposal() {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>14-Day Challenges</h2>
           <div className="space-y-3">
-            {renderServiceList(
-              selections.challengeProgramsData?.length > 0
-                ? selections.challengeProgramsData.map(s => ({ key: s.id, name: s.name }))
-                : Object.entries(productCatalog.challenges).map(([key, c]) => ({ key, name: c.name })),
-              'challengePrograms'
-            )}
+            {renderServiceList(getServicesByCategory('challenge'), 'challengePrograms')}
           </div>
         </div>
 
@@ -575,12 +517,7 @@ export default function EditProposal() {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Leadership Programs</h2>
           <div className="space-y-3">
-            {renderServiceList(
-              selections.leadershipData?.length > 0
-                ? selections.leadershipData.map(s => ({ key: s.id, name: s.name }))
-                : Object.entries(productCatalog.leadership).map(([key, l]) => ({ key, name: l.name })),
-              'leadership'
-            )}
+            {renderServiceList(getServicesByCategory('leadership'), 'leadership')}
           </div>
         </div>
 
@@ -588,12 +525,7 @@ export default function EditProposal() {
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Classes</h2>
           <div className="space-y-3">
-            {renderServiceList(
-              selections.movementClassesData?.length > 0
-                ? selections.movementClassesData.map(s => ({ key: s.id, name: s.name }))
-                : Object.entries(productCatalog.movementClasses).map(([key, c]) => ({ key, name: c.name })),
-              'movementClasses'
-            )}
+            {renderServiceList(getServicesByCategory('class'), 'movementClasses')}
           </div>
         </div>
 
