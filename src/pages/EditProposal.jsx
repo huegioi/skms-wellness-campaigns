@@ -275,8 +275,8 @@ export default function EditProposal() {
   };
 
   const generatePDF = () => {
-    const getName = (id) => services.find(s => s.id === id)?.name || id;
-    const getDesc = (id) => services.find(s => s.id === id)?.description || '';
+    const getName = (id) => serviceMap[id]?.name || id;
+    const getDesc = (id) => serviceMap[id]?.description || '';
 
     const pdfContent = `
       <!DOCTYPE html>
