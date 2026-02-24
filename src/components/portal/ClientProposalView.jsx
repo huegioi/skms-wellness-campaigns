@@ -107,7 +107,7 @@ export default function ClientProposalView({ proposals = [], proposal, client, s
                       </h3>
                       <div className="space-y-3 ml-7">
                         {items.map(key => {
-                          const service = getServiceDetails(category, key, selections);
+                          const service = getServiceDetails(key);
                           if (!service) return (
                             <div key={key} className="border rounded-lg p-4 bg-gray-50">
                               <h4 className="font-semibold text-gray-800">{key}</h4>
