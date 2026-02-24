@@ -262,6 +262,7 @@ export default function SchedulingHub() {
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+  sevenDaysAgo.setHours(0, 0, 0, 0);
   
   // Get unique presenters for filter
   const allPresenters = [...new Set(calendarEvents
