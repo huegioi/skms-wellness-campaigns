@@ -41,7 +41,11 @@ Deno.serve(async (req) => {
     templates = await base44.asServiceRole.entities.EmailTemplate.list('service_category');
 
     // Fetch services so the client portal can resolve service IDs to names/descriptions
-    const services = await base44.asServiceRole.entities.Service.list('sort_order');
+    const services = await base44.asServiceRole.entities.Service.list('sort_order', 500);
+    console.log('Proposal selections keys:', Object.keys(proposal.selections || {}));
+    console.log('Workshop IDs in proposal:', proposal.selections?.workshops);
+    console.log('Services fetched count:', services.length);
+    console.log('Service IDs sample:', services.slice(0, 5).map(s => ({ id: s.id, name: s.name })));
 
     return Response.json({ proposal, client, events, templates, services });
   } catch (error) {
