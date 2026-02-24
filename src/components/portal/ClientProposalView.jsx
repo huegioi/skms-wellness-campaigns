@@ -2,10 +2,22 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Award, Dumbbell, Users, Package } from 'lucide-react';
 
-export default function ClientProposalView({ proposals = [], proposal, client, services = [] }) {
-  // Accept either a single proposal or an array
-  if (proposal && proposals.length === 0) proposals = [proposal];
-  if (!proposals || proposals.length === 0) {
+const categoryIcons = { workshops: Award, challengePrograms: Dumbbell, leadership: Users, movementClasses: Dumbbell };
+const categoryLabels = { workshops: 'Workshops', challengePrograms: '14-Day Challenges', leadership: 'Leadership Programs', movementClasses: 'Movement & Mindfulness Classes' };
+const categoryColors = { workshops: '#264d44', challengePrograms: '#ff9878', leadership: '#770142', movementClasses: '#013f7c' };
+
+export default function ClientProposalView({ proposals: propsList, proposal: singleProposal, client, services = [] }) {
+  // Normalize: accept single proposal or array
+  const proposals = propsList?.length > 0 ? propsList : singleProposal ? [singleProposal] : [];
+
+  // Build lookup map from live Service entity
+  const serviceMap = React.useMemo(() => {
+    const map = {};
+    services.forEach(s => { map[s.id] = s; });
+    return map;
+  }, [services]);
+
+  if (proposals.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-8 text-center">
         <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
@@ -15,40 +27,7 @@ export default function ClientProposalView({ proposals = [], proposal, client, s
     );
   }
 
-  // Calculate total across all proposals
   const totalAmount = proposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
-
-
-
-  // Build a lookup map from the live Service entity data
-  const serviceMap = React.useMemo(() => {
-    const map = {};
-    services.forEach(s => { map[s.id] = s; });
-    return map;
-  }, [services]);
-
-  const getServiceDetails = (key) => serviceMap[key] || null;
-
-  const categoryIcons = {
-    workshops: Award,
-    challengePrograms: Dumbbell,
-    leadership: Users,
-    movementClasses: Dumbbell
-  };
-
-  const categoryLabels = {
-    workshops: 'Workshops',
-    challengePrograms: '14-Day Challenges',
-    leadership: 'Leadership Programs',
-    movementClasses: 'Movement & Mindfulness Classes'
-  };
-
-  const categoryColors = {
-    workshops: '#264d44',
-    challengePrograms: '#ff9878',
-    leadership: '#770142',
-    movementClasses: '#013f7c'
-  };
 
   return (
     <div className="space-y-6">
@@ -57,12 +36,8 @@ export default function ClientProposalView({ proposals = [], proposal, client, s
         <CardHeader className="pb-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <CardTitle className="text-2xl" style={{ color: '#013f7c' }}>
-                Your Wellness Programming
-              </CardTitle>
-              <p className="text-gray-500 mt-1">
-                Total Programming Investment
-              </p>
+              <CardTitle className="text-2xl" style={{ color: '#013f7c' }}>Your Wellness Programming</CardTitle>
+              <p className="text-gray-500 mt-1">Total Programming Investment</p>
             </div>
             <div className="text-3xl font-bold" style={{ color: '#770142' }}>
               ${totalAmount.toLocaleString()}
@@ -71,31 +46,25 @@ export default function ClientProposalView({ proposals = [], proposal, client, s
         </CardHeader>
       </Card>
 
-      {/* Proposals grouped */}
-      {proposals.map((proposal) => {
-        const selections = proposal.selections || {};
-        
+      {proposals.map((p) => {
+        const selections = p.selections || {};
+
         return (
-          <Card key={proposal.id} className="border-2" style={{ borderColor: '#264d44' }}>
+          <Card key={p.id} className="border-2" style={{ borderColor: '#264d44' }}>
             <CardHeader className="pb-4" style={{ backgroundColor: '#264d4410' }}>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-lg" style={{ color: '#264d44' }}>
-                    Program Created: {new Date(proposal.created_date).toLocaleDateString()}
-                  </CardTitle>
-                  {proposal.narrative_summary && (
-                    <p className="text-gray-700 mt-2 leading-relaxed">{proposal.narrative_summary}</p>
-                  )}
-                </div>
-              </div>
+              <CardTitle className="text-lg" style={{ color: '#264d44' }}>
+                Program Created: {new Date(p.created_date).toLocaleDateString()}
+              </CardTitle>
+              {p.narrative_summary && (
+                <p className="text-gray-700 mt-2 leading-relaxed">{p.narrative_summary}</p>
+              )}
             </CardHeader>
             <CardContent className="pt-4">
               <div className="space-y-4">
-                {/* Services */}
+                {/* Services by category */}
                 {['workshops', 'challengePrograms', 'leadership', 'movementClasses'].map(category => {
                   const items = selections[category] || [];
                   if (items.length === 0) return null;
-
                   const Icon = categoryIcons[category];
                   const color = categoryColors[category];
 
@@ -107,21 +76,20 @@ export default function ClientProposalView({ proposals = [], proposal, client, s
                       </h3>
                       <div className="space-y-3 ml-7">
                         {items.map(key => {
-                          const service = getServiceDetails(key);
-                          if (!service) return (
-                            <div key={key} className="border rounded-lg p-4 bg-gray-50">
-                              <h4 className="font-semibold text-gray-800">{key}</h4>
-                            </div>
-                          );
-
+                          const service = serviceMap[key];
                           return (
                             <div key={key} className="border rounded-lg p-4 bg-gray-50">
-                              <h4 className="font-semibold text-gray-800 mb-1">{service.name}</h4>
-                              <p className="text-gray-600 text-sm leading-relaxed">{service.description}</p>
-                              {service.duration && (
-                                <p className="text-sm text-gray-500 mt-2">
-                                  <strong>Duration:</strong> {service.duration}
-                                </p>
+                              <h4 className="font-semibold text-gray-800 mb-1">
+                                {service ? service.name : key}
+                              </h4>
+                              {service?.short_description && (
+                                <p className="text-gray-600 text-sm leading-relaxed">{service.short_description}</p>
+                              )}
+                              {service?.description && !service?.short_description && (
+                                <p className="text-gray-600 text-sm leading-relaxed">{service.description}</p>
+                              )}
+                              {service?.duration && (
+                                <p className="text-sm text-gray-500 mt-2"><strong>Duration:</strong> {service.duration}</p>
                               )}
                             </div>
                           );
@@ -132,43 +100,26 @@ export default function ClientProposalView({ proposals = [], proposal, client, s
                 })}
 
                 {/* Wellness Boxes */}
-                {(selections.sampleBoxQuantities || selections.wellnessBoxes || selections.customBoxQuantity > 0) && (
-                  <div>
-                    <h3 className="flex items-center gap-2 font-semibold mb-3" style={{ color: '#264d44' }}>
-                      <Package className="w-5 h-5" />
-                      Wellness Boxes
-                    </h3>
-                    <div className="space-y-2 ml-7">
-                      {(() => {
-                        const boxes = selections.sampleBoxQuantities || selections.wellnessBoxes || {};
-                        return (
-                          <>
-                            {boxes.reduceStress > 0 && (
-                              <div className="p-3 bg-gray-50 rounded-lg">
-                                <span>Reduce Stress Boxes ({boxes.reduceStress})</span>
-                              </div>
-                            )}
-                            {boxes.relaxationSleep > 0 && (
-                              <div className="p-3 bg-gray-50 rounded-lg">
-                                <span>Relaxation & Sleep Boxes ({boxes.relaxationSleep})</span>
-                              </div>
-                            )}
-                            {boxes.largeEmotional > 0 && (
-                              <div className="p-3 bg-gray-50 rounded-lg">
-                                <span>Large Emotional Wellness Boxes ({boxes.largeEmotional})</span>
-                              </div>
-                            )}
-                            {boxes.largeStressReduction > 0 && (
-                              <div className="p-3 bg-gray-50 rounded-lg">
-                                <span>Large Stress Reduction Boxes ({boxes.largeStressReduction})</span>
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
+                {(() => {
+                  const boxes = selections.sampleBoxQuantities || selections.wellnessBoxes || {};
+                  const hasBoxes = Object.values(boxes).some(v => v > 0) || selections.customBoxQuantity > 0;
+                  if (!hasBoxes) return null;
+                  return (
+                    <div>
+                      <h3 className="flex items-center gap-2 font-semibold mb-3" style={{ color: '#264d44' }}>
+                        <Package className="w-5 h-5" />
+                        Wellness Boxes
+                      </h3>
+                      <div className="space-y-2 ml-7">
+                        {boxes.reduceStress > 0 && <div className="p-3 bg-gray-50 rounded-lg">Reduce Stress Boxes ({boxes.reduceStress})</div>}
+                        {boxes.relaxationSleep > 0 && <div className="p-3 bg-gray-50 rounded-lg">Relaxation & Sleep Boxes ({boxes.relaxationSleep})</div>}
+                        {boxes.largeEmotional > 0 && <div className="p-3 bg-gray-50 rounded-lg">Large Emotional Wellness Boxes ({boxes.largeEmotional})</div>}
+                        {boxes.largeStressReduction > 0 && <div className="p-3 bg-gray-50 rounded-lg">Large Stress Reduction Boxes ({boxes.largeStressReduction})</div>}
+                        {selections.customBoxQuantity > 0 && <div className="p-3 bg-gray-50 rounded-lg">Custom Wellness Boxes ({selections.customBoxQuantity})</div>}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             </CardContent>
           </Card>
