@@ -38,6 +38,8 @@ export default function ViewProposal() {
         
         const result = await response.json();
         console.log('Proposal data received:', result);
+        console.log('Services count:', result.services?.length);
+        console.log('First service:', result.services?.[0]);
         setData(result);
       } catch (err) {
         console.error('Error fetching proposal:', err);
