@@ -1,11 +1,10 @@
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, DollarSign, CheckCircle, Clock, Award, Dumbbell, Users, Package } from 'lucide-react';
-import { productCatalog } from '@/components/curriculum/catalogData';
-import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
+import { FileText, Award, Dumbbell, Users, Package } from 'lucide-react';
 
-export default function ClientProposalView({ proposals = [], client }) {
+export default function ClientProposalView({ proposals = [], proposal, client, services = [] }) {
+  // Accept either a single proposal or an array
+  if (proposal && proposals.length === 0) proposals = [proposal];
   if (!proposals || proposals.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-8 text-center">
