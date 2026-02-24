@@ -54,6 +54,7 @@ export default function ViewProposal() {
   const client = data?.client;
   const events = data?.events || [];
   const templates = data?.templates || [];
+  const services = data?.services || [];
 
   if (!proposalId) {
     return (
