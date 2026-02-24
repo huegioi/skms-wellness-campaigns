@@ -175,7 +175,7 @@ export default function ClientPortal() {
           </TabsList>
 
           <TabsContent value="proposal">
-            <ClientProposalView proposals={proposals} client={client} />
+            <ClientProposalView proposals={proposals} client={client} services={services} />
           </TabsContent>
 
           <TabsContent value="timeline">
