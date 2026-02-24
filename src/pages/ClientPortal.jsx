@@ -83,6 +83,12 @@ export default function ClientPortal() {
     queryFn: () => base44.entities.EmailTemplate.list()
   });
 
+  // Get services for resolving IDs to names/descriptions
+  const { data: services = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => base44.entities.Service.list('sort_order')
+  });
+
   if (clientLoading) {
     return (
       <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
