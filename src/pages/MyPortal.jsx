@@ -160,7 +160,7 @@ export default function MyPortal() {
             </TabsList>
 
             <TabsContent value="proposal">
-              <ClientProposalView proposal={acceptedProposal} client={client} />
+              <ClientProposalView proposal={acceptedProposal} client={client} services={services} />
             </TabsContent>
 
             <TabsContent value="timeline">
