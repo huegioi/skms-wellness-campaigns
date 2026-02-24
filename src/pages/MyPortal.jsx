@@ -40,6 +40,12 @@ export default function MyPortal() {
 
   const acceptedProposal = proposals.find(p => p.status === 'accepted') || proposals[0];
 
+  // Get services for resolving IDs to names/descriptions
+  const { data: services = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => base44.entities.Service.list('sort_order')
+  });
+
   // Get events for this client (filter by client_id OR client_name)
   const { data: events = [] } = useQuery({
     queryKey: ['portalEvents', client?.id, client?.name],
