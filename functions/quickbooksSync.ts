@@ -47,10 +47,27 @@ async function getAccessToken() {
 
   const data = await response.json();
   
-  // Cache the token (expires in 3600 seconds = 1 hour, refresh 5 min early for safety)
+  // Cache the access token (expires in 3600 seconds = 1 hour, refresh 5 min early for safety)
   cachedAccessToken = data.access_token;
   tokenExpiresAt = Date.now() + ((data.expires_in || 3600) - 300) * 1000;
-  
+
+  // CRITICAL: QuickBooks rotates refresh tokens on every use.
+  // The old refresh token is immediately invalidated. We must persist the new one.
+  if (data.refresh_token) {
+    const appId = Deno.env.get('BASE44_APP_ID');
+    const apiKey = Deno.env.get('BASE44_API_KEY');
+    if (appId && apiKey) {
+      await fetch(`https://api.base44.com/api/apps/${appId}/secrets`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey
+        },
+        body: JSON.stringify({ name: 'QUICKBOOKS_REFRSH_TOKEN', value: data.refresh_token })
+      });
+    }
+  }
+
   return cachedAccessToken;
 }
 
