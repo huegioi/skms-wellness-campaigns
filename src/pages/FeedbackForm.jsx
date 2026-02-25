@@ -193,24 +193,23 @@ export default function FeedbackForm() {
   );
 }
 
-function getPurchasedServiceNames(proposals = []) {
+function getPurchasedServiceNames(proposals = [], allServices = []) {
   const names = [];
-  const catalogMap = {
-    workshops: productCatalog.workshops,
-    challengePrograms: productCatalog.challenges,
-    leadership: productCatalog.leadership,
-    movementClasses: productCatalog.movementClasses
-  };
+  const serviceMap = {};
+  allServices.forEach(s => { serviceMap[s.id] = s.name; });
+
   proposals.forEach(proposal => {
     const sel = proposal?.selections;
     if (!sel) return;
     ['workshops', 'challengePrograms', 'leadership', 'movementClasses'].forEach(category => {
       const items = sel[category];
       if (!Array.isArray(items)) return;
-      items.forEach(key => {
-        const service = catalogMap[category]?.[key];
-        if (service?.name) names.push(service.name);
-        else if (typeof key === 'string') names.push(key);
+      items.forEach(id => {
+        if (serviceMap[id]) {
+          names.push(serviceMap[id]);
+        } else if (typeof id === 'string') {
+          names.push(id);
+        }
       });
     });
   });
