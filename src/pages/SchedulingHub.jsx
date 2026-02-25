@@ -868,47 +868,67 @@ export default function SchedulingHub() {
 
       {/* Book Service Dialog */}
       <Dialog open={bookServiceDialogOpen} onOpenChange={setBookServiceDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Book Service from Invoice</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-[#013f7c] to-[#264d44] p-6 rounded-t-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                <FileText className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-white text-xl font-bold">Book Service from Invoice</DialogTitle>
+                <p className="text-white/70 text-sm mt-0.5">Schedule a service linked to an existing invoice</p>
+              </div>
+            </div>
+          </div>
 
-          <div className="space-y-4">
-            {/* Invoice Selection */}
-            <div>
-              <Label>Select Invoice</Label>
+          <div className="p-6 space-y-5">
+            {/* Step 1 - Invoice Selection */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-6 h-6 rounded-full bg-[#013f7c] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</div>
+                <h3 className="font-semibold text-gray-800">Select Invoice</h3>
+              </div>
               <Select value={selectedInvoiceId} onValueChange={handleInvoiceSelect}>
-                <SelectTrigger>
+                <SelectTrigger className="border-gray-200 bg-gray-50 focus:bg-white transition-colors">
                   <SelectValue placeholder="Choose an invoice..." />
                 </SelectTrigger>
                 <SelectContent>
                   {invoices.map(invoice => (
                     <SelectItem key={invoice.id} value={invoice.id}>
-                      {invoice.invoice_number || `Invoice #${invoice.id.slice(0, 8)}`} - {invoice.client_name || invoice.company} - ${invoice.total_amount}
+                      {invoice.invoice_number || `Invoice #${invoice.id.slice(0, 8)}`} — {invoice.client_name || invoice.company} — ${invoice.total_amount?.toLocaleString()}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Line Items Selection */}
+            {/* Step 2 - Line Items */}
             {selectedInvoice && selectedInvoice.line_items && selectedInvoice.line_items.length > 0 && (
-              <div>
-                <Label>Select Service</Label>
-                <div className="space-y-2 mt-2">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 rounded-full bg-[#013f7c] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</div>
+                  <h3 className="font-semibold text-gray-800">Select Service</h3>
+                </div>
+                <div className="space-y-2">
                   {selectedInvoice.line_items.map((item, idx) => (
                     <div
                       key={idx}
                       onClick={() => handleLineItemSelect(item)}
-                      className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                        selectedLineItem === item 
-                          ? 'border-[#264d44] bg-[#264d44]/5' 
-                          : 'border-gray-200 hover:border-[#264d44]/50'
+                      className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                        selectedLineItem === item
+                          ? 'border-[#264d44] bg-[#264d44]/5 shadow-sm'
+                          : 'border-gray-100 bg-gray-50 hover:border-[#264d44]/40 hover:bg-white'
                       }`}
                     >
-                      <div className="font-medium">{item.description || item.name || 'Service'}</div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        Qty: {item.quantity || 1} × ${item.rate || 0} = ${item.amount || 0}
+                      <div className="flex items-center justify-between">
+                        <div className="font-semibold text-gray-800">{item.description || item.name || 'Service'}</div>
+                        <div className={`text-sm font-bold px-2 py-0.5 rounded-full ${selectedLineItem === item ? 'bg-[#264d44] text-white' : 'bg-gray-200 text-gray-600'}`}>
+                          ${(item.amount || 0).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="text-sm text-gray-500 mt-1">
+                        Qty: {item.quantity || 1} × ${item.rate || 0}
                       </div>
                     </div>
                   ))}
@@ -916,110 +936,127 @@ export default function SchedulingHub() {
               </div>
             )}
 
-            {/* Booking Form */}
+            {/* Step 3 - Booking Form */}
             {selectedLineItem && (
-              <>
-                <div>
-                  <Label>Event Title</Label>
-                  <Input
-                    value={bookingForm.title}
-                    onChange={(e) => setBookingForm(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Enter event title"
-                  />
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-6 h-6 rounded-full bg-[#013f7c] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</div>
+                  <h3 className="font-semibold text-gray-800">Event Details</h3>
                 </div>
 
-                <div>
-                  <Label>Description</Label>
-                  <Textarea
-                    value={bookingForm.description}
-                    onChange={(e) => setBookingForm(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Event description..."
-                    rows={3}
-                  />
-                </div>
+                <div className="bg-gray-50 rounded-xl p-4 space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="sm:col-span-2">
+                      <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Event Title</Label>
+                      <Input
+                        value={bookingForm.title}
+                        onChange={(e) => setBookingForm(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="Enter event title"
+                        className="mt-1 bg-white"
+                      />
+                    </div>
 
-                <div>
-                  <Label>Client Name</Label>
-                  <Input
-                    value={bookingForm.client_name}
-                    onChange={(e) => setBookingForm(prev => ({ ...prev, client_name: e.target.value }))}
-                    placeholder="Client name"
-                  />
-                </div>
+                    <div className="sm:col-span-2">
+                      <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Client Name</Label>
+                      <Input
+                        value={bookingForm.client_name}
+                        onChange={(e) => setBookingForm(prev => ({ ...prev, client_name: e.target.value }))}
+                        placeholder="Client name"
+                        className="mt-1 bg-white"
+                      />
+                    </div>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Start Date</Label>
+                  <div className="border-t border-gray-200 pt-4">
+                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">Date & Time</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <Label className="text-xs text-gray-500">Start Date</Label>
+                        <Input
+                          type="date"
+                          value={bookingForm.start_date}
+                          onChange={(e) => setBookingForm(prev => ({ ...prev, start_date: e.target.value }))}
+                          className="mt-1 bg-white"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500">Start Time</Label>
+                        <Input
+                          type="time"
+                          value={bookingForm.start_time}
+                          onChange={(e) => setBookingForm(prev => ({ ...prev, start_time: e.target.value }))}
+                          className="mt-1 bg-white"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500">End Date <span className="text-gray-400">(optional)</span></Label>
+                        <Input
+                          type="date"
+                          value={bookingForm.end_date}
+                          onChange={(e) => setBookingForm(prev => ({ ...prev, end_date: e.target.value }))}
+                          className="mt-1 bg-white"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-gray-500">End Time <span className="text-gray-400">(optional)</span></Label>
+                        <Input
+                          type="time"
+                          value={bookingForm.end_time}
+                          onChange={(e) => setBookingForm(prev => ({ ...prev, end_time: e.target.value }))}
+                          className="mt-1 bg-white"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                      <input
+                        type="checkbox"
+                        id="all_day"
+                        checked={bookingForm.all_day}
+                        onChange={(e) => setBookingForm(prev => ({ ...prev, all_day: e.target.checked }))}
+                        className="rounded w-4 h-4 accent-[#264d44]"
+                      />
+                      <Label htmlFor="all_day" className="cursor-pointer text-sm text-gray-700">All-day event</Label>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-200 pt-4">
+                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</Label>
                     <Input
-                      type="date"
-                      value={bookingForm.start_date}
-                      onChange={(e) => setBookingForm(prev => ({ ...prev, start_date: e.target.value }))}
+                      value={bookingForm.location}
+                      onChange={(e) => setBookingForm(prev => ({ ...prev, location: e.target.value }))}
+                      placeholder="Event location or meeting link"
+                      className="mt-1 bg-white"
                     />
                   </div>
-                  <div>
-                    <Label>Start Time</Label>
-                    <Input
-                      type="time"
-                      value={bookingForm.start_time}
-                      onChange={(e) => setBookingForm(prev => ({ ...prev, start_time: e.target.value }))}
+
+                  <div className="border-t border-gray-200 pt-4">
+                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</Label>
+                    <Textarea
+                      value={bookingForm.description}
+                      onChange={(e) => setBookingForm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Event description..."
+                      rows={3}
+                      className="mt-1 bg-white resize-none"
                     />
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>End Date (optional)</Label>
-                    <Input
-                      type="date"
-                      value={bookingForm.end_date}
-                      onChange={(e) => setBookingForm(prev => ({ ...prev, end_date: e.target.value }))}
-                    />
-                  </div>
-                  <div>
-                    <Label>End Time (optional)</Label>
-                    <Input
-                      type="time"
-                      value={bookingForm.end_time}
-                      onChange={(e) => setBookingForm(prev => ({ ...prev, end_time: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Location</Label>
-                  <Input
-                    value={bookingForm.location}
-                    onChange={(e) => setBookingForm(prev => ({ ...prev, location: e.target.value }))}
-                    placeholder="Event location or meeting link"
-                  />
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="all_day"
-                    checked={bookingForm.all_day}
-                    onChange={(e) => setBookingForm(prev => ({ ...prev, all_day: e.target.checked }))}
-                    className="rounded"
-                  />
-                  <Label htmlFor="all_day" className="cursor-pointer">All-day event</Label>
-                </div>
-              </>
+              </div>
             )}
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBookServiceDialogOpen(false)}>
+          <div className="px-6 pb-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
+            <Button variant="outline" onClick={() => setBookServiceDialogOpen(false)} className="px-5">
               Cancel
             </Button>
             <Button
               onClick={handleBookService}
               disabled={!selectedLineItem || !bookingForm.title || !bookingForm.start_date || bookServiceMutation.isPending}
-              className="bg-[#264d44] hover:bg-[#1a3830]"
+              className="bg-[#264d44] hover:bg-[#1a3830] px-6"
             >
+              <Calendar className="w-4 h-4 mr-2" />
               {bookServiceMutation.isPending ? 'Booking...' : 'Book Service'}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
