@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { productCatalog } from '@/components/curriculum/catalogData';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
