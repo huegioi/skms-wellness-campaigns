@@ -34,8 +34,14 @@ export default function FeedbackForm() {
     enabled: !!prefilledClientId
   });
 
-  // Build purchased service names from proposals (same logic as portal)
-  const purchasedNames = getPurchasedServiceNames(clientProposals);
+  // Fetch all services for name lookup
+  const { data: allServices = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => base44.entities.Service.list()
+  });
+
+  // Build purchased service names from proposals using live Service entities
+  const purchasedNames = getPurchasedServiceNames(clientProposals, allServices);
   const filteredSurveys = purchasedNames.length > 0
     ? surveys.filter(s => purchasedNames.some(name =>
         s.service_name.toLowerCase().includes(name.toLowerCase()) ||
