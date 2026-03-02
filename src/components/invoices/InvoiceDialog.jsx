@@ -406,7 +406,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
                   <div className="space-y-2">
                     <Input
                       placeholder="Item Name"
-                      value={item.name || item.description || ''}
+                      value={item.name || ''}
                       onChange={(e) => updateLineItem(idx, 'name', e.target.value)}
                       className="font-semibold"
                       disabled={isReadOnly}
