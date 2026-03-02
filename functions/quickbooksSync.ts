@@ -57,7 +57,7 @@ async function getAccessToken() {
     const appId = Deno.env.get('BASE44_APP_ID');
     const apiKey = Deno.env.get('BASE44_API_KEY');
     if (appId && apiKey) {
-      await fetch(`https://api.base44.com/api/apps/${appId}/secrets`, {
+      const saveResponse = await fetch(`https://api.base44.com/api/apps/${appId}/secrets`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -65,6 +65,16 @@ async function getAccessToken() {
         },
         body: JSON.stringify({ name: 'QUICKBOOKS_REFRSH_TOKEN', value: data.refresh_token })
       });
+      if (!saveResponse.ok) {
+        const saveError = await saveResponse.text();
+        console.error('CRITICAL: Failed to save new refresh token:', saveError);
+        throw new Error(`Token rotated by QuickBooks but failed to save new token: ${saveError}. Old token is now invalid.`);
+      } else {
+        console.log('New QuickBooks refresh token saved successfully.');
+      }
+    } else {
+      console.error('CRITICAL: BASE44_APP_ID or BASE44_API_KEY not set - cannot save rotated refresh token!');
+      throw new Error('Cannot save rotated refresh token: BASE44_APP_ID or BASE44_API_KEY not configured.');
     }
   }
 
