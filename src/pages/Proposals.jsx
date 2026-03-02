@@ -10,7 +10,6 @@ import {
   FileText, Calendar, DollarSign, Copy, Pencil, Trash2, 
   ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock, Bell, Mail, Link2, Search, Download
 } from 'lucide-react';
-import { productCatalog } from '@/components/curriculum/catalogData';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import SendProposalDialog from '@/components/proposals/SendProposalDialog';
@@ -41,6 +40,11 @@ export default function Proposals() {
     queryFn: () => base44.entities.Client.list()
   });
 
+  const { data: services = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => base44.entities.Service.list()
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }) => base44.entities.Proposal.update(id, { status }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['proposals'] })
@@ -53,22 +57,19 @@ export default function Proposals() {
 
   const downloadProposalPDF = (proposal) => {
     const sel = proposal.selections || {};
-    const getEnrichedName = (category, key) => {
-      const dataKeyMap = { workshops: 'workshopsData', challengePrograms: 'challengeProgramsData', leadership: 'leadershipData', movementClasses: 'movementClassesData' };
-      const catMap = { workshops: 'workshops', challengePrograms: 'challenges', leadership: 'leadership', movementClasses: 'movementClasses' };
-      const enriched = (sel[dataKeyMap[category]] || []).find(s => s.id === key);
-      if (enriched) return { name: enriched.name, description: enriched.description, price: enriched.price };
-      const staticItem = productCatalog[catMap[category]]?.[key];
-      return staticItem ? { name: staticItem.name, description: staticItem.description, price: staticItem.price } : { name: key, description: '', price: 0 };
-    };
+    const priceOverrides = sel.priceOverrides || {};
+    
+    // Build service lookup map
+    const serviceMap = {};
+    services.forEach(s => { serviceMap[s.id] = s; });
 
     const renderSection = (title, items, category) => {
       if (!items?.length) return '';
-      return `<div class="section"><div class="section-title">${title} (${items.length})</div>${items.map(key => {
-        const { name, description, price } = getEnrichedName(category, key);
-        const overrideKey = `${category}_${key}`;
-        const finalPrice = sel.priceOverrides?.[overrideKey] ?? price ?? 0;
-        return `<div class="item"><div class="item-title">${name}</div><div class="item-price">$${Number(finalPrice).toLocaleString()}</div>${description ? `<div class="item-description">${description}</div>` : ''}</div>`;
+      return `<div class="section"><div class="section-title">${title} (${items.length})</div>${items.map(serviceId => {
+        const service = serviceMap[serviceId];
+        if (!service) return '';
+        const price = priceOverrides[serviceId] ?? service.price ?? 0;
+        return `<div class="item"><div class="item-title">${service.name}</div><div class="item-price">$${Number(price).toLocaleString()}</div>${service.description ? `<div class="item-description">${service.description}</div>` : ''}</div>`;
       }).join('')}</div>`;
     };
 

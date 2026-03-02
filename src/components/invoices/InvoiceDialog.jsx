@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Trash2, Save } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { productCatalog } from '@/components/curriculum/catalogData';
 
 export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clients }) {
   const [formData, setFormData] = useState({
@@ -31,6 +30,11 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
     queryKey: ['proposals'],
     queryFn: () => base44.entities.Proposal.list('-created_date'),
     enabled: mode === 'create'
+  });
+
+  const { data: services = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => base44.entities.Service.list()
   });
 
   useEffect(() => {
@@ -80,19 +84,25 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
     const lineItems = [];
     const selections = proposal.selections || {};
     const invoicedItems = proposal.invoiced_items || [];
+    const priceOverrides = selections.priceOverrides || {};
     
-    // Add workshops (stored as array)
+    // Build service lookup map
+    const serviceMap = {};
+    services.forEach(s => { serviceMap[s.id] = s; });
+    
+    // Add workshops
     if (Array.isArray(selections.workshops)) {
-      selections.workshops.forEach(workshopKey => {
-        const catalogItem = productCatalog.workshops[workshopKey];
-        if (catalogItem) {
-          const itemId = `workshop_${workshopKey}`;
+      selections.workshops.forEach(serviceId => {
+        const service = serviceMap[serviceId];
+        if (service) {
+          const itemId = `workshop_${serviceId}`;
+          const price = priceOverrides[serviceId] ?? service.price ?? 0;
           lineItems.push({
-            name: catalogItem.name,
-            description: catalogItem.description,
+            name: service.name,
+            description: service.description || '',
             quantity: 1,
-            rate: catalogItem.price,
-            amount: catalogItem.price,
+            rate: price,
+            amount: price,
             proposal_item_id: itemId,
             already_invoiced: invoicedItems.includes(itemId)
           });
@@ -100,19 +110,19 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
       });
     }
 
-    // Add challenge programs (stored as array)
+    // Add challenge programs
     if (Array.isArray(selections.challengePrograms)) {
-      const challengePrice = selections.challengePrice || 4500;
-      selections.challengePrograms.forEach(challengeKey => {
-        const catalogItem = productCatalog.challenges[challengeKey];
-        if (catalogItem) {
-          const itemId = `challenge_${challengeKey}`;
+      selections.challengePrograms.forEach(serviceId => {
+        const service = serviceMap[serviceId];
+        if (service) {
+          const itemId = `challenge_${serviceId}`;
+          const price = priceOverrides[serviceId] ?? service.price ?? 0;
           lineItems.push({
-            name: `${catalogItem.name} (${catalogItem.duration})`,
-            description: catalogItem.description,
+            name: service.name,
+            description: service.description || '',
             quantity: 1,
-            rate: challengePrice,
-            amount: challengePrice,
+            rate: price,
+            amount: price,
             proposal_item_id: itemId,
             already_invoiced: invoicedItems.includes(itemId)
           });
@@ -120,18 +130,19 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
       });
     }
 
-    // Add leadership programs (stored as array)
+    // Add leadership programs
     if (Array.isArray(selections.leadership)) {
-      selections.leadership.forEach(leadershipKey => {
-        const catalogItem = productCatalog.leadership[leadershipKey];
-        if (catalogItem) {
-          const itemId = `leadership_${leadershipKey}`;
+      selections.leadership.forEach(serviceId => {
+        const service = serviceMap[serviceId];
+        if (service) {
+          const itemId = `leadership_${serviceId}`;
+          const price = priceOverrides[serviceId] ?? service.price ?? 0;
           lineItems.push({
-            name: catalogItem.name,
-            description: catalogItem.description,
+            name: service.name,
+            description: service.description || '',
             quantity: 1,
-            rate: catalogItem.price,
-            amount: catalogItem.price,
+            rate: price,
+            amount: price,
             proposal_item_id: itemId,
             already_invoiced: invoicedItems.includes(itemId)
           });
@@ -139,18 +150,19 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
       });
     }
 
-    // Add movement classes (stored as array)
+    // Add movement classes
     if (Array.isArray(selections.movementClasses)) {
-      selections.movementClasses.forEach(classKey => {
-        const catalogItem = productCatalog.movementClasses[classKey];
-        if (catalogItem) {
-          const itemId = `class_${classKey}`;
+      selections.movementClasses.forEach(serviceId => {
+        const service = serviceMap[serviceId];
+        if (service) {
+          const itemId = `class_${serviceId}`;
+          const price = priceOverrides[serviceId] ?? service.price ?? 0;
           lineItems.push({
-            name: `${catalogItem.name} (${catalogItem.duration})`,
-            description: catalogItem.description,
+            name: service.name,
+            description: service.description || '',
             quantity: 1,
-            rate: catalogItem.price,
-            amount: catalogItem.price,
+            rate: price,
+            amount: price,
             proposal_item_id: itemId,
             already_invoiced: invoicedItems.includes(itemId)
           });
@@ -163,26 +175,29 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
       const boxPrices = {
         reduceStress: 65,
         relaxationSleep: 65,
-        largeEmotional: 100,
-        largeStressReduction: 100
+        largeEmotional: 125,
+        largeStressReduction: 125
+      };
+      const boxNames = {
+        reduceStress: 'Reduce Stress Box',
+        relaxationSleep: 'Relaxation & Sleep Box',
+        largeEmotional: 'Large Emotional Wellness Box',
+        largeStressReduction: 'Large Stress Reduction Box'
       };
       
       Object.entries(selections.sampleBoxQuantities).forEach(([key, quantity]) => {
         if (quantity > 0) {
-          const catalogItem = productCatalog.wellnessBoxes[key];
-          if (catalogItem) {
-            const itemId = `box_${key}`;
-            const price = boxPrices[key] || 65;
-            lineItems.push({
-              name: catalogItem.name,
-              description: catalogItem.description,
-              quantity: quantity,
-              rate: price,
-              amount: price * quantity,
-              proposal_item_id: itemId,
-              already_invoiced: invoicedItems.includes(itemId)
-            });
-          }
+          const itemId = `box_${key}`;
+          const price = boxPrices[key] || 65;
+          lineItems.push({
+            name: boxNames[key] || key,
+            description: '',
+            quantity: quantity,
+            rate: price,
+            amount: price * quantity,
+            proposal_item_id: itemId,
+            already_invoiced: invoicedItems.includes(itemId)
+          });
         }
       });
     }
@@ -193,7 +208,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
         const itemId = `custom_${idx}`;
         lineItems.push({
           name: charge.label || 'Custom Charge',
-          description: charge.label || '',
+          description: '',
           quantity: 1,
           rate: charge.amount,
           amount: charge.amount,
