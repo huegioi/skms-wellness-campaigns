@@ -642,7 +642,7 @@ export default function Invoices() {
                       {selectedInvoice.invoice.line_items.map((item, idx) => (
                         <div key={idx} className="bg-gray-50 rounded p-3">
                           <div className="flex justify-between items-start mb-1">
-                            <span className="font-medium text-gray-800">{item.description}</span>
+                            <span className="font-medium text-gray-800">{item.name || item.description}</span>
                             <span className="font-semibold">${item.amount?.toLocaleString()}</span>
                           </div>
                           <div className="text-sm text-gray-600">
