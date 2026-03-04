@@ -15,10 +15,17 @@ export default function CompanySearch({ sheets, onAddToCalendar, addingToCalenda
     const results = [];
     sheets.forEach(sheet => {
       sheet.data.forEach(row => {
-        const clientVal = (
-          row['Client'] || row['Payee'] || row['Company'] ||
-          row['CLIENT'] || row['client'] || row['PAYEE'] || row['COMPANY'] || ''
-        ).toLowerCase();
+        const findVal = (row, ...keywords) => {
+          for (const [key, value] of Object.entries(row)) {
+            const keyLower = key.toLowerCase().trim();
+            if (keywords.some(kw => keyLower === kw || keyLower.includes(kw)) && value && value.trim() !== '') {
+              return value;
+            }
+          }
+          return '';
+        };
+
+        const clientVal = findVal(row, 'client', 'payee', 'company').toLowerCase();
 
         if (!clientVal.includes(query)) return;
 
