@@ -868,9 +868,6 @@ export default function SchedulingHub() {
             <span>Auto-refreshing every 30 seconds</span>
           </div>
         </div>
-
-        {/* Company Search Section */}
-        <CompanySearch sheets={sheets} onAddToCalendar={addSheetEventToAppCalendar} addingToCalendar={addingToCalendar} />
       </div>
 
       {/* Book Service Dialog */}
