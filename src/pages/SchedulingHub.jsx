@@ -234,13 +234,24 @@ export default function SchedulingHub() {
             }
           }
           
+          // Case-insensitive lookup helper
+          const findVal = (row, ...keywords) => {
+            for (const [key, value] of Object.entries(row)) {
+              const keyLower = key.toLowerCase().trim();
+              if (keywords.some(kw => keyLower === kw || keyLower.includes(kw)) && value && value.trim() !== '') {
+                return value;
+              }
+            }
+            return '';
+          };
+
           events.push({
             date: eventDate,
             title,
-            client: row['Client'] || row['Payee'] || row['Company'] || row['CLIENT'] || row['client'] || row['PAYEE'] || '',
-            location: row['Location'] || row['LOCATION'] || row['location'] || row['Venue'] || row['VENUE'] || '',
-            time: row['Time'] || row['TIME'] || row['time'] || '',
-            presenter: row['Presenter'] || row['PRESENTER'] || row['presenter'] || '',
+            client: findVal(row, 'client', 'payee', 'company'),
+            location: findVal(row, 'location', 'venue', 'place', 'address'),
+            time: findVal(row, 'time'),
+            presenter: findVal(row, 'presenter', 'facilitator', 'speaker'),
             linkToHost: row['Link to Host Video'] || row['Link To Host Video'] || row['link to host video'] || row['LINK TO HOST VIDEO'] || '',
             recording: row['Recording'] || row['RECORDING'] || row['recording'] || row['Need Recording'] || row['NEED RECORDING'] || '',
             translation: row['Translation'] || row['TRANSLATION'] || row['translation'] || row['Need Translation'] || row['NEED TRANSLATION'] || '',
