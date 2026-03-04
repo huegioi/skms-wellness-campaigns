@@ -757,6 +757,9 @@ export default function SchedulingHub() {
           </div>
         )}
 
+        {/* Company Search Section */}
+        <CompanySearch sheets={sheets} onAddToCalendar={addSheetEventToAppCalendar} addingToCalendar={addingToCalendar} />
+
         {/* Sheets Tabs */}
         {sheets.length === 0 ? (
           <Card className="p-12 text-center">
