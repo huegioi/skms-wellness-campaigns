@@ -64,15 +64,15 @@ export default function CompanySearch({ sheets, onAddToCalendar, addingToCalenda
         }
 
         results.push({
-          date: eventDate,
-          title,
-          client: row['Client'] || row['Payee'] || row['Company'] || row['CLIENT'] || row['client'] || row['PAYEE'] || '',
-          location: row['Location'] || row['LOCATION'] || row['location'] || row['Venue'] || '',
-          time: row['Time'] || row['TIME'] || row['time'] || '',
-          presenter: row['Presenter'] || row['PRESENTER'] || row['presenter'] || '',
-          linkToHost: row['Link to Host Video'] || row['Link To Host Video'] || '',
-          recording: row['Recording'] || row['RECORDING'] || '',
-          translation: row['Translation'] || row['TRANSLATION'] || '',
+        date: eventDate,
+        title,
+        client: findVal(row, 'client', 'payee', 'company'),
+        location: findVal(row, 'location', 'venue', 'place', 'address'),
+        time: findVal(row, 'time'),
+        presenter: findVal(row, 'presenter', 'facilitator', 'speaker'),
+        linkToHost: findVal(row, 'link to host', 'host video', 'host link'),
+        recording: findVal(row, 'recording', 'need recording'),
+        translation: findVal(row, 'translation', 'need translation'),
           sheet: sheet.name,
           rawRow: row,
           source: 'sheet'
