@@ -252,9 +252,9 @@ export default function SchedulingHub() {
             location: findVal(row, 'location', 'venue', 'place', 'address'),
             time: findVal(row, 'time'),
             presenter: findVal(row, 'presenter', 'facilitator', 'speaker'),
-            linkToHost: row['Link to Host Video'] || row['Link To Host Video'] || row['link to host video'] || row['LINK TO HOST VIDEO'] || '',
-            recording: row['Recording'] || row['RECORDING'] || row['recording'] || row['Need Recording'] || row['NEED RECORDING'] || '',
-            translation: row['Translation'] || row['TRANSLATION'] || row['translation'] || row['Need Translation'] || row['NEED TRANSLATION'] || '',
+            linkToHost: findVal(row, 'link to host', 'host video', 'host link'),
+            recording: findVal(row, 'recording', 'need recording'),
+            translation: findVal(row, 'translation', 'need translation'),
             sheet: sheet.name,
             rawRow: row,
             source: 'sheet'
