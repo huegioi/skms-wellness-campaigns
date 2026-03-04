@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink, Plus, Pencil, Check, X, FileText, FileSpreadsheet, CheckCircle2, LayoutGrid, List, Filter } from 'lucide-react';
 import MonthlyCalendar from '@/components/scheduling/MonthlyCalendar';
 import WeeklyCalendar from '@/components/scheduling/WeeklyCalendar';
+import CompanySearch from '@/components/scheduling/CompanySearch';
 import EventDetailDialog from '@/components/calendar/EventDetailDialog';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
