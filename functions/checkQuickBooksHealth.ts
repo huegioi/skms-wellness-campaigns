@@ -80,6 +80,27 @@ Deno.serve(async (req) => {
     const tokenData = await tokenResponse.json();
     const accessToken = tokenData.access_token;
 
+    // CRITICAL: QuickBooks rotates the refresh token on every use. Save the new one immediately.
+    if (tokenData.refresh_token) {
+      const appId = Deno.env.get('BASE44_APP_ID');
+      const apiKey = Deno.env.get('BASE44_API_KEY');
+      if (appId && apiKey) {
+        const saveResp = await fetch(`https://api.base44.com/api/apps/${appId}/secrets`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+          body: JSON.stringify({ name: 'QUICKBOOKS_REFRSH_TOKEN', value: tokenData.refresh_token })
+        });
+        if (!saveResp.ok) {
+          const saveErr = await saveResp.text();
+          console.error('CRITICAL: Failed to save rotated refresh token:', saveErr);
+        } else {
+          console.log('Rotated refresh token saved successfully.');
+        }
+      } else {
+        console.error('CRITICAL: BASE44_APP_ID or BASE44_API_KEY missing - cannot save rotated refresh token!');
+      }
+    }
+
     // Test the connection with a simple API call
     const testResponse = await fetch(
       `https://quickbooks.api.intuit.com/v3/company/${realmId}/companyinfo/${realmId}`,
