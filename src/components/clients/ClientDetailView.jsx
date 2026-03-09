@@ -17,6 +17,7 @@ import {
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import TaskList from '@/components/tasks/TaskList';
+import GmailHistory from '@/components/clients/GmailHistory';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
