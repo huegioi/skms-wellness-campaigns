@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 import { ImapFlow } from 'npm:imapflow@1.0.162';
 
-const ACCOUNTS = [
+const IMAP_ACCOUNTS = [
   { email: 'admin@skillfulmeans.life', passwordEnv: 'GMAIL_ADMIN_PASSWORD' },
   { email: 'shrimi@skillfulmeans.life', passwordEnv: 'GMAIL_SHRIMI_PASSWORD' },
   { email: 'heather@skillfulmeans.life', passwordEnv: 'GMAIL_HEATHER_PASSWORD' },
@@ -12,7 +12,7 @@ function addrStr(addrs) {
   return addrs.map(a => a.name ? `${a.name} <${a.mailbox}@${a.host}>` : `${a.mailbox}@${a.host}`).join(', ');
 }
 
-async function fetchEmailsForAccount(accountEmail, password, clientEmail) {
+async function fetchViaImap(accountEmail, password, clientEmail) {
   const client = new ImapFlow({
     host: 'imap.gmail.com',
     port: 993,
@@ -34,7 +34,7 @@ async function fetchEmailsForAccount(accountEmail, password, clientEmail) {
 
       if (!uids || uids.length === 0) return emails;
 
-      const recentUids = uids.slice(-10); // last 10 per account
+      const recentUids = uids.slice(-10);
 
       for await (const msg of client.fetch(recentUids, { envelope: true, uid: true }, { uid: true })) {
         const fromStr = addrStr(msg.envelope.from);
@@ -63,6 +63,51 @@ async function fetchEmailsForAccount(accountEmail, password, clientEmail) {
   return emails;
 }
 
+async function fetchViaGmailApi(accessToken, clientEmail) {
+  const query = encodeURIComponent(`from:${clientEmail} OR to:${clientEmail}`);
+  const listRes = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=10`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  const listData = await listRes.json();
+  if (!listData.messages) return [];
+
+  const profileRes = await fetch(
+    `https://gmail.googleapis.com/gmail/v1/users/me/profile`,
+    { headers: { Authorization: `Bearer ${accessToken}` } }
+  );
+  const profile = await profileRes.json();
+  const accountEmail = profile.emailAddress || 'william@skillfulmeans.life';
+
+  const emails = [];
+  for (const { id } of listData.messages) {
+    const msgRes = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Subject&metadataHeaders=Date`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const msg = await msgRes.json();
+    const headers = msg.payload?.headers || [];
+    const get = (name) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+
+    const fromVal = get('From');
+    const isFromClient = fromVal.toLowerCase().includes(clientEmail.toLowerCase());
+
+    emails.push({
+      id: msg.id,
+      threadId: msg.threadId,
+      account: accountEmail,
+      subject: get('Subject') || '(No Subject)',
+      from: fromVal,
+      to: get('To'),
+      date: get('Date') ? new Date(get('Date')).toISOString() : null,
+      snippet: msg.snippet || '',
+      direction: isFromClient ? 'received' : 'sent',
+    });
+  }
+
+  return emails;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -74,24 +119,35 @@ Deno.serve(async (req) => {
 
     const allEmails = [];
 
-    for (const account of ACCOUNTS) {
+    // 1. Fetch via Gmail OAuth connector (william@skillfulmeans.life)
+    try {
+      const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
+      const emails = await fetchViaGmailApi(accessToken, clientEmail);
+      allEmails.push(...emails);
+    } catch (err) {
+      console.error(`Error fetching via Gmail connector: ${err.message}`);
+    }
+
+    // 2. Fetch via IMAP for accounts that have passwords set
+    for (const account of IMAP_ACCOUNTS) {
       const password = Deno.env.get(account.passwordEnv);
       if (!password) continue;
       try {
-        const emails = await fetchEmailsForAccount(account.email, password, clientEmail);
+        const emails = await fetchViaImap(account.email, password, clientEmail);
         allEmails.push(...emails);
       } catch (err) {
         console.error(`Error fetching from ${account.email}: ${err.message}`);
       }
     }
 
+    // Sort newest first
     allEmails.sort((a, b) => {
       if (!a.date) return 1;
       if (!b.date) return -1;
       return new Date(b.date) - new Date(a.date);
     });
 
-    const emails = allEmails.slice(0, 20);
+    const emails = allEmails.slice(0, 25);
     const lastContactDate = emails[0]?.date || null;
 
     return Response.json({ emails, lastContactDate });
