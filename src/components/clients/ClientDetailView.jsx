@@ -175,6 +175,8 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   // Calculate totals
   const totalProposalValue = proposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
   const acceptedValue = proposals.filter(p => p.status === 'accepted').reduce((sum, p) => sum + (p.total_amount || 0), 0);
+  const paidInvoiceValue = clientInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+  const wonValue = acceptedValue + paidInvoiceValue;
 
   // Extract services from accepted proposals - match by name
   const getClientServices = () => {
