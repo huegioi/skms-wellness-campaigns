@@ -87,7 +87,11 @@ export default function FeedbackAnalytics() {
             <SelectContent>
               <SelectItem value="all">All Workshops</SelectItem>
               {surveys.map(s => (
-                <SelectItem key={s.id} value={s.id}>{s.service_name}</SelectItem>
+                <SelectItem key={s.id} value={s.id}>
+                  {s.service_name}
+                  {s.sheet_tab && s.sheet_tab !== s.service_name ? ` — ${s.sheet_tab}` : ''}
+                  {s.last_synced ? ` (${new Date(s.last_synced).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})` : ''}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
