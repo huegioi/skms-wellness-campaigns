@@ -347,14 +347,33 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             </div>
           )}
 
-          {client.purchased_services?.length > 0 && (
+          {clientServices.length > 0 && (
             <div className="bg-green-50 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-700 mb-2">Previously Purchased Services</h4>
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="font-semibold text-gray-700">Services</h4>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowAddService(true)}>
+                  <Plus className="w-3 h-3 mr-1" /> Add
+                </Button>
+              </div>
               <div className="flex flex-wrap gap-2">
-                {client.purchased_services.map((s, i) => (
-                  <Badge key={i} className="bg-green-100 text-green-700">{getServiceName(s)}</Badge>
+                {clientServices.map(service => (
+                  <Badge key={service.id} className="bg-green-100 text-green-700 flex items-center gap-1">
+                    {service.name}
+                    <button onClick={() => removeService(service.id)} className="ml-1 hover:text-red-600">×</button>
+                  </Badge>
                 ))}
               </div>
+            </div>
+          )}
+          {clientServices.length === 0 && (
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex justify-between items-center">
+                <h4 className="font-semibold text-gray-700">Services</h4>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowAddService(true)}>
+                  <Plus className="w-3 h-3 mr-1" /> Add Service
+                </Button>
+              </div>
+              <p className="text-sm text-gray-400 mt-1">No services yet</p>
             </div>
           )}
         </TabsContent>
