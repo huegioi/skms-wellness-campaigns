@@ -113,6 +113,11 @@ function EmailRow({ email }) {
                 }`}>
                   {email.direction === 'sent' ? 'Sent' : 'Received'}
                 </Badge>
+                {email.account && (
+                  <Badge variant="outline" className="text-xs flex-shrink-0 text-gray-500 border-gray-200">
+                    {email.account.split('@')[0]}
+                  </Badge>
+                )}
               </div>
               <p className="text-xs text-gray-400 truncate">From: {email.from}</p>
               <p className="text-xs text-gray-400 truncate">To: {email.to}</p>
