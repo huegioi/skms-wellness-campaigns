@@ -105,6 +105,15 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
     queryFn: () => base44.entities.Invoice.list('-created_date')
   });
 
+  const { data: gmailData } = useQuery({
+    queryKey: ['gmailHistory', client.email],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('syncGmailEmails', { clientEmail: client.email });
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000
+  });
+
   const { data: allTemplates = [] } = useQuery({
     queryKey: ['emailTemplates'],
     queryFn: () => base44.entities.EmailTemplate.list('-created_date')
