@@ -38,8 +38,10 @@ Deno.serve(async (req) => {
         const from = getHeader('From');
         const to = getHeader('To');
         const subject = getHeader('Subject');
-        const date = getHeader('Date');
         const isFromClient = from.toLowerCase().includes(clientEmail.toLowerCase());
+
+        // internalDate is a Unix timestamp in milliseconds - much more reliable than parsing Date header
+        const internalDate = msgData.internalDate ? new Date(parseInt(msgData.internalDate)).toISOString() : null;
 
         return {
           id: msg.id,
@@ -47,7 +49,7 @@ Deno.serve(async (req) => {
           subject: subject || '(No Subject)',
           from,
           to,
-          date: date ? new Date(date).toISOString() : null,
+          date: internalDate,
           snippet: msgData.snippet || '',
           direction: isFromClient ? 'received' : 'sent'
         };
