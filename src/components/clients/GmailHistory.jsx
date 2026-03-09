@@ -146,19 +146,30 @@ function EmailRow({ email }) {
               <p>To: {email.to}</p>
               {dateStr && timeStr && <p>{dateStr} at {timeStr}</p>}
             </div>
-            <a
-              href={gmailLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-xs"
-            >
-              <ExternalLink className="w-3 h-3" />
-              Open in Gmail
-            </a>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowFullEmail(true); }}
+                className="flex items-center gap-1 text-[#264d44] hover:text-[#1a3830] font-medium text-xs"
+              >
+                <Maximize2 className="w-3 h-3" />
+                View Full Email
+              </button>
+              <a
+                href={gmailLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-xs"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Open in Gmail
+              </a>
+            </div>
           </div>
         </div>
       )}
+
+      {showFullEmail && <FullEmailModal email={email} onClose={() => setShowFullEmail(false)} />}
     </div>
   );
 }
