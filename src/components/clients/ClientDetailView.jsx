@@ -261,7 +261,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
         </div>
         <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
           <p className="text-xs sm:text-sm text-gray-500">Won Value</p>
-          <p className="text-xl sm:text-2xl font-bold" style={{ color: '#770142' }}>${acceptedValue.toLocaleString()}</p>
+          <p className="text-xl sm:text-2xl font-bold" style={{ color: '#770142' }}>${wonValue.toLocaleString()}</p>
         </div>
         <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
           <p className="text-xs sm:text-sm text-gray-500">Interactions</p>
