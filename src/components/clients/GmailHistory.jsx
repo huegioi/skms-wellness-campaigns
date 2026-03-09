@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Mail, Send, Inbox, RefreshCw, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { Mail, Send, Inbox, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Maximize2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 function EmailRow({ email }) {
   const [expanded, setExpanded] = useState(false);
