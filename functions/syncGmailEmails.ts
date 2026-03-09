@@ -1,4 +1,67 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
+import { ImapFlow } from 'npm:imapflow@1.0.162';
+
+const ACCOUNTS = [
+  { email: 'admin@skillfulmeans.life', passwordEnv: 'GMAIL_ADMIN_PASSWORD' },
+  { email: 'shrimi@skillfulmeans.life', passwordEnv: 'GMAIL_SHRIMI_PASSWORD' },
+  { email: 'heather@skillfulmeans.life', passwordEnv: 'GMAIL_HEATHER_PASSWORD' },
+];
+
+function addrStr(addrs) {
+  if (!addrs || addrs.length === 0) return '';
+  return addrs.map(a => a.name ? `${a.name} <${a.mailbox}@${a.host}>` : `${a.mailbox}@${a.host}`).join(', ');
+}
+
+async function fetchEmailsForAccount(accountEmail, password, clientEmail) {
+  const client = new ImapFlow({
+    host: 'imap.gmail.com',
+    port: 993,
+    secure: true,
+    auth: { user: accountEmail, pass: password },
+    logger: false,
+  });
+
+  const emails = [];
+  await client.connect();
+
+  try {
+    const lock = await client.getMailboxLock('[Gmail]/All Mail');
+    try {
+      const uids = await client.search(
+        { or: [{ from: clientEmail }, { to: clientEmail }] },
+        { uid: true }
+      );
+
+      if (!uids || uids.length === 0) return emails;
+
+      const recentUids = uids.slice(-10); // last 10 per account
+
+      for await (const msg of client.fetch(recentUids, { envelope: true, uid: true }, { uid: true })) {
+        const fromStr = addrStr(msg.envelope.from);
+        const toStr = addrStr(msg.envelope.to);
+        const isFromClient = fromStr.toLowerCase().includes(clientEmail.toLowerCase());
+
+        emails.push({
+          id: `${accountEmail}:${msg.uid}`,
+          uid: msg.uid,
+          account: accountEmail,
+          subject: msg.envelope.subject || '(No Subject)',
+          from: fromStr,
+          to: toStr,
+          date: msg.envelope.date ? new Date(msg.envelope.date).toISOString() : null,
+          snippet: '',
+          direction: isFromClient ? 'received' : 'sent',
+        });
+      }
+    } finally {
+      lock.release();
+    }
+  } finally {
+    await client.logout();
+  }
+
+  return emails;
+}
 
 Deno.serve(async (req) => {
   try {
@@ -9,63 +72,29 @@ Deno.serve(async (req) => {
     const { clientEmail } = await req.json();
     if (!clientEmail) return Response.json({ error: 'clientEmail is required' }, { status: 400 });
 
-    const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
+    const allEmails = [];
 
-    // Search for emails to/from client (last 20)
-    const query = encodeURIComponent(`from:${clientEmail} OR to:${clientEmail}`);
-    const listRes = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=20`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
-    const listData = await listRes.json();
-
-    if (!listData.messages || listData.messages.length === 0) {
-      return Response.json({ emails: [], lastContactDate: null });
+    for (const account of ACCOUNTS) {
+      const password = Deno.env.get(account.passwordEnv);
+      if (!password) continue;
+      try {
+        const emails = await fetchEmailsForAccount(account.email, password, clientEmail);
+        allEmails.push(...emails);
+      } catch (err) {
+        console.error(`Error fetching from ${account.email}: ${err.message}`);
+      }
     }
 
-    // Fetch metadata for each message in parallel
-    const emailDetails = await Promise.all(
-      listData.messages.map(async (msg) => {
-        const msgRes = await fetch(
-          `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Date`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
-        const msgData = await msgRes.json();
-
-        const headers = msgData.payload?.headers || [];
-        const getHeader = (name) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
-
-        const from = getHeader('From');
-        const to = getHeader('To');
-        const subject = getHeader('Subject');
-        const isFromClient = from.toLowerCase().includes(clientEmail.toLowerCase());
-
-        // internalDate is a Unix timestamp in milliseconds - much more reliable than parsing Date header
-        const internalDate = msgData.internalDate ? new Date(parseInt(msgData.internalDate)).toISOString() : null;
-
-        return {
-          id: msg.id,
-          threadId: msg.threadId,
-          subject: subject || '(No Subject)',
-          from,
-          to,
-          date: internalDate,
-          snippet: msgData.snippet || '',
-          direction: isFromClient ? 'received' : 'sent'
-        };
-      })
-    );
-
-    // Sort newest first
-    emailDetails.sort((a, b) => {
+    allEmails.sort((a, b) => {
       if (!a.date) return 1;
       if (!b.date) return -1;
       return new Date(b.date) - new Date(a.date);
     });
 
-    const lastContactDate = emailDetails[0]?.date || null;
+    const emails = allEmails.slice(0, 20);
+    const lastContactDate = emails[0]?.date || null;
 
-    return Response.json({ emails: emailDetails, lastContactDate });
+    return Response.json({ emails, lastContactDate });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
