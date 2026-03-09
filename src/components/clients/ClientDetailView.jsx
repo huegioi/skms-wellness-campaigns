@@ -544,45 +544,6 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           </div>
         </TabsContent>
 
-        {/* Services Tab */}
-        <TabsContent value="services" className="mt-4">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="font-semibold text-gray-700">Active Services</h4>
-            <Button size="sm" variant="outline" onClick={() => setShowAddService(true)}>
-              <Plus className="w-4 h-4 mr-1" /> Add Service
-            </Button>
-          </div>
-
-          <div className="space-y-3">
-            {clientServices.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">No services yet</p>
-            ) : (
-              clientServices.map(service => (
-                <div key={service.id} className="bg-white border rounded-lg p-4">
-                  <div className="flex justify-between items-start">
-                    <div className="flex gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-[#264d44] flex items-center justify-center">
-                        <Award className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-semibold">{service.name}</p>
-                        <p className="text-sm text-gray-600">{service.short_description || service.description?.slice(0, 100)}</p>
-                        <div className="flex gap-3 mt-2 text-xs text-gray-500">
-                          <span>${service.price?.toLocaleString()}</span>
-                          {service.duration && <span>{service.duration}</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <Button size="icon" variant="ghost" className="text-red-500" onClick={() => removeService(service.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </TabsContent>
-
         {/* Interactions Tab */}
         <TabsContent value="interactions" className="mt-4">
           <div className="flex justify-between items-center mb-4">
