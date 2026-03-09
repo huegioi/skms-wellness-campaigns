@@ -115,7 +115,11 @@ function EmailRow({ email }) {
                 </Badge>
                 {email.account && (
                   <Badge variant="outline" className="text-xs flex-shrink-0 text-gray-500 border-gray-200">
-                    {email.account === 'admin@skillfulmeans.life' ? 'Admin' : email.account.split('@')[0].charAt(0).toUpperCase() + email.account.split('@')[0].slice(1)}
+                    {(() => {
+                      const isAdmin = email.account === 'admin@skillfulmeans.life' || email.from?.toLowerCase().includes('admin@skillfulmeans') || email.to?.toLowerCase().includes('admin@skillfulmeans');
+                      if (isAdmin) return 'Admin';
+                      return email.account.split('@')[0].charAt(0).toUpperCase() + email.account.split('@')[0].slice(1);
+                    })()}
                   </Badge>
                 )}
               </div>
