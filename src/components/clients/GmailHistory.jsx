@@ -6,8 +6,76 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
+function FullEmailModal({ email, onClose }) {
+  const [body, setBody] = useState(null);
+  const [isHtml, setIsHtml] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  React.useEffect(() => {
+    base44.functions.invoke('getGmailMessage', { messageId: email.id })
+      .then(res => {
+        setBody(res.data.body);
+        setIsHtml(res.data.isHtml);
+      })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [email.id]);
+
+  const dateStr = email.date
+    ? new Date(email.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : null;
+  const timeStr = email.date
+    ? new Date(email.date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    : null;
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="text-base font-semibold pr-6">{email.subject}</DialogTitle>
+        </DialogHeader>
+        <div className="text-xs text-gray-500 space-y-0.5 border-b pb-3">
+          <p><span className="font-medium text-gray-700">From:</span> {email.from}</p>
+          <p><span className="font-medium text-gray-700">To:</span> {email.to}</p>
+          {dateStr && <p><span className="font-medium text-gray-700">Date:</span> {dateStr} at {timeStr}</p>}
+        </div>
+        <div className="flex-1 overflow-y-auto min-h-0 mt-2">
+          {loading && <p className="text-gray-400 text-sm text-center py-8">Loading email...</p>}
+          {error && <p className="text-red-500 text-sm text-center py-8">{error}</p>}
+          {!loading && !error && body && (
+            isHtml
+              ? <iframe
+                  srcDoc={body}
+                  className="w-full border-0"
+                  style={{ height: '500px' }}
+                  sandbox="allow-same-origin"
+                  title="Email content"
+                />
+              : <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">{body}</pre>
+          )}
+          {!loading && !error && !body && (
+            <p className="text-gray-400 text-sm text-center py-8">No content available.</p>
+          )}
+        </div>
+        <div className="border-t pt-3 flex justify-end">
+          <a
+            href={`https://mail.google.com/mail/u/0/#inbox/${email.threadId || email.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium"
+          >
+            <ExternalLink className="w-3 h-3" /> Open in Gmail
+          </a>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function EmailRow({ email }) {
   const [expanded, setExpanded] = useState(false);
+  const [showFullEmail, setShowFullEmail] = useState(false);
 
   const dateStr = email.date
     ? new Date(email.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
