@@ -636,6 +636,11 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           </div>
         </TabsContent>
 
+        {/* Emails Tab */}
+        <TabsContent value="emails" className="mt-4">
+          <GmailHistory clientEmail={client.email} />
+        </TabsContent>
+
         {/* Tasks Tab */}
         <TabsContent value="tasks" className="mt-4">
           <div className="bg-white border rounded-lg p-6">
