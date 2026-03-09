@@ -109,7 +109,11 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
     queryKey: ['gmailHistory', client.email],
     queryFn: async () => {
       const res = await base44.functions.invoke('syncGmailEmails', { clientEmail: client.email });
-      return res.data?.emails?.length || 0;
+      return res.data;
+    },
+    select: (data) => {
+      if (typeof data === 'number') return data;
+      return data?.emails?.length || 0;
     },
     staleTime: 5 * 60 * 1000,
     retry: false
