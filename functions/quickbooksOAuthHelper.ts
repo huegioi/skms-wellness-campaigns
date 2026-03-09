@@ -54,11 +54,29 @@ Deno.serve(async (req) => {
 
     const tokens = await tokenResponse.json();
 
+    // Auto-save tokens to secrets
+    const appId = Deno.env.get('BASE44_APP_ID');
+    const apiKey = Deno.env.get('BASE44_API_KEY');
+    if (appId && apiKey) {
+      const saveSecrets = async (name, value) => {
+        await fetch(`https://api.base44.com/api/apps/${appId}/secrets`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+          body: JSON.stringify({ name, value })
+        });
+      };
+      await saveSecrets('QUICKBOOKS_REFRSH_TOKEN', tokens.refresh_token);
+      await saveSecrets('Quickbooks_ACCESS_TOKEN', tokens.access_token);
+      await saveSecrets('QUICKBOOK_REALM_ID', realmId);
+      console.log('QuickBooks tokens auto-saved to secrets.');
+    }
+
     return Response.json({
       refresh_token: tokens.refresh_token,
       access_token: tokens.access_token,
       realm_id: realmId,
-      expires_in: tokens.expires_in
+      expires_in: tokens.expires_in,
+      auto_saved: !!(appId && apiKey)
     });
 
   } catch (error) {
