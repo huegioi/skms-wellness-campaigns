@@ -263,7 +263,10 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
         </div>
         <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
           <p className="text-xs sm:text-sm text-gray-500">Interactions</p>
-          <p className="text-xl sm:text-2xl font-bold text-blue-600">{interactions.length}</p>
+          <p className="text-xl sm:text-2xl font-bold text-blue-600">{interactions.length + (gmailData?.emails?.length || 0)}</p>
+          {gmailData?.emails?.length > 0 && (
+            <p className="text-xs text-gray-400">{interactions.length} logged + {gmailData.emails.length} emails</p>
+          )}
         </div>
       </div>
       
