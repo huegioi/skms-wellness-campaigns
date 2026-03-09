@@ -15,7 +15,7 @@ function EmailRow({ email }) {
     ? new Date(email.date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
     : null;
 
-  const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${email.id}`;
+  const gmailLink = `https://mail.google.com/mail/u/0/#inbox/${email.threadId || email.id}`;
 
   return (
     <div className="bg-white border rounded-lg overflow-hidden hover:shadow-sm transition-shadow">
