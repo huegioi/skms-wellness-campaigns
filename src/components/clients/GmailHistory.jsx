@@ -45,9 +45,8 @@ function EmailRow({ email }) {
                   {email.direction === 'sent' ? 'Sent' : 'Received'}
                 </Badge>
               </div>
-              <p className="text-xs text-gray-400 truncate">
-                {email.direction === 'sent' ? `To: ${email.to}` : `From: ${email.from}`}
-              </p>
+              <p className="text-xs text-gray-400 truncate">From: {email.from}</p>
+              <p className="text-xs text-gray-400 truncate">To: {email.to}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
