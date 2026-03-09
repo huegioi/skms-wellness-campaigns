@@ -276,16 +276,15 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-9">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="contacts">Contacts ({(client.related_contacts?.length || 0) + 1})</TabsTrigger>
-          <TabsTrigger value="proposals">Proposals ({proposals.length})</TabsTrigger>
-          <TabsTrigger value="invoices">Invoices ({clientInvoices.length})</TabsTrigger>
-          <TabsTrigger value="services">Services</TabsTrigger>
-          <TabsTrigger value="interactions">Activity ({interactions.length})</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
-          <TabsTrigger value="emails">Emails</TabsTrigger>
-          <TabsTrigger value="portal">Portal Docs</TabsTrigger>
+        <TabsList className="flex w-full overflow-x-auto h-auto flex-wrap gap-1 justify-start bg-muted p-1 rounded-lg">
+          <TabsTrigger value="overview" className="flex-shrink-0">Overview</TabsTrigger>
+          <TabsTrigger value="contacts" className="flex-shrink-0">Contacts ({(client.related_contacts?.length || 0) + 1})</TabsTrigger>
+          <TabsTrigger value="proposals" className="flex-shrink-0">Proposals ({proposals.length})</TabsTrigger>
+          <TabsTrigger value="invoices" className="flex-shrink-0">Invoices ({clientInvoices.length})</TabsTrigger>
+          <TabsTrigger value="interactions" className="flex-shrink-0">Activity ({interactions.length})</TabsTrigger>
+          <TabsTrigger value="tasks" className="flex-shrink-0">Tasks</TabsTrigger>
+          <TabsTrigger value="emails" className="flex-shrink-0">Emails</TabsTrigger>
+          <TabsTrigger value="portal" className="flex-shrink-0">Portal Docs</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
