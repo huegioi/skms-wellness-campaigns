@@ -115,7 +115,7 @@ function EmailRow({ email }) {
                 </Badge>
                 {email.account && (
                   <Badge variant="outline" className="text-xs flex-shrink-0 text-gray-500 border-gray-200">
-                    {email.account.split('@')[0]}
+                    {email.account.split('@')[0].charAt(0).toUpperCase() + email.account.split('@')[0].slice(1)}
                   </Badge>
                 )}
               </div>
