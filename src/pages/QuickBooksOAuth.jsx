@@ -116,16 +116,24 @@ export default function QuickBooksOAuth() {
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-green-600 mb-4">
               <CheckCircle className="w-6 h-6" />
-              <span className="font-semibold">Success! Here's your Refresh Token:</span>
+              <span className="font-semibold">QuickBooks reconnected successfully!</span>
+            </div>
+
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-sm text-green-800">
+                ✅ Your QuickBooks tokens have been automatically saved. Invoice syncing should work again immediately.
+              </p>
             </div>
 
             <div className="bg-gray-50 border rounded-lg p-4">
-              <code className="text-sm break-all">{refreshToken}</code>
+              <p className="text-xs text-gray-500 mb-1">Refresh Token (saved automatically):</p>
+              <code className="text-xs break-all text-gray-600">{refreshToken}</code>
             </div>
 
             <Button 
               onClick={copyToClipboard}
-              className="w-full bg-[#264d44] hover:bg-[#1a3830]"
+              variant="outline"
+              className="w-full"
             >
               {copied ? (
                 <>
@@ -135,17 +143,10 @@ export default function QuickBooksOAuth() {
               ) : (
                 <>
                   <Copy className="w-4 h-4 mr-2" />
-                  Copy Refresh Token
+                  Copy Token as Backup
                 </>
               )}
             </Button>
-
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-sm text-amber-800">
-                <strong>Next Step:</strong> Go to your Base44 dashboard → Settings → Environment Variables/Secrets, 
-                and add this token as <code className="bg-amber-100 px-1 rounded">Quickbooks_Refresh_Token</code>
-              </p>
-            </div>
           </div>
         )}
       </Card>
