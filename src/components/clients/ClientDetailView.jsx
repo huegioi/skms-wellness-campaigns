@@ -276,7 +276,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contacts">Contacts ({(client.related_contacts?.length || 0) + 1})</TabsTrigger>
           <TabsTrigger value="proposals">Proposals ({proposals.length})</TabsTrigger>
@@ -284,6 +284,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           <TabsTrigger value="services">Services</TabsTrigger>
           <TabsTrigger value="interactions">Activity ({interactions.length})</TabsTrigger>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="emails">Emails</TabsTrigger>
           <TabsTrigger value="portal">Portal Docs</TabsTrigger>
         </TabsList>
 
