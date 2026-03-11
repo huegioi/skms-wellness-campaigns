@@ -12,7 +12,7 @@ import {
   User, Building, Mail, Phone, Globe, MapPin, DollarSign, Users, Calendar,
   Plus, Pencil, Trash2, FileText, MessageSquare, PhoneCall, Video, StickyNote,
   ChevronRight, Clock, CheckCircle, XCircle, Eye, Send, Package, Award, ListTodo,
-  Upload, ExternalLink, X, RefreshCw, FolderOpen, Link
+  Upload, ExternalLink, X, RefreshCw, FolderOpen
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
