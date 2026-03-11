@@ -807,6 +807,83 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
                 </div>
               </div>
 
+              {/* Session Resources */}
+              <div className="border-t pt-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h5 className="font-medium text-sm flex items-center gap-2"><FolderOpen className="w-4 h-4" /> Session Resources</h5>
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowAddResource(!showAddResource)}>
+                    <Plus className="w-3 h-3 mr-1" /> Add Resource
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">Add links to session recordings, PPT presentations, and handout files visible in the client portal.</p>
+
+                {/* Existing Resources */}
+                <div className="space-y-2 mb-3">
+                  {(client.session_resources || []).map((resource, index) => {
+                    const typeColors = { recording: 'bg-red-50 border-red-200', presentation: 'bg-blue-50 border-blue-200', handout: 'bg-green-50 border-green-200', other: 'bg-gray-50 border-gray-200' };
+                    const typeBadge = { recording: 'bg-red-100 text-red-700', presentation: 'bg-blue-100 text-blue-700', handout: 'bg-green-100 text-green-700', other: 'bg-gray-100 text-gray-700' };
+                    return (
+                      <div key={index} className={`flex items-center justify-between p-3 rounded-lg border ${typeColors[resource.resource_type] || typeColors.other}`}>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-medium text-sm truncate">{resource.title}</p>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${typeBadge[resource.resource_type] || typeBadge.other}`}>{resource.resource_type}</span>
+                          </div>
+                          {resource.session_name && <p className="text-xs text-gray-500 mt-0.5">{resource.session_name}</p>}
+                        </div>
+                        <div className="flex gap-1 ml-2 flex-shrink-0">
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => window.open(resource.url, '_blank')}>
+                            <ExternalLink className="w-3 h-3" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500" onClick={async () => {
+                            const updated = (client.session_resources || []).filter((_, i) => i !== index);
+                            await onUpdate({ session_resources: updated });
+                            queryClient.invalidateQueries({ queryKey: ['client', client.id] });
+                          }}>
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {(client.session_resources || []).length === 0 && !showAddResource && (
+                    <p className="text-xs text-gray-400 italic">No resources added yet.</p>
+                  )}
+                </div>
+
+                {/* Add Resource Form */}
+                {showAddResource && (
+                  <div className="bg-gray-50 rounded-lg p-3 space-y-2 border">
+                    <Input placeholder="Title (e.g. Stress Workshop Recording)" value={resourceForm.title} onChange={(e) => setResourceForm({ ...resourceForm, title: e.target.value })} />
+                    <Input placeholder="URL / Link" value={resourceForm.url} onChange={(e) => setResourceForm({ ...resourceForm, url: e.target.value })} />
+                    <Input placeholder="Session name (optional, e.g. March Workshop)" value={resourceForm.session_name} onChange={(e) => setResourceForm({ ...resourceForm, session_name: e.target.value })} />
+                    <select
+                      className="w-full border rounded-md px-3 py-2 text-sm bg-white"
+                      value={resourceForm.resource_type}
+                      onChange={(e) => setResourceForm({ ...resourceForm, resource_type: e.target.value })}
+                    >
+                      <option value="recording">🎥 Recording</option>
+                      <option value="presentation">📊 Presentation (PPT)</option>
+                      <option value="handout">📄 Handout</option>
+                      <option value="other">📁 Other</option>
+                    </select>
+                    <div className="flex gap-2">
+                      <Button size="sm" className="flex-1 bg-[#264d44] hover:bg-[#1a3830]" disabled={!resourceForm.title || !resourceForm.url} onClick={async () => {
+                        const newResource = { ...resourceForm, added_date: new Date().toISOString() };
+                        const updated = [...(client.session_resources || []), newResource];
+                        await onUpdate({ session_resources: updated });
+                        queryClient.invalidateQueries({ queryKey: ['client', client.id] });
+                        setResourceForm({ title: '', url: '', resource_type: 'recording', session_name: '' });
+                        setShowAddResource(false);
+                      }}>
+                        <Plus className="w-3 h-3 mr-1" /> Add
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setShowAddResource(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Portal Link */}
               <div className="border-t pt-4">
                 <h5 className="font-medium text-sm mb-2">Client Portal Access</h5>
