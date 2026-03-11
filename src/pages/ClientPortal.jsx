@@ -147,7 +147,7 @@ export default function ClientPortal() {
       {/* Main Content */}
       <div className="max-w-6xl mx-auto p-4 md:p-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 mb-8">
+          <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="proposal" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               <span className="hidden sm:inline">My Wellness Programming</span>
