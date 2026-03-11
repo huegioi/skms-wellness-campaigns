@@ -59,6 +59,8 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   const [selectedTemplateIds, setSelectedTemplateIds] = useState([]);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [documentForm, setDocumentForm] = useState({ name: '', description: '' });
+  const [resourceForm, setResourceForm] = useState({ title: '', url: '', resource_type: 'recording', session_name: '' });
+  const [showAddResource, setShowAddResource] = useState(false);
 
   const queryClient = useQueryClient();
 
