@@ -69,6 +69,7 @@ import ServiceCatalog from './pages/ServiceCatalog';
 import UserAgreement from './pages/UserAgreement';
 import ViewProposal from './pages/ViewProposal';
 import WellnessBoxes from './pages/WellnessBoxes';
+import FollowUpTracker from './pages/FollowUpTracker';
 import __Layout from './Layout.jsx';
 
 
@@ -95,6 +96,7 @@ export const PAGES = {
     "UserAgreement": UserAgreement,
     "ViewProposal": ViewProposal,
     "WellnessBoxes": WellnessBoxes,
+    "FollowUpTracker": FollowUpTracker,
 }
 
 export const pagesConfig = {
