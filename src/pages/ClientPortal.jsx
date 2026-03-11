@@ -196,6 +196,10 @@ export default function ClientPortal() {
             <ClientProfileSettings client={client} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['portalClient'] })} />
           </TabsContent>
 
+          <TabsContent value="resources">
+            <ClientResources client={client} />
+          </TabsContent>
+
           <TabsContent value="feedback">
             <PortalFeedback client={client} proposals={proposals} />
           </TabsContent>
