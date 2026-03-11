@@ -168,6 +168,11 @@ export default function ClientPortal() {
               <span className="hidden sm:inline">My Profile</span>
               <span className="sm:hidden">Profile</span>
             </TabsTrigger>
+            <TabsTrigger value="resources" className="flex items-center gap-2">
+              <FolderOpen className="w-4 h-4" />
+              <span className="hidden sm:inline">Resources</span>
+              <span className="sm:hidden">Resources</span>
+            </TabsTrigger>
             <TabsTrigger value="feedback" className="flex items-center gap-2">
               <ClipboardList className="w-4 h-4" />
               <span className="hidden sm:inline">Feedback</span>
