@@ -75,7 +75,7 @@ function BookSessionDialog({ client, open, onClose }) {
   const queryClient = useQueryClient();
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('10:00');
-  const [duration, setDuration] = useState('30');
+  const [duration, setDuration] = useState('45');
   const [loading, setLoading] = useState(false);
 
   const handleBook = async () => {
