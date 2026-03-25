@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Bell, CalendarPlus, PhoneCall, Clock, Building, AlertTriangle, Leaf, Snowflake } from 'lucide-react';
+import { Bell, CalendarPlus, PhoneCall, Clock, Building, AlertTriangle, Leaf, Snowflake, X } from 'lucide-react';
 import { toast } from 'sonner';
 
 function getFollowUpReason(client) {
@@ -191,6 +191,19 @@ export default function FollowUpQueue() {
     toast.success(`${client.name} snoozed for 1 week`);
   };
 
+  const removeFromQueue = async (client) => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    await base44.entities.Client.update(client.id, {
+      follow_up_status: 'contacted',
+      last_contacted_date: today.toISOString().split('T')[0],
+      april_checkin_year: currentYear,
+      november_checkin_year: currentYear
+    });
+    queryClient.invalidateQueries({ queryKey: ['clients'] });
+    toast.success(`${client.name} removed from follow-up queue`);
+  };
+
   if (isLoading) return null;
   if (queueClients.length === 0) return (
     <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
@@ -275,6 +288,15 @@ export default function FollowUpQueue() {
                     >
                       <Clock className="w-4 h-4 mr-1" />
                       Snooze
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-400 hover:text-red-600 hover:bg-red-50"
+                      onClick={() => removeFromQueue(client)}
+                    >
+                      <X className="w-4 h-4 mr-1" />
+                      Remove
                     </Button>
                   </div>
                 </div>

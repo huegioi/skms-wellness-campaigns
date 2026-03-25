@@ -107,9 +107,6 @@ export default function ClientInformationSection() {
 
   return (
     <div className="space-y-8">
-      {/* Follow-Up Queue */}
-      <FollowUpQueue />
-
       {/* Open Clients Section */}
       {clientsWithPendingTasks.length > 0 && (
         <Card className="bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -136,6 +133,9 @@ export default function ClientInformationSection() {
           </CardContent>
         </Card>
       )}
+
+      {/* Follow-Up Queue */}
+      <FollowUpQueue />
 
       {/* Task Management Dialog */}
       <Dialog open={!!selectedClient} onOpenChange={(open) => !open && setSelectedClient(null)}>
