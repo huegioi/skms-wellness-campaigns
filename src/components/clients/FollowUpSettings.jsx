@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,21 @@ export default function FollowUpSettings({ client, onUpdate }) {
     follow_up_status: client.follow_up_status || ''
   });
 
+  // Fetch most recent completed calendar event for this client
+  const { data: lastEventDate } = useQuery({
+    queryKey: ['lastClientEvent', client.id],
+    queryFn: async () => {
+      const events = await base44.entities.CalendarEvent.list('-start_date', 100);
+      const clientEvents = events.filter(e =>
+        (e.client_id === client.id || e.client_name === client.name || e.client_name === client.company) &&
+        e.completed === true
+      );
+      if (clientEvents.length === 0) return null;
+      const latest = clientEvents[0];
+      return latest.start_date ? latest.start_date.split('T')[0] : null;
+    }
+  });
+
   const handleSave = async () => {
     await onUpdate(form);
     queryClient.invalidateQueries({ queryKey: ['clients'] });
@@ -39,6 +54,13 @@ export default function FollowUpSettings({ client, onUpdate }) {
     setForm(f => ({ ...f, follow_up_status: 'snoozed' }));
     toast.success('Snoozed for 1 week');
   };
+
+  // Sync auto-detected date into form if no manual date set
+  useEffect(() => {
+    if (lastEventDate && !client.last_service_date) {
+      setForm(f => ({ ...f, last_service_date: lastEventDate }));
+    }
+  }, [lastEventDate, client.last_service_date]);
 
   const currentStatus = client.follow_up_status;
   const statusInfo = statusConfig[currentStatus];
@@ -67,6 +89,19 @@ export default function FollowUpSettings({ client, onUpdate }) {
               value={form.last_service_date}
               onChange={e => setForm(f => ({ ...f, last_service_date: e.target.value }))}
             />
+            {lastEventDate && (
+              <p className="text-xs text-gray-500">
+                Last completed session: <strong>{new Date(lastEventDate + 'T00:00:00').toLocaleDateString()}</strong>
+                {form.last_service_date !== lastEventDate && (
+                  <button
+                    className="ml-2 text-blue-600 underline"
+                    onClick={() => setForm(f => ({ ...f, last_service_date: lastEventDate }))}
+                  >
+                    Use this date
+                  </button>
+                )}
+              </p>
+            )}
           </div>
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
