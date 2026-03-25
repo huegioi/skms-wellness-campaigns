@@ -20,6 +20,7 @@ import TaskList from '@/components/tasks/TaskList';
 import GmailHistory from '@/components/clients/GmailHistory';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
+import FollowUpSettings from '@/components/clients/FollowUpSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const statusConfig = {
@@ -309,6 +310,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           <TabsTrigger value="tasks" className="flex-shrink-0">Tasks</TabsTrigger>
           <TabsTrigger value="emails" className="flex-shrink-0">Emails</TabsTrigger>
           <TabsTrigger value="portal" className="flex-shrink-0">Portal Docs</TabsTrigger>
+          <TabsTrigger value="followup" className="flex-shrink-0">Follow-Up</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -681,6 +683,11 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             </div>
             <TaskList clientId={client.id} showProposalGroups={true} />
           </div>
+        </TabsContent>
+
+        {/* Follow-Up Tab */}
+        <TabsContent value="followup" className="mt-4">
+          <FollowUpSettings client={client} onUpdate={onUpdate} />
         </TabsContent>
 
         {/* Portal Tab */}

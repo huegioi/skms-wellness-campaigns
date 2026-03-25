@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import FollowUpQueue from '@/components/dashboard/FollowUpQueue';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -106,6 +107,9 @@ export default function ClientInformationSection() {
 
   return (
     <div className="space-y-8">
+      {/* Follow-Up Queue */}
+      <FollowUpQueue />
+
       {/* Open Clients Section */}
       {clientsWithPendingTasks.length > 0 && (
         <Card className="bg-gradient-to-br from-blue-50 to-indigo-50">
