@@ -74,6 +74,7 @@ function needsFollowUp(client) {
 }
 
 function BookSessionDialog({ client, open, onClose }) {
+  if (!client) return null;
   const queryClient = useQueryClient();
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('10:00');
@@ -314,13 +315,11 @@ export default function FollowUpQueue() {
         </CardContent>
       </Card>
 
-      {bookingClient && (
-        <BookSessionDialog
-          client={bookingClient}
-          open={!!bookingClient}
-          onClose={() => setBookingClient(null)}
-        />
-      )}
+      <BookSessionDialog
+        client={bookingClient}
+        open={!!bookingClient}
+        onClose={() => setBookingClient(null)}
+      />
     </>
   );
 }
