@@ -74,43 +74,13 @@ function needsFollowUp(client) {
 }
 
 function BookSessionDialog({ client, open, onClose }) {
-  if (!client) return null;
-  const queryClient = useQueryClient();
-  const [startDate, setStartDate] = useState('');
-  const [startTime, setStartTime] = useState('10:00');
-  const [duration, setDuration] = useState('45');
-  const [loading, setLoading] = useState(false);
-
-  const handleBook = async () => {
-    if (!startDate || !startTime) return;
-    setLoading(true);
-    try {
-      const startDateTime = `${startDate}T${startTime}:00`;
-      const endDate = new Date(`${startDate}T${startTime}:00`);
-      endDate.setMinutes(endDate.getMinutes() + parseInt(duration));
-      const endDateTime = endDate.toISOString().slice(0, 19);
-
-      const res = await base44.functions.invoke('bookFollowUpSession', { clientId: client.id, startDateTime, endDateTime });
-      if (res.data?.meetLink) {
-        toast.success('Session booked!', { description: `Google Meet link: ${res.data.meetLink}` });
-      } else {
-        toast.success('Session booked successfully!');
-      }
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
-      onClose();
-    } catch (err) {
-      toast.error('Failed to book session: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="w-[95vw] max-w-md">
         <DialogHeader>
           <DialogTitle>Book Check-in Call</DialogTitle>
         </DialogHeader>
+        {client && (
         <div className="space-y-4 mt-2">
           <div className="bg-gray-50 rounded-lg p-3 text-sm">
             <p className="font-medium text-gray-700">Event Title:</p>
@@ -149,6 +119,7 @@ function BookSessionDialog({ client, open, onClose }) {
             {loading ? 'Booking...' : 'Book & Send Invite'}
           </Button>
         </div>
+        )}
       </DialogContent>
     </Dialog>
   );
