@@ -80,6 +80,7 @@ export default function Clients() {
   const clientIdFromUrl = urlParams.get('clientId');
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const urlClientDismissed = React.useRef(false);
   const [editingClient, setEditingClient] = useState(null);
   const [viewingClient, setViewingClient] = useState(null);
   const [formData, setFormData] = useState({ 
@@ -102,15 +103,15 @@ export default function Clients() {
     queryFn: () => base44.entities.Client.list('-created_date')
   });
 
-  // Auto-open client detail if URL param is present
+  // Auto-open client detail if URL param is present (only once)
   React.useEffect(() => {
-    if (clientIdFromUrl && clients.length > 0 && !viewingClient) {
+    if (clientIdFromUrl && clients.length > 0 && !urlClientDismissed.current) {
       const client = clients.find(c => c.id === clientIdFromUrl);
       if (client) {
         setViewingClient(client);
       }
     }
-  }, [clientIdFromUrl, clients, viewingClient]);
+  }, [clientIdFromUrl, clients]);
 
   const { data: proposals = [] } = useQuery({
     queryKey: ['proposals'],
@@ -509,7 +510,7 @@ export default function Clients() {
         </Dialog>
 
         {/* Client Detail View Dialog */}
-        <Dialog open={!!viewingClient} onOpenChange={(open) => !open && setViewingClient(null)}>
+        <Dialog open={!!viewingClient} onOpenChange={(open) => { if (!open) { urlClientDismissed.current = true; setViewingClient(null); } }}>
           <DialogContent className="max-w-3xl w-[95vw] sm:w-full max-h-[85vh] overflow-y-auto">
             {viewingClient && (
               <ClientDetailView 
