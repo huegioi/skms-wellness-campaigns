@@ -1,0 +1,91 @@
+{
+  "name": "Lead",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Contact name"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Contact email address"
+    },
+    "company": {
+      "type": "string",
+      "description": "Company name"
+    },
+    "title": {
+      "type": "string",
+      "description": "Job title"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Phone number"
+    },
+    "industry": {
+      "type": "string",
+      "description": "Industry sector"
+    },
+    "company_size": {
+      "type": "string",
+      "description": "Estimated company size"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "cold",
+        "contacted",
+        "responded",
+        "meeting_scheduled",
+        "proposal_sent",
+        "converted",
+        "not_interested",
+        "current_client"
+      ],
+      "default": "cold",
+      "description": "Outreach status"
+    },
+    "last_contacted_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of last outreach"
+    },
+    "next_followup_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Scheduled next follow-up date"
+    },
+    "outreach_channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "linkedin",
+        "phone",
+        "referral",
+        "other"
+      ],
+      "description": "Primary outreach channel"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes about this lead"
+    },
+    "source": {
+      "type": "string",
+      "description": "How this lead was sourced"
+    },
+    "sheet_row_id": {
+      "type": "string",
+      "description": "Identifier for syncing with Google Sheet row"
+    },
+    "converted_client_id": {
+      "type": "string",
+      "description": "Client ID if this lead was converted to a client"
+    }
+  },
+  "required": [
+    "name",
+    "email"
+  ]
+}
