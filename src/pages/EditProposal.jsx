@@ -92,7 +92,29 @@ export default function EditProposal() {
     }
   }, [proposal]);
 
-  const saveMutation
+  const saveMutation = useMutation({
+    mutationFn: (data) => {
+      if (isNewProposal) {
+        return base44.entities.Proposal.create(data);
+      }
+      return base44.entities.Proposal.update(proposalId, data);
+    },
+    onSuccess: async (savedProposal, variables) => {
+      if (proposal && proposal.client_id) {
+        if (variables.status === 'sent' && proposal.status !== 'sent') {
+          await markTaskComplete(base44, proposal.client_id, 'Send or Accept Proposal', 'proposal_sent', proposalId);
+        }
+        if (variables.status === 'accepted' && proposal.status !== 'accepted') {
+          const existingTasks = await base44.entities.ClientTask.filter({ client_id: proposal.client_id });
+          if (existingTasks.length === 0) {
+            await createDefaultTasksForClient(base44, proposal.client_id, proposal.client_name);
+          }
+          await markTaskComplete(base44, proposal.client_id, 'Send or Accept Proposal', 'proposal_accepted', proposalId);
+        }
+      }
+      navigate(createPageUrl('Proposals'));
+    }
+  });
 
   // Helper: get services by their entity category
   const getServicesByCategory = (category) => {
