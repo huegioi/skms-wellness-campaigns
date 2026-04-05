@@ -74,6 +74,30 @@ function needsFollowUp(client) {
 }
 
 function BookSessionDialog({ client, open, onClose }) {
+  const [startDate, setStartDate] = useState('');
+  const [startTime, setStartTime] = useState('09:00');
+  const [duration, setDuration] = useState('30');
+  const [loading, setLoading] = useState(false);
+
+  const handleBook = async () => {
+    if (!startDate) return;
+    setLoading(true);
+    try {
+      await base44.functions.invoke('bookFollowUpSession', {
+        clientId: client.id,
+        clientName: client.name,
+        clientEmail: client.email,
+        startDate,
+        startTime,
+        duration: parseInt(duration)
+      });
+      onClose(false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="w-[95vw] max-w-md">

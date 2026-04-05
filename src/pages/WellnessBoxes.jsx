@@ -164,7 +164,7 @@ Format as an array of items with name, description, and estimated_cost fields.`;
       `;
 
       await base44.integrations.Core.SendEmail({
-        to: Deno.env.get('GMAIL_ADDRESS') || 'wellness@example.com',
+        to: 'admin@skillfulmeans.life',
         subject: `Custom Wellness Box Request - ${builderForm.contactName}`,
         body: emailBody
       });

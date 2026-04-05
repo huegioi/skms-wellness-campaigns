@@ -1,4 +1,5 @@
 // Shared pricing calculation utilities
+import { productCatalog } from './catalogData';
 
 export const calculateChallengePrice = (companySize) => {
   const employees = parseInt(companySize, 10);
@@ -28,7 +29,6 @@ export const getItemPrice = (category, key, priceOverrides = {}, companySize = n
   
   // Use catalog prices or calculated challenge price
   if (category === 'workshops') {
-    const { productCatalog } = require('./catalogData');
     return productCatalog.workshops[key]?.price || 0;
   }
   
@@ -37,12 +37,10 @@ export const getItemPrice = (category, key, priceOverrides = {}, companySize = n
   }
   
   if (category === 'leadership') {
-    const { productCatalog } = require('./catalogData');
     return productCatalog.leadership[key]?.price || 0;
   }
-  
+
   if (category === 'movementClasses') {
-    const { productCatalog } = require('./catalogData');
     return productCatalog.movementClasses[key]?.price || 0;
   }
   

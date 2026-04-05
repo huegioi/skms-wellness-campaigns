@@ -39,10 +39,6 @@ export default function Analytics() {
     initialData: []
   });
 
-  if (isLoading) {
-    return <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">Loading...</div>;
-  }
-
   // Calculate metrics
   const totalProposals = proposals.length;
   const sentProposals = proposals.filter(p => ['sent', 'viewed', 'accepted', 'declined'].includes(p.status)).length;
@@ -97,7 +93,7 @@ export default function Analytics() {
     .map(p => {
       const sent = new Date(p.sent_date);
       const viewed = new Date(p.viewed_date);
-      return (viewed - sent) / (1000 * 60 * 60); // hours
+      return (viewed - sent) / (1000 * 60 * 60);
     });
   const avgViewTime = responseTimes.length > 0 ? (responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length).toFixed(1) : 0;
 
@@ -192,6 +188,10 @@ export default function Analytics() {
       .filter(s => s.total > 0)
       .sort((a, b) => b.total - a.total);
   }, [notionData]);
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
