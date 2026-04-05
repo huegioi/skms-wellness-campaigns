@@ -250,7 +250,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             </p>
           )}
         </div>
-        <Link to={createPageUrl('CurriculumDesigner') + `?clientId=${client.id}`}>
+        <Link to={createPageUrl('EditProposal') + `?clientId=${client.id}`}>
           <Button className="bg-[#770142] hover:bg-[#5a0132]">
             <FileText className="w-4 h-4 mr-2" /> New Proposal
           </Button>
