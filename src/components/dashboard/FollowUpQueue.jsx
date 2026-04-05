@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Bell, CalendarPlus, PhoneCall, Clock, Building, AlertTriangle, Leaf, Snowflake, X, ExternalLink } from 'lucide-react';
+import { Bell, CalendarPlus, PhoneCall, Clock, Building, AlertTriangle, Leaf, Snowflake, X, ExternalLink, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
@@ -152,6 +152,20 @@ function BookSessionDialog({ client, open, onClose }) {
 export default function FollowUpQueue() {
   const queryClient = useQueryClient();
   const [bookingClient, setBookingClient] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+
+  const syncEmails = async () => {
+    setSyncing(true);
+    try {
+      const res = await base44.functions.invoke('scanAdminGmailContacts', {});
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success(`Email sync complete — ${res.data?.updated || 0} client(s) updated`);
+    } catch (e) {
+      toast.error('Email sync failed: ' + e.message);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['clients'],
@@ -226,7 +240,13 @@ export default function FollowUpQueue() {
               <Bell className="w-6 h-6" />
               Follow-Up Queue
             </div>
-            <Badge className="bg-amber-500 text-white">{queueClients.length} client{queueClients.length !== 1 ? 's' : ''}</Badge>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={syncEmails} disabled={syncing} className="text-xs">
+                <RefreshCw className={`w-3 h-3 mr-1 ${syncing ? 'animate-spin' : ''}`} />
+                {syncing ? 'Syncing...' : 'Sync Emails'}
+              </Button>
+              <Badge className="bg-amber-500 text-white">{queueClients.length} client{queueClients.length !== 1 ? 's' : ''}</Badge>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
