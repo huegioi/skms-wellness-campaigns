@@ -238,7 +238,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-y-auto flex-1 p-6">
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>

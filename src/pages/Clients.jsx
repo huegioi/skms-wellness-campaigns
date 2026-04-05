@@ -511,7 +511,7 @@ export default function Clients() {
 
         {/* Client Detail View Dialog */}
         <Dialog open={!!viewingClient} onOpenChange={(open) => { if (!open) { urlClientDismissed.current = true; setViewingClient(null); } }}>
-          <DialogContent className="max-w-3xl w-[95vw] sm:w-full max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl w-[95vw] sm:w-full h-[90vh] flex flex-col p-0 overflow-hidden">
             {viewingClient && (
               <ClientDetailView 
                 client={viewingClient} 
