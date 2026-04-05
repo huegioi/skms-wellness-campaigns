@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import StepIndicator from '../components/curriculum/StepIndicator';
@@ -22,6 +22,38 @@ export default function CurriculumDesigner() {
     smallBoxes: 0,
     largeBoxes: 0
   });
+  const [clientLoaded, setClientLoaded] = useState(false);
+
+  // Pre-load client data from URL param
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientId = urlParams.get('clientId');
+    if (!clientId || clientLoaded) return;
+    base44.entities.Client.filter({ id: clientId }).then(results => {
+      const client = results[0];
+      if (!client) return;
+      setSelections(prev => ({
+        ...prev,
+        assessmentData: {
+          ...prev.assessmentData,
+          clientName: client.name || '',
+          clientEmail: client.email || '',
+          companyName: client.company || '',
+          companyAddress: client.company_address || '',
+          companySize: client.company_size || '',
+          wellnessBudget: client.wellness_budget || '',
+          brokerName: client.broker_name || '',
+          brokerEmail: client.broker_email || '',
+          brokerCompany: '',
+          consultantName: client.wellness_consultant_name || '',
+          consultantEmail: client.wellness_consultant_email || '',
+          consultantCompany: '',
+          industry: client.industry || '',
+        }
+      }));
+      setClientLoaded(true);
+    }).catch(() => {});
+  }, [clientLoaded]);
 
   const { data: allServices = [] } = useQuery({
     queryKey: ['services'],
