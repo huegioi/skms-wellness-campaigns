@@ -17,16 +17,17 @@ const COL_BROKERS = {
   TYPE: 10,
 };
 
-// Column indices (0-based) — ECs sheet (has extra 'Name' col at start, no real email)
+// Column indices (0-based) — ECs sheet
+// Real structure: FirstName | Email | (empty) | Valid | Company | Location | LinkedIn | (empty) | Status | ContactMethod | Type
 const COL_ECS = {
   FIRST_NAME: 0,
-  LAST_NAME: 2,
-  EMAIL: null, // ECs sheet has no email column
+  LAST_NAME: null,   // no last name col
+  EMAIL: 1,          // labeled 'Last Name' but actually contains email
   VALIDITY: 3,
-  TITLE: 4,
-  COMPANY: 5,
-  LOCATION: 6,
-  LINKEDIN: 7,
+  TITLE: null,
+  COMPANY: 4,
+  LOCATION: 5,
+  LINKEDIN: 6,
   STATUS: 8,
   CONTACT_METHOD: 9,
   TYPE: 10,
@@ -182,7 +183,8 @@ Deno.serve(async (req) => {
         updatedFromSheet++;
         batchUpdates.push({ rowIndex, lead: { ...existing, ...updates } });
       } else {
-        if (!lead.email) continue; // skip rows without email
+        // For ECs (no email), use sheet_row_id as unique key; for Brokers, require email
+        if (!lead.email && SHEET_NAME !== 'ECs') continue;
         const newLead = await base44.asServiceRole.entities.Lead.create(lead);
         created++;
         batchUpdates.push({ rowIndex, lead: newLead });
