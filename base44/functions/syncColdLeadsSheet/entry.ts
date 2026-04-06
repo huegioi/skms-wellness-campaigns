@@ -64,7 +64,7 @@ function rowToLead(row, rowIndex, sheetName) {
     email,
     title: get(COL.TITLE),
     company: get(COL.COMPANY),
-    industry: get(COL.TYPE) || (sheetName === 'Engagement Consultants' ? 'Engagement Consultant' : ''),
+    industry: get(COL.TYPE) || (sheetName === 'ECs' ? 'Engagement Consultant' : ''),
     source: [get(COL.LOCATION), get(COL.LINKEDIN)].filter(Boolean).join(' | '),
     status: SHEET_STATUS_TO_APP[sheetStatus] || 'cold',
     outreach_channel: outreachChannel,

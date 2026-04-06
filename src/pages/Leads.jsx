@@ -166,10 +166,10 @@ export default function Leads() {
     setSyncing(true);
     try {
       const brokers = await syncSheet('Brokers');
-      const consultants = await syncSheet('Engagement Consultants');
+      const consultants = await syncSheet('ECs');
       const totalCreated = brokers.totalCreated + consultants.totalCreated;
       const totalUpdated = brokers.totalUpdated + consultants.totalUpdated;
-      toast.success(`Sync complete — ${totalCreated} new, ${totalUpdated} updated (Brokers + Engagement Consultants)`);
+      toast.success(`Sync complete — ${totalCreated} new, ${totalUpdated} updated (Brokers + ECs)`);
       queryClient.invalidateQueries({ queryKey: ['leads'] });
     } catch (e) {
       toast.error('Sync failed: ' + e.message);
