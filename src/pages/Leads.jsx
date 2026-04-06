@@ -93,9 +93,19 @@ export default function Leads() {
 
   const handleSync = async () => {
     setSyncing(true);
+    let startRow = 0;
+    let totalCreated = 0, totalUpdated = 0, totalPushed = 0;
     try {
-      const res = await base44.functions.invoke('syncLeadsFromSheet', {});
-      toast.success(`Sync complete — ${res.data?.synced ?? 0} leads updated`);
+      while (true) {
+        const res = await base44.functions.invoke('syncColdLeadsSheet', { startRow });
+        const d = res.data || {};
+        totalCreated += d.created || 0;
+        totalUpdated += d.updatedFromSheet || 0;
+        totalPushed += d.pushedToSheet || 0;
+        if (!d.hasMore) break;
+        startRow = d.nextStartRow;
+      }
+      toast.success(`Sync complete — ${totalCreated} new, ${totalUpdated} updated, ${totalPushed} pushed to sheet`);
       queryClient.invalidateQueries({ queryKey: ['leads'] });
     } catch (e) {
       toast.error('Sync failed: ' + e.message);
