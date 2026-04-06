@@ -138,16 +138,18 @@ export default function FinancialInformationSection() {
     const monthlyData = {};
 
     const getKey = (dateStr) => {
-      const d = new Date(dateStr);
-      // sortable key: YYYY-MM, display label: Mon YY
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      // Parse date parts directly to avoid UTC/local timezone shifting
+      const parts = dateStr.split('T')[0].split('-');
+      const year = parseInt(parts[0]);
+      const month = parseInt(parts[1]) - 1;
+      const key = `${year}-${String(month + 1).padStart(2, '0')}`;
+      const label = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
       return { key, label };
     };
 
-    // Track paid invoices as income
-    invoices.filter(inv => inv.status === 'paid' && inv.paid_date).forEach(inv => {
-      const { key, label } = getKey(inv.paid_date);
+    // Track paid invoices as income — use paid_date if available, fall back to issue_date
+    invoices.filter(inv => inv.status === 'paid' && (inv.paid_date || inv.issue_date)).forEach(inv => {
+      const { key, label } = getKey(inv.paid_date || inv.issue_date);
       if (!monthlyData[key]) monthlyData[key] = { key, month: label, expenses: 0, income: 0 };
       monthlyData[key].income += inv.total_amount || 0;
     });
