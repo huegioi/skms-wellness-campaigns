@@ -18,19 +18,18 @@ const COL_BROKERS = {
 };
 
 // Column indices (0-based) — ECs sheet
-// Real structure: FirstName | Email | (empty) | Valid | Company | Location | LinkedIn | (empty) | Status | ContactMethod | Type
+// Structure: FirstName | LastName | Email | Role | Company | Location | LinkedIn | Status | ContactMethod | Type
 const COL_ECS = {
   FIRST_NAME: 0,
-  LAST_NAME: null,   // no last name col
-  EMAIL: 1,          // labeled 'Last Name' but actually contains email
-  VALIDITY: 3,
+  LAST_NAME: 1,
+  EMAIL: 2,
   TITLE: null,
   COMPANY: 4,
   LOCATION: 5,
   LINKEDIN: 6,
-  STATUS: 8,
-  CONTACT_METHOD: 9,
-  TYPE: 10,
+  STATUS: 7,
+  CONTACT_METHOD: 8,
+  TYPE: 9,
 };
 
 // Map sheet status → Lead entity status
@@ -60,11 +59,12 @@ const APP_STATUS_TO_SHEET = {
 
 function rowToLead(row, rowIndex, sheetName) {
   const COL = sheetName === 'ECs' ? COL_ECS : COL_BROKERS;
-  const get = (i) => (i === null ? '' : (row[i] || '').trim());
+  const get = (i) => (i === null || i === undefined ? '' : (row[i] || '').trim());
+
   const firstName = get(COL.FIRST_NAME);
-  const lastName = get(COL.LAST_NAME);
+  const lastName = COL.LAST_NAME !== null ? get(COL.LAST_NAME) : '';
   const name = [firstName, lastName].filter(Boolean).join(' ');
-  const email = COL.EMAIL !== null ? get(COL.EMAIL) : '';
+  const email = get(COL.EMAIL);
 
   if (!name) return null;
 
@@ -82,7 +82,7 @@ function rowToLead(row, rowIndex, sheetName) {
   return {
     name,
     email,
-    title: get(COL.TITLE),
+    title: COL.TITLE !== null ? get(COL.TITLE) : '',
     company: get(COL.COMPANY),
     industry: get(COL.TYPE) || (sheetName === 'ECs' ? 'Engagement Consultant' : ''),
     source: [location, linkedin].filter(Boolean).join(' | '),
@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
 
     let created = 0;
     let updatedFromSheet = 0;
-    const batchUpdates = []; // for writing back to sheet
+    const batchUpdates = [];
 
     // Process in chunks to avoid rate limits
     const CHUNK_SIZE = 25;
@@ -183,67 +183,67 @@ Deno.serve(async (req) => {
         updatedFromSheet++;
         batchUpdates.push({ rowIndex, lead: { ...existing, ...updates } });
       } else {
-        // For ECs (no email), use sheet_row_id as unique key; for Brokers, require email
+        // For ECs allow no email; for Brokers require email
         if (!lead.email && SHEET_NAME !== 'ECs') continue;
         const newLead = await base44.asServiceRole.entities.Lead.create(lead);
         created++;
         batchUpdates.push({ rowIndex, lead: newLead });
       }
     }
+
     const hasMore = startRow + CHUNK_SIZE < dataRows.length;
     const nextStartRow = startRow + CHUNK_SIZE;
 
-    // ── 4. App → Sheet: push any leads that were edited in the app back ────
-    // Find leads with sheet_row_id that we can write back
-    const writeRows = batchUpdates.map(({ rowIndex, lead }) => ({
-      range: `${SHEET_NAME}!A${rowIndex}:K${rowIndex}`,
-      values: [leadToSheetRow(lead)],
-    }));
-
-    // Also push leads that exist in app but NOT in sheet (new leads added in app)
-    const appOnlyLeads = existingLeads.filter(l => !l.sheet_row_id && (!l.sheet_origin || l.sheet_origin === SHEET_NAME));
-    const appendRows = appOnlyLeads.map(l => leadToSheetRow(l));
-
-    // Batch update existing rows
-    if (writeRows.length > 0) {
-      await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchUpdate`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ valueInputOption: 'RAW', data: writeRows }),
-        }
-      );
-    }
-
-    // Append app-only leads to sheet
+    // ── 4. App → Sheet: only write back for Brokers (ECs sheet is read-only) ────
+    let pushedToSheet = 0;
     let appended = 0;
-    if (appendRows.length > 0) {
-      const appendRange = encodeURIComponent(`${SHEET_NAME}!A:K`);
-      const appendRes = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${appendRange}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ values: appendRows }),
-        }
-      );
-      const appendData = await appendRes.json();
-      appended = appendRows.length;
 
-      // Update sheet_row_id for newly appended leads
-      // Get updated sheet to find their new row numbers
-      const updatedSheetRes = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(`${SHEET_NAME}!C:C`)}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      const updatedSheet = await updatedSheetRes.json();
-      const emailCol = (updatedSheet.values || []).slice(1); // skip header
+    if (SHEET_NAME !== 'ECs') {
+      const writeRows = batchUpdates.map(({ rowIndex, lead }) => ({
+        range: `${SHEET_NAME}!A${rowIndex}:K${rowIndex}`,
+        values: [leadToSheetRow(lead)],
+      }));
 
-      for (const lead of appOnlyLeads) {
-        const idx = emailCol.findIndex(r => r[0]?.toLowerCase() === lead.email?.toLowerCase());
-        if (idx >= 0) {
-          await base44.asServiceRole.entities.Lead.update(lead.id, { sheet_row_id: String(idx + 2) });
+      if (writeRows.length > 0) {
+        await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchUpdate`,
+          {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ valueInputOption: 'RAW', data: writeRows }),
+          }
+        );
+        pushedToSheet = writeRows.length;
+      }
+
+      // Append app-only leads to sheet
+      const appOnlyLeads = existingLeads.filter(l => !l.sheet_row_id && (!l.sheet_origin || l.sheet_origin === SHEET_NAME));
+      const appendRows = appOnlyLeads.map(l => leadToSheetRow(l));
+
+      if (appendRows.length > 0) {
+        const appendRange = encodeURIComponent(`${SHEET_NAME}!A:K`);
+        await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${appendRange}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`,
+          {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ values: appendRows }),
+          }
+        );
+        appended = appendRows.length;
+
+        const updatedSheetRes = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(`${SHEET_NAME}!C:C`)}`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        const updatedSheet = await updatedSheetRes.json();
+        const emailCol = (updatedSheet.values || []).slice(1);
+
+        for (const lead of appOnlyLeads) {
+          const idx = emailCol.findIndex(r => r[0]?.toLowerCase() === lead.email?.toLowerCase());
+          if (idx >= 0) {
+            await base44.asServiceRole.entities.Lead.update(lead.id, { sheet_row_id: String(idx + 2) });
+          }
         }
       }
     }
@@ -252,7 +252,7 @@ Deno.serve(async (req) => {
       success: true,
       created,
       updatedFromSheet,
-      pushedToSheet: writeRows.length,
+      pushedToSheet,
       appended,
       hasMore,
       nextStartRow,
