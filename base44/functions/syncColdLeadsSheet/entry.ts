@@ -2,11 +2,26 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 const SPREADSHEET_ID = '1qK6sAv73EkBPfES1i--b2u1AanUt_Gu3_7yyth99OBA';
 
-// Column indices (0-based)
-const COL = {
+// Column indices (0-based) — Brokers sheet
+const COL_BROKERS = {
   FIRST_NAME: 0,
   LAST_NAME: 1,
   EMAIL: 2,
+  VALIDITY: 3,
+  TITLE: 4,
+  COMPANY: 5,
+  LOCATION: 6,
+  LINKEDIN: 7,
+  STATUS: 8,
+  CONTACT_METHOD: 9,
+  TYPE: 10,
+};
+
+// Column indices (0-based) — ECs sheet (has extra 'Name' col at start, no real email)
+const COL_ECS = {
+  FIRST_NAME: 0,
+  LAST_NAME: 2,
+  EMAIL: null, // ECs sheet has no email column
   VALIDITY: 3,
   TITLE: 4,
   COMPANY: 5,
@@ -43,13 +58,14 @@ const APP_STATUS_TO_SHEET = {
 };
 
 function rowToLead(row, rowIndex, sheetName) {
-  const get = (i) => (row[i] || '').trim();
+  const COL = sheetName === 'ECs' ? COL_ECS : COL_BROKERS;
+  const get = (i) => (i === null ? '' : (row[i] || '').trim());
   const firstName = get(COL.FIRST_NAME);
   const lastName = get(COL.LAST_NAME);
   const name = [firstName, lastName].filter(Boolean).join(' ');
-  const email = get(COL.EMAIL);
+  const email = COL.EMAIL !== null ? get(COL.EMAIL) : '';
 
-  if (!name && !email) return null;
+  if (!name) return null;
 
   const sheetStatus = get(COL.STATUS).toLowerCase();
   const contactMethod = get(COL.CONTACT_METHOD).toLowerCase();
@@ -59,13 +75,16 @@ function rowToLead(row, rowIndex, sheetName) {
   else if (contactMethod.includes('email')) outreachChannel = 'email';
   else if (contactMethod.includes('phone')) outreachChannel = 'phone';
 
+  const location = get(COL.LOCATION);
+  const linkedin = get(COL.LINKEDIN);
+
   return {
     name,
     email,
     title: get(COL.TITLE),
     company: get(COL.COMPANY),
     industry: get(COL.TYPE) || (sheetName === 'ECs' ? 'Engagement Consultant' : ''),
-    source: [get(COL.LOCATION), get(COL.LINKEDIN)].filter(Boolean).join(' | '),
+    source: [location, linkedin].filter(Boolean).join(' | '),
     status: SHEET_STATUS_TO_APP[sheetStatus] || 'cold',
     outreach_channel: outreachChannel,
     sheet_row_id: String(rowIndex),

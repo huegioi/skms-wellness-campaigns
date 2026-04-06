@@ -10,6 +10,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin only' }, { status: 403 });
     }
 
+    const body = await req.json().catch(() => ({}));
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
 
     // First get spreadsheet metadata to find tab names
@@ -18,16 +19,18 @@ Deno.serve(async (req) => {
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     const meta = await metaRes.json();
+    const sheetTabs = meta.sheets?.map(s => s.properties?.title);
     const firstSheet = meta.sheets?.[0]?.properties?.title || 'Sheet1';
+    const targetSheet = body.sheetName || firstSheet;
 
-    // Read first 5 rows
-    const range = encodeURIComponent(`${firstSheet}!A1:Z5`);
+    // Read first 10 rows of requested sheet
+    const range = encodeURIComponent(`${targetSheet}!A1:Z10`);
     const res = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`,
       { headers: { Authorization: `Bearer ${accessToken}` } }
     );
     const data = await res.json();
-    return Response.json({ sheetTabs: meta.sheets?.map(s => s.properties?.title), firstSheet, data });
+    return Response.json({ sheetTabs, firstSheet, targetSheet, data });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
