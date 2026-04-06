@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { DollarSign, TrendingUp, Clock, CheckCircle2, RefreshCw, TrendingDown, Wallet } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import ReportsSection from './ReportsSection';
+import CustomerLTVCard from './CustomerLTVCard';
 import ExpenseManager from './ExpenseManager';
 
 function TopIncomeSourcesCard({ incomeData, invoices, timeframe }) {
@@ -468,6 +469,9 @@ export default function FinancialInformationSection() {
           )}
         </CardContent>
       </Card>
+
+      {/* Customer Lifetime Value */}
+      <CustomerLTVCard invoices={invoices} />
         </TabsContent>
 
         {/* Reports Tab */}
