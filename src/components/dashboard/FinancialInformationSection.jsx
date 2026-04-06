@@ -90,7 +90,10 @@ export default function FinancialInformationSection() {
       monthlyData[month].expenses += exp.amount || 0;
     });
 
-    return Object.values(monthlyData).slice(-6).map(data => ({
+    return Object.values(monthlyData)
+      .sort((a, b) => new Date('01 ' + a.month) - new Date('01 ' + b.month))
+      .slice(-6)
+      .map(data => ({
       ...data,
       profit: data.income - data.expenses
     }));
@@ -305,81 +308,85 @@ export default function FinancialInformationSection() {
         </Card>
       </div>
 
-      {/* Expense & Income Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Major Expense Categories */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
-            <CardTitle style={{ color: '#264d44' }}>Major Expense Categories</CardTitle>
-            {expenseData.contractorTotal.total > 0 && (
-              <p className="text-sm text-gray-600 mt-1">
-                Contractor Spending: <span className="font-semibold text-red-600">${expenseData.contractorTotal.total.toLocaleString()}</span> ({expenseData.contractorTotal.count} transactions)
-              </p>
-            )}
-          </CardHeader>
-          <CardContent>
-            {expenseData.breakdown.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={expenseData.breakdown} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={120} />
-                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                  <Bar dataKey="value" name="Amount" fill="#F44336" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[250px] flex items-center justify-center text-gray-400">
-                No expense data yet
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Top Income Sources */}
-        <Card className="hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
-            <CardTitle style={{ color: '#264d44' }}>Top Income Sources (by Customer)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {incomeData.topCustomers.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
+      {/* Top Income Sources - Full Width Detailed */}
+      <Card className="hover:shadow-lg transition-shadow duration-300">
+        <CardHeader>
+          <CardTitle style={{ color: '#264d44' }}>Top Income Sources by Customer</CardTitle>
+          <p className="text-sm text-gray-500 mt-1">
+            {timeframe === 'month' ? 'This Month' : 'This Quarter'} — paid invoices only
+          </p>
+        </CardHeader>
+        <CardContent>
+          {incomeData.topCustomers.length > 0 ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ResponsiveContainer width="100%" height={320}>
                 <BarChart data={incomeData.topCustomers} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={120} />
+                  <XAxis type="number" tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+                  <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 12 }} />
                   <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                  <Bar dataKey="value" name="Amount" fill="#4CAF50" />
+                  <Bar dataKey="value" name="Revenue" fill="#264d44" radius={[0, 6, 6, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-            ) : (
-              <div className="h-[250px] flex items-center justify-center text-gray-400">
-                No income data yet
+              <div className="space-y-2">
+                {(() => {
+                  const totalIncome = incomeData.topCustomers.reduce((s, c) => s + c.value, 0);
+                  return incomeData.topCustomers.map((customer, idx) => {
+                    const pct = totalIncome > 0 ? ((customer.value / totalIncome) * 100).toFixed(1) : 0;
+                    const customerInvoices = invoices.filter(inv =>
+                      inv.status === 'paid' &&
+                      (inv.client_name === customer.name || inv.company === customer.name)
+                    );
+                    const invoiceCount = customerInvoices.length;
+                    const avgInvoice = invoiceCount > 0 ? customer.value / invoiceCount : 0;
+                    return (
+                      <div key={customer.name} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#264d44] text-white text-xs flex items-center justify-center font-bold">{idx + 1}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-semibold text-gray-800 truncate text-sm">{customer.name}</p>
+                            <p className="font-bold text-[#264d44] flex-shrink-0">${customer.value.toLocaleString()}</p>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                            <span>{invoiceCount} invoice{invoiceCount !== 1 ? 's' : ''}</span>
+                            <span>Avg: ${Math.round(avgInvoice).toLocaleString()}</span>
+                            <span className="ml-auto font-medium text-gray-600">{pct}% of total</span>
+                          </div>
+                          <div className="mt-1.5 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-[#264d44] rounded-full" style={{ width: `${pct}%` }} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </div>
+          ) : (
+            <div className="h-[250px] flex items-center justify-center text-gray-400">No income data for this period</div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Income vs Expenses Chart */}
       <Card className="hover:shadow-lg transition-shadow duration-300">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Income vs Expenses (Last 6 Months)</CardTitle>
-      </CardHeader>
-      <CardContent className="p-4 sm:p-6">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Income vs Expenses (Last 6 Months)</CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 sm:p-6">
           {monthlyData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={320}>
               <BarChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
-                <Tooltip 
-                  formatter={(value) => `$${value.toLocaleString()}`}
+                <YAxis axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+                <Tooltip
+                  formatter={(value, name) => [`$${value.toLocaleString()}`, name]}
                   contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
                 />
                 <Legend />
-                <Bar dataKey="income" name="Income" fill="#4CAF50" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="expenses" name="Expenses" fill="#F44336" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="income" name="Income" fill="#4CAF50" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="expenses" name="Expenses" fill="#F44336" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
