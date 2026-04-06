@@ -136,28 +136,33 @@ export default function FinancialInformationSection() {
 
   const generateMonthlyData = () => {
     const monthlyData = {};
-    
+
+    const getKey = (dateStr) => {
+      const d = new Date(dateStr);
+      // sortable key: YYYY-MM, display label: Mon YY
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+      return { key, label };
+    };
+
     // Track paid invoices as income
     invoices.filter(inv => inv.status === 'paid' && inv.paid_date).forEach(inv => {
-      const month = new Date(inv.paid_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      if (!monthlyData[month]) monthlyData[month] = { month, expenses: 0, income: 0 };
-      monthlyData[month].income += inv.total_amount || 0;
+      const { key, label } = getKey(inv.paid_date);
+      if (!monthlyData[key]) monthlyData[key] = { key, month: label, expenses: 0, income: 0 };
+      monthlyData[key].income += inv.total_amount || 0;
     });
 
     // Track expenses
     quickBooksExpenses.filter(exp => exp.transaction_date).forEach(exp => {
-      const month = new Date(exp.transaction_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      if (!monthlyData[month]) monthlyData[month] = { month, expenses: 0, income: 0 };
-      monthlyData[month].expenses += exp.amount || 0;
+      const { key, label } = getKey(exp.transaction_date);
+      if (!monthlyData[key]) monthlyData[key] = { key, month: label, expenses: 0, income: 0 };
+      monthlyData[key].expenses += exp.amount || 0;
     });
 
     return Object.values(monthlyData)
-      .sort((a, b) => new Date('01 ' + a.month) - new Date('01 ' + b.month))
+      .sort((a, b) => a.key.localeCompare(b.key))
       .slice(-6)
-      .map(data => ({
-      ...data,
-      profit: data.income - data.expenses
-    }));
+      .map(data => ({ ...data, profit: data.income - data.expenses }));
   };
 
   const monthlyData = generateMonthlyData();
