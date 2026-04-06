@@ -1,0 +1,23 @@
+{
+  "name": "QuickBooksConfig",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Config key (e.g. 'refresh_token')"
+    },
+    "value": {
+      "type": "string",
+      "description": "Config value"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this was last updated"
+    }
+  },
+  "required": [
+    "key",
+    "value"
+  ]
+}

@@ -1,10 +1,53 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 const QB_API_URL = 'https://quickbooks.api.intuit.com/v3/company';
 
 // Token cache to avoid refreshing on every request
 let cachedAccessToken = null;
 let tokenExpiresAt = null;
+let base44ServiceClient = null;
+
+function setServiceClient(client) {
+  base44ServiceClient = client;
+}
+
+async function getStoredRefreshToken() {
+  // Try DB first (for rotated tokens), fall back to env var
+  if (base44ServiceClient) {
+    try {
+      const configs = await base44ServiceClient.asServiceRole.entities.QuickBooksConfig.filter({ key: 'refresh_token' });
+      if (configs && configs.length > 0) {
+        return configs[0].value;
+      }
+    } catch (e) {
+      console.log('Could not read refresh token from DB, using env var:', e.message);
+    }
+  }
+  return Deno.env.get('QUICKBOOKS_REFRSH_TOKEN');
+}
+
+async function saveRefreshToken(newToken) {
+  if (!base44ServiceClient) return;
+  try {
+    const configs = await base44ServiceClient.asServiceRole.entities.QuickBooksConfig.filter({ key: 'refresh_token' });
+    if (configs && configs.length > 0) {
+      await base44ServiceClient.asServiceRole.entities.QuickBooksConfig.update(configs[0].id, {
+        value: newToken,
+        updated_at: new Date().toISOString()
+      });
+    } else {
+      await base44ServiceClient.asServiceRole.entities.QuickBooksConfig.create({
+        key: 'refresh_token',
+        value: newToken,
+        updated_at: new Date().toISOString()
+      });
+    }
+    console.log('New QuickBooks refresh token saved to DB successfully.');
+  } catch (e) {
+    console.error('Failed to save refresh token to DB:', e.message);
+    throw new Error('Token rotated by QuickBooks but could not save new token: ' + e.message);
+  }
+}
 
 async function getAccessToken() {
   // Check if we have a valid cached token
@@ -15,7 +58,7 @@ async function getAccessToken() {
   // Token expired or doesn't exist, refresh it
   const clientId = Deno.env.get('QUICKBOOKS_CLIENT_ID');
   const clientSecret = Deno.env.get('QUICKBOOKS_CLIENT_SECRET');
-  const refreshToken = Deno.env.get('QUICKBOOKS_REFRSH_TOKEN');
+  const refreshToken = await getStoredRefreshToken();
 
   const response = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
     method: 'POST',
@@ -46,36 +89,15 @@ async function getAccessToken() {
   }
 
   const data = await response.json();
-  
+
   // Cache the access token (expires in 3600 seconds = 1 hour, refresh 5 min early for safety)
   cachedAccessToken = data.access_token;
   tokenExpiresAt = Date.now() + ((data.expires_in || 3600) - 300) * 1000;
 
   // CRITICAL: QuickBooks rotates refresh tokens on every use.
-  // The old refresh token is immediately invalidated. We must persist the new one.
+  // Save the new token to the DB so rotation is handled automatically.
   if (data.refresh_token) {
-    const appId = Deno.env.get('BASE44_APP_ID');
-    const apiKey = Deno.env.get('BASE44_API_KEY');
-    if (appId && apiKey) {
-      const saveResponse = await fetch(`https://api.base44.com/api/apps/${appId}/secrets`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey
-        },
-        body: JSON.stringify({ name: 'QUICKBOOKS_REFRSH_TOKEN', value: data.refresh_token })
-      });
-      if (!saveResponse.ok) {
-        const saveError = await saveResponse.text();
-        console.error('CRITICAL: Failed to save new refresh token:', saveError);
-        throw new Error(`Token rotated by QuickBooks but failed to save new token: ${saveError}. Old token is now invalid.`);
-      } else {
-        console.log('New QuickBooks refresh token saved successfully.');
-      }
-    } else {
-      console.error('CRITICAL: BASE44_APP_ID or BASE44_API_KEY not set - cannot save rotated refresh token!');
-      throw new Error('Cannot save rotated refresh token: BASE44_APP_ID or BASE44_API_KEY not configured.');
-    }
+    await saveRefreshToken(data.refresh_token);
   }
 
   return cachedAccessToken;
@@ -139,7 +161,7 @@ async function createQBInvoice(accessToken, realmId, invoiceData, customerId) {
     CustomerRef: { value: customerId },
     TxnDate: invoiceData.issue_date,
     DueDate: invoiceData.due_date,
-    Line: invoiceData.line_items.map((item, idx) => {
+    Line: invoiceData.line_items.map((item) => {
       const lineDetail = {
         DetailType: 'SalesItemLineDetail',
         Amount: item.amount,
@@ -149,14 +171,9 @@ async function createQBInvoice(accessToken, realmId, invoiceData, customerId) {
           UnitPrice: item.rate || 0
         }
       };
-      
-      // Add ItemRef if quickbooks_item_id is provided
       if (item.quickbooks_item_id) {
-        lineDetail.SalesItemLineDetail.ItemRef = {
-          value: item.quickbooks_item_id
-        };
+        lineDetail.SalesItemLineDetail.ItemRef = { value: item.quickbooks_item_id };
       }
-      
       return lineDetail;
     }),
     CustomerMemo: invoiceData.memo ? { value: invoiceData.memo } : undefined
@@ -233,6 +250,7 @@ async function getQBPayments(accessToken, realmId, invoiceId) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    setServiceClient(base44);
     const user = await base44.auth.me();
 
     if (!user) {
@@ -256,7 +274,6 @@ Deno.serve(async (req) => {
 
       const invoiceData = invoice[0];
 
-      // Validate required fields
       if (!invoiceData.client_email) {
         return Response.json({ error: 'Invoice missing client email' }, { status: 400 });
       }
@@ -265,16 +282,13 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Invoice must have at least one line item' }, { status: 400 });
       }
 
-      // Find or create customer
       let customerId = await findQBCustomer(accessToken, realmId, invoiceData.client_email);
       if (!customerId) {
         customerId = await createQBCustomer(accessToken, realmId, invoiceData);
       }
 
-      // Create invoice in QuickBooks
       const qbInvoice = await createQBInvoice(accessToken, realmId, invoiceData, customerId);
 
-      // Update local invoice with QB ID
       await base44.asServiceRole.entities.Invoice.update(invoiceId, {
         quickbooks_id: qbInvoice.Id,
         quickbooks_sync_date: new Date().toISOString(),
@@ -299,21 +313,16 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Invoice not synced to QuickBooks yet' }, { status: 400 });
       }
 
-      // Get latest from QuickBooks
       const qbInvoice = await getQBInvoice(accessToken, realmId, invoiceData.quickbooks_id);
       const payments = await getQBPayments(accessToken, realmId, invoiceData.quickbooks_id);
 
-      // Update status based on QB balance
       let status = invoiceData.status;
       let paidDate = null;
-      
+
       if (qbInvoice.Balance === 0) {
         status = 'paid';
-        // Get the most recent payment date
         if (payments.length > 0) {
-          const sortedPayments = payments.sort((a, b) => 
-            new Date(b.TxnDate) - new Date(a.TxnDate)
-          );
+          const sortedPayments = payments.sort((a, b) => new Date(b.TxnDate) - new Date(a.TxnDate));
           paidDate = sortedPayments[0].TxnDate;
         } else {
           paidDate = new Date().toISOString().split('T')[0];
@@ -334,34 +343,18 @@ Deno.serve(async (req) => {
         success: true,
         status,
         balance: qbInvoice.Balance,
-        payments: payments.map(p => ({
-          date: p.TxnDate,
-          amount: p.TotalAmt
-        }))
+        payments: payments.map(p => ({ date: p.TxnDate, amount: p.TotalAmt }))
       });
     }
 
     if (action === 'syncAll') {
       let invoices = await base44.asServiceRole.entities.Invoice.filter({});
-      
-      // Apply filters
+
       invoices = invoices.filter(invoice => {
-        // Only sync invoices with QuickBooks ID
         if (!invoice.quickbooks_id) return false;
-        
-        // Filter by status if provided
-        if (statusFilter && statusFilter !== 'all' && invoice.status !== statusFilter) {
-          return false;
-        }
-        
-        // Filter by date range if provided
-        if (dateFrom && new Date(invoice.issue_date) < new Date(dateFrom)) {
-          return false;
-        }
-        if (dateTo && new Date(invoice.issue_date) > new Date(dateTo)) {
-          return false;
-        }
-        
+        if (statusFilter && statusFilter !== 'all' && invoice.status !== statusFilter) return false;
+        if (dateFrom && new Date(invoice.issue_date) < new Date(dateFrom)) return false;
+        if (dateTo && new Date(invoice.issue_date) > new Date(dateTo)) return false;
         return true;
       });
 
@@ -371,16 +364,14 @@ Deno.serve(async (req) => {
         try {
           const qbInvoice = await getQBInvoice(accessToken, realmId, invoice.quickbooks_id);
           const payments = await getQBPayments(accessToken, realmId, invoice.quickbooks_id);
-          
+
           let status = invoice.status;
           let paidDate = null;
-          
+
           if (qbInvoice.Balance === 0) {
             status = 'paid';
             if (payments.length > 0) {
-              const sortedPayments = payments.sort((a, b) => 
-                new Date(b.TxnDate) - new Date(a.TxnDate)
-              );
+              const sortedPayments = payments.sort((a, b) => new Date(b.TxnDate) - new Date(a.TxnDate));
               paidDate = sortedPayments[0].TxnDate;
             } else {
               paidDate = new Date().toISOString().split('T')[0];
@@ -397,26 +388,14 @@ Deno.serve(async (req) => {
             paid_date: paidDate
           });
 
-          results.push({ 
-            id: invoice.id, 
-            invoice_number: invoice.invoice_number,
-            status, 
-            balance: qbInvoice.Balance,
-            paid_date: paidDate,
-            synced: true 
-          });
+          results.push({ id: invoice.id, invoice_number: invoice.invoice_number, status, balance: qbInvoice.Balance, paid_date: paidDate, synced: true });
         } catch (error) {
-          results.push({ 
-            id: invoice.id, 
-            invoice_number: invoice.invoice_number,
-            error: error.message, 
-            synced: false 
-          });
+          results.push({ id: invoice.id, invoice_number: invoice.invoice_number, error: error.message, synced: false });
         }
       }
 
-      return Response.json({ 
-        success: true, 
+      return Response.json({
+        success: true,
         results,
         total: results.length,
         synced: results.filter(r => r.synced).length,
@@ -425,266 +404,183 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'listQBInvoices') {
-        const query = "SELECT * FROM Invoice MAXRESULTS 1000";
-        const response = await fetch(
-          `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(query)}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Accept': 'application/json'
-            }
-          }
-        );
+      const query = "SELECT * FROM Invoice MAXRESULTS 1000";
+      const response = await fetch(
+        `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(query)}`,
+        { headers: { 'Authorization': `Bearer ${accessToken}`, 'Accept': 'application/json' } }
+      );
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Failed to fetch invoices: ${errorText}`);
-        }
-
-        const result = await response.json();
-        const qbInvoices = result.QueryResponse?.Invoice || [];
-
-        // Get local invoices to match
-        const localInvoices = await base44.asServiceRole.entities.Invoice.filter({});
-
-        // Enrich QB invoices with local match info
-        const enrichedInvoices = qbInvoices.map(qbInv => {
-          const localMatch = localInvoices.find(l => l.quickbooks_id === qbInv.Id);
-
-          let status = 'sent';
-          if (qbInv.Balance === 0) {
-            status = 'paid';
-          } else if (new Date(qbInv.DueDate) < new Date()) {
-            status = 'overdue';
-          }
-
-          // Extract line items
-          const line_items = (qbInv.Line || [])
-            .filter(line => line.DetailType === 'SalesItemLineDetail')
-            .map(line => ({
-              description: line.Description || '',
-              quantity: line.SalesItemLineDetail?.Qty || 1,
-              rate: line.SalesItemLineDetail?.UnitPrice || 0,
-              amount: line.Amount || 0
-            }));
-
-          return {
-            quickbooks_id: qbInv.Id,
-            invoice_number: qbInv.DocNumber,
-            customer_name: qbInv.CustomerRef?.name || 'Unknown',
-            customer_id: qbInv.CustomerRef?.value,
-            total_amount: qbInv.TotalAmt,
-            balance: qbInv.Balance,
-            issue_date: qbInv.TxnDate,
-            due_date: qbInv.DueDate,
-            status,
-            local_invoice_id: localMatch?.id,
-            in_local_db: !!localMatch,
-            line_items
-          };
-        });
-
-        return Response.json({
-          success: true,
-          invoices: enrichedInvoices,
-          total: enrichedInvoices.length
-        });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to fetch invoices: ${errorText}`);
       }
 
-      if (action === 'syncClientsFromQB') {
-        // Fetch all QB customers
-        const customerQuery = "SELECT * FROM Customer MAXRESULTS 1000";
-        const customerResponse = await fetch(
-          `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(customerQuery)}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Accept': 'application/json'
-            }
-          }
-        );
+      const result = await response.json();
+      const qbInvoices = result.QueryResponse?.Invoice || [];
+      const localInvoices = await base44.asServiceRole.entities.Invoice.filter({});
 
-        if (!customerResponse.ok) {
-          const errorText = await customerResponse.text();
-          throw new Error(`Failed to fetch customers: ${errorText}`);
-        }
+      const enrichedInvoices = qbInvoices.map(qbInv => {
+        const localMatch = localInvoices.find(l => l.quickbooks_id === qbInv.Id);
+        let status = 'sent';
+        if (qbInv.Balance === 0) status = 'paid';
+        else if (new Date(qbInv.DueDate) < new Date()) status = 'overdue';
 
-        const customerResult = await customerResponse.json();
-        const qbCustomers = customerResult.QueryResponse?.Customer || [];
+        const line_items = (qbInv.Line || [])
+          .filter(line => line.DetailType === 'SalesItemLineDetail')
+          .map(line => ({
+            description: line.Description || '',
+            quantity: line.SalesItemLineDetail?.Qty || 1,
+            rate: line.SalesItemLineDetail?.UnitPrice || 0,
+            amount: line.Amount || 0
+          }));
 
-        // Get local clients and invoices
-        const localClients = await base44.asServiceRole.entities.Client.filter({});
-        const localInvoices = await base44.asServiceRole.entities.Invoice.filter({});
+        return {
+          quickbooks_id: qbInv.Id,
+          invoice_number: qbInv.DocNumber,
+          customer_name: qbInv.CustomerRef?.name || 'Unknown',
+          customer_id: qbInv.CustomerRef?.value,
+          total_amount: qbInv.TotalAmt,
+          balance: qbInv.Balance,
+          issue_date: qbInv.TxnDate,
+          due_date: qbInv.DueDate,
+          status,
+          local_invoice_id: localMatch?.id,
+          in_local_db: !!localMatch,
+          line_items
+        };
+      });
 
-        // Fetch invoices to determine purchased services
-        const invoiceQuery = "SELECT * FROM Invoice MAXRESULTS 1000";
-        const invoiceResponse = await fetch(
-          `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(invoiceQuery)}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Accept': 'application/json'
-            }
-          }
-        );
+      return Response.json({ success: true, invoices: enrichedInvoices, total: enrichedInvoices.length });
+    }
 
-        const invoiceResult = await invoiceResponse.json();
-        const qbInvoices = invoiceResult.QueryResponse?.Invoice || [];
+    if (action === 'syncClientsFromQB') {
+      const customerQuery = "SELECT * FROM Customer MAXRESULTS 1000";
+      const customerResponse = await fetch(
+        `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(customerQuery)}`,
+        { headers: { 'Authorization': `Bearer ${accessToken}`, 'Accept': 'application/json' } }
+      );
 
-        const syncResults = [];
+      if (!customerResponse.ok) {
+        const errorText = await customerResponse.text();
+        throw new Error(`Failed to fetch customers: ${errorText}`);
+      }
 
-        for (const qbCustomer of qbCustomers) {
-          try {
-            const email = qbCustomer.PrimaryEmailAddr?.Address;
-            if (!email) continue;
+      const customerResult = await customerResponse.json();
+      const qbCustomers = customerResult.QueryResponse?.Customer || [];
+      const localClients = await base44.asServiceRole.entities.Client.filter({});
+      const localInvoices = await base44.asServiceRole.entities.Invoice.filter({});
 
-            // Find customer's invoices
-            const customerInvoices = qbInvoices.filter(
-              inv => inv.CustomerRef?.value === qbCustomer.Id
-            );
+      const invoiceQuery = "SELECT * FROM Invoice MAXRESULTS 1000";
+      const invoiceResponse = await fetch(
+        `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(invoiceQuery)}`,
+        { headers: { 'Authorization': `Bearer ${accessToken}`, 'Accept': 'application/json' } }
+      );
 
-            // Sync QB invoices to local database
-            const invoiceIds = [];
-            for (const qbInv of customerInvoices) {
-              // Check if invoice already exists locally
-              let localInvoice = localInvoices.find(inv => inv.quickbooks_id === qbInv.Id);
+      const invoiceResult = await invoiceResponse.json();
+      const qbInvoices = invoiceResult.QueryResponse?.Invoice || [];
+      const syncResults = [];
 
-              // Extract line items
-              const line_items = (qbInv.Line || [])
-                .filter(line => line.DetailType === 'SalesItemLineDetail')
-                .map(line => ({
-                  description: line.Description || '',
-                  quantity: line.SalesItemLineDetail?.Qty || 1,
-                  rate: line.SalesItemLineDetail?.UnitPrice || 0,
-                  amount: line.Amount || 0
-                }));
+      for (const qbCustomer of qbCustomers) {
+        try {
+          const email = qbCustomer.PrimaryEmailAddr?.Address;
+          if (!email) continue;
 
-              // Determine status
-              let status = 'sent';
-              if (qbInv.Balance === 0) {
-                status = 'paid';
-              } else if (new Date(qbInv.DueDate) < new Date()) {
-                status = 'overdue';
-              }
+          const customerInvoices = qbInvoices.filter(inv => inv.CustomerRef?.value === qbCustomer.Id);
+          const invoiceIds = [];
 
-              const invoiceData = {
-                invoice_number: qbInv.DocNumber,
-                client_name: qbCustomer.DisplayName || email,
-                client_email: email,
-                company: qbCustomer.CompanyName || '',
-                line_items: line_items,
-                subtotal: qbInv.TotalAmt || 0,
-                total_amount: qbInv.TotalAmt || 0,
-                status: status,
-                issue_date: qbInv.TxnDate,
-                due_date: qbInv.DueDate,
-                quickbooks_id: qbInv.Id,
-                quickbooks_sync_date: new Date().toISOString(),
-                memo: qbInv.CustomerMemo?.value || ''
-              };
+          for (const qbInv of customerInvoices) {
+            let localInvoice = localInvoices.find(inv => inv.quickbooks_id === qbInv.Id);
 
-              if (localInvoice) {
-                // Update existing invoice
-                await base44.asServiceRole.entities.Invoice.update(localInvoice.id, invoiceData);
-                invoiceIds.push(localInvoice.id);
-              } else {
-                // Create new invoice
-                const newInvoice = await base44.asServiceRole.entities.Invoice.create(invoiceData);
-                invoiceIds.push(newInvoice.id);
-              }
-            }
+            const line_items = (qbInv.Line || [])
+              .filter(line => line.DetailType === 'SalesItemLineDetail')
+              .map(line => ({
+                description: line.Description || '',
+                quantity: line.SalesItemLineDetail?.Qty || 1,
+                rate: line.SalesItemLineDetail?.UnitPrice || 0,
+                amount: line.Amount || 0
+              }));
 
-            // Extract purchased services from line items
-            const purchasedServices = new Set();
-            customerInvoices.forEach(invoice => {
-              (invoice.Line || [])
-                .filter(line => line.DetailType === 'SalesItemLineDetail')
-                .forEach(line => {
-                  if (line.Description) {
-                    purchasedServices.add(line.Description);
-                  }
-                });
-            });
+            let status = 'sent';
+            if (qbInv.Balance === 0) status = 'paid';
+            else if (new Date(qbInv.DueDate) < new Date()) status = 'overdue';
 
-            // Calculate total invoice value and count
-            const totalInvoiceValue = customerInvoices.reduce((sum, inv) => sum + (inv.TotalAmt || 0), 0);
-            const invoiceCount = customerInvoices.length;
-
-            // Check if client exists
-            const existingClient = localClients.find(c => 
-              c.email?.toLowerCase() === email.toLowerCase()
-            );
-
-            const clientData = {
-              name: qbCustomer.DisplayName || 
-                    `${qbCustomer.GivenName || ''} ${qbCustomer.FamilyName || ''}`.trim() ||
-                    email,
-              email: email,
+            const invoiceData = {
+              invoice_number: qbInv.DocNumber,
+              client_name: qbCustomer.DisplayName || email,
+              client_email: email,
               company: qbCustomer.CompanyName || '',
-              phone: qbCustomer.PrimaryPhone?.FreeFormNumber || '',
-              company_address: qbCustomer.BillAddr ? 
-                `${qbCustomer.BillAddr.Line1 || ''} ${qbCustomer.BillAddr.City || ''} ${qbCustomer.BillAddr.CountrySubDivisionCode || ''} ${qbCustomer.BillAddr.PostalCode || ''}`.trim() : '',
-              notes: qbCustomer.Notes || '',
-              purchased_services: Array.from(purchasedServices),
-              total_invoice_value: totalInvoiceValue,
-              invoice_count: invoiceCount,
-              invoice_ids: invoiceIds
+              line_items,
+              subtotal: qbInv.TotalAmt || 0,
+              total_amount: qbInv.TotalAmt || 0,
+              status,
+              issue_date: qbInv.TxnDate,
+              due_date: qbInv.DueDate,
+              quickbooks_id: qbInv.Id,
+              quickbooks_sync_date: new Date().toISOString(),
+              memo: qbInv.CustomerMemo?.value || ''
             };
 
-            if (existingClient) {
-              // Update existing client - merge purchased services and invoice IDs
-              const mergedServices = new Set([
-                ...(existingClient.purchased_services || []),
-                ...clientData.purchased_services
-              ]);
-
-              const mergedInvoiceIds = [...new Set([
-                ...(existingClient.invoice_ids || []),
-                ...clientData.invoice_ids
-              ])];
-
-              await base44.asServiceRole.entities.Client.update(existingClient.id, {
-                ...clientData,
-                purchased_services: Array.from(mergedServices),
-                invoice_ids: mergedInvoiceIds
-              });
-
-              syncResults.push({
-                email,
-                action: 'updated',
-                client_id: existingClient.id,
-                invoices: invoiceCount,
-                total_value: totalInvoiceValue
-              });
+            if (localInvoice) {
+              await base44.asServiceRole.entities.Invoice.update(localInvoice.id, invoiceData);
+              invoiceIds.push(localInvoice.id);
             } else {
-              // Create new client
-              const newClient = await base44.asServiceRole.entities.Client.create(clientData);
-              syncResults.push({
-                email,
-                action: 'created',
-                client_id: newClient.id,
-                invoices: invoiceCount,
-                total_value: totalInvoiceValue
-              });
+              const newInvoice = await base44.asServiceRole.entities.Invoice.create(invoiceData);
+              invoiceIds.push(newInvoice.id);
             }
-          } catch (error) {
-            syncResults.push({
-              email: qbCustomer.PrimaryEmailAddr?.Address || 'unknown',
-              action: 'failed',
-              error: error.message
-            });
           }
-        }
 
-        return Response.json({
-          success: true,
-          results: syncResults,
-          total: syncResults.length,
-          created: syncResults.filter(r => r.action === 'created').length,
-          updated: syncResults.filter(r => r.action === 'updated').length,
-          failed: syncResults.filter(r => r.action === 'failed').length
-        });
+          const purchasedServices = new Set();
+          customerInvoices.forEach(invoice => {
+            (invoice.Line || []).filter(line => line.DetailType === 'SalesItemLineDetail').forEach(line => {
+              if (line.Description) purchasedServices.add(line.Description);
+            });
+          });
+
+          const totalInvoiceValue = customerInvoices.reduce((sum, inv) => sum + (inv.TotalAmt || 0), 0);
+          const invoiceCount = customerInvoices.length;
+          const existingClient = localClients.find(c => c.email?.toLowerCase() === email.toLowerCase());
+
+          const clientData = {
+            name: qbCustomer.DisplayName || `${qbCustomer.GivenName || ''} ${qbCustomer.FamilyName || ''}`.trim() || email,
+            email,
+            company: qbCustomer.CompanyName || '',
+            phone: qbCustomer.PrimaryPhone?.FreeFormNumber || '',
+            company_address: qbCustomer.BillAddr ?
+              `${qbCustomer.BillAddr.Line1 || ''} ${qbCustomer.BillAddr.City || ''} ${qbCustomer.BillAddr.CountrySubDivisionCode || ''} ${qbCustomer.BillAddr.PostalCode || ''}`.trim() : '',
+            notes: qbCustomer.Notes || '',
+            purchased_services: Array.from(purchasedServices),
+            total_invoice_value: totalInvoiceValue,
+            invoice_count: invoiceCount,
+            invoice_ids: invoiceIds
+          };
+
+          if (existingClient) {
+            const mergedServices = new Set([...(existingClient.purchased_services || []), ...clientData.purchased_services]);
+            const mergedInvoiceIds = [...new Set([...(existingClient.invoice_ids || []), ...clientData.invoice_ids])];
+            await base44.asServiceRole.entities.Client.update(existingClient.id, {
+              ...clientData,
+              purchased_services: Array.from(mergedServices),
+              invoice_ids: mergedInvoiceIds
+            });
+            syncResults.push({ email, action: 'updated', client_id: existingClient.id, invoices: invoiceCount, total_value: totalInvoiceValue });
+          } else {
+            const newClient = await base44.asServiceRole.entities.Client.create(clientData);
+            syncResults.push({ email, action: 'created', client_id: newClient.id, invoices: invoiceCount, total_value: totalInvoiceValue });
+          }
+        } catch (error) {
+          syncResults.push({ email: qbCustomer.PrimaryEmailAddr?.Address || 'unknown', action: 'failed', error: error.message });
+        }
       }
+
+      return Response.json({
+        success: true,
+        results: syncResults,
+        total: syncResults.length,
+        created: syncResults.filter(r => r.action === 'created').length,
+        updated: syncResults.filter(r => r.action === 'updated').length,
+        failed: syncResults.filter(r => r.action === 'failed').length
+      });
+    }
 
     if (action === 'deleteInvoice') {
       const invoice = await base44.asServiceRole.entities.Invoice.filter({ id: invoiceId });
@@ -694,25 +590,14 @@ Deno.serve(async (req) => {
 
       const invoiceData = invoice[0];
 
-      // If synced to QuickBooks, delete from QB first
       if (invoiceData.quickbooks_id) {
         try {
-          // Get the invoice to get SyncToken
           const qbInvoice = await getQBInvoice(accessToken, realmId, invoiceData.quickbooks_id);
-          
-          // Delete from QuickBooks
           const deleteUrl = `${QB_API_URL}/${realmId}/invoice?operation=delete`;
           const deleteResponse = await fetch(deleteUrl, {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-              Id: invoiceData.quickbooks_id,
-              SyncToken: qbInvoice.SyncToken
-            })
+            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ Id: invoiceData.quickbooks_id, SyncToken: qbInvoice.SyncToken })
           });
 
           if (!deleteResponse.ok) {
@@ -727,19 +612,13 @@ Deno.serve(async (req) => {
             throw new Error(errorMsg);
           }
         } catch (error) {
-          return Response.json({ 
-            error: `Failed to delete from QuickBooks: ${error.message}` 
-          }, { status: 500 });
+          return Response.json({ error: `Failed to delete from QuickBooks: ${error.message}` }, { status: 500 });
         }
       }
 
-      // Delete from local database
       await base44.asServiceRole.entities.Invoice.delete(invoiceId);
 
-      return Response.json({
-        success: true,
-        message: 'Invoice deleted successfully'
-      });
+      return Response.json({ success: true, message: 'Invoice deleted successfully' });
     }
 
     return Response.json({ error: 'Invalid action' }, { status: 400 });
