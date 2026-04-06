@@ -102,9 +102,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin only' }, { status: 403 });
     }
 
+    const body = await req.json().catch(() => ({}));
+    const SHEET_NAME = body.sheetName || 'Brokers';
+    const startRow = body.startRow || 0;
+
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
 
-    // ── 1. Read full sheet ──────────────────────────────────────────────────
+    // ── 1. Read full sheet ─────────────────────────────────────────────────────────────────
     const range = encodeURIComponent(`${SHEET_NAME}!A1:K`);
     const sheetRes = await fetch(
       `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${range}`,
@@ -130,9 +134,6 @@ Deno.serve(async (req) => {
 
     // Process in chunks to avoid rate limits
     const CHUNK_SIZE = 50;
-    const body = await req.json().catch(() => ({}));
-    const SHEET_NAME = body.sheetName || 'Brokers';
-    const startRow = body.startRow || 0; // 0-based index into dataRows
     const chunk = dataRows.slice(startRow, startRow + CHUNK_SIZE);
 
     // ── 3. Sheet → App ─────────────────────────────────────────────────────
