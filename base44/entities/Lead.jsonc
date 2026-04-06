@@ -79,6 +79,10 @@
       "type": "string",
       "description": "Identifier for syncing with Google Sheet row"
     },
+    "sheet_origin": {
+      "type": "string",
+      "description": "Which Google Sheet tab this lead came from (e.g. Brokers, Engagement Consultants)"
+    },
     "converted_client_id": {
       "type": "string",
       "description": "Client ID if this lead was converted to a client"

@@ -1,7 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 const SPREADSHEET_ID = '1qK6sAv73EkBPfES1i--b2u1AanUt_Gu3_7yyth99OBA';
-const SHEET_NAME = 'Brokers';
 
 // Column indices (0-based)
 const COL = {
@@ -43,7 +42,7 @@ const APP_STATUS_TO_SHEET = {
   current_client: 'Client',
 };
 
-function rowToLead(row, rowIndex) {
+function rowToLead(row, rowIndex, sheetName) {
   const get = (i) => (row[i] || '').trim();
   const firstName = get(COL.FIRST_NAME);
   const lastName = get(COL.LAST_NAME);
@@ -65,11 +64,12 @@ function rowToLead(row, rowIndex) {
     email,
     title: get(COL.TITLE),
     company: get(COL.COMPANY),
-    industry: get(COL.TYPE),
+    industry: get(COL.TYPE) || (sheetName === 'Engagement Consultants' ? 'Engagement Consultant' : ''),
     source: [get(COL.LOCATION), get(COL.LINKEDIN)].filter(Boolean).join(' | '),
     status: SHEET_STATUS_TO_APP[sheetStatus] || 'cold',
     outreach_channel: outreachChannel,
     sheet_row_id: String(rowIndex),
+    sheet_origin: sheetName,
   };
 }
 
@@ -114,13 +114,14 @@ Deno.serve(async (req) => {
     const rows = sheetData.values || [];
     const dataRows = rows.slice(1); // skip header
 
-    // ── 2. Load existing leads from DB ─────────────────────────────────────
-    const existingLeads = await base44.asServiceRole.entities.Lead.list();
+    // ── 2. Load existing leads from DB (filtered by sheet origin) ────────────
+    const allLeads = await base44.asServiceRole.entities.Lead.list();
+    const existingLeads = allLeads.filter(l => !l.sheet_origin || l.sheet_origin === SHEET_NAME);
     const byEmail = {};
     const byRowId = {};
     for (const lead of existingLeads) {
       if (lead.email) byEmail[lead.email.toLowerCase()] = lead;
-      if (lead.sheet_row_id) byRowId[lead.sheet_row_id] = lead;
+      if (lead.sheet_row_id) byRowId[`${SHEET_NAME}:${lead.sheet_row_id}`] = lead;
     }
 
     let created = 0;
@@ -130,16 +131,17 @@ Deno.serve(async (req) => {
     // Process in chunks to avoid rate limits
     const CHUNK_SIZE = 50;
     const body = await req.json().catch(() => ({}));
+    const SHEET_NAME = body.sheetName || 'Brokers';
     const startRow = body.startRow || 0; // 0-based index into dataRows
     const chunk = dataRows.slice(startRow, startRow + CHUNK_SIZE);
 
     // ── 3. Sheet → App ─────────────────────────────────────────────────────
     for (let i = 0; i < chunk.length; i++) {
       const rowIndex = startRow + i + 2; // 1-based sheet row (row 1 = header)
-      const lead = rowToLead(chunk[i], rowIndex);
+      const lead = rowToLead(chunk[i], rowIndex, SHEET_NAME);
       if (!lead) continue;
 
-      const existingByRow = byRowId[String(rowIndex)];
+      const existingByRow = byRowId[`${SHEET_NAME}:${String(rowIndex)}`];
       const existingByEmail = lead.email ? byEmail[lead.email.toLowerCase()] : null;
       const existing = existingByRow || existingByEmail;
 
@@ -169,7 +171,7 @@ Deno.serve(async (req) => {
     }));
 
     // Also push leads that exist in app but NOT in sheet (new leads added in app)
-    const appOnlyLeads = existingLeads.filter(l => !l.sheet_row_id);
+    const appOnlyLeads = existingLeads.filter(l => !l.sheet_row_id && (!l.sheet_origin || l.sheet_origin === SHEET_NAME));
     const appendRows = appOnlyLeads.map(l => leadToSheetRow(l));
 
     // Batch update existing rows

@@ -148,21 +148,28 @@ export default function Leads() {
     setEditingLead(lead);
   };
 
+  const syncSheet = async (sheetName) => {
+    let startRow = 0;
+    let totalCreated = 0, totalUpdated = 0;
+    while (true) {
+      const res = await base44.functions.invoke('syncColdLeadsSheet', { startRow, sheetName });
+      const d = res.data || {};
+      totalCreated += d.created || 0;
+      totalUpdated += d.updatedFromSheet || 0;
+      if (!d.hasMore) break;
+      startRow = d.nextStartRow;
+    }
+    return { totalCreated, totalUpdated };
+  };
+
   const handleSync = async () => {
     setSyncing(true);
-    let startRow = 0;
-    let totalCreated = 0, totalUpdated = 0, totalPushed = 0;
     try {
-      while (true) {
-        const res = await base44.functions.invoke('syncColdLeadsSheet', { startRow });
-        const d = res.data || {};
-        totalCreated += d.created || 0;
-        totalUpdated += d.updatedFromSheet || 0;
-        totalPushed += d.pushedToSheet || 0;
-        if (!d.hasMore) break;
-        startRow = d.nextStartRow;
-      }
-      toast.success(`Sync complete — ${totalCreated} new, ${totalUpdated} updated, ${totalPushed} pushed to sheet`);
+      const brokers = await syncSheet('Brokers');
+      const consultants = await syncSheet('Engagement Consultants');
+      const totalCreated = brokers.totalCreated + consultants.totalCreated;
+      const totalUpdated = brokers.totalUpdated + consultants.totalUpdated;
+      toast.success(`Sync complete — ${totalCreated} new, ${totalUpdated} updated (Brokers + Engagement Consultants)`);
       queryClient.invalidateQueries({ queryKey: ['leads'] });
     } catch (e) {
       toast.error('Sync failed: ' + e.message);
