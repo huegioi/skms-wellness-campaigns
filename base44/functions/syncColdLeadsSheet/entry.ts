@@ -165,13 +165,22 @@ Deno.serve(async (req) => {
       const existing = existingByRow || existingByEmail;
 
       if (existing) {
-        const updates = { sheet_row_id: String(rowIndex) };
         const appStatusRank = Object.keys(APP_STATUS_TO_SHEET).indexOf(existing.status);
         const sheetStatusRank = Object.keys(APP_STATUS_TO_SHEET).indexOf(lead.status);
+        const updates = {
+          sheet_row_id: String(rowIndex),
+          name: lead.name,
+          email: lead.email,
+          title: lead.title,
+          company: lead.company,
+          industry: lead.industry,
+          source: lead.source,
+          outreach_channel: lead.outreach_channel,
+        };
         if (sheetStatusRank > appStatusRank) updates.status = lead.status;
         await base44.asServiceRole.entities.Lead.update(existing.id, updates);
         updatedFromSheet++;
-        batchUpdates.push({ rowIndex, lead: { ...lead, ...existing, sheet_row_id: String(rowIndex) } });
+        batchUpdates.push({ rowIndex, lead: { ...existing, ...updates } });
       } else {
         if (!lead.email) continue; // skip rows without email
         const newLead = await base44.asServiceRole.entities.Lead.create(lead);
