@@ -28,6 +28,7 @@ const SHEET_STATUS_TO_APP = {
   'proposal sent': 'proposal_sent',
   'converted': 'converted',
   'not interested': 'not_interested',
+  'client': 'current_client',
 };
 
 // Map Lead entity status → sheet status
@@ -39,6 +40,7 @@ const APP_STATUS_TO_SHEET = {
   proposal_sent: 'Proposal Sent',
   converted: 'Converted',
   not_interested: 'Not Interested',
+  current_client: 'Client',
 };
 
 function rowToLead(row, rowIndex) {
