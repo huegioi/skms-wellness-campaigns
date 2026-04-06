@@ -17,7 +17,7 @@ function TopIncomeSourcesCard({ incomeData, invoices, timeframe }) {
       <CardHeader>
         <CardTitle style={{ color: '#264d44' }}>Top Income Sources by Customer</CardTitle>
         <p className="text-sm text-gray-500 mt-1">
-          {timeframe === 'month' ? 'This Month' : 'This Quarter'} &mdash; paid invoices only
+        {timeframe === 'month' ? 'This Month' : timeframe === 'quarter' ? 'This Quarter' : timeframe === 'year' ? 'This Year' : 'All Time'} &mdash; paid invoices only
         </p>
       </CardHeader>
       <CardContent>
@@ -72,7 +72,7 @@ function TopIncomeSourcesCard({ incomeData, invoices, timeframe }) {
 }
 
 export default function FinancialInformationSection() {
-  const [timeframe, setTimeframe] = useState('month');
+  const [timeframe, setTimeframe] = useState('year');
   const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -90,11 +90,13 @@ export default function FinancialInformationSection() {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
-    const startDate = timeframe === 'month' ? startOfMonth : startOfQuarter;
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const startDate = timeframe === 'month' ? startOfMonth : timeframe === 'quarter' ? startOfQuarter : timeframe === 'year' ? startOfYear : new Date(0);
 
-    const periodInvoices = invoices.filter(inv => 
-      inv.issue_date && new Date(inv.issue_date) >= startDate
-    );
+    const periodInvoices = invoices.filter(inv => {
+      const d = inv.paid_date || inv.issue_date;
+      return d && new Date(d) >= startDate;
+    });
 
     const totalInvoiced = periodInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
     const totalPaid = invoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
@@ -107,11 +109,14 @@ export default function FinancialInformationSection() {
       return daysUntilDue <= 7 && daysUntilDue >= 0;
     }).length;
 
-    // Calculate income from paid invoices
-    const paidInvoices = invoices.filter(inv => inv.status === 'paid' && inv.issue_date && new Date(inv.issue_date) >= startDate);
+    // Income: paid invoices in period, using paid_date || issue_date
+    const paidInvoices = invoices.filter(inv => {
+      if (inv.status !== 'paid') return false;
+      const d = inv.paid_date || inv.issue_date;
+      return d && new Date(d) >= startDate;
+    });
     const totalIncome = paidInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
 
-    // Calculate expenses from QuickBooks
     const totalExpenses = quickBooksExpenses
       .filter(exp => exp.transaction_date && new Date(exp.transaction_date) >= startDate)
       .reduce((sum, exp) => sum + (exp.amount || 0), 0);
@@ -174,9 +179,10 @@ export default function FinancialInformationSection() {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
-    const startDate = timeframe === 'month' ? startOfMonth : startOfQuarter;
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const startDate = timeframe === 'month' ? startOfMonth : timeframe === 'quarter' ? startOfQuarter : timeframe === 'year' ? startOfYear : new Date(0);
 
-    const periodExpenses = quickBooksExpenses.filter(exp => 
+    const periodExpenses = quickBooksExpenses.filter(exp =>
       exp.transaction_date && new Date(exp.transaction_date) >= startDate
     );
 
@@ -206,11 +212,14 @@ export default function FinancialInformationSection() {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
-    const startDate = timeframe === 'month' ? startOfMonth : startOfQuarter;
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const startDate = timeframe === 'month' ? startOfMonth : timeframe === 'quarter' ? startOfQuarter : timeframe === 'year' ? startOfYear : new Date(0);
 
-    const periodInvoices = invoices.filter(inv => 
-      inv.status === 'paid' && inv.paid_date && new Date(inv.paid_date) >= startDate
-    );
+    const periodInvoices = invoices.filter(inv => {
+      if (inv.status !== 'paid') return false;
+      const d = inv.paid_date || inv.issue_date;
+      return d && new Date(d) >= startDate;
+    });
 
     const byCustomer = {};
     const byService = {};
@@ -219,7 +228,6 @@ export default function FinancialInformationSection() {
       const customer = inv.client_name || inv.company || 'Unknown';
       byCustomer[customer] = (byCustomer[customer] || 0) + (inv.total_amount || 0);
 
-      // Extract services from line items
       if (inv.line_items && Array.isArray(inv.line_items)) {
         inv.line_items.forEach(item => {
           const service = item.description || 'General';
@@ -295,6 +303,8 @@ export default function FinancialInformationSection() {
               <TabsList>
                 <TabsTrigger value="month">This Month</TabsTrigger>
                 <TabsTrigger value="quarter">This Quarter</TabsTrigger>
+                <TabsTrigger value="year">This Year</TabsTrigger>
+                <TabsTrigger value="all">All Time</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
