@@ -119,8 +119,7 @@ Deno.serve(async (req) => {
     const dataRows = rows.slice(1); // skip header
 
     // ── 2. Load existing leads from DB (filtered by sheet origin) ────────────
-    const allLeads = await base44.asServiceRole.entities.Lead.list();
-    const existingLeads = allLeads.filter(l => !l.sheet_origin || l.sheet_origin === SHEET_NAME);
+    const existingLeads = await base44.asServiceRole.entities.Lead.filter({ sheet_origin: SHEET_NAME }, '-created_date', 500);
     const byEmail = {};
     const byRowId = {};
     for (const lead of existingLeads) {
@@ -133,7 +132,7 @@ Deno.serve(async (req) => {
     const batchUpdates = []; // for writing back to sheet
 
     // Process in chunks to avoid rate limits
-    const CHUNK_SIZE = 50;
+    const CHUNK_SIZE = 25;
     const chunk = dataRows.slice(startRow, startRow + CHUNK_SIZE);
 
     // ── 3. Sheet → App ─────────────────────────────────────────────────────
