@@ -105,10 +105,22 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
     (selections.movementClasses || []).filter(k => !removedItems.has(`m_${k}`)).forEach(key => {
       total += (getServiceById(key, 'movementClasses')?.price || 0) * getQty(`m_${key}`);
     });
-    total += (sampleBoxQuantities.reduceStress || 0) * 65;
-    total += (sampleBoxQuantities.relaxationSleep || 0) * 65;
-    total += (sampleBoxQuantities.largeEmotional || 0) * 100;
-    total += (sampleBoxQuantities.largeStressReduction || 0) * 100;
+
+    const boxPrices = {
+      reduceStress: 60,
+      largeEmotional: 100,
+      relaxationSleep: 60,
+      largeStressReduction: 120,
+      stressReductionDigital: 50,
+      beyondBurnoutDigital: 100,
+      emotionalWellness: 100,
+      wintertimeHealthy: 100,
+      newYearFreshStart: 100,
+    };
+    Object.entries(sampleBoxQuantities).forEach(([id, qty]) => {
+      total += (qty || 0) * (boxPrices[id] || 65);
+    });
+
     if (selections.customBoxQuantity > 0 && customBoxItems.length > 0) {
       const customBoxTotal = customBoxItems.reduce((sum, item) => sum + item.price, 0);
       total += customBoxTotal * selections.customBoxQuantity;
@@ -911,7 +923,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
               selections.leadership?.length > 0 && `${selections.leadership.length} Leadership Programs`,
               selections.movementClasses?.length > 0 && `${selections.movementClasses.length} Classes`,
               ((sampleBoxQuantities.reduceStress || 0) + (sampleBoxQuantities.relaxationSleep || 0) + 
-              (sampleBoxQuantities.largeEmotional || 0) + (sampleBoxQuantities.largeStressReduction || 0) > 0 ||
+              Object.values(sampleBoxQuantities).some(q => (q || 0) > 0) ||
               (selections.customBoxQuantity || 0) > 0) && 'Wellness Boxes'
             ].filter(Boolean).join(' • ')}
           </div>
@@ -1033,42 +1045,32 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
             </div>
           )}
 
-        {((sampleBoxQuantities.reduceStress || 0) + (sampleBoxQuantities.relaxationSleep || 0) + 
-            (sampleBoxQuantities.largeEmotional || 0) + (sampleBoxQuantities.largeStressReduction || 0) > 0 ||
-            (selections.customBoxQuantity || 0) > 0) && (
+        {(Object.values(sampleBoxQuantities).some(q => (q || 0) > 0) || (selections.customBoxQuantity || 0) > 0) && (
             <div className="review-section">
               <div className="review-section-title">Wellness Boxes</div>
-              {sampleBoxQuantities.reduceStress > 0 && (
-              <div className="review-item">
-                <span>Reduce Stress Boxes ({sampleBoxQuantities.reduceStress})</span>
-                <span className="font-semibold">${(sampleBoxQuantities.reduceStress * 65).toLocaleString()}</span>
-              </div>
-            )}
-            {sampleBoxQuantities.relaxationSleep > 0 && (
-              <div className="review-item">
-                <span>Relaxation & Sleep Boxes ({sampleBoxQuantities.relaxationSleep})</span>
-                <span className="font-semibold">${(sampleBoxQuantities.relaxationSleep * 65).toLocaleString()}</span>
-              </div>
-            )}
-            {sampleBoxQuantities.largeEmotional > 0 && (
-              <div className="review-item">
-                <span>Large Emotional Wellness Boxes ({sampleBoxQuantities.largeEmotional})</span>
-                <span className="font-semibold">${(sampleBoxQuantities.largeEmotional * 100).toLocaleString()}</span>
-              </div>
-            )}
-            {sampleBoxQuantities.largeStressReduction > 0 && (
-              <div className="review-item">
-                <span>Large Stress Reduction Boxes ({sampleBoxQuantities.largeStressReduction})</span>
-                <span className="font-semibold">${(sampleBoxQuantities.largeStressReduction * 100).toLocaleString()}</span>
-              </div>
-            )}
-            {selections.customBoxQuantity > 0 && customBoxItems.length > 0 && (
-              <div className="review-item">
-                <span>Custom Wellness Boxes ({selections.customBoxQuantity})</span>
-                <span className="font-semibold">${(customBoxItems.reduce((sum, item) => sum + item.price, 0) * selections.customBoxQuantity).toLocaleString()}</span>
-              </div>
-            )}
-          </div>
+              {[ 
+                { id: 'reduceStress', label: 'Reduce Stress Box', price: 60 },
+                { id: 'largeEmotional', label: 'Large Emotional Wellness Box', price: 100 },
+                { id: 'relaxationSleep', label: 'Relaxation & Sleep Box', price: 60 },
+                { id: 'largeStressReduction', label: 'Large Stress Reduction Box', price: 120 },
+                { id: 'stressReductionDigital', label: 'Stress Reduction Digital Box', price: 50 },
+                { id: 'beyondBurnoutDigital', label: 'Beyond Burnout Digital Box', price: 100 },
+                { id: 'emotionalWellness', label: 'Emotional Wellness Box', price: 100 },
+                { id: 'wintertimeHealthy', label: 'Wintertime Stay Healthy Box', price: 100 },
+                { id: 'newYearFreshStart', label: 'New Year Fresh Start Box', price: 100 },
+              ].filter(b => (sampleBoxQuantities[b.id] || 0) > 0).map(b => (
+                <div key={b.id} className="review-item">
+                  <span>{b.label} ({sampleBoxQuantities[b.id]})</span>
+                  <span className="font-semibold">${((sampleBoxQuantities[b.id] || 0) * b.price).toLocaleString()}</span>
+                </div>
+              ))}
+              {selections.customBoxQuantity > 0 && customBoxItems.length > 0 && (
+                <div className="review-item">
+                  <span>Custom Wellness Boxes ({selections.customBoxQuantity})</span>
+                  <span className="font-semibold">${(customBoxItems.reduce((sum, item) => sum + item.price, 0) * selections.customBoxQuantity).toLocaleString()}</span>
+                </div>
+              )}
+            </div>
         )}
 
         {/* Custom Charges Section */}
