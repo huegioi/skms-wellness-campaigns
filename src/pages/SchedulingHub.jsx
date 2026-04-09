@@ -533,7 +533,7 @@ export default function SchedulingHub() {
               className="bg-[#770142] hover:bg-[#5a0132]"
             >
               <FileText className="w-4 h-4 mr-2" />
-              Book from Invoice
+              Book Service
             </Button>
             <Button
               onClick={handleManualRefresh}
