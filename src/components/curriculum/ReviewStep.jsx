@@ -1045,8 +1045,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
             </div>
           )}
 
-        {(Object.values(sampleBoxQuantities).some(q => (q || 0) > 0) || (selections.customBoxQuantity || 0) > 0) && (
-            <div className="review-section">
+        <div className="review-section">
               <div className="review-section-title">Wellness Boxes</div>
               {[ 
                 { id: 'reduceStress', label: 'Reduce Stress Box', price: 60 },
@@ -1058,10 +1057,17 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
                 { id: 'emotionalWellness', label: 'Emotional Wellness Box', price: 100 },
                 { id: 'wintertimeHealthy', label: 'Wintertime Stay Healthy Box', price: 100 },
                 { id: 'newYearFreshStart', label: 'New Year Fresh Start Box', price: 100 },
-              ].filter(b => (sampleBoxQuantities[b.id] || 0) > 0).map(b => (
-                <div key={b.id} className="review-item">
-                  <span>{b.label} ({sampleBoxQuantities[b.id]})</span>
-                  <span className="font-semibold">${((sampleBoxQuantities[b.id] || 0) * b.price).toLocaleString()}</span>
+              ].map(b => (
+                <div key={b.id} className="mb-2 p-2 bg-white rounded-lg border border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <span className="flex-1 text-sm text-gray-700 font-medium">{b.label}</span>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => updateBoxQty(b.id, -1)} className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-sm">−</button>
+                      <span className="w-6 text-center font-bold text-sm">{sampleBoxQuantities[b.id] || 0}</span>
+                      <button onClick={() => updateBoxQty(b.id, 1)} className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-sm">+</button>
+                    </div>
+                    <span className="font-bold text-sm w-20 text-right" style={{ color: (sampleBoxQuantities[b.id] || 0) > 0 ? '#770142' : '#ccc' }}>${((sampleBoxQuantities[b.id] || 0) * b.price).toLocaleString()}</span>
+                  </div>
                 </div>
               ))}
               {selections.customBoxQuantity > 0 && customBoxItems.length > 0 && (
@@ -1071,7 +1077,6 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
                 </div>
               )}
             </div>
-        )}
 
         {/* Custom Charges Section */}
         <div className="review-section">
