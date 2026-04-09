@@ -668,9 +668,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
       };
 
       const newProposal = await base44.entities.Proposal.create(proposalData);
-      console.log('Proposal created successfully:', newProposal);
-      
-      setShowMessage(true);
+      navigate(createPageUrl('EditProposal') + `?id=${newProposal.id}`);
     } catch (error) {
       console.error('Error submitting proposal:', error);
       alert(`Error submitting proposal: ${error.message || 'Please try again'}`);
@@ -1049,6 +1047,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
             </div>
           )}
 
+        {Object.values(sampleBoxQuantities).some(q => (q || 0) > 0) || (selections.customBoxQuantity > 0 && customBoxItems.length > 0) ? (
         <div className="review-section">
               <div className="review-section-title">Wellness Boxes</div>
               {[ 
@@ -1061,7 +1060,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
                 { id: 'emotionalWellness', label: 'Emotional Wellness Box', price: 100 },
                 { id: 'wintertimeHealthy', label: 'Wintertime Stay Healthy Box', price: 100 },
                 { id: 'newYearFreshStart', label: 'New Year Fresh Start Box', price: 100 },
-              ].map(b => (
+              ].filter(b => (sampleBoxQuantities[b.id] || 0) > 0).map(b => (
                 <div key={b.id} className="mb-2 p-2 bg-white rounded-lg border border-gray-100">
                   <div className="flex items-center gap-2">
                     <span className="flex-1 text-sm text-gray-700 font-medium">{b.label}</span>
@@ -1070,7 +1069,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
                       <span className="w-6 text-center font-bold text-sm">{sampleBoxQuantities[b.id] || 0}</span>
                       <button onClick={() => updateBoxQty(b.id, 1)} className="w-6 h-6 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold text-sm">+</button>
                     </div>
-                    <span className="font-bold text-sm w-20 text-right" style={{ color: (sampleBoxQuantities[b.id] || 0) > 0 ? '#770142' : '#ccc' }}>${((sampleBoxQuantities[b.id] || 0) * b.price).toLocaleString()}</span>
+                    <span className="font-bold text-sm w-20 text-right" style={{ color: '#770142' }}>${((sampleBoxQuantities[b.id] || 0) * b.price).toLocaleString()}</span>
                   </div>
                 </div>
               ))}
@@ -1081,6 +1080,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
                 </div>
               )}
             </div>
+        ) : null}
 
         {/* Custom Charges Section */}
         <div className="review-section">
