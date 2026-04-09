@@ -159,10 +159,12 @@ export default function EditProposal() {
     }));
   };
 
+  const challengePrice = calculateChallengePrice(selections.assessmentData?.companySize);
+
   const calculateTotal = () => {
     let total = 0;
     selections.workshops.forEach(id => total += getPrice(id));
-    selections.challengePrograms.forEach(id => total += getPrice(id));
+    selections.challengePrograms.forEach(() => total += challengePrice);
     selections.leadership.forEach(id => total += getPrice(id));
     selections.movementClasses.forEach(id => total += getPrice(id));
     
@@ -337,7 +339,7 @@ export default function EditProposal() {
         ${selections.challengePrograms.length > 0 ? `
           <div class="section">
             <div class="section-title">14-Day Challenges (${selections.challengePrograms.length})</div>
-            ${selections.challengePrograms.map(id => `<div class="item"><div class="item-title">${getName(id)}</div><div class="item-price">$${getPrice(id).toLocaleString()}</div>${getDesc(id) ? `<div class="item-description">${getDesc(id)}</div>` : ''}</div>`).join('')}
+            ${selections.challengePrograms.map(id => `<div class="item"><div class="item-title">${getName(id)}</div><div class="item-price">$${challengePrice.toLocaleString()}</div>${getDesc(id) ? `<div class="item-description">${getDesc(id)}</div>` : ''}</div>`).join('')}
           </div>
         ` : ''}
 
