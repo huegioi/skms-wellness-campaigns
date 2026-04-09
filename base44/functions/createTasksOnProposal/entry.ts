@@ -34,10 +34,10 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'No client_id on proposal' });
     }
 
-    // Check if tasks already exist for this client
-    const existing = await base44.asServiceRole.entities.ClientTask.filter({ client_id: proposal.client_id });
+    // Check if tasks already exist for this specific proposal
+    const existing = await base44.asServiceRole.entities.ClientTask.filter({ proposal_id: proposal.id });
     if (existing.length > 0) {
-      return Response.json({ skipped: true, reason: 'Tasks already exist for this client' });
+      return Response.json({ skipped: true, reason: 'Tasks already exist for this proposal' });
     }
 
     const tasks = DEFAULT_TASKS.map((description, i) => ({
