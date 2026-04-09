@@ -85,7 +85,8 @@ export default function EditProposal() {
         sampleBoxQuantities: proposal.selections?.sampleBoxQuantities || { reduceStress: 0, relaxationSleep: 0, largeEmotional: 0, largeStressReduction: 0, stressReductionDigital: 0, beyondBurnoutDigital: 0, emotionalWellness: 0, wintertimeHealthy: 0, newYearFreshStart: 0 },
         customBoxQuantity: proposal.selections?.customBoxQuantity || 0,
         customBoxItems: proposal.selections?.customBoxItems || [],
-        assessmentData: proposal.selections?.assessmentData || {}
+        assessmentData: proposal.selections?.assessmentData || {},
+        challengePrice: proposal.selections?.challengePrice || null,
       });
       setPriceOverrides(proposal.selections?.priceOverrides || {});
       setCustomCharges(proposal.selections?.customCharges || []);
@@ -128,10 +129,11 @@ export default function EditProposal() {
     return map;
   }, [services]);
 
-  // Get price for a service: check overrides first, then the live Service entity price
+  // Get price for a service: check overrides first, then challengePrice for challenges, then entity price
   const getPrice = (serviceId) => {
     if (priceOverrides[serviceId] !== undefined) return priceOverrides[serviceId];
     const service = services.find(s => s.id === serviceId);
+    if (service?.category === 'challenge') return challengePrice;
     return service?.price || 0;
   };
 
@@ -159,12 +161,16 @@ export default function EditProposal() {
     }));
   };
 
-  const challengePrice = calculateChallengePrice(selections.assessmentData?.companySize);
+  // Use stored challengePrice from proposal if available, otherwise calculate from company size
+  const challengePrice = selections.challengePrice || calculateChallengePrice(selections.assessmentData?.companySize);
 
   const calculateTotal = () => {
     let total = 0;
     selections.workshops.forEach(id => total += getPrice(id));
-    selections.challengePrograms.forEach(() => total += challengePrice);
+    selections.challengePrograms.forEach(id => {
+      const override = priceOverrides[id];
+      total += override !== undefined ? override : challengePrice;
+    });
     selections.leadership.forEach(id => total += getPrice(id));
     selections.movementClasses.forEach(id => total += getPrice(id));
     

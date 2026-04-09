@@ -658,6 +658,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
           leadershipData: buildServiceData((selections.leadership || []).filter(k => !removedItems.has(`l_${k}`)), 'leadership'),
           movementClassesData: buildServiceData((selections.movementClasses || []).filter(k => !removedItems.has(`m_${k}`)), 'movementClasses'),
           challengePrice: challengePrice,
+          sampleBoxQuantities: sampleBoxQuantities,
           customBoxQuantity: selections.customBoxQuantity || 0,
           customBoxItems: customBoxItems || [],
           customCharges: customCharges || [],
