@@ -23,7 +23,9 @@ export default function SchedulingHub() {
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState('');
   const [bookServiceDialogOpen, setBookServiceDialogOpen] = useState(false);
+  const [bookingSource, setBookingSource] = useState('invoice'); // 'invoice' | 'proposal'
   const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
+  const [selectedProposalId, setSelectedProposalId] = useState('');
   const [selectedLineItem, setSelectedLineItem] = useState(null);
   const [bookingForm, setBookingForm] = useState({
     title: '',
@@ -67,6 +69,11 @@ export default function SchedulingHub() {
   const { data: invoices = [] } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list('-created_date')
+  });
+
+  const { data: proposals = [] } = useQuery({
+    queryKey: ['proposals'],
+    queryFn: () => base44.entities.Proposal.list('-created_date')
   });
 
   const { data: calendarEvents = [], refetch: refetchCalendarEvents } = useQuery({
@@ -426,14 +433,37 @@ export default function SchedulingHub() {
   const handleInvoiceSelect = (invoiceId) => {
     setSelectedInvoiceId(invoiceId);
     setSelectedLineItem(null);
-    
     const invoice = invoices.find(inv => inv.id === invoiceId);
     if (invoice) {
-      setBookingForm(prev => ({
-        ...prev,
-        client_name: invoice.client_name || invoice.company || ''
-      }));
+      setBookingForm(prev => ({ ...prev, client_name: invoice.client_name || invoice.company || '' }));
     }
+  };
+
+  const handleProposalSelect = (proposalId) => {
+    setSelectedProposalId(proposalId);
+    setSelectedLineItem(null);
+    const proposal = proposals.find(p => p.id === proposalId);
+    if (proposal) {
+      setBookingForm(prev => ({ ...prev, client_name: proposal.client_name || proposal.company || '' }));
+    }
+  };
+
+  const getProposalServices = (proposal) => {
+    if (!proposal?.selections) return [];
+    const sel = proposal.selections;
+    const items = [];
+    const addItems = (dataKey, fallbackKey, label) => {
+      if (sel[dataKey]?.length > 0) {
+        sel[dataKey].forEach(svc => items.push({ name: svc.name, price: svc.price || 0, category: label, description: svc.description || '' }));
+      } else if (sel[fallbackKey]?.length > 0) {
+        sel[fallbackKey].forEach(id => items.push({ name: id, price: 0, category: label, description: '' }));
+      }
+    };
+    addItems('workshopsData', 'workshops', 'Workshop');
+    addItems('challengeProgramsData', 'challengePrograms', 'Challenge');
+    addItems('leadershipData', 'leadership', 'Leadership');
+    addItems('movementClassesData', 'movementClasses', 'Class');
+    return items;
   };
 
   const handleLineItemSelect = (lineItem) => {
@@ -441,12 +471,22 @@ export default function SchedulingHub() {
     setBookingForm(prev => ({
       ...prev,
       title: lineItem.description || lineItem.name || '',
-      description: `Service from invoice\n\nQuantity: ${lineItem.quantity || 1}\nRate: $${lineItem.rate || 0}`
+      description: lineItem.description ? `Service from invoice\n\nQuantity: ${lineItem.quantity || 1}\nRate: $${lineItem.rate || 0}` : ''
+    }));
+  };
+
+  const handleProposalServiceSelect = (svc) => {
+    setSelectedLineItem(svc);
+    setBookingForm(prev => ({
+      ...prev,
+      title: svc.name || '',
+      description: svc.description || ''
     }));
   };
 
   const resetBookingForm = () => {
     setSelectedInvoiceId('');
+    setSelectedProposalId('');
     setSelectedLineItem(null);
     setBookingForm({
       title: '',
@@ -898,28 +938,63 @@ export default function SchedulingHub() {
           </div>
 
           <div className="p-6 space-y-5">
-            {/* Step 1 - Invoice Selection */}
+            {/* Source toggle */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setBookingSource('invoice'); setSelectedProposalId(''); setSelectedLineItem(null); }}
+                className={`flex-1 py-2 rounded-lg font-semibold text-sm transition-all border-2 ${
+                  bookingSource === 'invoice' ? 'bg-[#013f7c] text-white border-[#013f7c]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#013f7c]'
+                }`}
+              >
+                From Invoice
+              </button>
+              <button
+                onClick={() => { setBookingSource('proposal'); setSelectedInvoiceId(''); setSelectedLineItem(null); }}
+                className={`flex-1 py-2 rounded-lg font-semibold text-sm transition-all border-2 ${
+                  bookingSource === 'proposal' ? 'bg-[#770142] text-white border-[#770142]' : 'bg-white text-gray-600 border-gray-200 hover:border-[#770142]'
+                }`}
+              >
+                From Proposal
+              </button>
+            </div>
+
+            {/* Step 1 - Selection */}
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-6 h-6 rounded-full bg-[#013f7c] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</div>
-                <h3 className="font-semibold text-gray-800">Select Invoice</h3>
+                <h3 className="font-semibold text-gray-800">{bookingSource === 'invoice' ? 'Select Invoice' : 'Select Proposal'}</h3>
               </div>
-              <Select value={selectedInvoiceId} onValueChange={handleInvoiceSelect}>
-                <SelectTrigger className="border-gray-200 bg-gray-50 focus:bg-white transition-colors">
-                  <SelectValue placeholder="Choose an invoice..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {invoices.map(invoice => (
-                    <SelectItem key={invoice.id} value={invoice.id}>
-                      {invoice.invoice_number || `Invoice #${invoice.id.slice(0, 8)}`} — {invoice.client_name || invoice.company} — ${invoice.total_amount?.toLocaleString()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {bookingSource === 'invoice' ? (
+                <Select value={selectedInvoiceId} onValueChange={handleInvoiceSelect}>
+                  <SelectTrigger className="border-gray-200 bg-gray-50 focus:bg-white transition-colors">
+                    <SelectValue placeholder="Choose an invoice..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {invoices.map(invoice => (
+                      <SelectItem key={invoice.id} value={invoice.id}>
+                        {invoice.invoice_number || `Invoice #${invoice.id.slice(0, 8)}`} — {invoice.client_name || invoice.company} — ${invoice.total_amount?.toLocaleString()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Select value={selectedProposalId} onValueChange={handleProposalSelect}>
+                  <SelectTrigger className="border-gray-200 bg-gray-50 focus:bg-white transition-colors">
+                    <SelectValue placeholder="Choose a proposal..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {proposals.map(proposal => (
+                      <SelectItem key={proposal.id} value={proposal.id}>
+                        {proposal.client_name} {proposal.company ? `— ${proposal.company}` : ''} — ${proposal.total_amount?.toLocaleString()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
-            {/* Step 2 - Line Items */}
-            {selectedInvoice && selectedInvoice.line_items && selectedInvoice.line_items.length > 0 && (
+            {/* Step 2 - Service Items */}
+            {bookingSource === 'invoice' && selectedInvoice && selectedInvoice.line_items && selectedInvoice.line_items.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-6 h-6 rounded-full bg-[#013f7c] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</div>
@@ -942,14 +1017,49 @@ export default function SchedulingHub() {
                           ${(item.amount || 0).toLocaleString()}
                         </div>
                       </div>
-                      <div className="text-sm text-gray-500 mt-1">
-                        Qty: {item.quantity || 1} × ${item.rate || 0}
-                      </div>
+                      <div className="text-sm text-gray-500 mt-1">Qty: {item.quantity || 1} × ${item.rate || 0}</div>
                     </div>
                   ))}
                 </div>
               </div>
             )}
+            {bookingSource === 'proposal' && selectedProposalId && (() => {
+              const proposal = proposals.find(p => p.id === selectedProposalId);
+              const svcList = getProposalServices(proposal);
+              return svcList.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-6 h-6 rounded-full bg-[#770142] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</div>
+                    <h3 className="font-semibold text-gray-800">Select Service from Proposal</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {svcList.map((svc, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => handleProposalServiceSelect(svc)}
+                        className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                          selectedLineItem === svc
+                            ? 'border-[#770142] bg-[#770142]/5 shadow-sm'
+                            : 'border-gray-100 bg-gray-50 hover:border-[#770142]/40 hover:bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-semibold text-gray-800">{svc.name}</div>
+                            <div className="text-xs text-gray-500 mt-0.5">{svc.category}</div>
+                          </div>
+                          {svc.price > 0 && (
+                            <div className={`text-sm font-bold px-2 py-0.5 rounded-full ${selectedLineItem === svc ? 'bg-[#770142] text-white' : 'bg-gray-200 text-gray-600'}`}>
+                              ${svc.price.toLocaleString()}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : <p className="text-sm text-gray-400 italic">No services found in this proposal.</p>;
+            })()}
 
             {/* Step 3 - Booking Form */}
             {selectedLineItem && (
