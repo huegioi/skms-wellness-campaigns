@@ -1,17 +1,29 @@
 export const DEFAULT_CLIENT_TASKS = [
-  { description: 'Intake Call', order: 1 },
-  { description: 'Create Proposal', order: 2 },
-  { description: 'Send or Accept Proposal', order: 3 },
-  { description: 'Create Invoice', order: 4 },
-  { description: 'Send Invoice', order: 5 },
-  { description: 'Book times for events and wellness box delivery', order: 6 },
-  { description: 'Create Email Templates', order: 7 },
-  { description: 'Upload Email Templates and workshop/challenge materials to the client portal', order: 8 },
-  { description: 'Send Client Portal Link', order: 9 }
+  // Phase 1: Sales & Setup
+  { description: 'Phase 1: Sales & Setup', order: 0, isPhaseHeader: true },
+  { description: 'Client Profile: Create a profile with all necessary demographic and organizational information', order: 1 },
+  { description: 'Proposal Creation: Draft a tailored proposal addressing specific client pain points like burnout or disengagement', order: 2 },
+  { description: 'Acceptance: Confirm the proposal has been officially accepted', order: 3 },
+  { description: 'Invoicing: Create and send the invoice to the client', order: 4 },
+  { description: 'Payment Confirmation: Verify and record that payment has been received', order: 5 },
+  // Phase 2: Planning & Launch
+  { description: 'Phase 2: Planning & Launch', order: 6, isPhaseHeader: true },
+  { description: 'Event Scheduling: Finalize dates for ideation calls, workshops, and challenges', order: 7 },
+  { description: 'Presenter Briefing: Ensure presenters have the correct information and client vignettes to personalize the delivery', order: 8 },
+  { description: 'Portal & Templates: Upload or send email templates for each event and grant access to the client portal', order: 9 },
+  { description: 'Pre-Survey: Send the initial assessment or Team Emotional Resilience Survey to establish baseline data', order: 10 },
+  // Phase 3: Implementation & Sustainment
+  { description: 'Phase 3: Implementation & Sustainment', order: 11, isPhaseHeader: true },
+  { description: 'Follow-up Materials: Upload recordings and session materials (PDF workbooks, meditations) to the portal immediately after each presentation', order: 12 },
+  { description: 'Post-Survey: Send the follow-up survey to measure growth in key skills like adaptability and communication', order: 13 },
+  { description: 'ROI Reporting: Send a comprehensive ROI report to the client to demonstrate program impact', order: 14 },
+  { description: 'Closing Email: Send a final follow-up email to discuss ongoing support or small-group coaching', order: 15 },
 ];
 
 export async function createDefaultTasksForClient(base44, clientId, clientName, proposalId = null) {
-  const taskPromises = DEFAULT_CLIENT_TASKS.map(template => 
+  const taskPromises = DEFAULT_CLIENT_TASKS
+    .filter(template => !template.isPhaseHeader)
+    .map(template =>
     base44.entities.ClientTask.create({
       client_id: clientId,
       client_name: clientName,
@@ -23,7 +35,7 @@ export async function createDefaultTasksForClient(base44, clientId, clientName, 
       source_event: proposalId ? 'new_proposal' : 'new_client'
     })
   );
-  
+
   return Promise.all(taskPromises);
 }
 

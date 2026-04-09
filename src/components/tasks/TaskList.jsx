@@ -147,12 +147,48 @@ export default function TaskList({ clientId, proposalId = null, showProposalGrou
     );
   }
 
+  // Group tasks by phase based on task_order ranges
+  const getPhase = (order) => {
+    if (order <= 5) return 'Phase 1: Sales & Setup';
+    if (order <= 10) return 'Phase 2: Planning & Launch';
+    return 'Phase 3: Implementation & Sustainment';
+  };
+
+  const phases = tasks.reduce((acc, task) => {
+    const phase = getPhase(task.task_order || 0);
+    if (!acc[phase]) acc[phase] = [];
+    acc[phase].push(task);
+    return acc;
+  }, {});
+
+  const phaseOrder = ['Phase 1: Sales & Setup', 'Phase 2: Planning & Launch', 'Phase 3: Implementation & Sustainment'];
+  const phaseColors = {
+    'Phase 1: Sales & Setup': 'bg-blue-100 text-blue-800 border-blue-200',
+    'Phase 2: Planning & Launch': 'bg-purple-100 text-purple-800 border-purple-200',
+    'Phase 3: Implementation & Sustainment': 'bg-green-100 text-green-800 border-green-200'
+  };
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {tasks.length === 0 ? (
         <p className="text-center text-gray-500 py-8">No tasks yet</p>
       ) : (
-        tasks.map(renderTask)
+        phaseOrder.map(phaseName => {
+          const phaseTasks = phases[phaseName];
+          if (!phaseTasks?.length) return null;
+          const completedCount = phaseTasks.filter(t => t.status === 'completed').length;
+          return (
+            <div key={phaseName}>
+              <div className={`flex items-center justify-between px-3 py-2 rounded-lg border mb-2 ${phaseColors[phaseName]}`}>
+                <span className="font-semibold text-sm">{phaseName}</span>
+                <span className="text-xs font-medium">{completedCount}/{phaseTasks.length}</span>
+              </div>
+              <div className="space-y-2 pl-2">
+                {phaseTasks.map(renderTask)}
+              </div>
+            </div>
+          );
+        })
       )}
     </div>
   );

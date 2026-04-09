@@ -1,15 +1,22 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 
 const DEFAULT_TASKS = [
-  'Send welcome email to client',
-  'Schedule kickoff call',
-  'Send proposal contract/agreement',
-  'Confirm event dates and logistics',
-  'Send calendar invites',
-  'Prepare materials for first session',
-  'Send or Accept Proposal',
-  'Follow up after first session',
-  'Request feedback/testimonial',
+  // Phase 1: Sales & Setup
+  'Client Profile: Create a profile with all necessary demographic and organizational information',
+  'Proposal Creation: Draft a tailored proposal addressing specific client pain points like burnout or disengagement',
+  'Acceptance: Confirm the proposal has been officially accepted',
+  'Invoicing: Create and send the invoice to the client',
+  'Payment Confirmation: Verify and record that payment has been received',
+  // Phase 2: Planning & Launch
+  'Event Scheduling: Finalize dates for ideation calls, workshops, and challenges',
+  'Presenter Briefing: Ensure presenters have the correct information and client vignettes to personalize the delivery',
+  'Portal & Templates: Upload or send email templates for each event and grant access to the client portal',
+  'Pre-Survey: Send the initial assessment or Team Emotional Resilience Survey to establish baseline data',
+  // Phase 3: Implementation & Sustainment
+  'Follow-up Materials: Upload recordings and session materials (PDF workbooks, meditations) to the portal immediately after each presentation',
+  'Post-Survey: Send the follow-up survey to measure growth in key skills like adaptability and communication',
+  'ROI Reporting: Send a comprehensive ROI report to the client to demonstrate program impact',
+  'Closing Email: Send a final follow-up email to discuss ongoing support or small-group coaching',
 ];
 
 Deno.serve(async (req) => {
