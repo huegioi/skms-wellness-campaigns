@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit, Upload, CheckCircle2, X } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit, Upload, CheckCircle2, X, Send } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -18,10 +18,14 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [markingComplete, setMarkingComplete] = useState(false);
+  const [sendingInvite, setSendingInvite] = useState(false);
+  const [inviteEmails, setInviteEmails] = useState({ client: event.client_email || '', presenter: event.presenter_email || '' });
   const [editForm, setEditForm] = useState({
     title: event.title,
     description: event.description || '',
     location: event.location || '',
+    presenter: event.presenter || '',
+    client_name: event.client_name || '',
     start_date: event.start_date?.split('T')[0] || '',
     start_time: event.start_date ? format(parseISO(event.start_date), 'HH:mm') : '',
     end_date: event.end_date?.split('T')[0] || '',
@@ -73,6 +77,8 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
         title: editForm.title,
         description: editForm.description,
         location: editForm.location,
+        presenter: editForm.presenter,
+        client_name: editForm.client_name,
         start_date: startDateTime,
         end_date: endDateTime,
         all_day: editForm.all_day
@@ -221,8 +227,32 @@ END:VCALENDAR`;
     }
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+  const handleSendInvite = async () => {
+    const emails = [inviteEmails.client, inviteEmails.presenter].filter(Boolean);
+    if (emails.length === 0) {
+      toast.error('Please enter at least one email address');
+      return;
+    }
+    setSendingInvite(true);
+    try {
+      const names = [
+        inviteEmails.client ? (event.client_name || inviteEmails.client) : null,
+        inviteEmails.presenter ? (event.presenter || inviteEmails.presenter) : null
+      ].filter(Boolean);
+      await base44.functions.invoke('sendCalendarInvite', {
+        eventId: event.id,
+        recipientEmails: emails,
+        recipientNames: names
+      });
+      toast.success(`Calendar invite sent to ${emails.join(', ')}`);
+    } catch (error) {
+      toast.error('Failed to send invite: ' + error.message);
+    } finally {
+      setSendingInvite(false);
+    }
+  };
+
+  return (<Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between gap-3">
@@ -270,6 +300,24 @@ END:VCALENDAR`;
                 value={editForm.title}
                 onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="Enter event title"
+              />
+            </div>
+
+            <div>
+              <Label>Client Name</Label>
+              <Input
+                value={editForm.client_name}
+                onChange={(e) => setEditForm(prev => ({ ...prev, client_name: e.target.value }))}
+                placeholder="Client name"
+              />
+            </div>
+
+            <div>
+              <Label>Presenter</Label>
+              <Input
+                value={editForm.presenter}
+                onChange={(e) => setEditForm(prev => ({ ...prev, presenter: e.target.value }))}
+                placeholder="Presenter name"
               />
             </div>
 
@@ -445,6 +493,33 @@ END:VCALENDAR`;
                 {syncing ? 'Syncing...' : 'Sync to Google Calendar'}
               </Button>
             )}
+          </div>
+
+          {/* Send Calendar Invite */}
+          <div className="pt-3 border-t">
+            <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1"><Send className="w-4 h-4" /> Send Calendar Invite</p>
+            <div className="space-y-2">
+              <Input
+                type="email"
+                placeholder="Client email"
+                value={inviteEmails.client}
+                onChange={(e) => setInviteEmails(prev => ({ ...prev, client: e.target.value }))}
+              />
+              <Input
+                type="email"
+                placeholder="Presenter email"
+                value={inviteEmails.presenter}
+                onChange={(e) => setInviteEmails(prev => ({ ...prev, presenter: e.target.value }))}
+              />
+              <Button
+                onClick={handleSendInvite}
+                disabled={sendingInvite}
+                className="w-full bg-[#013f7c] hover:bg-[#012d5a]"
+              >
+                {sendingInvite ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                {sendingInvite ? 'Sending...' : 'Send Invite by Email'}
+              </Button>
+            </div>
           </div>
 
           {/* Export Options */}

@@ -36,8 +36,13 @@ export default function SchedulingHub() {
     end_time: '',
     location: '',
     client_name: '',
+    client_email: '',
+    presenter: '',
+    presenter_email: '',
+    source: '',
     all_day: false
   });
+  const [sendInviteOnBook, setSendInviteOnBook] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [addingToCalendar, setAddingToCalendar] = useState(null);
   const [calendarView, setCalendarView] = useState('month'); // 'month', 'week', 'list'
@@ -98,8 +103,19 @@ export default function SchedulingHub() {
         all_day: eventData.all_day,
         event_type: 'other',
         client_name: eventData.client_name || '',
+        presenter: eventData.presenter || '',
+        proposal_id: eventData.proposal_id || '',
         color: '#264d44'
       });
+
+      // Send invites if requested
+      if (eventData.sendInvite) {
+        const emails = [eventData.client_email, eventData.presenter_email].filter(Boolean);
+        const names = [eventData.client_name, eventData.presenter].filter((_, i) => [eventData.client_email, eventData.presenter_email][i]);
+        if (emails.length > 0) {
+          await base44.functions.invoke('sendCalendarInvite', { eventId: calendarEvent.id, recipientEmails: emails, recipientNames: names });
+        }
+      }
 
       return calendarEvent;
     },
@@ -488,6 +504,7 @@ export default function SchedulingHub() {
     setSelectedInvoiceId('');
     setSelectedProposalId('');
     setSelectedLineItem(null);
+    setSendInviteOnBook(false);
     setBookingForm({
       title: '',
       description: '',
@@ -497,6 +514,10 @@ export default function SchedulingHub() {
       end_time: '',
       location: '',
       client_name: '',
+      client_email: '',
+      presenter: '',
+      presenter_email: '',
+      source: '',
       all_day: false
     });
   };
@@ -506,7 +527,13 @@ export default function SchedulingHub() {
       toast.error('Please fill in the service name and start date');
       return;
     }
-    bookServiceMutation.mutate(bookingForm);
+    const proposal = proposals.find(p => p.id === selectedProposalId);
+    bookServiceMutation.mutate({
+      ...bookingForm,
+      proposal_id: selectedProposalId || '',
+      source: bookingSource === 'proposal' ? (proposal?.client_name || 'Proposal') : (selectedInvoice?.invoice_number || 'Invoice'),
+      sendInvite: sendInviteOnBook
+    });
   };
 
   const selectedInvoice = invoices.find(inv => inv.id === selectedInvoiceId);
@@ -1155,6 +1182,36 @@ export default function SchedulingHub() {
                   </div>
 
                   <div className="border-t border-gray-200 pt-4">
+                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Presenter</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
+                      <Input
+                        value={bookingForm.presenter}
+                        onChange={(e) => setBookingForm(prev => ({ ...prev, presenter: e.target.value }))}
+                        placeholder="Presenter name"
+                        className="bg-white"
+                      />
+                      <Input
+                        type="email"
+                        value={bookingForm.presenter_email}
+                        onChange={(e) => setBookingForm(prev => ({ ...prev, presenter_email: e.target.value }))}
+                        placeholder="Presenter email"
+                        className="bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-t border-gray-200 pt-4">
+                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Client Email</Label>
+                    <Input
+                      type="email"
+                      value={bookingForm.client_email}
+                      onChange={(e) => setBookingForm(prev => ({ ...prev, client_email: e.target.value }))}
+                      placeholder="Client email for invite"
+                      className="mt-1 bg-white"
+                    />
+                  </div>
+
+                  <div className="border-t border-gray-200 pt-4">
                     <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</Label>
                     <Textarea
                       value={bookingForm.description}
@@ -1163,6 +1220,21 @@ export default function SchedulingHub() {
                       rows={3}
                       className="mt-1 bg-white resize-none"
                     />
+                  </div>
+
+                  <div className="border-t border-gray-200 pt-4">
+                    <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <input
+                        type="checkbox"
+                        id="send_invite"
+                        checked={sendInviteOnBook}
+                        onChange={(e) => setSendInviteOnBook(e.target.checked)}
+                        className="rounded w-4 h-4 accent-[#013f7c]"
+                      />
+                      <Label htmlFor="send_invite" className="cursor-pointer text-sm text-blue-800 font-medium">
+                        Send calendar invite by email after booking
+                      </Label>
+                    </div>
                   </div>
                 </div>
               </div>
