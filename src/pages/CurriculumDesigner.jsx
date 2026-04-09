@@ -96,6 +96,11 @@ export default function CurriculumDesigner() {
     }
   };
 
+  const handleStepClick = (stepNumber) => {
+    setCurrentStep(stepNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const renderStep = () => {
     switch (currentStep) {
       case 1:
@@ -187,7 +192,7 @@ export default function CurriculumDesigner() {
           </p>
         </div>
 
-        <StepIndicator steps={steps} currentStep={currentStep} />
+        <StepIndicator steps={steps} currentStep={currentStep} onStepClick={handleStepClick} />
 
         {renderStep()}
       </div>

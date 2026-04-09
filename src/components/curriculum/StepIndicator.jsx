@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check } from 'lucide-react';
 
-export default function StepIndicator({ steps, currentStep }) {
+export default function StepIndicator({ steps, currentStep, onStepClick }) {
   const stepColors = [
     '#770142',  
     '#264d44',  
@@ -108,14 +108,26 @@ export default function StepIndicator({ steps, currentStep }) {
             const isCompleted = step.number < currentStep;
             const isCurrent = step.number === currentStep;
             
+            const isClickable = onStepClick && (isCompleted || isCurrent);
             return (
-              <div key={step.number} className="flex flex-col items-center" style={{ flex: 1 }}>
+              <div
+                key={step.number}
+                className="flex flex-col items-center"
+                style={{ flex: 1, cursor: isClickable ? 'pointer' : 'default' }}
+                onClick={() => isClickable && onStepClick(step.number)}
+                title={isClickable ? `Go to ${step.name}` : ''}
+              >
                 <div 
                   className={`step-circle ${isCompleted ? 'completed' : ''}`}
                   style={{
-                    background: isCompleted ? stepColor : 'white',
-                    color: isCompleted ? 'white' : '#666'
+                    background: isCompleted ? stepColor : isCurrent ? `${stepColor}22` : 'white',
+                    color: isCompleted ? 'white' : isCurrent ? stepColor : '#666',
+                    border: isCurrent ? `2px solid ${stepColor}` : '2px solid transparent',
+                    transform: isClickable ? 'scale(1)' : undefined,
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                   }}
+                  onMouseEnter={e => { if (isClickable) e.currentTarget.style.transform = 'scale(1.15)'; }}
+                  onMouseLeave={e => { if (isClickable) e.currentTarget.style.transform = 'scale(1)'; }}
                 >
                   {isCompleted ? (
                     <Check className="w-3 h-3 md:w-5 md:h-5" />
@@ -126,7 +138,7 @@ export default function StepIndicator({ steps, currentStep }) {
                 <div 
                   className="step-label"
                   style={{ 
-                    color: '#666',
+                    color: isCurrent ? stepColor : '#666',
                     fontWeight: isCurrent ? '700' : '500'
                   }}
                 >
