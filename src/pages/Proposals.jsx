@@ -63,24 +63,50 @@ export default function Proposals() {
     const serviceMap = {};
     services.forEach(s => { serviceMap[s.id] = s; });
 
+    const storedChallengePrice = sel.challengePrice;
+
     const renderSection = (title, items, category) => {
       if (!items?.length) return '';
       return `<div class="section"><div class="section-title">${title} (${items.length})</div>${items.map(serviceId => {
         const service = serviceMap[serviceId];
         if (!service) return '';
-        const price = priceOverrides[serviceId] ?? service.price ?? 0;
+        let price;
+        if (priceOverrides[serviceId] !== undefined) {
+          price = priceOverrides[serviceId];
+        } else if (category === 'challengePrograms' && storedChallengePrice) {
+          price = storedChallengePrice;
+        } else {
+          price = service.price ?? 0;
+        }
         return `<div class="item"><div class="item-title">${service.name}</div><div class="item-price">$${Number(price).toLocaleString()}</div>${service.description ? `<div class="item-description">${service.description}</div>` : ''}</div>`;
       }).join('')}</div>`;
     };
 
     const boxes = sel.sampleBoxQuantities || sel.wellnessBoxes || {};
-    const totalBoxes = (boxes.reduceStress||0)+(boxes.relaxationSleep||0)+(boxes.largeEmotional||0)+(boxes.largeStressReduction||0);
-    const boxSection = totalBoxes > 0 ? `<div class="section"><div class="section-title">Wellness Boxes</div>
-      ${boxes.reduceStress > 0 ? `<div class="item"><div class="item-title">Reduce Stress Boxes (${boxes.reduceStress})</div><div class="item-price">$${(boxes.reduceStress*65).toLocaleString()}</div></div>` : ''}
-      ${boxes.relaxationSleep > 0 ? `<div class="item"><div class="item-title">Relaxation & Sleep Boxes (${boxes.relaxationSleep})</div><div class="item-price">$${(boxes.relaxationSleep*65).toLocaleString()}</div></div>` : ''}
-      ${boxes.largeEmotional > 0 ? `<div class="item"><div class="item-title">Large Emotional Wellness Boxes (${boxes.largeEmotional})</div><div class="item-price">$${(boxes.largeEmotional*125).toLocaleString()}</div></div>` : ''}
-      ${boxes.largeStressReduction > 0 ? `<div class="item"><div class="item-title">Large Stress Reduction Boxes (${boxes.largeStressReduction})</div><div class="item-price">$${(boxes.largeStressReduction*125).toLocaleString()}</div></div>` : ''}
-    </div>` : '';
+    const bpMap = {
+      reduceStress: { name: 'Reduce Stress Box', price: 60 },
+      relaxationSleep: { name: 'Relaxation & Sleep Box', price: 60 },
+      largeEmotional: { name: 'Large Emotional Wellness Box', price: 100 },
+      largeStressReduction: { name: 'Large Stress Reduction Box', price: 120 },
+      stressReductionDigital: { name: 'Stress Reduction Digital Box', price: 50 },
+      beyondBurnoutDigital: { name: 'Beyond Burnout Digital Box', price: 100 },
+      emotionalWellness: { name: 'Emotional Wellness Box', price: 100 },
+      wintertimeHealthy: { name: 'Wintertime Stay Healthy Box', price: 100 },
+      newYearFreshStart: { name: 'New Year Fresh Start Box', price: 100 }
+    };
+    const boxRows = Object.entries(boxes).filter(([,q]) => (q || 0) > 0).map(([key, qty]) => {
+      const b = bpMap[key]; if (!b) return '';
+      return `<div class="item"><div class="item-title">${b.name} (${qty})</div><div class="item-price">${qty} × $${b.price} = $${(qty * b.price).toLocaleString()}</div></div>`;
+    }).join('');
+    const customQty = sel.customBoxQuantity || 0;
+    const customItems = sel.customBoxItems || [];
+    let customBoxRow = '';
+    if (customQty > 0 && customItems.length > 0) {
+      const customUnit = customItems.reduce((s, i) => s + i.price, 0);
+      const itemList = customItems.map(i => `${i.name} ($${i.price.toFixed(2)})`).join(', ');
+      customBoxRow = `<div class="item"><div class="item-title">Custom Wellness Box (${customQty})</div><div class="item-price">${customQty} × $${customUnit.toFixed(2)} = $${(customUnit * customQty).toLocaleString()}</div><div class="item-description">${itemList}</div></div>`;
+    }
+    const boxSection = (boxRows || customBoxRow) ? `<div class="section"><div class="section-title">Wellness Boxes</div>${boxRows}${customBoxRow}</div>` : '';
 
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Proposal - ${proposal.client_name}</title>
     <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;padding:40px;color:#333;line-height:1.6}

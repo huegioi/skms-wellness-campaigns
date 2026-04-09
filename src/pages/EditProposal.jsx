@@ -364,16 +364,33 @@ export default function EditProposal() {
         ` : ''}
 
         ${(() => {
-          const boxes = selections.sampleBoxQuantities;
-          const bpMap = { reduceStress: { name: 'Reduce Stress Boxes', price: 60 }, relaxationSleep: { name: 'Relaxation & Sleep Boxes', price: 60 }, largeEmotional: { name: 'Large Emotional Wellness Boxes', price: 100 }, largeStressReduction: { name: 'Large Stress Reduction Boxes', price: 120 }, stressReductionDigital: { name: 'Stress Reduction Digital Boxes', price: 50 }, beyondBurnoutDigital: { name: 'Beyond Burnout Digital Boxes', price: 100 }, emotionalWellness: { name: 'Emotional Wellness Boxes', price: 100 }, wintertimeHealthy: { name: 'Wintertime Stay Healthy Boxes', price: 100 }, newYearFreshStart: { name: 'New Year Fresh Start Boxes', price: 100 } };
-          const hasBoxes = boxes && Object.entries(boxes).some(([,q]) => (q || 0) > 0);
-          if (!hasBoxes) return '';
-          return `
-            <div class="section">
-              <div class="section-title">Wellness Boxes</div>
-              ${Object.entries(boxes).filter(([,q]) => (q || 0) > 0).map(([key, qty]) => { const b = bpMap[key]; if (!b) return ''; return `<div class="item"><div class="item-title">${b.name} (${qty})</div><div class="item-price">${qty} × $${b.price} = $${(qty * b.price).toLocaleString()}</div></div>`; }).join('')}
-            </div>
-          `;
+          const boxes = selections.sampleBoxQuantities || {};
+          const bpMap = {
+            reduceStress: { name: 'Reduce Stress Box', price: 60 },
+            relaxationSleep: { name: 'Relaxation & Sleep Box', price: 60 },
+            largeEmotional: { name: 'Large Emotional Wellness Box', price: 100 },
+            largeStressReduction: { name: 'Large Stress Reduction Box', price: 120 },
+            stressReductionDigital: { name: 'Stress Reduction Digital Box', price: 50 },
+            beyondBurnoutDigital: { name: 'Beyond Burnout Digital Box', price: 100 },
+            emotionalWellness: { name: 'Emotional Wellness Box', price: 100 },
+            wintertimeHealthy: { name: 'Wintertime Stay Healthy Box', price: 100 },
+            newYearFreshStart: { name: 'New Year Fresh Start Box', price: 100 }
+          };
+          const boxRows = Object.entries(boxes).filter(([,q]) => (q || 0) > 0).map(([key, qty]) => {
+            const b = bpMap[key]; if (!b) return '';
+            return `<div class="item"><div class="item-title">${b.name} (${qty})</div><div class="item-price">${qty} × $${b.price} = $${(qty * b.price).toLocaleString()}</div></div>`;
+          }).join('');
+          const customQty = selections.customBoxQuantity || 0;
+          const customItems = selections.customBoxItems || [];
+          let customRow = '';
+          if (customQty > 0 && customItems.length > 0) {
+            const customUnitPrice = customItems.reduce((s, i) => s + i.price, 0);
+            const customTotal = customUnitPrice * customQty;
+            const itemList = customItems.map(i => `${i.name} ($${i.price.toFixed(2)})`).join(', ');
+            customRow = `<div class="item"><div class="item-title">Custom Wellness Box (${customQty})</div><div class="item-price">${customQty} × $${customUnitPrice.toFixed(2)} = $${customTotal.toLocaleString()}</div><div class="item-description">${itemList}</div></div>`;
+          }
+          if (!boxRows && !customRow) return '';
+          return `<div class="section"><div class="section-title">Wellness Boxes</div>${boxRows}${customRow}</div>`;
         })()}
 
         ${customCharges.length > 0 ? `
