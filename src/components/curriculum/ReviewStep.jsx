@@ -86,8 +86,12 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
   const clientEmail = assessmentData.clientEmail || '';
   const companyName = assessmentData.companyName || '';
 
-  const sampleBoxQuantities = selections.sampleBoxQuantities || {};
+  const [sampleBoxQuantities, setSampleBoxQuantities] = useState(selections.sampleBoxQuantities || {});
   const customBoxItems = selections.customBoxItems || [];
+
+  const updateBoxQty = (id, delta) => {
+    setSampleBoxQuantities(prev => ({ ...prev, [id]: Math.max(0, (prev[id] || 0) + delta) }));
+  };
 
   const challengePrice = calculateChallengePrice(assessmentData.companySize);
 
@@ -1135,7 +1139,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
             (estimated before shipping)
           </p>
         </div>
-        </div>
+      </div>
 
       {/* Client Info Summary */}
       {!showMessage && (
