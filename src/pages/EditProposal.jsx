@@ -32,7 +32,7 @@ export default function EditProposal() {
     challengePrograms: [],
     leadership: [],
     movementClasses: [],
-    sampleBoxQuantities: { reduceStress: 0, relaxationSleep: 0, largeEmotional: 0, largeStressReduction: 0 },
+    sampleBoxQuantities: { reduceStress: 0, relaxationSleep: 0, largeEmotional: 0, largeStressReduction: 0, stressReductionDigital: 0, beyondBurnoutDigital: 0, emotionalWellness: 0, wintertimeHealthy: 0, newYearFreshStart: 0 },
     customBoxQuantity: 0,
     customBoxItems: [],
     assessmentData: {}
@@ -82,7 +82,7 @@ export default function EditProposal() {
         challengePrograms: proposal.selections?.challengePrograms || [],
         leadership: proposal.selections?.leadership || [],
         movementClasses: proposal.selections?.movementClasses || [],
-        sampleBoxQuantities: proposal.selections?.sampleBoxQuantities || { reduceStress: 0, relaxationSleep: 0, largeEmotional: 0, largeStressReduction: 0 },
+        sampleBoxQuantities: proposal.selections?.sampleBoxQuantities || { reduceStress: 0, relaxationSleep: 0, largeEmotional: 0, largeStressReduction: 0, stressReductionDigital: 0, beyondBurnoutDigital: 0, emotionalWellness: 0, wintertimeHealthy: 0, newYearFreshStart: 0 },
         customBoxQuantity: proposal.selections?.customBoxQuantity || 0,
         customBoxItems: proposal.selections?.customBoxItems || [],
         assessmentData: proposal.selections?.assessmentData || {}
@@ -167,10 +167,8 @@ export default function EditProposal() {
     selections.movementClasses.forEach(id => total += getPrice(id));
     
     const boxes = selections.sampleBoxQuantities;
-    total += (boxes.reduceStress || 0) * 65;
-    total += (boxes.relaxationSleep || 0) * 65;
-    total += (boxes.largeEmotional || 0) * 125;
-    total += (boxes.largeStressReduction || 0) * 125;
+    const boxPrices = { reduceStress: 60, relaxationSleep: 60, largeEmotional: 100, largeStressReduction: 120, stressReductionDigital: 50, beyondBurnoutDigital: 100, emotionalWellness: 100, wintertimeHealthy: 100, newYearFreshStart: 100 };
+    Object.entries(boxes).forEach(([key, qty]) => { total += (qty || 0) * (boxPrices[key] || 0); });
     
     if (selections.customBoxQuantity > 0 && selections.customBoxItems?.length > 0) {
       const customBoxTotal = selections.customBoxItems.reduce((sum, item) => sum + item.price, 0);
@@ -359,15 +357,13 @@ export default function EditProposal() {
 
         ${(() => {
           const boxes = selections.sampleBoxQuantities;
-          const hasBoxes = boxes && ((boxes.reduceStress || 0) + (boxes.relaxationSleep || 0) + (boxes.largeEmotional || 0) + (boxes.largeStressReduction || 0) > 0);
+          const bpMap = { reduceStress: { name: 'Reduce Stress Boxes', price: 60 }, relaxationSleep: { name: 'Relaxation & Sleep Boxes', price: 60 }, largeEmotional: { name: 'Large Emotional Wellness Boxes', price: 100 }, largeStressReduction: { name: 'Large Stress Reduction Boxes', price: 120 }, stressReductionDigital: { name: 'Stress Reduction Digital Boxes', price: 50 }, beyondBurnoutDigital: { name: 'Beyond Burnout Digital Boxes', price: 100 }, emotionalWellness: { name: 'Emotional Wellness Boxes', price: 100 }, wintertimeHealthy: { name: 'Wintertime Stay Healthy Boxes', price: 100 }, newYearFreshStart: { name: 'New Year Fresh Start Boxes', price: 100 } };
+          const hasBoxes = boxes && Object.entries(boxes).some(([,q]) => (q || 0) > 0);
           if (!hasBoxes) return '';
           return `
             <div class="section">
               <div class="section-title">Wellness Boxes</div>
-              ${boxes.reduceStress > 0 ? `<div class="item"><div class="item-title">Reduce Stress Boxes (${boxes.reduceStress})</div><div class="item-price">${boxes.reduceStress} × $65 = $${(boxes.reduceStress * 65).toLocaleString()}</div></div>` : ''}
-              ${boxes.relaxationSleep > 0 ? `<div class="item"><div class="item-title">Relaxation & Sleep Boxes (${boxes.relaxationSleep})</div><div class="item-price">${boxes.relaxationSleep} × $65 = $${(boxes.relaxationSleep * 65).toLocaleString()}</div></div>` : ''}
-              ${boxes.largeEmotional > 0 ? `<div class="item"><div class="item-title">Large Emotional Wellness Boxes (${boxes.largeEmotional})</div><div class="item-price">${boxes.largeEmotional} × $125 = $${(boxes.largeEmotional * 125).toLocaleString()}</div></div>` : ''}
-              ${boxes.largeStressReduction > 0 ? `<div class="item"><div class="item-title">Large Stress Reduction Boxes (${boxes.largeStressReduction})</div><div class="item-price">${boxes.largeStressReduction} × $125 = $${(boxes.largeStressReduction * 125).toLocaleString()}</div></div>` : ''}
+              ${Object.entries(boxes).filter(([,q]) => (q || 0) > 0).map(([key, qty]) => { const b = bpMap[key]; if (!b) return ''; return `<div class="item"><div class="item-title">${b.name} (${qty})</div><div class="item-price">${qty} × $${b.price} = $${(qty * b.price).toLocaleString()}</div></div>`; }).join('')}
             </div>
           `;
         })()}
@@ -548,10 +544,15 @@ export default function EditProposal() {
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Wellness Boxes</h2>
           <div className="space-y-3">
             {[
-              { key: 'reduceStress', name: 'Reduce Stress Box', price: 65 },
-              { key: 'relaxationSleep', name: 'Relaxation & Sleep Box', price: 65 },
-              { key: 'largeEmotional', name: 'Large Emotional Wellness Box', price: 125 },
-              { key: 'largeStressReduction', name: 'Large Stress Reduction Box', price: 125 }
+              { key: 'reduceStress', name: 'Reduce Stress Box', price: 60 },
+              { key: 'relaxationSleep', name: 'Relaxation & Sleep Box', price: 60 },
+              { key: 'largeEmotional', name: 'Large Emotional Wellness Box', price: 100 },
+              { key: 'largeStressReduction', name: 'Large Stress Reduction Box', price: 120 },
+              { key: 'stressReductionDigital', name: 'Stress Reduction Digital Box', price: 50 },
+              { key: 'beyondBurnoutDigital', name: 'Beyond Burnout Digital Box', price: 100 },
+              { key: 'emotionalWellness', name: 'Emotional Wellness Box', price: 100 },
+              { key: 'wintertimeHealthy', name: 'Wintertime Stay Healthy Box', price: 100 },
+              { key: 'newYearFreshStart', name: 'New Year Fresh Start Box', price: 100 }
             ].map(box => (
               <div key={box.key} className="flex items-center gap-4 p-3 rounded-lg border bg-gray-50">
                 <div className="flex-1">
