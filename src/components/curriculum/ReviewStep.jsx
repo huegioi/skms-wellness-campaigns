@@ -2,10 +2,54 @@ import React, { useState } from 'react';
 import { productCatalog, workforceChallenges } from './catalogData';
 import { calculateChallengePrice } from './pricingUtils';
 import StepNavigation from './StepNavigation';
-import { Sparkles, Target, CheckCircle } from 'lucide-react';
+import { Sparkles, Target, CheckCircle, Plus, Minus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+
+function CartItem({ removed, name, price, qty, total, itemKey, note, noteExpanded, onQtyChange, onNoteChange, onToggleNote, onRemove, onRestore }) {
+  return (
+    <div className={`mb-3 rounded-xl border transition-all ${removed ? 'opacity-50 bg-gray-50 border-gray-200' : 'bg-white border-gray-200 shadow-sm'}`}>
+      <div className="flex items-center gap-2 p-3">
+        <div className="flex-1 min-w-0">
+          <span className={`font-medium text-sm ${removed ? 'line-through text-gray-400' : 'text-gray-800'}`}>{name}</span>
+          {price > 0 && <span className="text-xs text-gray-400 ml-2">${price.toLocaleString()} each</span>}
+        </div>
+        {!removed && (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button onClick={() => onQtyChange(itemKey, qty - 1)} className="w-7 h-7 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors"><Minus className="w-3 h-3" /></button>
+            <span className="w-8 text-center font-semibold text-sm">{qty}</span>
+            <button onClick={() => onQtyChange(itemKey, qty + 1)} className="w-7 h-7 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors"><Plus className="w-3 h-3" /></button>
+          </div>
+        )}
+        {!removed && <span className="font-bold text-sm w-20 text-right flex-shrink-0" style={{ color: '#770142' }}>${total.toLocaleString()}</span>}
+        {!removed && (
+          <button onClick={() => onToggleNote(itemKey)} className="w-7 h-7 rounded-full flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors" title="Add note">
+            {noteExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+        )}
+        <button
+          onClick={() => removed ? onRestore(itemKey) : onRemove(itemKey)}
+          className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors flex-shrink-0 ${removed ? 'text-green-600 hover:bg-green-50 text-xs font-bold' : 'text-red-400 hover:text-red-600 hover:bg-red-50'}`}
+          title={removed ? 'Restore' : 'Remove'}
+        >
+          {removed ? <Plus className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+        </button>
+      </div>
+      {!removed && noteExpanded && (
+        <div className="px-3 pb-3">
+          <textarea
+            className="w-full text-sm rounded-lg border border-gray-200 p-2 focus:outline-none focus:ring-1 focus:ring-green-400 resize-none bg-gray-50"
+            rows={2}
+            placeholder="Add notes or details for this item..."
+            value={note}
+            onChange={(e) => onNoteChange(itemKey, e.target.value)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function ReviewStep({ selections, onBack, allServices = [] }) {
   // Helper: look up a service by ID in allServices, fall back to productCatalog static data
@@ -22,6 +66,19 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
   const [customCharges, setCustomCharges] = useState([]);
   const [newChargeLabel, setNewChargeLabel] = useState('');
   const [newChargeAmount, setNewChargeAmount] = useState('');
+  // Per-item quantity overrides and notes
+  const [itemQuantities, setItemQuantities] = useState({});
+  const [itemNotes, setItemNotes] = useState({});
+  const [removedItems, setRemovedItems] = useState(new Set());
+  const [expandedNotes, setExpandedNotes] = useState(new Set());
+
+  const getQty = (itemKey) => itemQuantities[itemKey] ?? 1;
+  const setQty = (itemKey, val) => setItemQuantities(prev => ({ ...prev, [itemKey]: Math.max(1, val) }));
+  const getNote = (itemKey) => itemNotes[itemKey] || '';
+  const setNote = (itemKey, val) => setItemNotes(prev => ({ ...prev, [itemKey]: val }));
+  const toggleNote = (itemKey) => setExpandedNotes(prev => { const s = new Set(prev); s.has(itemKey) ? s.delete(itemKey) : s.add(itemKey); return s; });
+  const removeItem = (itemKey) => setRemovedItems(prev => new Set([...prev, itemKey]));
+  const restoreItem = (itemKey) => setRemovedItems(prev => { const s = new Set(prev); s.delete(itemKey); return s; });
 
   // Get client info from assessment data
   const assessmentData = selections.assessmentData || {};
@@ -36,17 +93,17 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
 
   const calculateTotal = () => {
     let total = 0;
-    (selections.workshops || []).forEach(key => {
-      total += getServiceById(key, 'workshops')?.price || 0;
+    (selections.workshops || []).filter(k => !removedItems.has(`w_${k}`)).forEach(key => {
+      total += (getServiceById(key, 'workshops')?.price || 0) * getQty(`w_${key}`);
     });
-    (selections.challengePrograms || []).forEach(key => {
-      total += challengePrice;
+    (selections.challengePrograms || []).filter(k => !removedItems.has(`c_${k}`)).forEach(key => {
+      total += challengePrice * getQty(`c_${key}`);
     });
-    (selections.leadership || []).forEach(key => {
-      total += getServiceById(key, 'leadership')?.price || 0;
+    (selections.leadership || []).filter(k => !removedItems.has(`l_${k}`)).forEach(key => {
+      total += (getServiceById(key, 'leadership')?.price || 0) * getQty(`l_${key}`);
     });
-    (selections.movementClasses || []).forEach(key => {
-      total += getServiceById(key, 'movementClasses')?.price || 0;
+    (selections.movementClasses || []).filter(k => !removedItems.has(`m_${k}`)).forEach(key => {
+      total += (getServiceById(key, 'movementClasses')?.price || 0) * getQty(`m_${key}`);
     });
     total += (sampleBoxQuantities.reduceStress || 0) * 65;
     total += (sampleBoxQuantities.relaxationSleep || 0) * 65;
@@ -56,7 +113,6 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
       const customBoxTotal = customBoxItems.reduce((sum, item) => sum + item.price, 0);
       total += customBoxTotal * selections.customBoxQuantity;
     }
-    // Add custom charges
     customCharges.forEach(charge => {
       total += charge.amount;
     });
@@ -574,21 +630,17 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
         total_amount: calculateTotal(),
         narrative_summary: narrative ? `Your team is currently facing challenges around ${narrative.challenges.join(', ')}. This customized mental fitness program addresses these needs through ${narrative.components.join(', ')}, creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.` : null,
         selections: {
-          workshops: selections.workshops || [],
-          challengePrograms: selections.challengePrograms || [],
-          leadership: selections.leadership || [],
-          movementClasses: selections.movementClasses || [],
+          workshops: (selections.workshops || []).filter(k => !removedItems.has(`w_${k}`)),
+          challengePrograms: (selections.challengePrograms || []).filter(k => !removedItems.has(`c_${k}`)),
+          leadership: (selections.leadership || []).filter(k => !removedItems.has(`l_${k}`)),
+          movementClasses: (selections.movementClasses || []).filter(k => !removedItems.has(`m_${k}`)),
+          itemQuantities,
+          itemNotes,
           // Enriched data with names and descriptions
-          workshopsData: buildServiceData(selections.workshops, 'workshops'),
-          challengeProgramsData: buildServiceData(selections.challengePrograms, 'challenges'),
-          leadershipData: buildServiceData(selections.leadership, 'leadership'),
-          movementClassesData: buildServiceData(selections.movementClasses, 'movementClasses'),
-          sampleBoxQuantities: {
-            reduceStress: sampleBoxQuantities.reduceStress || 0,
-            relaxationSleep: sampleBoxQuantities.relaxationSleep || 0,
-            largeEmotional: sampleBoxQuantities.largeEmotional || 0,
-            largeStressReduction: sampleBoxQuantities.largeStressReduction || 0
-          },
+          workshopsData: buildServiceData((selections.workshops || []).filter(k => !removedItems.has(`w_${k}`)), 'workshops'),
+          challengeProgramsData: buildServiceData((selections.challengePrograms || []).filter(k => !removedItems.has(`c_${k}`)), 'challenges'),
+          leadershipData: buildServiceData((selections.leadership || []).filter(k => !removedItems.has(`l_${k}`)), 'leadership'),
+          movementClassesData: buildServiceData((selections.movementClasses || []).filter(k => !removedItems.has(`m_${k}`)), 'movementClasses'),
           challengePrice: challengePrice,
           customBoxQuantity: selections.customBoxQuantity || 0,
           customBoxItems: customBoxItems || [],
@@ -906,14 +958,19 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
       <div className="review-card">
         {selections.workshops && selections.workshops.length > 0 && (
             <div className="review-section">
-              <div className="review-section-title">Workshops ({selections.workshops.length})</div>
+              <div className="review-section-title">Workshops</div>
               {selections.workshops.map(key => {
                 const svc = getServiceById(key, 'workshops');
+                const itemKey = `w_${key}`;
+                const removed = removedItems.has(itemKey);
+                const qty = getQty(itemKey);
+                const total = (svc?.price || 0) * qty;
                 return (
-                  <div key={key} className="review-item">
-                    <span>{svc?.name || key}</span>
-                    <span className="font-semibold">${(svc?.price || 0).toLocaleString()}</span>
-                  </div>
+                  <CartItem key={key} removed={removed} name={svc?.name || key}
+                    price={svc?.price || 0} qty={qty} total={total} itemKey={itemKey}
+                    note={getNote(itemKey)} noteExpanded={expandedNotes.has(itemKey)}
+                    onQtyChange={setQty} onNoteChange={setNote} onToggleNote={toggleNote}
+                    onRemove={removeItem} onRestore={restoreItem} />
                 );
               })}
             </div>
@@ -921,14 +978,18 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
 
         {selections.challengePrograms && selections.challengePrograms.length > 0 && (
             <div className="review-section">
-              <div className="review-section-title">14-Day Challenges ({selections.challengePrograms.length})</div>
+              <div className="review-section-title">14-Day Challenges</div>
               {selections.challengePrograms.map(key => {
                 const svc = getServiceById(key, 'challenges');
+                const itemKey = `c_${key}`;
+                const removed = removedItems.has(itemKey);
+                const qty = getQty(itemKey);
                 return (
-                  <div key={key} className="review-item">
-                    <span>{svc?.name || key}</span>
-                    <span className="font-semibold">${challengePrice.toLocaleString()}</span>
-                  </div>
+                  <CartItem key={key} removed={removed} name={svc?.name || key}
+                    price={challengePrice} qty={qty} total={challengePrice * qty} itemKey={itemKey}
+                    note={getNote(itemKey)} noteExpanded={expandedNotes.has(itemKey)}
+                    onQtyChange={setQty} onNoteChange={setNote} onToggleNote={toggleNote}
+                    onRemove={removeItem} onRestore={restoreItem} />
                 );
               })}
             </div>
@@ -939,11 +1000,15 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
               <div className="review-section-title">Leadership Programs</div>
               {selections.leadership.map(key => {
                 const svc = getServiceById(key, 'leadership');
+                const itemKey = `l_${key}`;
+                const removed = removedItems.has(itemKey);
+                const qty = getQty(itemKey);
                 return (
-                  <div key={key} className="review-item">
-                    <span>{svc?.name || key}</span>
-                    <span className="font-semibold">${(svc?.price || 0).toLocaleString()}</span>
-                  </div>
+                  <CartItem key={key} removed={removed} name={svc?.name || key}
+                    price={svc?.price || 0} qty={qty} total={(svc?.price || 0) * qty} itemKey={itemKey}
+                    note={getNote(itemKey)} noteExpanded={expandedNotes.has(itemKey)}
+                    onQtyChange={setQty} onNoteChange={setNote} onToggleNote={toggleNote}
+                    onRemove={removeItem} onRestore={restoreItem} />
                 );
               })}
             </div>
@@ -954,11 +1019,15 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
               <div className="review-section-title">Classes</div>
               {selections.movementClasses.map(key => {
                 const svc = getServiceById(key, 'movementClasses');
+                const itemKey = `m_${key}`;
+                const removed = removedItems.has(itemKey);
+                const qty = getQty(itemKey);
                 return (
-                  <div key={key} className="review-item">
-                    <span>{svc?.name || key}</span>
-                    <span className="font-semibold">${(svc?.price || 0).toLocaleString()}</span>
-                  </div>
+                  <CartItem key={key} removed={removed} name={svc?.name || key}
+                    price={svc?.price || 0} qty={qty} total={(svc?.price || 0) * qty} itemKey={itemKey}
+                    note={getNote(itemKey)} noteExpanded={expandedNotes.has(itemKey)}
+                    onQtyChange={setQty} onNoteChange={setNote} onToggleNote={toggleNote}
+                    onRemove={removeItem} onRestore={restoreItem} />
                 );
               })}
             </div>
