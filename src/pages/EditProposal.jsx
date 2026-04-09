@@ -42,6 +42,7 @@ export default function EditProposal() {
   const [customCharges, setCustomCharges] = useState([]);
   const [newChargeLabel, setNewChargeLabel] = useState('');
   const [newChargeAmount, setNewChargeAmount] = useState('');
+  const [isDirty, setIsDirty] = useState(false);
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
@@ -101,6 +102,10 @@ export default function EditProposal() {
       return base44.entities.Proposal.update(proposalId, data);
     },
     onSuccess: async (savedProposal, variables) => {
+      if (isNewProposal) {
+        navigate(createPageUrl('EditProposal') + `?id=${savedProposal.id}`);
+        return;
+      }
       if (proposal && proposal.client_id) {
         if (variables.status === 'sent' && proposal.status !== 'sent') {
           await markTaskComplete(base44, proposal.client_id, 'Send or Accept Proposal', 'proposal_sent', proposalId);
@@ -113,7 +118,7 @@ export default function EditProposal() {
           await markTaskComplete(base44, proposal.client_id, 'Send or Accept Proposal', 'proposal_accepted', proposalId);
         }
       }
-      navigate(createPageUrl('Proposals'));
+      setIsDirty(false);
     }
   });
 
@@ -138,10 +143,12 @@ export default function EditProposal() {
   };
 
   const setPrice = (serviceId, value) => {
+    setIsDirty(true);
     setPriceOverrides(prev => ({ ...prev, [serviceId]: parseFloat(value) || 0 }));
   };
 
   const toggleItem = (category, id) => {
+    setIsDirty(true);
     setSelections(prev => {
       const current = prev[category] || [];
       if (current.includes(id)) {
@@ -152,6 +159,7 @@ export default function EditProposal() {
   };
 
   const updateBoxQuantity = (boxType, increment) => {
+    setIsDirty(true);
     setSelections(prev => ({
       ...prev,
       sampleBoxQuantities: {
@@ -189,6 +197,7 @@ export default function EditProposal() {
 
   const addCustomCharge = () => {
     if (newChargeLabel.trim() && newChargeAmount) {
+      setIsDirty(true);
       setCustomCharges([...customCharges, { id: Date.now(), label: newChargeLabel.trim(), amount: parseFloat(newChargeAmount) }]);
       setNewChargeLabel('');
       setNewChargeAmount('');
@@ -247,6 +256,8 @@ export default function EditProposal() {
       });
     }
   };
+
+  const markDirty = () => setIsDirty(true);
 
   const handleSave = () => {
     if (isNewProposal && !formData.client_id) {
@@ -449,8 +460,8 @@ export default function EditProposal() {
           {!isNewProposal && (
             <Button variant="outline" onClick={generatePDF}><Download className="w-4 h-4 mr-2" /> Download</Button>
           )}
-          <Button onClick={handleSave} className="bg-[#264d44] hover:bg-[#1a3830]" disabled={saveMutation.isPending}>
-            <Save className="w-4 h-4 mr-2" /> {saveMutation.isPending ? 'Saving...' : (isNewProposal ? 'Create' : 'Save')}
+          <Button onClick={handleSave} className="bg-[#264d44] hover:bg-[#1a3830]" disabled={saveMutation.isPending || (!isNewProposal && !isDirty)}>
+            <Save className="w-4 h-4 mr-2" /> {saveMutation.isPending ? 'Saving...' : (isNewProposal ? 'Create' : (isDirty ? 'Save' : 'Saved'))}
           </Button>
         </div>
 
@@ -479,7 +490,7 @@ export default function EditProposal() {
               <label className="block text-sm font-medium text-gray-600 mb-1">Client Name</label>
               <Input 
                 value={formData.client_name} 
-                onChange={(e) => setFormData({...formData, client_name: e.target.value})}
+                onChange={(e) => { setIsDirty(true); setFormData({...formData, client_name: e.target.value}); }}
                 disabled={isNewProposal && !formData.client_id}
               />
             </div>
@@ -487,13 +498,13 @@ export default function EditProposal() {
               <label className="block text-sm font-medium text-gray-600 mb-1">Company</label>
               <Input 
                 value={formData.company} 
-                onChange={(e) => setFormData({...formData, company: e.target.value})}
+                onChange={(e) => { setIsDirty(true); setFormData({...formData, company: e.target.value}); }}
                 disabled={isNewProposal && !formData.client_id}
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">Status</label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({...formData, status: value})}>
+              <Select value={formData.status} onValueChange={(value) => { setIsDirty(true); setFormData({...formData, status: value}); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="draft">Draft</SelectItem>
@@ -525,7 +536,7 @@ export default function EditProposal() {
           </div>
           <Textarea 
             value={formData.narrative_summary} 
-            onChange={(e) => setFormData({...formData, narrative_summary: e.target.value})}
+            onChange={(e) => { setIsDirty(true); setFormData({...formData, narrative_summary: e.target.value}); }}
             placeholder="Click 'Auto-Generate' to create a narrative based on selected services, or write your own..."
             rows={6}
             className="resize-y"
