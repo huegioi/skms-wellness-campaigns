@@ -39,6 +39,9 @@ const physicalBrochureBoxes = [
       { name: 'Calming Tea', img: 'e5cc21c9f_CalmingTeaHerbalBlend.png' },
       { name: 'Dreamy Dark Chocolate Bar', img: '57730873a_Dreamy_DarkChocolateHotCocoa.png' },
       { name: 'Meditation Cushion', img: '9483b8c12_WeightedAromatherapyEyePillow.png' },
+      { name: 'Essential Oil Roller', img: '916a98720_EssentialOilRoller.png' },
+      { name: 'Gold Eye Patches', img: '3ef042c0e_GoldUnderEyePatches-CollagenEyeMask.png' },
+      { name: 'Spa Body Brush', img: '061e3a525_SpaBodyBrush.png' },
       { name: '2 Custom Printed Fliers', img: null },
     ]
   },
@@ -84,10 +87,11 @@ const digitalBrochureBoxes = [
     price: 50,
     priceLabel: '$50',
     items: [
-      { name: '$25 Digital Giftcard\n(Over 100 merchants)', icon: Gift },
-      { name: '1 Topic Mini-Course Video', icon: Video },
-      { name: 'Meditation Recordings', icon: Headphones },
-      { name: 'Digital Workbook', icon: BookOpen },
+      { name: '$25 Digital Giftcard\n(Over 100 merchants)', img: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=200&q=80' },
+      { name: '1 Topic Mini-Course Video', img: 'https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=200&q=80' },
+      { name: 'Meditation Recordings', img: 'https://images.unsplash.com/photo-1545389336-cf090694435e?w=200&q=80' },
+      { name: 'Digital Workbook', img: 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=200&q=80' },
+      { name: 'AI Wellbeing\nCoach Access', img: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=200&q=80' },
     ]
   },
   {
@@ -96,10 +100,11 @@ const digitalBrochureBoxes = [
     price: 100,
     priceLabel: '$100',
     items: [
-      { name: '$50 Digital Giftcard\n(Over 100 merchants)', icon: Gift },
-      { name: '2 Topic Mini-Course Videos', icon: Video },
-      { name: '2 Meditation Recordings', icon: Headphones },
-      { name: 'Digital Workbook', icon: BookOpen },
+      { name: '$50 Digital Giftcard\n(Over 100 merchants)', img: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=200&q=80' },
+      { name: '2 Topic Mini-Course Videos', img: 'https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=200&q=80' },
+      { name: '2 Meditation Recordings', img: 'https://images.unsplash.com/photo-1545389336-cf090694435e?w=200&q=80' },
+      { name: 'Digital Workbook', img: 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=200&q=80' },
+      { name: 'AI Wellbeing\nCoach Access', img: 'https://images.unsplash.com/photo-1677442135703-1787eea5ce01?w=200&q=80' },
     ]
   }
 ];
@@ -230,18 +235,15 @@ function DigitalBoxCard({ box, qty, onDecrement, onIncrement }) {
       </div>
 
       <div className="rounded-2xl p-4" style={{ background: '#f0ebe0', border: '1px solid #e0d8cf' }}>
-        <div className="flex gap-4 flex-wrap">
-          {box.items.map((item, i) => {
-            const Icon = item.icon;
-            return (
-              <div key={i} className="flex flex-col items-center text-center flex-shrink-0" style={{ width: '110px' }}>
-                <div className="w-24 h-20 rounded-xl bg-white flex items-center justify-center mb-2 shadow-sm">
-                  <Icon className="w-10 h-10" style={{ color: '#264d44' }} />
-                </div>
-                <p className="text-xs text-center leading-tight text-gray-700 whitespace-pre-line">{item.name}</p>
+        <div className="flex gap-3 overflow-x-auto pb-2 flex-wrap">
+          {box.items.map((item, i) => (
+            <div key={i} className="flex flex-col items-center text-center flex-shrink-0" style={{ width: '100px' }}>
+              <div className="w-20 h-20 rounded-xl overflow-hidden bg-white mb-2 shadow-sm">
+                <img src={item.img} alt={item.name} className="w-full h-full object-cover" />
               </div>
-            );
-          })}
+              <p className="text-xs text-center leading-tight text-gray-700 whitespace-pre-line">{item.name}</p>
+            </div>
+          ))}
         </div>
       </div>
 
