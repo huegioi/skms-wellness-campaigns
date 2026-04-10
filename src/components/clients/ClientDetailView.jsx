@@ -186,43 +186,65 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   const paidInvoiceValue = clientInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
   const wonValue = acceptedValue + paidInvoiceValue;
 
-  // Extract services from accepted proposals - match by name
-  const getClientServices = () => {
-    const serviceNames = new Set();
-    
+  // Extract all purchased services/products from accepted proposals
+  const getPurchasedServices = () => {
+    const categoryMap = {
+      workshops: 'Workshops',
+      challengePrograms: '14-Day Challenges',
+      leadership: 'Leadership',
+      movementClasses: 'Classes'
+    };
+    const dataKeyMap = {
+      workshops: 'workshopsData',
+      challengePrograms: 'challengeProgramsData',
+      leadership: 'leadershipData',
+      movementClasses: 'movementClassesData'
+    };
+
+    const byCategory = {};
+    const seenIds = new Set();
+
     proposals.filter(p => p.status === 'accepted').forEach(proposal => {
       const sel = proposal.selections || {};
-      
-      (sel.workshops || []).forEach(key => {
-        if (productCatalog.workshops[key]) {
-          serviceNames.add(productCatalog.workshops[key].name);
-        }
+      Object.entries(categoryMap).forEach(([selKey, label]) => {
+        (sel[selKey] || []).forEach(id => {
+          if (seenIds.has(id)) return;
+          seenIds.add(id);
+          const enriched = (sel[dataKeyMap[selKey]] || []).find(s => s.id === id);
+          const dbService = allServices.find(s => s.id === id);
+          const name = enriched?.name || dbService?.name || getServiceName(id);
+          if (!byCategory[label]) byCategory[label] = [];
+          byCategory[label].push({ id, name });
+        });
       });
-      (sel.challengePrograms || []).forEach(key => {
-        if (productCatalog.challenges[key]) {
-          serviceNames.add(productCatalog.challenges[key].name);
-        }
-      });
-      (sel.leadership || []).forEach(key => {
-        if (productCatalog.leadership[key]) {
-          serviceNames.add(productCatalog.leadership[key].name);
-        }
-      });
-      (sel.movementClasses || []).forEach(key => {
-        if (productCatalog.movementClasses[key]) {
-          serviceNames.add(productCatalog.movementClasses[key].name);
+
+      // Wellness boxes
+      const boxes = sel.sampleBoxQuantities || {};
+      const boxNames = {
+        reduceStress: 'Reduce Stress Box', relaxationSleep: 'Relaxation & Sleep Box',
+        largeEmotional: 'Large Emotional Wellness Box', largeStressReduction: 'Large Stress Reduction Box',
+        stressReductionDigital: 'Stress Reduction Digital Box', beyondBurnoutDigital: 'Beyond Burnout Digital Box',
+        emotionalWellness: 'Emotional Wellness Box', wintertimeHealthy: 'Wintertime Stay Healthy Box',
+        newYearFreshStart: 'New Year Fresh Start Box'
+      };
+      Object.entries(boxes).forEach(([key, qty]) => {
+        if ((qty || 0) > 0 && boxNames[key]) {
+          if (!byCategory['Wellness Boxes']) byCategory['Wellness Boxes'] = [];
+          if (!byCategory['Wellness Boxes'].find(b => b.id === key)) {
+            byCategory['Wellness Boxes'].push({ id: key, name: `${boxNames[key]} (×${qty})` });
+          }
         }
       });
     });
-    
-    const matchedServices = allServices.filter(service => serviceNames.has(service.name));
-    const manualServices = allServices.filter(service => (client.purchased_services || []).includes(service.id));
-    
-    const allClientServices = [...matchedServices, ...manualServices];
-    return Array.from(new Map(allClientServices.map(s => [s.id, s])).values());
+
+    return byCategory;
   };
 
-  const clientServices = getClientServices();
+  // For legacy compat (add service dialog)
+  const getClientServices = () => {
+    const manualServices = allServices.filter(service => (client.purchased_services || []).includes(service.id));
+    return Array.from(new Map(manualServices.map(s => [s.id, s])).values());
+  };
 
   const removeService = (serviceId) => {
     const updated = (client.purchased_services || []).filter(id => id !== serviceId);
@@ -373,35 +395,50 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             </div>
           )}
 
-          {clientServices.length > 0 && (
-            <div className="bg-green-50 rounded-lg p-4">
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="font-semibold text-gray-700">Services</h4>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowAddService(true)}>
-                  <Plus className="w-3 h-3 mr-1" /> Add
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {clientServices.map(service => (
-                  <Badge key={service.id} className="bg-green-100 text-green-700 flex items-center gap-1">
-                    {service.name}
-                    <button onClick={() => removeService(service.id)} className="ml-1 hover:text-red-600">×</button>
-                  </Badge>
+          {/* Purchased Services Section */}
+          <div className="rounded-lg border p-4 bg-emerald-50 border-emerald-200">
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="font-semibold text-gray-700 flex items-center gap-2">
+                <Package className="w-4 h-4 text-emerald-600" />
+                Purchased Services & Products
+              </h4>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowAddService(true)}>
+                <Plus className="w-3 h-3 mr-1" /> Add
+              </Button>
+            </div>
+            {hasPurchasedServices ? (
+              <div className="space-y-3">
+                {Object.entries(purchasedByCategory).map(([category, items]) => (
+                  <div key={category}>
+                    <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">{category}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {items.map(item => (
+                        <Badge key={item.id} className="bg-white text-emerald-800 border border-emerald-300">
+                          {item.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
                 ))}
+                {/* Manually added services */}
+                {clientServices.filter(s => (client.purchased_services || []).includes(s.id)).length > 0 && (
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">Manually Added</p>
+                    <div className="flex flex-wrap gap-2">
+                      {clientServices.filter(s => (client.purchased_services || []).includes(s.id)).map(service => (
+                        <Badge key={service.id} className="bg-white text-emerald-800 border border-emerald-300 flex items-center gap-1">
+                          {service.name}
+                          <button onClick={() => removeService(service.id)} className="ml-1 hover:text-red-600">×</button>
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
-          {clientServices.length === 0 && (
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex justify-between items-center">
-                <h4 className="font-semibold text-gray-700">Services</h4>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowAddService(true)}>
-                  <Plus className="w-3 h-3 mr-1" /> Add Service
-                </Button>
-              </div>
-              <p className="text-sm text-gray-400 mt-1">No services yet</p>
-            </div>
-          )}
+            ) : (
+              <p className="text-sm text-gray-400 italic">No services from accepted proposals yet</p>
+            )}
+          </div>
         </TabsContent>
 
         {/* Contacts Tab */}
