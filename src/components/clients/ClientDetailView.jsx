@@ -240,15 +240,15 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
     return byCategory;
   };
 
-  const purchasedByCategory = getPurchasedServices();
-  const hasPurchasedServices = Object.keys(purchasedByCategory).length > 0;
-  const clientServices = getClientServices();
-
   // For legacy compat (add service dialog)
   const getClientServices = () => {
     const manualServices = allServices.filter(service => (client.purchased_services || []).includes(service.id));
     return Array.from(new Map(manualServices.map(s => [s.id, s])).values());
   };
+
+  const purchasedByCategory = getPurchasedServices();
+  const hasPurchasedServices = Object.keys(purchasedByCategory).length > 0;
+  const clientServices = getClientServices();
 
   const removeService = (serviceId) => {
     const updated = (client.purchased_services || []).filter(id => id !== serviceId);
