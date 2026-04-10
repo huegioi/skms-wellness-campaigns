@@ -452,34 +452,14 @@ export default function EditProposal() {
 
     document.body.removeChild(iframe);
 
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+    // Use a single tall page sized to fit all content — avoids any mid-element cuts
+    const pageWidth = 595; // A4 width in pt
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * pageWidth) / canvas.width;
 
-    // Scale factor: canvas width -> PDF page width
-    const scale = pageWidth / canvas.width;
-    const scaledPageHeight = pageHeight / scale; // in canvas pixels, how tall one PDF page is
-
-    let yCanvasOffset = 0;
-    let page = 0;
-
-    while (yCanvasOffset < canvas.height) {
-      const sliceHeight = Math.min(scaledPageHeight, canvas.height - yCanvasOffset);
-
-      // Create a slice canvas for this page
-      const sliceCanvas = document.createElement('canvas');
-      sliceCanvas.width = canvas.width;
-      sliceCanvas.height = sliceHeight;
-      const ctx = sliceCanvas.getContext('2d');
-      ctx.drawImage(canvas, 0, yCanvasOffset, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
-
-      const sliceData = sliceCanvas.toDataURL('image/png');
-      if (page > 0) pdf.addPage();
-      pdf.addImage(sliceData, 'PNG', 0, 0, pageWidth, sliceHeight * scale);
-
-      yCanvasOffset += sliceHeight;
-      page++;
-    }
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [pageWidth, imgHeight] });
+    const imgData = canvas.toDataURL('image/png');
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
 
     pdf.save(`Proposal-${formData.client_name.replace(/\s+/g, '-')}.pdf`);
   };
