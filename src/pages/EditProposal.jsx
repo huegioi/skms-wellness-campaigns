@@ -11,6 +11,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
 import { markTaskComplete, createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function EditProposal() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -298,7 +300,7 @@ export default function EditProposal() {
     });
   };
 
-  const generatePDF = () => {
+  const generatePDF = async () => {
     const getName = (id) => serviceMap[id]?.name || id;
     const getDesc = (id) => serviceMap[id]?.description || '';
 
@@ -325,7 +327,6 @@ export default function EditProposal() {
           .contact-info { background: #f4f0e9; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
           .contact-row { margin-bottom: 8px; }
           .contact-label { font-weight: 700; color: #264d44; display: inline-block; width: 120px; }
-          @media print { body { padding: 20px; } .section { page-break-inside: avoid; } }
         </style>
       </head>
       <body>
@@ -419,15 +420,57 @@ export default function EditProposal() {
       </html>
     `;
 
-    const blob = new Blob([pdfContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Proposal-${formData.client_name.replace(/\s+/g, '-')}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Render HTML into a hidden iframe, capture with html2canvas, save as PDF
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '0';
+    iframe.style.width = '1000px';
+    iframe.style.height = '1px';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+    iframeDoc.open();
+    iframeDoc.write(pdfContent);
+    iframeDoc.close();
+
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    const body = iframeDoc.body;
+    const fullHeight = body.scrollHeight;
+    iframe.style.height = fullHeight + 'px';
+
+    const canvas = await html2canvas(body, {
+      scale: 2,
+      useCORS: true,
+      width: 1000,
+      height: fullHeight,
+      windowWidth: 1000,
+      windowHeight: fullHeight
+    });
+
+    document.body.removeChild(iframe);
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * pageWidth) / canvas.width;
+
+    let yOffset = 0;
+    let remainingHeight = imgHeight;
+    let page = 0;
+    while (remainingHeight > 0) {
+      if (page > 0) pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, -yOffset, imgWidth, imgHeight);
+      yOffset += pageHeight;
+      remainingHeight -= pageHeight;
+      page++;
+    }
+
+    pdf.save(`Proposal-${formData.client_name.replace(/\s+/g, '-')}.pdf`);
   };
 
   if (isLoading || isLoadingServices) {
