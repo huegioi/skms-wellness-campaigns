@@ -468,6 +468,34 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
               </div>
             </div>
 
+            {/* Broker */}
+            {(client.broker_name || client.broker_email) && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <Badge className="bg-orange-100 text-orange-700 mb-2">Broker</Badge>
+                    {client.broker_name && <p className="font-semibold">{client.broker_name}</p>}
+                    {client.company && <p className="text-sm text-gray-600">{client.company}</p>}
+                    {client.broker_email && <p className="text-sm text-gray-500">{client.broker_email}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Wellness Consultant */}
+            {(client.wellness_consultant_name || client.wellness_consultant_email) && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <Badge className="bg-purple-100 text-purple-700 mb-2">Wellness Consultant</Badge>
+                    {client.wellness_consultant_name && <p className="font-semibold">{client.wellness_consultant_name}</p>}
+                    {client.company && <p className="text-sm text-gray-600">{client.company}</p>}
+                    {client.wellness_consultant_email && <p className="text-sm text-gray-500">{client.wellness_consultant_email}</p>}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Related Contacts */}
             {(client.related_contacts || []).map((contact, index) => (
               <div key={index} className="bg-white border rounded-lg p-4">
