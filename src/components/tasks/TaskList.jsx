@@ -193,7 +193,7 @@ export default function TaskList({ clientId, proposalId = null, showProposalGrou
     return (
       <div className="space-y-6">
         {Object.entries(groupedTasks).map(([proposalKey, proposalTasks]) => {
-          const isExpanded = expandedProposals[proposalKey] !== false;
+          const isExpanded = expandedProposals[proposalKey] === true;
           const completedCount = proposalTasks.filter(t => t.status === 'completed').length;
           const totalCount = proposalTasks.length;
 
