@@ -15,38 +15,32 @@ const PHASE_CONFIG = [
     match: (order) => order >= 1 && order <= 5,
   },
   {
+    key: 'challenge_setup',
+    label: 'Phase 1.5: Challenge Setup & Launch',
+    color: 'bg-orange-100 text-orange-800 border-orange-200',
+    match: (order) => order >= 20 && order <= 28,
+  },
+  {
     key: 'phase2',
     label: 'Phase 2: Planning & Launch',
     color: 'bg-purple-100 text-purple-800 border-purple-200',
-    match: (order) => order >= 6 && order <= 10,
+    match: (order) => order >= 6 && order <= 9,
+  },
+  {
+    key: 'challenge_during',
+    label: 'Phase 2.5: During Challenge',
+    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    match: (order) => order >= 29 && order <= 31,
   },
   {
     key: 'phase3',
     label: 'Phase 3: Implementation & Sustainment',
     color: 'bg-green-100 text-green-800 border-green-200',
-    match: (order) => order >= 11 && order <= 19,
-  },
-  {
-    key: 'challenge_setup',
-    label: '📋 Challenge: Setup',
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
-    match: (order) => order >= 20 && order <= 25,
-  },
-  {
-    key: 'challenge_promo',
-    label: '📣 Challenge: Promotion',
-    color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    match: (order) => order >= 26 && order <= 28,
-  },
-  {
-    key: 'challenge_during',
-    label: '🔁 Challenge: During',
-    color: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    match: (order) => order >= 29 && order <= 31,
+    match: (order) => order >= 10 && order <= 19,
   },
   {
     key: 'challenge_wrapup',
-    label: '📊 Challenge: Wrap-Up',
+    label: 'Phase 3.5: Challenge Wrap-Up',
     color: 'bg-pink-100 text-pink-800 border-pink-200',
     match: (order) => order >= 32,
   },
@@ -65,6 +59,16 @@ export default function TaskList({ clientId, proposalId = null, showProposalGrou
         : { client_id: clientId };
       return base44.entities.ClientTask.filter(filter, 'task_order');
     }
+  });
+
+  // Fetch all proposals for this client so we can filter out deleted ones and show dates
+  const { data: proposals = [] } = useQuery({
+    queryKey: ['proposals', clientId],
+    queryFn: async () => {
+      const all = await base44.entities.Proposal.list('-created_date');
+      return all.filter(p => p.client_id === clientId);
+    },
+    enabled: showProposalGroups
   });
 
   const updateTaskMutation = useMutation({
@@ -99,7 +103,6 @@ export default function TaskList({ clientId, proposalId = null, showProposalGrou
   const renderTask = (task) => {
     const isCompleted = task.status === 'completed';
     const isSkipped = task.status === 'skipped';
-    // Strip the [CHALLENGE] prefix tag for display
     const displayDescription = task.description.replace(/^\[CHALLENGE\]\s*[A-Z-]+\s*—\s*/, '');
 
     return (
@@ -173,8 +176,15 @@ export default function TaskList({ clientId, proposalId = null, showProposalGrou
   };
 
   if (showProposalGroups) {
+    // Build a set of valid (non-deleted) proposal IDs
+    const validProposalIds = new Set(proposals.map(p => p.id));
+    const proposalMap = Object.fromEntries(proposals.map(p => [p.id, p]));
+
+    // Group tasks, filtering out any whose proposal has been deleted
     const groupedTasks = tasks.reduce((acc, task) => {
       const key = task.proposal_id || 'general';
+      // Skip tasks tied to a deleted proposal
+      if (key !== 'general' && !validProposalIds.has(key)) return acc;
       if (!acc[key]) acc[key] = [];
       acc[key].push(task);
       return acc;
@@ -186,18 +196,25 @@ export default function TaskList({ clientId, proposalId = null, showProposalGrou
           const isExpanded = expandedProposals[proposalKey] !== false;
           const completedCount = proposalTasks.filter(t => t.status === 'completed').length;
           const totalCount = proposalTasks.length;
-          const proposalName = proposalKey === 'general' ? 'General Tasks' : `Proposal ${proposalKey.slice(0, 8)}`;
+
+          // Use proposal created_date for the label
+          const proposal = proposalMap[proposalKey];
+          const proposalName = proposalKey === 'general'
+            ? 'General Tasks'
+            : proposal
+              ? `Proposal — ${format(new Date(proposal.created_date), 'MMM d, yyyy h:mm a')}`
+              : 'Proposal';
 
           return (
             <Card key={proposalKey}>
               <CardHeader
-                className="cursor-pointer"
+                className="cursor-pointer py-4"
                 onClick={() => setExpandedProposals(prev => ({ ...prev, [proposalKey]: !isExpanded }))}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                    <CardTitle className="text-lg">{proposalName}</CardTitle>
+                    <CardTitle className="text-base">{proposalName}</CardTitle>
                   </div>
                   <Badge variant={completedCount === totalCount ? 'default' : 'secondary'}>
                     {completedCount} / {totalCount}
@@ -212,6 +229,9 @@ export default function TaskList({ clientId, proposalId = null, showProposalGrou
             </Card>
           );
         })}
+        {Object.keys(groupedTasks).length === 0 && (
+          <p className="text-center text-gray-500 py-8">No tasks yet</p>
+        )}
       </div>
     );
   }
