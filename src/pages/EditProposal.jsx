@@ -115,7 +115,7 @@ export default function EditProposal() {
         if (variables.status === 'accepted' && proposal.status !== 'accepted') {
           const existingTasks = await base44.entities.ClientTask.filter({ client_id: proposal.client_id });
           if (existingTasks.length === 0) {
-            await createDefaultTasksForClient(base44, proposal.client_id, proposal.client_name);
+            await createDefaultTasksForClient(base44, proposal.client_id, proposal.client_name, savedProposal);
           }
           await markTaskComplete(base44, proposal.client_id, 'Send or Accept Proposal', 'proposal_accepted', proposalId);
         }
