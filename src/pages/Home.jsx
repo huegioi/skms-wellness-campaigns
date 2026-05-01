@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, Users, DollarSign, TrendingUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Users, DollarSign, TrendingUp } from 'lucide-react';
 import ClientInformationSection from '@/components/dashboard/ClientInformationSection';
 import FinancialSummary from '@/components/dashboard/FinancialSummary';
 import MarketingDashboard from '@/components/dashboard/MarketingDashboard';
@@ -8,8 +7,6 @@ import ServicesAnalytics from '@/components/dashboard/ServicesAnalytics';
 
 export default function Home() {
   const [activeSection, setActiveSection] = useState('clients');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   const sections = [
     { id: 'clients', label: 'Client Information', icon: Users },
     { id: 'financial', label: 'Financial Information', icon: DollarSign },
@@ -44,36 +41,27 @@ export default function Home() {
               );
             })}
           </div>
-          {/* Mobile: dropdown toggle */}
-          <div className="sm:hidden flex items-center justify-between pb-2">
-            <span className="text-sm font-semibold text-[#264d44]">
-              {sections.find(s => s.id === activeSection)?.label}
-            </span>
-            <Button variant="outline" size="sm" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              <Menu className="w-5 h-5" />
-            </Button>
+          {/* Mobile: scrollable pill tabs */}
+          <div className="sm:hidden flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
+            {sections.map(section => {
+              const Icon = section.icon;
+              const isActive = activeSection === section.id;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 transition-all ${
+                    isActive
+                      ? 'bg-[#264d44] text-white shadow-sm'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {section.label}
+                </button>
+              );
+            })}
           </div>
-          {mobileMenuOpen && (
-            <div className="sm:hidden pb-2 space-y-1">
-              {sections.map(section => {
-                const Icon = section.icon;
-                return (
-                  <button
-                    key={section.id}
-                    onClick={() => { setActiveSection(section.id); setMobileMenuOpen(false); }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                      activeSection === section.id
-                        ? 'bg-[#264d44] text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span className="font-medium">{section.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
 
