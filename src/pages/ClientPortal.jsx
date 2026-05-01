@@ -72,12 +72,21 @@ export default function ClientPortal() {
       if (!client) return [];
       const proposalIds = new Set(proposals.map(p => p.id));
       const allEvents = await base44.entities.CalendarEvent.list('start_date');
-      return allEvents.filter(event =>
-        event.client_id === client.id ||
-        event.client_name === client.name ||
-        event.client_name === client.company ||
-        (event.proposal_id && proposalIds.has(event.proposal_id))
-      );
+      const nameLower = client.name?.toLowerCase() || '';
+      const companyLower = client.company?.toLowerCase() || '';
+      return allEvents.filter(event => {
+        const eventClientLower = event.client_name?.toLowerCase() || '';
+        return (
+          event.client_id === client.id ||
+          eventClientLower === nameLower ||
+          eventClientLower === companyLower ||
+          (nameLower && eventClientLower.includes(nameLower)) ||
+          (nameLower && nameLower.includes(eventClientLower)) ||
+          (companyLower && eventClientLower.includes(companyLower)) ||
+          (companyLower && companyLower.includes(eventClientLower)) ||
+          (event.proposal_id && proposalIds.has(event.proposal_id))
+        );
+      });
     },
     enabled: !!client
   });
