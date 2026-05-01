@@ -13,12 +13,12 @@ export default function Layout({ children, currentPageName }) {
 
   const navItems = [
     { name: 'Dashboard', page: 'Home', icon: BarChart3 },
+    { name: 'Partners', page: 'Leads', icon: Mail },
     { name: 'Clients', page: 'Clients', icon: Users, altPages: ['ManageClientPortals', 'Proposals', 'EditProposal', 'EmailTemplateManager'] },
     { name: 'Services', page: 'ServiceCatalog', icon: Package },
     { name: 'Schedule', page: 'SchedulingHub', icon: Calendar },
     { name: 'Financials', page: 'Financials', icon: Landmark },
     { name: 'Feedback', page: 'FeedbackAnalytics', icon: ClipboardList },
-    { name: 'Partners', page: 'Leads', icon: Mail }
   ];
 
   return (
