@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, UserCheck, MapPin, Linkedin, ExternalLink, User, Star, Users } from 'lucide-react';
+import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, UserCheck, MapPin, ExternalLink, User, Star, Users, ChevronDown, ChevronUp } from 'lucide-react';
+import GmailHistory from '@/components/clients/GmailHistory';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -343,6 +344,7 @@ export default function Leads() {
   };
 
   const BrokerLeadCard = ({ lead }) => {
+    const [showEmails, setShowEmails] = useState(false);
     const statusCfg = STATUS_CONFIG[lead.status || 'cold'] || STATUS_CONFIG.cold;
     const partnerCfg = PARTNER_STATUS_CONFIG[lead.partner_status || 'new'] || PARTNER_STATUS_CONFIG.new;
     const referralCfg = REFERRAL_POTENTIAL_CONFIG[lead.referral_potential] || null;
@@ -396,6 +398,20 @@ export default function Leads() {
             <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-600" onClick={() => deleteMutation.mutate(lead.id)}><Trash2 className="w-4 h-4" /></Button>
           </div>
         </div>
+        {/* Email history toggle */}
+        <button
+          onClick={() => setShowEmails(!showEmails)}
+          className="mt-3 flex items-center gap-1.5 text-xs text-[#013f7c] hover:text-[#012d5a] font-medium"
+        >
+          <Mail className="w-3.5 h-3.5" />
+          {showEmails ? 'Hide' : 'Show'} Email History
+          {showEmails ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+        </button>
+        {showEmails && (
+          <div className="mt-3 pt-3 border-t">
+            <GmailHistory clientEmail={lead.email} />
+          </div>
+        )}
       </div>
     );
   };
