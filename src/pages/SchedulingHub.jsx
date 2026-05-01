@@ -93,6 +93,13 @@ export default function SchedulingHub() {
         ? `${eventData.end_date}T${eventData.end_time}:00`
         : new Date(new Date(startDateTime).getTime() + 60 * 60 * 1000).toISOString();
 
+      // Resolve client_id from proposal if available
+      let resolvedClientId = '';
+      if (eventData.proposal_id) {
+        const proposal = proposals.find(p => p.id === eventData.proposal_id);
+        resolvedClientId = proposal?.client_id || '';
+      }
+
       // Create event in CalendarEvent entity only
       const calendarEvent = await base44.entities.CalendarEvent.create({
         title: eventData.title,
@@ -103,6 +110,7 @@ export default function SchedulingHub() {
         all_day: eventData.all_day,
         event_type: 'other',
         client_name: eventData.client_name || '',
+        client_id: resolvedClientId,
         presenter: eventData.presenter || '',
         proposal_id: eventData.proposal_id || '',
         color: '#264d44'

@@ -65,15 +65,18 @@ export default function ClientPortal() {
   // Get accepted proposal
   const acceptedProposal = proposals.find(p => p.status === 'accepted') || proposals[0];
 
-  // Get events for this client (filter by client_id OR client_name)
+  // Get events for this client (filter by client_id, client_name, company, or proposal_id)
   const { data: events = [] } = useQuery({
-    queryKey: ['portalEvents', client?.id, client?.name],
+    queryKey: ['portalEvents', client?.id, client?.name, proposals],
     queryFn: async () => {
       if (!client) return [];
-      // Get events by client_id OR client_name to catch all related events
+      const proposalIds = new Set(proposals.map(p => p.id));
       const allEvents = await base44.entities.CalendarEvent.list('start_date');
-      return allEvents.filter(event => 
-        event.client_id === client.id || event.client_name === client.name || event.client_name === client.company
+      return allEvents.filter(event =>
+        event.client_id === client.id ||
+        event.client_name === client.name ||
+        event.client_name === client.company ||
+        (event.proposal_id && proposalIds.has(event.proposal_id))
       );
     },
     enabled: !!client
