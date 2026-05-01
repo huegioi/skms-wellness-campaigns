@@ -18,7 +18,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Schedule', page: 'SchedulingHub', icon: Calendar },
     { name: 'Financials', page: 'Financials', icon: Landmark },
     { name: 'Feedback', page: 'FeedbackAnalytics', icon: ClipboardList },
-    { name: 'Leads', page: 'Leads', icon: Mail }
+    { name: 'Partners', page: 'Leads', icon: Mail }
   ];
 
   return (
