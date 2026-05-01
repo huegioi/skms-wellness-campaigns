@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, UserCheck, MapPin, ExternalLink, User, Star, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import GmailHistory from '@/components/clients/GmailHistory';
+import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -125,6 +126,7 @@ export default function Leads() {
   const [brokerForm, setBrokerForm] = useState(EMPTY_BROKER_LEAD_FORM);
   const [syncingBrokers, setSyncingBrokers] = useState(false);
   const [syncingEmail, setSyncingEmail] = useState(false);
+  const [viewingBrokerLead, setViewingBrokerLead] = useState(null);
 
   const { data: allLeads = [], isLoading } = useQuery({
     queryKey: ['leads'],
@@ -356,7 +358,12 @@ export default function Leads() {
         <div className="flex flex-col sm:flex-row sm:items-start gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold text-gray-800">{lead.name}</span>
+              <button
+                className="font-semibold text-gray-800 hover:text-[#013f7c] hover:underline text-left"
+                onClick={() => setViewingBrokerLead(lead)}
+              >
+                {lead.name}
+              </button>
               <Badge variant="outline" className={`text-xs ${statusCfg.color}`}>{statusCfg.label}</Badge>
               <Badge variant="outline" className={`text-xs ${partnerCfg.color}`}>{partnerCfg.label}</Badge>
               {referralCfg && (
@@ -605,6 +612,11 @@ export default function Leads() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Broker Lead Detail Modal */}
+      {viewingBrokerLead && (
+        <BrokerLeadDetail lead={viewingBrokerLead} onClose={() => setViewingBrokerLead(null)} />
+      )}
 
       {/* Broker Lead (Referral Partner) Dialog */}
       <Dialog open={isAddBrokerOpen || !!editingBrokerLead} onOpenChange={(open) => { if (!open) { setIsAddBrokerOpen(false); setEditingBrokerLead(null); } }}>
