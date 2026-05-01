@@ -8,11 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, UserCheck, MapPin, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, TrendingUp, AlertCircle, Handshake } from 'lucide-react';
+import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, UserCheck, MapPin, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, TrendingUp, AlertCircle, Handshake, Clock } from 'lucide-react';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
 import { toast } from 'sonner';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 const STATUS_CONFIG = {
   cold:               { label: 'Cold',              color: 'bg-slate-100 text-slate-700 border-slate-300', chart: '#94a3b8' },
@@ -53,54 +52,101 @@ const EMPTY_BROKER_LEAD_FORM = {
   referral_potential: 'medium', referral_count: 0, last_referral_date: ''
 };
 
-function PipelineStats({ leads, clientEmails, filterStatus, setFilterStatus, statusConfig, totalLabel }) {
-  const counts = Object.keys(statusConfig).reduce((acc, key) => {
-    acc[key] = leads.filter(l => {
-      const eff = clientEmails.has(l.email?.toLowerCase()) ? 'current_client' : (l.status || 'cold');
-      return eff === key;
-    }).length;
-    return acc;
-  }, {});
+function ActivePartnerTiles({ activePartners, onSelect }) {
+  const daysSince = (dateStr) => {
+    if (!dateStr) return null;
+    const diff = Math.floor((new Date() - new Date(dateStr)) / (1000 * 60 * 60 * 24));
+    if (diff === 0) return 'Today';
+    if (diff === 1) return '1 day ago';
+    if (diff < 30) return `${diff}d ago`;
+    if (diff < 60) return '~1mo ago';
+    return `${Math.floor(diff / 30)}mo ago`;
+  };
 
-  const pieData = Object.entries(statusConfig)
-    .map(([key, cfg]) => ({ name: cfg.label, value: counts[key] || 0, key, color: cfg.chart }))
-    .filter(d => d.value > 0);
+  if (activePartners.length === 0) return null;
 
   return (
-    <div className="bg-white rounded-xl shadow p-5 mb-5">
-      <h2 className="text-base font-semibold text-gray-700 mb-4">Pipeline Overview</h2>
-      <div className="flex flex-col md:flex-row gap-6 items-center">
-        <div className="w-full md:w-64 h-52 flex-shrink-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} innerRadius={45}>
-                {pieData.map((entry) => <Cell key={entry.key} fill={entry.color} />)}
-              </Pie>
-              <Tooltip formatter={(v, n) => [v, n]} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="flex flex-wrap gap-2 flex-1">
-          {Object.entries(statusConfig).map(([key, cfg]) => (
-            counts[key] > 0 && (
-              <button
-                key={key}
-                onClick={() => setFilterStatus(filterStatus === key ? 'all' : key)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
-                  filterStatus === key ? 'ring-2 ring-offset-1 ring-[#264d44] ' + cfg.color : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-400'
-                }`}
-              >
-                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.chart }} />
-                <span>{cfg.label}</span>
-                <span className="bg-white border rounded-full px-1.5 py-0.5 text-xs font-bold text-gray-700">{counts[key]}</span>
-              </button>
-            )
-          ))}
-        </div>
-        <div className="text-center flex-shrink-0">
-          <p className="text-4xl font-bold text-[#013f7c]">{leads.length}</p>
-          <p className="text-sm text-gray-500 mt-1">{totalLabel}</p>
-        </div>
+    <div className="mb-6">
+      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
+        <Star className="w-4 h-4 text-green-600 fill-green-500" /> Active Referral Partners
+      </h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {activePartners.map(lead => {
+          const contactedDiff = lead.last_contacted_date
+            ? Math.floor((new Date() - new Date(lead.last_contacted_date)) / (1000 * 60 * 60 * 24))
+            : null;
+          const urgencyColor = contactedDiff === null ? 'text-gray-400' : contactedDiff > 60 ? 'text-red-500' : contactedDiff > 30 ? 'text-amber-600' : 'text-green-600';
+          const urgencyBg = contactedDiff === null ? 'bg-gray-50' : contactedDiff > 60 ? 'bg-red-50' : contactedDiff > 30 ? 'bg-amber-50' : 'bg-green-50';
+          const recentReferrals = (lead.referral_history || [])
+            .sort((a, b) => new Date(b.date) - new Date(a.date))
+            .slice(0, 2);
+
+          return (
+            <button
+              key={lead.id}
+              onClick={() => onSelect(lead)}
+              className="bg-white border-l-4 border-green-500 rounded-xl shadow-sm hover:shadow-md transition-all text-left p-4 group"
+            >
+              {/* Name + Company */}
+              <div className="flex items-start justify-between gap-2 mb-2">
+                <div>
+                  <p className="font-bold text-gray-800 group-hover:text-[#013f7c] transition-colors">{lead.name}</p>
+                  {lead.company && <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1"><Building className="w-3 h-3" />{lead.company}</p>}
+                  {lead.title && <p className="text-xs text-gray-400">{lead.title}</p>}
+                </div>
+                <span className="flex-shrink-0 bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full border border-green-200">
+                  Active
+                </span>
+              </div>
+
+              {/* Email */}
+              {lead.email && (
+                <p className="text-xs text-gray-500 flex items-center gap-1 mb-2 truncate">
+                  <Mail className="w-3 h-3 flex-shrink-0" />{lead.email}
+                </p>
+              )}
+
+              {/* Stats row */}
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                {(lead.referral_count || 0) > 0 && (
+                  <span className="text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-medium">
+                    {lead.referral_count} referral{lead.referral_count !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {lead.referral_potential && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                    lead.referral_potential === 'high' ? 'bg-green-50 text-green-700' :
+                    lead.referral_potential === 'medium' ? 'bg-amber-50 text-amber-700' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {lead.referral_potential} potential
+                  </span>
+                )}
+              </div>
+
+              {/* Last contacted */}
+              <div className={`flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-lg ${urgencyBg} ${urgencyColor}`}>
+                <Clock className="w-3 h-3 flex-shrink-0" />
+                {lead.last_contacted_date
+                  ? <>Last contact: {new Date(lead.last_contacted_date).toLocaleDateString()} <span className="opacity-70">({daysSince(lead.last_contacted_date)})</span></>
+                  : 'No contact date recorded'}
+              </div>
+
+              {/* Recent referrals */}
+              {recentReferrals.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {recentReferrals.map((ref, i) => (
+                    <div key={i} className="flex items-center gap-1.5 text-xs bg-purple-50 border border-purple-100 rounded px-2 py-1">
+                      <Star className="w-2.5 h-2.5 text-purple-400 fill-purple-300 flex-shrink-0" />
+                      <span className="font-medium text-purple-800 truncate">{ref.company_name}</span>
+                      <span className="ml-auto text-purple-400 flex-shrink-0">{daysSince(ref.date)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -592,10 +638,9 @@ export default function Leads() {
               </Button>
             </div>
 
-            <PipelineStats
-              leads={outreachLeads} clientEmails={clientEmails}
-              filterStatus={filterStatus} setFilterStatus={setFilterStatus}
-              statusConfig={STATUS_CONFIG} totalLabel="Total Brokers/ECs"
+            <ActivePartnerTiles
+              activePartners={brokerLeads.filter(l => l.partner_status === 'active_partner').sort((a, b) => (a.name || '').localeCompare(b.name || ''))}
+              onSelect={(lead) => setViewingBrokerLead(lead)}
             />
 
             <div className="flex gap-2 flex-wrap mb-4">
@@ -645,10 +690,9 @@ export default function Leads() {
               </Button>
             </div>
 
-            <PipelineStats
-              leads={brokerLeads} clientEmails={new Set()}
-              filterStatus={brokerFilterStatus} setFilterStatus={setBrokerFilterStatus}
-              statusConfig={STATUS_CONFIG} totalLabel="Total Referral Partners"
+            <ActivePartnerTiles
+              activePartners={brokerLeads.filter(l => l.partner_status === 'active_partner').sort((a, b) => (a.name || '').localeCompare(b.name || ''))}
+              onSelect={(lead) => setViewingBrokerLead(lead)}
             />
 
             <div className="flex gap-2 flex-wrap mb-4">
