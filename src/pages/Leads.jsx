@@ -46,7 +46,7 @@ const EMPTY_FORM = {
 };
 
 const EMPTY_BROKER_LEAD_FORM = {
-  name: '', email: '', company: '', title: '', phone: '',
+  name: '', email: '', email2: '', company: '', title: '', phone: '',
   industry: '', status: 'cold', outreach_channel: 'email',
   last_contacted_date: '', next_followup_date: '', notes: '', source: '',
   lead_type: 'broker_lead', partner_status: 'new',
@@ -194,9 +194,10 @@ export default function Leads() {
 
   const openEditBrokerLead = (lead) => {
     setBrokerForm({
-      name: lead.name || '', email: lead.email || '', company: lead.company || '',
-      title: lead.title || '', phone: lead.phone || '', industry: lead.industry || '',
-      status: lead.status || 'cold', outreach_channel: lead.outreach_channel || 'email',
+      name: lead.name || '', email: lead.email || '', email2: lead.email2 || '',
+      company: lead.company || '', title: lead.title || '', phone: lead.phone || '',
+      industry: lead.industry || '', status: lead.status || 'cold',
+      outreach_channel: lead.outreach_channel || 'email',
       last_contacted_date: lead.last_contacted_date || '',
       next_followup_date: lead.next_followup_date || '',
       notes: lead.notes || '', source: lead.source || '', lead_type: 'broker_lead',
@@ -807,14 +808,28 @@ export default function Leads() {
         <DialogContent className="max-w-lg w-[95vw] max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingBrokerLead ? 'Edit Referral Partner' : 'Add Referral Partner'}</DialogTitle></DialogHeader>
           <form onSubmit={handleBrokerLeadSubmit} className="space-y-3 mt-2">
-            <div className="grid grid-cols-2 gap-3">
+            {/* Contact Identity */}
+            <div className="bg-gray-50 rounded-lg p-3 space-y-3">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact Info</p>
               <Input placeholder="Name *" value={brokerForm.name} onChange={e => setBrokerForm({...brokerForm, name: e.target.value})} required />
-              <Input placeholder="Company" value={brokerForm.company} onChange={e => setBrokerForm({...brokerForm, company: e.target.value})} />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Email 1 *</label>
+                  <Input type="email" placeholder="Primary email" value={brokerForm.email} onChange={e => setBrokerForm({...brokerForm, email: e.target.value})} required />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Email 2</label>
+                  <Input type="email" placeholder="Secondary email" value={brokerForm.email2} onChange={e => setBrokerForm({...brokerForm, email2: e.target.value})} />
+                </div>
+              </div>
             </div>
-            <Input type="email" placeholder="Email *" value={brokerForm.email} onChange={e => setBrokerForm({...brokerForm, email: e.target.value})} required />
             <div className="grid grid-cols-2 gap-3">
+              <Input placeholder="Company" value={brokerForm.company} onChange={e => setBrokerForm({...brokerForm, company: e.target.value})} />
               <Input placeholder="Title" value={brokerForm.title} onChange={e => setBrokerForm({...brokerForm, title: e.target.value})} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <Input placeholder="Phone" value={brokerForm.phone} onChange={e => setBrokerForm({...brokerForm, phone: e.target.value})} />
+              <Input placeholder="Industry" value={brokerForm.industry} onChange={e => setBrokerForm({...brokerForm, industry: e.target.value})} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -884,7 +899,6 @@ export default function Leads() {
                 <Input type="date" value={brokerForm.last_referral_date} onChange={e => setBrokerForm({...brokerForm, last_referral_date: e.target.value})} />
               </div>
             </div>
-            <Input placeholder="Industry" value={brokerForm.industry} onChange={e => setBrokerForm({...brokerForm, industry: e.target.value})} />
             <Textarea placeholder="Notes" value={brokerForm.notes} onChange={e => setBrokerForm({...brokerForm, notes: e.target.value})} rows={3} />
             <Button type="submit" className="w-full bg-[#013f7c] hover:bg-[#012d5a]">
               {editingBrokerLead ? 'Save Changes' : 'Add Partner'}
