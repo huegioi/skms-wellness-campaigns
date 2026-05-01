@@ -71,6 +71,28 @@
       "default": 0,
       "description": "Number of referrals received from this partner"
     },
+    "referral_history": {
+      "type": "array",
+      "description": "Log of individual referrals from this partner",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "company_name": {
+            "type": "string"
+          },
+          "contact_name": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "status": {
       "type": "string",
       "enum": [

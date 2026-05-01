@@ -352,9 +352,47 @@ export default function Leads() {
     const referralCfg = REFERRAL_POTENTIAL_CONFIG[lead.referral_potential] || null;
     const sourceParts = (lead.source || '').split(' | ');
     const linkedinUrl = sourceParts[1] || '';
+    const isActive = lead.partner_status === 'active_partner';
+
+    const recentReferrals = (lead.referral_history || [])
+      .sort((a, b) => new Date(b.date) - new Date(a.date))
+      .slice(0, 3);
+
+    const daysSince = (dateStr) => {
+      if (!dateStr) return null;
+      const diff = Math.floor((new Date() - new Date(dateStr)) / (1000 * 60 * 60 * 24));
+      if (diff === 0) return 'Today';
+      if (diff === 1) return '1 day ago';
+      if (diff < 30) return `${diff}d ago`;
+      if (diff < 60) return '~1mo ago';
+      return `${Math.floor(diff / 30)}mo ago`;
+    };
+
+    const lastContactedAgo = daysSince(lead.last_contacted_date);
+    const contactedDiff = lead.last_contacted_date
+      ? Math.floor((new Date() - new Date(lead.last_contacted_date)) / (1000 * 60 * 60 * 24))
+      : null;
+    const contactUrgency = contactedDiff === null ? '' : contactedDiff > 60 ? 'text-red-500' : contactedDiff > 30 ? 'text-amber-600' : 'text-green-600';
 
     return (
-      <div className="bg-white rounded-xl shadow p-4 border-l-4 border-[#013f7c]/30">
+      <div className={`bg-white rounded-xl shadow p-4 border-l-4 ${isActive ? 'border-green-500' : 'border-[#013f7c]/20'}`}>
+        {/* Active Partner Banner */}
+        {isActive && (
+          <div className="flex items-center gap-2 mb-3 pb-3 border-b border-green-100">
+            <div className="flex items-center gap-1.5 bg-green-50 text-green-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-green-200">
+              <Star className="w-3 h-3 fill-green-500 text-green-500" /> Active Referral Partner
+            </div>
+            {lead.last_contacted_date && (
+              <span className={`text-xs font-medium ${contactUrgency} flex items-center gap-1`}>
+                <Mail className="w-3 h-3" /> Last contact: {new Date(lead.last_contacted_date).toLocaleDateString()} ({lastContactedAgo})
+              </span>
+            )}
+            {!lead.last_contacted_date && (
+              <span className="text-xs text-gray-400 italic">No contact date recorded</span>
+            )}
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row sm:items-start gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -365,7 +403,7 @@ export default function Leads() {
                 {lead.name}
               </button>
               <Badge variant="outline" className={`text-xs ${statusCfg.color}`}>{statusCfg.label}</Badge>
-              <Badge variant="outline" className={`text-xs ${partnerCfg.color}`}>{partnerCfg.label}</Badge>
+              {!isActive && <Badge variant="outline" className={`text-xs ${partnerCfg.color}`}>{partnerCfg.label}</Badge>}
               {referralCfg && (
                 <Badge variant="outline" className={`text-xs ${referralCfg.color} flex items-center gap-1`}>
                   <Star className="w-3 h-3" />{referralCfg.label} potential
@@ -392,13 +430,40 @@ export default function Leads() {
                 </a>
               )}
             </div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {lead.industry && <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{lead.industry}</span>}
-              {lead.last_contacted_date && <span className="text-xs text-gray-400">Last contacted: {new Date(lead.last_contacted_date).toLocaleDateString()}</span>}
-              {lead.next_followup_date && <span className="text-xs text-amber-600">Follow-up: {new Date(lead.next_followup_date).toLocaleDateString()}</span>}
-              {lead.last_referral_date && <span className="text-xs text-purple-600">Last referral: {new Date(lead.last_referral_date).toLocaleDateString()}</span>}
-            </div>
-            {lead.notes && <p className="text-xs text-gray-400 mt-1 line-clamp-2">{lead.notes}</p>}
+
+            {/* Non-active: show last contacted inline */}
+            {!isActive && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {lead.industry && <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{lead.industry}</span>}
+                {lead.last_contacted_date && (
+                  <span className={`text-xs font-medium ${contactUrgency}`}>
+                    Last contact: {new Date(lead.last_contacted_date).toLocaleDateString()} ({lastContactedAgo})
+                  </span>
+                )}
+                {lead.next_followup_date && <span className="text-xs text-amber-600">Follow-up: {new Date(lead.next_followup_date).toLocaleDateString()}</span>}
+              </div>
+            )}
+
+            {/* Active partner: last 3 referrals */}
+            {isActive && recentReferrals.length > 0 && (
+              <div className="mt-3 space-y-1.5">
+                <p className="text-xs font-semibold text-purple-700 uppercase tracking-wide">Last Referrals</p>
+                {recentReferrals.map((ref, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs bg-purple-50 border border-purple-100 rounded-lg px-3 py-1.5">
+                    <span className="font-medium text-purple-800">{ref.company_name}</span>
+                    {ref.contact_name && <span className="text-purple-600">— {ref.contact_name}</span>}
+                    <span className="ml-auto text-purple-400 flex-shrink-0">{new Date(ref.date).toLocaleDateString()} · {daysSince(ref.date)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Active: no referrals yet nudge */}
+            {isActive && recentReferrals.length === 0 && (
+              <p className="mt-2 text-xs text-gray-400 italic">No referrals logged yet — open profile to add one.</p>
+            )}
+
+            {lead.notes && <p className="text-xs text-gray-400 mt-2 line-clamp-1">{lead.notes}</p>}
           </div>
           <div className="flex gap-2 flex-shrink-0">
             <Button size="sm" variant="outline" onClick={() => openEditBrokerLead(lead)}><Pencil className="w-4 h-4" /></Button>
@@ -615,7 +680,14 @@ export default function Leads() {
 
       {/* Broker Lead Detail Modal */}
       {viewingBrokerLead && (
-        <BrokerLeadDetail lead={viewingBrokerLead} onClose={() => setViewingBrokerLead(null)} />
+        <BrokerLeadDetail
+          lead={viewingBrokerLead}
+          onClose={() => setViewingBrokerLead(null)}
+          onUpdate={() => {
+            queryClient.invalidateQueries({ queryKey: ['leads'] });
+            // Keep modal open but refresh local lead data via the list refetch
+          }}
+        />
       )}
 
       {/* Broker Lead (Referral Partner) Dialog */}
