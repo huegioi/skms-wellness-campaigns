@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Calendar, Mail, Bell, Clock, AlertCircle, CheckCircle2, 
-  Users, Award, Dumbbell, Package, MessageSquare
+  Users, Award, Dumbbell, Package, MessageSquare, ChevronDown, ChevronRight
 } from 'lucide-react';
-import { format, subDays, differenceInDays, isPast, isToday, isFuture } from 'date-fns';
+import { format, subDays, differenceInDays, isPast, isToday } from 'date-fns';
 
 export default function ClientTimeline({ events, proposal }) {
+  const [pastExpanded, setPastExpanded] = useState(false);
   const eventTypeConfig = {
     meeting: { label: 'Client Meeting', color: '#013f7c', icon: Users },
     workshop: { label: 'Workshop', color: '#264d44', icon: Award },
@@ -163,86 +164,104 @@ export default function ClientTimeline({ events, proposal }) {
           <CardTitle className="text-lg">Your Program Timeline</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="relative">
-            {/* Vertical line */}
-            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+          {(() => {
+            const pastItems = timelineItems.filter(item => getItemStatus(item) === 'past');
+            const upcomingItems = timelineItems.filter(item => getItemStatus(item) !== 'past');
 
-            <div className="space-y-6">
-              {timelineItems.map((item, index) => {
-                const status = getItemStatus(item);
-                const Icon = item.icon;
-                
-                return (
-                  <div key={item.id} className="relative pl-12">
-                    {/* Circle marker */}
-                    <div 
-                      className={`absolute left-0 w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                        status === 'past' ? 'bg-gray-100 border-gray-300' :
-                        status === 'today' ? 'bg-white border-[#770142] ring-4 ring-[#770142]/20' :
-                        'bg-white border-gray-300'
-                      }`}
-                      style={{ 
-                        borderColor: status !== 'past' ? item.color : undefined,
-                        backgroundColor: status === 'past' ? '#f3f4f6' : 'white'
-                      }}
-                    >
-                      <Icon className="w-4 h-4" style={{ color: status === 'past' ? '#9ca3af' : item.color }} />
-                    </div>
-
-                    {/* Content */}
-                    <div 
-                      className={`p-4 rounded-lg border ${
-                        status === 'past' ? 'bg-gray-50 border-gray-200' :
-                        status === 'today' ? 'bg-white border-[#770142] shadow-md' :
-                        'bg-white border-gray-200'
-                      }`}
-                    >
-                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
-                        <div className="flex items-center gap-2">
-                          <h4 className={`font-semibold ${status === 'past' ? 'text-gray-500' : 'text-gray-800'}`}>
-                            {item.title}
-                          </h4>
-                          {item.isReminder && (
-                            <Badge variant="outline" className="text-xs">
-                              {item.isNotification ? 'Auto' : 'Action Required'}
-                            </Badge>
-                          )}
-                          {item.isEvent && (
-                            <Badge style={{ backgroundColor: item.color, color: 'white' }} className="text-xs">
-                              Event
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className={`text-sm ${status === 'today' ? 'font-semibold text-[#770142]' : 'text-gray-500'}`}>
-                            {format(new Date(item.date), 'MMM d, yyyy')}
-                          </span>
-                          <Badge variant={status === 'past' ? 'secondary' : status === 'today' ? 'default' : 'outline'}>
-                            {getDaysUntil(item.date)}
-                          </Badge>
-                        </div>
-                      </div>
-                      <p className={`text-sm ${status === 'past' ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {item.description}
-                      </p>
-                      
-                      {status === 'past' && !item.isReminder && (
-                        <div className="flex items-center gap-1 mt-2 text-green-600 text-sm">
-                          <CheckCircle2 className="w-4 h-4" />
-                          {item.completed ? 'Completed' : 'Past Event'}
-                        </div>
-                      )}
-                      {item.completed && item.completed_date && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Completed on {format(new Date(item.completed_date), 'MMM d, yyyy')}
-                        </div>
-                      )}
-                    </div>
+            const renderItem = (item) => {
+              const status = getItemStatus(item);
+              const Icon = item.icon;
+              return (
+                <div key={item.id} className="relative pl-12">
+                  <div 
+                    className={`absolute left-0 w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+                      status === 'past' ? 'bg-gray-100 border-gray-300' :
+                      status === 'today' ? 'bg-white border-[#770142] ring-4 ring-[#770142]/20' :
+                      'bg-white border-gray-300'
+                    }`}
+                    style={{ 
+                      borderColor: status !== 'past' ? item.color : undefined,
+                      backgroundColor: status === 'past' ? '#f3f4f6' : 'white'
+                    }}
+                  >
+                    <Icon className="w-4 h-4" style={{ color: status === 'past' ? '#9ca3af' : item.color }} />
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                  <div className={`p-4 rounded-lg border ${
+                    status === 'past' ? 'bg-gray-50 border-gray-200' :
+                    status === 'today' ? 'bg-white border-[#770142] shadow-md' :
+                    'bg-white border-gray-200'
+                  }`}>
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <h4 className={`font-semibold ${status === 'past' ? 'text-gray-500' : 'text-gray-800'}`}>
+                          {item.title}
+                        </h4>
+                        {item.isReminder && (
+                          <Badge variant="outline" className="text-xs">
+                            {item.isNotification ? 'Auto' : 'Action Required'}
+                          </Badge>
+                        )}
+                        {item.isEvent && (
+                          <Badge style={{ backgroundColor: item.color, color: 'white' }} className="text-xs">
+                            Event
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm ${status === 'today' ? 'font-semibold text-[#770142]' : 'text-gray-500'}`}>
+                          {format(new Date(item.date), 'MMM d, yyyy')}
+                        </span>
+                        <Badge variant={status === 'past' ? 'secondary' : status === 'today' ? 'default' : 'outline'}>
+                          {getDaysUntil(item.date)}
+                        </Badge>
+                      </div>
+                    </div>
+                    <p className={`text-sm ${status === 'past' ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {item.description}
+                    </p>
+                    {status === 'past' && !item.isReminder && (
+                      <div className="flex items-center gap-1 mt-2 text-green-600 text-sm">
+                        <CheckCircle2 className="w-4 h-4" />
+                        {item.completed ? 'Completed' : 'Past Event'}
+                      </div>
+                    )}
+                    {item.completed && item.completed_date && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Completed on {format(new Date(item.completed_date), 'MMM d, yyyy')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            };
+
+            return (
+              <div className="relative">
+                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+                <div className="space-y-6">
+                  {/* Past events collapsible */}
+                  {pastItems.length > 0 && (
+                    <div>
+                      <button
+                        onClick={() => setPastExpanded(!pastExpanded)}
+                        className="flex items-center gap-2 mb-4 px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors ml-12"
+                      >
+                        {pastExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                        {pastItems.length} Past Event{pastItems.length !== 1 ? 's' : ''}
+                      </button>
+                      {pastExpanded && (
+                        <div className="space-y-6 mb-6">
+                          {pastItems.map(renderItem)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {/* Upcoming events */}
+                  {upcomingItems.map(renderItem)}
+                </div>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
     </div>

@@ -72,20 +72,29 @@ export default function ClientPortal() {
       if (!client) return [];
       const proposalIds = new Set(proposals.map(p => p.id));
       const allEvents = await base44.entities.CalendarEvent.list('start_date');
-      const nameLower = client.name?.toLowerCase() || '';
-      const companyLower = client.company?.toLowerCase() || '';
+      const clientNameLower = client.name?.toLowerCase().trim() || '';
+      const clientCompanyLower = client.company?.toLowerCase().trim() || '';
       return allEvents.filter(event => {
-        const eventClientLower = event.client_name?.toLowerCase() || '';
-        return (
-          event.client_id === client.id ||
-          eventClientLower === nameLower ||
-          eventClientLower === companyLower ||
-          (nameLower && eventClientLower.includes(nameLower)) ||
-          (nameLower && nameLower.includes(eventClientLower)) ||
-          (companyLower && eventClientLower.includes(companyLower)) ||
-          (companyLower && companyLower.includes(eventClientLower)) ||
-          (event.proposal_id && proposalIds.has(event.proposal_id))
-        );
+        // Must have a client_name on the event OR a matching proposal/client_id
+        const eventClientLower = event.client_name?.toLowerCase().trim() || '';
+
+        if (event.client_id && event.client_id === client.id) return true;
+        if (event.proposal_id && proposalIds.has(event.proposal_id)) return true;
+
+        // Only do name matching if the event actually has a client_name set
+        if (!eventClientLower) return false;
+
+        if (clientNameLower && eventClientLower === clientNameLower) return true;
+        if (clientCompanyLower && eventClientLower === clientCompanyLower) return true;
+
+        // Allow partial match only when event client_name is a meaningful substring
+        // (covers "Moses Weitzman" matching "Moses Weitzman Health System")
+        if (clientNameLower && clientNameLower.length > 5 && clientNameLower.includes(eventClientLower)) return true;
+        if (clientNameLower && eventClientLower.length > 5 && eventClientLower.includes(clientNameLower)) return true;
+        if (clientCompanyLower && clientCompanyLower.length > 5 && clientCompanyLower.includes(eventClientLower)) return true;
+        if (clientCompanyLower && eventClientLower.length > 5 && eventClientLower.includes(clientCompanyLower)) return true;
+
+        return false;
       });
     },
     enabled: !!client
