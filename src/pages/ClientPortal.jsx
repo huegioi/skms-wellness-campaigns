@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Calendar, Mail, Building, Clock, Settings, Share2, ClipboardList, FolderOpen } from 'lucide-react';
+import { FileText, Calendar, Mail, Building, Clock, Settings, Share2, ClipboardList, FolderOpen, CalendarPlus } from 'lucide-react';
 import { toast } from 'sonner';
 import ClientProposalView from '@/components/portal/ClientProposalView';
 import ClientTimeline from '@/components/portal/ClientTimeline';
@@ -11,6 +11,7 @@ import ClientEmailTemplates from '@/components/portal/ClientEmailTemplates';
 import ClientProfileSettings from '@/components/portal/ClientProfileSettings';
 import PortalFeedback from '@/components/portal/PortalFeedback';
 import ClientResources from '@/components/portal/ClientResources';
+import BookSession from '@/components/portal/BookSession';
 
 export default function ClientPortal() {
   const [activeTab, setActiveTab] = useState('proposal');
@@ -147,7 +148,7 @@ export default function ClientPortal() {
       {/* Main Content */}
       <div className="max-w-6xl mx-auto p-4 md:p-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6 mb-8">
+          <TabsList className="grid w-full grid-cols-7 mb-8">
             <TabsTrigger value="proposal" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               <span className="hidden sm:inline">My Wellness Programming</span>
@@ -157,6 +158,11 @@ export default function ClientPortal() {
               <Calendar className="w-4 h-4" />
               <span className="hidden sm:inline">Event Timeline</span>
               <span className="sm:hidden">Timeline</span>
+            </TabsTrigger>
+            <TabsTrigger value="book" className="flex items-center gap-2">
+              <CalendarPlus className="w-4 h-4" />
+              <span className="hidden sm:inline">Book a Session</span>
+              <span className="sm:hidden">Book</span>
             </TabsTrigger>
             <TabsTrigger value="templates" className="flex items-center gap-2">
               <Mail className="w-4 h-4" />
@@ -186,6 +192,10 @@ export default function ClientPortal() {
 
           <TabsContent value="timeline">
             <ClientTimeline events={events} proposal={acceptedProposal} />
+          </TabsContent>
+
+          <TabsContent value="book">
+            <BookSession client={client} />
           </TabsContent>
 
           <TabsContent value="templates">

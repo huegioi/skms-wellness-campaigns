@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, Loader2, Star, Users, TrendingUp, MessageSquare, ExternalLink } from 'lucide-react';
+import { RefreshCw, Loader2, Star, Users, TrendingUp, MessageSquare, ExternalLink, BarChart2 } from 'lucide-react';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 
@@ -110,6 +110,9 @@ export default function FeedbackAnalytics() {
             <TabsTrigger value="responses" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
               Responses ({responses.length})
             </TabsTrigger>
+            <TabsTrigger value="benchmarks" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
+              Benchmarks
+            </TabsTrigger>
             <TabsTrigger value="surveys" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
               Surveys ({surveys.length})
             </TabsTrigger>
@@ -133,6 +136,10 @@ export default function FeedbackAnalytics() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="benchmarks">
+            <BenchmarksTab responses={responses} surveys={surveys} />
           </TabsContent>
 
           <TabsContent value="surveys">
@@ -164,6 +171,120 @@ export default function FeedbackAnalytics() {
             </div>
           </TabsContent>
         </Tabs>
+      </div>
+    </div>
+  );
+}
+
+function BenchmarksTab({ responses, surveys }) {
+  // Group responses by service name
+  const byService = responses.reduce((acc, r) => {
+    const key = r.service_name || 'Unknown';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(r);
+    return acc;
+  }, {});
+
+  const overallAvgRating = responses.filter(r => r.overall_rating).length > 0
+    ? (responses.reduce((s, r) => s + (r.overall_rating || 0), 0) / responses.filter(r => r.overall_rating).length).toFixed(1)
+    : null;
+
+  const overallAvgNPS = responses.filter(r => r.nps_score != null).length > 0
+    ? (responses.reduce((s, r) => s + (r.nps_score || 0), 0) / responses.filter(r => r.nps_score != null).length).toFixed(1)
+    : null;
+
+  if (responses.length === 0) {
+    return (
+      <div className="bg-white rounded-xl p-12 text-center shadow-lg">
+        <BarChart2 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+        <h3 className="text-xl font-semibold text-gray-700 mb-2">No data yet</h3>
+        <p className="text-gray-500">Benchmarks will appear once feedback responses are collected.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Overall benchmarks */}
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <h3 className="text-lg font-bold mb-4" style={{ color: '#013f7c' }}>Overall Benchmarks</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-4 rounded-lg bg-gray-50 border text-center">
+            <p className="text-3xl font-bold" style={{ color: '#264d44' }}>{overallAvgRating ?? '—'}<span className="text-base font-normal text-gray-400">/5</span></p>
+            <p className="text-sm text-gray-500 mt-1">Avg Rating (all services)</p>
+          </div>
+          <div className="p-4 rounded-lg bg-gray-50 border text-center">
+            <p className="text-3xl font-bold" style={{ color: '#013f7c' }}>{overallAvgNPS ?? '—'}<span className="text-base font-normal text-gray-400">/10</span></p>
+            <p className="text-sm text-gray-500 mt-1">Avg NPS (all services)</p>
+          </div>
+          <div className="p-4 rounded-lg bg-gray-50 border text-center">
+            <p className="text-3xl font-bold" style={{ color: '#770142' }}>{responses.length}</p>
+            <p className="text-sm text-gray-500 mt-1">Total Responses</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Per-service breakdown */}
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <h3 className="text-lg font-bold mb-4" style={{ color: '#013f7c' }}>By Service</h3>
+        <div className="space-y-4">
+          {Object.entries(byService).map(([serviceName, svcResponses]) => {
+            const ratingResponses = svcResponses.filter(r => r.overall_rating);
+            const npsResponses = svcResponses.filter(r => r.nps_score != null);
+            const avgRating = ratingResponses.length > 0
+              ? (ratingResponses.reduce((s, r) => s + r.overall_rating, 0) / ratingResponses.length).toFixed(1)
+              : null;
+            const avgNPS = npsResponses.length > 0
+              ? (npsResponses.reduce((s, r) => s + r.nps_score, 0) / npsResponses.length).toFixed(1)
+              : null;
+
+            const ratingPct = avgRating ? ((parseFloat(avgRating) / 5) * 100).toFixed(0) : 0;
+            const npsPct = avgNPS ? ((parseFloat(avgNPS) / 10) * 100).toFixed(0) : 0;
+
+            return (
+              <div key={serviceName} className="border rounded-lg p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <p className="font-semibold text-gray-800">{serviceName}</p>
+                    <p className="text-xs text-gray-400">{svcResponses.length} response{svcResponses.length !== 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="text-right text-sm">
+                    {avgRating && <p className="text-gray-600">⭐ {avgRating}/5</p>}
+                    {avgNPS && <p className="text-gray-600">NPS: {avgNPS}/10</p>}
+                  </div>
+                </div>
+                {avgRating && (
+                  <div className="mb-2">
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>Rating vs benchmark ({overallAvgRating}/5)</span>
+                      <span>{ratingPct}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${ratingPct}%`, backgroundColor: parseFloat(avgRating) >= parseFloat(overallAvgRating) ? '#264d44' : '#f59e0b' }}
+                      />
+                    </div>
+                  </div>
+                )}
+                {avgNPS && (
+                  <div>
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>NPS vs benchmark ({overallAvgNPS}/10)</span>
+                      <span>{npsPct}%</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${npsPct}%`, backgroundColor: parseFloat(avgNPS) >= parseFloat(overallAvgNPS) ? '#013f7c' : '#ef4444' }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
