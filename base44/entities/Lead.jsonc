@@ -31,6 +31,46 @@
       "type": "string",
       "description": "Estimated company size"
     },
+    "lead_type": {
+      "type": "string",
+      "enum": [
+        "broker",
+        "broker_lead",
+        "ec"
+      ],
+      "default": "broker",
+      "description": "Type of lead: broker (cold outreach), broker_lead (high-quality referral partner), ec (engagement consultant)"
+    },
+    "partner_status": {
+      "type": "string",
+      "enum": [
+        "new",
+        "nurturing",
+        "active_partner",
+        "inactive"
+      ],
+      "default": "new",
+      "description": "Relationship development stage (for broker leads)"
+    },
+    "referral_potential": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "description": "Estimated referral potential"
+    },
+    "last_referral_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of last referral from this partner"
+    },
+    "referral_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of referrals received from this partner"
+    },
     "status": {
       "type": "string",
       "enum": [

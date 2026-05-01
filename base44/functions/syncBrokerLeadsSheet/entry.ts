@@ -1,0 +1,177 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+
+// High-quality broker leads sheet (referral partners)
+const SPREADSHEET_ID = '1QyVdp7XWFfUkZyqLMVn6P39X84WgYWOHfqI2US7WKWk';
+
+const SHEET_STATUS_TO_APP = {
+  'cold': 'cold',
+  'contacted': 'contacted',
+  'contacted (linkedin)': 'contacted',
+  'responded': 'responded',
+  'meeting scheduled': 'meeting_scheduled',
+  'proposal sent': 'proposal_sent',
+  'converted': 'converted',
+  'not interested': 'not_interested',
+  'client': 'current_client',
+};
+
+const APP_STATUS_RANK = ['cold','contacted','responded','meeting_scheduled','proposal_sent','converted','not_interested','current_client'];
+
+function rowToLead(row, rowIndex, sheetOriginKey) {
+  const get = (i) => (row[i] || '').trim();
+
+  const firstName = get(0);
+  const lastName = get(1);
+  const name = [firstName, lastName].filter(Boolean).join(' ');
+  const email = get(2);
+
+  if (!name || !email) return null;
+
+  const sheetStatus = get(8).toLowerCase();
+  const contactMethod = get(9).toLowerCase();
+
+  let outreachChannel = 'other';
+  if (contactMethod.includes('linkedin')) outreachChannel = 'linkedin';
+  else if (contactMethod.includes('email')) outreachChannel = 'email';
+  else if (contactMethod.includes('phone')) outreachChannel = 'phone';
+
+  const location = get(6);
+  const linkedin = get(7);
+
+  return {
+    name,
+    email,
+    title: get(4),
+    company: get(5),
+    industry: get(10),
+    source: [location, linkedin].filter(Boolean).join(' | '),
+    status: SHEET_STATUS_TO_APP[sheetStatus] || 'cold',
+    outreach_channel: outreachChannel,
+    sheet_row_id: String(rowIndex),
+    sheet_origin: sheetOriginKey,
+    lead_type: 'broker_lead',
+  };
+}
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (user?.role !== 'admin') {
+      return Response.json({ error: 'Admin only' }, { status: 403 });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const startRow = body.startRow || 0;
+    const CHUNK_SIZE = 25;
+
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
+
+    // ── 1. Get sheet tabs metadata ─────────────────────────────────────────────
+    const metaRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const meta = await metaRes.json();
+    if (meta.error) {
+      return Response.json({ error: `Metadata error: ${meta.error.message}` }, { status: 400 });
+    }
+
+    const sheetTabs = meta.sheets?.map(s => s.properties?.title) || [];
+    // Use the first tab
+    const SHEET_NAME = body.sheetName || sheetTabs[0] || 'Brokers';
+    const sheetOriginKey = `BrokerLeads:${SHEET_NAME}`;
+
+    // ── 2. Read using sheet GID (more reliable than name) ─────────────────────
+    const sheetMeta = meta.sheets?.find(s => s.properties?.title === SHEET_NAME);
+    const sheetId = sheetMeta?.properties?.sheetId;
+
+    // Try reading by GID if available
+    let rows = [];
+    if (sheetId !== undefined) {
+      // Use the sheets.data endpoint with gridId
+      const dataRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}?includeGridData=true&ranges=${encodeURIComponent(SHEET_NAME)}&fields=sheets(data(rowData(values(formattedValue))))`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const dataJson = await dataRes.json();
+      if (dataJson.error) {
+        return Response.json({ error: `Data error: ${dataJson.error.message}`, sheetTabs, SHEET_NAME }, { status: 400 });
+      }
+      const rowData = dataJson.sheets?.[0]?.data?.[0]?.rowData || [];
+      rows = rowData.map(r => (r.values || []).map(c => c.formattedValue || ''));
+    }
+
+    if (rows.length === 0) {
+      return Response.json({ success: true, created: 0, updated: 0, hasMore: false, nextStartRow: 0, totalRows: 0, sheetTabs, SHEET_NAME });
+    }
+
+    const dataRows = rows.slice(1); // skip header
+
+    // ── 3. Load existing broker_lead records for this sheet ────────────────────
+    const existingLeads = await base44.asServiceRole.entities.Lead.filter(
+      { sheet_origin: sheetOriginKey }, '-created_date', 500
+    );
+    const byEmail = {};
+    const byRowId = {};
+    for (const lead of existingLeads) {
+      if (lead.email) byEmail[lead.email.toLowerCase()] = lead;
+      if (lead.sheet_row_id) byRowId[`${sheetOriginKey}:${lead.sheet_row_id}`] = lead;
+    }
+
+    let created = 0;
+    let updated = 0;
+
+    const chunk = dataRows.slice(startRow, startRow + CHUNK_SIZE);
+
+    // ── 4. One-way: Sheet → App only ───────────────────────────────────────────
+    for (let i = 0; i < chunk.length; i++) {
+      const rowIndex = startRow + i + 2; // 1-based, row 1 = header
+      const lead = rowToLead(chunk[i], rowIndex, sheetOriginKey);
+      if (!lead) continue;
+
+      const existingByRow = byRowId[`${sheetOriginKey}:${String(rowIndex)}`];
+      const existingByEmail = byEmail[lead.email.toLowerCase()];
+      const existing = existingByRow || existingByEmail;
+
+      if (existing) {
+        const appRank = APP_STATUS_RANK.indexOf(existing.status);
+        const sheetRank = APP_STATUS_RANK.indexOf(lead.status);
+        const updates = {
+          sheet_row_id: String(rowIndex),
+          sheet_origin: sheetOriginKey,
+          lead_type: 'broker_lead',
+          name: lead.name,
+          email: lead.email,
+          title: lead.title,
+          company: lead.company,
+          industry: lead.industry,
+          source: lead.source,
+          outreach_channel: lead.outreach_channel,
+        };
+        if (sheetRank > appRank) updates.status = lead.status;
+        await base44.asServiceRole.entities.Lead.update(existing.id, updates);
+        updated++;
+      } else {
+        await base44.asServiceRole.entities.Lead.create(lead);
+        created++;
+      }
+    }
+
+    const hasMore = startRow + CHUNK_SIZE < dataRows.length;
+    const nextStartRow = startRow + CHUNK_SIZE;
+
+    return Response.json({
+      success: true,
+      created,
+      updated,
+      hasMore,
+      nextStartRow,
+      totalRows: dataRows.length,
+      sheetTabs,
+      SHEET_NAME,
+    });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});
