@@ -127,6 +127,7 @@ export default function Leads() {
   const [syncingBrokers, setSyncingBrokers] = useState(false);
   const [syncingEmail, setSyncingEmail] = useState(false);
   const [viewingBrokerLead, setViewingBrokerLead] = useState(null);
+  const [showActivePartnersModal, setShowActivePartnersModal] = useState(false);
 
   const { data: allLeads = [], isLoading } = useQuery({
     queryKey: ['leads'],
@@ -382,14 +383,6 @@ export default function Leads() {
             <div className="flex items-center gap-1.5 bg-green-50 text-green-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-green-200">
               <Star className="w-3 h-3 fill-green-500 text-green-500" /> Active Referral Partner
             </div>
-            {lead.last_contacted_date && (
-              <span className={`text-xs font-medium ${contactUrgency} flex items-center gap-1`}>
-                <Mail className="w-3 h-3" /> Last contact: {new Date(lead.last_contacted_date).toLocaleDateString()} ({lastContactedAgo})
-              </span>
-            )}
-            {!lead.last_contacted_date && (
-              <span className="text-xs text-gray-400 italic">No contact date recorded</span>
-            )}
           </div>
         )}
 
@@ -431,18 +424,24 @@ export default function Leads() {
               )}
             </div>
 
-            {/* Non-active: show last contacted inline */}
-            {!isActive && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {lead.industry && <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{lead.industry}</span>}
-                {lead.last_contacted_date && (
-                  <span className={`text-xs font-medium ${contactUrgency}`}>
-                    Last contact: {new Date(lead.last_contacted_date).toLocaleDateString()} ({lastContactedAgo})
-                  </span>
-                )}
-                {lead.next_followup_date && <span className="text-xs text-amber-600">Follow-up: {new Date(lead.next_followup_date).toLocaleDateString()}</span>}
-              </div>
-            )}
+            {/* Always show last contacted + other details */}
+            <div className="flex flex-wrap gap-2 mt-2">
+              {lead.industry && <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{lead.industry}</span>}
+              {lead.last_contacted_date && !isActive && (
+                <span className={`text-xs font-medium ${contactUrgency}`}>
+                  Last contact: {new Date(lead.last_contacted_date).toLocaleDateString()} ({lastContactedAgo})
+                </span>
+              )}
+              {lead.last_contacted_date && isActive && (
+                <span className={`text-xs font-medium ${contactUrgency} flex items-center gap-1`}>
+                  <Mail className="w-3 h-3" /> Last contact: {new Date(lead.last_contacted_date).toLocaleDateString()} ({lastContactedAgo})
+                </span>
+              )}
+              {!lead.last_contacted_date && (
+                <span className="text-xs text-gray-400 italic">No contact date recorded</span>
+              )}
+              {lead.next_followup_date && <span className="text-xs text-amber-600">Follow-up: {new Date(lead.next_followup_date).toLocaleDateString()}</span>}
+            </div>
 
             {/* Active partner: last 3 referrals */}
             {isActive && recentReferrals.length > 0 && (
@@ -510,7 +509,7 @@ export default function Leads() {
           return (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
               <button
-                onClick={() => { setActiveTab('broker_leads'); }}
+                onClick={() => setShowActivePartnersModal(true)}
                 className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 text-left hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center gap-2 mb-1">
@@ -737,6 +736,57 @@ export default function Leads() {
               {editingLead ? 'Save Changes' : 'Add Broker'}
             </Button>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Active Partners Quick-Pick Modal */}
+      <Dialog open={showActivePartnersModal} onOpenChange={setShowActivePartnersModal}>
+        <DialogContent className="max-w-md w-[95vw] max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-700">
+              <Handshake className="w-5 h-5" /> Active Referral Partners
+            </DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 space-y-2 mt-2">
+            {brokerLeads.filter(l => l.partner_status === 'active_partner').length === 0 ? (
+              <p className="text-center text-gray-400 py-8">No active partners yet.</p>
+            ) : brokerLeads
+              .filter(l => l.partner_status === 'active_partner')
+              .sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+              .map(lead => {
+                const contactedDiff = lead.last_contacted_date
+                  ? Math.floor((new Date() - new Date(lead.last_contacted_date)) / (1000 * 60 * 60 * 24))
+                  : null;
+                const urgencyColor = contactedDiff === null ? 'text-gray-400' : contactedDiff > 60 ? 'text-red-500' : contactedDiff > 30 ? 'text-amber-600' : 'text-green-600';
+                return (
+                  <button
+                    key={lead.id}
+                    onClick={() => { setShowActivePartnersModal(false); setViewingBrokerLead(lead); }}
+                    className="w-full text-left bg-white border border-green-100 hover:border-green-400 hover:shadow-sm rounded-lg px-4 py-3 transition-all"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="font-semibold text-gray-800">{lead.name}</p>
+                        {lead.company && <p className="text-xs text-gray-500">{lead.company}</p>}
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        {lead.last_contacted_date ? (
+                          <p className={`text-xs font-medium ${urgencyColor}`}>
+                            {new Date(lead.last_contacted_date).toLocaleDateString()}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-gray-400 italic">No contact</p>
+                        )}
+                        {(lead.referral_count || 0) > 0 && (
+                          <p className="text-xs text-purple-600 mt-0.5">{lead.referral_count} referral{lead.referral_count !== 1 ? 's' : ''}</p>
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            }
+          </div>
         </DialogContent>
       </Dialog>
 
