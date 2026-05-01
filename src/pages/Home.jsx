@@ -21,7 +21,7 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <h1 className="text-2xl sm:text-3xl font-bold mb-4" style={{ color: '#013f7c' }}>Dashboard</h1>
           {/* Desktop tabs */}
-          <div className="hidden sm:flex gap-1">
+          <div className="hidden md:flex gap-1">
             {sections.map(section => {
               const Icon = section.icon;
               const isActive = activeSection === section.id;
@@ -42,7 +42,7 @@ export default function Home() {
             })}
           </div>
           {/* Mobile: scrollable pill tabs */}
-          <div className="sm:hidden flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
+          <div className="md:hidden flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
             {sections.map(section => {
               const Icon = section.icon;
               const isActive = activeSection === section.id;
