@@ -12,6 +12,7 @@ import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, UserChe
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
 import { toast } from 'sonner';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 const STATUS_CONFIG = {
   cold:               { label: 'Cold',              color: 'bg-slate-100 text-slate-700 border-slate-300', chart: '#94a3b8' },
@@ -51,6 +52,59 @@ const EMPTY_BROKER_LEAD_FORM = {
   lead_type: 'broker_lead', partner_status: 'new',
   referral_potential: 'medium', referral_count: 0, last_referral_date: ''
 };
+
+function PipelineStats({ leads, clientEmails, filterStatus, setFilterStatus, statusConfig, totalLabel }) {
+  const counts = Object.keys(statusConfig).reduce((acc, key) => {
+    acc[key] = leads.filter(l => {
+      const eff = clientEmails.has(l.email?.toLowerCase()) ? 'current_client' : (l.status || 'cold');
+      return eff === key;
+    }).length;
+    return acc;
+  }, {});
+
+  const pieData = Object.entries(statusConfig)
+    .map(([key, cfg]) => ({ name: cfg.label, value: counts[key] || 0, key, color: cfg.chart }))
+    .filter(d => d.value > 0);
+
+  return (
+    <div className="bg-white rounded-xl shadow p-5 mb-5">
+      <h2 className="text-base font-semibold text-gray-700 mb-4">Pipeline Overview</h2>
+      <div className="flex flex-col md:flex-row gap-6 items-center">
+        <div className="w-full md:w-64 h-52 flex-shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={85} innerRadius={45}>
+                {pieData.map((entry) => <Cell key={entry.key} fill={entry.color} />)}
+              </Pie>
+              <Tooltip formatter={(v, n) => [v, n]} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="flex flex-wrap gap-2 flex-1">
+          {Object.entries(statusConfig).map(([key, cfg]) => (
+            counts[key] > 0 && (
+              <button
+                key={key}
+                onClick={() => setFilterStatus(filterStatus === key ? 'all' : key)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-all ${
+                  filterStatus === key ? 'ring-2 ring-offset-1 ring-[#264d44] ' + cfg.color : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-400'
+                }`}
+              >
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.chart }} />
+                <span>{cfg.label}</span>
+                <span className="bg-white border rounded-full px-1.5 py-0.5 text-xs font-bold text-gray-700">{counts[key]}</span>
+              </button>
+            )
+          ))}
+        </div>
+        <div className="text-center flex-shrink-0">
+          <p className="text-4xl font-bold text-[#013f7c]">{leads.length}</p>
+          <p className="text-sm text-gray-500 mt-1">{totalLabel}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ActivePartnerTiles({ activePartners, onSelect }) {
   const daysSince = (dateStr) => {
@@ -534,91 +588,47 @@ export default function Leads() {
     );
   };
 
+  const TAB_ITEMS = [
+    { id: 'broker_leads', label: 'Referral Partners', icon: Star, count: brokerLeads.length },
+    { id: 'outreach',     label: 'Outreach Brokers & ECs', icon: Users, count: outreachLeads.length },
+  ];
+
   return (
     <div className="min-h-screen bg-[#f4f0e9]">
-      <div className="bg-white border-b px-6 py-4">
+      {/* Sub-nav header — matches Clients style */}
+      <div className="bg-white border-b px-4 md:px-8 pt-6 pb-0">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-2xl font-bold text-[#013f7c]">Partners</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{allLeads.length} total contacts</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-4" style={{ color: '#013f7c' }}>Partners</h1>
+          <div className="flex gap-1">
+            {TAB_ITEMS.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-t-xl border-b-2 transition-all ${
+                    isActive
+                      ? 'border-[#264d44] text-[#264d44] bg-[#f4f0e9]'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                  <span className={`text-xs rounded-full px-2 py-0.5 font-bold ${isActive ? 'bg-[#264d44]/10 text-[#264d44]' : 'bg-gray-100 text-gray-500'}`}>
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-6">
-
-        {/* ── Summary Dashboard ─────────────────────────────────────────── */}
-        {!isLoading && (() => {
-          const activePartners = brokerLeads.filter(l => l.partner_status === 'active_partner');
-          const highPotential = brokerLeads.filter(l => l.referral_potential === 'high' && l.partner_status !== 'active_partner');
-          const nurturing = brokerLeads.filter(l => l.partner_status !== 'active_partner' && l.partner_status !== 'inactive');
-          const outreachCount = outreachLeads.length;
-          const totalReferrals = brokerLeads.reduce((s, l) => s + (l.referral_count || 0), 0);
-
-          return (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-              <button
-                onClick={() => setShowActivePartnersModal(true)}
-                className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-xl p-4 text-left hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <Handshake className="w-4 h-4 text-green-600" />
-                  <span className="text-xs font-semibold text-green-700 uppercase tracking-wide">Active Partners</span>
-                </div>
-                <p className="text-3xl font-bold text-green-700">{activePartners.length}</p>
-                <p className="text-xs text-green-600 mt-1">{totalReferrals} total referrals logged</p>
-              </button>
-
-              <button
-                onClick={() => { setActiveTab('broker_leads'); }}
-                className="bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 rounded-xl p-4 text-left hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <Star className="w-4 h-4 text-amber-600" />
-                  <span className="text-xs font-semibold text-amber-700 uppercase tracking-wide">High Potential</span>
-                </div>
-                <p className="text-3xl font-bold text-amber-700">{highPotential.length}</p>
-                <p className="text-xs text-amber-600 mt-1">not yet active partners</p>
-              </button>
-
-              <button
-                onClick={() => { setActiveTab('broker_leads'); }}
-                className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 text-left hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Being Nurtured</span>
-                </div>
-                <p className="text-3xl font-bold text-blue-700">{nurturing.length}</p>
-                <p className="text-xs text-blue-600 mt-1">referral partners in pipeline</p>
-              </button>
-
-              <button
-                onClick={() => { setActiveTab('outreach'); }}
-                className="bg-gradient-to-br from-slate-50 to-gray-50 border border-slate-200 rounded-xl p-4 text-left hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <Users className="w-4 h-4 text-slate-600" />
-                  <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Outreach Leads</span>
-                </div>
-                <p className="text-3xl font-bold text-slate-700">{outreachCount}</p>
-                <p className="text-xs text-slate-500 mt-1">brokers &amp; ECs from sheet</p>
-              </button>
-            </div>
-          );
-        })()}
-
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="outreach" className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Outreach Brokers & ECs
-              <span className="ml-1 bg-gray-200 text-gray-700 rounded-full px-2 py-0.5 text-xs">{outreachLeads.length}</span>
-            </TabsTrigger>
-            <TabsTrigger value="broker_leads" className="flex items-center gap-2">
-              <Star className="w-4 h-4" />
-              Referral Partners
-              <span className="ml-1 bg-[#013f7c]/10 text-[#013f7c] rounded-full px-2 py-0.5 text-xs">{brokerLeads.length}</span>
-            </TabsTrigger>
-          </TabsList>
+          <TabsList className="hidden" />
 
           {/* ── Outreach Brokers & ECs Tab ────────────────────────────────── */}
           <TabsContent value="outreach">
@@ -638,9 +648,10 @@ export default function Leads() {
               </Button>
             </div>
 
-            <ActivePartnerTiles
-              activePartners={brokerLeads.filter(l => l.partner_status === 'active_partner').sort((a, b) => (a.name || '').localeCompare(b.name || ''))}
-              onSelect={(lead) => setViewingBrokerLead(lead)}
+            <PipelineStats
+              leads={outreachLeads} clientEmails={clientEmails}
+              filterStatus={filterStatus} setFilterStatus={setFilterStatus}
+              statusConfig={STATUS_CONFIG} totalLabel="Total Brokers/ECs"
             />
 
             <div className="flex gap-2 flex-wrap mb-4">
