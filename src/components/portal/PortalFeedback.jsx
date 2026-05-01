@@ -6,7 +6,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CheckCircle2, Loader2, ClipboardList, Link, Copy, Check } from 'lucide-react';
 import { toast } from 'sonner';
-import { productCatalog } from '@/components/curriculum/catalogData';
 
 export default function PortalFeedback({ client, proposals = [] }) {
   const [selectedSurveyId, setSelectedSurveyId] = useState('');
@@ -14,8 +13,14 @@ export default function PortalFeedback({ client, proposals = [] }) {
   const [submitted, setSubmitted] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  // Extract purchased service names from ALL proposals (workshops + challenges)
-  const purchasedServiceNames = getPurchasedServiceNames(proposals);
+  // Fetch live services for name lookup
+  const { data: allServices = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => base44.entities.Service.list()
+  });
+
+  // Extract purchased service names using live Service entities as source of truth
+  const purchasedServiceNames = getPurchasedServiceNames(proposals, allServices);
 
   // Build shareable feedback URL for this client
   const feedbackUrl = `${window.location.origin}/FeedbackForm?clientId=${client?.id || ''}&company=${encodeURIComponent(client?.company || '')}`;
@@ -223,32 +228,20 @@ export default function PortalFeedback({ client, proposals = [] }) {
   );
 }
 
-function getPurchasedServiceNames(proposals = []) {
+function getPurchasedServiceNames(proposals = [], allServices = []) {
   const names = [];
-
-  // Map catalog keys to actual service names
-  const catalogMap = {
-    workshops: productCatalog.workshops,
-    challengePrograms: productCatalog.challenges,
-    leadership: productCatalog.leadership,
-    movementClasses: productCatalog.movementClasses
-  };
+  const serviceMap = {};
+  allServices.forEach(s => { serviceMap[s.id] = s.name; });
 
   proposals.forEach(proposal => {
     const sel = proposal?.selections;
     if (!sel) return;
-
     ['workshops', 'challengePrograms', 'leadership', 'movementClasses'].forEach(category => {
       const items = sel[category];
       if (!Array.isArray(items)) return;
-      items.forEach(key => {
-        // key is a catalog key string (e.g. "beyondBurnout")
-        const service = catalogMap[category]?.[key];
-        if (service?.name) {
-          names.push(service.name);
-        } else if (typeof key === 'string') {
-          // fallback: use the key itself
-          names.push(key);
+      items.forEach(id => {
+        if (serviceMap[id]) {
+          names.push(serviceMap[id]);
         }
       });
     });

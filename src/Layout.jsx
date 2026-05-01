@@ -7,7 +7,7 @@ export default function Layout({ children, currentPageName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Public pages - no navigation
-      if (currentPageName === 'ViewProposal' || currentPageName === 'MyPortal' || currentPageName === 'ClientPortal') {
+      if (currentPageName === 'ViewProposal' || currentPageName === 'MyPortal' || currentPageName === 'ClientPortal' || currentPageName === 'FeedbackForm') {
         return <>{children}</>;
       }
 
