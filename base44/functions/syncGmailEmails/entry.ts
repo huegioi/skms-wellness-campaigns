@@ -150,6 +150,23 @@ Deno.serve(async (req) => {
     const emails = allEmails.slice(0, 25);
     const lastContactDate = emails[0]?.date || null;
 
+    // Auto-update last_contacted_date on matching Lead if email date is more recent
+    if (lastContactDate) {
+      const emailDateStr = new Date(lastContactDate).toISOString().split('T')[0];
+      try {
+        const leads = await base44.asServiceRole.entities.Lead.filter({ email: clientEmail });
+        if (leads.length > 0) {
+          const lead = leads[0];
+          const existing = lead.last_contacted_date;
+          if (!existing || emailDateStr > existing) {
+            await base44.asServiceRole.entities.Lead.update(lead.id, { last_contacted_date: emailDateStr });
+          }
+        }
+      } catch (err) {
+        console.error(`Failed to update lead last_contacted_date: ${err.message}`);
+      }
+    }
+
     return Response.json({ emails, lastContactDate });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
