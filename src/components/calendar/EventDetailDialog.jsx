@@ -245,6 +245,9 @@ END:VCALENDAR`;
         recipientNames: names
       });
       toast.success(`Calendar invite sent to ${emails.join(', ')}`);
+      // Mark invite as sent on the event
+      await base44.entities.CalendarEvent.update(event.id, { invite_sent: true });
+      onUpdated?.();
     } catch (error) {
       toast.error('Failed to send invite: ' + error.message);
     } finally {

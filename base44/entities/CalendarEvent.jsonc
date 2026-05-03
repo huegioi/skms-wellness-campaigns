@@ -1,0 +1,100 @@
+{
+  "name": "CalendarEvent",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Event title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Event description"
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "meeting",
+        "workshop",
+        "challenge",
+        "leadership",
+        "class",
+        "delivery",
+        "follow_up",
+        "other"
+      ],
+      "description": "Type of event"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event start date and time"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Event end date and time"
+    },
+    "all_day": {
+      "type": "boolean",
+      "default": false,
+      "description": "Is this an all-day event"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Associated client ID"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Client name for display"
+    },
+    "proposal_id": {
+      "type": "string",
+      "description": "Associated proposal ID"
+    },
+    "location": {
+      "type": "string",
+      "description": "Event location or meeting link"
+    },
+    "presenter": {
+      "type": "string",
+      "description": "Event presenter name"
+    },
+    "color": {
+      "type": "string",
+      "description": "Event color for calendar display"
+    },
+    "reminder_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether reminder has been sent"
+    },
+    "invite_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether a calendar invite has been sent to attendees"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether event has been completed"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event was marked as completed"
+    },
+    "google_event_id": {
+      "type": "string",
+      "description": "Google Calendar event ID for sync"
+    },
+    "outlook_event_id": {
+      "type": "string",
+      "description": "Outlook Calendar event ID for sync"
+    }
+  },
+  "required": [
+    "title",
+    "start_date",
+    "event_type"
+  ]
+}

@@ -236,7 +236,7 @@ export default function MonthlyCalendar({ sheets, calendarEvents = [], refetchEv
                     <div className="space-y-1">
                       {dayEvents.slice(0, 3).map((event, idx) => {
                         const bgColor = event.isCalendarEvent
-                          ? event.google_event_id ? 'bg-purple-600' : 'bg-[#264d44]'
+                          ? event.invite_sent ? 'bg-orange-500' : event.google_event_id ? 'bg-purple-600' : 'bg-[#264d44]'
                           : 'bg-blue-400';
                         return (
                           <div
@@ -267,6 +267,7 @@ export default function MonthlyCalendar({ sheets, calendarEvents = [], refetchEv
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-blue-400 inline-block"></span>Sheet only</span>
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-[#264d44] inline-block"></span>In app calendar</span>
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-purple-600 inline-block"></span>Synced to Google</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-orange-500 inline-block"></span>Invite sent</span>
         </div>
       </Card>
 
@@ -290,8 +291,8 @@ export default function MonthlyCalendar({ sheets, calendarEvents = [], refetchEv
                     <div className="flex items-center gap-2 mb-2">
                       {event.isCalendarEvent ? (
                         <>
-                          <Badge className={`text-white ${event.google_event_id ? 'bg-purple-600' : 'bg-[#264d44]'}`}>
-                            {event.google_event_id ? 'Google Synced' : (eventTypeConfig[event.event_type]?.label || 'Event')}
+                          <Badge className={`text-white ${event.invite_sent ? 'bg-orange-500' : event.google_event_id ? 'bg-purple-600' : 'bg-[#264d44]'}`}>
+                            {event.invite_sent ? 'Invite Sent' : event.google_event_id ? 'Google Synced' : (eventTypeConfig[event.event_type]?.label || 'Event')}
                           </Badge>
                         </>
                       ) : (
