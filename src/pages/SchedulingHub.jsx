@@ -42,7 +42,7 @@ export default function SchedulingHub() {
     source: '',
     all_day: false
   });
-  const [sendInviteOnBook, setSendInviteOnBook] = useState(false);
+
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [addingToCalendar, setAddingToCalendar] = useState(null);
   const [calendarView, setCalendarView] = useState('month'); // 'month', 'week', 'list'
@@ -115,15 +115,6 @@ export default function SchedulingHub() {
         proposal_id: eventData.proposal_id || '',
         color: '#264d44'
       });
-
-      // Send invites if requested
-      if (eventData.sendInvite) {
-        const emails = [eventData.client_email, eventData.presenter_email].filter(Boolean);
-        const names = [eventData.client_name, eventData.presenter].filter((_, i) => [eventData.client_email, eventData.presenter_email][i]);
-        if (emails.length > 0) {
-          await base44.functions.invoke('sendCalendarInvite', { eventId: calendarEvent.id, recipientEmails: emails, recipientNames: names });
-        }
-      }
 
       return calendarEvent;
     },
@@ -512,7 +503,6 @@ export default function SchedulingHub() {
     setSelectedInvoiceId('');
     setSelectedProposalId('');
     setSelectedLineItem(null);
-    setSendInviteOnBook(false);
     setBookingForm({
       title: '',
       description: '',
@@ -539,8 +529,7 @@ export default function SchedulingHub() {
     bookServiceMutation.mutate({
       ...bookingForm,
       proposal_id: selectedProposalId || '',
-      source: bookingSource === 'proposal' ? (proposal?.client_name || 'Proposal') : (selectedInvoice?.invoice_number || 'Invoice'),
-      sendInvite: sendInviteOnBook
+      source: bookingSource === 'proposal' ? (proposal?.client_name || 'Proposal') : (selectedInvoice?.invoice_number || 'Invoice')
     });
   };
 
@@ -1230,20 +1219,6 @@ export default function SchedulingHub() {
                     />
                   </div>
 
-                  <div className="border-t border-gray-200 pt-4">
-                    <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <input
-                        type="checkbox"
-                        id="send_invite"
-                        checked={sendInviteOnBook}
-                        onChange={(e) => setSendInviteOnBook(e.target.checked)}
-                        className="rounded w-4 h-4 accent-[#013f7c]"
-                      />
-                      <Label htmlFor="send_invite" className="cursor-pointer text-sm text-blue-800 font-medium">
-                        Send calendar invite by email after booking
-                      </Label>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
