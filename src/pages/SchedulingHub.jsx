@@ -45,7 +45,7 @@ export default function SchedulingHub() {
 
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [addingToCalendar, setAddingToCalendar] = useState(null);
-  const [calendarView, setCalendarView] = useState('month'); // 'month', 'week', 'list'
+  const [calendarView, setCalendarView] = useState('week'); // 'month', 'week', 'list'
   const [filterType, setFilterType] = useState('all');
   const [filterPresenter, setFilterPresenter] = useState('all');
   const queryClient = useQueryClient();
@@ -654,9 +654,9 @@ export default function SchedulingHub() {
                           </div>
                         )}
                         {event.location && (
-                          <div className={`text-sm flex items-center gap-1 ${event.isPast ? 'text-gray-400' : 'text-gray-600'}`}>
-                            <MapPin className="w-3 h-3" />
-                            {event.location}
+                          <div className={`text-sm flex items-start gap-1 ${event.isPast ? 'text-gray-400' : 'text-gray-600'}`}>
+                            <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                            <span className="break-all">{event.location}</span>
                           </div>
                         )}
                       </div>
