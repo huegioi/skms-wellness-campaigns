@@ -234,22 +234,20 @@ export default function MonthlyCalendar({ sheets, calendarEvents = [], refetchEv
                       {day}
                     </div>
                     <div className="space-y-1">
-                      {dayEvents.slice(0, 3).map((event, idx) => (
-                        <div
-                          key={idx}
-                          className={`text-xs px-1 py-0.5 rounded text-white truncate flex items-center gap-1 ${
-                            event.isCalendarEvent 
-                              ? 'bg-[#264d44]' 
-                              : sheetColors[event.sheetIndex % sheetColors.length]
-                          }`}
-                          title={event.title}
-                        >
-                          {event.isCalendarEvent && event.google_event_id && (
-                            <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
-                          )}
-                          <span className="truncate">{event.title}</span>
-                        </div>
-                      ))}
+                      {dayEvents.slice(0, 3).map((event, idx) => {
+                        const bgColor = event.isCalendarEvent
+                          ? event.google_event_id ? 'bg-purple-600' : 'bg-[#264d44]'
+                          : 'bg-blue-400';
+                        return (
+                          <div
+                            key={idx}
+                            className={`text-xs px-1 py-0.5 rounded text-white truncate flex items-center gap-1 ${bgColor}`}
+                            title={event.title}
+                          >
+                            <span className="truncate">{event.title}</span>
+                          </div>
+                        );
+                      })}
                       {dayEvents.length > 3 && (
                         <div className="text-xs text-gray-500 text-center">
                           +{dayEvents.length - 3} more
@@ -263,12 +261,12 @@ export default function MonthlyCalendar({ sheets, calendarEvents = [], refetchEv
           })}
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {sheets.map((sheet, index) => (
-            <Badge key={index} className={`${sheetColors[index % sheetColors.length]} text-white`}>
-              {sheet.name}
-            </Badge>
-          ))}
+        {/* Color Key */}
+        <div className="mt-4 pt-4 border-t flex flex-wrap gap-3 text-xs text-gray-600">
+          <span className="font-semibold text-gray-700 mr-1">Key:</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-blue-400 inline-block"></span>Sheet only</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-[#264d44] inline-block"></span>In app calendar</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-purple-600 inline-block"></span>Synced to Google</span>
         </div>
       </Card>
 
@@ -292,19 +290,13 @@ export default function MonthlyCalendar({ sheets, calendarEvents = [], refetchEv
                     <div className="flex items-center gap-2 mb-2">
                       {event.isCalendarEvent ? (
                         <>
-                          <Badge style={{ backgroundColor: event.color || '#264d44' }} className="text-white">
-                            {eventTypeConfig[event.event_type]?.label || 'Event'}
+                          <Badge className={`text-white ${event.google_event_id ? 'bg-purple-600' : 'bg-[#264d44]'}`}>
+                            {event.google_event_id ? 'Google Synced' : (eventTypeConfig[event.event_type]?.label || 'Event')}
                           </Badge>
-                          {event.google_event_id && (
-                            <Badge variant="outline" className="text-green-600 border-green-600">
-                              <CheckCircle2 className="w-3 h-3 mr-1" />
-                              Synced
-                            </Badge>
-                          )}
                         </>
                       ) : (
                         <>
-                          <Badge className={`${sheetColors[event.sheetIndex % sheetColors.length]} text-white`}>
+                          <Badge className="bg-blue-400 text-white">
                             {event.sheet}
                           </Badge>
                           {event.time && (

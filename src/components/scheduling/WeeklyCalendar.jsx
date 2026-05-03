@@ -169,10 +169,10 @@ export default function WeeklyCalendar({ sheets, calendarEvents = [], refetchEve
                     dayEvents.map((event, idx) => (
                       <div
                         key={idx}
-                        className={`p-2 rounded cursor-pointer hover:opacity-90 transition-opacity ${
-                          event.isCalendarEvent 
-                            ? 'bg-[#264d44] text-white' 
-                            : sheetColors[event.sheetIndex % sheetColors.length] + ' text-white'
+                        className={`p-2 rounded cursor-pointer hover:opacity-90 transition-opacity text-white ${
+                          event.isCalendarEvent
+                            ? event.google_event_id ? 'bg-purple-600' : 'bg-[#264d44]'
+                            : 'bg-blue-400'
                         }`}
                         onClick={() => event.isCalendarEvent && setSelectedEvent(event)}
                       >
@@ -198,12 +198,12 @@ export default function WeeklyCalendar({ sheets, calendarEvents = [], refetchEve
           })}
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {sheets.map((sheet, index) => (
-            <Badge key={index} className={`${sheetColors[index % sheetColors.length]} text-white`}>
-              {sheet.name}
-            </Badge>
-          ))}
+        {/* Color Key */}
+        <div className="mt-4 pt-4 border-t flex flex-wrap gap-3 text-xs text-gray-600">
+          <span className="font-semibold text-gray-700 mr-1">Key:</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-blue-400 inline-block"></span>Sheet only</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-[#264d44] inline-block"></span>In app calendar</span>
+          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-purple-600 inline-block"></span>Synced to Google</span>
         </div>
       </Card>
 
