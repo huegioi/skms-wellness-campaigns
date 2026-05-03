@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, ChevronLeft, ScanText, Loader2, CheckCircle2, Plus } from 'lucide-react';
+import { Save, ChevronLeft, ScanText, Loader2, CheckCircle2, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 
 const EMPTY_FORM = {
@@ -31,6 +31,51 @@ export default function AddLead() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [scannedText, setScannedText] = useState('');
   const [saved, setSaved] = useState(false);
+  const [scanningCard, setScanningCard] = useState(false);
+  const cameraInputRef = useRef(null);
+
+  const handleCameraCapture = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScanningCard(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Extract contact information from this business card image. Return ONLY the following fields if present:
+- name (full name)
+- email
+- phone
+- company (company/organization name)
+- title (job title)
+Fill in whatever you can find. If a field is not present, leave it as an empty string.`,
+        file_urls: [file_url],
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            email: { type: 'string' },
+            phone: { type: 'string' },
+            company: { type: 'string' },
+            title: { type: 'string' },
+          }
+        }
+      });
+      setForm(prev => ({
+        ...prev,
+        name: result.name || prev.name,
+        email: result.email || prev.email,
+        phone: result.phone || prev.phone,
+        company: result.company || prev.company,
+        title: result.title || prev.title,
+      }));
+      toast.success('Business card scanned! Please review the fields.');
+    } catch (err) {
+      toast.error('Could not read card: ' + err.message);
+    } finally {
+      setScanningCard(false);
+      e.target.value = '';
+    }
+  };
 
   const createLeadMutation = useMutation({
     mutationFn: (data) => base44.entities.Lead.create(data),
@@ -110,9 +155,29 @@ export default function AddLead() {
 
         {/* Scan / Paste Section */}
         <div className="bg-white rounded-2xl shadow-sm border p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <ScanText className="w-5 h-5 text-[#013f7c]" />
-            <h2 className="font-semibold text-gray-800">Paste / Scan Business Card Text</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ScanText className="w-5 h-5 text-[#013f7c]" />
+              <h2 className="font-semibold text-gray-800">Scan Business Card</h2>
+            </div>
+            <Button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={scanningCard}
+              className="bg-[#013f7c] hover:bg-[#012d5a] gap-2"
+              size="sm"
+            >
+              {scanningCard ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+              {scanningCard ? 'Scanning...' : 'Scan Card'}
+            </Button>
+            <input
+              ref={cameraInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleCameraCapture}
+            />
           </div>
           <Textarea
             placeholder="Paste text from a business card or QR code here and tap Auto-Fill..."
