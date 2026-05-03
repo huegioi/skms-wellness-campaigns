@@ -1,17 +1,11 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    
-    // Authenticate user
-    const user = await base44.auth.me();
-    if (!user) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
 
-    // Get access token from Google Sheets connector
-    const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlesheets');
+    // Get access token from Google Sheets connector (shared connector - no user auth needed)
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
     
     // Hardcoded spreadsheet ID for the scheduling sheet
     const spreadsheetId = '1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0';
