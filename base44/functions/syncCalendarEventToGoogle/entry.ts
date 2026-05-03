@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
+const CALENDAR_ID = 'admin%40skillfulmeans.life';
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -41,7 +43,7 @@ Deno.serve(async (req) => {
       if (googleEventId) {
         // Update existing event
         const updateResponse = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/primary/events/${googleEventId}`,
+          `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events/${googleEventId}`,
           {
             method: 'PUT',
             headers: {
@@ -59,7 +61,7 @@ Deno.serve(async (req) => {
       } else {
         // Create new event
         const createResponse = await fetch(
-          'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+          `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events`,
           {
             method: 'POST',
             headers: {
@@ -94,7 +96,7 @@ Deno.serve(async (req) => {
       // Remove from Google Calendar
       if (event.google_event_id) {
         const deleteResponse = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/primary/events/${event.google_event_id}`,
+          `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events/${event.google_event_id}`,
           {
             method: 'DELETE',
             headers: {
@@ -123,7 +125,7 @@ Deno.serve(async (req) => {
       // Delete from Google Calendar if synced
       if (event.google_event_id) {
         await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/primary/events/${event.google_event_id}`,
+          `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events/${event.google_event_id}`,
           {
             method: 'DELETE',
             headers: {
