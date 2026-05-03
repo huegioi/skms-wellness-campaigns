@@ -104,14 +104,7 @@ export default function MonthlyCalendar({ sheets, calendarEvents = [], refetchEv
   };
 
   const getEventsForDate = (date) => {
-    const sheetEvents = events.filter(event => {
-      const eventDate = new Date(event.date);
-      return eventDate.getFullYear() === date.getFullYear() &&
-             eventDate.getMonth() === date.getMonth() &&
-             eventDate.getDate() === date.getDate();
-    });
-
-    const dbEvents = calendarEvents.filter(event => {
+    const dbEventsForDate = calendarEvents.filter(event => {
       const eventDate = parseISO(event.start_date);
       return eventDate.getFullYear() === date.getFullYear() &&
              eventDate.getMonth() === date.getMonth() &&
@@ -123,7 +116,18 @@ export default function MonthlyCalendar({ sheets, calendarEvents = [], refetchEv
       date: parseISO(event.start_date)
     }));
 
-    return [...sheetEvents, ...dbEvents];
+    // Build a set of DB event titles for this date to avoid showing sheet duplicates
+    const dbTitles = new Set(dbEventsForDate.map(e => e.title?.toLowerCase().trim()));
+
+    const sheetEventsForDate = events.filter(event => {
+      const eventDate = new Date(event.date);
+      return eventDate.getFullYear() === date.getFullYear() &&
+             eventDate.getMonth() === date.getMonth() &&
+             eventDate.getDate() === date.getDate() &&
+             !dbTitles.has(event.title?.toLowerCase().trim());
+    });
+
+    return [...dbEventsForDate, ...sheetEventsForDate];
   };
 
   const handleDateClick = (day) => {

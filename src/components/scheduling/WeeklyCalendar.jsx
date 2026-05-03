@@ -90,12 +90,7 @@ export default function WeeklyCalendar({ sheets, calendarEvents = [], refetchEve
   const sheetEvents = parseEvents();
 
   const getEventsForDate = (date) => {
-    const sheetEventsForDate = sheetEvents.filter(event => {
-      const eventDate = new Date(event.date);
-      return eventDate.toDateString() === date.toDateString();
-    });
-
-    const dbEvents = calendarEvents.filter(event => {
+    const dbEventsForDate = calendarEvents.filter(event => {
       const eventDate = parseISO(event.start_date);
       return eventDate.toDateString() === date.toDateString();
     }).map(event => ({
@@ -106,7 +101,16 @@ export default function WeeklyCalendar({ sheets, calendarEvents = [], refetchEve
       time: !event.all_day ? format(parseISO(event.start_date), 'h:mm a') : 'All day'
     }));
 
-    return [...sheetEventsForDate, ...dbEvents].sort((a, b) => {
+    // Build a set of DB event titles for this date to avoid showing sheet duplicates
+    const dbTitles = new Set(dbEventsForDate.map(e => e.title?.toLowerCase().trim()));
+
+    const sheetEventsForDate = sheetEvents.filter(event => {
+      const eventDate = new Date(event.date);
+      return eventDate.toDateString() === date.toDateString() &&
+             !dbTitles.has(event.title?.toLowerCase().trim());
+    });
+
+    return [...dbEventsForDate, ...sheetEventsForDate].sort((a, b) => {
       if (!a.time) return 1;
       if (!b.time) return -1;
       return a.time.localeCompare(b.time);

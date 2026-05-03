@@ -326,7 +326,7 @@ export default function SchedulingHub() {
 
     // Add calendar events first
     upcomingCalendarEvents.forEach(event => {
-      const key = `${event.title}|${event.client_name}|${parseISO(event.start_date).toLocaleDateString()}`;
+      const key = `${event.title?.toLowerCase().trim()}|${parseISO(event.start_date).toLocaleDateString()}`;
       addedKeys.add(key);
       combined.push({
         ...event,
@@ -336,9 +336,9 @@ export default function SchedulingHub() {
       });
     });
 
-    // Add sheet events that aren't already in calendar
+    // Add sheet events that aren't already in calendar (match by title only to handle slight name variations)
     sheetEvents.forEach(sheetEvent => {
-      const key = `${sheetEvent.title}|${sheetEvent.client}|${sheetEvent.date.toLocaleDateString()}`;
+      const key = `${sheetEvent.title?.toLowerCase().trim()}|${sheetEvent.date.toLocaleDateString()}`;
       if (!addedKeys.has(key)) {
         combined.push({
           ...sheetEvent,
