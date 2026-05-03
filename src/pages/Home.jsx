@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Users, DollarSign, TrendingUp } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Users, DollarSign, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import ClientInformationSection from '@/components/dashboard/ClientInformationSection';
 import FinancialSummary from '@/components/dashboard/FinancialSummary';
 import MarketingDashboard from '@/components/dashboard/MarketingDashboard';
@@ -7,6 +7,21 @@ import ServicesAnalytics from '@/components/dashboard/ServicesAnalytics';
 
 export default function Home() {
   const [activeSection, setActiveSection] = useState('clients');
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(true);
+  const scrollRef = useRef(null);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setShowLeft(el.scrollLeft > 4);
+    setShowRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  };
+
+  useEffect(() => {
+    handleScroll();
+  }, []);
+
   const sections = [
     { id: 'clients', label: 'Client Information', icon: Users },
     { id: 'financial', label: 'Financial Information', icon: DollarSign },
@@ -41,26 +56,46 @@ export default function Home() {
               );
             })}
           </div>
-          {/* Mobile: scrollable pill tabs */}
-          <div className="md:hidden flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
-            {sections.map(section => {
-              const Icon = section.icon;
-              const isActive = activeSection === section.id;
-              return (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSection(section.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 transition-all ${
-                    isActive
-                      ? 'bg-[#264d44] text-white shadow-sm'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  {section.label}
-                </button>
-              );
-            })}
+          {/* Mobile: scrollable pill tabs with arrow indicators */}
+          <div className="md:hidden relative">
+            {showLeft && (
+              <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pointer-events-none">
+                <div className="bg-gradient-to-r from-white via-white to-transparent pr-4 pl-1 h-full flex items-center">
+                  <ChevronLeft className="w-4 h-4 text-gray-400" />
+                </div>
+              </div>
+            )}
+            {showRight && (
+              <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pointer-events-none">
+                <div className="bg-gradient-to-l from-white via-white to-transparent pl-4 pr-1 h-full flex items-center">
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </div>
+              </div>
+            )}
+            <div
+              ref={scrollRef}
+              onScroll={handleScroll}
+              className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1"
+            >
+              {sections.map(section => {
+                const Icon = section.icon;
+                const isActive = activeSection === section.id;
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => setActiveSection(section.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap flex-shrink-0 transition-all ${
+                      isActive
+                        ? 'bg-[#264d44] text-white shadow-sm'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {section.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
