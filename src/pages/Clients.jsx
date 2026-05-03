@@ -432,8 +432,8 @@ export default function Clients() {
 
         {/* Search and Filters */}
         <div className="bg-white rounded-xl p-4 shadow-lg mb-6">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex-1 min-w-[200px] relative">
+          <div className="flex flex-col gap-3">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input 
                 placeholder="Search by name, email, or company..." 
@@ -443,11 +443,11 @@ export default function Clients() {
               />
             </div>
             
-            <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-500" />
+            <div className="flex flex-wrap items-center gap-2">
+              <Filter className="w-4 h-4 text-gray-500 flex-shrink-0" />
               
               <Select value={filterIndustry} onValueChange={setFilterIndustry}>
-                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Industry" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Industry" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Industries</SelectItem>
                   {uniqueIndustries.map(ind => (
@@ -457,7 +457,7 @@ export default function Clients() {
               </Select>
 
               <Select value={filterSize} onValueChange={setFilterSize}>
-                <SelectTrigger className="w-[140px]"><SelectValue placeholder="Company Size" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Company Size" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Sizes</SelectItem>
                   <SelectItem value="1-50">1-50</SelectItem>
@@ -470,7 +470,7 @@ export default function Clients() {
               </Select>
 
               <Select value={filterBudget} onValueChange={setFilterBudget}>
-                <SelectTrigger className="w-[150px]"><SelectValue placeholder="Budget" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[150px]"><SelectValue placeholder="Budget" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Budgets</SelectItem>
                   <SelectItem value="under10k">Under $10k</SelectItem>
@@ -628,29 +628,31 @@ export default function Clients() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button size="sm" variant="outline" onClick={() => setViewingClient(client)}>
-                          <Eye className="w-4 h-4 mr-1" /> View
-                        </Button>
-                        {clientProposals.length > 0 ? (
-                          <Link to={createPageUrl('EditProposal') + `?id=${clientProposals.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0].id}`}>
-                            <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132]">
-                              <FileText className="w-4 h-4 mr-1" /> Proposal
-                            </Button>
-                          </Link>
-                        ) : (
-                          <Link to={createPageUrl('CurriculumDesigner') + `?clientId=${client.id}`}>
-                            <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132]">
-                              <FileText className="w-4 h-4 mr-1" /> Proposal
-                            </Button>
-                          </Link>
-                        )}
-                        <Button size="icon" variant="ghost" onClick={() => openEditDialog(client)}>
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteMutation.mutate(client.id)}>
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 ml-2 flex-shrink-0">
+                        <div className="flex items-center gap-1">
+                          <Button size="sm" variant="outline" onClick={() => setViewingClient(client)}>
+                            <Eye className="w-4 h-4 sm:mr-1" /><span className="hidden sm:inline">View</span>
+                          </Button>
+                          {clientProposals.length > 0 ? (
+                            <Link to={createPageUrl('EditProposal') + `?id=${clientProposals.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0].id}`}>
+                              <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132]">
+                                <FileText className="w-4 h-4 sm:mr-1" /><span className="hidden sm:inline">Proposal</span>
+                              </Button>
+                            </Link>
+                          ) : (
+                            <Link to={createPageUrl('CurriculumDesigner') + `?clientId=${client.id}`}>
+                              <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132]">
+                                <FileText className="w-4 h-4 sm:mr-1" /><span className="hidden sm:inline">Proposal</span>
+                              </Button>
+                            </Link>
+                          )}
+                          <Button size="icon" variant="ghost" onClick={() => openEditDialog(client)}>
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteMutation.mutate(client.id)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
