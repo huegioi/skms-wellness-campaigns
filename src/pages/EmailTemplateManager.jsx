@@ -12,7 +12,7 @@ import { Plus, Pencil, Trash2, Mail, Upload, Send, FileText, Search, Filter, X, 
 import { productCatalog } from '@/components/curriculum/catalogData';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import ClientsSubNav from '@/components/clients/ClientsSubNav';
+import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 
 export default function EmailTemplateManager() {
   const [showDialog, setShowDialog] = useState(false);
