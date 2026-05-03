@@ -4,18 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, CheckCircle2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
 import EventDetailDialog from '@/components/calendar/EventDetailDialog';
 import { parseISO, format, addDays, startOfWeek, endOfWeek } from 'date-fns';
 
-export default function WeeklyCalendar({ sheets }) {
+export default function WeeklyCalendar({ sheets, calendarEvents = [], refetchEvents }) {
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [selectedEvent, setSelectedEvent] = useState(null);
-
-  const { data: calendarEvents = [], refetch: refetchEvents } = useQuery({
-    queryKey: ['calendarEvents'],
-    queryFn: () => base44.entities.CalendarEvent.list()
-  });
 
   const eventTypeConfig = {
     meeting: { label: 'Meeting', color: '#3B82F6', icon: CalendarIcon },

@@ -5,22 +5,15 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, CheckCircle2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
 import EventDetailDialog from '@/components/calendar/EventDetailDialog';
 import { parseISO } from 'date-fns';
 
-export default function MonthlyCalendar({ sheets }) {
+export default function MonthlyCalendar({ sheets, calendarEvents = [], refetchEvents }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedEvents, setSelectedEvents] = useState([]);
   const [addingToGoogleCal, setAddingToGoogleCal] = useState(null);
   const [selectedCalendarEvent, setSelectedCalendarEvent] = useState(null);
-
-  // Fetch CalendarEvent entities
-  const { data: calendarEvents = [], refetch: refetchEvents } = useQuery({
-    queryKey: ['calendarEvents'],
-    queryFn: () => base44.entities.CalendarEvent.list()
-  });
 
   const eventTypeConfig = {
     meeting: { label: 'Meeting', color: '#3B82F6', icon: CalendarIcon },

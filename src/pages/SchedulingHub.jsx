@@ -765,8 +765,8 @@ export default function SchedulingHub() {
         {/* Calendar View */}
         {sheets.length > 0 && (
           <div className="mb-6">
-            {calendarView === 'month' && <MonthlyCalendar sheets={sheets} />}
-            {calendarView === 'week' && <WeeklyCalendar sheets={sheets} />}
+            {calendarView === 'month' && <MonthlyCalendar sheets={sheets} calendarEvents={calendarEvents} refetchEvents={refetchCalendarEvents} />}
+            {calendarView === 'week' && <WeeklyCalendar sheets={sheets} calendarEvents={calendarEvents} refetchEvents={refetchCalendarEvents} />}
             {calendarView === 'list' && (
               <Card className="p-6">
                 <h2 className="text-2xl font-bold mb-4" style={{ color: '#013f7c' }}>All Events</h2>
