@@ -400,8 +400,9 @@ export default function SchedulingHub() {
           startDate.setHours(hours, minutes, 0, 0);
         }
       } else {
-        // Default to 9 AM if no time specified
-        startDate.setHours(9, 0, 0, 0);
+        // Default to 8 AM for challenges, 9 AM for everything else
+        const isChallenge = event.sheet?.toLowerCase().includes('challenge');
+        startDate.setHours(isChallenge ? 8 : 9, 0, 0, 0);
       }
 
       const endDate = new Date(startDate);
