@@ -537,25 +537,26 @@ export default function SchedulingHub() {
   const selectedInvoice = invoices.find(inv => inv.id === selectedInvoiceId);
 
   return (
-    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
+    <div className="min-h-screen bg-[#f4f0e9] p-3 sm:p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+        <div className="flex flex-col gap-4 mb-8">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <Calendar className="w-8 h-8" style={{ color: '#013f7c' }} />
-              <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>
+              <Calendar className="w-7 h-7" style={{ color: '#013f7c' }} />
+              <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#013f7c' }}>
                 {spreadsheetTitle}
               </h1>
             </div>
-            <p className="text-gray-600">
+            <p className="text-gray-600 text-sm">
               Real-time sync with Google Sheets • Auto-updates every 30 seconds
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               onClick={() => setBookServiceDialogOpen(true)}
               className="bg-[#770142] hover:bg-[#5a0132]"
+              size="sm"
             >
               <FileText className="w-4 h-4 mr-2" />
               Book Service
@@ -564,6 +565,7 @@ export default function SchedulingHub() {
               onClick={handleManualRefresh}
               variant="outline"
               disabled={isRefreshing}
+              size="sm"
             >
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh
@@ -573,7 +575,7 @@ export default function SchedulingHub() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Button className="bg-[#264d44] hover:bg-[#1a3830]">
+              <Button className="bg-[#264d44] hover:bg-[#1a3830]" size="sm">
                 <ExternalLink className="w-4 h-4 mr-2" />
                 Open Sheet
               </Button>
@@ -689,9 +691,9 @@ export default function SchedulingHub() {
 
         {/* Calendar View Controls */}
         <Card className="mb-6 p-4">
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-700">Calendar View:</h3>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <h3 className="font-semibold text-gray-700 text-sm">View:</h3>
               <div className="flex gap-1 border rounded-lg p-1">
                 <Button
                   variant={calendarView === 'month' ? 'default' : 'ghost'}
@@ -723,11 +725,11 @@ export default function SchedulingHub() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+            <div className="flex flex-wrap gap-3">
               <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-gray-500" />
+                <Filter className="w-4 h-4 text-gray-500 flex-shrink-0" />
                 <Select value={filterType} onValueChange={setFilterType}>
-                  <SelectTrigger className="w-[160px]">
+                  <SelectTrigger className="w-[150px]">
                     <SelectValue placeholder="Event Type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -746,7 +748,7 @@ export default function SchedulingHub() {
 
               {allPresenters.length > 0 && (
                 <Select value={filterPresenter} onValueChange={setFilterPresenter}>
-                  <SelectTrigger className="w-[160px]">
+                  <SelectTrigger className="w-[150px]">
                     <SelectValue placeholder="Presenter" />
                   </SelectTrigger>
                   <SelectContent>
