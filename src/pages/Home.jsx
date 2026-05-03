@@ -51,9 +51,9 @@ export default function Home() {
             <button
               onClick={goLeft}
               disabled={currentIndex === 0}
-              className="p-1.5 rounded-full border border-gray-200 text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 transition-all flex-shrink-0"
+              className="p-2 rounded-full bg-blue-100 text-blue-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-blue-200 transition-all flex-shrink-0"
             >
-              <ChevronLeft className="w-4 h-4" />
+              <ChevronLeft className="w-6 h-6" />
             </button>
             <div className="flex-1 text-center">
               {(() => { const Icon = sections[currentIndex].icon; return (
@@ -66,9 +66,9 @@ export default function Home() {
             <button
               onClick={goRight}
               disabled={currentIndex === sections.length - 1}
-              className="p-1.5 rounded-full border border-gray-200 text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-100 transition-all flex-shrink-0"
+              className="p-2 rounded-full bg-blue-100 text-blue-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-blue-200 transition-all flex-shrink-0"
             >
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-6 h-6" />
             </button>
           </div>
         </div>
