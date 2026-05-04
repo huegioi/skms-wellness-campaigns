@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  Plus, User, Building, Mail, Phone, FileText, Pencil, Trash2, Search, Filter, 
+  Plus, User, Building, Mail, Phone, FileText, Trash2, Search, Filter, 
   DollarSign, Users, Calendar, Eye, AlertTriangle, XCircle, FolderOpen
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -91,7 +91,6 @@ export default function Clients() {
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const urlClientDismissed = React.useRef(false);
-  const [editingClient, setEditingClient] = useState(null);
   const [viewingClient, setViewingClient] = useState(null);
   const [formData, setFormData] = useState({ 
     name: '', email: '', company: '', phone: '', title: '', industry: '', 
@@ -146,12 +145,6 @@ export default function Clients() {
     mutationFn: ({ id, data }) => base44.entities.Client.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      setEditingClient(null);
-      if (viewingClient) {
-        // Refresh viewing client data
-        const updated = clients.find(c => c.id === viewingClient.id);
-        if (updated) setViewingClient({ ...viewingClient, ...updated });
-      }
       resetForm();
     }
   });
@@ -177,7 +170,7 @@ export default function Clients() {
     if (formData.email) {
       const emailLower = formData.email.toLowerCase().trim();
       clients.forEach(client => {
-        if (client.id !== editingClient?.id && client.email?.toLowerCase().trim() === emailLower) {
+        if (client.email?.toLowerCase().trim() === emailLower) {
           duplicates.push({ client, matchType: 'email' });
         }
       });
@@ -186,7 +179,7 @@ export default function Clients() {
     if (formData.company) {
       const companyLower = formData.company.toLowerCase().trim();
       clients.forEach(client => {
-        if (client.id !== editingClient?.id && client.company?.toLowerCase().trim() === companyLower) {
+        if (client.company?.toLowerCase().trim() === companyLower) {
           if (!duplicates.find(d => d.client.id === client.id)) {
             duplicates.push({ client, matchType: 'company' });
           }
@@ -201,7 +194,7 @@ export default function Clients() {
     e.preventDefault();
     
     // Check for duplicates when creating new client
-    if (!editingClient) {
+    {
       const duplicates = checkForDuplicates();
       if (duplicates.length > 0) {
         const confirmed = window.confirm(
@@ -218,34 +211,7 @@ export default function Clients() {
     if (submitData.wellness_fund_size === '') delete submitData.wellness_fund_size;
     if (submitData.plan_year_start === '') delete submitData.plan_year_start;
     
-    if (editingClient) {
-      updateMutation.mutate({ id: editingClient.id, data: submitData });
-    } else {
-      createMutation.mutate(submitData);
-    }
-  };
-
-  const openEditDialog = (client) => {
-    setFormData({ 
-      name: client.name, 
-      email: client.email, 
-      company: client.company || '', 
-      phone: client.phone || '', 
-      title: client.title || '',
-      industry: client.industry || '',
-      company_size: client.company_size || '',
-      company_address: client.company_address || '',
-      company_website: client.company_website || '',
-      wellness_budget: client.wellness_budget || '',
-      plan_year_start: client.plan_year_start || '',
-      wellness_fund_size: client.wellness_fund_size || '',
-      broker_name: client.broker_name || '',
-      broker_email: client.broker_email || '',
-      wellness_consultant_name: client.wellness_consultant_name || '',
-      wellness_consultant_email: client.wellness_consultant_email || '',
-      notes: client.notes || '' 
-    });
-    setEditingClient(client);
+    createMutation.mutate(submitData);
   };
 
   const handleClientUpdate = (updates) => {
@@ -362,7 +328,6 @@ export default function Clients() {
 
   const handleSelectDuplicate = (client) => {
     setIsAddDialogOpen(false);
-    setEditingClient(null);
     setViewingClient(client);
   };
 
@@ -505,26 +470,6 @@ export default function Clients() {
           )}
         </div>
 
-        {/* Edit Dialog */}
-        <Dialog open={!!editingClient} onOpenChange={(open) => !open && setEditingClient(null)}>
-          <DialogContent className="max-w-lg w-[95vw] sm:w-full">
-            <DialogHeader>
-              <DialogTitle>Edit Client</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 mt-4 max-h-[60vh] overflow-y-auto pr-2">
-              <ClientFormFields 
-                formData={formData} 
-                setFormData={setFormData} 
-                clients={clients}
-                isEdit={true}
-                editingClient={editingClient}
-                onSelectDuplicate={handleSelectDuplicate}
-              />
-              <Button type="submit" className="w-full bg-[#264d44] hover:bg-[#1a3830]">Save Changes</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-
         {/* Client Detail View Dialog */}
         <Dialog open={!!viewingClient} onOpenChange={(open) => { if (!open) { urlClientDismissed.current = true; setViewingClient(null); } }}>
           <DialogContent className="max-w-3xl w-[95vw] sm:w-full h-[90vh] flex flex-col p-0 overflow-hidden">
@@ -662,9 +607,6 @@ export default function Clients() {
                               </Button>
                             </Link>
                           )}
-                          <Button size="icon" variant="ghost" onClick={() => openEditDialog(client)}>
-                            <Pencil className="w-4 h-4" />
-                          </Button>
                           <Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteMutation.mutate(client.id)}>
                             <Trash2 className="w-4 h-4" />
                           </Button>

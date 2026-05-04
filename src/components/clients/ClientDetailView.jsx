@@ -40,6 +40,8 @@ const interactionIcons = {
 
 export default function ClientDetailView({ client: initialClient, onClose, onUpdate }) {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({});
   const [showAddContact, setShowAddContact] = useState(false);
   const [showAddInteraction, setShowAddInteraction] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
@@ -76,6 +78,38 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   });
 
   const client = freshClient;
+
+  const startEditing = () => {
+    setEditForm({
+      name: client.name || '',
+      email: client.email || '',
+      title: client.title || '',
+      phone: client.phone || '',
+      company: client.company || '',
+      industry: client.industry || '',
+      company_size: client.company_size || '',
+      company_address: client.company_address || '',
+      company_website: client.company_website || '',
+      wellness_budget: client.wellness_budget || '',
+      plan_year_start: client.plan_year_start || '',
+      wellness_fund_size: client.wellness_fund_size || '',
+      broker_name: client.broker_name || '',
+      broker_email: client.broker_email || '',
+      wellness_consultant_name: client.wellness_consultant_name || '',
+      wellness_consultant_email: client.wellness_consultant_email || '',
+      notes: client.notes || '',
+    });
+    setIsEditing(true);
+  };
+
+  const saveEdits = () => {
+    const data = { ...editForm };
+    if (data.wellness_budget === '') delete data.wellness_budget;
+    if (data.wellness_fund_size === '') delete data.wellness_fund_size;
+    if (data.plan_year_start === '') delete data.plan_year_start;
+    onUpdate(data);
+    setIsEditing(false);
+  };
 
   // Initialize selected templates when client data loads
   React.useEffect(() => {
@@ -276,11 +310,25 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             </p>
           )}
         </div>
-        <Link to={createPageUrl('EditProposal') + `?clientId=${client.id}`}>
-          <Button className="bg-[#770142] hover:bg-[#5a0132]">
-            <FileText className="w-4 h-4 mr-2" /> New Proposal
-          </Button>
-        </Link>
+        <div className="flex gap-2 flex-shrink-0">
+          {isEditing ? (
+            <>
+              <Button size="sm" onClick={saveEdits} className="bg-[#264d44] hover:bg-[#1a3830]">Save</Button>
+              <Button size="sm" variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+            </>
+          ) : (
+            <>
+              <Button size="sm" variant="outline" onClick={startEditing}>
+                <Pencil className="w-4 h-4 mr-1" /> Edit
+              </Button>
+              <Link to={createPageUrl('EditProposal') + `?clientId=${client.id}`}>
+                <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132]">
+                  <FileText className="w-4 h-4 mr-2" /> New Proposal
+                </Button>
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Quick Stats */}
@@ -341,6 +389,59 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4 mt-4">
+          {isEditing ? (
+            <div className="bg-gray-50 rounded-xl p-5 space-y-4 border">
+              <h4 className="font-semibold text-gray-700">Edit Client Information</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><label className="text-xs text-gray-500 mb-1 block">Name *</label><Input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} /></div>
+                <div><label className="text-xs text-gray-500 mb-1 block">Job Title</label><Input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} /></div>
+                <div><label className="text-xs text-gray-500 mb-1 block">Email *</label><Input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} /></div>
+                <div><label className="text-xs text-gray-500 mb-1 block">Phone</label><Input value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} /></div>
+                <div className="sm:col-span-2"><label className="text-xs text-gray-500 mb-1 block">Company</label><Input value={editForm.company} onChange={e => setEditForm({...editForm, company: e.target.value})} /></div>
+                <div><label className="text-xs text-gray-500 mb-1 block">Industry</label><Input value={editForm.industry} onChange={e => setEditForm({...editForm, industry: e.target.value})} /></div>
+                <div>
+                  <label className="text-xs text-gray-500 mb-1 block">Company Size</label>
+                  <Select value={editForm.company_size || 'none'} onValueChange={v => setEditForm({...editForm, company_size: v === 'none' ? '' : v})}>
+                    <SelectTrigger><SelectValue placeholder="Select size..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Select size...</SelectItem>
+                      {['1-50','51-200','201-500','501-1000','1001-5000','5000+'].map(s => <SelectItem key={s} value={s}>{s} employees</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="sm:col-span-2"><label className="text-xs text-gray-500 mb-1 block">Company Website</label><Input value={editForm.company_website} onChange={e => setEditForm({...editForm, company_website: e.target.value})} /></div>
+                <div className="sm:col-span-2"><label className="text-xs text-gray-500 mb-1 block">Company Address</label><Input value={editForm.company_address} onChange={e => setEditForm({...editForm, company_address: e.target.value})} /></div>
+              </div>
+              <div className="border-t pt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div><label className="text-xs text-gray-500 mb-1 block">Wellness Budget ($)</label><Input type="number" value={editForm.wellness_budget} onChange={e => setEditForm({...editForm, wellness_budget: e.target.value})} /></div>
+                <div><label className="text-xs text-gray-500 mb-1 block">Plan Year Start</label><Input type="date" value={editForm.plan_year_start} onChange={e => setEditForm({...editForm, plan_year_start: e.target.value})} /></div>
+                <div><label className="text-xs text-gray-500 mb-1 block">Fund Size / Employee ($)</label><Input type="number" value={editForm.wellness_fund_size} onChange={e => setEditForm({...editForm, wellness_fund_size: e.target.value})} /></div>
+              </div>
+              <div className="border-t pt-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Broker</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><label className="text-xs text-gray-500 mb-1 block">Broker Name</label><Input value={editForm.broker_name} onChange={e => setEditForm({...editForm, broker_name: e.target.value})} /></div>
+                  <div><label className="text-xs text-gray-500 mb-1 block">Broker Email</label><Input type="email" value={editForm.broker_email} onChange={e => setEditForm({...editForm, broker_email: e.target.value})} /></div>
+                </div>
+              </div>
+              <div className="border-t pt-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Wellness Consultant</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><label className="text-xs text-gray-500 mb-1 block">Consultant Name</label><Input value={editForm.wellness_consultant_name} onChange={e => setEditForm({...editForm, wellness_consultant_name: e.target.value})} /></div>
+                  <div><label className="text-xs text-gray-500 mb-1 block">Consultant Email</label><Input type="email" value={editForm.wellness_consultant_email} onChange={e => setEditForm({...editForm, wellness_consultant_email: e.target.value})} /></div>
+                </div>
+              </div>
+              <div className="border-t pt-3">
+                <label className="text-xs text-gray-500 mb-1 block">Notes</label>
+                <Textarea value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} rows={3} />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button onClick={saveEdits} className="bg-[#264d44] hover:bg-[#1a3830]">Save Changes</Button>
+                <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+              </div>
+            </div>
+          ) : (
+          <>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-3">
               <h4 className="font-semibold text-gray-700">Contact Information</h4>
@@ -357,7 +458,9 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
               <h4 className="font-semibold text-gray-700">Company Details</h4>
               {client.industry && <p className="text-sm"><Badge variant="outline">{client.industry}</Badge></p>}
               {client.company_size && <p className="flex items-center gap-2 text-sm"><Users className="w-4 h-4 text-gray-400" /> {client.company_size} employees</p>}
-              {client.wellness_budget && <p className="flex items-center gap-2 text-sm text-green-600"><DollarSign className="w-4 h-4" /> ${client.wellness_budget.toLocaleString()} budget</p>}
+              {client.wellness_budget && <p className="flex items-center gap-2 text-sm text-green-600"><DollarSign className="w-4 h-4" /> ${client.wellness_budget.toLocaleString()} wellness budget</p>}
+              {client.plan_year_start && <p className="flex items-center gap-2 text-sm"><Calendar className="w-4 h-4 text-gray-400" /> Plan year starts: {new Date(client.plan_year_start).toLocaleDateString()}</p>}
+              {client.wellness_fund_size && <p className="flex items-center gap-2 text-sm text-green-600"><DollarSign className="w-4 h-4" /> ${client.wellness_fund_size.toLocaleString()} / employee fund</p>}
               {client.last_contacted && <p className="flex items-center gap-2 text-sm"><Calendar className="w-4 h-4 text-gray-400" /> Last contact: {new Date(client.last_contacted).toLocaleDateString()}</p>}
               {(client.total_invoice_value > 0 || client.invoice_count > 0) && (
                 <>
@@ -398,9 +501,11 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
               <p className="text-sm text-gray-600 whitespace-pre-wrap">{client.notes}</p>
             </div>
           )}
+          </>
+          )}
 
           {/* Purchased Services Section */}
-          <div className="rounded-lg border p-4 bg-emerald-50 border-emerald-200">
+          {!isEditing && <div className="rounded-lg border p-4 bg-emerald-50 border-emerald-200">
             <div className="flex justify-between items-center mb-3">
               <h4 className="font-semibold text-gray-700 flex items-center gap-2">
                 <Package className="w-4 h-4 text-emerald-600" />
@@ -442,7 +547,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             ) : (
               <p className="text-sm text-gray-400 italic">No services from accepted proposals yet</p>
             )}
-          </div>
+          </div>}
         </TabsContent>
 
         {/* Contacts Tab */}
