@@ -43,6 +43,8 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
       companyAddress: client.company_address || '',
       companySize: client.company_size || '',
       wellnessBudget: client.wellness_budget || '',
+      planYearStart: client.plan_year_start || '',
+      wellnessFundSize: client.wellness_fund_size || '',
       brokerName: client.broker_name || '',
       brokerEmail: client.broker_email || '',
       brokerCompany: '',
@@ -75,6 +77,8 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
     companyAddress: selections.assessmentData?.companyAddress || '',
     companySize: selections.assessmentData?.companySize || '',
     wellnessBudget: selections.assessmentData?.wellnessBudget || '',
+    planYearStart: selections.assessmentData?.planYearStart || '',
+    wellnessFundSize: selections.assessmentData?.wellnessFundSize || '',
     brokerName: selections.assessmentData?.brokerName || '',
     brokerEmail: selections.assessmentData?.brokerEmail || '',
     brokerCompany: selections.assessmentData?.brokerCompany || '',
@@ -511,6 +515,29 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             value={formData.wellnessBudget}
             onChange={(e) => handleInputChange('wellnessBudget', e.target.value)}
           />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="question-group">
+            <label className="question-label">Plan Year Start Date</label>
+            <input
+              type="date"
+              className="neuro-input"
+              value={formData.planYearStart}
+              onChange={(e) => handleInputChange('planYearStart', e.target.value)}
+            />
+          </div>
+          <div className="question-group">
+            <label className="question-label">Wellness Fund Size (per employee $)</label>
+            <input
+              type="number"
+              className="neuro-input"
+              placeholder="e.g. 500"
+              min="0"
+              value={formData.wellnessFundSize}
+              onChange={(e) => handleInputChange('wellnessFundSize', e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4" style={{ borderTop: '1px solid #e5e5e5' }}>

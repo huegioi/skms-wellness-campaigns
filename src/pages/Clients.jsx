@@ -56,6 +56,16 @@ function ClientFormFields({ formData, setFormData, clients, isEdit, editingClien
       <Input placeholder="Company Website" value={formData.company_website} onChange={(e) => setFormData({...formData, company_website: e.target.value})} />
       <Input placeholder="Company Address" value={formData.company_address} onChange={(e) => setFormData({...formData, company_address: e.target.value})} />
       <Input type="number" placeholder="Wellness Budget ($)" value={formData.wellness_budget} onChange={(e) => setFormData({...formData, wellness_budget: e.target.value ? Number(e.target.value) : ''})} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Plan Year Start Date</label>
+          <Input type="date" value={formData.plan_year_start} onChange={(e) => setFormData({...formData, plan_year_start: e.target.value})} />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Wellness Fund Size (per employee $)</label>
+          <Input type="number" placeholder="e.g. 500" value={formData.wellness_fund_size} onChange={(e) => setFormData({...formData, wellness_fund_size: e.target.value ? Number(e.target.value) : ''})} />
+        </div>
+      </div>
       <div className="border-t pt-4 mt-2">
         <p className="text-sm font-medium text-gray-600 mb-2">Broker Information</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -86,6 +96,7 @@ export default function Clients() {
   const [formData, setFormData] = useState({ 
     name: '', email: '', company: '', phone: '', title: '', industry: '', 
     company_size: '', company_address: '', company_website: '', wellness_budget: '', 
+    plan_year_start: '', wellness_fund_size: '',
     broker_name: '', broker_email: '', wellness_consultant_name: '', wellness_consultant_email: '', notes: '' 
   });
   
@@ -156,6 +167,7 @@ export default function Clients() {
   const resetForm = () => setFormData({ 
     name: '', email: '', company: '', phone: '', title: '', industry: '', 
     company_size: '', company_address: '', company_website: '', wellness_budget: '', 
+    plan_year_start: '', wellness_fund_size: '',
     broker_name: '', broker_email: '', wellness_consultant_name: '', wellness_consultant_email: '', notes: '' 
   });
 
@@ -203,6 +215,8 @@ export default function Clients() {
     
     const submitData = { ...formData };
     if (submitData.wellness_budget === '') delete submitData.wellness_budget;
+    if (submitData.wellness_fund_size === '') delete submitData.wellness_fund_size;
+    if (submitData.plan_year_start === '') delete submitData.plan_year_start;
     
     if (editingClient) {
       updateMutation.mutate({ id: editingClient.id, data: submitData });
@@ -223,6 +237,8 @@ export default function Clients() {
       company_address: client.company_address || '',
       company_website: client.company_website || '',
       wellness_budget: client.wellness_budget || '',
+      plan_year_start: client.plan_year_start || '',
+      wellness_fund_size: client.wellness_fund_size || '',
       broker_name: client.broker_name || '',
       broker_email: client.broker_email || '',
       wellness_consultant_name: client.wellness_consultant_name || '',

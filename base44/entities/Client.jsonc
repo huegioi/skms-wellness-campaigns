@@ -1,0 +1,241 @@
+{
+  "name": "Client",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Primary contact name"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Primary contact email address"
+    },
+    "company": {
+      "type": "string",
+      "description": "Company name"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Phone number"
+    },
+    "title": {
+      "type": "string",
+      "description": "Job title"
+    },
+    "industry": {
+      "type": "string",
+      "description": "Industry sector"
+    },
+    "company_size": {
+      "type": "string",
+      "enum": [
+        "1-50",
+        "51-200",
+        "201-500",
+        "501-1000",
+        "1001-5000",
+        "5000+"
+      ],
+      "description": "Number of employees"
+    },
+    "company_address": {
+      "type": "string",
+      "description": "Company address"
+    },
+    "company_website": {
+      "type": "string",
+      "description": "Company website URL"
+    },
+    "wellness_budget": {
+      "type": "number",
+      "description": "Annual wellness dollar fund/budget"
+    },
+    "plan_year_start": {
+      "type": "string",
+      "format": "date",
+      "description": "Plan year start date"
+    },
+    "wellness_fund_size": {
+      "type": "number",
+      "description": "Per-employee wellness fund size (dollar amount)"
+    },
+    "broker_name": {
+      "type": "string",
+      "description": "Broker name"
+    },
+    "broker_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Broker email address"
+    },
+    "wellness_consultant_name": {
+      "type": "string",
+      "description": "Wellness consultant name"
+    },
+    "wellness_consultant_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Wellness consultant email address"
+    },
+    "last_contacted": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date of last contact"
+    },
+    "related_contacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Additional contacts at this company"
+    },
+    "purchased_services": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of previously purchased service IDs"
+    },
+    "total_invoice_value": {
+      "type": "number",
+      "description": "Total value of all invoices from QuickBooks",
+      "default": 0
+    },
+    "invoice_count": {
+      "type": "number",
+      "description": "Number of invoices from QuickBooks",
+      "default": 0
+    },
+    "invoice_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of invoice IDs associated with this client"
+    },
+    "portal_template_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Manually selected email template IDs for client portal"
+    },
+    "portal_documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "file_url": {
+            "type": "string"
+          },
+          "uploaded_date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Custom documents uploaded for this client's portal"
+    },
+    "session_resources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "resource_type": {
+            "type": "string",
+            "enum": [
+              "recording",
+              "presentation",
+              "handout",
+              "other"
+            ]
+          },
+          "session_name": {
+            "type": "string"
+          },
+          "added_date": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "description": "Links to session recordings, PPT files, and handout files for the client portal"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about the client"
+    },
+    "last_service_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of last service delivered to this client"
+    },
+    "follow_up_window_days": {
+      "type": "number",
+      "default": 90,
+      "description": "Number of days after last service before a follow-up is needed"
+    },
+    "last_contacted_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date client was last contacted for follow-up purposes"
+    },
+    "follow_up_status": {
+      "type": "string",
+      "enum": [
+        "needs_followup",
+        "contacted",
+        "booked",
+        "snoozed"
+      ],
+      "description": "Current follow-up status for this client"
+    },
+    "snooze_until": {
+      "type": "string",
+      "format": "date",
+      "description": "Hide from follow-up queue until this date"
+    },
+    "april_checkin_year": {
+      "type": "number",
+      "description": "Year the April check-in was last completed"
+    },
+    "november_checkin_year": {
+      "type": "number",
+      "description": "Year the November check-in was last completed"
+    }
+  },
+  "required": [
+    "name",
+    "email"
+  ]
+}
