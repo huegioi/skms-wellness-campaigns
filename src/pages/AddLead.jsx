@@ -40,7 +40,7 @@ export default function AddLead() {
     setScanningCard(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      const result = await base44.integrations.Core.InvokeLLM({
+      const rawResult = await base44.integrations.Core.InvokeLLM({
         prompt: `Extract contact information from this business card image. Return ONLY the following fields if present:
 - name (full name)
 - email
@@ -60,6 +60,9 @@ Fill in whatever you can find. If a field is not present, leave it as an empty s
           }
         }
       });
+      // InvokeLLM with response_json_schema returns the object directly,
+      // but the frontend SDK may wrap it — unwrap if needed.
+      const result = rawResult?.name !== undefined ? rawResult : (rawResult?.data ?? rawResult);
       setForm(prev => ({
         ...prev,
         name: result.name || prev.name,
