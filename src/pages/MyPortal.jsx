@@ -131,53 +131,46 @@ export default function MyPortal() {
       {/* Main Content */}
       <div className="max-w-5xl mx-auto p-4 md:p-8">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 mb-8">
-            <TabsTrigger value="proposal" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              <span className="hidden sm:inline">My Proposal</span>
-              <span className="sm:hidden">Proposal</span>
-            </TabsTrigger>
-            <TabsTrigger value="timeline" className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              <span className="hidden sm:inline">Timeline</span>
-              <span className="sm:hidden">Timeline</span>
-            </TabsTrigger>
-            <TabsTrigger value="templates" className="flex items-center gap-2">
-              <Mail className="w-4 h-4" />
-              <span className="hidden sm:inline">Emails</span>
-              <span className="sm:hidden">Emails</span>
-            </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                <span className="hidden sm:inline">Profile</span>
-                <span className="sm:hidden">Profile</span>
+          <div className="overflow-x-auto mb-8 -mx-4 px-4 md:mx-0 md:px-0">
+            <TabsList className="inline-flex w-max min-w-full h-auto p-1 gap-1">
+              <TabsTrigger value="proposal" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
+                <FileText className="w-4 h-4 shrink-0" />
+                <span>Proposal</span>
               </TabsTrigger>
-              <TabsTrigger value="feedback" className="flex items-center gap-2">
-                <ClipboardList className="w-4 h-4" />
-                <span className="hidden sm:inline">Feedback</span>
-                <span className="sm:hidden">Feedback</span>
+              <TabsTrigger value="timeline" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
+                <Calendar className="w-4 h-4 shrink-0" />
+                <span>Timeline</span>
+              </TabsTrigger>
+              <TabsTrigger value="templates" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
+                <Mail className="w-4 h-4 shrink-0" />
+                <span>Emails</span>
+              </TabsTrigger>
+              <TabsTrigger value="profile" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
+                <Settings className="w-4 h-4 shrink-0" />
+                <span>Profile</span>
+              </TabsTrigger>
+              <TabsTrigger value="feedback" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
+                <ClipboardList className="w-4 h-4 shrink-0" />
+                <span>Feedback</span>
               </TabsTrigger>
             </TabsList>
+          </div>
 
-            <TabsContent value="proposal">
-              <ClientProposalView proposal={acceptedProposal} client={client} services={services} />
-            </TabsContent>
-
-            <TabsContent value="timeline">
-              <ClientTimeline events={events} proposal={acceptedProposal} />
-            </TabsContent>
-
-            <TabsContent value="templates">
-              <ClientEmailTemplates proposal={acceptedProposal} />
-            </TabsContent>
-
-            <TabsContent value="profile">
-              <ClientProfileSettings client={client} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['portalClient'] })} />
-            </TabsContent>
-
-            <TabsContent value="feedback">
-              <PortalFeedback client={client} proposals={proposals} />
-            </TabsContent>
+          <TabsContent value="proposal">
+            <ClientProposalView proposal={acceptedProposal} client={client} services={services} />
+          </TabsContent>
+          <TabsContent value="timeline">
+            <ClientTimeline events={events} proposal={acceptedProposal} />
+          </TabsContent>
+          <TabsContent value="templates">
+            <ClientEmailTemplates proposal={acceptedProposal} />
+          </TabsContent>
+          <TabsContent value="profile">
+            <ClientProfileSettings client={client} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['portalClient'] })} />
+          </TabsContent>
+          <TabsContent value="feedback">
+            <PortalFeedback client={client} proposals={proposals} />
+          </TabsContent>
         </Tabs>
       </div>
 
