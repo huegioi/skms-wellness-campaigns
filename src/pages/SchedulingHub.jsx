@@ -859,8 +859,8 @@ export default function SchedulingHub() {
 
             {sheets.map((sheet, sheetIndex) => (
               <TabsContent key={sheetIndex} value={sheetIndex.toString()}>
-                <Card className="overflow-hidden">
-                  <div className="overflow-auto max-h-[70vh]">
+                <Card className="overflow-auto max-h-[70vh]">
+                  <div>
                     <table className="w-full">
                       <thead className="bg-[#264d44] text-white sticky top-0 z-20">
                         <tr>
