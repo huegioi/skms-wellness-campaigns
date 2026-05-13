@@ -141,12 +141,12 @@ export default function ClientPortal() {
   return (
     <div className="min-h-screen bg-[#f4f0e9]">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#264d44] to-[#013f7c] text-white py-8 px-4">
+      <div className="bg-[#223d32] text-white py-8 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold">Welcome, {client.name}</h1>
-              <p className="text-white/80 mt-1">{client.company || 'Your Wellness Portal'}</p>
+              <p className="text-white/80 mt-1">Empowering your team with mindful wellness programs.</p>
             </div>
             <div className="flex items-center gap-4">
               <Button

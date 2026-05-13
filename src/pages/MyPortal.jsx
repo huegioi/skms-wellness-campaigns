@@ -96,7 +96,7 @@ export default function MyPortal() {
   return (
     <div className="min-h-screen bg-[#f4f0e9]">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#264d44] to-[#013f7c] text-white py-6 px-4">
+      <div className="bg-[#223d32] text-white py-6 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex items-center gap-4">
@@ -107,7 +107,7 @@ export default function MyPortal() {
               />
               <div>
                 <h1 className="text-xl md:text-2xl font-bold">Welcome, {client.name}</h1>
-                <p className="text-white/80 text-sm">{client.company || 'Your Wellness Portal'}</p>
+                <p className="text-white/80 text-sm">Empowering your team with mindful wellness programs.</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
