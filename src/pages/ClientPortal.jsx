@@ -144,9 +144,16 @@ export default function ClientPortal() {
       <div className="bg-[#223d32] text-white py-8 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold">Welcome, {client.name}</h1>
-              <p className="text-white/80 mt-1">Empowering your team with mindful wellness programs.</p>
+            <div className="flex items-center gap-4">
+              <img 
+                src="https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/1272f92b7_SKMSLogoShieldWhite.png" 
+                alt="SkillfulMeans" 
+                className="h-10 hidden sm:block"
+              />
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold">Welcome, {client.name}</h1>
+                <p className="text-white/80 mt-1">Empowering your team with mindful wellness programs.</p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <Button
