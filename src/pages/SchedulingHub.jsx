@@ -860,12 +860,15 @@ export default function SchedulingHub() {
             {sheets.map((sheet, sheetIndex) => (
               <TabsContent key={sheetIndex} value={sheetIndex.toString()}>
                 <Card className="overflow-hidden">
-                  <div className="overflow-x-auto">
+                  <div className="overflow-auto max-h-[70vh]">
                     <table className="w-full">
-                      <thead className="bg-[#264d44] text-white">
+                      <thead className="bg-[#264d44] text-white sticky top-0 z-20">
                         <tr>
                           {sheet.headers.map((header, idx) => (
-                            <th key={idx} className="px-4 py-3 text-left text-sm font-semibold">
+                            <th
+                              key={idx}
+                              className={`px-4 py-3 text-left text-sm font-semibold whitespace-nowrap ${idx === 0 ? 'sticky left-0 z-30 bg-[#264d44]' : ''}`}
+                            >
                               {header}
                             </th>
                           ))}
@@ -882,7 +885,10 @@ export default function SchedulingHub() {
                                 const cellValue = row[header] || '';
                                 
                                 return (
-                                  <td key={colIdx} className="px-4 py-3 text-sm text-gray-700">
+                                  <td
+                                    key={colIdx}
+                                    className={`px-4 py-3 text-sm text-gray-700 ${colIdx === 0 ? 'sticky left-0 z-10 bg-white' : ''}`}
+                                  >
                                     {isEditing ? (
                                       <div className="flex gap-1 min-w-[200px]">
                                         <Input
