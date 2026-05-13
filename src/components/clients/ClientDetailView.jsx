@@ -300,9 +300,9 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   };
 
   return (
-    <div className="space-y-6 overflow-y-auto flex-1 p-6">
+    <div className="space-y-6 overflow-y-auto flex-1 p-6 pt-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 pr-8">
         <div className="min-w-0 flex-1">
           <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 flex-wrap" style={{ color: '#264d44' }}>
             <Building className="w-5 h-5 flex-shrink-0" />
