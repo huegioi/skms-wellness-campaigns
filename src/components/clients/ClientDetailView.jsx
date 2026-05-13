@@ -302,19 +302,19 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   return (
     <div className="space-y-6 overflow-y-auto flex-1 p-6">
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#264d44' }}>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2 flex-wrap" style={{ color: '#264d44' }}>
             <Building className="w-5 h-5 flex-shrink-0" />
-            {client.company || client.name}
+            <span className="break-words">{client.company || client.name}</span>
           </h2>
-          <p className="text-gray-600 flex items-center gap-1 mt-1">
-            <User className="w-3.5 h-3.5 text-gray-400" />
+          <p className="text-sm sm:text-base text-gray-600 flex items-center gap-1 mt-1 flex-wrap">
+            <User className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
             <span className="font-medium">{client.name}</span>
             {client.title && <span className="text-gray-400">· {client.title}</span>}
           </p>
         </div>
-        <div className="flex gap-2 flex-shrink-0">
+        <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
           {isEditing ? (
             <>
               <Button size="sm" onClick={saveEdits} className="bg-[#264d44] hover:bg-[#1a3830]">Save</Button>
@@ -323,11 +323,11 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           ) : (
             <>
               <Button size="sm" variant="outline" onClick={startEditing}>
-                <Pencil className="w-4 h-4 mr-1" /> Edit
+                <Pencil className="w-4 h-4 sm:mr-1" /> <span className="hidden sm:inline">Edit</span>
               </Button>
               <Link to={createPageUrl('EditProposal') + `?clientId=${client.id}`}>
-                <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132]">
-                  <FileText className="w-4 h-4 mr-2" /> New Proposal
+                <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132] whitespace-nowrap">
+                  <FileText className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">New Proposal</span><span className="sm:hidden">Proposal</span>
                 </Button>
               </Link>
             </>
