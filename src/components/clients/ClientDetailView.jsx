@@ -304,13 +304,15 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-bold" style={{ color: '#264d44' }}>{client.name}</h2>
-          {client.title && <p className="text-gray-600">{client.title}</p>}
-          {client.company && (
-            <p className="text-lg text-gray-700 flex items-center gap-2 mt-1">
-              <Building className="w-4 h-4" /> {client.company}
-            </p>
-          )}
+          <h2 className="text-2xl font-bold flex items-center gap-2" style={{ color: '#264d44' }}>
+            <Building className="w-5 h-5 flex-shrink-0" />
+            {client.company || client.name}
+          </h2>
+          <p className="text-gray-600 flex items-center gap-1 mt-1">
+            <User className="w-3.5 h-3.5 text-gray-400" />
+            <span className="font-medium">{client.name}</span>
+            {client.title && <span className="text-gray-400">· {client.title}</span>}
+          </p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
           {isEditing ? (
@@ -395,11 +397,11 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             <div className="bg-gray-50 rounded-xl p-5 space-y-4 border">
               <h4 className="font-semibold text-gray-700">Edit Client Information</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><label className="text-xs text-gray-500 mb-1 block">Name *</label><Input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} /></div>
+                <div className="sm:col-span-2"><label className="text-xs text-gray-500 mb-1 block font-semibold">Company Name</label><Input value={editForm.company} onChange={e => setEditForm({...editForm, company: e.target.value})} placeholder="Company / Organization" /></div>
+                <div><label className="text-xs text-gray-500 mb-1 block">Contact Name *</label><Input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} /></div>
                 <div><label className="text-xs text-gray-500 mb-1 block">Job Title</label><Input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} /></div>
-                <div><label className="text-xs text-gray-500 mb-1 block">Email *</label><Input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} /></div>
+                <div><label className="text-xs text-gray-500 mb-1 block">Contact Email *</label><Input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} /></div>
                 <div><label className="text-xs text-gray-500 mb-1 block">Phone</label><Input value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} /></div>
-                <div className="sm:col-span-2"><label className="text-xs text-gray-500 mb-1 block">Company</label><Input value={editForm.company} onChange={e => setEditForm({...editForm, company: e.target.value})} /></div>
                 <div><label className="text-xs text-gray-500 mb-1 block">Industry</label><Input value={editForm.industry} onChange={e => setEditForm({...editForm, industry: e.target.value})} /></div>
                 <div>
                   <label className="text-xs text-gray-500 mb-1 block">Company Size</label>

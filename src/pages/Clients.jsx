@@ -29,15 +29,15 @@ function ClientFormFields({ formData, setFormData, clients, isEdit, editingClien
         currentClientId={isEdit ? editingClient?.id : null}
         onSelectDuplicate={onSelectDuplicate}
       />
+      <Input placeholder="Company Name *" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input placeholder="Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+        <Input placeholder="Contact Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
         <Input placeholder="Job Title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Input type="email" placeholder="Email *" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
+        <Input type="email" placeholder="Contact Email *" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} required />
         <Input placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({...formData, phone: e.target.value})} />
       </div>
-      <Input placeholder="Company" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input placeholder="Industry" value={formData.industry} onChange={(e) => setFormData({...formData, industry: e.target.value})} />
         <Select value={formData.company_size || "none"} onValueChange={(v) => setFormData({...formData, company_size: v === "none" ? "" : v})}>
@@ -382,11 +382,10 @@ export default function Clients() {
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <p className="font-medium text-gray-800 mb-1">
-                            {group.map(c => c.name).join(' & ')}
+                            {group.map(c => c.company || c.name).join(' & ')}
                           </p>
                           <p className="text-sm text-gray-600">
-                            {group[0].company && `${group[0].company} • `}
-                            {group[0].email}
+                            {group.map(c => c.name).join(' & ')} • {group[0].email}
                           </p>
                           <p className="text-xs text-amber-600 mt-1">
                             {group.reduce((sum, c) => sum + getClientProposals(c.id).length, 0)} total proposals
@@ -501,8 +500,8 @@ export default function Clients() {
                       <div key={client.id} className="border rounded-lg p-4 hover:border-blue-500 cursor-pointer transition-colors">
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <p className="font-semibold text-gray-800">{client.name}</p>
-                            {client.company && <p className="text-sm text-gray-600">{client.company}</p>}
+                            <p className="font-semibold text-gray-800">{client.company || client.name}</p>
+                            <p className="text-sm text-gray-600">{client.name}{client.title ? ` · ${client.title}` : ''}</p>
                             <p className="text-sm text-gray-500">{client.email}</p>
                           </div>
                           <Badge variant="outline">{clientProposals.length} proposals</Badge>
@@ -554,14 +553,18 @@ export default function Clients() {
                   <div className="p-5">
                     <div className="flex justify-between items-start">
                       <div className="flex-1 cursor-pointer" onClick={() => setViewingClient(client)}>
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-bold" style={{ color: '#264d44' }}>{client.name}</h3>
-                          {client.title && <span className="text-gray-500">• {client.title}</span>}
+                        <div className="flex items-center gap-2 mb-1">
+                          <Building className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          <h3 className="text-xl font-bold" style={{ color: '#264d44' }}>
+                            {client.company || client.name}
+                          </h3>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
+                          <User className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="font-medium">{client.name}</span>
+                          {client.title && <span className="text-gray-400">· {client.title}</span>}
                         </div>
                         <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                          {client.company && (
-                            <span className="flex items-center gap-1"><Building className="w-4 h-4" /> {client.company}</span>
-                          )}
                           <span className="flex items-center gap-1"><Mail className="w-4 h-4" /> {client.email}</span>
                           {client.phone && (
                             <span className="flex items-center gap-1"><Phone className="w-4 h-4" /> {client.phone}</span>
