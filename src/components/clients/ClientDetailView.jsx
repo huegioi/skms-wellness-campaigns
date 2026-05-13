@@ -22,6 +22,7 @@ import { productCatalog } from '@/components/curriculum/catalogData';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 import FollowUpSettings from '@/components/clients/FollowUpSettings';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 const statusConfig = {
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
@@ -64,6 +65,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   const [documentForm, setDocumentForm] = useState({ name: '', description: '' });
   const [resourceForm, setResourceForm] = useState({ title: '', url: '', resource_type: 'recording', session_name: '' });
   const [showAddResource, setShowAddResource] = useState(false);
+  const [syncingResources, setSyncingResources] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -992,11 +994,39 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
               <div className="border-t pt-4">
                 <div className="flex justify-between items-center mb-3">
                   <h5 className="font-medium text-sm flex items-center gap-2"><FolderOpen className="w-4 h-4" /> Session Resources</h5>
-                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowAddResource(!showAddResource)}>
-                    <Plus className="w-3 h-3 mr-1" /> Add Resource
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs border-[#264d44] text-[#264d44] hover:bg-[#264d44] hover:text-white"
+                      disabled={syncingResources}
+                      onClick={async () => {
+                        setSyncingResources(true);
+                        try {
+                          const res = await base44.functions.invoke('syncServiceResourcesToClient', { client_id: client.id });
+                          const d = res.data;
+                          if (d.skipped) {
+                            toast.info(d.reason || 'Nothing to sync');
+                          } else {
+                            toast.success(`Added ${d.added} resource(s) from ${d.services_synced?.join(', ')}`);
+                            queryClient.invalidateQueries({ queryKey: ['client', client.id] });
+                          }
+                        } catch (err) {
+                          toast.error('Sync failed: ' + err.message);
+                        } finally {
+                          setSyncingResources(false);
+                        }
+                      }}
+                    >
+                      {syncingResources ? <RefreshCw className="w-3 h-3 mr-1 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
+                      Sync from Services
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setShowAddResource(!showAddResource)}>
+                      <Plus className="w-3 h-3 mr-1" /> Add Resource
+                    </Button>
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 mb-3">Add links to session recordings, PPT presentations, and handout files visible in the client portal.</p>
+                <p className="text-xs text-gray-500 mb-3">Resources from purchased services sync automatically. You can also manually add links to recordings, presentations, and handouts.</p>
 
                 {/* Existing Resources */}
                 <div className="space-y-2 mb-3">

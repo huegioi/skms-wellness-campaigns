@@ -12,8 +12,9 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, Award, Dumbbell, Package, Users, Clock,
-  DollarSign, Target, Loader2, GripVertical, RefreshCw, ExternalLink
+  DollarSign, Target, Loader2, GripVertical, RefreshCw, ExternalLink, FolderOpen
 } from 'lucide-react';
+import ServiceResourceManager from '@/components/services/ServiceResourceManager';
 
 const SERVICES_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1qYMjE_ZWwUVl3nFC4k4RGHLpmDCG8lg1hEY9cGZZ-P8/edit';
 
@@ -260,10 +261,12 @@ export default function ServiceCatalog() {
 function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
   const [formData, setFormData] = useState(service || {});
   const [benefitInput, setBenefitInput] = useState('');
+  const [editTab, setEditTab] = useState('details');
 
   React.useEffect(() => {
     if (service) {
       setFormData(service);
+      setEditTab('details');
     }
   }, [service]);
 
@@ -296,7 +299,22 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
         <DialogHeader>
           <DialogTitle>{service.id ? 'Edit Service' : 'Add New Service'}</DialogTitle>
         </DialogHeader>
-        
+
+        <Tabs value={editTab} onValueChange={setEditTab} className="mt-4">
+          <TabsList className="w-full">
+            <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
+            <TabsTrigger value="resources" className="flex-1 flex items-center gap-2">
+              <FolderOpen className="w-4 h-4" />
+              Resources
+              {(formData.resources?.length || 0) > 0 && (
+                <span className="ml-1 bg-[#264d44] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {formData.resources.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="details">
         <div className="space-y-4 mt-4">
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">Category *</label>
@@ -423,6 +441,22 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
             {saving ? 'Saving...' : (service.id ? 'Update Service' : 'Create Service')}
           </Button>
         </div>
+          </TabsContent>
+
+          <TabsContent value="resources" className="mt-4">
+            <p className="text-sm text-gray-500 mb-4">
+              Files uploaded here will automatically appear in the portal Resources tab for any client who has purchased this service.
+            </p>
+            <ServiceResourceManager
+              resources={formData.resources || []}
+              onChange={(resources) => setFormData({ ...formData, resources })}
+            />
+            <Button onClick={handleSave} disabled={saving || !formData.name} className="w-full mt-4 bg-[#770142] hover:bg-[#5a0132]">
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              {saving ? 'Saving...' : 'Save Resources'}
+            </Button>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
