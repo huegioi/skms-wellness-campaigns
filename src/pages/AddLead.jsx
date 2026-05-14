@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Save, ChevronLeft, ScanText, Loader2, CheckCircle2, Camera } from 'lucide-react';
+import { Save, ChevronLeft, ScanText, Loader2, CheckCircle2, Camera, Linkedin } from 'lucide-react';
 import { toast } from 'sonner';
 
 const EMPTY_FORM = {
@@ -32,7 +32,9 @@ export default function AddLead() {
   const [scannedText, setScannedText] = useState('');
   const [saved, setSaved] = useState(false);
   const [scanningCard, setScanningCard] = useState(false);
+  const [scanningLinkedIn, setScanningLinkedIn] = useState(false);
   const cameraInputRef = useRef(null);
+  const linkedInInputRef = useRef(null);
 
   const handleCameraCapture = async (e) => {
     const file = e.target.files?.[0];
@@ -94,6 +96,55 @@ Fill in whatever you can find. If a field is not present, leave it as an empty s
       toast.error('Failed to add lead: ' + error.message);
     },
   });
+
+  const handleLinkedInCapture = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setScanningLinkedIn(true);
+    try {
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const result = await base44.integrations.Core.InvokeLLM({
+        prompt: `Extract professional contact information from this LinkedIn profile screenshot. Return ONLY what you can see:
+- name (full name)
+- title (current job title/position)
+- company (current company name)
+- industry (industry sector if visible)
+- company_size (number of employees if visible, e.g. "51-200")
+- notes (any other relevant info like location, bio summary, or mutual connections)
+Leave fields as empty string if not visible.`,
+        file_urls: [file_url],
+        response_json_schema: {
+          type: 'object',
+          properties: {
+            name: { type: 'string' },
+            title: { type: 'string' },
+            company: { type: 'string' },
+            industry: { type: 'string' },
+            company_size: { type: 'string' },
+            notes: { type: 'string' },
+          }
+        }
+      });
+      const data = result?.name !== undefined ? result : (result?.data ?? result);
+      setForm(prev => ({
+        ...prev,
+        name: data.name || prev.name,
+        title: data.title || prev.title,
+        company: data.company || prev.company,
+        industry: data.industry || prev.industry,
+        company_size: data.company_size || prev.company_size,
+        notes: data.notes ? (prev.notes ? prev.notes + '\n' + data.notes : data.notes) : prev.notes,
+        outreach_channel: 'linkedin',
+        source: prev.source || 'LinkedIn',
+      }));
+      toast.success('LinkedIn profile scanned! Please review the fields.');
+    } catch (err) {
+      toast.error('Could not read screenshot: ' + err.message);
+    } finally {
+      setScanningLinkedIn(false);
+      e.target.value = '';
+    }
+  };
 
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
@@ -161,18 +212,30 @@ Fill in whatever you can find. If a field is not present, leave it as an empty s
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ScanText className="w-5 h-5 text-[#013f7c]" />
-              <h2 className="font-semibold text-gray-800">Scan Business Card</h2>
+              <h2 className="font-semibold text-gray-800">Quick Scan</h2>
             </div>
-            <Button
-              type="button"
-              onClick={() => cameraInputRef.current?.click()}
-              disabled={scanningCard}
-              className="bg-[#013f7c] hover:bg-[#012d5a] gap-2"
-              size="sm"
-            >
-              {scanningCard ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-              {scanningCard ? 'Scanning...' : 'Scan Card'}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                onClick={() => linkedInInputRef.current?.click()}
+                disabled={scanningLinkedIn}
+                className="bg-[#0077b5] hover:bg-[#005f91] gap-2"
+                size="sm"
+              >
+                {scanningLinkedIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <Linkedin className="w-4 h-4" />}
+                {scanningLinkedIn ? 'Scanning...' : 'LinkedIn'}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                disabled={scanningCard}
+                className="bg-[#013f7c] hover:bg-[#012d5a] gap-2"
+                size="sm"
+              >
+                {scanningCard ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+                {scanningCard ? 'Scanning...' : 'Scan Card'}
+              </Button>
+            </div>
             <input
               ref={cameraInputRef}
               type="file"
@@ -180,6 +243,13 @@ Fill in whatever you can find. If a field is not present, leave it as an empty s
               capture="environment"
               className="hidden"
               onChange={handleCameraCapture}
+            />
+            <input
+              ref={linkedInInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleLinkedInCapture}
             />
           </div>
           <Textarea
