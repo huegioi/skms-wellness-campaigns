@@ -17,6 +17,10 @@ Deno.serve(async (req) => {
   // Get all referrals for this partner
   const referrals = await base44.asServiceRole.entities.Referral.filter({ referral_partner_id: partner.id });
 
+  // Get existing client companies for the referral form dropdown
+  const clients = await base44.asServiceRole.entities.Client.list();
+  const clientCompanies = [...new Set(clients.map(c => c.company).filter(Boolean))].sort();
+
   // Calculate commission summary
   const currentYear = new Date().getFullYear();
   const tiers = partner.commission_tiers || [];
@@ -52,6 +56,7 @@ Deno.serve(async (req) => {
       is_active: partner.is_active
     },
     referrals,
+    client_companies: clientCompanies,
     commission_summary: {
       ytd_revenue: ytdRevenue,
       current_tier: currentTier,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift } from 'lucide-react';
+import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown } from 'lucide-react';
 
 const STATUS_COLORS = {
   submitted: 'bg-blue-100 text-blue-700',
@@ -37,6 +37,7 @@ export default function ReferralPortal() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({ contact_name: '', contact_email: '', company_name: '', notes: '' });
+  const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (!portalId) {
@@ -99,7 +100,7 @@ export default function ReferralPortal() {
     );
   }
 
-  const { partner, referrals, commission_summary } = data;
+  const { partner, referrals, commission_summary, client_companies = [] } = data;
   const tiers = partner.commission_tiers || [];
 
   return (
@@ -278,9 +279,43 @@ export default function ReferralPortal() {
                     <label className="text-sm font-medium text-gray-700 block mb-1">Contact Email</label>
                     <Input type="email" value={form.contact_email} onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))} placeholder="email@company.com" />
                   </div>
-                  <div>
+                  <div className="relative">
                     <label className="text-sm font-medium text-gray-700 block mb-1">Company Name</label>
-                    <Input value={form.company_name} onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))} placeholder="Company or organization" />
+                    <div className="flex gap-1">
+                      <Input
+                        value={form.company_name}
+                        onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))}
+                        placeholder="Company or organization"
+                        onFocus={() => setCompanyDropdownOpen(true)}
+                        onBlur={() => setTimeout(() => setCompanyDropdownOpen(false), 150)}
+                      />
+                      {client_companies.length > 0 && (
+                        <button
+                          type="button"
+                          className="border border-input bg-background rounded-md px-2 hover:bg-accent shrink-0"
+                          onMouseDown={e => { e.preventDefault(); setCompanyDropdownOpen(o => !o); }}
+                        >
+                          <ChevronDown className="w-4 h-4 text-gray-500" />
+                        </button>
+                      )}
+                    </div>
+                    {companyDropdownOpen && client_companies.length > 0 && (
+                      <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {client_companies
+                          .filter(c => !form.company_name || c.toLowerCase().includes(form.company_name.toLowerCase()))
+                          .map(c => (
+                            <button
+                              key={c}
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-700"
+                              onMouseDown={() => { setForm(f => ({ ...f, company_name: c })); setCompanyDropdownOpen(false); }}
+                            >
+                              {c}
+                            </button>
+                          ))
+                        }
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div>
