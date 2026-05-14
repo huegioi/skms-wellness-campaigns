@@ -8,6 +8,8 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import AddLead from './pages/AddLead';
+import ReferralPortal from './pages/ReferralPortal';
+import ReferralPartnerAdmin from './pages/ReferralPartnerAdmin';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -62,6 +64,8 @@ const AuthenticatedApp = () => {
         />
       ))}
       <Route path="/AddLead" element={<LayoutWrapper currentPageName="AddLead"><AddLead /></LayoutWrapper>} />
+      <Route path="/ReferralPortal" element={<ReferralPortal />} />
+      <Route path="/ReferralPartnerAdmin" element={<LayoutWrapper currentPageName="ReferralPartnerAdmin"><ReferralPartnerAdmin /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

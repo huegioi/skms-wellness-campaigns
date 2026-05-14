@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, UserCheck, MapPin, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, TrendingUp, AlertCircle, Handshake, Clock, ScanText } from 'lucide-react';
+import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, UserCheck, MapPin, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, TrendingUp, AlertCircle, Handshake, Clock, ScanText, Share2 } from 'lucide-react';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
 import { toast } from 'sonner';
@@ -600,7 +600,12 @@ export default function Leads() {
       {/* Sub-nav header — matches Clients style */}
       <div className="bg-white border-b px-4 md:px-8 pt-6 pb-0">
         <div className="max-w-6xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-4" style={{ color: '#013f7c' }}>Partners</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#013f7c' }}>Partners</h1>
+            <Button variant="outline" className="gap-2 border-[#013f7c] text-[#013f7c]" onClick={() => navigate('/ReferralPartnerAdmin')}>
+              <Share2 className="w-4 h-4" /> Referral Portals
+            </Button>
+          </div>
           <div className="flex gap-1">
             {TAB_ITEMS.map(tab => {
               const Icon = tab.icon;

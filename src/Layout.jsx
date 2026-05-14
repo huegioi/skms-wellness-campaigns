@@ -7,13 +7,13 @@ export default function Layout({ children, currentPageName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Public pages - no navigation
-      if (currentPageName === 'ViewProposal' || currentPageName === 'MyPortal' || currentPageName === 'ClientPortal' || currentPageName === 'FeedbackForm') {
+      if (currentPageName === 'ViewProposal' || currentPageName === 'MyPortal' || currentPageName === 'ClientPortal' || currentPageName === 'FeedbackForm' || currentPageName === 'ReferralPortal') {
         return <>{children}</>;
       }
 
   const navItems = [
     { name: 'Dashboard', page: 'Home', icon: BarChart3 },
-    { name: 'Partners', page: 'Leads', icon: Mail },
+    { name: 'Partners', page: 'Leads', icon: Mail, altPages: ['ReferralPartnerAdmin'] },
     { name: 'Clients', page: 'Clients', icon: Users, altPages: ['ManageClientPortals', 'Proposals', 'EditProposal', 'EmailTemplateManager'] },
     { name: 'Services', page: 'ServiceCatalog', icon: Package },
     { name: 'Schedule', page: 'SchedulingHub', icon: Calendar },

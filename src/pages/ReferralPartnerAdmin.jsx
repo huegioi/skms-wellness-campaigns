@@ -1,0 +1,253 @@
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Plus, Copy, ExternalLink, Edit, Users, DollarSign, Check } from 'lucide-react';
+import { format } from 'date-fns';
+import { useToast } from '@/components/ui/use-toast';
+
+const DEFAULT_TIERS = [
+  { label: 'Tier 1', min_revenue: 0, max_revenue: 49999, rate: 0.08 },
+  { label: 'Tier 2', min_revenue: 50000, max_revenue: 99999, rate: 0.10 },
+  { label: 'Tier 3', min_revenue: 100000, max_revenue: null, rate: 0.12 },
+];
+
+const EMPTY_FORM = {
+  name: '', email: '', company: '', phone: '', notes: '',
+  agreement_file_url: '', agreement_signed_date: '',
+  commission_tiers: DEFAULT_TIERS, is_active: true
+};
+
+function generatePortalId() {
+  return Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+}
+
+export default function ReferralPartnerAdmin() {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  const [showDialog, setShowDialog] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [copiedId, setCopiedId] = useState(null);
+
+  const { data: partners = [], isLoading } = useQuery({
+    queryKey: ['referralPartners'],
+    queryFn: () => base44.entities.ReferralPartner.list('-created_date')
+  });
+
+  const { data: referrals = [] } = useQuery({
+    queryKey: ['referrals'],
+    queryFn: () => base44.entities.Referral.list()
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (data) => {
+      if (editing) return base44.entities.ReferralPartner.update(editing.id, data);
+      return base44.entities.ReferralPartner.create({ ...data, unique_portal_id: generatePortalId() });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['referralPartners'] });
+      setShowDialog(false);
+      setEditing(null);
+      toast({ title: editing ? 'Partner updated' : 'Partner created' });
+    }
+  });
+
+  const openNew = () => {
+    setEditing(null);
+    setForm(EMPTY_FORM);
+    setShowDialog(true);
+  };
+
+  const openEdit = (partner) => {
+    setEditing(partner);
+    setForm({
+      name: partner.name || '',
+      email: partner.email || '',
+      company: partner.company || '',
+      phone: partner.phone || '',
+      notes: partner.notes || '',
+      agreement_file_url: partner.agreement_file_url || '',
+      agreement_signed_date: partner.agreement_signed_date || '',
+      commission_tiers: partner.commission_tiers?.length ? partner.commission_tiers : DEFAULT_TIERS,
+      is_active: partner.is_active !== false
+    });
+    setShowDialog(true);
+  };
+
+  const copyLink = (partner) => {
+    const url = `${window.location.origin}/ReferralPortal?id=${partner.unique_portal_id}`;
+    navigator.clipboard.writeText(url);
+    setCopiedId(partner.id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const updateTier = (i, field, value) => {
+    const tiers = [...form.commission_tiers];
+    tiers[i] = { ...tiers[i], [field]: field === 'rate' ? parseFloat(value) || 0 : field.includes('revenue') ? (value === '' ? null : parseFloat(value)) : value };
+    setForm(f => ({ ...f, commission_tiers: tiers }));
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-8">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Referral Partners</h1>
+          <p className="text-gray-500 text-sm mt-1">Manage broker referral partners and their portal access</p>
+        </div>
+        <Button onClick={openNew} className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2">
+          <Plus className="w-4 h-4" /> Add Partner
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-8 h-8 border-4 border-[#013f7c] border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : partners.length === 0 ? (
+        <Card>
+          <CardContent className="text-center py-16">
+            <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">No referral partners yet. Add your first partner to get started.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {partners.map(partner => {
+            const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id);
+            const totalCommission = partnerReferrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
+            return (
+              <Card key={partner.id}>
+                <CardContent className="pt-5">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-gray-800 text-lg">{partner.name}</h3>
+                        <Badge className={partner.is_active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}>
+                          {partner.is_active !== false ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </div>
+                      {partner.company && <p className="text-gray-500 text-sm">{partner.company}</p>}
+                      <p className="text-gray-400 text-sm">{partner.email}</p>
+                      <div className="flex items-center gap-4 mt-3 text-sm">
+                        <span className="flex items-center gap-1 text-blue-700">
+                          <Users className="w-4 h-4" />
+                          {partnerReferrals.length} referral{partnerReferrals.length !== 1 ? 's' : ''}
+                        </span>
+                        <span className="flex items-center gap-1 text-green-700">
+                          <DollarSign className="w-4 h-4" />
+                          ${totalCommission.toLocaleString()} earned
+                        </span>
+                        {partner.agreement_signed_date && (
+                          <span className="text-gray-400">
+                            Agreement signed {format(new Date(partner.agreement_signed_date), 'MMM d, yyyy')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1"
+                        onClick={() => copyLink(partner)}
+                      >
+                        {copiedId === partner.id ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                        {copiedId === partner.id ? 'Copied!' : 'Copy Link'}
+                      </Button>
+                      <a href={`/ReferralPortal?id=${partner.unique_portal_id}`} target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="sm" className="gap-1">
+                          <ExternalLink className="w-4 h-4" /> Portal
+                        </Button>
+                      </a>
+                      <Button variant="outline" size="sm" onClick={() => openEdit(partner)} className="gap-1">
+                        <Edit className="w-4 h-4" /> Edit
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={showDialog} onOpenChange={v => { setShowDialog(v); if (!v) setEditing(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Edit Partner' : 'Add Referral Partner'}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={e => { e.preventDefault(); saveMutation.mutate(form); }} className="space-y-5 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Name *</label>
+                <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Email *</label>
+                <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Company</label>
+                <Input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Phone</label>
+                <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Agreement File URL</label>
+                <Input value={form.agreement_file_url} onChange={e => setForm(f => ({ ...f, agreement_file_url: e.target.value }))} placeholder="https://..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Agreement Signed Date</label>
+                <Input type="date" value={form.agreement_signed_date} onChange={e => setForm(f => ({ ...f, agreement_signed_date: e.target.value }))} />
+              </div>
+            </div>
+
+            {/* Commission Tiers */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">Commission Tiers</label>
+              <div className="space-y-2">
+                {form.commission_tiers.map((tier, i) => (
+                  <div key={i} className="grid grid-cols-4 gap-2 items-center p-3 bg-gray-50 rounded-lg">
+                    <Input value={tier.label} onChange={e => updateTier(i, 'label', e.target.value)} placeholder="Label" className="text-sm" />
+                    <Input type="number" value={tier.min_revenue} onChange={e => updateTier(i, 'min_revenue', e.target.value)} placeholder="Min $" className="text-sm" />
+                    <Input type="number" value={tier.max_revenue ?? ''} onChange={e => updateTier(i, 'max_revenue', e.target.value)} placeholder="Max $ (blank=∞)" className="text-sm" />
+                    <div className="flex items-center gap-1">
+                      <Input type="number" step="0.01" min="0" max="1" value={tier.rate} onChange={e => updateTier(i, 'rate', e.target.value)} placeholder="Rate (0.10)" className="text-sm" />
+                      <span className="text-gray-500 text-sm">{(tier.rate * 100).toFixed(0)}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
+              <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="is_active" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} className="rounded" />
+              <label htmlFor="is_active" className="text-sm text-gray-700">Active Partner</label>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" disabled={saveMutation.isPending} className="bg-[#013f7c] hover:bg-[#012d5a] text-white">
+                {saveMutation.isPending ? 'Saving...' : editing ? 'Save Changes' : 'Create Partner'}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setShowDialog(false)}>Cancel</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ListTodo, AlertCircle, Users, FileText, Send, CheckCircle2, Eye, UserPlus, UserCheck, Calendar, ClipboardCheck, Clock } from 'lucide-react';
+import { ListTodo, AlertCircle, Users, FileText, Send, CheckCircle2, Eye, UserPlus, UserCheck, Calendar, ClipboardCheck, Clock, GitMerge } from 'lucide-react';
 import { format, isPast, addDays } from 'date-fns';
 import ClientTaskCard from '@/components/tasks/ClientTaskCard';
 import TaskList from '@/components/tasks/TaskList';
@@ -40,6 +40,11 @@ export default function ClientInformationSection() {
   const { data: calendarEvents = [] } = useQuery({
     queryKey: ['calendarEvents'],
     queryFn: () => base44.entities.CalendarEvent.list('-updated_date', 50)
+  });
+
+  const { data: referrals = [] } = useQuery({
+    queryKey: ['referrals-feed'],
+    queryFn: () => base44.entities.Referral.list('-created_date', 20)
   });
 
   const clientsWithPendingTasks = clients.filter(client => {
@@ -108,6 +113,19 @@ export default function ClientInformationSection() {
           date: new Date(proposal.created_date)
         });
       }
+    });
+
+    // Referral Submitted
+    referrals.slice(-10).forEach(referral => {
+      activities.push({
+        type: 'referral_submitted',
+        icon: GitMerge,
+        color: 'text-violet-600',
+        bgColor: 'bg-violet-50',
+        title: 'Referral Submitted',
+        description: `${referral.contact_name}${referral.company_name ? ' · ' + referral.company_name : ''} via ${referral.referral_partner_name || 'Partner'}`,
+        date: new Date(referral.created_date)
+      });
     });
 
     // New Lead Added

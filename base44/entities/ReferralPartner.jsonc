@@ -1,0 +1,85 @@
+{
+  "name": "ReferralPartner",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Partner's full name or organization name"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Partner's email address"
+    },
+    "company": {
+      "type": "string",
+      "description": "Partner's company or brokerage name"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Partner's phone number"
+    },
+    "unique_portal_id": {
+      "type": "string",
+      "description": "Unique token used to access the referral portal"
+    },
+    "agreement_file_url": {
+      "type": "string",
+      "description": "URL to the signed partnership agreement document"
+    },
+    "agreement_signed_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the agreement was signed"
+    },
+    "commission_tiers": {
+      "type": "array",
+      "description": "Tiered commission rates based on annual first-year revenue. Tiers reset Jan 1 and are applied retroactively.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "min_revenue": {
+            "type": "number",
+            "description": "Minimum annual revenue threshold for this tier"
+          },
+          "max_revenue": {
+            "type": "number",
+            "description": "Maximum annual revenue for this tier (null = unlimited)"
+          },
+          "rate": {
+            "type": "number",
+            "description": "Commission rate as a decimal (e.g. 0.08 = 8%)"
+          },
+          "label": {
+            "type": "string",
+            "description": "Display label e.g. Tier 1"
+          }
+        }
+      }
+    },
+    "ytd_revenue": {
+      "type": "number",
+      "default": 0,
+      "description": "Year-to-date first-year revenue from placed clients (resets Jan 1)"
+    },
+    "total_commissions_paid": {
+      "type": "number",
+      "default": 0,
+      "description": "Total commissions paid to this partner to date"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the partnership is currently active"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes about this partner"
+    }
+  },
+  "required": [
+    "name",
+    "email",
+    "unique_portal_id"
+  ]
+}
