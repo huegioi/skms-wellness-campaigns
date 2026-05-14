@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle } from 'lucide-react';
+import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift } from 'lucide-react';
 
 const STATUS_COLORS = {
   submitted: 'bg-blue-100 text-blue-700',
@@ -165,7 +165,7 @@ export default function ReferralPortal() {
                         </span>
                       </div>
                       <span className={`font-bold text-lg ${isActive ? 'text-[#013f7c]' : 'text-gray-600'}`}>
-                        {(tier.rate * 100).toFixed(0)}%
+                        {(tier.rate * 100 % 1 === 0 ? (tier.rate * 100).toFixed(0) : (tier.rate * 100).toFixed(1))}%
                       </span>
                     </div>
                   );
@@ -173,12 +173,75 @@ export default function ReferralPortal() {
               </div>
               {commission_summary.current_tier && (
                 <p className="mt-3 text-sm font-medium text-[#013f7c]">
-                  Your current rate: {(commission_summary.current_tier.rate * 100).toFixed(0)}% · YTD Revenue: ${commission_summary.ytd_revenue.toLocaleString()}
+                  Your current rate: {(commission_summary.current_tier.rate * 100 % 1 === 0 ? (commission_summary.current_tier.rate * 100).toFixed(0) : (commission_summary.current_tier.rate * 100).toFixed(1))}% · YTD Revenue: ${commission_summary.ytd_revenue.toLocaleString()}
                 </p>
               )}
             </CardContent>
           </Card>
         )}
+
+        {/* How It Works */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <TrendingUp className="w-5 h-5 text-[#264d44]" />
+              How the Program Works
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Steps */}
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+              {[
+                { num: '01', text: 'You flag a client opportunity — a quick email is fine' },
+                { num: '02', text: 'We confirm pipeline status within 5 business days' },
+                { num: '03', text: 'You introduce — we handle discovery, proposal, delivery' },
+                { num: '04', text: 'Commission paid within 30 days of client invoice' },
+                { num: '05', text: 'Quarterly partner statement with all placements' },
+              ].map(s => (
+                <div key={s.num} className="bg-[#f4f0e9] rounded-lg p-3 text-center">
+                  <p className="text-2xl font-bold text-[#013f7c] mb-1">{s.num}</p>
+                  <p className="text-xs text-gray-600">{s.text}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* What Earns Commission & Things to Know */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <p className="font-semibold text-[#013f7c] text-sm mb-2">What Earns Commission</p>
+                <p className="text-sm text-gray-600">Referred revenue received within <strong>12 months</strong> of a new client's first invoice: interactive workshops, 14-day team challenges, leadership EQ programs, mindful movement classes, and physical or digital wellness boxes. Expansion revenue within that Year-1 window counts toward your tier.</p>
+              </div>
+              <div className="bg-amber-50 rounded-lg p-4">
+                <p className="font-semibold text-amber-800 text-sm mb-2">A Few Things to Know</p>
+                <p className="text-sm text-gray-600">A placed client is a new client you introduce who signs an invoice. Clients already in our pipeline within the prior 90 days are excluded. Year 2+ renewals are not commissioned.</p>
+              </div>
+            </div>
+
+            {/* Every Partner Also Receives */}
+            <div>
+              <p className="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-2">
+                <Gift className="w-4 h-4 text-[#264d44]" />
+                Every Partner Also Receives
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  { title: 'Annual Workshop for Your Team', desc: 'A complimentary one-hour workshop for your office, virtual or in-person — so you can speak to the program with authority.' },
+                  { title: 'Co-Branded Marketing Materials', desc: 'One-pagers, sample campaigns, and decks with your logo alongside SkillfulMeans — refreshed quarterly.' },
+                  { title: 'Featured Podcast Guest Spot', desc: 'A recorded conversation on the SkillfulMeans podcast — full episode on YouTube, short clips on LinkedIn. Editing on us.' },
+                  { title: 'Branded Apps & Tools', desc: 'Full access to our ROI Calculator, plus first access to the forthcoming Broker Toolkit & Partner Portal.' },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div className="w-2 h-2 rounded-full bg-[#264d44] mt-1.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-gray-800">{item.title}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Submit a Referral */}
         <Card>

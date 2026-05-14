@@ -12,9 +12,9 @@ import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 
 const DEFAULT_TIERS = [
-  { label: 'Tier 1', min_revenue: 0, max_revenue: 49999, rate: 0.08 },
-  { label: 'Tier 2', min_revenue: 50000, max_revenue: 99999, rate: 0.10 },
-  { label: 'Tier 3', min_revenue: 100000, max_revenue: null, rate: 0.12 },
+  { label: 'Introducing Partner', min_revenue: 0, max_revenue: 74999, rate: 0.10 },
+  { label: 'Active Partner', min_revenue: 75000, max_revenue: 149999, rate: 0.125 },
+  { label: 'Strategic Partner', min_revenue: 150000, max_revenue: null, rate: 0.15 },
 ];
 
 const EMPTY_FORM = {
@@ -221,8 +221,8 @@ export default function ReferralPartnerAdmin() {
                     <Input type="number" value={tier.min_revenue} onChange={e => updateTier(i, 'min_revenue', e.target.value)} placeholder="Min $" className="text-sm" />
                     <Input type="number" value={tier.max_revenue ?? ''} onChange={e => updateTier(i, 'max_revenue', e.target.value)} placeholder="Max $ (blank=∞)" className="text-sm" />
                     <div className="flex items-center gap-1">
-                      <Input type="number" step="0.01" min="0" max="1" value={tier.rate} onChange={e => updateTier(i, 'rate', e.target.value)} placeholder="Rate (0.10)" className="text-sm" />
-                      <span className="text-gray-500 text-sm">{(tier.rate * 100).toFixed(0)}%</span>
+                      <Input type="number" step="0.001" min="0" max="1" value={tier.rate} onChange={e => updateTier(i, 'rate', e.target.value)} placeholder="Rate (0.125)" className="text-sm" />
+                      <span className="text-gray-500 text-sm">{(tier.rate * 100 % 1 === 0 ? (tier.rate * 100).toFixed(0) : (tier.rate * 100).toFixed(1))}%</span>
                     </div>
                   </div>
                 ))}
