@@ -78,6 +78,14 @@
       "format": "email",
       "description": "Wellness consultant email address"
     },
+    "referral_partner_id": {
+      "type": "string",
+      "description": "ID of the ReferralPartner who referred this client"
+    },
+    "referral_partner_name": {
+      "type": "string",
+      "description": "Display name of the referring partner"
+    },
     "last_contacted": {
       "type": "string",
       "format": "date-time",

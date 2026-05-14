@@ -99,6 +99,8 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
       broker_email: client.broker_email || '',
       wellness_consultant_name: client.wellness_consultant_name || '',
       wellness_consultant_email: client.wellness_consultant_email || '',
+      referral_partner_id: client.referral_partner_id || '',
+      referral_partner_name: client.referral_partner_name || '',
       notes: client.notes || '',
     });
     setIsEditing(true);
@@ -123,6 +125,11 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   const { data: allServices = [] } = useQuery({
     queryKey: ['services'],
     queryFn: () => base44.entities.Service.list('sort_order')
+  });
+
+  const { data: referralPartners = [] } = useQuery({
+    queryKey: ['referralPartners'],
+    queryFn: () => base44.entities.ReferralPartner.filter({ is_active: true }, 'name')
   });
 
   const { data: proposals = [], isLoading: proposalsLoading } = useQuery({
@@ -436,6 +443,21 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
                 </div>
               </div>
               <div className="border-t pt-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Referral Partner</p>
+                <Select value={editForm.referral_partner_id || 'none'} onValueChange={v => {
+                  const partner = referralPartners.find(p => p.id === v);
+                  setEditForm({ ...editForm, referral_partner_id: v === 'none' ? '' : v, referral_partner_name: partner?.name || '' });
+                }}>
+                  <SelectTrigger><SelectValue placeholder="No referral partner" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No referral partner</SelectItem>
+                    {referralPartners.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}{p.company ? ` — ${p.company}` : ''}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="border-t pt-3">
                 <label className="text-xs text-gray-500 mb-1 block">Notes</label>
                 <Textarea value={editForm.notes} onChange={e => setEditForm({...editForm, notes: e.target.value})} rows={3} />
               </div>
@@ -479,6 +501,14 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             </div>
           </div>
           
+          {/* Referral Partner */}
+          {client.referral_partner_name && (
+            <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+              <h4 className="font-semibold text-gray-700 mb-1 text-sm uppercase tracking-wide text-green-800">Referred By</h4>
+              <p className="text-sm font-medium text-green-900">{client.referral_partner_name}</p>
+            </div>
+          )}
+
           {/* Broker & Consultant Info */}
           {(client.broker_name || client.broker_email || client.wellness_consultant_name || client.wellness_consultant_email) && (
           <div className="grid md:grid-cols-2 gap-4 mt-4">

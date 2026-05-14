@@ -19,7 +19,7 @@ import { createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 
 // Client Form Fields Component - defined outside to prevent re-renders
-function ClientFormFields({ formData, setFormData, clients, isEdit, editingClient, onSelectDuplicate }) {
+function ClientFormFields({ formData, setFormData, clients, isEdit, editingClient, onSelectDuplicate, referralPartners = [] }) {
   return (
     <>
       <DuplicateChecker 
@@ -80,6 +80,24 @@ function ClientFormFields({ formData, setFormData, clients, isEdit, editingClien
           <Input type="email" placeholder="Consultant Email" value={formData.wellness_consultant_email} onChange={(e) => setFormData({...formData, wellness_consultant_email: e.target.value})} />
         </div>
       </div>
+      {/* Referral Partner */}
+      {referralPartners.length > 0 && (
+        <div className="border-t pt-4 mt-2">
+          <p className="text-sm font-medium text-gray-600 mb-2">Referral Source</p>
+          <Select value={formData.referral_partner_id || 'none'} onValueChange={(v) => {
+            const partner = referralPartners.find(p => p.id === v);
+            setFormData({ ...formData, referral_partner_id: v === 'none' ? '' : v, referral_partner_name: partner?.name || '' });
+          }}>
+            <SelectTrigger><SelectValue placeholder="Referred by a partner?" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No referral partner</SelectItem>
+              {referralPartners.map(p => (
+                <SelectItem key={p.id} value={p.id}>{p.name}{p.company ? ` — ${p.company}` : ''}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
       <Textarea placeholder="Notes" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
     </>
   );
@@ -96,7 +114,8 @@ export default function Clients() {
     name: '', email: '', company: '', phone: '', title: '', industry: '', 
     company_size: '', company_address: '', company_website: '', wellness_budget: '', 
     plan_year_start: '', wellness_fund_size: '',
-    broker_name: '', broker_email: '', wellness_consultant_name: '', wellness_consultant_email: '', notes: '' 
+    broker_name: '', broker_email: '', wellness_consultant_name: '', wellness_consultant_email: '',
+    referral_partner_id: '', referral_partner_name: '', notes: '' 
   });
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,6 +130,11 @@ export default function Clients() {
   const { data: clients = [], isLoading: clientsLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list('-created_date')
+  });
+
+  const { data: referralPartners = [] } = useQuery({
+    queryKey: ['referralPartners'],
+    queryFn: () => base44.entities.ReferralPartner.filter({ is_active: true }, 'name')
   });
 
   // Auto-open client detail if URL param is present (only once)
@@ -133,6 +157,21 @@ export default function Clients() {
     onSuccess: async (newClient) => {
       // Auto-create tasks for new client
       await createDefaultTasksForClient(base44, newClient.id, newClient.name);
+
+      // If a referral partner was assigned, create a Referral record
+      if (newClient.referral_partner_id) {
+        await base44.entities.Referral.create({
+          referral_partner_id: newClient.referral_partner_id,
+          referral_partner_name: newClient.referral_partner_name || '',
+          referred_client_id: newClient.id,
+          contact_name: newClient.name,
+          contact_email: newClient.email,
+          company_name: newClient.company || '',
+          referral_date: new Date().toISOString(),
+          status: 'converted_to_client',
+        });
+        queryClient.invalidateQueries({ queryKey: ['referrals'] });
+      }
       
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['clientTasks'] });
@@ -161,7 +200,8 @@ export default function Clients() {
     name: '', email: '', company: '', phone: '', title: '', industry: '', 
     company_size: '', company_address: '', company_website: '', wellness_budget: '', 
     plan_year_start: '', wellness_fund_size: '',
-    broker_name: '', broker_email: '', wellness_consultant_name: '', wellness_consultant_email: '', notes: '' 
+    broker_name: '', broker_email: '', wellness_consultant_name: '', wellness_consultant_email: '',
+    referral_partner_id: '', referral_partner_name: '', notes: '' 
   });
 
   const checkForDuplicates = () => {
@@ -356,6 +396,7 @@ export default function Clients() {
                   isEdit={false}
                   editingClient={null}
                   onSelectDuplicate={handleSelectDuplicate}
+                  referralPartners={referralPartners}
                 />
                 <Button type="submit" className="w-full bg-[#264d44] hover:bg-[#1a3830]">Add Client</Button>
               </form>
