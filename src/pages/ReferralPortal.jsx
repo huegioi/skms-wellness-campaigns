@@ -49,8 +49,17 @@ export default function ReferralPortal() {
 
   const loadData = async () => {
     setLoading(true);
-    const res = await base44.functions.invoke('getReferralPortalData', { portal_id: portalId });
-    setData(res.data);
+    setError(null);
+    try {
+      const res = await base44.functions.invoke('getReferralPortalData', { portal_id: portalId });
+      if (res.data && res.data.partner) {
+        setData(res.data);
+      } else {
+        setError('Portal not found.');
+      }
+    } catch (err) {
+      setError(err?.message || 'Failed to load portal.');
+    }
     setLoading(false);
   };
 
@@ -58,12 +67,16 @@ export default function ReferralPortal() {
     e.preventDefault();
     if (!form.contact_name) return;
     setSubmitting(true);
-    await base44.functions.invoke('createReferral', { portal_id: portalId, ...form });
-    setSubmitted(true);
+    try {
+      await base44.functions.invoke('createReferral', { portal_id: portalId, ...form });
+      setSubmitted(true);
+      setShowForm(false);
+      setForm({ contact_name: '', contact_email: '', company_name: '', notes: '' });
+      await loadData();
+    } catch (err) {
+      console.error('Failed to submit referral:', err);
+    }
     setSubmitting(false);
-    setShowForm(false);
-    setForm({ contact_name: '', contact_email: '', company_name: '', notes: '' });
-    await loadData();
   };
 
   if (loading) {
