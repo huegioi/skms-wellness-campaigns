@@ -141,45 +141,6 @@ export default function ReferralPortal() {
           })}
         </div>
 
-        {/* Current Tier */}
-        {tiers.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <TrendingUp className="w-5 h-5 text-[#013f7c]" />
-                Commission Tiers
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-500 mb-4">Tiers are based on first-year revenue placed annually. When you reach a new tier, all placements that year are upgraded retroactively.</p>
-              <div className="space-y-2">
-                {tiers.map((tier, i) => {
-                  const isActive = commission_summary.current_tier?.min_revenue === tier.min_revenue;
-                  return (
-                    <div key={i} className={`flex items-center justify-between p-3 rounded-lg border-2 ${isActive ? 'border-[#013f7c] bg-blue-50' : 'border-gray-100 bg-gray-50'}`}>
-                      <div className="flex items-center gap-3">
-                        {isActive && <CheckCircle className="w-4 h-4 text-[#013f7c]" />}
-                        <span className="font-medium text-gray-700">{tier.label || `Tier ${i + 1}`}</span>
-                        <span className="text-sm text-gray-500">
-                          ${tier.min_revenue.toLocaleString()}{tier.max_revenue ? ` – $${tier.max_revenue.toLocaleString()}` : '+'}
-                        </span>
-                      </div>
-                      <span className={`font-bold text-lg ${isActive ? 'text-[#013f7c]' : 'text-gray-600'}`}>
-                        {(tier.rate * 100 % 1 === 0 ? (tier.rate * 100).toFixed(0) : (tier.rate * 100).toFixed(1))}%
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              {commission_summary.current_tier && (
-                <p className="mt-3 text-sm font-medium text-[#013f7c]">
-                  Your current rate: {(commission_summary.current_tier.rate * 100 % 1 === 0 ? (commission_summary.current_tier.rate * 100).toFixed(0) : (commission_summary.current_tier.rate * 100).toFixed(1))}% · YTD Revenue: ${commission_summary.ytd_revenue.toLocaleString()}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
         {/* How It Works */}
         <Card>
           <CardHeader>
@@ -242,6 +203,45 @@ export default function ReferralPortal() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Commission Tiers */}
+        {tiers.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <TrendingUp className="w-5 h-5 text-[#013f7c]" />
+                Commission Tiers
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-500 mb-4">Tiers are based on first-year revenue placed annually. When you reach a new tier, all placements that year are upgraded retroactively.</p>
+              <div className="space-y-2">
+                {tiers.map((tier, i) => {
+                  const isActive = commission_summary.current_tier?.min_revenue === tier.min_revenue;
+                  return (
+                    <div key={i} className={`flex items-center justify-between p-3 rounded-lg border-2 ${isActive ? 'border-[#013f7c] bg-blue-50' : 'border-gray-100 bg-gray-50'}`}>
+                      <div className="flex items-center gap-3">
+                        {isActive && <CheckCircle className="w-4 h-4 text-[#013f7c]" />}
+                        <span className="font-medium text-gray-700">{tier.label || `Tier ${i + 1}`}</span>
+                        <span className="text-sm text-gray-500">
+                          ${tier.min_revenue.toLocaleString()}{tier.max_revenue ? ` – $${tier.max_revenue.toLocaleString()}` : '+'}
+                        </span>
+                      </div>
+                      <span className={`font-bold text-lg ${isActive ? 'text-[#013f7c]' : 'text-gray-600'}`}>
+                        {(tier.rate * 100 % 1 === 0 ? (tier.rate * 100).toFixed(0) : (tier.rate * 100).toFixed(1))}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {commission_summary.current_tier && (
+                <p className="mt-3 text-sm font-medium text-[#013f7c]">
+                  Your current rate: {(commission_summary.current_tier.rate * 100 % 1 === 0 ? (commission_summary.current_tier.rate * 100).toFixed(0) : (commission_summary.current_tier.rate * 100).toFixed(1))}% · YTD Revenue: ${commission_summary.ytd_revenue.toLocaleString()}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Submit a Referral */}
         <Card>
