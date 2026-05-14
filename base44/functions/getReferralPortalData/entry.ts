@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
   const referrals = await base44.asServiceRole.entities.Referral.filter({ referral_partner_id: partner.id });
 
   // Get existing clients with their proposals for the referral form dropdown
-  const clients = await base44.asServiceRole.entities.Client.list();
+  const clients = await base44.asServiceRole.entities.Client.list('-created_date', 500);
   const clientCompanies = clients
     .filter(c => c.company)
     .map(c => ({ id: c.id, company: c.company, name: c.name, email: c.email }));

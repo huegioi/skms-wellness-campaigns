@@ -38,7 +38,7 @@ const PROPOSAL_STATUS_COLORS = {
   declined: 'bg-red-100 text-red-700',
 };
 
-const EMPTY_REFERRAL = { date: '', company_name: '', contact_name: '', notes: '', client_id: '', proposal_id: '' };
+const EMPTY_REFERRAL = { date: '', company_name: '', contact_name: '', notes: '', client_id: '', proposal_id: '', partner_id: '' };
 
 export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -109,7 +109,14 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
     });
 
     // Also create a Referral entity record so it shows up in partner admin & portal
-    const partner = allPartners.find(p => p.email?.toLowerCase() === lead.email?.toLowerCase());
+    const partnerId = referralForm.partner_id || allPartners.find(p =>
+      p.email?.toLowerCase() === lead.email?.toLowerCase() ||
+      p.name?.toLowerCase() === lead.name?.toLowerCase()
+    )?.id;
+    const partner = allPartners.find(p => p.id === partnerId);
+    if (!partner) {
+      toast.error('No matching Referral Partner found. Please select a partner from the dropdown.');
+    }
     if (partner) {
       const linkedProposal = referralForm.proposal_id
         ? allProposals.find(p => p.id === referralForm.proposal_id)
@@ -296,7 +303,11 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
             <TabsContent value="referrals" className="p-6 mt-0">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="font-semibold text-gray-700">Referral History</h4>
-                <Button size="sm" variant="outline" onClick={() => setShowAddReferral(!showAddReferral)} className="gap-1">
+                <Button size="sm" variant="outline" onClick={() => {
+                  const matchedPartner = allPartners.find(p => p.email?.toLowerCase() === lead.email?.toLowerCase());
+                  setReferralForm({ ...EMPTY_REFERRAL, partner_id: matchedPartner?.id || '' });
+                  setShowAddReferral(!showAddReferral);
+                }} className="gap-1">
                   <Plus className="w-3.5 h-3.5" /> Add Referral
                 </Button>
               </div>
@@ -304,6 +315,23 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
               {showAddReferral && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 space-y-3">
                   <h5 className="text-sm font-semibold text-blue-800">Log a Referral</h5>
+                  {/* Partner selector — pre-select by email match */}
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Referral Partner *</label>
+                    <Select
+                      value={referralForm.partner_id || (allPartners.find(p => p.email?.toLowerCase() === lead.email?.toLowerCase())?.id || '')}
+                      onValueChange={val => setReferralForm({ ...referralForm, partner_id: val })}
+                    >
+                      <SelectTrigger className="bg-white">
+                        <SelectValue placeholder="Select partner..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allPartners.map(p => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}{p.company ? ` — ${p.company}` : ''}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-gray-500 mb-1 block">Date *</label>
