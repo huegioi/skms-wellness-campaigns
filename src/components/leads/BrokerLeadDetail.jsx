@@ -92,7 +92,12 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
     toast.success(isActive ? 'Marked as Nurturing' : 'Marked as Active Partner!');
   };
 
-  const addReferral = () => {
+  const { data: allPartners = [] } = useQuery({
+    queryKey: ['referralPartners'],
+    queryFn: () => base44.entities.ReferralPartner.list()
+  });
+
+  const addReferral = async () => {
     if (!referralForm.date || !referralForm.company_name) return;
     const updated = [...(lead.referral_history || []), referralForm];
     const sortedDates = updated.map(r => r.date).sort().reverse();
@@ -102,6 +107,47 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
       referral_count: updated.length,
       last_referral_date: lastDate
     });
+
+    // Also create a Referral entity record so it shows up in partner admin & portal
+    const partner = allPartners.find(p => p.email?.toLowerCase() === lead.email?.toLowerCase());
+    if (partner) {
+      const linkedProposal = referralForm.proposal_id
+        ? allProposals.find(p => p.id === referralForm.proposal_id)
+        : null;
+      const firstYearRevenue = linkedProposal?.total_amount || 0;
+
+      // Find applicable commission tier
+      const ytdRevenue = (partner.ytd_revenue || 0) + firstYearRevenue;
+      const tiers = partner.commission_tiers || [];
+      const tier = tiers
+        .filter(t => ytdRevenue >= (t.min_revenue || 0))
+        .sort((a, b) => b.min_revenue - a.min_revenue)[0] || null;
+      const commissionRate = tier?.rate || 0;
+      const commissionAmount = firstYearRevenue * commissionRate;
+
+      await base44.entities.Referral.create({
+        referral_partner_id: partner.id,
+        referral_partner_name: partner.name,
+        contact_name: referralForm.contact_name || '',
+        company_name: referralForm.company_name,
+        notes: referralForm.notes || '',
+        referral_date: new Date(referralForm.date).toISOString(),
+        status: linkedProposal ? 'purchased' : 'submitted',
+        referred_client_id: referralForm.client_id || '',
+        invoice_id: referralForm.proposal_id || '',
+        first_year_revenue: firstYearRevenue,
+        commission_rate: commissionRate,
+        commission_amount: commissionAmount
+      });
+
+      // Update partner YTD revenue
+      if (firstYearRevenue > 0) {
+        await base44.entities.ReferralPartner.update(partner.id, {
+          ytd_revenue: ytdRevenue
+        });
+      }
+    }
+
     setReferralForm(EMPTY_REFERRAL);
     setShowAddReferral(false);
     toast.success('Referral added!');
