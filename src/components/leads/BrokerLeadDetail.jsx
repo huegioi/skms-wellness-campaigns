@@ -127,6 +127,12 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const partnerAcceptedProposals = partnerProposals.filter(p => p.status === 'accepted');
   const partnerAcceptedValue = partnerAcceptedProposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
 
+  // Use broker-email-based data as fallback when Referral records lack linked client/proposal data
+  const useReferralData = matchedPartner && partnerReferrals.length > 0;
+  const displayCompanies = useReferralData ? (partnerClients.length > 0 ? partnerClients.length : referralCompanies) : relatedClients.length;
+  const displayReferrals = useReferralData ? partnerReferrals.length : relatedProposals.length;
+  const displayTotalValue = useReferralData ? referralTotalValue : acceptedValue;
+
   // Calculate adjusted revenue: wellness box line items count at 50%
   const calcAdjustedRevenue = (proposal) => {
     if (!proposal) return 0;
@@ -300,15 +306,15 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3 px-6 py-4 bg-gray-50 border-b flex-shrink-0">
           <div className="text-center">
-            <p className="text-2xl font-bold text-[#013f7c]">{matchedPartner ? referralCompanies : relatedClients.length}</p>
+            <p className="text-2xl font-bold text-[#013f7c]">{displayCompanies}</p>
             <p className="text-xs text-gray-500 mt-0.5">Companies</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-gray-700">{matchedPartner ? partnerReferrals.length : relatedProposals.length}</p>
+            <p className="text-2xl font-bold text-gray-700">{displayReferrals}</p>
             <p className="text-xs text-gray-500 mt-0.5">Referrals</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">${(matchedPartner ? referralTotalValue : acceptedValue).toLocaleString()}</p>
+            <p className="text-2xl font-bold text-green-600">${displayTotalValue.toLocaleString()}</p>
             <p className="text-xs text-gray-500 mt-0.5">Referral Total Value</p>
           </div>
         </div>
@@ -322,10 +328,10 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                 Referrals ({referralHistory.length})
               </TabsTrigger>
               <TabsTrigger value="companies" className="text-sm">
-                Companies ({matchedPartner ? partnerClients.length || referralCompanies : relatedClients.length})
+                Companies ({displayCompanies})
               </TabsTrigger>
               <TabsTrigger value="proposals" className="text-sm">
-                Proposals ({matchedPartner ? partnerProposals.length : relatedProposals.length})
+                Proposals ({useReferralData ? partnerProposals.length || relatedProposals.length : relatedProposals.length})
               </TabsTrigger>
               <TabsTrigger value="emails" className="text-sm">Emails</TabsTrigger>
             </TabsList>
@@ -495,7 +501,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
 
             {/* Companies */}
             <TabsContent value="companies" className="p-6 mt-0">
-              {matchedPartner ? (
+              {(useReferralData && partnerReferrals.length > 0) ? (
                 partnerReferrals.length === 0 ? (
                   <div className="text-center py-12 text-gray-400">
                     <Building className="w-12 h-12 mx-auto mb-3 text-gray-200" />
@@ -571,10 +577,11 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
             {/* Proposals */}
             <TabsContent value="proposals" className="p-6 mt-0">
               {(() => {
-                const displayProposals = matchedPartner ? partnerProposals : relatedProposals;
-                const displayTotal = matchedPartner ? partnerTotalValue : totalProposalValue;
-                const displayAccepted = matchedPartner ? partnerAcceptedProposals : acceptedProposals;
-                const displayAcceptedValue = matchedPartner ? partnerAcceptedValue : acceptedValue;
+                // Fall back to broker-email-linked proposals if no Referral-linked proposals exist
+                const displayProposals = (useReferralData && partnerProposals.length > 0) ? partnerProposals : relatedProposals;
+                const displayTotal = (useReferralData && partnerProposals.length > 0) ? partnerTotalValue : totalProposalValue;
+                const displayAccepted = (useReferralData && partnerProposals.length > 0) ? partnerAcceptedProposals : acceptedProposals;
+                const displayAcceptedValue = (useReferralData && partnerProposals.length > 0) ? partnerAcceptedValue : acceptedValue;
                 if (displayProposals.length === 0) return (
                   <div className="text-center py-12 text-gray-400">
                     <FileText className="w-12 h-12 mx-auto mb-3 text-gray-200" />
