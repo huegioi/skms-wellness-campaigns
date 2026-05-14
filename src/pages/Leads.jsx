@@ -688,7 +688,7 @@ export default function Leads() {
           {/* ── Referral Partners Tab ─────────────────────────────────────── */}
           <TabsContent value="broker_leads">
             <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button variant="outline" onClick={handleSyncBrokerLeads} disabled={syncingBrokers} className="gap-2">
                   <RefreshCw className={`w-4 h-4 ${syncingBrokers ? 'animate-spin' : ''}`} />
                   {syncingBrokers ? 'Syncing...' : 'Sync Sheet'}
@@ -697,6 +697,15 @@ export default function Leads() {
                   <Mail className={`w-4 h-4 ${syncingEmail ? 'animate-spin' : ''}`} />
                   {syncingEmail ? 'Syncing...' : 'Sync Emails'}
                 </Button>
+                <a
+                  href="https://docs.google.com/spreadsheets/d/1QyVdp7XWFfUkZyqLMVn6P39X84WgYWOHfqI2US7WKWk/edit"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors text-green-700 border-green-300"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  Open Sheet
+                </a>
               </div>
               <div className="flex gap-2">
                 <Button className="bg-[#013f7c] hover:bg-[#012d5a] gap-2" onClick={() => { setBrokerForm(EMPTY_BROKER_LEAD_FORM); setEditingBrokerLead(null); setIsAddBrokerOpen(true); }}>
