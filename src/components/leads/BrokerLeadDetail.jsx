@@ -116,6 +116,17 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const referralTotalValue = partnerReferrals.reduce((sum, r) => sum + (r.first_year_revenue || 0), 0);
   const referralCompanies = new Set(partnerReferrals.map(r => r.company_name).filter(Boolean)).size;
 
+  // For the Companies tab: clients linked via Referral records (by referred_client_id)
+  const partnerClientIds = new Set(partnerReferrals.map(r => r.referred_client_id).filter(Boolean));
+  const partnerClients = allClients.filter(c => partnerClientIds.has(c.id));
+
+  // For the Proposals tab: proposals linked via Referral records (stored in invoice_id field as proposal_id)
+  const partnerProposalIds = new Set(partnerReferrals.map(r => r.invoice_id).filter(Boolean));
+  const partnerProposals = allProposals.filter(p => partnerProposalIds.has(p.id));
+  const partnerTotalValue = partnerProposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
+  const partnerAcceptedProposals = partnerProposals.filter(p => p.status === 'accepted');
+  const partnerAcceptedValue = partnerAcceptedProposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
+
   const addReferral = async () => {
     if (!referralForm.date || !referralForm.company_name) return;
     const updated = [...(lead.referral_history || []), referralForm];
@@ -269,10 +280,10 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                 Referrals ({referralHistory.length})
               </TabsTrigger>
               <TabsTrigger value="companies" className="text-sm">
-                Companies ({relatedClients.length})
+                Companies ({matchedPartner ? partnerClients.length || referralCompanies : relatedClients.length})
               </TabsTrigger>
               <TabsTrigger value="proposals" className="text-sm">
-                Proposals ({relatedProposals.length})
+                Proposals ({matchedPartner ? partnerProposals.length : relatedProposals.length})
               </TabsTrigger>
               <TabsTrigger value="emails" className="text-sm">Emails</TabsTrigger>
             </TabsList>
@@ -442,84 +453,127 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
 
             {/* Companies */}
             <TabsContent value="companies" className="p-6 mt-0">
-              {relatedClients.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
-                  <Building className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-                  <p>No companies linked to this broker yet.</p>
-                  <p className="text-xs mt-1">Link a broker to a client via the Clients page.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {relatedClients.map(client => {
-                    const clientProposals = allProposals.filter(p => p.client_id === client.id);
-                    const clientTotal = clientProposals.reduce((s, p) => s + (p.total_amount || 0), 0);
-                    const clientWon = clientProposals.filter(p => p.status === 'accepted').reduce((s, p) => s + (p.total_amount || 0), 0);
-                    const isBroker = client.broker_email?.toLowerCase() === lead.email?.toLowerCase();
-                    return (
-                      <div key={client.id} className="bg-white border rounded-lg p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-semibold text-gray-800">{client.name}</p>
-                              {client.company && <span className="text-sm text-gray-500">— {client.company}</span>}
-                              <Badge variant="outline" className={`text-xs ${isBroker ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}>
-                                {isBroker ? 'Broker' : 'Wellness Consultant'}
+              {matchedPartner ? (
+                partnerReferrals.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <Building className="w-12 h-12 mx-auto mb-3 text-gray-200" />
+                    <p>No companies referred yet.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {partnerReferrals.map(ref => {
+                      const client = allClients.find(c => c.id === ref.referred_client_id);
+                      const refProposal = ref.invoice_id ? allProposals.find(p => p.id === ref.invoice_id) : null;
+                      return (
+                        <div key={ref.id} className="bg-white border rounded-lg p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-gray-800">{ref.company_name || client?.company || client?.name}</p>
+                              {ref.contact_name && <p className="text-sm text-gray-500">{ref.contact_name}</p>}
+                              <p className="text-xs text-gray-400 mt-0.5">{new Date(ref.referral_date).toLocaleDateString()}</p>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              {refProposal && <p className="text-sm font-semibold text-green-600">${refProposal.total_amount?.toLocaleString()}</p>}
+                              <Badge className={`text-xs ${PROPOSAL_STATUS_COLORS[ref.status] || 'bg-gray-100 text-gray-700'}`}>
+                                {ref.status?.replace('_', ' ')}
                               </Badge>
                             </div>
-                            <p className="text-sm text-gray-500 mt-0.5">{client.email}</p>
-                            {client.industry && <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full mt-1 inline-block">{client.industry}</span>}
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="text-sm font-semibold text-green-600">${clientWon.toLocaleString()} won</p>
-                            <p className="text-xs text-gray-400">${clientTotal.toLocaleString()} total</p>
-                            <p className="text-xs text-gray-400">{clientProposals.length} proposal{clientProposals.length !== 1 ? 's' : ''}</p>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )
+              ) : (
+                relatedClients.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <Building className="w-12 h-12 mx-auto mb-3 text-gray-200" />
+                    <p>No companies linked to this broker yet.</p>
+                    <p className="text-xs mt-1">Link a broker to a client via the Clients page.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {relatedClients.map(client => {
+                      const clientProposals = allProposals.filter(p => p.client_id === client.id);
+                      const clientTotal = clientProposals.reduce((s, p) => s + (p.total_amount || 0), 0);
+                      const clientWon = clientProposals.filter(p => p.status === 'accepted').reduce((s, p) => s + (p.total_amount || 0), 0);
+                      const isBroker = client.broker_email?.toLowerCase() === lead.email?.toLowerCase();
+                      return (
+                        <div key={client.id} className="bg-white border rounded-lg p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="font-semibold text-gray-800">{client.name}</p>
+                                {client.company && <span className="text-sm text-gray-500">— {client.company}</span>}
+                                <Badge variant="outline" className={`text-xs ${isBroker ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}>
+                                  {isBroker ? 'Broker' : 'Wellness Consultant'}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-gray-500 mt-0.5">{client.email}</p>
+                              {client.industry && <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full mt-1 inline-block">{client.industry}</span>}
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-sm font-semibold text-green-600">${clientWon.toLocaleString()} won</p>
+                              <p className="text-xs text-gray-400">${clientTotal.toLocaleString()} total</p>
+                              <p className="text-xs text-gray-400">{clientProposals.length} proposal{clientProposals.length !== 1 ? 's' : ''}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
               )}
             </TabsContent>
 
             {/* Proposals */}
             <TabsContent value="proposals" className="p-6 mt-0">
-              {relatedProposals.length === 0 ? (
-                <div className="text-center py-12 text-gray-400">
-                  <FileText className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-                  <p>No proposals linked to this broker's companies yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="bg-blue-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-500">Total Pipeline</p>
-                      <p className="text-xl font-bold text-[#013f7c]">${totalProposalValue.toLocaleString()}</p>
-                    </div>
-                    <div className="bg-green-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-500">Won ({acceptedProposals.length})</p>
-                      <p className="text-xl font-bold text-green-700">${acceptedValue.toLocaleString()}</p>
-                    </div>
+              {(() => {
+                const displayProposals = matchedPartner ? partnerProposals : relatedProposals;
+                const displayTotal = matchedPartner ? partnerTotalValue : totalProposalValue;
+                const displayAccepted = matchedPartner ? partnerAcceptedProposals : acceptedProposals;
+                const displayAcceptedValue = matchedPartner ? partnerAcceptedValue : acceptedValue;
+                if (displayProposals.length === 0) return (
+                  <div className="text-center py-12 text-gray-400">
+                    <FileText className="w-12 h-12 mx-auto mb-3 text-gray-200" />
+                    <p>No proposals linked yet.</p>
                   </div>
-                  {relatedProposals.map(proposal => {
-                    const client = allClients.find(c => c.id === proposal.client_id);
-                    return (
-                      <div key={proposal.id} className="bg-white border rounded-lg p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-gray-800">${proposal.total_amount?.toLocaleString()}</p>
-                            {client && <p className="text-sm text-gray-500">{client.name}{client.company ? ` — ${client.company}` : ''}</p>}
-                            <p className="text-xs text-gray-400 mt-0.5">Created: {new Date(proposal.created_date).toLocaleDateString()}</p>
-                          </div>
-                          <Badge className={`text-xs ${PROPOSAL_STATUS_COLORS[proposal.status || 'draft']}`}>
-                            {(proposal.status || 'draft').charAt(0).toUpperCase() + (proposal.status || 'draft').slice(1)}
-                          </Badge>
-                        </div>
+                );
+                return (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className="bg-blue-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500">Total Pipeline</p>
+                        <p className="text-xl font-bold text-[#013f7c]">${displayTotal.toLocaleString()}</p>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
+                      <div className="bg-green-50 rounded-lg p-3">
+                        <p className="text-xs text-gray-500">Won ({displayAccepted.length})</p>
+                        <p className="text-xl font-bold text-green-700">${displayAcceptedValue.toLocaleString()}</p>
+                      </div>
+                    </div>
+                    {displayProposals.map(proposal => {
+                      const client = allClients.find(c => c.id === proposal.client_id);
+                      // For partner proposals, find the referral that links to this proposal
+                      const ref = matchedPartner ? partnerReferrals.find(r => r.invoice_id === proposal.id) : null;
+                      return (
+                        <div key={proposal.id} className="bg-white border rounded-lg p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-gray-800">${proposal.total_amount?.toLocaleString()}</p>
+                              {ref && <p className="text-sm text-gray-600 font-medium">{ref.company_name}</p>}
+                              {client && <p className="text-sm text-gray-500">{client.name}{client.company ? ` — ${client.company}` : ''}</p>}
+                              <p className="text-xs text-gray-400 mt-0.5">Created: {new Date(proposal.created_date).toLocaleDateString()}</p>
+                            </div>
+                            <Badge className={`text-xs ${PROPOSAL_STATUS_COLORS[proposal.status || 'draft']}`}>
+                              {(proposal.status || 'draft').charAt(0).toUpperCase() + (proposal.status || 'draft').slice(1)}
+                            </Badge>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </TabsContent>
 
             {/* Emails */}
