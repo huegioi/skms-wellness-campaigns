@@ -97,6 +97,25 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
     queryFn: () => base44.entities.ReferralPartner.list()
   });
 
+  const { data: allReferrals = [] } = useQuery({
+    queryKey: ['referrals'],
+    queryFn: () => base44.entities.Referral.list()
+  });
+
+  // Find the matching ReferralPartner for this lead
+  const matchedPartner = allPartners.find(p =>
+    p.email?.toLowerCase() === lead.email?.toLowerCase() ||
+    p.name?.toLowerCase() === lead.name?.toLowerCase()
+  );
+
+  // Referrals linked to this partner
+  const partnerReferrals = matchedPartner
+    ? allReferrals.filter(r => r.referral_partner_id === matchedPartner.id)
+    : [];
+
+  const referralTotalValue = partnerReferrals.reduce((sum, r) => sum + (r.first_year_revenue || 0), 0);
+  const referralCompanies = new Set(partnerReferrals.map(r => r.company_name).filter(Boolean)).size;
+
   const addReferral = async () => {
     if (!referralForm.date || !referralForm.company_name) return;
     const updated = [...(lead.referral_history || []), referralForm];
@@ -228,16 +247,16 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3 px-6 py-4 bg-gray-50 border-b flex-shrink-0">
           <div className="text-center">
-            <p className="text-2xl font-bold text-[#013f7c]">{relatedClients.length}</p>
+            <p className="text-2xl font-bold text-[#013f7c]">{matchedPartner ? referralCompanies : relatedClients.length}</p>
             <p className="text-xs text-gray-500 mt-0.5">Companies</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-gray-700">{relatedProposals.length}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Total Proposals</p>
+            <p className="text-2xl font-bold text-gray-700">{matchedPartner ? partnerReferrals.length : relatedProposals.length}</p>
+            <p className="text-xs text-gray-500 mt-0.5">Referrals</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">${acceptedValue.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Won Value</p>
+            <p className="text-2xl font-bold text-green-600">${(matchedPartner ? referralTotalValue : acceptedValue).toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mt-0.5">Referral Total Value</p>
           </div>
         </div>
 
