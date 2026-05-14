@@ -88,7 +88,7 @@ function App() {
           <NavigationTracker />
           <AuthenticatedApp />
         </Router>
-        <Toaster />
+        <Toaster closeButton position="bottom-right" />
         <VisualEditAgent />
       </QueryClientProvider>
     </AuthProvider>
