@@ -4,8 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ListTodo, AlertCircle, Users, FileText, Send, CheckCircle2, Eye } from 'lucide-react';
-import { format } from 'date-fns';
+import { ListTodo, AlertCircle, Users, FileText, Send, CheckCircle2, Eye, UserPlus, UserCheck, Calendar, ClipboardCheck, Clock } from 'lucide-react';
+import { format, isPast, addDays } from 'date-fns';
 import ClientTaskCard from '@/components/tasks/ClientTaskCard';
 import TaskList from '@/components/tasks/TaskList';
 
@@ -30,6 +30,16 @@ export default function ClientInformationSection() {
   const { data: allTasks = [] } = useQuery({
     queryKey: ['clientTasks'],
     queryFn: () => base44.entities.ClientTask.list()
+  });
+
+  const { data: leads = [] } = useQuery({
+    queryKey: ['leads'],
+    queryFn: () => base44.entities.Lead.list('-created_date', 50)
+  });
+
+  const { data: calendarEvents = [] } = useQuery({
+    queryKey: ['calendarEvents'],
+    queryFn: () => base44.entities.CalendarEvent.list('-updated_date', 50)
   });
 
   const clientsWithPendingTasks = clients.filter(client => {
@@ -100,7 +110,104 @@ export default function ClientInformationSection() {
       }
     });
 
-    return activities.sort((a, b) => b.date - a.date).slice(0, 15);
+    // New Lead Added
+    leads.slice(-10).forEach(lead => {
+      activities.push({
+        type: 'lead_added',
+        icon: UserPlus,
+        color: 'text-orange-600',
+        bgColor: 'bg-orange-50',
+        title: 'New Lead Added',
+        description: `${lead.name}${lead.company ? ' · ' + lead.company : ''}`,
+        date: new Date(lead.created_date)
+      });
+    });
+
+    // Lead Converted to Client
+    leads.filter(l => l.converted_client_id || l.status === 'current_client').forEach(lead => {
+      activities.push({
+        type: 'lead_converted',
+        icon: UserCheck,
+        color: 'text-teal-600',
+        bgColor: 'bg-teal-50',
+        title: 'Lead Converted to Client',
+        description: `${lead.name}${lead.company ? ' · ' + lead.company : ''}`,
+        date: new Date(lead.updated_date)
+      });
+    });
+
+    // Proposal Viewed
+    proposals.filter(p => p.status === 'viewed' && p.viewed_date).forEach(proposal => {
+      activities.push({
+        type: 'proposal_viewed',
+        icon: Eye,
+        color: 'text-yellow-600',
+        bgColor: 'bg-yellow-50',
+        title: 'Proposal Viewed',
+        description: `${proposal.client_name} - $${proposal.total_amount?.toLocaleString()}`,
+        date: new Date(proposal.viewed_date)
+      });
+    });
+
+    // Upcoming Events (next 7 days)
+    const now = new Date();
+    const in7Days = addDays(now, 7);
+    calendarEvents.filter(e => {
+      const start = new Date(e.start_date);
+      return start >= now && start <= in7Days && !e.completed;
+    }).forEach(event => {
+      activities.push({
+        type: 'upcoming_event',
+        icon: Calendar,
+        color: 'text-sky-600',
+        bgColor: 'bg-sky-50',
+        title: 'Upcoming Event',
+        description: `${event.title}${event.client_name ? ' · ' + event.client_name : ''}`,
+        date: new Date(event.start_date)
+      });
+    });
+
+    // Events Completed
+    calendarEvents.filter(e => e.completed && e.completed_date).forEach(event => {
+      activities.push({
+        type: 'event_completed',
+        icon: ClipboardCheck,
+        color: 'text-emerald-600',
+        bgColor: 'bg-emerald-50',
+        title: 'Event Completed',
+        description: `${event.title}${event.client_name ? ' · ' + event.client_name : ''}`,
+        date: new Date(event.completed_date)
+      });
+    });
+
+    // Tasks Completed
+    allTasks.filter(t => t.status === 'completed' && t.completed_date).slice(-15).forEach(task => {
+      const client = clients.find(c => c.id === task.client_id);
+      activities.push({
+        type: 'task_completed',
+        icon: CheckCircle2,
+        color: 'text-green-600',
+        bgColor: 'bg-green-50',
+        title: 'Task Completed',
+        description: `${task.description}${client ? ' · ' + client.name : ''}`,
+        date: new Date(task.completed_date)
+      });
+    });
+
+    // Follow-up Overdue
+    clients.filter(c => c.next_followup_date && isPast(new Date(c.next_followup_date))).forEach(client => {
+      activities.push({
+        type: 'followup_overdue',
+        icon: Clock,
+        color: 'text-red-600',
+        bgColor: 'bg-red-50',
+        title: 'Follow-up Overdue',
+        description: `${client.name} — due ${format(new Date(client.next_followup_date), 'MMM d')}`,
+        date: new Date(client.next_followup_date)
+      });
+    });
+
+    return activities.sort((a, b) => b.date - a.date).slice(0, 20);
   };
 
   const activityFeed = generateActivityFeed();
