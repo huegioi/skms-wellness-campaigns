@@ -127,6 +127,48 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const partnerAcceptedProposals = partnerProposals.filter(p => p.status === 'accepted');
   const partnerAcceptedValue = partnerAcceptedProposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
 
+  // Calculate adjusted revenue: wellness box line items count at 50%
+  const calcAdjustedRevenue = (proposal) => {
+    if (!proposal) return 0;
+    const s = proposal.selections || {};
+    const overrides = s.priceOverrides || {};
+    const customCharges = s.customCharges || [];
+
+    // Box prices (same as EditProposal)
+    const BOX_PRICES = {
+      reduceStress: 60, relaxationSleep: 60, largeEmotional: 100,
+      largeStressReduction: 120, stressReductionDigital: 50,
+      beyondBurnoutDigital: 100, emotionalWellness: 100,
+      wintertimeHealthy: 100, newYearFreshStart: 100
+    };
+
+    // Non-box items: workshops, challenges, leadership, classes
+    let nonBoxTotal = 0;
+    const challengePrice = s.challengePrice || 0;
+    (s.workshops || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
+    (s.challengePrograms || []).forEach(id => nonBoxTotal += (overrides[id] ?? challengePrice));
+    (s.leadership || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
+    (s.movementClasses || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
+    customCharges.forEach(c => nonBoxTotal += (c.amount || 0));
+
+    // Box items (count at 50%)
+    let boxTotal = 0;
+    const boxQtys = s.sampleBoxQuantities || {};
+    Object.entries(boxQtys).forEach(([key, qty]) => {
+      boxTotal += (qty || 0) * (BOX_PRICES[key] || 0);
+    });
+    const customBoxQty = s.customBoxQuantity || 0;
+    const customBoxItems = s.customBoxItems || [];
+    if (customBoxQty > 0 && customBoxItems.length > 0) {
+      const unitPrice = customBoxItems.reduce((sum, item) => sum + (item.price || 0), 0);
+      boxTotal += customBoxQty * unitPrice;
+    }
+
+    const adjustedTotal = nonBoxTotal + (boxTotal * 0.5);
+    // Fall back to stored total_amount if selections didn't parse meaningfully
+    return adjustedTotal > 0 ? adjustedTotal : proposal.total_amount || 0;
+  };
+
   const addReferral = async () => {
     if (!referralForm.date || !referralForm.company_name) return;
     const updated = [...(lead.referral_history || []), referralForm];
@@ -151,7 +193,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
       const linkedProposal = referralForm.proposal_id
         ? allProposals.find(p => p.id === referralForm.proposal_id)
         : null;
-      const firstYearRevenue = linkedProposal?.total_amount || 0;
+      const firstYearRevenue = calcAdjustedRevenue(linkedProposal);
 
       // Find applicable commission tier
       const ytdRevenue = (partner.ytd_revenue || 0) + firstYearRevenue;
