@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock } from 'lucide-react';
+import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, ChevronDown } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GmailHistory from '@/components/clients/GmailHistory';
 import { toast } from 'sonner';
 
@@ -37,7 +38,7 @@ const PROPOSAL_STATUS_COLORS = {
   declined: 'bg-red-100 text-red-700',
 };
 
-const EMPTY_REFERRAL = { date: '', company_name: '', contact_name: '', notes: '' };
+const EMPTY_REFERRAL = { date: '', company_name: '', contact_name: '', notes: '', client_id: '', proposal_id: '' };
 
 export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const [activeTab, setActiveTab] = useState('overview');
@@ -263,10 +264,48 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                       <Input type="date" value={referralForm.date} onChange={e => setReferralForm({...referralForm, date: e.target.value})} />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">Company Name *</label>
-                      <Input placeholder="e.g. Acme Corp" value={referralForm.company_name} onChange={e => setReferralForm({...referralForm, company_name: e.target.value})} />
+                      <label className="text-xs text-gray-500 mb-1 block">Company *</label>
+                      <Select
+                        value={referralForm.client_id}
+                        onValueChange={val => {
+                          const client = allClients.find(c => c.id === val);
+                          setReferralForm({ ...referralForm, client_id: val, company_name: client?.company || client?.name || '', proposal_id: '' });
+                        }}
+                      >
+                        <SelectTrigger className="bg-white">
+                          <SelectValue placeholder="Select a company..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allClients.filter(c => c.company || c.name).map(c => (
+                            <SelectItem key={c.id} value={c.id}>{c.company || c.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
+                  {referralForm.client_id && (() => {
+                    const clientProposals = allProposals.filter(p => p.client_id === referralForm.client_id);
+                    return clientProposals.length > 0 ? (
+                      <div>
+                        <label className="text-xs text-gray-500 mb-1 block">Link a Proposal (optional)</label>
+                        <Select
+                          value={referralForm.proposal_id}
+                          onValueChange={val => setReferralForm({ ...referralForm, proposal_id: val })}
+                        >
+                          <SelectTrigger className="bg-white">
+                            <SelectValue placeholder="Select a proposal..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {clientProposals.map(p => (
+                              <SelectItem key={p.id} value={p.id}>
+                                ${p.total_amount?.toLocaleString()} — {(p.status || 'draft').charAt(0).toUpperCase() + (p.status || 'draft').slice(1)} ({new Date(p.created_date).toLocaleDateString()})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ) : null;
+                  })()}
                   <Input placeholder="Contact Name (optional)" value={referralForm.contact_name} onChange={e => setReferralForm({...referralForm, contact_name: e.target.value})} />
                   <Textarea placeholder="Notes (optional)" rows={2} value={referralForm.notes} onChange={e => setReferralForm({...referralForm, notes: e.target.value})} />
                   <div className="flex gap-2">
