@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     const payload = {
       personalizations: [{ to: [{ email: to }] }],
       from: {
-        email: from_email || 'noreply@skms-wellness.com',
+        email: from_email || 'admin@skillfulmeans.life',
         name: from_name || 'SKMS Wellness'
       },
       subject,
