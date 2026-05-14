@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Copy, ExternalLink, Edit, Users, DollarSign, Check } from 'lucide-react';
+import { Plus, Copy, ExternalLink, Edit, Users, DollarSign, Check, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -35,10 +35,17 @@ export default function ReferralPartnerAdmin() {
   const [form, setForm] = useState(EMPTY_FORM);
   const [copiedId, setCopiedId] = useState(null);
 
+  const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+
   const { data: partners = [], isLoading } = useQuery({
     queryKey: ['referralPartners'],
     queryFn: () => base44.entities.ReferralPartner.list('-created_date')
   });
+
+  const existingCompanies = useMemo(() => {
+    const companies = partners.map(p => p.company).filter(Boolean);
+    return [...new Set(companies)].sort();
+  }, [partners]);
 
   const { data: referrals = [] } = useQuery({
     queryKey: ['referrals'],
@@ -193,9 +200,45 @@ export default function ReferralPartnerAdmin() {
                 <label className="text-sm font-medium text-gray-700 block mb-1">Email *</label>
                 <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
               </div>
-              <div>
+              <div className="relative">
                 <label className="text-sm font-medium text-gray-700 block mb-1">Company</label>
-                <Input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} />
+                <div className="flex gap-1">
+                  <Input
+                    value={form.company}
+                    onChange={e => setForm(f => ({ ...f, company: e.target.value }))}
+                    placeholder="Type or select company"
+                    onFocus={() => setCompanyDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setCompanyDropdownOpen(false), 150)}
+                  />
+                  {existingCompanies.length > 0 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      onMouseDown={e => { e.preventDefault(); setCompanyDropdownOpen(o => !o); }}
+                    >
+                      <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                {companyDropdownOpen && existingCompanies.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    {existingCompanies
+                      .filter(c => !form.company || c.toLowerCase().includes(form.company.toLowerCase()))
+                      .map(c => (
+                        <button
+                          key={c}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-700"
+                          onMouseDown={() => { setForm(f => ({ ...f, company: c })); setCompanyDropdownOpen(false); }}
+                        >
+                          {c}
+                        </button>
+                      ))
+                    }
+                  </div>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Phone</label>
