@@ -62,9 +62,9 @@ Fill in whatever you can find. If a field is not present, leave it as an empty s
           }
         }
       });
-      // InvokeLLM with response_json_schema returns the object directly,
-      // but the frontend SDK may wrap it — unwrap if needed.
-      const result = rawResult?.name !== undefined ? rawResult : (rawResult?.data ?? rawResult);
+      const result = typeof rawResult === 'object' && rawResult !== null
+        ? (rawResult.name || rawResult.email || rawResult.company ? rawResult : rawResult.data ?? rawResult)
+        : {};
       setForm(prev => ({
         ...prev,
         name: result.name || prev.name,
@@ -103,7 +103,7 @@ Fill in whatever you can find. If a field is not present, leave it as an empty s
     setScanningLinkedIn(true);
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      const result = await base44.integrations.Core.InvokeLLM({
+      const rawResult = await base44.integrations.Core.InvokeLLM({
         prompt: `Extract professional contact information from this LinkedIn profile screenshot. Return ONLY what you can see:
 - name (full name)
 - title (current job title/position)
@@ -125,7 +125,10 @@ Leave fields as empty string if not visible.`,
           }
         }
       });
-      const data = result?.name !== undefined ? result : (result?.data ?? result);
+      // InvokeLLM with json schema returns the parsed object directly
+      const data = typeof rawResult === 'object' && rawResult !== null
+        ? (rawResult.name || rawResult.company || rawResult.title ? rawResult : rawResult.data ?? rawResult)
+        : {};
       setForm(prev => ({
         ...prev,
         name: data.name || prev.name,
@@ -137,7 +140,11 @@ Leave fields as empty string if not visible.`,
         outreach_channel: 'linkedin',
         source: prev.source || 'LinkedIn',
       }));
-      toast.success('LinkedIn profile scanned! Please review the fields.');
+      if (!data.name && !data.title && !data.company) {
+        toast.warning('Scan complete but no info found — try a clearer screenshot.');
+      } else {
+        toast.success('LinkedIn profile scanned! Please review the fields.');
+      }
     } catch (err) {
       toast.error('Could not read screenshot: ' + err.message);
     } finally {
