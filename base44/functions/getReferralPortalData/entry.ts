@@ -30,12 +30,11 @@ Deno.serve(async (req) => {
     return true;
   }).sort((a, b) => a.company.localeCompare(b.company));
 
-  // Get proposals for clients that were referred by this partner, to allow linking
-  const referredClientIds = referrals.map(r => r.referred_client_id).filter(Boolean);
-  const proposals = referredClientIds.length > 0
-    ? await base44.asServiceRole.entities.Proposal.list('-created_date')
-    : [];
-  const partnerProposals = proposals.filter(p => referredClientIds.includes(p.client_id));
+  // Get ALL proposals so partners can link any existing client proposal to a new referral
+  const allProposals = await base44.asServiceRole.entities.Proposal.list('-created_date');
+  // Only include proposals that match one of the known client companies
+  const clientIdSet = new Set(clients.map(c => c.id));
+  const partnerProposals = allProposals.filter(p => p.client_id && clientIdSet.has(p.client_id));
 
   // Calculate commission summary
   const currentYear = new Date().getFullYear();

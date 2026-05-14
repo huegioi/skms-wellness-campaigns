@@ -320,7 +320,7 @@ export default function ReferralPortal() {
                   </div>
                   {/* Proposal selector — shown when a known company is selected */}
                   {(() => {
-                    const matchedClient = client_companies.find(c => c.company === form.company_name);
+                    const matchedClient = client_companies.find(c => c.company.toLowerCase() === form.company_name.toLowerCase());
                     const availableProposals = partner_proposals.filter(p => matchedClient && p.client_id === matchedClient.id);
                     if (!matchedClient || availableProposals.length === 0) return null;
                     return (
@@ -334,7 +334,7 @@ export default function ReferralPortal() {
                           <option value="">No proposal linked</option>
                           {availableProposals.map(p => (
                             <option key={p.id} value={p.id}>
-                              ${p.total_amount?.toLocaleString()} — {p.status} — {new Date(p.created_date).toLocaleDateString()}
+                              ${p.total_amount?.toLocaleString()} · {p.status} · {p.created_date ? new Date(p.created_date).toLocaleDateString() : ''}
                             </option>
                           ))}
                         </select>
