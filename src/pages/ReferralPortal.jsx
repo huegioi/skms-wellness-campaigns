@@ -36,7 +36,7 @@ export default function ReferralPortal() {
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [form, setForm] = useState({ contact_name: '', contact_email: '', company_name: '', notes: '' });
+  const [form, setForm] = useState({ contact_name: '', contact_email: '', company_name: '', notes: '', proposal_id: '' });
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export default function ReferralPortal() {
       await base44.functions.invoke('createReferral', { portal_id: portalId, ...form });
       setSubmitted(true);
       setShowForm(false);
-      setForm({ contact_name: '', contact_email: '', company_name: '', notes: '' });
+      setForm({ contact_name: '', contact_email: '', company_name: '', notes: '', proposal_id: '' });
       await loadData();
     } catch (err) {
       console.error('Failed to submit referral:', err);
@@ -100,7 +100,7 @@ export default function ReferralPortal() {
     );
   }
 
-  const { partner, referrals, commission_summary, client_companies = [] } = data;
+  const { partner, referrals, commission_summary, client_companies = [], partner_proposals = [] } = data;
   const tiers = partner.commission_tiers || [];
 
   return (
@@ -284,7 +284,7 @@ export default function ReferralPortal() {
                     <div className="flex gap-1">
                       <Input
                         value={form.company_name}
-                        onChange={e => setForm(f => ({ ...f, company_name: e.target.value }))}
+                        onChange={e => setForm(f => ({ ...f, company_name: e.target.value, proposal_id: '' }))}
                         placeholder="Company or organization"
                         onFocus={() => setCompanyDropdownOpen(true)}
                         onBlur={() => setTimeout(() => setCompanyDropdownOpen(false), 150)}
@@ -302,21 +302,45 @@ export default function ReferralPortal() {
                     {companyDropdownOpen && client_companies.length > 0 && (
                       <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
                         {client_companies
-                          .filter(c => !form.company_name || c.toLowerCase().includes(form.company_name.toLowerCase()))
+                          .filter(c => !form.company_name || c.company.toLowerCase().includes(form.company_name.toLowerCase()))
                           .map(c => (
                             <button
-                              key={c}
+                              key={c.id}
                               type="button"
                               className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-700"
-                              onMouseDown={() => { setForm(f => ({ ...f, company_name: c })); setCompanyDropdownOpen(false); }}
+                              onMouseDown={() => { setForm(f => ({ ...f, company_name: c.company, proposal_id: '' })); setCompanyDropdownOpen(false); }}
                             >
-                              {c}
+                              <span className="font-medium">{c.company}</span>
+                              {c.name && c.name !== c.company && <span className="text-gray-400 ml-1 text-xs">— {c.name}</span>}
                             </button>
                           ))
                         }
                       </div>
                     )}
                   </div>
+                  {/* Proposal selector — shown when a known company is selected */}
+                  {(() => {
+                    const matchedClient = client_companies.find(c => c.company === form.company_name);
+                    const availableProposals = partner_proposals.filter(p => matchedClient && p.client_id === matchedClient.id);
+                    if (!matchedClient || availableProposals.length === 0) return null;
+                    return (
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-1">Link a Proposal (optional)</label>
+                        <select
+                          className="w-full border border-input rounded-md px-3 py-2 text-sm bg-white"
+                          value={form.proposal_id}
+                          onChange={e => setForm(f => ({ ...f, proposal_id: e.target.value }))}
+                        >
+                          <option value="">No proposal linked</option>
+                          {availableProposals.map(p => (
+                            <option key={p.id} value={p.id}>
+                              ${p.total_amount?.toLocaleString()} — {p.status} — {new Date(p.created_date).toLocaleDateString()}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>

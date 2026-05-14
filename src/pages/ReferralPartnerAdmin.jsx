@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Copy, ExternalLink, Edit, Users, DollarSign, Check, ChevronDown } from 'lucide-react';
+import { Plus, Copy, ExternalLink, Edit, Users, DollarSign, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -36,6 +36,7 @@ export default function ReferralPartnerAdmin() {
   const [copiedId, setCopiedId] = useState(null);
 
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+  const [expandedPartner, setExpandedPartner] = useState(null);
 
   const { data: partners = [], isLoading } = useQuery({
     queryKey: ['referralPartners'],
@@ -49,7 +50,7 @@ export default function ReferralPartnerAdmin() {
 
   const { data: referrals = [] } = useQuery({
     queryKey: ['referrals'],
-    queryFn: () => base44.entities.Referral.list()
+    queryFn: () => base44.entities.Referral.list('-created_date')
   });
 
   const saveMutation = useMutation({
@@ -126,7 +127,7 @@ export default function ReferralPartnerAdmin() {
       ) : (
         <div className="space-y-4">
           {partners.map(partner => {
-            const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id);
+            const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id && r.referral_partner_id);
             const totalCommission = partnerReferrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
             return (
               <Card key={partner.id}>
@@ -175,8 +176,37 @@ export default function ReferralPartnerAdmin() {
                       <Button variant="outline" size="sm" onClick={() => openEdit(partner)} className="gap-1">
                         <Edit className="w-4 h-4" /> Edit
                       </Button>
+                      {partnerReferrals.length > 0 && (
+                        <Button variant="ghost" size="sm" onClick={() => setExpandedPartner(expandedPartner === partner.id ? null : partner.id)}>
+                          {expandedPartner === partner.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          {expandedPartner === partner.id ? 'Hide' : 'View'} Referrals
+                        </Button>
+                      )}
                     </div>
                   </div>
+                  {expandedPartner === partner.id && (
+                    <div className="mt-4 border-t pt-4 space-y-2">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Referrals ({partnerReferrals.length})</p>
+                      {partnerReferrals.map(r => (
+                        <div key={r.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
+                          <div>
+                            <span className="font-medium text-gray-800">{r.contact_name}</span>
+                            {r.company_name && <span className="text-gray-500 ml-1">— {r.company_name}</span>}
+                            <span className="text-gray-400 ml-2 text-xs">{r.referral_date ? format(new Date(r.referral_date), 'MMM d, yyyy') : ''}</span>
+                          </div>
+                          <Badge className={
+                            r.status === 'commission_paid' ? 'bg-purple-100 text-purple-700' :
+                            r.status === 'purchased' ? 'bg-emerald-100 text-emerald-700' :
+                            r.status === 'converted_to_client' ? 'bg-green-100 text-green-700' :
+                            r.status === 'contacted' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-blue-100 text-blue-700'
+                          }>
+                            {r.status?.replace(/_/g, ' ')}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );

@@ -17,9 +17,25 @@ Deno.serve(async (req) => {
   // Get all referrals for this partner
   const referrals = await base44.asServiceRole.entities.Referral.filter({ referral_partner_id: partner.id });
 
-  // Get existing client companies for the referral form dropdown
+  // Get existing clients with their proposals for the referral form dropdown
   const clients = await base44.asServiceRole.entities.Client.list();
-  const clientCompanies = [...new Set(clients.map(c => c.company).filter(Boolean))].sort();
+  const clientCompanies = clients
+    .filter(c => c.company)
+    .map(c => ({ id: c.id, company: c.company, name: c.name, email: c.email }));
+  // Deduplicate by company name, keeping first match
+  const seen = new Set();
+  const uniqueClientCompanies = clientCompanies.filter(c => {
+    if (seen.has(c.company)) return false;
+    seen.add(c.company);
+    return true;
+  }).sort((a, b) => a.company.localeCompare(b.company));
+
+  // Get proposals for clients that were referred by this partner, to allow linking
+  const referredClientIds = referrals.map(r => r.referred_client_id).filter(Boolean);
+  const proposals = referredClientIds.length > 0
+    ? await base44.asServiceRole.entities.Proposal.list('-created_date')
+    : [];
+  const partnerProposals = proposals.filter(p => referredClientIds.includes(p.client_id));
 
   // Calculate commission summary
   const currentYear = new Date().getFullYear();
@@ -56,7 +72,8 @@ Deno.serve(async (req) => {
       is_active: partner.is_active
     },
     referrals,
-    client_companies: clientCompanies,
+    client_companies: uniqueClientCompanies,
+    partner_proposals: partnerProposals,
     commission_summary: {
       ytd_revenue: ytdRevenue,
       current_tier: currentTier,
