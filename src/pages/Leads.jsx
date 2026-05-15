@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, UserCheck, MapPin, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, TrendingUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, DollarSign, Edit, Check } from 'lucide-react';
+import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, UserCheck, MapPin, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, TrendingUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, DollarSign, Edit, Check, TrendingDown } from 'lucide-react';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
 import { toast } from 'sonner';
@@ -295,6 +295,37 @@ export default function Leads() {
     }
   });
 
+  const deletePartnerMutation = useMutation({
+    mutationFn: (id) => base44.entities.ReferralPartner.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
+      setShowPartnerDialog(false);
+      setEditingPartner(null);
+      shadToast({ title: 'Partner deleted' });
+    }
+  });
+
+  const [newReferralForm, setNewReferralForm] = useState({ contact_name: '', contact_email: '', company_name: '', notes: '' });
+  const [showAddReferral, setShowAddReferral] = useState(false);
+
+  const addReferralMutation = useMutation({
+    mutationFn: (data) => base44.entities.Referral.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['referrals'] });
+      setNewReferralForm({ contact_name: '', contact_email: '', company_name: '', notes: '' });
+      setShowAddReferral(false);
+      shadToast({ title: 'Referral added' });
+    }
+  });
+
+  const deleteReferralMutation = useMutation({
+    mutationFn: (id) => base44.entities.Referral.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['referrals'] });
+      shadToast({ title: 'Referral deleted' });
+    }
+  });
+
   const openNewPartner = () => { setEditingPartner(null); setPartnerForm(EMPTY_PARTNER_FORM); setShowPartnerDialog(true); };
   const openEditPartner = (partner) => {
     setEditingPartner(partner);
@@ -306,6 +337,8 @@ export default function Leads() {
       commission_tiers: partner.commission_tiers?.length ? partner.commission_tiers : DEFAULT_TIERS,
       is_active: partner.is_active !== false
     });
+    setShowAddReferral(false);
+    setNewReferralForm({ contact_name: '', contact_email: '', company_name: '', notes: '' });
     setShowPartnerDialog(true);
   };
   const copyPortalLink = (partner) => {
@@ -854,6 +887,16 @@ export default function Leads() {
                 {referralPartners.map(partner => {
                   const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id);
                   const totalCommission = partnerReferrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
+                  const totalRevenue = partnerReferrals.reduce((sum, r) => sum + (r.first_year_revenue || 0), 0);
+                  const convertedReferrals = partnerReferrals.filter(r => ['converted_to_client','purchased','commission_paid'].includes(r.status));
+                  const pendingCommission = partnerReferrals.filter(r => r.status === 'purchased').reduce((sum, r) => sum + (r.commission_amount || 0), 0);
+                  const paidCommission = partnerReferrals.filter(r => r.status === 'commission_paid').reduce((sum, r) => sum + (r.commission_amount || 0), 0);
+
+                  // Determine current tier
+                  const ytd = partner.ytd_revenue || 0;
+                  const tiers = partner.commission_tiers || [];
+                  const currentTier = tiers.slice().reverse().find(t => ytd >= (t.min_revenue || 0));
+
                   return (
                     <Card key={partner.id}>
                       <CardContent className="pt-5">
@@ -864,14 +907,36 @@ export default function Leads() {
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${partner.is_active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                                 {partner.is_active !== false ? 'Active' : 'Inactive'}
                               </span>
+                              {currentTier && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{currentTier.label}</span>}
                             </div>
                             {partner.company && <p className="text-gray-500 text-sm">{partner.company}</p>}
                             <p className="text-gray-400 text-sm">{partner.email}</p>
-                            <div className="flex items-center gap-4 mt-3 text-sm">
-                              <span className="flex items-center gap-1 text-blue-700"><Users className="w-4 h-4" />{partnerReferrals.length} referral{partnerReferrals.length !== 1 ? 's' : ''}</span>
-                              <span className="flex items-center gap-1 text-green-700"><DollarSign className="w-4 h-4" />${totalCommission.toLocaleString()} earned</span>
-                              {partner.agreement_signed_date && <span className="text-gray-400">Agreement signed {format(new Date(partner.agreement_signed_date), 'MMM d, yyyy')}</span>}
+
+                            {/* Financial summary grid */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+                              <div className="bg-blue-50 rounded-lg px-3 py-2 text-center">
+                                <p className="text-xs text-blue-600 font-medium">Referrals</p>
+                                <p className="text-lg font-bold text-blue-800">{partnerReferrals.length}</p>
+                                <p className="text-xs text-blue-500">{convertedReferrals.length} converted</p>
+                              </div>
+                              <div className="bg-emerald-50 rounded-lg px-3 py-2 text-center">
+                                <p className="text-xs text-emerald-600 font-medium">Total Revenue</p>
+                                <p className="text-lg font-bold text-emerald-800">${totalRevenue.toLocaleString()}</p>
+                                <p className="text-xs text-emerald-500">YTD: ${ytd.toLocaleString()}</p>
+                              </div>
+                              <div className="bg-amber-50 rounded-lg px-3 py-2 text-center">
+                                <p className="text-xs text-amber-600 font-medium">Pending Comm.</p>
+                                <p className="text-lg font-bold text-amber-800">${pendingCommission.toLocaleString()}</p>
+                                <p className="text-xs text-amber-500">awaiting payment</p>
+                              </div>
+                              <div className="bg-purple-50 rounded-lg px-3 py-2 text-center">
+                                <p className="text-xs text-purple-600 font-medium">Paid Comm.</p>
+                                <p className="text-lg font-bold text-purple-800">${paidCommission.toLocaleString()}</p>
+                                <p className="text-xs text-purple-500">of ${totalCommission.toLocaleString()} total</p>
+                              </div>
                             </div>
+
+                            {partner.agreement_signed_date && <p className="text-gray-400 text-xs mt-2">Agreement signed {format(new Date(partner.agreement_signed_date), 'MMM d, yyyy')}</p>}
                           </div>
                           <div className="flex items-center gap-2 flex-wrap">
                             <Button variant="outline" size="sm" className="gap-1" onClick={() => copyPortalLink(partner)}>
@@ -922,9 +987,19 @@ export default function Leads() {
       </div>
 
       {/* Referral Partner Add/Edit Dialog */}
-      <Dialog open={showPartnerDialog} onOpenChange={v => { setShowPartnerDialog(v); if (!v) setEditingPartner(null); }}>
+      <Dialog open={showPartnerDialog} onOpenChange={v => { setShowPartnerDialog(v); if (!v) { setEditingPartner(null); setShowAddReferral(false); } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editingPartner ? 'Edit Partner' : 'Add Referral Partner'}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <div className="flex items-center justify-between pr-6">
+              <DialogTitle>{editingPartner ? 'Edit Partner' : 'Add Referral Partner'}</DialogTitle>
+              {editingPartner && (
+                <Button type="button" variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50 gap-1"
+                  onClick={() => { if (window.confirm('Delete this partner portal? This cannot be undone.')) deletePartnerMutation.mutate(editingPartner.id); }}>
+                  <Trash2 className="w-4 h-4" /> Delete Portal
+                </Button>
+              )}
+            </div>
+          </DialogHeader>
           <form onSubmit={e => { e.preventDefault(); savePartnerMutation.mutate(partnerForm); }} className="space-y-5 mt-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -999,6 +1074,94 @@ export default function Leads() {
               <Button type="button" variant="outline" onClick={() => setShowPartnerDialog(false)}>Cancel</Button>
             </div>
           </form>
+
+          {/* Referrals section — only when editing */}
+          {editingPartner && (() => {
+            const partnerReferrals = referrals.filter(r => r.referral_partner_id === editingPartner.id);
+            return (
+              <div className="border-t pt-5 mt-2">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-700">Referrals ({partnerReferrals.length})</h3>
+                  <Button type="button" size="sm" variant="outline" className="gap-1" onClick={() => setShowAddReferral(v => !v)}>
+                    <Plus className="w-3.5 h-3.5" /> Add Referral
+                  </Button>
+                </div>
+
+                {/* Add referral form */}
+                {showAddReferral && (
+                  <div className="bg-blue-50 rounded-lg p-4 mb-4 space-y-3">
+                    <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">New Referral</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs text-gray-600 block mb-1">Contact Name *</label>
+                        <Input className="bg-white" value={newReferralForm.contact_name} onChange={e => setNewReferralForm(f => ({ ...f, contact_name: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600 block mb-1">Contact Email</label>
+                        <Input className="bg-white" type="email" value={newReferralForm.contact_email} onChange={e => setNewReferralForm(f => ({ ...f, contact_email: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600 block mb-1">Company</label>
+                        <Input className="bg-white" value={newReferralForm.company_name} onChange={e => setNewReferralForm(f => ({ ...f, company_name: e.target.value }))} />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600 block mb-1">Notes</label>
+                        <Input className="bg-white" value={newReferralForm.notes} onChange={e => setNewReferralForm(f => ({ ...f, notes: e.target.value }))} />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="button" size="sm" className="bg-[#013f7c] hover:bg-[#012d5a] text-white"
+                        disabled={!newReferralForm.contact_name || addReferralMutation.isPending}
+                        onClick={() => addReferralMutation.mutate({
+                          referral_partner_id: editingPartner.id,
+                          referral_partner_name: editingPartner.name,
+                          contact_name: newReferralForm.contact_name,
+                          contact_email: newReferralForm.contact_email,
+                          company_name: newReferralForm.company_name,
+                          notes: newReferralForm.notes,
+                          referral_date: new Date().toISOString(),
+                          status: 'submitted'
+                        })}>
+                        {addReferralMutation.isPending ? 'Adding...' : 'Add Referral'}
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" onClick={() => setShowAddReferral(false)}>Cancel</Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Existing referrals list */}
+                {partnerReferrals.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic py-2">No referrals yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {partnerReferrals.map(r => (
+                      <div key={r.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 text-sm">
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium text-gray-800">{r.contact_name}</span>
+                          {r.company_name && <span className="text-gray-500 ml-1.5">— {r.company_name}</span>}
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                              r.status === 'commission_paid' ? 'bg-purple-100 text-purple-700' :
+                              r.status === 'purchased' ? 'bg-emerald-100 text-emerald-700' :
+                              r.status === 'converted_to_client' ? 'bg-green-100 text-green-700' :
+                              r.status === 'contacted' ? 'bg-yellow-100 text-yellow-700' :
+                              'bg-blue-100 text-blue-700'
+                            }`}>{r.status?.replace(/_/g, ' ')}</span>
+                            {r.referral_date && <span className="text-xs text-gray-400">{format(new Date(r.referral_date), 'MMM d, yyyy')}</span>}
+                            {r.commission_amount > 0 && <span className="text-xs text-green-700 font-medium">${r.commission_amount.toLocaleString()} comm.</span>}
+                          </div>
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" className="text-red-400 hover:text-red-600 shrink-0"
+                          onClick={() => { if (window.confirm('Delete this referral?')) deleteReferralMutation.mutate(r.id); }}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
