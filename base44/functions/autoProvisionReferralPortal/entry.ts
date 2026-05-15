@@ -11,6 +11,12 @@ Deno.serve(async (req) => {
     return Response.json({ skipped: true });
   }
 
+  // Validate that lead has a proper email address before provisioning
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!lead.email || !emailRegex.test(lead.email)) {
+    return Response.json({ skipped: true, reason: 'Lead email is missing or invalid — not provisioning portal' });
+  }
+
   // Check if a ReferralPartner already exists for this lead (by email)
   const existing = await base44.asServiceRole.entities.ReferralPartner.filter({ email: lead.email });
   if (existing && existing.length > 0) {
@@ -27,8 +33,11 @@ Deno.serve(async (req) => {
     { label: 'Tier 3', min_revenue: 100000, max_revenue: null, rate: 0.12 },
   ];
 
+  // Clean name: strip any email addresses that may have been concatenated
+  const cleanName = (lead.name || '').replace(/\s*[^\s@]+@[^\s@]+\.[^\s@]+/g, '').trim();
+
   const partner = await base44.asServiceRole.entities.ReferralPartner.create({
-    name: lead.name,
+    name: cleanName || lead.name,
     email: lead.email,
     company: lead.company || '',
     phone: lead.phone || '',
