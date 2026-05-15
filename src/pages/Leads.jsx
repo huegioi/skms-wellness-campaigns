@@ -9,11 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, UserCheck, MapPin, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, TrendingUp, AlertCircle, Handshake, Clock, ScanText, Share2 } from 'lucide-react';
+import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, UserCheck, MapPin, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, TrendingUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, DollarSign, Edit, Check } from 'lucide-react';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
+import { useToast } from '@/components/ui/use-toast';
+import { format } from 'date-fns';
+import { Card, CardContent } from '@/components/ui/card';
+import { Textarea as TextareaUI } from '@/components/ui/textarea';
 
 const STATUS_CONFIG = {
   cold:               { label: 'Cold',              color: 'bg-slate-100 text-slate-700 border-slate-300', chart: '#94a3b8' },
@@ -207,9 +211,26 @@ function ActivePartnerTiles({ activePartners, onSelect }) {
   );
 }
 
+const DEFAULT_TIERS = [
+  { label: 'Introducing Partner', min_revenue: 0, max_revenue: 74999, rate: 0.10 },
+  { label: 'Active Partner', min_revenue: 75000, max_revenue: 149999, rate: 0.125 },
+  { label: 'Strategic Partner', min_revenue: 150000, max_revenue: null, rate: 0.15 },
+];
+
+const EMPTY_PARTNER_FORM = {
+  name: '', email: '', company: '', phone: '', notes: '',
+  agreement_file_url: '', agreement_signed_date: '',
+  commission_tiers: DEFAULT_TIERS, is_active: true
+};
+
+function generatePortalId() {
+  return Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+}
+
 export default function Leads() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { toast: shadToast } = useToast();
   const [activeTab, setActiveTab] = useState('broker_leads');
 
   // Outreach brokers state
@@ -231,6 +252,14 @@ export default function Leads() {
   const [viewingBrokerLead, setViewingBrokerLead] = useState(null);
   const [showActivePartnersModal, setShowActivePartnersModal] = useState(false);
 
+  // Referral Portals (ReferralPartnerAdmin) state
+  const [showPartnerDialog, setShowPartnerDialog] = useState(false);
+  const [editingPartner, setEditingPartner] = useState(null);
+  const [partnerForm, setPartnerForm] = useState(EMPTY_PARTNER_FORM);
+  const [copiedId, setCopiedId] = useState(null);
+  const [expandedPartner, setExpandedPartner] = useState(null);
+  const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+
   const { data: allLeads = [], isLoading } = useQuery({
     queryKey: ['leads'],
     queryFn: () => base44.entities.Lead.list('-created_date')
@@ -240,6 +269,55 @@ export default function Leads() {
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list()
   });
+
+  const { data: referralPartners = [], isLoading: partnersLoading } = useQuery({
+    queryKey: ['referralPartners'],
+    queryFn: () => base44.entities.ReferralPartner.list('-created_date')
+  });
+
+  const { data: referrals = [] } = useQuery({
+    queryKey: ['referrals'],
+    queryFn: () => base44.entities.Referral.list('-created_date')
+  });
+
+  const existingCompanies = [...new Set(referralPartners.map(p => p.company).filter(Boolean))].sort();
+
+  const savePartnerMutation = useMutation({
+    mutationFn: async (data) => {
+      if (editingPartner) return base44.entities.ReferralPartner.update(editingPartner.id, data);
+      return base44.entities.ReferralPartner.create({ ...data, unique_portal_id: generatePortalId() });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
+      setShowPartnerDialog(false);
+      setEditingPartner(null);
+      shadToast({ title: editingPartner ? 'Partner updated' : 'Partner created' });
+    }
+  });
+
+  const openNewPartner = () => { setEditingPartner(null); setPartnerForm(EMPTY_PARTNER_FORM); setShowPartnerDialog(true); };
+  const openEditPartner = (partner) => {
+    setEditingPartner(partner);
+    setPartnerForm({
+      name: partner.name || '', email: partner.email || '', company: partner.company || '',
+      phone: partner.phone || '', notes: partner.notes || '',
+      agreement_file_url: partner.agreement_file_url || '',
+      agreement_signed_date: partner.agreement_signed_date || '',
+      commission_tiers: partner.commission_tiers?.length ? partner.commission_tiers : DEFAULT_TIERS,
+      is_active: partner.is_active !== false
+    });
+    setShowPartnerDialog(true);
+  };
+  const copyPortalLink = (partner) => {
+    navigator.clipboard.writeText(`${window.location.origin}/ReferralPortal?id=${partner.unique_portal_id}`);
+    setCopiedId(partner.id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+  const updateTier = (i, field, value) => {
+    const tiers = [...partnerForm.commission_tiers];
+    tiers[i] = { ...tiers[i], [field]: field === 'rate' ? parseFloat(value) || 0 : field.includes('revenue') ? (value === '' ? null : parseFloat(value)) : value };
+    setPartnerForm(f => ({ ...f, commission_tiers: tiers }));
+  };
 
   const clientEmails = new Set(clients.map(c => c.email?.toLowerCase()).filter(Boolean));
 
@@ -593,6 +671,7 @@ export default function Leads() {
   const TAB_ITEMS = [
     { id: 'broker_leads', label: 'Referral Partners', icon: Star, count: brokerLeads.length },
     { id: 'outreach',     label: 'Outreach Brokers & ECs', icon: Users, count: outreachLeads.length },
+    { id: 'portals',      label: 'Referral Portals', icon: Share2, count: referralPartners.length },
   ];
 
   return (
@@ -602,9 +681,6 @@ export default function Leads() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#013f7c' }}>Partners</h1>
-            <Button variant="outline" className="gap-2 border-[#013f7c] text-[#013f7c]" onClick={() => navigate('/ReferralPartnerAdmin')}>
-              <Share2 className="w-4 h-4" /> Referral Portals
-            </Button>
           </div>
           <div className="flex gap-1">
             {TAB_ITEMS.map(tab => {
@@ -756,8 +832,175 @@ export default function Leads() {
               </div>
             )}
           </TabsContent>
+          {/* ── Referral Portals Tab ─────────────────────────────────────── */}
+          <TabsContent value="portals">
+            <div className="flex justify-between items-center mb-6">
+              <p className="text-sm text-gray-500">Manage broker referral partners and their portal access</p>
+              <Button onClick={openNewPartner} className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2">
+                <Plus className="w-4 h-4" /> Add Partner
+              </Button>
+            </div>
+            {partnersLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <div className="w-8 h-8 border-4 border-[#013f7c] border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : referralPartners.length === 0 ? (
+              <Card><CardContent className="text-center py-16">
+                <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No referral partners yet. Add your first partner to get started.</p>
+              </CardContent></Card>
+            ) : (
+              <div className="space-y-4">
+                {referralPartners.map(partner => {
+                  const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id);
+                  const totalCommission = partnerReferrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
+                  return (
+                    <Card key={partner.id}>
+                      <CardContent className="pt-5">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-gray-800 text-lg">{partner.name}</h3>
+                              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${partner.is_active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                {partner.is_active !== false ? 'Active' : 'Inactive'}
+                              </span>
+                            </div>
+                            {partner.company && <p className="text-gray-500 text-sm">{partner.company}</p>}
+                            <p className="text-gray-400 text-sm">{partner.email}</p>
+                            <div className="flex items-center gap-4 mt-3 text-sm">
+                              <span className="flex items-center gap-1 text-blue-700"><Users className="w-4 h-4" />{partnerReferrals.length} referral{partnerReferrals.length !== 1 ? 's' : ''}</span>
+                              <span className="flex items-center gap-1 text-green-700"><DollarSign className="w-4 h-4" />${totalCommission.toLocaleString()} earned</span>
+                              {partner.agreement_signed_date && <span className="text-gray-400">Agreement signed {format(new Date(partner.agreement_signed_date), 'MMM d, yyyy')}</span>}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Button variant="outline" size="sm" className="gap-1" onClick={() => copyPortalLink(partner)}>
+                              {copiedId === partner.id ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+                              {copiedId === partner.id ? 'Copied!' : 'Copy Link'}
+                            </Button>
+                            <a href={`/ReferralPortal?id=${partner.unique_portal_id}`} target="_blank" rel="noopener noreferrer">
+                              <Button variant="outline" size="sm" className="gap-1"><ExternalLink className="w-4 h-4" /> Portal</Button>
+                            </a>
+                            <Button variant="outline" size="sm" onClick={() => openEditPartner(partner)} className="gap-1"><Edit className="w-4 h-4" /> Edit</Button>
+                            {partnerReferrals.length > 0 && (
+                              <Button variant="ghost" size="sm" onClick={() => setExpandedPartner(expandedPartner === partner.id ? null : partner.id)}>
+                                {expandedPartner === partner.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                {expandedPartner === partner.id ? 'Hide' : 'View'} Referrals
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        {expandedPartner === partner.id && (
+                          <div className="mt-4 border-t pt-4 space-y-2">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Referrals ({partnerReferrals.length})</p>
+                            {partnerReferrals.map(r => (
+                              <div key={r.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
+                                <div>
+                                  <span className="font-medium text-gray-800">{r.contact_name}</span>
+                                  {r.company_name && <span className="text-gray-500 ml-1">— {r.company_name}</span>}
+                                  <span className="text-gray-400 ml-2 text-xs">{r.referral_date ? format(new Date(r.referral_date), 'MMM d, yyyy') : ''}</span>
+                                </div>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                  r.status === 'commission_paid' ? 'bg-purple-100 text-purple-700' :
+                                  r.status === 'purchased' ? 'bg-emerald-100 text-emerald-700' :
+                                  r.status === 'converted_to_client' ? 'bg-green-100 text-green-700' :
+                                  r.status === 'contacted' ? 'bg-yellow-100 text-yellow-700' :
+                                  'bg-blue-100 text-blue-700'
+                                }`}>{r.status?.replace(/_/g, ' ')}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
+
+      {/* Referral Partner Add/Edit Dialog */}
+      <Dialog open={showPartnerDialog} onOpenChange={v => { setShowPartnerDialog(v); if (!v) setEditingPartner(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{editingPartner ? 'Edit Partner' : 'Add Referral Partner'}</DialogTitle></DialogHeader>
+          <form onSubmit={e => { e.preventDefault(); savePartnerMutation.mutate(partnerForm); }} className="space-y-5 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Name *</label>
+                <Input value={partnerForm.name} onChange={e => setPartnerForm(f => ({ ...f, name: e.target.value }))} required />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Email *</label>
+                <Input type="email" value={partnerForm.email} onChange={e => setPartnerForm(f => ({ ...f, email: e.target.value }))} required />
+              </div>
+              <div className="relative">
+                <label className="text-sm font-medium text-gray-700 block mb-1">Company</label>
+                <div className="flex gap-1">
+                  <Input value={partnerForm.company} onChange={e => setPartnerForm(f => ({ ...f, company: e.target.value }))} placeholder="Type or select company"
+                    onFocus={() => setCompanyDropdownOpen(true)} onBlur={() => setTimeout(() => setCompanyDropdownOpen(false), 150)} />
+                  {existingCompanies.length > 0 && (
+                    <Button type="button" variant="outline" size="icon" className="shrink-0" onMouseDown={e => { e.preventDefault(); setCompanyDropdownOpen(o => !o); }}>
+                      <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+                {companyDropdownOpen && existingCompanies.length > 0 && (
+                  <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    {existingCompanies.filter(c => !partnerForm.company || c.toLowerCase().includes(partnerForm.company.toLowerCase())).map(c => (
+                      <button key={c} type="button" className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-700"
+                        onMouseDown={() => { setPartnerForm(f => ({ ...f, company: c })); setCompanyDropdownOpen(false); }}>{c}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Phone</label>
+                <Input value={partnerForm.phone} onChange={e => setPartnerForm(f => ({ ...f, phone: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Agreement File URL</label>
+                <Input value={partnerForm.agreement_file_url} onChange={e => setPartnerForm(f => ({ ...f, agreement_file_url: e.target.value }))} placeholder="https://..." />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Agreement Signed Date</label>
+                <Input type="date" value={partnerForm.agreement_signed_date} onChange={e => setPartnerForm(f => ({ ...f, agreement_signed_date: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">Commission Tiers</label>
+              <div className="space-y-2">
+                {partnerForm.commission_tiers.map((tier, i) => (
+                  <div key={i} className="grid grid-cols-4 gap-2 items-center p-3 bg-gray-50 rounded-lg">
+                    <Input value={tier.label} onChange={e => updateTier(i, 'label', e.target.value)} placeholder="Label" className="text-sm" />
+                    <Input type="number" value={tier.min_revenue} onChange={e => updateTier(i, 'min_revenue', e.target.value)} placeholder="Min $" className="text-sm" />
+                    <Input type="number" value={tier.max_revenue ?? ''} onChange={e => updateTier(i, 'max_revenue', e.target.value)} placeholder="Max $ (blank=∞)" className="text-sm" />
+                    <div className="flex items-center gap-1">
+                      <Input type="number" step="0.001" min="0" max="1" value={tier.rate} onChange={e => updateTier(i, 'rate', e.target.value)} placeholder="Rate" className="text-sm" />
+                      <span className="text-gray-500 text-sm">{(tier.rate * 100 % 1 === 0 ? (tier.rate * 100).toFixed(0) : (tier.rate * 100).toFixed(1))}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
+              <Textarea value={partnerForm.notes} onChange={e => setPartnerForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="is_active_partner" checked={partnerForm.is_active} onChange={e => setPartnerForm(f => ({ ...f, is_active: e.target.checked }))} className="rounded" />
+              <label htmlFor="is_active_partner" className="text-sm text-gray-700">Active Partner</label>
+            </div>
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" disabled={savePartnerMutation.isPending} className="bg-[#013f7c] hover:bg-[#012d5a] text-white">
+                {savePartnerMutation.isPending ? 'Saving...' : editingPartner ? 'Save Changes' : 'Create Partner'}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setShowPartnerDialog(false)}>Cancel</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Outreach Lead Dialog */}
       <Dialog open={isAddOpen || !!editingLead} onOpenChange={(open) => { if (!open) { setIsAddOpen(false); setEditingLead(null); } }}>
