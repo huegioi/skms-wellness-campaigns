@@ -8,14 +8,14 @@ import {
   ToastViewport,
 } from "@/components/ui/toast";
 
-export function Toaster() {
-  const { toasts } = useToast();
+export function Toaster({ position = "bottom-right", closeButton = true }) {
+  const { toasts, dismiss } = useToast();
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }) {
+      {toasts.map(function ({ id, title, description, action, open = true, ...props }) {
         return (
-          <Toast key={id} {...props}>
+          <Toast key={id} {...props} open={open} onOpenChange={(isOpen) => !isOpen && dismiss(id)}>
             <div className="grid gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && (
@@ -23,11 +23,11 @@ export function Toaster() {
               )}
             </div>
             {action}
-            <ToastClose />
+            {closeButton && <ToastClose />}
           </Toast>
         );
       })}
-      <ToastViewport />
+      <ToastViewport className={position === "bottom-right" ? "bottom-0 right-0" : ""} />
     </ToastProvider>
   );
-} 
+}
