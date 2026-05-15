@@ -17,13 +17,36 @@ const SHEET_STATUS_TO_APP = {
 
 const APP_STATUS_RANK = ['cold','contacted','responded','meeting_scheduled','proposal_sent','converted','not_interested','current_client'];
 
+const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+
 function rowToLead(row, rowIndex, sheetOriginKey) {
   const get = (i) => (row[i] || '').trim();
 
   const firstName = get(0);
   const lastName = get(1);
-  const name = [firstName, lastName].filter(Boolean).join(' ');
-  const email = get(2);
+  const col2 = get(2); // Should be email, but sometimes the sheet has company here
+
+  // Extract email: first check col2, then scan col0+col1 for embedded email
+  let email = '';
+  let name = '';
+  if (EMAIL_REGEX.test(col2)) {
+    // col2 is a real email — normal layout
+    email = col2.match(EMAIL_REGEX)[0];
+    name = [firstName, lastName].filter(Boolean).join(' ');
+  } else {
+    // col2 is not an email (probably company name) — email may be embedded in col0 or col1
+    const col0Email = firstName.match(EMAIL_REGEX);
+    const col1Email = lastName.match(EMAIL_REGEX);
+    if (col0Email) {
+      email = col0Email[0];
+      name = firstName.replace(col0Email[0], '').trim();
+    } else if (col1Email) {
+      email = col1Email[0];
+      name = [firstName, lastName.replace(col1Email[0], '').trim()].filter(Boolean).join(' ');
+    } else {
+      name = [firstName, lastName].filter(Boolean).join(' ');
+    }
+  }
 
   if (!name || !email) return null;
 
@@ -38,11 +61,14 @@ function rowToLead(row, rowIndex, sheetOriginKey) {
   const location = get(6);
   const linkedin = get(7);
 
+  // If col2 wasn't a real email, it's the company; otherwise company is col5
+  const company = !EMAIL_REGEX.test(col2) && col2 ? col2 : get(5);
+
   return {
     name,
     email,
     title: get(4),
-    company: get(5),
+    company,
     industry: get(10),
     source: [location, linkedin].filter(Boolean).join(' | '),
     status: SHEET_STATUS_TO_APP[sheetStatus] || 'cold',
