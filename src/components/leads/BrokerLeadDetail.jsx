@@ -102,6 +102,20 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
     queryFn: () => base44.entities.Referral.list()
   });
 
+  const deleteProposalMutation = useMutation({
+    mutationFn: async ({ proposalId, referralId }) => {
+      await base44.entities.Proposal.delete(proposalId);
+      if (referralId) {
+        await base44.entities.Referral.update(referralId, { invoice_id: '', status: 'submitted' });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allProposals'] });
+      queryClient.invalidateQueries({ queryKey: ['referrals'] });
+      toast.success('Proposal deleted');
+    }
+  });
+
   // Find the matching ReferralPartner for this lead
   const matchedPartner = allPartners.find(p =>
     p.email?.toLowerCase() === lead.email?.toLowerCase() ||
@@ -613,9 +627,24 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                               {client && <p className="text-sm text-gray-500">{client.name}{client.company ? ` — ${client.company}` : ''}</p>}
                               <p className="text-xs text-gray-400 mt-0.5">Created: {new Date(proposal.created_date).toLocaleDateString()}</p>
                             </div>
-                            <Badge className={`text-xs ${PROPOSAL_STATUS_COLORS[proposal.status || 'draft']}`}>
-                              {(proposal.status || 'draft').charAt(0).toUpperCase() + (proposal.status || 'draft').slice(1)}
-                            </Badge>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <Badge className={`text-xs ${PROPOSAL_STATUS_COLORS[proposal.status || 'draft']}`}>
+                                {(proposal.status || 'draft').charAt(0).toUpperCase() + (proposal.status || 'draft').slice(1)}
+                              </Badge>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="text-red-400 hover:text-red-600 h-7 w-7"
+                                disabled={deleteProposalMutation.isPending}
+                                onClick={() => {
+                                  if (confirm('Delete this proposal? This cannot be undone.')) {
+                                    deleteProposalMutation.mutate({ proposalId: proposal.id, referralId: ref?.id });
+                                  }
+                                }}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       );
