@@ -102,6 +102,38 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
     queryFn: () => base44.entities.Referral.list()
   });
 
+  const [showAddProposal, setShowAddProposal] = useState(false);
+  const [addProposalForm, setAddProposalForm] = useState({ referralId: '', clientId: '', proposalId: '' });
+
+  const linkProposalMutation = useMutation({
+    mutationFn: async ({ referralId, proposalId }) => {
+      const proposal = allProposals.find(p => p.id === proposalId);
+      const partner = matchedPartner;
+      const firstYearRevenue = calcAdjustedRevenue(proposal);
+      const ytdRevenue = (partner?.ytd_revenue || 0) + firstYearRevenue;
+      const tiers = partner?.commission_tiers || [];
+      const tier = tiers.filter(t => ytdRevenue >= (t.min_revenue || 0)).sort((a, b) => b.min_revenue - a.min_revenue)[0] || null;
+      const commissionRate = tier?.rate || 0;
+      await base44.entities.Referral.update(referralId, {
+        invoice_id: proposalId,
+        status: 'purchased',
+        first_year_revenue: firstYearRevenue,
+        commission_rate: commissionRate,
+        commission_amount: firstYearRevenue * commissionRate
+      });
+      if (firstYearRevenue > 0 && partner) {
+        await base44.entities.ReferralPartner.update(partner.id, { ytd_revenue: ytdRevenue });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allProposals'] });
+      queryClient.invalidateQueries({ queryKey: ['referrals'] });
+      setShowAddProposal(false);
+      setAddProposalForm({ referralId: '', clientId: '', proposalId: '' });
+      toast.success('Proposal linked to referral!');
+    }
+  });
+
   const deleteProposalMutation = useMutation({
     mutationFn: async ({ proposalId, referralId }) => {
       await base44.entities.Proposal.delete(proposalId);
@@ -596,14 +628,99 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                 const displayTotal = (useReferralData && partnerProposals.length > 0) ? partnerTotalValue : totalProposalValue;
                 const displayAccepted = (useReferralData && partnerProposals.length > 0) ? partnerAcceptedProposals : acceptedProposals;
                 const displayAcceptedValue = (useReferralData && partnerProposals.length > 0) ? partnerAcceptedValue : acceptedValue;
-                if (displayProposals.length === 0) return (
-                  <div className="text-center py-12 text-gray-400">
-                    <FileText className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-                    <p>No proposals linked yet.</p>
-                  </div>
-                );
+
+                // Referrals that don't yet have a linked proposal — available to link
+                const unlinkedReferrals = partnerReferrals.filter(r => !r.invoice_id);
+
                 return (
                   <div className="space-y-3">
+                    {/* Add Proposal button — only show if there are referrals without proposals */}
+                    {matchedPartner && unlinkedReferrals.length > 0 && (
+                      <div className="flex justify-end mb-2">
+                        <Button size="sm" variant="outline" className="gap-1" onClick={() => {
+                          setAddProposalForm({ referralId: '', clientId: '', proposalId: '' });
+                          setShowAddProposal(!showAddProposal);
+                        }}>
+                          <Plus className="w-3.5 h-3.5" /> Link Proposal
+                        </Button>
+                      </div>
+                    )}
+
+                    {showAddProposal && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3 mb-2">
+                        <h5 className="text-sm font-semibold text-blue-800">Link a Proposal to a Referral</h5>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Select Referral Company *</label>
+                          <Select value={addProposalForm.referralId} onValueChange={val => {
+                            const ref = unlinkedReferrals.find(r => r.id === val);
+                            const client = allClients.find(c => c.id === ref?.referred_client_id);
+                            setAddProposalForm({ referralId: val, clientId: client?.id || '', proposalId: '' });
+                          }}>
+                            <SelectTrigger className="bg-white">
+                              <SelectValue placeholder="Choose a referral..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {unlinkedReferrals.map(r => (
+                                <SelectItem key={r.id} value={r.id}>
+                                  {r.company_name || r.contact_name} — {new Date(r.referral_date).toLocaleDateString()}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {addProposalForm.referralId && (() => {
+                          const ref = unlinkedReferrals.find(r => r.id === addProposalForm.referralId);
+                          // Find the client linked to this referral
+                          const linkedClient = allClients.find(c => c.id === ref?.referred_client_id);
+                          // Get proposals for that client, or search by company name
+                          const candidateProposals = linkedClient
+                            ? allProposals.filter(p => p.client_id === linkedClient.id && !partnerProposalIds.has(p.id))
+                            : allProposals.filter(p => {
+                                const c = allClients.find(cl => cl.id === p.client_id);
+                                return c?.company?.toLowerCase().includes((ref?.company_name || '').toLowerCase()) && !partnerProposalIds.has(p.id);
+                              });
+                          return (
+                            <div>
+                              <label className="text-xs text-gray-500 mb-1 block">Select Proposal *</label>
+                              <Select value={addProposalForm.proposalId} onValueChange={val => setAddProposalForm(f => ({ ...f, proposalId: val }))}>
+                                <SelectTrigger className="bg-white">
+                                  <SelectValue placeholder={candidateProposals.length === 0 ? 'No proposals found for this company' : 'Choose a proposal...'} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {candidateProposals.map(p => {
+                                    const c = allClients.find(cl => cl.id === p.client_id);
+                                    return (
+                                      <SelectItem key={p.id} value={p.id}>
+                                        ${p.total_amount?.toLocaleString()} — {c?.company || c?.name} — {(p.status || 'draft')} ({new Date(p.created_date).toLocaleDateString()})
+                                      </SelectItem>
+                                    );
+                                  })}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          );
+                        })()}
+
+                        <div className="flex gap-2">
+                          <Button size="sm" className="bg-[#013f7c] hover:bg-[#012d5a]"
+                            disabled={!addProposalForm.referralId || !addProposalForm.proposalId || linkProposalMutation.isPending}
+                            onClick={() => linkProposalMutation.mutate({ referralId: addProposalForm.referralId, proposalId: addProposalForm.proposalId })}>
+                            Save
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => { setShowAddProposal(false); setAddProposalForm({ referralId: '', clientId: '', proposalId: '' }); }}>Cancel</Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {displayProposals.length === 0 && !showAddProposal && (
+                      <div className="text-center py-12 text-gray-400">
+                        <FileText className="w-12 h-12 mx-auto mb-3 text-gray-200" />
+                        <p>No proposals linked yet.</p>
+                      </div>
+                    )}
+
+                    {displayProposals.length > 0 && <>
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       <div className="bg-blue-50 rounded-lg p-3">
                         <p className="text-xs text-gray-500">Total Pipeline</p>
@@ -649,6 +766,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                         </div>
                       );
                     })}
+                    </>}
                   </div>
                 );
               })()}
