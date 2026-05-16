@@ -658,15 +658,15 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3 mb-2">
                         <h5 className="text-sm font-semibold text-blue-800">Link a Proposal to a Referral</h5>
 
-                        {/* Step 1: pick a referral company */}
+                        {/* Step 1: pick which referral to link */}
                         <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Select Referral Company *</label>
+                          <label className="text-xs text-gray-500 mb-1 block">Select Referral *</label>
                           <Select value={addProposalForm.referralId} onValueChange={val => {
                             const ref = unlinkedReferrals.find(r => r.id === val);
                             setAddProposalForm({ referralId: val, clientId: ref?.referred_client_id || '', proposalId: '' });
                           }}>
                             <SelectTrigger className="bg-white">
-                              <SelectValue placeholder="Choose a referral company..." />
+                              <SelectValue placeholder="Choose a referral..." />
                             </SelectTrigger>
                             <SelectContent>
                               {unlinkedReferrals.map(r => (
@@ -678,7 +678,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                           </Select>
                         </div>
 
-                        {/* Step 2: pick a proposal for that company */}
+                        {/* Step 2: pick a proposal for that referral */}
                         {addProposalForm.referralId && (
                           <div>
                             <label className="text-xs text-gray-500 mb-1 block">Select Proposal *</label>
