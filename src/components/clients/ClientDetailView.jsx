@@ -12,7 +12,7 @@ import {
   User, Building, Mail, Phone, Globe, MapPin, DollarSign, Users, Calendar,
   Plus, Pencil, Trash2, FileText, MessageSquare, PhoneCall, Video, StickyNote,
   ChevronRight, Clock, CheckCircle, XCircle, Eye, Send, Package, Award, ListTodo,
-  Upload, ExternalLink, X, RefreshCw, FolderOpen
+  Upload, ExternalLink, X, RefreshCw, FolderOpen, Link as LinkIcon
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -21,6 +21,7 @@ import GmailHistory from '@/components/clients/GmailHistory';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 import FollowUpSettings from '@/components/clients/FollowUpSettings';
+import AddContactDialog from '@/components/clients/AddContactDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
@@ -588,7 +589,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
         <TabsContent value="contacts" className="mt-4">
           <div className="flex justify-between items-center mb-4">
             <h4 className="font-semibold text-gray-700">All Contacts</h4>
-            <Button size="sm" variant="outline" onClick={() => { setContactForm({ name: '', email: '', phone: '', title: '', notes: '' }); setEditingContact(null); setShowAddContact(true); }}>
+            <Button size="sm" variant="outline" onClick={() => { setEditingContact(null); setShowAddContact(true); }}>
               <Plus className="w-4 h-4 mr-1" /> Add Contact
             </Button>
           </div>
@@ -636,14 +637,36 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             )}
 
             {/* Related Contacts */}
-            {(client.related_contacts || []).map((contact, index) => (
+            {(client.related_contacts || []).map((contact, index) => {
+              const typeColors = {
+                broker: 'bg-orange-100 text-orange-700',
+                wellness_consultant: 'bg-purple-100 text-purple-700',
+                other: 'bg-gray-100 text-gray-700',
+              };
+              const typeLabel = {
+                broker: 'Broker',
+                wellness_consultant: 'Wellness Consultant',
+                other: 'Other',
+              };
+              return (
               <div key={index} className="bg-white border rounded-lg p-4">
                 <div className="flex justify-between items-start">
                   <div>
+                    {contact.contact_type && contact.contact_type !== 'other' && (
+                      <Badge className={`${typeColors[contact.contact_type] || typeColors.other} mb-2`}>
+                        {typeLabel[contact.contact_type] || contact.contact_type}
+                      </Badge>
+                    )}
                     <p className="font-semibold">{contact.name}</p>
                     {contact.title && <p className="text-sm text-gray-600">{contact.title}</p>}
+                    {contact.company && <p className="text-sm text-gray-500">{contact.company}</p>}
                     {contact.email && <p className="text-sm text-gray-500">{contact.email}</p>}
                     {contact.phone && <p className="text-sm text-gray-500">{contact.phone}</p>}
+                    {contact.linked_partner_id && (
+                      <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                        <LinkIcon className="w-3 h-3" /> Linked referral partner
+                      </p>
+                    )}
                     {contact.notes && <p className="text-sm text-gray-400 mt-1">{contact.notes}</p>}
                   </div>
                   <div className="flex gap-1">
@@ -652,7 +675,8 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </TabsContent>
 
@@ -1154,19 +1178,28 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
       </Tabs>
 
       {/* Add Contact Dialog */}
-      <Dialog open={showAddContact} onOpenChange={setShowAddContact}>
+      <AddContactDialog
+        open={showAddContact && editingContact === null}
+        onOpenChange={setShowAddContact}
+        client={client}
+        onUpdate={onUpdate}
+      />
+
+      {/* Edit Contact Dialog (legacy simple form) */}
+      <Dialog open={showAddContact && editingContact !== null} onOpenChange={(o) => { if (!o) { setShowAddContact(false); setEditingContact(null); } }}>
         <DialogContent className="w-[95vw] sm:w-full">
           <DialogHeader>
-            <DialogTitle>{editingContact !== null ? 'Edit Contact' : 'Add Related Contact'}</DialogTitle>
+            <DialogTitle>Edit Contact</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-4">
             <Input placeholder="Name *" value={contactForm.name} onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })} />
             <Input placeholder="Title" value={contactForm.title} onChange={(e) => setContactForm({ ...contactForm, title: e.target.value })} />
+            <Input placeholder="Company" value={contactForm.company || ''} onChange={(e) => setContactForm({ ...contactForm, company: e.target.value })} />
             <Input type="email" placeholder="Email" value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} />
             <Input placeholder="Phone" value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })} />
             <Textarea placeholder="Notes" value={contactForm.notes} onChange={(e) => setContactForm({ ...contactForm, notes: e.target.value })} />
             <Button onClick={handleAddContact} disabled={!contactForm.name} className="w-full bg-[#264d44] hover:bg-[#1a3830]">
-              {editingContact !== null ? 'Save Changes' : 'Add Contact'}
+              Save Changes
             </Button>
           </div>
         </DialogContent>
