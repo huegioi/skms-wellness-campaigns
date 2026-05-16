@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     notes: notes || ''
   });
 
-  // Create a Referral record
+  // Create a Referral record with pending_review status — must be approved before counting toward partner totals
   const referral = await base44.asServiceRole.entities.Referral.create({
     referral_partner_id: partner.id,
     referral_partner_name: partner.name,
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     company_name: company_name || '',
     notes: notes || '',
     referral_date: new Date().toISOString(),
-    status: 'submitted'
+    status: 'pending_review'
   });
 
   return Response.json({ success: true, referral_id: referral.id, lead_id: lead.id });

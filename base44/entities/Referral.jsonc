@@ -43,6 +43,7 @@
     "status": {
       "type": "string",
       "enum": [
+        "pending_review",
         "submitted",
         "contacted",
         "converted_to_client",
@@ -50,8 +51,17 @@
         "commission_paid",
         "not_eligible"
       ],
-      "default": "submitted",
+      "default": "pending_review",
       "description": "Current status of this referral"
+    },
+    "review_notes": {
+      "type": "string",
+      "description": "Admin notes from the review process"
+    },
+    "reviewed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this referral was reviewed"
     },
     "first_year_revenue": {
       "type": "number",

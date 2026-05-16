@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, UserCheck, MapPin, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, TrendingUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, DollarSign, Edit, Check, TrendingDown } from 'lucide-react';
+import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, UserCheck, MapPin, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, TrendingUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, DollarSign, Edit, Check, TrendingDown, Bell } from 'lucide-react';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
+import PendingReferralsReview from '@/components/referrals/PendingReferralsReview';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from '@/components/ui/use-toast';
@@ -259,6 +260,7 @@ export default function Leads() {
   const [copiedId, setCopiedId] = useState(null);
   const [expandedPartner, setExpandedPartner] = useState(null);
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+  const [showPendingReview, setShowPendingReview] = useState(false);
 
   const { data: allLeads = [], isLoading } = useQuery({
     queryKey: ['leads'],
@@ -279,6 +281,8 @@ export default function Leads() {
     queryKey: ['referrals'],
     queryFn: () => base44.entities.Referral.list('-created_date')
   });
+
+  const pendingReferrals = referrals.filter(r => r.status === 'pending_review');
 
   const existingCompanies = [...new Set(referralPartners.map(p => p.company).filter(Boolean))].sort();
 
@@ -704,7 +708,7 @@ export default function Leads() {
   const TAB_ITEMS = [
     { id: 'broker_leads', label: 'Referral Partners', icon: Star, count: brokerLeads.length },
     { id: 'outreach',     label: 'Outreach Brokers & ECs', icon: Users, count: outreachLeads.length },
-    { id: 'portals',      label: 'Referral Portals', icon: Share2, count: referralPartners.length },
+    { id: 'portals',      label: 'Referral Portals', icon: Share2, count: referralPartners.length, alert: pendingReferrals.length },
   ];
 
   return (
@@ -735,6 +739,11 @@ export default function Leads() {
                   <span className={`text-xs rounded-full px-2 py-0.5 font-bold ${isActive ? 'bg-[#264d44]/10 text-[#264d44]' : 'bg-gray-100 text-gray-500'}`}>
                     {tab.count}
                   </span>
+                  {tab.alert > 0 && (
+                    <span className="text-xs rounded-full px-1.5 py-0.5 font-bold bg-amber-500 text-white animate-pulse">
+                      {tab.alert}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -867,6 +876,25 @@ export default function Leads() {
           </TabsContent>
           {/* ── Referral Portals Tab ─────────────────────────────────────── */}
           <TabsContent value="portals">
+            {pendingReferrals.length > 0 && (
+              <button
+                onClick={() => setShowPendingReview(true)}
+                className="w-full mb-5 flex items-center gap-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-3 hover:bg-amber-100 transition-colors text-left group"
+              >
+                <div className="flex-shrink-0 bg-amber-400 text-white rounded-full p-2">
+                  <Bell className="w-4 h-4" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-800">
+                    {pendingReferrals.length} referral{pendingReferrals.length !== 1 ? 's' : ''} awaiting review
+                  </p>
+                  <p className="text-sm text-amber-600">
+                    New referrals must be approved before they count toward partner totals. Click to review.
+                  </p>
+                </div>
+                <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 group-hover:scale-110 transition-transform" />
+              </button>
+            )}
             <div className="flex justify-between items-center mb-6">
               <p className="text-sm text-gray-500">Manage broker referral partners and their portal access</p>
               <Button onClick={openNewPartner} className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2">
@@ -966,10 +994,12 @@ export default function Leads() {
                                   <span className="text-gray-400 ml-2 text-xs">{r.referral_date ? format(new Date(r.referral_date), 'MMM d, yyyy') : ''}</span>
                                 </div>
                                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                  r.status === 'pending_review' ? 'bg-amber-100 text-amber-700' :
                                   r.status === 'commission_paid' ? 'bg-purple-100 text-purple-700' :
                                   r.status === 'purchased' ? 'bg-emerald-100 text-emerald-700' :
                                   r.status === 'converted_to_client' ? 'bg-green-100 text-green-700' :
                                   r.status === 'contacted' ? 'bg-yellow-100 text-yellow-700' :
+                                  r.status === 'not_eligible' ? 'bg-red-100 text-red-700' :
                                   'bg-blue-100 text-blue-700'
                                 }`}>{r.status?.replace(/_/g, ' ')}</span>
                               </div>
@@ -1120,7 +1150,7 @@ export default function Leads() {
                           company_name: newReferralForm.company_name,
                           notes: newReferralForm.notes,
                           referral_date: new Date().toISOString(),
-                          status: 'submitted'
+                          status: 'pending_review'
                         })}>
                         {addReferralMutation.isPending ? 'Adding...' : 'Add Referral'}
                       </Button>
@@ -1141,10 +1171,12 @@ export default function Leads() {
                           {r.company_name && <span className="text-gray-500 ml-1.5">— {r.company_name}</span>}
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
+                              r.status === 'pending_review' ? 'bg-amber-100 text-amber-700' :
                               r.status === 'commission_paid' ? 'bg-purple-100 text-purple-700' :
                               r.status === 'purchased' ? 'bg-emerald-100 text-emerald-700' :
                               r.status === 'converted_to_client' ? 'bg-green-100 text-green-700' :
                               r.status === 'contacted' ? 'bg-yellow-100 text-yellow-700' :
+                              r.status === 'not_eligible' ? 'bg-red-100 text-red-700' :
                               'bg-blue-100 text-blue-700'
                             }`}>{r.status?.replace(/_/g, ' ')}</span>
                             {r.referral_date && <span className="text-xs text-gray-400">{format(new Date(r.referral_date), 'MMM d, yyyy')}</span>}
@@ -1272,6 +1304,9 @@ export default function Leads() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Pending Referral Review Dialog */}
+      <PendingReferralsReview open={showPendingReview} onOpenChange={setShowPendingReview} />
 
       {/* Broker Lead Detail Modal */}
       {viewingBrokerLead && (
