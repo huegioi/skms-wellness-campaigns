@@ -671,15 +671,16 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
 
                         {addProposalForm.referralId && (() => {
                           const ref = unlinkedReferrals.find(r => r.id === addProposalForm.referralId);
-                          // Find the client linked to this referral
-                          const linkedClient = allClients.find(c => c.id === ref?.referred_client_id);
-                          // Get proposals for that client, or search by company name
-                          const candidateProposals = linkedClient
-                            ? allProposals.filter(p => p.client_id === linkedClient.id && !partnerProposalIds.has(p.id))
-                            : allProposals.filter(p => {
-                                const c = allClients.find(cl => cl.id === p.client_id);
-                                return c?.company?.toLowerCase().includes((ref?.company_name || '').toLowerCase()) && !partnerProposalIds.has(p.id);
-                              });
+                          const refCompany = (ref?.company_name || '').toLowerCase();
+                          // Match by referred_client_id first, then fallback: match client company/name against referral company_name
+                          const candidateProposals = allProposals.filter(p => {
+                            if (partnerProposalIds.has(p.id)) return false; // already linked
+                            if (ref?.referred_client_id && p.client_id === ref.referred_client_id) return true;
+                            if (!refCompany) return false;
+                            const c = allClients.find(cl => cl.id === p.client_id);
+                            const clientCompany = (c?.company || c?.name || p.client_name || '').toLowerCase();
+                            return clientCompany.includes(refCompany) || refCompany.includes(clientCompany);
+                          });
                           return (
                             <div>
                               <label className="text-xs text-gray-500 mb-1 block">Select Proposal *</label>
@@ -692,7 +693,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                                     const c = allClients.find(cl => cl.id === p.client_id);
                                     return (
                                       <SelectItem key={p.id} value={p.id}>
-                                        ${p.total_amount?.toLocaleString()} — {c?.company || c?.name} — {(p.status || 'draft')} ({new Date(p.created_date).toLocaleDateString()})
+                                        ${p.total_amount?.toLocaleString()} — {c?.company || c?.name || p.client_name} — {p.status || 'draft'} ({new Date(p.created_date).toLocaleDateString()})
                                       </SelectItem>
                                     );
                                   })}
