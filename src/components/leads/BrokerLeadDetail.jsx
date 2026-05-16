@@ -623,18 +623,26 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
             {/* Proposals */}
             <TabsContent value="proposals" className="p-6 mt-0">
               {(() => {
-                // Fall back to broker-email-linked proposals if no Referral-linked proposals exist
                 const displayProposals = (useReferralData && partnerProposals.length > 0) ? partnerProposals : relatedProposals;
                 const displayTotal = (useReferralData && partnerProposals.length > 0) ? partnerTotalValue : totalProposalValue;
                 const displayAccepted = (useReferralData && partnerProposals.length > 0) ? partnerAcceptedProposals : acceptedProposals;
                 const displayAcceptedValue = (useReferralData && partnerProposals.length > 0) ? partnerAcceptedValue : acceptedValue;
-
-                // Referrals that don't yet have a linked proposal — available to link
                 const unlinkedReferrals = partnerReferrals.filter(r => !r.invoice_id);
+
+                // Proposals available to link: not already linked to this partner
+                const selectedRef = unlinkedReferrals.find(r => r.id === addProposalForm.referralId);
+                const refCompany = (selectedRef?.company_name || '').toLowerCase();
+                const candidateProposals = selectedRef ? allProposals.filter(p => {
+                  if (partnerProposalIds.has(p.id)) return false;
+                  if (selectedRef.referred_client_id && p.client_id === selectedRef.referred_client_id) return true;
+                  if (!refCompany) return false;
+                  const c = allClients.find(cl => cl.id === p.client_id);
+                  const clientCompany = (c?.company || c?.name || p.client_name || '').toLowerCase();
+                  return clientCompany.includes(refCompany) || refCompany.includes(clientCompany);
+                }) : [];
 
                 return (
                   <div className="space-y-3">
-                    {/* Add Proposal button — only show if there are referrals without proposals */}
                     {matchedPartner && unlinkedReferrals.length > 0 && (
                       <div className="flex justify-end mb-2">
                         <Button size="sm" variant="outline" className="gap-1" onClick={() => {
@@ -649,15 +657,16 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                     {showAddProposal && (
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3 mb-2">
                         <h5 className="text-sm font-semibold text-blue-800">Link a Proposal to a Referral</h5>
+
+                        {/* Step 1: pick a referral company */}
                         <div>
                           <label className="text-xs text-gray-500 mb-1 block">Select Referral Company *</label>
                           <Select value={addProposalForm.referralId} onValueChange={val => {
                             const ref = unlinkedReferrals.find(r => r.id === val);
-                            const client = allClients.find(c => c.id === ref?.referred_client_id);
-                            setAddProposalForm({ referralId: val, clientId: client?.id || '', proposalId: '' });
+                            setAddProposalForm({ referralId: val, clientId: ref?.referred_client_id || '', proposalId: '' });
                           }}>
                             <SelectTrigger className="bg-white">
-                              <SelectValue placeholder="Choose a referral..." />
+                              <SelectValue placeholder="Choose a referral company..." />
                             </SelectTrigger>
                             <SelectContent>
                               {unlinkedReferrals.map(r => (
@@ -669,39 +678,27 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                           </Select>
                         </div>
 
-                        {addProposalForm.referralId && (() => {
-                          const ref = unlinkedReferrals.find(r => r.id === addProposalForm.referralId);
-                          const refCompany = (ref?.company_name || '').toLowerCase();
-                          // Match by referred_client_id first, then fallback: match client company/name against referral company_name
-                          const candidateProposals = allProposals.filter(p => {
-                            if (partnerProposalIds.has(p.id)) return false; // already linked
-                            if (ref?.referred_client_id && p.client_id === ref.referred_client_id) return true;
-                            if (!refCompany) return false;
-                            const c = allClients.find(cl => cl.id === p.client_id);
-                            const clientCompany = (c?.company || c?.name || p.client_name || '').toLowerCase();
-                            return clientCompany.includes(refCompany) || refCompany.includes(clientCompany);
-                          });
-                          return (
-                            <div>
-                              <label className="text-xs text-gray-500 mb-1 block">Select Proposal *</label>
-                              <Select value={addProposalForm.proposalId} onValueChange={val => setAddProposalForm(f => ({ ...f, proposalId: val }))}>
-                                <SelectTrigger className="bg-white">
-                                  <SelectValue placeholder={candidateProposals.length === 0 ? 'No proposals found for this company' : 'Choose a proposal...'} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {candidateProposals.map(p => {
-                                    const c = allClients.find(cl => cl.id === p.client_id);
-                                    return (
-                                      <SelectItem key={p.id} value={p.id}>
-                                        ${p.total_amount?.toLocaleString()} — {c?.company || c?.name || p.client_name} — {p.status || 'draft'} ({new Date(p.created_date).toLocaleDateString()})
-                                      </SelectItem>
-                                    );
-                                  })}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          );
-                        })()}
+                        {/* Step 2: pick a proposal for that company */}
+                        {addProposalForm.referralId && (
+                          <div>
+                            <label className="text-xs text-gray-500 mb-1 block">Select Proposal *</label>
+                            <Select value={addProposalForm.proposalId} onValueChange={val => setAddProposalForm(f => ({ ...f, proposalId: val }))}>
+                              <SelectTrigger className="bg-white">
+                                <SelectValue placeholder={candidateProposals.length === 0 ? 'No proposals found for this company' : 'Choose a proposal...'} />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {candidateProposals.map(p => {
+                                  const c = allClients.find(cl => cl.id === p.client_id);
+                                  return (
+                                    <SelectItem key={p.id} value={p.id}>
+                                      ${p.total_amount?.toLocaleString()} — {c?.company || c?.name || p.client_name} — {p.status || 'draft'} ({new Date(p.created_date).toLocaleDateString()})
+                                    </SelectItem>
+                                  );
+                                })}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
 
                         <div className="flex gap-2">
                           <Button size="sm" className="bg-[#013f7c] hover:bg-[#012d5a]"
@@ -734,7 +731,6 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                     </div>
                     {displayProposals.map(proposal => {
                       const client = allClients.find(c => c.id === proposal.client_id);
-                      // For partner proposals, find the referral that links to this proposal
                       const ref = matchedPartner ? partnerReferrals.find(r => r.invoice_id === proposal.id) : null;
                       return (
                         <div key={proposal.id} className="bg-white border rounded-lg p-4">
