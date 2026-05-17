@@ -43,5 +43,16 @@ Deno.serve(async (req) => {
     is_active: true,
   });
 
-  return Response.json({ success: true, partner_id: partner.id, portal_id: uniquePortalId });
+  // Also update any matching Lead records to active_partner status
+  const matchingLeads = await base44.asServiceRole.entities.Lead.filter({
+    email: partner.email,
+    lead_type: 'broker_lead',
+  });
+  for (const lead of matchingLeads) {
+    if (lead.partner_status !== 'active_partner') {
+      await base44.asServiceRole.entities.Lead.update(lead.id, { partner_status: 'active_partner' });
+    }
+  }
+
+  return Response.json({ success: true, partner_id: partner.id, portal_id: uniquePortalId, leads_updated: matchingLeads.length });
 });
