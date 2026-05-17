@@ -268,13 +268,17 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   // Referrals that don't yet have a proposal linked
   const unlinkedReferrals = partnerReferrals.filter(r => !r.invoice_id);
 
-  // Proposals available to link to the selected referral
+  // Accepted proposals available to link to the selected referral
   const selectedRef = unlinkedReferrals.find(r => r.id === proposalForm.referralId);
   const refCompany = (selectedRef?.company_name || '').toLowerCase();
   const candidateProposals = selectedRef ? allProposals.filter(p => {
     if (partnerProposalIds.has(p.id)) return false;
+    // Only show accepted proposals
+    if (p.status !== 'accepted') return false;
+    // Match by linked client ID first
     if (selectedRef.referred_client_id && p.client_id === selectedRef.referred_client_id) return true;
-    if (!refCompany) return true; // show all if no company filter
+    // Fallback: fuzzy match by company name
+    if (!refCompany) return true;
     const c = allClients.find(cl => cl.id === p.client_id);
     const clientCompany = (c?.company || c?.name || p.client_name || '').toLowerCase();
     return clientCompany.includes(refCompany) || refCompany.includes(clientCompany);
@@ -529,6 +533,8 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
               {showAddProposal && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3 mb-4">
                   <h5 className="text-sm font-semibold text-blue-800">Link an Accepted Proposal</h5>
+
+                  {/* Step 1: pick the referred company */}
                   <div>
                     <label className="text-xs text-gray-500 mb-1 block">Select Referral Company *</label>
                     <Select value={proposalForm.referralId} onValueChange={val => {
@@ -540,31 +546,40 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                       <SelectContent>
                         {unlinkedReferrals.map(r => (
                           <SelectItem key={r.id} value={r.id}>
-                            {r.company_name || r.contact_name} — {new Date(r.referral_date).toLocaleDateString()}
+                            {r.company_name || r.contact_name}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
 
+                  {/* Step 2: pick a proposal for that company — only shown after company selected */}
                   {proposalForm.referralId && (
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">Select Proposal *</label>
-                      <Select value={proposalForm.proposalId} onValueChange={val => setProposalForm(f => ({ ...f, proposalId: val }))}>
-                        <SelectTrigger className="bg-white">
-                          <SelectValue placeholder={candidateProposals.length === 0 ? 'No proposals found for this company' : 'Choose a proposal...'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {candidateProposals.map(p => {
-                            const c = allClients.find(cl => cl.id === p.client_id);
-                            return (
-                              <SelectItem key={p.id} value={p.id}>
-                                ${p.total_amount?.toLocaleString()} — {c?.company || c?.name || p.client_name} — {p.status} ({new Date(p.created_date).toLocaleDateString()})
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
+                      <label className="text-xs text-gray-500 mb-1 block">Select Accepted Proposal *</label>
+                      {candidateProposals.length === 0 ? (
+                        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                          No proposals found for this company. Make sure a proposal exists for this client in the system.
+                        </p>
+                      ) : (
+                        <Select value={proposalForm.proposalId} onValueChange={val => setProposalForm(f => ({ ...f, proposalId: val }))}>
+                          <SelectTrigger className="bg-white">
+                            <SelectValue placeholder="Choose a proposal..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {candidateProposals.map(p => {
+                              const c = allClients.find(cl => cl.id === p.client_id);
+                              const companyLabel = c?.company || c?.name || p.client_name || 'Unknown';
+                              const statusLabel = (p.status || 'draft').charAt(0).toUpperCase() + (p.status || 'draft').slice(1);
+                              return (
+                                <SelectItem key={p.id} value={p.id}>
+                                  {companyLabel} — ${p.total_amount?.toLocaleString()} ({statusLabel}, {new Date(p.created_date).toLocaleDateString()})
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   )}
 
