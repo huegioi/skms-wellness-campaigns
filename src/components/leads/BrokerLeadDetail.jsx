@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, ChevronDown } from 'lucide-react';
+import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, DollarSign } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GmailHistory from '@/components/clients/GmailHistory';
 import { toast } from 'sonner';
@@ -30,24 +30,61 @@ const PARTNER_STATUS_CONFIG = {
   inactive:       { label: 'Inactive',       color: 'bg-red-100 text-red-700' },
 };
 
-const PROPOSAL_STATUS_COLORS = {
-  draft: 'bg-gray-100 text-gray-700',
-  sent: 'bg-blue-100 text-blue-700',
-  viewed: 'bg-purple-100 text-purple-700',
-  accepted: 'bg-green-100 text-green-700',
-  declined: 'bg-red-100 text-red-700',
+const REFERRAL_STATUS_COLORS = {
+  pending_review:      'bg-amber-100 text-amber-700',
+  submitted:           'bg-blue-100 text-blue-700',
+  contacted:           'bg-purple-100 text-purple-700',
+  converted_to_client: 'bg-teal-100 text-teal-700',
+  purchased:           'bg-green-100 text-green-700',
+  commission_paid:     'bg-emerald-100 text-emerald-800',
+  not_eligible:        'bg-red-100 text-red-700',
 };
 
 const EMPTY_REFERRAL = { date: '', company_name: '', contact_name: '', notes: '', client_id: '', proposal_id: '', partner_id: '' };
+const EMPTY_PROPOSAL_FORM = { referralId: '', proposalId: '' };
+
+// Calculate adjusted revenue: wellness box items count at 50%
+function calcAdjustedRevenue(proposal) {
+  if (!proposal) return 0;
+  const s = proposal.selections || {};
+  const overrides = s.priceOverrides || {};
+  const customCharges = s.customCharges || [];
+  const BOX_PRICES = {
+    reduceStress: 60, relaxationSleep: 60, largeEmotional: 100,
+    largeStressReduction: 120, stressReductionDigital: 50,
+    beyondBurnoutDigital: 100, emotionalWellness: 100,
+    wintertimeHealthy: 100, newYearFreshStart: 100
+  };
+  let nonBoxTotal = 0;
+  const challengePrice = s.challengePrice || 0;
+  (s.workshops || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
+  (s.challengePrograms || []).forEach(id => nonBoxTotal += (overrides[id] ?? challengePrice));
+  (s.leadership || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
+  (s.movementClasses || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
+  customCharges.forEach(c => nonBoxTotal += (c.amount || 0));
+  let boxTotal = 0;
+  const boxQtys = s.sampleBoxQuantities || {};
+  Object.entries(boxQtys).forEach(([key, qty]) => { boxTotal += (qty || 0) * (BOX_PRICES[key] || 0); });
+  const customBoxQty = s.customBoxQuantity || 0;
+  const customBoxItems = s.customBoxItems || [];
+  if (customBoxQty > 0 && customBoxItems.length > 0) {
+    const unitPrice = customBoxItems.reduce((sum, item) => sum + (item.price || 0), 0);
+    boxTotal += customBoxQty * unitPrice;
+  }
+  const adjusted = nonBoxTotal + boxTotal * 0.5;
+  return adjusted > 0 ? adjusted : proposal.total_amount || 0;
+}
 
 export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [showAddReferral, setShowAddReferral] = useState(false);
   const [referralForm, setReferralForm] = useState(EMPTY_REFERRAL);
+  const [showAddProposal, setShowAddProposal] = useState(false);
+  const [proposalForm, setProposalForm] = useState(EMPTY_PROPOSAL_FORM);
 
   const queryClient = useQueryClient();
 
-  const updateMutation = useMutation({
+  const updateLeadMutation = useMutation({
     mutationFn: (data) => base44.entities.Lead.update(lead.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
@@ -55,7 +92,6 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
     }
   });
 
-  // Find clients that reference this broker by email
   const { data: allClients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list()
@@ -65,32 +101,6 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
     queryKey: ['allProposals'],
     queryFn: () => base44.entities.Proposal.list('-created_date')
   });
-
-  const relatedClients = allClients.filter(c =>
-    c.broker_email?.toLowerCase() === lead.email?.toLowerCase() ||
-    c.wellness_consultant_email?.toLowerCase() === lead.email?.toLowerCase()
-  );
-
-  const relatedClientIds = new Set(relatedClients.map(c => c.id));
-  const relatedProposals = allProposals.filter(p => relatedClientIds.has(p.client_id));
-  const totalProposalValue = relatedProposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
-  const acceptedProposals = relatedProposals.filter(p => p.status === 'accepted');
-  const acceptedValue = acceptedProposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
-
-  const statusCfg = STATUS_CONFIG[lead.status || 'cold'] || STATUS_CONFIG.cold;
-  const partnerCfg = PARTNER_STATUS_CONFIG[lead.partner_status || 'new'] || PARTNER_STATUS_CONFIG.new;
-  const isActive = lead.partner_status === 'active_partner';
-
-  const sourceParts = (lead.source || '').split(' | ');
-  const linkedinUrl = sourceParts[1] || '';
-
-  const referralHistory = (lead.referral_history || []).sort((a, b) => new Date(b.date) - new Date(a.date));
-
-  const toggleActivePartner = () => {
-    const newStatus = isActive ? 'nurturing' : 'active_partner';
-    updateMutation.mutate({ partner_status: newStatus });
-    toast.success(isActive ? 'Marked as Nurturing' : 'Marked as Active Partner!');
-  };
 
   const { data: allPartners = [] } = useQuery({
     queryKey: ['referralPartners'],
@@ -102,203 +112,36 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
     queryFn: () => base44.entities.Referral.list()
   });
 
-  const [showAddProposal, setShowAddProposal] = useState(false);
-  const [addProposalForm, setAddProposalForm] = useState({ referralId: '', clientId: '', proposalId: '' });
-
-  const linkProposalMutation = useMutation({
-    mutationFn: async ({ referralId, proposalId }) => {
-      const proposal = allProposals.find(p => p.id === proposalId);
-      const partner = matchedPartner;
-      const firstYearRevenue = calcAdjustedRevenue(proposal);
-      const ytdRevenue = (partner?.ytd_revenue || 0) + firstYearRevenue;
-      const tiers = partner?.commission_tiers || [];
-      const tier = tiers.filter(t => ytdRevenue >= (t.min_revenue || 0)).sort((a, b) => b.min_revenue - a.min_revenue)[0] || null;
-      const commissionRate = tier?.rate || 0;
-      await base44.entities.Referral.update(referralId, {
-        invoice_id: proposalId,
-        status: 'purchased',
-        first_year_revenue: firstYearRevenue,
-        commission_rate: commissionRate,
-        commission_amount: firstYearRevenue * commissionRate
-      });
-      if (firstYearRevenue > 0 && partner) {
-        await base44.entities.ReferralPartner.update(partner.id, { ytd_revenue: ytdRevenue });
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allProposals'] });
-      queryClient.invalidateQueries({ queryKey: ['referrals'] });
-      setShowAddProposal(false);
-      setAddProposalForm({ referralId: '', clientId: '', proposalId: '' });
-      toast.success('Proposal linked to referral!');
-    }
-  });
-
-  const deleteProposalMutation = useMutation({
-    mutationFn: async ({ proposalId, referralId }) => {
-      await base44.entities.Proposal.delete(proposalId);
-      if (referralId) {
-        await base44.entities.Referral.update(referralId, { invoice_id: '', status: 'submitted' });
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allProposals'] });
-      queryClient.invalidateQueries({ queryKey: ['referrals'] });
-      toast.success('Proposal deleted');
-    }
-  });
-
-  // Find the matching ReferralPartner for this lead
+  // Match ReferralPartner portal record for this lead
   const matchedPartner = allPartners.find(p =>
     p.email?.toLowerCase() === lead.email?.toLowerCase() ||
     p.name?.toLowerCase() === lead.name?.toLowerCase()
   );
 
-  // Referrals linked to this partner
+  // All Referral entity records for this partner
   const partnerReferrals = matchedPartner
     ? allReferrals.filter(r => r.referral_partner_id === matchedPartner.id)
     : [];
 
   const referralTotalValue = partnerReferrals.reduce((sum, r) => sum + (r.first_year_revenue || 0), 0);
-  const referralCompanies = new Set(partnerReferrals.map(r => r.company_name).filter(Boolean)).size;
 
-  // For the Companies tab: clients linked via Referral records (by referred_client_id)
-  const partnerClientIds = new Set(partnerReferrals.map(r => r.referred_client_id).filter(Boolean));
-  const partnerClients = allClients.filter(c => partnerClientIds.has(c.id));
-
-  // For the Proposals tab: proposals linked via Referral records (stored in invoice_id field as proposal_id)
+  // Proposals linked via Referral.invoice_id
   const partnerProposalIds = new Set(partnerReferrals.map(r => r.invoice_id).filter(Boolean));
   const partnerProposals = allProposals.filter(p => partnerProposalIds.has(p.id));
-  const partnerTotalValue = partnerProposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
-  const partnerAcceptedProposals = partnerProposals.filter(p => p.status === 'accepted');
-  const partnerAcceptedValue = partnerAcceptedProposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
+  const partnerAcceptedValue = partnerProposals
+    .filter(p => p.status === 'accepted')
+    .reduce((sum, p) => sum + (p.total_amount || 0), 0);
 
-  // Use broker-email-based data as fallback when Referral records lack linked client/proposal data
-  const useReferralData = matchedPartner && partnerReferrals.length > 0;
-  const displayCompanies = useReferralData ? (partnerClients.length > 0 ? partnerClients.length : referralCompanies) : relatedClients.length;
-  const displayReferrals = useReferralData ? partnerReferrals.length : relatedProposals.length;
-  const displayTotalValue = useReferralData ? referralTotalValue : acceptedValue;
+  // Display stats
+  const displayReferrals = partnerReferrals.length;
+  const displayProposalCount = partnerProposals.length;
+  const displayTotalValue = referralTotalValue;
 
-  // Calculate adjusted revenue: wellness box line items count at 50%
-  const calcAdjustedRevenue = (proposal) => {
-    if (!proposal) return 0;
-    const s = proposal.selections || {};
-    const overrides = s.priceOverrides || {};
-    const customCharges = s.customCharges || [];
-
-    // Box prices (same as EditProposal)
-    const BOX_PRICES = {
-      reduceStress: 60, relaxationSleep: 60, largeEmotional: 100,
-      largeStressReduction: 120, stressReductionDigital: 50,
-      beyondBurnoutDigital: 100, emotionalWellness: 100,
-      wintertimeHealthy: 100, newYearFreshStart: 100
-    };
-
-    // Non-box items: workshops, challenges, leadership, classes
-    let nonBoxTotal = 0;
-    const challengePrice = s.challengePrice || 0;
-    (s.workshops || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
-    (s.challengePrograms || []).forEach(id => nonBoxTotal += (overrides[id] ?? challengePrice));
-    (s.leadership || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
-    (s.movementClasses || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
-    customCharges.forEach(c => nonBoxTotal += (c.amount || 0));
-
-    // Box items (count at 50%)
-    let boxTotal = 0;
-    const boxQtys = s.sampleBoxQuantities || {};
-    Object.entries(boxQtys).forEach(([key, qty]) => {
-      boxTotal += (qty || 0) * (BOX_PRICES[key] || 0);
-    });
-    const customBoxQty = s.customBoxQuantity || 0;
-    const customBoxItems = s.customBoxItems || [];
-    if (customBoxQty > 0 && customBoxItems.length > 0) {
-      const unitPrice = customBoxItems.reduce((sum, item) => sum + (item.price || 0), 0);
-      boxTotal += customBoxQty * unitPrice;
-    }
-
-    const adjustedTotal = nonBoxTotal + (boxTotal * 0.5);
-    // Fall back to stored total_amount if selections didn't parse meaningfully
-    return adjustedTotal > 0 ? adjustedTotal : proposal.total_amount || 0;
-  };
-
-  const addReferral = async () => {
-    if (!referralForm.date || !referralForm.company_name) return;
-    const updated = [...(lead.referral_history || []), referralForm];
-    const sortedDates = updated.map(r => r.date).sort().reverse();
-    const lastDate = sortedDates[0] || lead.last_referral_date;
-    updateMutation.mutate({
-      referral_history: updated,
-      referral_count: updated.length,
-      last_referral_date: lastDate
-    });
-
-    // Also create a Referral entity record so it shows up in partner admin & portal
-    const partnerId = referralForm.partner_id || allPartners.find(p =>
-      p.email?.toLowerCase() === lead.email?.toLowerCase() ||
-      p.name?.toLowerCase() === lead.name?.toLowerCase()
-    )?.id;
-    const partner = allPartners.find(p => p.id === partnerId);
-    if (!partner) {
-      toast.error('No matching Referral Partner found. Please select a partner from the dropdown.');
-    }
-    if (partner) {
-      const linkedProposal = referralForm.proposal_id
-        ? allProposals.find(p => p.id === referralForm.proposal_id)
-        : null;
-      const firstYearRevenue = calcAdjustedRevenue(linkedProposal);
-
-      // Find applicable commission tier
-      const ytdRevenue = (partner.ytd_revenue || 0) + firstYearRevenue;
-      const tiers = partner.commission_tiers || [];
-      const tier = tiers
-        .filter(t => ytdRevenue >= (t.min_revenue || 0))
-        .sort((a, b) => b.min_revenue - a.min_revenue)[0] || null;
-      const commissionRate = tier?.rate || 0;
-      const commissionAmount = firstYearRevenue * commissionRate;
-
-      await base44.entities.Referral.create({
-        referral_partner_id: partner.id,
-        referral_partner_name: partner.name,
-        contact_name: referralForm.contact_name || '',
-        company_name: referralForm.company_name,
-        notes: referralForm.notes || '',
-        referral_date: new Date(referralForm.date).toISOString(),
-        status: linkedProposal ? 'purchased' : 'submitted',
-        referred_client_id: referralForm.client_id || '',
-        invoice_id: referralForm.proposal_id || '',
-        first_year_revenue: firstYearRevenue,
-        commission_rate: commissionRate,
-        commission_amount: commissionAmount
-      });
-
-      // Update partner YTD revenue
-      if (firstYearRevenue > 0) {
-        await base44.entities.ReferralPartner.update(partner.id, {
-          ytd_revenue: ytdRevenue
-        });
-      }
-    }
-
-    setReferralForm(EMPTY_REFERRAL);
-    setShowAddReferral(false);
-    toast.success('Referral added!');
-  };
-
-  const deleteReferral = (index) => {
-    const originalIndex = (lead.referral_history || []).findIndex((_, i) => {
-      const sorted = [...(lead.referral_history || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
-      return lead.referral_history.indexOf(sorted[index]) === i;
-    });
-    const sorted = [...(lead.referral_history || [])].sort((a, b) => new Date(b.date) - new Date(a.date));
-    sorted.splice(index, 1);
-    const sortedDates = sorted.map(r => r.date).sort().reverse();
-    updateMutation.mutate({
-      referral_history: sorted,
-      referral_count: sorted.length,
-      last_referral_date: sortedDates[0] || null
-    });
-    toast.success('Referral removed');
-  };
+  const statusCfg = STATUS_CONFIG[lead.status || 'cold'] || STATUS_CONFIG.cold;
+  const partnerCfg = PARTNER_STATUS_CONFIG[lead.partner_status || 'new'] || PARTNER_STATUS_CONFIG.new;
+  const isActive = lead.partner_status === 'active_partner';
+  const sourceParts = (lead.source || '').split(' | ');
+  const linkedinUrl = sourceParts[1] || '';
 
   const daysSince = (dateStr) => {
     if (!dateStr) return null;
@@ -309,6 +152,133 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
     if (diff < 60) return '1 month ago';
     return `${Math.floor(diff / 30)} months ago`;
   };
+
+  const toggleActivePartner = () => {
+    const newStatus = isActive ? 'nurturing' : 'active_partner';
+    updateLeadMutation.mutate({ partner_status: newStatus });
+    toast.success(isActive ? 'Marked as Nurturing' : 'Marked as Active Partner!');
+  };
+
+  // Add a new Referral entity record (and update lead history)
+  const addReferral = async () => {
+    if (!referralForm.date || !referralForm.company_name) return;
+
+    const partnerId = referralForm.partner_id || matchedPartner?.id;
+    const partner = allPartners.find(p => p.id === partnerId);
+    if (!partner) {
+      toast.error('No matching Referral Partner portal found for this lead.');
+      return;
+    }
+
+    const linkedProposal = referralForm.proposal_id
+      ? allProposals.find(p => p.id === referralForm.proposal_id)
+      : null;
+    const firstYearRevenue = calcAdjustedRevenue(linkedProposal);
+    const ytdRevenue = (partner.ytd_revenue || 0) + firstYearRevenue;
+    const tiers = partner.commission_tiers || [];
+    const tier = tiers.filter(t => ytdRevenue >= (t.min_revenue || 0)).sort((a, b) => b.min_revenue - a.min_revenue)[0] || null;
+    const commissionRate = tier?.rate || 0;
+
+    await base44.entities.Referral.create({
+      referral_partner_id: partner.id,
+      referral_partner_name: partner.name,
+      contact_name: referralForm.contact_name || '',
+      company_name: referralForm.company_name,
+      notes: referralForm.notes || '',
+      referral_date: new Date(referralForm.date).toISOString(),
+      status: linkedProposal ? 'purchased' : 'submitted',
+      referred_client_id: referralForm.client_id || '',
+      invoice_id: referralForm.proposal_id || '',
+      first_year_revenue: firstYearRevenue,
+      commission_rate: commissionRate,
+      commission_amount: firstYearRevenue * commissionRate
+    });
+
+    if (firstYearRevenue > 0) {
+      await base44.entities.ReferralPartner.update(partner.id, { ytd_revenue: ytdRevenue });
+    }
+
+    // Update lead history + partner_status
+    const updatedHistory = [...(lead.referral_history || []), {
+      date: referralForm.date,
+      company_name: referralForm.company_name,
+      contact_name: referralForm.contact_name,
+      notes: referralForm.notes
+    }];
+    updateLeadMutation.mutate({
+      referral_history: updatedHistory,
+      referral_count: updatedHistory.length,
+      last_referral_date: referralForm.date,
+      partner_status: 'active_partner'
+    });
+
+    setReferralForm(EMPTY_REFERRAL);
+    setShowAddReferral(false);
+    queryClient.invalidateQueries({ queryKey: ['referrals'] });
+    queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
+    toast.success('Referral added!');
+  };
+
+  const deleteReferralRecord = async (referral) => {
+    if (!confirm(`Delete referral for ${referral.company_name}? This cannot be undone.`)) return;
+    await base44.entities.Referral.delete(referral.id);
+    queryClient.invalidateQueries({ queryKey: ['referrals'] });
+    toast.success('Referral deleted');
+  };
+
+  // Link an accepted proposal to an existing referral record
+  const linkProposalMutation = useMutation({
+    mutationFn: async ({ referralId, proposalId }) => {
+      const proposal = allProposals.find(p => p.id === proposalId);
+      const partner = matchedPartner;
+      const firstYearRevenue = calcAdjustedRevenue(proposal);
+      const ytdRevenue = (partner?.ytd_revenue || 0) + firstYearRevenue;
+      const tiers = partner?.commission_tiers || [];
+      const tier = tiers.filter(t => ytdRevenue >= (t.min_revenue || 0)).sort((a, b) => b.min_revenue - a.min_revenue)[0] || null;
+      const commissionRate = tier?.rate || 0;
+
+      await base44.entities.Referral.update(referralId, {
+        invoice_id: proposalId,
+        status: 'purchased',
+        reviewed_date: new Date().toISOString(),
+        first_year_revenue: firstYearRevenue,
+        commission_rate: commissionRate,
+        commission_amount: firstYearRevenue * commissionRate
+      });
+
+      if (firstYearRevenue > 0 && partner) {
+        await base44.entities.ReferralPartner.update(partner.id, { ytd_revenue: ytdRevenue });
+      }
+
+      // Ensure the Lead is marked as active_partner
+      await base44.entities.Lead.update(lead.id, { partner_status: 'active_partner' });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['allProposals'] });
+      queryClient.invalidateQueries({ queryKey: ['referrals'] });
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
+      setShowAddProposal(false);
+      setProposalForm(EMPTY_PROPOSAL_FORM);
+      toast.success('Proposal linked — referral marked as purchased!');
+      if (onUpdate) onUpdate();
+    }
+  });
+
+  // Referrals that don't yet have a proposal linked
+  const unlinkedReferrals = partnerReferrals.filter(r => !r.invoice_id);
+
+  // Proposals available to link to the selected referral
+  const selectedRef = unlinkedReferrals.find(r => r.id === proposalForm.referralId);
+  const refCompany = (selectedRef?.company_name || '').toLowerCase();
+  const candidateProposals = selectedRef ? allProposals.filter(p => {
+    if (partnerProposalIds.has(p.id)) return false;
+    if (selectedRef.referred_client_id && p.client_id === selectedRef.referred_client_id) return true;
+    if (!refCompany) return true; // show all if no company filter
+    const c = allClients.find(cl => cl.id === p.client_id);
+    const clientCompany = (c?.company || c?.name || p.client_name || '').toLowerCase();
+    return clientCompany.includes(refCompany) || refCompany.includes(clientCompany);
+  }) : [];
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -327,17 +297,16 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
               <div className="flex flex-wrap gap-2 mt-2">
                 <Badge variant="outline" className={`text-xs ${statusCfg.color}`}>{statusCfg.label}</Badge>
                 <Badge variant="outline" className={`text-xs ${partnerCfg.color}`}>{partnerCfg.label}</Badge>
-                {(lead.referral_count || 0) > 0 && (
+                {displayReferrals > 0 && (
                   <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
-                    <Star className="w-3 h-3 mr-1" />{lead.referral_count} referral{lead.referral_count !== 1 ? 's' : ''}
+                    <Star className="w-3 h-3 mr-1" />{displayReferrals} referral{displayReferrals !== 1 ? 's' : ''}
                   </Badge>
                 )}
               </div>
             </div>
-            {/* Active Partner Toggle */}
             <Button
               onClick={toggleActivePartner}
-              disabled={updateMutation.isPending}
+              disabled={updateLeadMutation.isPending}
               className={isActive
                 ? 'bg-green-600 hover:bg-green-700 text-white flex-shrink-0'
                 : 'bg-white border-2 border-green-600 text-green-700 hover:bg-green-50 flex-shrink-0'}
@@ -352,16 +321,16 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
         {/* Stats row */}
         <div className="grid grid-cols-3 gap-3 px-6 py-4 bg-gray-50 border-b flex-shrink-0">
           <div className="text-center">
-            <p className="text-2xl font-bold text-[#013f7c]">{displayCompanies}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Companies</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-gray-700">{displayReferrals}</p>
+            <p className="text-2xl font-bold text-[#013f7c]">{displayReferrals}</p>
             <p className="text-xs text-gray-500 mt-0.5">Referrals</p>
           </div>
           <div className="text-center">
+            <p className="text-2xl font-bold text-gray-700">{displayProposalCount}</p>
+            <p className="text-xs text-gray-500 mt-0.5">Proposals</p>
+          </div>
+          <div className="text-center">
             <p className="text-2xl font-bold text-green-600">${displayTotalValue.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Referral Total Value</p>
+            <p className="text-xs text-gray-500 mt-0.5">Total Value</p>
           </div>
         </div>
 
@@ -371,13 +340,10 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
             <TabsList className="w-full rounded-none border-b bg-white px-6 justify-start h-10 gap-1">
               <TabsTrigger value="overview" className="text-sm">Overview</TabsTrigger>
               <TabsTrigger value="referrals" className="text-sm">
-                Referrals ({referralHistory.length})
-              </TabsTrigger>
-              <TabsTrigger value="companies" className="text-sm">
-                Companies ({displayCompanies})
+                Referrals ({displayReferrals})
               </TabsTrigger>
               <TabsTrigger value="proposals" className="text-sm">
-                Proposals ({useReferralData ? partnerProposals.length || relatedProposals.length : relatedProposals.length})
+                Proposals ({displayProposalCount})
               </TabsTrigger>
               <TabsTrigger value="emails" className="text-sm">Emails</TabsTrigger>
             </TabsList>
@@ -423,12 +389,11 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
               )}
             </TabsContent>
 
-            {/* Referrals */}
+            {/* Referrals (merged with Companies) */}
             <TabsContent value="referrals" className="p-6 mt-0">
               <div className="flex justify-between items-center mb-4">
-                <h4 className="font-semibold text-gray-700">Referral History</h4>
+                <h4 className="font-semibold text-gray-700">Referred Companies</h4>
                 <Button size="sm" variant="outline" onClick={() => {
-                  const matchedPartner = allPartners.find(p => p.email?.toLowerCase() === lead.email?.toLowerCase());
                   setReferralForm({ ...EMPTY_REFERRAL, partner_id: matchedPartner?.id || '' });
                   setShowAddReferral(!showAddReferral);
                 }} className="gap-1">
@@ -439,39 +404,50 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
               {showAddReferral && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 space-y-3">
                   <h5 className="text-sm font-semibold text-blue-800">Log a Referral</h5>
-                  {/* Partner selector — pre-select by email match */}
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">Referral Partner *</label>
-                    <Select
-                      value={referralForm.partner_id || (allPartners.find(p => p.email?.toLowerCase() === lead.email?.toLowerCase())?.id || '')}
-                      onValueChange={val => setReferralForm({ ...referralForm, partner_id: val })}
-                    >
-                      <SelectTrigger className="bg-white">
-                        <SelectValue placeholder="Select partner..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {allPartners.map(p => (
-                          <SelectItem key={p.id} value={p.id}>{p.name}{p.company ? ` — ${p.company}` : ''}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {!matchedPartner && (
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Referral Partner Portal *</label>
+                      <Select
+                        value={referralForm.partner_id}
+                        onValueChange={val => setReferralForm({ ...referralForm, partner_id: val })}
+                      >
+                        <SelectTrigger className="bg-white">
+                          <SelectValue placeholder="Select partner..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {allPartners.map(p => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}{p.company ? ` — ${p.company}` : ''}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs text-gray-500 mb-1 block">Date *</label>
-                      <Input type="date" value={referralForm.date} onChange={e => setReferralForm({...referralForm, date: e.target.value})} />
+                      <Input type="date" value={referralForm.date} onChange={e => setReferralForm({ ...referralForm, date: e.target.value })} />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">Company *</label>
+                      <label className="text-xs text-gray-500 mb-1 block">Company Name *</label>
+                      <Input placeholder="Company referred" value={referralForm.company_name} onChange={e => setReferralForm({ ...referralForm, company_name: e.target.value })} />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Contact Name</label>
+                      <Input placeholder="Contact at company" value={referralForm.contact_name} onChange={e => setReferralForm({ ...referralForm, contact_name: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Linked Client (optional)</label>
                       <Select
                         value={referralForm.client_id}
                         onValueChange={val => {
                           const client = allClients.find(c => c.id === val);
-                          setReferralForm({ ...referralForm, client_id: val, company_name: client?.company || client?.name || '', proposal_id: '' });
+                          setReferralForm({ ...referralForm, client_id: val, company_name: client?.company || client?.name || referralForm.company_name, proposal_id: '' });
                         }}
                       >
                         <SelectTrigger className="bg-white">
-                          <SelectValue placeholder="Select a company..." />
+                          <SelectValue placeholder="Select client..." />
                         </SelectTrigger>
                         <SelectContent>
                           {allClients.filter(c => c.company || c.name).map(c => (
@@ -481,31 +457,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                       </Select>
                     </div>
                   </div>
-                  {referralForm.client_id && (() => {
-                    const clientProposals = allProposals.filter(p => p.client_id === referralForm.client_id);
-                    return clientProposals.length > 0 ? (
-                      <div>
-                        <label className="text-xs text-gray-500 mb-1 block">Link a Proposal (optional)</label>
-                        <Select
-                          value={referralForm.proposal_id}
-                          onValueChange={val => setReferralForm({ ...referralForm, proposal_id: val })}
-                        >
-                          <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="Select a proposal..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {clientProposals.map(p => (
-                              <SelectItem key={p.id} value={p.id}>
-                                ${p.total_amount?.toLocaleString()} — {(p.status || 'draft').charAt(0).toUpperCase() + (p.status || 'draft').slice(1)} ({new Date(p.created_date).toLocaleDateString()})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ) : null;
-                  })()}
-                  <Input placeholder="Contact Name (optional)" value={referralForm.contact_name} onChange={e => setReferralForm({...referralForm, contact_name: e.target.value})} />
-                  <Textarea placeholder="Notes (optional)" rows={2} value={referralForm.notes} onChange={e => setReferralForm({...referralForm, notes: e.target.value})} />
+                  <Textarea placeholder="Notes (optional)" rows={2} value={referralForm.notes} onChange={e => setReferralForm({ ...referralForm, notes: e.target.value })} />
                   <div className="flex gap-2">
                     <Button size="sm" className="bg-[#013f7c] hover:bg-[#012d5a]" onClick={addReferral} disabled={!referralForm.date || !referralForm.company_name}>
                       Save Referral
@@ -515,223 +467,147 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                 </div>
               )}
 
-              {referralHistory.length === 0 ? (
+              {partnerReferrals.length === 0 && !showAddReferral ? (
                 <div className="text-center py-10 text-gray-400">
-                  <Star className="w-10 h-10 mx-auto mb-2 text-gray-200" />
+                  <Building className="w-10 h-10 mx-auto mb-2 text-gray-200" />
                   <p>No referrals logged yet.</p>
                   <p className="text-xs mt-1">Click "Add Referral" to record one.</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  {referralHistory.map((ref, i) => (
-                    <div key={i} className="bg-white border rounded-lg p-4 flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold text-gray-800">{ref.company_name}</p>
-                          {ref.contact_name && <span className="text-sm text-gray-500">— {ref.contact_name}</span>}
-                          {i === 0 && <Badge className="text-xs bg-purple-100 text-purple-700 border-purple-200">Most Recent</Badge>}
-                        </div>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          {new Date(ref.date).toLocaleDateString()} <span className="text-gray-300 mx-1">·</span> {daysSince(ref.date)}
-                        </p>
-                        {ref.notes && <p className="text-sm text-gray-500 mt-1">{ref.notes}</p>}
-                      </div>
-                      <Button size="icon" variant="ghost" className="text-red-400 hover:text-red-600 flex-shrink-0 h-7 w-7" onClick={() => deleteReferral(i)}>
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            {/* Companies */}
-            <TabsContent value="companies" className="p-6 mt-0">
-              {(useReferralData && partnerReferrals.length > 0) ? (
-                partnerReferrals.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <Building className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-                    <p>No companies referred yet.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {partnerReferrals.map(ref => {
-                      const client = allClients.find(c => c.id === ref.referred_client_id);
-                      const refProposal = ref.invoice_id ? allProposals.find(p => p.id === ref.invoice_id) : null;
+                  {partnerReferrals
+                    .slice()
+                    .sort((a, b) => new Date(b.referral_date) - new Date(a.referral_date))
+                    .map(ref => {
+                      const linkedProposal = ref.invoice_id ? allProposals.find(p => p.id === ref.invoice_id) : null;
                       return (
-                        <div key={ref.id} className="bg-white border rounded-lg p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="font-semibold text-gray-800">{ref.company_name || client?.company || client?.name}</p>
-                              {ref.contact_name && <p className="text-sm text-gray-500">{ref.contact_name}</p>}
-                              <p className="text-xs text-gray-400 mt-0.5">{new Date(ref.referral_date).toLocaleDateString()}</p>
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              {refProposal && <p className="text-sm font-semibold text-green-600">${refProposal.total_amount?.toLocaleString()}</p>}
-                              <Badge className={`text-xs ${PROPOSAL_STATUS_COLORS[ref.status] || 'bg-gray-100 text-gray-700'}`}>
-                                {ref.status?.replace('_', ' ')}
+                        <div key={ref.id} className="bg-white border rounded-lg p-4 flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-semibold text-gray-800">{ref.company_name}</p>
+                              {ref.contact_name && <span className="text-sm text-gray-500">— {ref.contact_name}</span>}
+                              <Badge className={`text-xs ${REFERRAL_STATUS_COLORS[ref.status] || 'bg-gray-100 text-gray-600'}`}>
+                                {ref.status?.replace(/_/g, ' ')}
                               </Badge>
                             </div>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              {new Date(ref.referral_date).toLocaleDateString()} · {daysSince(ref.referral_date)}
+                            </p>
+                            {linkedProposal && (
+                              <p className="text-xs text-green-700 font-medium mt-1 flex items-center gap-1">
+                                <DollarSign className="w-3 h-3" />
+                                ${linkedProposal.total_amount?.toLocaleString()} proposal linked
+                                {ref.commission_amount > 0 && <span className="text-gray-400 ml-1">· ${ref.commission_amount.toLocaleString()} commission</span>}
+                              </p>
+                            )}
+                            {ref.notes && <p className="text-xs text-gray-400 mt-1 italic">{ref.notes}</p>}
                           </div>
+                          <Button size="icon" variant="ghost" className="text-red-400 hover:text-red-600 flex-shrink-0 h-7 w-7" onClick={() => deleteReferralRecord(ref)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
                       );
                     })}
-                  </div>
-                )
-              ) : (
-                relatedClients.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <Building className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-                    <p>No companies linked to this broker yet.</p>
-                    <p className="text-xs mt-1">Link a broker to a client via the Clients page.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {relatedClients.map(client => {
-                      const clientProposals = allProposals.filter(p => p.client_id === client.id);
-                      const clientTotal = clientProposals.reduce((s, p) => s + (p.total_amount || 0), 0);
-                      const clientWon = clientProposals.filter(p => p.status === 'accepted').reduce((s, p) => s + (p.total_amount || 0), 0);
-                      const isBroker = client.broker_email?.toLowerCase() === lead.email?.toLowerCase();
-                      return (
-                        <div key={client.id} className="bg-white border rounded-lg p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="font-semibold text-gray-800">{client.name}</p>
-                                {client.company && <span className="text-sm text-gray-500">— {client.company}</span>}
-                                <Badge variant="outline" className={`text-xs ${isBroker ? 'bg-orange-50 text-orange-700 border-orange-200' : 'bg-purple-50 text-purple-700 border-purple-200'}`}>
-                                  {isBroker ? 'Broker' : 'Wellness Consultant'}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-gray-500 mt-0.5">{client.email}</p>
-                              {client.industry && <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full mt-1 inline-block">{client.industry}</span>}
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              <p className="text-sm font-semibold text-green-600">${clientWon.toLocaleString()} won</p>
-                              <p className="text-xs text-gray-400">${clientTotal.toLocaleString()} total</p>
-                              <p className="text-xs text-gray-400">{clientProposals.length} proposal{clientProposals.length !== 1 ? 's' : ''}</p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )
+                </div>
               )}
             </TabsContent>
 
             {/* Proposals */}
             <TabsContent value="proposals" className="p-6 mt-0">
-              {(() => {
-                const displayProposals = (useReferralData && partnerProposals.length > 0) ? partnerProposals : relatedProposals;
-                const displayTotal = (useReferralData && partnerProposals.length > 0) ? partnerTotalValue : totalProposalValue;
-                const displayAccepted = (useReferralData && partnerProposals.length > 0) ? partnerAcceptedProposals : acceptedProposals;
-                const displayAcceptedValue = (useReferralData && partnerProposals.length > 0) ? partnerAcceptedValue : acceptedValue;
-                const unlinkedReferrals = partnerReferrals.filter(r => !r.invoice_id);
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="font-semibold text-gray-700">Accepted Proposals</h4>
+                {matchedPartner && unlinkedReferrals.length > 0 && (
+                  <Button size="sm" variant="outline" className="gap-1" onClick={() => {
+                    setProposalForm(EMPTY_PROPOSAL_FORM);
+                    setShowAddProposal(!showAddProposal);
+                  }}>
+                    <Plus className="w-3.5 h-3.5" /> Add Proposal
+                  </Button>
+                )}
+              </div>
 
-                // Proposals available to link: not already linked to this partner
-                const selectedRef = unlinkedReferrals.find(r => r.id === addProposalForm.referralId);
-                const refCompany = (selectedRef?.company_name || '').toLowerCase();
-                const candidateProposals = selectedRef ? allProposals.filter(p => {
-                  if (partnerProposalIds.has(p.id)) return false;
-                  if (selectedRef.referred_client_id && p.client_id === selectedRef.referred_client_id) return true;
-                  if (!refCompany) return false;
-                  const c = allClients.find(cl => cl.id === p.client_id);
-                  const clientCompany = (c?.company || c?.name || p.client_name || '').toLowerCase();
-                  return clientCompany.includes(refCompany) || refCompany.includes(clientCompany);
-                }) : [];
+              {showAddProposal && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3 mb-4">
+                  <h5 className="text-sm font-semibold text-blue-800">Link an Accepted Proposal</h5>
+                  <div>
+                    <label className="text-xs text-gray-500 mb-1 block">Select Referral Company *</label>
+                    <Select value={proposalForm.referralId} onValueChange={val => {
+                      setProposalForm({ referralId: val, proposalId: '' });
+                    }}>
+                      <SelectTrigger className="bg-white">
+                        <SelectValue placeholder="Choose a referred company..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {unlinkedReferrals.map(r => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.company_name || r.contact_name} — {new Date(r.referral_date).toLocaleDateString()}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                return (
-                  <div className="space-y-3">
-                    {matchedPartner && unlinkedReferrals.length > 0 && (
-                      <div className="flex justify-end mb-2">
-                        <Button size="sm" variant="outline" className="gap-1" onClick={() => {
-                          setAddProposalForm({ referralId: '', clientId: '', proposalId: '' });
-                          setShowAddProposal(!showAddProposal);
-                        }}>
-                          <Plus className="w-3.5 h-3.5" /> Link Proposal
-                        </Button>
-                      </div>
-                    )}
+                  {proposalForm.referralId && (
+                    <div>
+                      <label className="text-xs text-gray-500 mb-1 block">Select Proposal *</label>
+                      <Select value={proposalForm.proposalId} onValueChange={val => setProposalForm(f => ({ ...f, proposalId: val }))}>
+                        <SelectTrigger className="bg-white">
+                          <SelectValue placeholder={candidateProposals.length === 0 ? 'No proposals found for this company' : 'Choose a proposal...'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {candidateProposals.map(p => {
+                            const c = allClients.find(cl => cl.id === p.client_id);
+                            return (
+                              <SelectItem key={p.id} value={p.id}>
+                                ${p.total_amount?.toLocaleString()} — {c?.company || c?.name || p.client_name} — {p.status} ({new Date(p.created_date).toLocaleDateString()})
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
 
-                    {showAddProposal && (
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3 mb-2">
-                        <h5 className="text-sm font-semibold text-blue-800">Link a Proposal to a Referral</h5>
+                  <div className="flex gap-2">
+                    <Button size="sm" className="bg-[#013f7c] hover:bg-[#012d5a]"
+                      disabled={!proposalForm.referralId || !proposalForm.proposalId || linkProposalMutation.isPending}
+                      onClick={() => linkProposalMutation.mutate({ referralId: proposalForm.referralId, proposalId: proposalForm.proposalId })}>
+                      {linkProposalMutation.isPending ? 'Saving...' : 'Save'}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setShowAddProposal(false); setProposalForm(EMPTY_PROPOSAL_FORM); }}>Cancel</Button>
+                  </div>
+                </div>
+              )}
 
-                        {/* Step 1: pick which referral to link */}
-                        <div>
-                          <label className="text-xs text-gray-500 mb-1 block">Select Referral *</label>
-                          <Select value={addProposalForm.referralId} onValueChange={val => {
-                            const ref = unlinkedReferrals.find(r => r.id === val);
-                            setAddProposalForm({ referralId: val, clientId: ref?.referred_client_id || '', proposalId: '' });
-                          }}>
-                            <SelectTrigger className="bg-white">
-                              <SelectValue placeholder="Choose a referral..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {unlinkedReferrals.map(r => (
-                                <SelectItem key={r.id} value={r.id}>
-                                  {r.company_name || r.contact_name} — {new Date(r.referral_date).toLocaleDateString()}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {/* Step 2: pick a proposal for that referral */}
-                        {addProposalForm.referralId && (
-                          <div>
-                            <label className="text-xs text-gray-500 mb-1 block">Select Proposal *</label>
-                            <Select value={addProposalForm.proposalId} onValueChange={val => setAddProposalForm(f => ({ ...f, proposalId: val }))}>
-                              <SelectTrigger className="bg-white">
-                                <SelectValue placeholder={candidateProposals.length === 0 ? 'No proposals found for this company' : 'Choose a proposal...'} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {candidateProposals.map(p => {
-                                  const c = allClients.find(cl => cl.id === p.client_id);
-                                  return (
-                                    <SelectItem key={p.id} value={p.id}>
-                                      ${p.total_amount?.toLocaleString()} — {c?.company || c?.name || p.client_name} — {p.status || 'draft'} ({new Date(p.created_date).toLocaleDateString()})
-                                    </SelectItem>
-                                  );
-                                })}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
-
-                        <div className="flex gap-2">
-                          <Button size="sm" className="bg-[#013f7c] hover:bg-[#012d5a]"
-                            disabled={!addProposalForm.referralId || !addProposalForm.proposalId || linkProposalMutation.isPending}
-                            onClick={() => linkProposalMutation.mutate({ referralId: addProposalForm.referralId, proposalId: addProposalForm.proposalId })}>
-                            Save
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => { setShowAddProposal(false); setAddProposalForm({ referralId: '', clientId: '', proposalId: '' }); }}>Cancel</Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {displayProposals.length === 0 && !showAddProposal && (
-                      <div className="text-center py-12 text-gray-400">
-                        <FileText className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-                        <p>No proposals linked yet.</p>
-                      </div>
-                    )}
-
-                    {displayProposals.length > 0 && <>
+              {partnerProposals.length === 0 && !showAddProposal ? (
+                <div className="text-center py-12 text-gray-400">
+                  <FileText className="w-12 h-12 mx-auto mb-3 text-gray-200" />
+                  <p>No proposals linked yet.</p>
+                  {unlinkedReferrals.length > 0 && (
+                    <p className="text-xs mt-1">Use "Add Proposal" to link an accepted proposal to a referral.</p>
+                  )}
+                  {unlinkedReferrals.length === 0 && partnerReferrals.length === 0 && (
+                    <p className="text-xs mt-1">Add referrals first, then link proposals here.</p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {partnerProposals.length > 0 && (
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       <div className="bg-blue-50 rounded-lg p-3">
                         <p className="text-xs text-gray-500">Total Pipeline</p>
-                        <p className="text-xl font-bold text-[#013f7c]">${displayTotal.toLocaleString()}</p>
+                        <p className="text-xl font-bold text-[#013f7c]">${partnerProposals.reduce((s, p) => s + (p.total_amount || 0), 0).toLocaleString()}</p>
                       </div>
                       <div className="bg-green-50 rounded-lg p-3">
-                        <p className="text-xs text-gray-500">Won ({displayAccepted.length})</p>
-                        <p className="text-xl font-bold text-green-700">${displayAcceptedValue.toLocaleString()}</p>
+                        <p className="text-xs text-gray-500">Won Value</p>
+                        <p className="text-xl font-bold text-green-700">${partnerAcceptedValue.toLocaleString()}</p>
                       </div>
                     </div>
-                    {displayProposals.map(proposal => {
+                  )}
+                  <div className="space-y-3">
+                    {partnerProposals.map(proposal => {
                       const client = allClients.find(c => c.id === proposal.client_id);
-                      const ref = matchedPartner ? partnerReferrals.find(r => r.invoice_id === proposal.id) : null;
+                      const ref = partnerReferrals.find(r => r.invoice_id === proposal.id);
                       return (
                         <div key={proposal.id} className="bg-white border rounded-lg p-4">
                           <div className="flex items-center justify-between gap-3">
@@ -739,34 +615,29 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                               <p className="font-semibold text-gray-800">${proposal.total_amount?.toLocaleString()}</p>
                               {ref && <p className="text-sm text-gray-600 font-medium">{ref.company_name}</p>}
                               {client && <p className="text-sm text-gray-500">{client.name}{client.company ? ` — ${client.company}` : ''}</p>}
+                              {ref?.commission_amount > 0 && (
+                                <p className="text-xs text-green-700 font-medium mt-0.5">
+                                  Commission: ${ref.commission_amount.toLocaleString()} ({((ref.commission_rate || 0) * 100).toFixed(1)}%)
+                                </p>
+                              )}
                               <p className="text-xs text-gray-400 mt-0.5">Created: {new Date(proposal.created_date).toLocaleDateString()}</p>
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              <Badge className={`text-xs ${PROPOSAL_STATUS_COLORS[proposal.status || 'draft']}`}>
-                                {(proposal.status || 'draft').charAt(0).toUpperCase() + (proposal.status || 'draft').slice(1)}
-                              </Badge>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="text-red-400 hover:text-red-600 h-7 w-7"
-                                disabled={deleteProposalMutation.isPending}
-                                onClick={() => {
-                                  if (confirm('Delete this proposal? This cannot be undone.')) {
-                                    deleteProposalMutation.mutate({ proposalId: proposal.id, referralId: ref?.id });
-                                  }
-                                }}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
+                            <Badge className={`text-xs ${
+                              proposal.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                              proposal.status === 'sent' ? 'bg-blue-100 text-blue-700' :
+                              proposal.status === 'viewed' ? 'bg-purple-100 text-purple-700' :
+                              proposal.status === 'declined' ? 'bg-red-100 text-red-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {(proposal.status || 'draft').charAt(0).toUpperCase() + (proposal.status || 'draft').slice(1)}
+                            </Badge>
                           </div>
                         </div>
                       );
                     })}
-                    </>}
                   </div>
-                );
-              })()}
+                </>
+              )}
             </TabsContent>
 
             {/* Emails */}
