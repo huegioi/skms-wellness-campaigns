@@ -4,6 +4,7 @@ import ClientInformationSection from '@/components/dashboard/ClientInformationSe
 import FinancialSummary from '@/components/dashboard/FinancialSummary';
 import MarketingDashboard from '@/components/dashboard/MarketingDashboard';
 import ServicesAnalytics from '@/components/dashboard/ServicesAnalytics';
+import ActionableReviewQueue from '@/components/dashboard/ActionableReviewQueue';
 
 export default function Home() {
   const [activeSection, setActiveSection] = useState('clients');
@@ -72,6 +73,11 @@ export default function Home() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Review Queue */}
+      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-6">
+        <ActionableReviewQueue />
       </div>
 
       {/* Content Area */}
