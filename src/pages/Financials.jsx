@@ -119,6 +119,14 @@ function InvoicesPanel() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['invoices'] })
   });
 
+  const markPaidMutation = useMutation({
+    mutationFn: async (invoice) => {
+      const paidDate = new Date().toISOString().split('T')[0];
+      await base44.entities.Invoice.update(invoice.id, { status: 'paid', paid_date: paidDate });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['invoices'] })
+  });
+
   const handleSyncAll = async () => {
     setSyncingAll(true);
     setSyncResults(null);
@@ -396,6 +404,12 @@ function InvoicesPanel() {
                           Send to QB
                         </Button>
                       ) : null}
+                      {['sent', 'overdue'].includes(invoice.status) && (
+                        <Button size="sm" variant="outline" className="text-green-600 hover:text-green-800 hover:border-green-500 whitespace-nowrap"
+                          onClick={() => { if (confirm(`Mark invoice ${invoice.invoice_number || ''} as paid?`)) markPaidMutation.mutate(invoice); }}>
+                          <CheckCircle className="w-4 h-4 mr-1" /> Paid
+                        </Button>
+                      )}
                       <Button size="sm" variant="outline" onClick={() => setSelectedInvoice({ mode: 'view', invoice })}><Eye className="w-4 h-4" /></Button>
                       {invoice.status === 'draft' && (
                         <Button size="sm" variant="outline" onClick={() => setSelectedInvoice({ mode: 'edit', invoice })}><Pencil className="w-4 h-4" /></Button>
