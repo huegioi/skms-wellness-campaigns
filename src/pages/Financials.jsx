@@ -121,10 +121,13 @@ function InvoicesPanel() {
 
   const markPaidMutation = useMutation({
     mutationFn: async (invoice) => {
-      const paidDate = new Date().toISOString().split('T')[0];
-      await base44.entities.Invoice.update(invoice.id, { status: 'paid', paid_date: paidDate });
+      const response = await base44.functions.invoke('quickbooksSync', { action: 'markAsPaid', invoiceId: invoice.id });
+      return response.data;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['invoices'] })
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      if (data?.qb_warning) alert(`Invoice marked as paid.\n\nQuickBooks note: ${data.qb_warning}`);
+    }
   });
 
   const handleSyncAll = async () => {
@@ -212,10 +215,14 @@ function InvoicesPanel() {
       : `Delete invoice ${invoice.invoice_number}?`;
     if (!confirm(message)) return;
     try {
-      await deleteMutation.mutateAsync(invoice.id);
-      alert('Invoice deleted successfully!');
+      const result = await deleteMutation.mutateAsync(invoice.id);
+      if (result?.qb_warning) {
+        alert(`Invoice deleted.\n\nQuickBooks note: ${result.qb_warning}`);
+      } else {
+        alert('Invoice deleted successfully!');
+      }
     } catch (error) {
-      alert(`Failed: ${error.message}`);
+      alert(`Failed to delete invoice: ${error.message}`);
     }
   };
 

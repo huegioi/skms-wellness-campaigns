@@ -589,6 +589,7 @@ Deno.serve(async (req) => {
       }
 
       const invoiceData = invoice[0];
+      let qbWarning = null;
 
       if (invoiceData.quickbooks_id) {
         try {
@@ -605,20 +606,105 @@ Deno.serve(async (req) => {
             let errorMsg = 'Failed to delete from QuickBooks';
             try {
               const errorData = JSON.parse(errorText);
-              errorMsg = errorData.Fault?.Error?.[0]?.Message || errorMsg;
+              const qbError = errorData.Fault?.Error?.[0];
+              errorMsg = qbError?.Detail || qbError?.Message || errorMsg;
+              console.error('QuickBooks delete error:', JSON.stringify(errorData));
             } catch {
               errorMsg = errorText;
+              console.error('QuickBooks delete raw error:', errorText);
             }
-            throw new Error(errorMsg);
+            // Don't block local deletion — just warn
+            qbWarning = errorMsg;
           }
         } catch (error) {
-          return Response.json({ error: `Failed to delete from QuickBooks: ${error.message}` }, { status: 500 });
+          console.error('QB delete exception:', error.message);
+          qbWarning = error.message;
         }
       }
 
       await base44.asServiceRole.entities.Invoice.delete(invoiceId);
 
-      return Response.json({ success: true, message: 'Invoice deleted successfully' });
+      return Response.json({
+        success: true,
+        message: qbWarning
+          ? `Invoice deleted locally. QuickBooks warning: ${qbWarning}`
+          : 'Invoice deleted successfully',
+        qb_warning: qbWarning
+      });
+    }
+
+    if (action === 'markAsPaid') {
+      const invoice = await base44.asServiceRole.entities.Invoice.filter({ id: invoiceId });
+      if (!invoice || invoice.length === 0) {
+        return Response.json({ error: 'Invoice not found' }, { status: 404 });
+      }
+
+      const invoiceData = invoice[0];
+      const paidDate = new Date().toISOString().split('T')[0];
+      let qbWarning = null;
+
+      // If synced to QB, record a payment there too
+      if (invoiceData.quickbooks_id) {
+        try {
+          const qbInvoice = await getQBInvoice(accessToken, realmId, invoiceData.quickbooks_id);
+
+          // Only record payment if there's still a balance
+          if (qbInvoice.Balance > 0) {
+            // Find or create an AR account reference (QuickBooks requires it)
+            const paymentPayload = {
+              TotalAmt: qbInvoice.Balance,
+              CustomerRef: qbInvoice.CustomerRef,
+              TxnDate: paidDate,
+              Line: [{
+                Amount: qbInvoice.Balance,
+                LinkedTxn: [{ TxnId: invoiceData.quickbooks_id, TxnType: 'Invoice' }]
+              }]
+            };
+
+            const paymentResponse = await fetch(`${QB_API_URL}/${realmId}/payment`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify(paymentPayload)
+            });
+
+            if (!paymentResponse.ok) {
+              const errorText = await paymentResponse.text();
+              let errorMsg = 'Failed to record payment in QuickBooks';
+              try {
+                const errorData = JSON.parse(errorText);
+                const qbError = errorData.Fault?.Error?.[0];
+                errorMsg = qbError?.Detail || qbError?.Message || errorMsg;
+                console.error('QB payment error:', JSON.stringify(errorData));
+              } catch {
+                errorMsg = errorText;
+              }
+              qbWarning = errorMsg;
+            }
+          }
+        } catch (error) {
+          console.error('QB mark paid exception:', error.message);
+          qbWarning = error.message;
+        }
+      }
+
+      // Always update local record
+      await base44.asServiceRole.entities.Invoice.update(invoiceId, {
+        status: 'paid',
+        paid_date: paidDate
+      });
+
+      return Response.json({
+        success: true,
+        paid_date: paidDate,
+        message: qbWarning
+          ? `Marked as paid locally. QuickBooks warning: ${qbWarning}`
+          : 'Invoice marked as paid successfully',
+        qb_warning: qbWarning
+      });
     }
 
     return Response.json({ error: 'Invalid action' }, { status: 400 });
