@@ -17,6 +17,7 @@ import ClientDetailView from '@/components/clients/ClientDetailView';
 import DuplicateChecker from '@/components/clients/DuplicateChecker';
 import { createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
+import BrokersEditor from '@/components/clients/BrokersEditor';
 
 // Client Form Fields Component - defined outside to prevent re-renders
 function ClientFormFields({ formData, setFormData, clients, isEdit, editingClient, onSelectDuplicate, referralPartners = [] }) {
@@ -67,11 +68,11 @@ function ClientFormFields({ formData, setFormData, clients, isEdit, editingClien
         </div>
       </div>
       <div className="border-t pt-4 mt-2">
-        <p className="text-sm font-medium text-gray-600 mb-2">Broker Information</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Input placeholder="Broker Name" value={formData.broker_name} onChange={(e) => setFormData({...formData, broker_name: e.target.value})} />
-          <Input type="email" placeholder="Broker Email" value={formData.broker_email} onChange={(e) => setFormData({...formData, broker_email: e.target.value})} />
-        </div>
+        <p className="text-sm font-medium text-gray-600 mb-2">Broker(s)</p>
+        <BrokersEditor
+          brokers={formData.brokers || []}
+          onChange={(brokers) => setFormData({ ...formData, brokers })}
+        />
       </div>
       <div className="border-t pt-4 mt-2">
         <p className="text-sm font-medium text-gray-600 mb-2">Wellness Consultant Information</p>
@@ -114,7 +115,8 @@ export default function Clients() {
     name: '', email: '', company: '', phone: '', title: '', industry: '', 
     company_size: '', company_address: '', company_website: '', wellness_budget: '', 
     plan_year_start: '', wellness_fund_size: '',
-    broker_name: '', broker_email: '', wellness_consultant_name: '', wellness_consultant_email: '',
+    brokers: [],
+    wellness_consultant_name: '', wellness_consultant_email: '',
     referral_partner_id: '', referral_partner_name: '', notes: '' 
   });
   
@@ -200,7 +202,8 @@ export default function Clients() {
     name: '', email: '', company: '', phone: '', title: '', industry: '', 
     company_size: '', company_address: '', company_website: '', wellness_budget: '', 
     plan_year_start: '', wellness_fund_size: '',
-    broker_name: '', broker_email: '', wellness_consultant_name: '', wellness_consultant_email: '',
+    brokers: [],
+    wellness_consultant_name: '', wellness_consultant_email: '',
     referral_partner_id: '', referral_partner_name: '', notes: '' 
   });
 

@@ -60,14 +60,42 @@
       "type": "number",
       "description": "Per-employee wellness fund size (dollar amount)"
     },
+    "brokers": {
+      "type": "array",
+      "description": "List of brokers associated with this client",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Broker name"
+          },
+          "email": {
+            "type": "string",
+            "description": "Broker email address"
+          },
+          "company": {
+            "type": "string",
+            "description": "Broker company / brokerage"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Broker phone number"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Notes about this broker relationship"
+          }
+        }
+      }
+    },
     "broker_name": {
       "type": "string",
-      "description": "Broker name"
+      "description": "Legacy: single broker name (use brokers array instead)"
     },
     "broker_email": {
       "type": "string",
-      "format": "email",
-      "description": "Broker email address"
+      "description": "Legacy: single broker email (use brokers array instead)"
     },
     "wellness_consultant_name": {
       "type": "string",

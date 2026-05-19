@@ -21,6 +21,7 @@ import GmailHistory from '@/components/clients/GmailHistory';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 import FollowUpSettings from '@/components/clients/FollowUpSettings';
+import BrokersEditor from '@/components/clients/BrokersEditor';
 import AddContactDialog from '@/components/clients/AddContactDialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -96,8 +97,9 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
       wellness_budget: client.wellness_budget || '',
       plan_year_start: client.plan_year_start || '',
       wellness_fund_size: client.wellness_fund_size || '',
-      broker_name: client.broker_name || '',
-      broker_email: client.broker_email || '',
+      brokers: client.brokers?.length > 0
+        ? client.brokers
+        : (client.broker_name ? [{ name: client.broker_name, email: client.broker_email || '', company: '', phone: '', notes: '' }] : []),
       wellness_consultant_name: client.wellness_consultant_name || '',
       wellness_consultant_email: client.wellness_consultant_email || '',
       referral_partner_id: client.referral_partner_id || '',
@@ -430,11 +432,11 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
                 <div><label className="text-xs text-gray-500 mb-1 block">Fund Size / Employee ($)</label><Input type="number" value={editForm.wellness_fund_size} onChange={e => setEditForm({...editForm, wellness_fund_size: e.target.value})} /></div>
               </div>
               <div className="border-t pt-3">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Broker</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div><label className="text-xs text-gray-500 mb-1 block">Broker Name</label><Input value={editForm.broker_name} onChange={e => setEditForm({...editForm, broker_name: e.target.value})} /></div>
-                  <div><label className="text-xs text-gray-500 mb-1 block">Broker Email</label><Input type="email" value={editForm.broker_email} onChange={e => setEditForm({...editForm, broker_email: e.target.value})} /></div>
-                </div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Broker(s)</p>
+                <BrokersEditor
+                  brokers={editForm.brokers || []}
+                  onChange={(brokers) => setEditForm({ ...editForm, brokers })}
+                />
               </div>
               <div className="border-t pt-3">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Wellness Consultant</p>
@@ -510,25 +512,43 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             </div>
           )}
 
-          {/* Broker & Consultant Info */}
-          {(client.broker_name || client.broker_email || client.wellness_consultant_name || client.wellness_consultant_email) && (
-          <div className="grid md:grid-cols-2 gap-4 mt-4">
-            {(client.broker_name || client.broker_email) && (
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-700 mb-2">Broker</h4>
-                {client.broker_name && <p className="text-sm font-medium">{client.broker_name}</p>}
-                {client.broker_email && <p className="flex items-center gap-2 text-sm text-blue-600"><Mail className="w-4 h-4" /> {client.broker_email}</p>}
+          {/* Broker(s) & Consultant Info */}
+          {(() => {
+            const activeBrokers = client.brokers?.length > 0
+              ? client.brokers
+              : (client.broker_name ? [{ name: client.broker_name, email: client.broker_email }] : []);
+            const hasConsultant = client.wellness_consultant_name || client.wellness_consultant_email;
+            if (!activeBrokers.length && !hasConsultant) return null;
+            return (
+              <div className="space-y-3 mt-4">
+                {activeBrokers.length > 0 && (
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-700 mb-3">
+                      Broker{activeBrokers.length > 1 ? 's' : ''}
+                    </h4>
+                    <div className="space-y-3">
+                      {activeBrokers.map((broker, i) => (
+                        <div key={i} className={activeBrokers.length > 1 ? 'border-b border-blue-200 pb-3 last:border-0 last:pb-0' : ''}>
+                          {broker.name && <p className="text-sm font-medium">{broker.name}</p>}
+                          {broker.company && <p className="text-sm text-gray-500">{broker.company}</p>}
+                          {broker.email && <p className="flex items-center gap-2 text-sm text-blue-600"><Mail className="w-4 h-4" /> {broker.email}</p>}
+                          {broker.phone && <p className="text-sm text-gray-500">{broker.phone}</p>}
+                          {broker.notes && <p className="text-xs text-gray-400 italic mt-1">{broker.notes}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {hasConsultant && (
+                  <div className="bg-purple-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-gray-700 mb-2">Wellness Consultant</h4>
+                    {client.wellness_consultant_name && <p className="text-sm font-medium">{client.wellness_consultant_name}</p>}
+                    {client.wellness_consultant_email && <p className="flex items-center gap-2 text-sm text-purple-600"><Mail className="w-4 h-4" /> {client.wellness_consultant_email}</p>}
+                  </div>
+                )}
               </div>
-            )}
-            {(client.wellness_consultant_name || client.wellness_consultant_email) && (
-              <div className="bg-purple-50 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-700 mb-2">Wellness Consultant</h4>
-                {client.wellness_consultant_name && <p className="text-sm font-medium">{client.wellness_consultant_name}</p>}
-                {client.wellness_consultant_email && <p className="flex items-center gap-2 text-sm text-purple-600"><Mail className="w-4 h-4" /> {client.wellness_consultant_email}</p>}
-              </div>
-            )}
-          </div>
-          )}
+            );
+          })()}
           
           {client.notes && (
             <div className="bg-gray-50 rounded-lg p-4">
@@ -608,19 +628,24 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
               </div>
             </div>
 
-            {/* Broker */}
-            {(client.broker_name || client.broker_email) && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <div className="flex justify-between items-start">
+            {/* Brokers */}
+            {(() => {
+              const activeBrokers = client.brokers?.length > 0
+                ? client.brokers
+                : (client.broker_name ? [{ name: client.broker_name, email: client.broker_email }] : []);
+              return activeBrokers.map((broker, i) => (
+                <div key={i} className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                   <div>
-                    <Badge className="bg-orange-100 text-orange-700 mb-2">Broker</Badge>
-                    {client.broker_name && <p className="font-semibold">{client.broker_name}</p>}
-                    {client.company && <p className="text-sm text-gray-600">{client.company}</p>}
-                    {client.broker_email && <p className="text-sm text-gray-500">{client.broker_email}</p>}
+                    <Badge className="bg-orange-100 text-orange-700 mb-2">Broker{activeBrokers.length > 1 ? ` ${i + 1}` : ''}</Badge>
+                    {broker.name && <p className="font-semibold">{broker.name}</p>}
+                    {broker.company && <p className="text-sm text-gray-600">{broker.company}</p>}
+                    {broker.email && <p className="text-sm text-gray-500">{broker.email}</p>}
+                    {broker.phone && <p className="text-sm text-gray-500">{broker.phone}</p>}
+                    {broker.notes && <p className="text-xs text-gray-400 italic mt-1">{broker.notes}</p>}
                   </div>
                 </div>
-              </div>
-            )}
+              ));
+            })()}
 
             {/* Wellness Consultant */}
             {(client.wellness_consultant_name || client.wellness_consultant_email) && (
