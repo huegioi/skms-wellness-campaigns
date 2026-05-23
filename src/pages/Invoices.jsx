@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,15 @@ export default function Invoices() {
   const [loadingQB, setLoadingQB] = useState(false);
 
   const queryClient = useQueryClient();
+
+  // Auto-open create dialog when navigated from Proposals page
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('create') === 'true') {
+      const proposalId = params.get('proposal_id');
+      setSelectedInvoice({ mode: 'create', preselectedProposalId: proposalId || null });
+    }
+  }, []);
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['invoices'],
@@ -621,6 +630,7 @@ export default function Invoices() {
             invoice={selectedInvoice.invoice}
             mode={selectedInvoice.mode}
             clients={clients}
+            preselectedProposalId={selectedInvoice.preselectedProposalId || null}
           />
         )}
 

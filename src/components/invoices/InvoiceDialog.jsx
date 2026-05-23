@@ -8,7 +8,7 @@ import { Plus, Trash2, Save } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 
-export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clients }) {
+export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clients, preselectedProposalId }) {
   const [formData, setFormData] = useState({
     client_id: '',
     client_name: '',
@@ -46,6 +46,29 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
       });
     }
   }, [invoice, mode]);
+
+  // Auto-select proposal when navigated from Proposals page
+  useEffect(() => {
+    if (mode === 'create' && preselectedProposalId && proposals.length > 0) {
+      const proposal = proposals.find(p => p.id === preselectedProposalId);
+      if (proposal) {
+        // First set the client
+        const client = clients.find(c => c.id === proposal.client_id);
+        if (client) {
+          setFormData(prev => ({
+            ...prev,
+            client_id: client.id,
+            client_name: client.name,
+            client_email: client.email,
+            company: client.company || '',
+            proposal_id: ''
+          }));
+        }
+        // Then trigger proposal import
+        handleProposalChange(preselectedProposalId);
+      }
+    }
+  }, [preselectedProposalId, proposals, mode]);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Invoice.create(data),

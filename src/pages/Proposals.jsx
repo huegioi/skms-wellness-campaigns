@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   FileText, Calendar, DollarSign, Copy, Pencil, Trash2, 
-  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock, Bell, Mail, Link2, Search, Download
+  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock, Bell, Mail, Link2, Search, Download, Receipt
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -386,6 +386,13 @@ export default function Proposals() {
                           <Button size="sm" variant="outline" className="text-amber-600 border-amber-600" onClick={() => setReminderProposal(proposal)}>
                             <Bell className="w-4 h-4 mr-1" /> Remind
                           </Button>
+                        )}
+                        {proposal.status === 'accepted' && (
+                          <Link to={createPageUrl('Invoices') + `?create=true&proposal_id=${proposal.id}`}>
+                            <Button size="sm" variant="outline" className="text-green-700 border-green-600 hover:bg-green-50">
+                              <Receipt className="w-4 h-4 mr-1" /> Create Invoice
+                            </Button>
+                          </Link>
                         )}
 
                         <Button 
