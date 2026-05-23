@@ -60,8 +60,8 @@ async function getAccessToken(client) {
   }
 
   // Token expired or doesn't exist, refresh it
-  const clientId = 'ABEPLCjstgfba5v6oqFoQI7afVCDSWJ2nkmwYm6aAglhTHhAjB';
-  const clientSecret = 'DOVi8UBakz17mSfy95iyRjAJPaSAEk2phwvl3z0x';
+  const clientId = Deno.env.get('QUICKBOOKS_CLIENT_ID');
+  const clientSecret = Deno.env.get('QUICKBOOKS_CLIENT_SECRET');
   const refreshToken = await getStoredRefreshToken(client);
 
   console.log('Client ID first 10:', clientId?.substring(0, 10));
