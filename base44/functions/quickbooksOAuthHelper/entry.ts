@@ -62,6 +62,7 @@ Deno.serve(async (req) => {
       };
       await saveSecrets('QUICKBOOKS_REFRSH_TOKEN', tokens.refresh_token);
       await saveSecrets('Quickbooks_ACCESS_TOKEN', tokens.access_token);
+      console.log('Saving realm ID:', realmId);
       await saveSecrets('QUICKBOOK_REALM_ID', realmId);
       console.log('QuickBooks tokens auto-saved to secrets.');
     }
