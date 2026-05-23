@@ -67,6 +67,8 @@ async function getAccessToken(client) {
   console.log('Client ID first 10:', clientId?.substring(0, 10));
   console.log('Client Secret first 10:', clientSecret?.substring(0, 10));
   console.log('Refresh token first 10:', refreshToken?.substring(0, 10));
+  console.log('Full refresh token being used:', refreshToken);
+  console.log('Full client ID being used:', clientId);
 
   const response = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
     method: 'POST',
