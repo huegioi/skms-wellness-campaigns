@@ -12,8 +12,8 @@ Deno.serve(async (req) => {
     }
 
     // Get QuickBooks credentials from environment
-    const clientId = Deno.env.get('QUICKBOOKS_CLIENT_ID');
-    const clientSecret = Deno.env.get('QUICKBOOKS_CLIENT_SECRET');
+    const clientId = 'AB5KPT41UQ5y4EmarYTVEVhAXCkj3blxtvpXDbpdymHaGMkY6i';
+    const clientSecret = 'TcNEgM9UZqiR1ZllrvT3k8I4xH8JnqL1oP6bAZQO';
     console.log('Client ID starts with:', clientId?.substring(0, 10), 'Secret starts with:', clientSecret?.substring(0, 10));
 
     if (!clientId || !clientSecret) {
