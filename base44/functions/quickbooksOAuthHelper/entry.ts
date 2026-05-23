@@ -49,23 +49,20 @@ Deno.serve(async (req) => {
 
     const tokens = await tokenResponse.json();
 
-    // Auto-save tokens to secrets
-    const appId = Deno.env.get('BASE44_APP_ID');
-    const apiKey = Deno.env.get('BASE44_API_KEY');
-    if (appId && apiKey) {
-      const saveSecrets = async (name, value) => {
-        await fetch(`https://api.base44.com/api/apps/${appId}/secrets`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
-          body: JSON.stringify({ name, value })
-        });
-      };
-      await saveSecrets('QUICKBOOKS_REFRSH_TOKEN', tokens.refresh_token);
-      await saveSecrets('Quickbooks_ACCESS_TOKEN', tokens.access_token);
-      console.log('Saving realm ID:', realmId);
-      await saveSecrets('QUICKBOOK_REALM_ID', realmId);
-      console.log('QuickBooks tokens auto-saved to secrets.');
-    }
+    // Save refresh token and realm ID to QuickBooksConfig entity
+    const saveConfig = async (key, value) => {
+      const existing = await base44.asServiceRole.entities.QuickBooksConfig.filter({ key });
+      if (existing && existing.length > 0) {
+        await base44.asServiceRole.entities.QuickBooksConfig.update(existing[0].id, { value, updated_at: new Date().toISOString() });
+      } else {
+        await base44.asServiceRole.entities.QuickBooksConfig.create({ key, value, updated_at: new Date().toISOString() });
+      }
+    };
+
+    await saveConfig('refresh_token', tokens.refresh_token);
+    console.log('Saving realm ID:', realmId);
+    await saveConfig('realm_id', realmId);
+    console.log('QuickBooks tokens saved to QuickBooksConfig entity.');
 
     return Response.json({
       refresh_token: tokens.refresh_token,
