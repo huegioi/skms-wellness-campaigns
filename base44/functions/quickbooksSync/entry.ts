@@ -60,8 +60,8 @@ async function getAccessToken(client) {
   }
 
   // Token expired or doesn't exist, refresh it
-  const clientId = 'AB5KPT41UQ5y4EmarYTVEVhAXCkj3blxtvpXDbpdymHaGMkY6i';
-  const clientSecret = 'TcNEgM9UZqiR1ZllrvT3k8I4xH8JnqL1oP6bAZQO';
+  const clientId = 'ABEPLCjstgfba5v6oqFoQI7afVCDSWJ2nkmwYm6aAglhTHhAjB';
+  const clientSecret = 'DOVi8UBakz17mSfy95iyRjAJPaSAEk2phwvl3z0x';
   const refreshToken = await getStoredRefreshToken(client);
 
   console.log('Client ID first 10:', clientId?.substring(0, 10));
