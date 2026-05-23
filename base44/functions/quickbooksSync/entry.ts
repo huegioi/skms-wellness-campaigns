@@ -82,6 +82,10 @@ async function getAccessToken(client) {
     })
   });
 
+  const responseText = await response.clone().text();
+  console.log('Intuit response status:', response.status);
+  console.log('Intuit response body:', responseText);
+
   if (!response.ok) {
     const errorText = await response.text();
     let errorMsg = 'QuickBooks refresh token expired or invalid. Please reconnect QuickBooks in the Dashboard settings.';
