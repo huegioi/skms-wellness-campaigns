@@ -26,6 +26,9 @@ Deno.serve(async (req) => {
     const tokenUrl = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
     const credentials = btoa(`${clientId}:${clientSecret}`);
 
+    console.log('Exchanging code, redirect URI:', redirectUri);
+    console.log('Code first 10:', code?.substring(0, 10));
+
     const tokenResponse = await fetch(tokenUrl, {
       method: 'POST',
       headers: {
