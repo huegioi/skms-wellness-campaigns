@@ -10,7 +10,7 @@ export default function QuickBooksOAuth() {
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const CLIENT_ID = 'ABEPLCjstgfba5v6oqFoQI7afVCDSWJ2nkmwYm6aAglhTHhAjB';
+  const CLIENT_ID = 'AB5KPT41UQ5y4EmarYTVEVhAXCkj3blxtvpXDbpdymHaGMkY6i';
   const REDIRECT_URI = `${window.location.origin}/QuickBooksOAuth`;
 
   useEffect(() => {
