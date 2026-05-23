@@ -5,38 +5,30 @@ const QB_API_URL = 'https://quickbooks.api.intuit.com/v3/company';
 // Token cache to avoid refreshing on every request
 let cachedAccessToken = null;
 let tokenExpiresAt = null;
-let base44ServiceClient = null;
 
-function setServiceClient(client) {
-  base44ServiceClient = client;
-}
-
-async function getStoredRefreshToken() {
+async function getStoredRefreshToken(client) {
   // Try DB first (for rotated tokens), fall back to env var
-  if (base44ServiceClient) {
-    try {
-      const configs = await base44ServiceClient.asServiceRole.entities.QuickBooksConfig.filter({ key: 'refresh_token' });
-      if (configs && configs.length > 0) {
-        return configs[0].value;
-      }
-    } catch (e) {
-      console.log('Could not read refresh token from DB, using env var:', e.message);
+  try {
+    const configs = await client.asServiceRole.entities.QuickBooksConfig.filter({ key: 'refresh_token' });
+    if (configs && configs.length > 0) {
+      return configs[0].value;
     }
+  } catch (e) {
+    console.log('Could not read refresh token from DB, using env var:', e.message);
   }
-  return Deno.env.get('QUICKBOOKS_REFRSH_TOKEN');
+  return Deno.env.get('QUICKBOOKS_REFRESH_TOKEN');
 }
 
-async function saveRefreshToken(newToken) {
-  if (!base44ServiceClient) return;
+async function saveRefreshToken(client, newToken) {
   try {
-    const configs = await base44ServiceClient.asServiceRole.entities.QuickBooksConfig.filter({ key: 'refresh_token' });
+    const configs = await client.asServiceRole.entities.QuickBooksConfig.filter({ key: 'refresh_token' });
     if (configs && configs.length > 0) {
-      await base44ServiceClient.asServiceRole.entities.QuickBooksConfig.update(configs[0].id, {
+      await client.asServiceRole.entities.QuickBooksConfig.update(configs[0].id, {
         value: newToken,
         updated_at: new Date().toISOString()
       });
     } else {
-      await base44ServiceClient.asServiceRole.entities.QuickBooksConfig.create({
+      await client.asServiceRole.entities.QuickBooksConfig.create({
         key: 'refresh_token',
         value: newToken,
         updated_at: new Date().toISOString()
@@ -49,7 +41,19 @@ async function saveRefreshToken(newToken) {
   }
 }
 
-async function getAccessToken() {
+async function getRealmId(client) {
+  try {
+    const configs = await client.asServiceRole.entities.QuickBooksConfig.filter({ key: 'realm_id' });
+    if (configs && configs.length > 0) {
+      return configs[0].value;
+    }
+  } catch (e) {
+    console.log('Could not read realm ID from DB, using env var:', e.message);
+  }
+  return Deno.env.get('QUICKBOOK_REALM_ID');
+}
+
+async function getAccessToken(client) {
   // Check if we have a valid cached token
   if (cachedAccessToken && tokenExpiresAt && Date.now() < tokenExpiresAt) {
     return cachedAccessToken;
@@ -58,7 +62,7 @@ async function getAccessToken() {
   // Token expired or doesn't exist, refresh it
   const clientId = Deno.env.get('QUICKBOOKS_CLIENT_ID');
   const clientSecret = Deno.env.get('QUICKBOOKS_CLIENT_SECRET');
-  const refreshToken = await getStoredRefreshToken();
+  const refreshToken = await getStoredRefreshToken(client);
 
   const response = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
     method: 'POST',
@@ -97,7 +101,7 @@ async function getAccessToken() {
   // CRITICAL: QuickBooks rotates refresh tokens on every use.
   // Save the new token to the DB so rotation is handled automatically.
   if (data.refresh_token) {
-    await saveRefreshToken(data.refresh_token);
+    await saveRefreshToken(client, data.refresh_token);
   }
 
   return cachedAccessToken;
@@ -250,7 +254,6 @@ async function getQBPayments(accessToken, realmId, invoiceId) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    setServiceClient(base44);
     const user = await base44.auth.me();
 
     if (!user) {
@@ -258,13 +261,13 @@ Deno.serve(async (req) => {
     }
 
     const { action, invoiceId, dateFrom, dateTo, statusFilter } = await req.json();
-    const realmId = Deno.env.get('QUICKBOOK_REALM_ID');
+    const realmId = await getRealmId(base44);
 
     if (!realmId) {
       return Response.json({ error: 'QuickBooks not configured' }, { status: 500 });
     }
 
-    const accessToken = await getAccessToken();
+    const accessToken = await getAccessToken(base44);
 
     if (action === 'createInvoice') {
       const invoice = await base44.asServiceRole.entities.Invoice.filter({ id: invoiceId });
