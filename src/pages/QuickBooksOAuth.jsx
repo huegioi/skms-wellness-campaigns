@@ -20,7 +20,9 @@ export default function QuickBooksOAuth() {
     const realmId = urlParams.get('realmId');
 
     if (code && realmId) {
-      exchangeCodeForToken(code, realmId);
+      setTimeout(() => {
+        exchangeCodeForToken(code, realmId);
+      }, 2000);
     }
   }, []);
 
