@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Copy, ExternalLink, Edit, Users, DollarSign, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -17,10 +18,28 @@ const DEFAULT_TIERS = [
   { label: 'Strategic Partner', min_revenue: 150000, max_revenue: null, rate: 0.15 },
 ];
 
+const FOLLOW_UP_STAGES = [
+  '',
+  'Day 1 - LinkedIn Connection',
+  'Day 2 - Send email #1',
+  'Day 3 - Call #1',
+  'Day 3 - Text f/u to call',
+  'Day 5 - Call #2',
+  'Day 5 - LinkedIn f/u message',
+  'Day 7 - Send email #2',
+  'Day 10 - Call #3',
+  'Day 10 - Send email #3',
+  'Day 11 - LinkedIn message #3',
+  'Day 15 - Send email #4',
+  'Day 20 - Send email #5',
+  'Referral Partner',
+];
+
 const EMPTY_FORM = {
   name: '', email: '', company: '', phone: '', notes: '',
   agreement_file_url: '', agreement_signed_date: '',
-  commission_tiers: DEFAULT_TIERS, is_active: true
+  commission_tiers: DEFAULT_TIERS, is_active: true,
+  follow_up_stage: ''
 };
 
 function generatePortalId() {
@@ -83,7 +102,8 @@ export default function ReferralPartnerAdmin() {
       agreement_file_url: partner.agreement_file_url || '',
       agreement_signed_date: partner.agreement_signed_date || '',
       commission_tiers: partner.commission_tiers?.length ? partner.commission_tiers : DEFAULT_TIERS,
-      is_active: partner.is_active !== false
+      is_active: partner.is_active !== false,
+      follow_up_stage: partner.follow_up_stage || ''
     });
     setShowDialog(true);
   };
@@ -135,7 +155,12 @@ export default function ReferralPartnerAdmin() {
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-gray-800 text-lg">{partner.name}</h3>
+                        <button
+                          onClick={() => openEdit(partner)}
+                          className="font-semibold text-gray-800 text-lg hover:text-[#013f7c] hover:underline transition-colors"
+                        >
+                          {partner.name}
+                        </button>
                         <Badge className={partner.is_active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}>
                           {partner.is_active !== false ? 'Active' : 'Inactive'}
                         </Badge>
@@ -173,9 +198,7 @@ export default function ReferralPartnerAdmin() {
                           <ExternalLink className="w-4 h-4" /> Portal
                         </Button>
                       </a>
-                      <Button variant="outline" size="sm" onClick={() => openEdit(partner)} className="gap-1">
-                        <Edit className="w-4 h-4" /> Edit
-                      </Button>
+
                       {partnerReferrals.length > 0 && (
                         <Button variant="ghost" size="sm" onClick={() => setExpandedPartner(expandedPartner === partner.id ? null : partner.id)}>
                           {expandedPartner === partner.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -305,6 +328,25 @@ export default function ReferralPartnerAdmin() {
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
               <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Follow-up Stage</label>
+              <Select
+                value={form.follow_up_stage || '__none__'}
+                onValueChange={(val) => setForm(f => ({ ...f, follow_up_stage: val === '__none__' ? '' : val }))}
+              >
+                <SelectTrigger className="w-full bg-gray-50">
+                  <SelectValue placeholder="Select follow-up stage" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FOLLOW_UP_STAGES.map((stage, i) => (
+                    <SelectItem key={i} value={stage || '__none__'}>
+                      {stage || <span className="text-gray-400 italic">— No Stage —</span>}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex items-center gap-2">
