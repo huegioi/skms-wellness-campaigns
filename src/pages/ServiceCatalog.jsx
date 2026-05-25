@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, Award, Dumbbell, Package, Users, Clock,
-  DollarSign, Target, Loader2, GripVertical, RefreshCw, ExternalLink, FolderOpen
+  DollarSign, Target, Loader2, GripVertical, RefreshCw, ExternalLink, FolderOpen, CloudUpload
 } from 'lucide-react';
 import ServiceResourceManager from '@/components/services/ServiceResourceManager';
 
@@ -31,6 +31,7 @@ export default function ServiceCatalog() {
   const [editingService, setEditingService] = useState(null);
   const [showDialog, setShowDialog] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isSyncingQB, setIsSyncingQB] = useState(false);
   
   const queryClient = useQueryClient();
 
@@ -81,6 +82,20 @@ export default function ServiceCatalog() {
     setShowDialog(true);
   };
 
+  const syncToQB = async () => {
+    setIsSyncingQB(true);
+    try {
+      const response = await base44.functions.invoke('syncServicesToQB', {});
+      const { created, updated, failed } = response.data;
+      toast.success(`QB Sync complete: ${created} created, ${updated} updated, ${failed} failed`);
+      queryClient.invalidateQueries({ queryKey: ['services'] });
+    } catch (error) {
+      toast.error('QB Sync failed: ' + error.message);
+    } finally {
+      setIsSyncingQB(false);
+    }
+  };
+
   const syncFromSheet = async () => {
     setIsSyncing(true);
     try {
@@ -117,6 +132,10 @@ export default function ServiceCatalog() {
                 Open Sheet
               </Button>
             </a>
+            <Button onClick={syncToQB} variant="outline" disabled={isSyncingQB} className="border-[#013f7c] text-[#013f7c] hover:bg-[#013f7c] hover:text-white">
+              <CloudUpload className={`w-4 h-4 mr-2 ${isSyncingQB ? 'animate-spin' : ''}`} />
+              {isSyncingQB ? 'Syncing...' : 'Sync to QuickBooks'}
+            </Button>
             <Button onClick={syncFromSheet} variant="outline" disabled={isSyncing} className="border-[#264d44] text-[#264d44] hover:bg-[#264d44] hover:text-white">
               <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
               {isSyncing ? 'Syncing...' : 'Sync from Sheet'}
