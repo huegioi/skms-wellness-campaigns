@@ -9,10 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell } from 'lucide-react';
+import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban } from 'lucide-react';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
 import PendingReferralsReview from '@/components/referrals/PendingReferralsReview';
+import PipelineView from '@/components/leads/PipelineView';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from '@/components/ui/use-toast';
@@ -237,6 +238,8 @@ export default function Leads() {
   const [syncingEmail, setSyncingEmail] = useState(false);
   const [viewingBrokerLead, setViewingBrokerLead] = useState(null);
   const [showActivePartnersModal, setShowActivePartnersModal] = useState(false);
+  const [brokerViewMode, setBrokerViewMode] = useState('list'); // 'list' | 'pipeline'
+  const [brokerFilterOwner, setBrokerFilterOwner] = useState('all');
 
   // Referral Portals (ReferralPartnerAdmin) state
   const [showPartnerDialog, setShowPartnerDialog] = useState(false);
@@ -427,13 +430,16 @@ export default function Leads() {
     }
   };
 
+  const brokerOwners = [...new Set(brokerLeads.map(l => l.owner).filter(Boolean))].sort();
+
   const filteredBrokerLeads = brokerLeads.filter(lead => {
     const matchSearch = !brokerSearch ||
       lead.name?.toLowerCase().includes(brokerSearch.toLowerCase()) ||
       lead.email?.toLowerCase().includes(brokerSearch.toLowerCase()) ||
       lead.company?.toLowerCase().includes(brokerSearch.toLowerCase());
     const matchStatus = brokerFilterStatus === 'all' || (lead.status || 'cold') === brokerFilterStatus;
-    return matchSearch && matchStatus;
+    const matchOwner = brokerFilterOwner === 'all' || lead.owner === brokerFilterOwner;
+    return matchSearch && matchStatus && matchOwner;
   });
 
   const BrokerLeadCard = ({ lead }) => {
@@ -663,20 +669,50 @@ export default function Leads() {
               onSelect={(lead) => setViewingBrokerLead(lead)}
             />
 
-            <div className="flex gap-2 flex-wrap mb-4">
-              <div className="relative flex-1 min-w-[200px]">
+            {/* View toggle + filters */}
+            <div className="flex gap-2 flex-wrap mb-4 items-center">
+              {/* View toggle */}
+              <div className="flex rounded-lg border border-gray-200 bg-white overflow-hidden flex-shrink-0">
+                <button
+                  onClick={() => setBrokerViewMode('list')}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${brokerViewMode === 'list' ? 'bg-[#013f7c] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                >
+                  <List className="w-4 h-4" /> List
+                </button>
+                <button
+                  onClick={() => setBrokerViewMode('pipeline')}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${brokerViewMode === 'pipeline' ? 'bg-[#013f7c] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                >
+                  <Kanban className="w-4 h-4" /> Pipeline
+                </button>
+              </div>
+
+              <div className="relative flex-1 min-w-[180px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input placeholder="Search by name, email, company..." className="pl-10 bg-white" value={brokerSearch} onChange={e => setBrokerSearch(e.target.value)} />
               </div>
-              <Select value={brokerFilterStatus} onValueChange={setBrokerFilterStatus}>
-                <SelectTrigger className="w-[180px] bg-white"><SelectValue placeholder="Filter by status" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+              {brokerViewMode === 'list' && (
+                <Select value={brokerFilterStatus} onValueChange={setBrokerFilterStatus}>
+                  <SelectTrigger className="w-[160px] bg-white"><SelectValue placeholder="Filter by status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {brokerOwners.length > 0 && (
+                <Select value={brokerFilterOwner} onValueChange={setBrokerFilterOwner}>
+                  <SelectTrigger className="w-[150px] bg-white"><SelectValue placeholder="All Owners" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Owners</SelectItem>
+                    {brokerOwners.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {isLoading ? (
@@ -686,6 +722,11 @@ export default function Leads() {
                 <Star className="w-12 h-12 mx-auto mb-3 text-gray-200" />
                 <p className="text-gray-500">No referral partners yet. Sync your Google Sheet to get started.</p>
               </div>
+            ) : brokerViewMode === 'pipeline' ? (
+              <PipelineView
+                leads={filteredBrokerLeads}
+                onSelectLead={(lead) => setViewingBrokerLead(lead)}
+              />
             ) : (
               <div className="space-y-3">
                 {filteredBrokerLeads.map(lead => <BrokerLeadCard key={lead.id} lead={lead} />)}
