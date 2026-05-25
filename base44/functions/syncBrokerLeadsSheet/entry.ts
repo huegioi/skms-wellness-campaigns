@@ -19,8 +19,26 @@ const APP_STATUS_RANK = ['cold','contacted','responded','meeting_scheduled','pro
 
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
 
-function rowToLead(row, rowIndex, sheetOriginKey) {
+function calcFollowUpDueDate(followUpStage, lastContactedDate) {
+  if (!followUpStage) return null;
+  const match = followUpStage.match(/Day\s+(\d+)/i);
+  if (!match) return null;
+  const days = parseInt(match[1], 10);
+  const base = lastContactedDate ? new Date(lastContactedDate) : new Date();
+  if (isNaN(base.getTime())) return null;
+  base.setDate(base.getDate() + days);
+  return base.toISOString().split('T')[0];
+}
+
+function calcPartnerStatus(followUpStage) {
+  if (!followUpStage || followUpStage.trim() === '') return 'Prospect';
+  if (followUpStage.toLowerCase().includes('referral partner')) return 'Active Partner';
+  return 'Prospect';
+}
+
+function rowToLead(row, rowIndex, sheetOriginKey, colMap) {
   const get = (i) => (row[i] || '').trim();
+  const getByName = (name) => colMap && colMap[name] !== undefined ? get(colMap[name]) : '';
 
   const firstName = get(0);
   const lastName = get(1);
@@ -64,6 +82,15 @@ function rowToLead(row, rowIndex, sheetOriginKey) {
   // If col2 wasn't a real email, it's the company; otherwise company is col5
   const company = !EMAIL_REGEX.test(col2) && col2 ? col2 : get(5);
 
+  const phone = getByName('Phone');
+  const notes = getByName('Notes');
+  const followUpStage = getByName('Follow up Stage');
+  const owner = getByName('Owner');
+  const lastContactedDate = get(11); // existing last contacted col if present
+
+  const followUpDueDate = calcFollowUpDueDate(followUpStage, lastContactedDate || null);
+  const partnerStatus = calcPartnerStatus(followUpStage);
+
   return {
     name,
     email,
@@ -76,6 +103,12 @@ function rowToLead(row, rowIndex, sheetOriginKey) {
     sheet_row_id: String(rowIndex),
     sheet_origin: sheetOriginKey,
     lead_type: 'broker_lead',
+    phone: phone || undefined,
+    notes: notes || undefined,
+    follow_up_stage: followUpStage || undefined,
+    owner: owner || undefined,
+    follow_up_due_date: followUpDueDate || undefined,
+    partner_status: partnerStatus,
   };
 }
 
@@ -132,6 +165,13 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, created: 0, updated: 0, hasMore: false, nextStartRow: 0, totalRows: 0, sheetTabs, SHEET_NAME });
     }
 
+    // Build a column name → index map from the header row
+    const headerRow = rows[0] || [];
+    const colMap = {};
+    headerRow.forEach((header, idx) => {
+      if (header) colMap[header.trim()] = idx;
+    });
+
     const dataRows = rows.slice(1); // skip header
 
     // ── 3. Load existing broker_lead records for this sheet ────────────────────
@@ -153,7 +193,7 @@ Deno.serve(async (req) => {
     // ── 4. One-way: Sheet → App only ───────────────────────────────────────────
     for (let i = 0; i < chunk.length; i++) {
       const rowIndex = startRow + i + 2; // 1-based, row 1 = header
-      const lead = rowToLead(chunk[i], rowIndex, sheetOriginKey);
+      const lead = rowToLead(chunk[i], rowIndex, sheetOriginKey, colMap);
       if (!lead) continue;
 
       const existingByRow = byRowId[`${sheetOriginKey}:${String(rowIndex)}`];
@@ -174,6 +214,12 @@ Deno.serve(async (req) => {
           industry: lead.industry,
           source: lead.source,
           outreach_channel: lead.outreach_channel,
+          ...(lead.phone !== undefined && { phone: lead.phone }),
+          ...(lead.notes !== undefined && { notes: lead.notes }),
+          ...(lead.follow_up_stage !== undefined && { follow_up_stage: lead.follow_up_stage }),
+          ...(lead.owner !== undefined && { owner: lead.owner }),
+          ...(lead.follow_up_due_date !== undefined && { follow_up_due_date: lead.follow_up_due_date }),
+          partner_status: lead.partner_status,
         };
         if (sheetRank > appRank) updates.status = lead.status;
         await base44.asServiceRole.entities.Lead.update(existing.id, updates);
