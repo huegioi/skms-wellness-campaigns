@@ -761,7 +761,7 @@ function EditLeadForm({ lead, onSave, onCancel }) {
     title: lead.title || '',
     phone: lead.phone || '',
     industry: lead.industry || '',
-    status: lead.status || 'cold',
+    follow_up_stage: lead.follow_up_stage || '',
     partner_status: lead.partner_status || 'new',
     referral_potential: lead.referral_potential || 'medium',
     outreach_channel: lead.outreach_channel || 'other',
@@ -803,12 +803,12 @@ function EditLeadForm({ lead, onSave, onCancel }) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Outreach Status</label>
-          <Select value={form.status} onValueChange={v => setForm({...form, status: v})}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+          <label className="text-xs text-gray-500 mb-1 block">Follow-up Stage</label>
+          <Select value={form.follow_up_stage} onValueChange={v => setForm({...form, follow_up_stage: v})}>
+            <SelectTrigger><SelectValue placeholder="Select stage" /></SelectTrigger>
             <SelectContent>
-              {Object.entries(STATUS_CONFIG).filter(([k]) => k !== 'current_client').map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v.label}</SelectItem>
+              {FOLLOW_UP_STAGES.map(stage => (
+                <SelectItem key={stage} value={stage}>{stage}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -870,6 +870,7 @@ function EditLeadForm({ lead, onSave, onCancel }) {
         </div>
       </div>
       <Textarea placeholder="Notes" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={3} />
+      <Input placeholder="Owner" value={form.owner} onChange={e => setForm({...form, owner: e.target.value})} />
       <div className="flex gap-3 pt-2">
         <Button type="submit" className="flex-1 bg-[#013f7c] hover:bg-[#012d5a]">Save Changes</Button>
         <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
