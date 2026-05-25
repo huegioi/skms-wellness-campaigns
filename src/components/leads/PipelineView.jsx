@@ -117,13 +117,16 @@ function PartnerCard({ lead, onClick, onStageChange }) {
     try {
       await base44.entities.Lead.update(lead.id, { follow_up_stage: newStage || null });
       // Write back to Google Sheet
-      await base44.functions.invoke('syncBrokerLeadsSheet', {
+      const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || undefined;
+      console.log('updateStage payload:', { leadId: lead.id, sheetRowId: lead.sheet_row_id, sheetName, follow_up_stage: newStage, sheet_origin: lead.sheet_origin });
+      const res = await base44.functions.invoke('syncBrokerLeadsSheet', {
         action: 'updateStage',
         leadId: lead.id,
         sheetRowId: lead.sheet_row_id,
-        sheetName: lead.sheet_origin?.replace('BrokerLeads:', '') || undefined,
+        sheetName,
         follow_up_stage: newStage,
       });
+      console.log('updateStage response:', res?.data);
       if (onStageChange) onStageChange(lead.id, newStage);
     } catch (e) {
       console.error('Stage update failed', e);

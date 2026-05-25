@@ -130,7 +130,9 @@ Deno.serve(async (req) => {
 
     // ── Handle updateStage action ──────────────────────────────────────────────
     if (body.action === 'updateStage') {
-      const { sheetRowId, sheetName, follow_up_stage } = body;
+      const { sheetRowId, sheetName, follow_up_stage, leadId } = body;
+      console.log('updateStage called:', { sheetRowId, sheetName, follow_up_stage, leadId });
+
       if (!sheetRowId) {
         return Response.json({ error: 'Missing sheetRowId' }, { status: 400 });
       }
@@ -143,7 +145,11 @@ Deno.serve(async (req) => {
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       const meta = await metaRes.json();
-      const targetSheet = sheetName || meta.sheets?.[0]?.properties?.title || 'Brokers';
+      const availableSheets = meta.sheets?.map(s => s.properties?.title) || [];
+      console.log('Available sheets:', availableSheets, '| requested sheetName:', sheetName);
+
+      const targetSheet = sheetName || availableSheets[0] || 'Brokers';
+      console.log('Using targetSheet:', targetSheet, '| sheetRowId:', sheetRowId);
 
       // Read header row to find the column index
       const headerRes = await fetch(
@@ -152,15 +158,18 @@ Deno.serve(async (req) => {
       );
       const headerData = await headerRes.json();
       const headers = (headerData.values?.[0] || []).map(h => h.toLowerCase().trim());
+      console.log('Headers found:', headers);
       const stageColIndex = headers.findIndex(h => h === 'follow up stage' || h === 'follow_up_stage');
+      console.log('Follow Up Stage column index:', stageColIndex);
 
       if (stageColIndex === -1) {
-        return Response.json({ error: 'Follow Up Stage column not found in sheet' }, { status: 400 });
+        return Response.json({ error: 'Follow Up Stage column not found in sheet', headers }, { status: 400 });
       }
 
       // sheetRowId is the 1-based row number (including header row)
       const colLetter = String.fromCharCode(65 + stageColIndex); // A=65
       const cellRange = `${targetSheet}!${colLetter}${sheetRowId}`;
+      console.log('Writing to cell range:', cellRange, '| value:', follow_up_stage);
 
       const updateRes = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(cellRange)}?valueInputOption=USER_ENTERED`,
@@ -171,10 +180,11 @@ Deno.serve(async (req) => {
         }
       );
       const updateData = await updateRes.json();
+      console.log('Sheets API response:', JSON.stringify(updateData));
       if (updateData.error) {
-        return Response.json({ error: updateData.error.message }, { status: 400 });
+        return Response.json({ error: updateData.error.message, details: updateData.error }, { status: 400 });
       }
-      return Response.json({ success: true, updatedRange: updateData.updatedRange });
+      return Response.json({ success: true, updatedRange: updateData.updatedRange, cellRange, targetSheet });
     }
 
     const startRow = body.startRow || 0;
