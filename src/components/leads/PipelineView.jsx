@@ -20,6 +20,28 @@ const FOLLOW_UP_STAGES = [
   'Referral Partner',
 ];
 
+// Unique colors for each follow-up stage
+const STAGE_COLORS = {
+  '': 'bg-gray-100 text-gray-700 border-gray-200',
+  'Day 1 - LinkedIn Connection': 'bg-blue-50 text-blue-700 border-blue-200',
+  'Day 2 - Send email #1': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+  'Day 3 - Call #1': 'bg-purple-50 text-purple-700 border-purple-200',
+  'Day 3 - Text f/u to call': 'bg-pink-50 text-pink-700 border-pink-200',
+  'Day 5 - Call #2': 'bg-red-50 text-red-700 border-red-200',
+  'Day 5 - LinkedIn f/u message': 'bg-orange-50 text-orange-700 border-orange-200',
+  'Day 7 - Send email #2': 'bg-amber-50 text-amber-700 border-amber-200',
+  'Day 10 - Call #3': 'bg-yellow-50 text-yellow-700 border-yellow-200',
+  'Day 10 - Send email #3': 'bg-lime-50 text-lime-700 border-lime-200',
+  'Day 11 - LinkedIn message #3': 'bg-green-50 text-green-700 border-green-200',
+  'Day 15 - Send email #4': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'Day 20 - Send email #5': 'bg-teal-50 text-teal-700 border-teal-200',
+  'Referral Partner': 'bg-cyan-50 text-cyan-700 border-cyan-200',
+};
+
+function getStageColor(stage) {
+  return STAGE_COLORS[stage] || 'bg-gray-100 text-gray-700 border-gray-200';
+}
+
 function extractDayNumber(stage) {
   if (!stage) return null;
   const match = stage.match(/Day\s+(\d+)/i);
@@ -230,12 +252,12 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
 
           return (
             <div key={stage || '__no_stage__'} className="w-64 flex-shrink-0">
-              <div className="bg-white rounded-xl shadow-sm px-3 py-2.5 mb-3 border border-gray-200">
+              <div className={`rounded-xl shadow-sm px-3 py-2.5 mb-3 border ${getStageColor(stage)}`}>
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-gray-700 truncate">
+                  <p className="text-sm font-semibold truncate">
                     {stage || 'No Stage'}
                   </p>
-                  <span className="flex-shrink-0 text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5 font-bold">
+                  <span className="flex-shrink-0 text-xs rounded-full px-2 py-0.5 font-bold bg-white/50">
                     {stageLeads.length}
                   </span>
                 </div>
