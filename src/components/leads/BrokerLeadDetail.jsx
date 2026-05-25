@@ -352,15 +352,14 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                 )}
               </div>
               <div className="mt-2 relative">
-                <Select value={localStage || '__none__'} onValueChange={handleStageChange} disabled={stageSaving}>
+                <Select value={localStage || 'no_stage'} onValueChange={handleStageChange} disabled={stageSaving}>
                   <SelectTrigger className="h-8 text-xs w-64 bg-gray-50 border-gray-200">
                     <SelectValue placeholder="Set follow-up stage…" />
                   </SelectTrigger>
                   <SelectContent>
-                    {FOLLOW_UP_STAGES.map((stage, i) => (
-                      <SelectItem key={i} value={stage || '__none__'}>
-                        {stage || <span className="text-gray-400 italic">— No Stage —</span>}
-                      </SelectItem>
+                    <SelectItem value="no_stage">No Stage</SelectItem>
+                    {FOLLOW_UP_STAGES.filter(s => s).map((stage, i) => (
+                      <SelectItem key={i} value={stage}>{stage}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
