@@ -564,7 +564,6 @@ export default function Leads() {
             {lead.notes && <p className="text-xs text-gray-400 mt-2 line-clamp-1">{lead.notes}</p>}
           </div>
           <div className="flex gap-2 flex-shrink-0">
-            <Button size="sm" variant="outline" onClick={() => openEditBrokerLead(lead)}><Pencil className="w-4 h-4" /></Button>
             <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-600" onClick={() => deleteMutation.mutate(lead.id)}><Trash2 className="w-4 h-4" /></Button>
           </div>
         </div>
