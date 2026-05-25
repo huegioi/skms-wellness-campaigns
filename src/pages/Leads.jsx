@@ -252,7 +252,8 @@ export default function Leads() {
 
   const { data: allLeads = [], isLoading } = useQuery({
     queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list('-created_date')
+    queryFn: () => base44.entities.Lead.list('-created_date'),
+    staleTime: 0,
   });
 
   const { data: clients = [] } = useQuery({
@@ -726,6 +727,11 @@ export default function Leads() {
               <PipelineView
                 leads={filteredBrokerLeads}
                 onSelectLead={(lead) => setViewingBrokerLead(lead)}
+                onStageChange={(leadId, newStage) => {
+                  queryClient.setQueryData(['leads'], (old) =>
+                    (old || []).map(l => l.id === leadId ? { ...l, follow_up_stage: newStage } : l)
+                  );
+                }}
               />
             ) : (
               <div className="space-y-3">
