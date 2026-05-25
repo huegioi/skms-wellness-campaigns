@@ -38,7 +38,13 @@ function calcPartnerStatus(followUpStage) {
 
 function rowToLead(row, rowIndex, sheetOriginKey, colMap) {
   const get = (i) => (row[i] || '').trim();
-  const getByName = (name) => colMap && colMap[name] !== undefined ? get(colMap[name]) : '';
+  // Case-insensitive column lookup
+  const getByName = (name) => {
+    if (!colMap) return '';
+    const lowerName = name.toLowerCase();
+    const key = Object.keys(colMap).find(k => k.toLowerCase() === lowerName);
+    return key !== undefined ? get(colMap[key]) : '';
+  };
 
   const firstName = get(0);
   const lastName = get(1);
@@ -84,7 +90,7 @@ function rowToLead(row, rowIndex, sheetOriginKey, colMap) {
 
   const phone = getByName('Phone');
   const notes = getByName('Notes');
-  const followUpStage = getByName('Follow up Stage');
+  const followUpStage = getByName('Follow Up Stage'); // case-insensitive, matches any variation
   const owner = getByName('Owner');
   const lastContactedDate = get(11); // existing last contacted col if present
 
