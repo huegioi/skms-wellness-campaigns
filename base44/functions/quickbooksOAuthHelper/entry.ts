@@ -43,6 +43,11 @@ Deno.serve(async (req) => {
       })
     });
 
+    console.log('Intuit token exchange status:', tokenResponse.status);
+    const responseClone = tokenResponse.clone();
+    const responseBody = await responseClone.text();
+    console.log('Intuit token exchange body:', responseBody);
+
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
       return Response.json({ 
