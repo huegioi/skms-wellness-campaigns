@@ -153,6 +153,19 @@
     "converted_client_id": {
       "type": "string",
       "description": "Client ID if this lead was converted to a client"
+    },
+    "follow_up_stage": {
+      "type": "string",
+      "description": "Current follow-up stage in the outreach sequence"
+    },
+    "follow_up_due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the next follow-up action is due"
+    },
+    "owner": {
+      "type": "string",
+      "description": "Team member responsible for this lead"
     }
   },
   "required": [
