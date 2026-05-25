@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
     });
 
     // Ensure required columns exist in header row
-    const requiredColumns = ['Contact Name', 'Owner', 'Email', 'Company', 'Follow Up Stage', 'Title', 'Notes', 'Phone'];
+    const requiredColumns = ['Contact Name', 'Owner', 'Email', 'Company', 'Follow Up Stage', 'Title', 'Notes', 'Phone', 'LinkedIn', 'Industry', 'Status', 'Last Contacted'];
     const missingColumns = requiredColumns.filter(col => !Object.keys(colMap).some(k => k.toLowerCase() === col.toLowerCase()));
     
     // If missing columns, create/update header row
@@ -228,6 +228,7 @@ Deno.serve(async (req) => {
       
       // Write updated header row back to sheet
       const headerRange = `${SHEET_NAME}!1:1`;
+      console.log('Updating header row to:', updatedHeader);
       const headerUpdateRes = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(headerRange)}?valueInputOption=USER_ENTERED`,
         {
@@ -237,7 +238,11 @@ Deno.serve(async (req) => {
         }
       );
       const headerUpdateData = await headerUpdateRes.json();
-      console.log('Header update response:', headerUpdateData);
+      if (headerUpdateData.error) {
+        console.error('Failed to update header:', headerUpdateData.error);
+      } else {
+        console.log('Header row updated successfully. New columns added:', missingColumns);
+      }
     }
 
     const dataRows = rows.slice(1); // skip header
