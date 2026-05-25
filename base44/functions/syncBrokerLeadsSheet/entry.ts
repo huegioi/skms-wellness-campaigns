@@ -46,53 +46,26 @@ function rowToLead(row, rowIndex, sheetOriginKey, colMap) {
     return key !== undefined ? get(colMap[key]) : '';
   };
 
-  const firstName = get(0);
-  const lastName = get(1);
-  const col2 = get(2); // Should be email, but sometimes the sheet has company here
-
-  // Extract email: first check col2, then scan col0+col1 for embedded email
-  let email = '';
-  let name = '';
-  if (EMAIL_REGEX.test(col2)) {
-    // col2 is a real email — normal layout
-    email = col2.match(EMAIL_REGEX)[0];
-    name = [firstName, lastName].filter(Boolean).join(' ');
-  } else {
-    // col2 is not an email (probably company name) — email may be embedded in col0 or col1
-    const col0Email = firstName.match(EMAIL_REGEX);
-    const col1Email = lastName.match(EMAIL_REGEX);
-    if (col0Email) {
-      email = col0Email[0];
-      name = firstName.replace(col0Email[0], '').trim();
-    } else if (col1Email) {
-      email = col1Email[0];
-      name = [firstName, lastName.replace(col1Email[0], '').trim()].filter(Boolean).join(' ');
-    } else {
-      name = [firstName, lastName].filter(Boolean).join(' ');
-    }
-  }
+  // Use named columns exclusively — the sheet layout is:
+  // Col 0: Contact Name, Col 1: Owner, Col 2: Email, Col 3: Company,
+  // Col 4: Follow up Stage, Col 5: Notes, Col 6: Phone, Col 7: Address
+  const name = getByName('Contact Name') || getByName('Name') || getByName('Full Name') || get(0);
+  const rawEmail = getByName('Email') || getByName('Email Address') || get(2);
+  const emailMatch = rawEmail.match(EMAIL_REGEX);
+  const email = emailMatch ? emailMatch[0] : '';
 
   if (!name || !email) return null;
 
-  const sheetStatus = get(8).toLowerCase();
-  const contactMethod = get(9).toLowerCase();
+  const company = getByName('Company') || getByName('Brokerage') || '';
+  const phone = getByName('Phone') || getByName('Phone Number') || '';
+  const notes = getByName('Notes') || '';
+  const followUpStage = getByName('Follow up Stage') || getByName('Follow Up Stage') || getByName('Follow-Up Stage') || '';
+  const owner = getByName('Owner') || '';
+  const lastContactedDate = getByName('Last Contacted') || getByName('Last Contact Date') || '';
 
-  let outreachChannel = 'other';
-  if (contactMethod.includes('linkedin')) outreachChannel = 'linkedin';
-  else if (contactMethod.includes('email')) outreachChannel = 'email';
-  else if (contactMethod.includes('phone')) outreachChannel = 'phone';
-
-  const location = get(6);
-  const linkedin = get(7);
-
-  // If col2 wasn't a real email, it's the company; otherwise company is col5
-  const company = !EMAIL_REGEX.test(col2) && col2 ? col2 : get(5);
-
-  const phone = getByName('Phone');
-  const notes = getByName('Notes');
-  const followUpStage = getByName('Follow Up Stage'); // case-insensitive, matches any variation
-  const owner = getByName('Owner');
-  const lastContactedDate = get(11); // existing last contacted col if present
+  // No longer using positional status/channel — default to cold/other if no named column
+  const sheetStatus = (getByName('Status') || '').toLowerCase();
+  const outreachChannel = 'other';
 
   const followUpDueDate = calcFollowUpDueDate(followUpStage, lastContactedDate || null);
   const partnerStatus = calcPartnerStatus(followUpStage);
@@ -100,10 +73,10 @@ function rowToLead(row, rowIndex, sheetOriginKey, colMap) {
   return {
     name,
     email,
-    title: get(4),
-    company,
-    industry: get(10),
-    source: [location, linkedin].filter(Boolean).join(' | '),
+    title: getByName('Title') || getByName('Job Title') || undefined,
+    company: company || undefined,
+    industry: getByName('Industry') || undefined,
+    source: getByName('LinkedIn') || getByName('Source') || undefined,
     status: SHEET_STATUS_TO_APP[sheetStatus] || 'cold',
     outreach_channel: outreachChannel,
     sheet_row_id: String(rowIndex),
@@ -114,7 +87,7 @@ function rowToLead(row, rowIndex, sheetOriginKey, colMap) {
     follow_up_stage: followUpStage || undefined,
     owner: owner || undefined,
     follow_up_due_date: followUpDueDate || undefined,
-    partner_status: partnerStatus,
+    partner_status: partnerStatus === 'Active Partner' ? 'active_partner' : 'new',
   };
 }
 
