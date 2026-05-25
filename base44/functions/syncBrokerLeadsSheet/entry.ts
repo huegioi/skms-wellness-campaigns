@@ -278,9 +278,11 @@ Deno.serve(async (req) => {
           partner_status: lead.partner_status,
         };
         if (sheetRank > appRank) updates.status = lead.status;
+        console.log('Writing follow_up_stage to lead (update):', updates.follow_up_stage, 'for contact:', updates.name);
         await base44.asServiceRole.entities.Lead.update(existing.id, updates);
         updated++;
       } else {
+        console.log('Writing follow_up_stage to lead (create):', lead.follow_up_stage, 'for contact:', lead.name);
         await base44.asServiceRole.entities.Lead.create(lead);
         created++;
       }
