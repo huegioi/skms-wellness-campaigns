@@ -21,6 +21,7 @@ export default function QuickBooksOAuth() {
 
     if (code && realmId) {
       exchangeCodeForToken(code, realmId);
+      window.history.replaceState({}, document.title, '/QuickBooksOAuth');
     }
   }, []);
 
