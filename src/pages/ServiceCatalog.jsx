@@ -87,7 +87,7 @@ export default function ServiceCatalog() {
     try {
       const response = await base44.functions.invoke('syncServicesToQB', {});
       const { created, updated, failed } = response.data;
-      toast.success(`QB Sync complete: ${created} created, ${updated} updated, ${failed} failed`);
+      toast.success(`Sync complete! Created: ${created}, Updated: ${updated}, Failed: ${failed}`);
       queryClient.invalidateQueries({ queryKey: ['services'] });
     } catch (error) {
       toast.error('QB Sync failed: ' + error.message);
@@ -133,7 +133,7 @@ export default function ServiceCatalog() {
               </Button>
             </a>
             <Button onClick={syncToQB} variant="outline" disabled={isSyncingQB} className="border-[#013f7c] text-[#013f7c] hover:bg-[#013f7c] hover:text-white">
-              <CloudUpload className={`w-4 h-4 mr-2 ${isSyncingQB ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 mr-2 ${isSyncingQB ? 'animate-spin' : ''}`} />
               {isSyncingQB ? 'Syncing...' : 'Sync to QuickBooks'}
             </Button>
             <Button onClick={syncFromSheet} variant="outline" disabled={isSyncing} className="border-[#264d44] text-[#264d44] hover:bg-[#264d44] hover:text-white">
