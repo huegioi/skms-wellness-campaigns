@@ -94,8 +94,12 @@ function PartnerCard({ lead, onClick, onStageChange }) {
   const [saving, setSaving] = useState(false);
   const [localStage, setLocalStage] = useState(lead.follow_up_stage || '');
 
+  // Debug: confirm what value is arriving from the parent
+  console.log('PartnerCard lead.follow_up_stage:', lead.follow_up_stage, '| lead.name:', lead.name);
+
   // Keep localStage in sync when the lead prop changes (e.g. after a sync)
   useEffect(() => {
+    console.log('useEffect syncing localStage:', lead.follow_up_stage, '| lead.name:', lead.name);
     setLocalStage(lead.follow_up_stage || '');
   }, [lead.follow_up_stage]);
 
