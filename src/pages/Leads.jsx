@@ -33,10 +33,10 @@ const STATUS_CONFIG = {
 };
 
 const PARTNER_STATUS_CONFIG = {
-  new:            { label: 'New',            color: 'bg-slate-100 text-slate-700 border-slate-300', chart: '#94a3b8' },
-  nurturing:      { label: 'Nurturing',      color: 'bg-blue-100 text-blue-700 border-blue-300',   chart: '#3b82f6' },
-  active_partner: { label: 'Active Partner', color: 'bg-green-100 text-green-700 border-green-300', chart: '#22c55e' },
-  inactive:       { label: 'Inactive',       color: 'bg-red-100 text-red-700 border-red-300',      chart: '#ef4444' },
+  new:            { label: 'New Lead',           color: 'bg-slate-100 text-slate-700 border-slate-300', chart: '#94a3b8' },
+  nurturing:      { label: 'Nurturing',          color: 'bg-blue-100 text-blue-700 border-blue-300',   chart: '#3b82f6' },
+  active_partner: { label: 'Active Partner',     color: 'bg-green-100 text-green-700 border-green-300', chart: '#22c55e' },
+  inactive:       { label: 'Inactive',           color: 'bg-red-100 text-red-700 border-red-300',      chart: '#ef4444' },
 };
 
 const REFERRAL_POTENTIAL_CONFIG = {
@@ -349,7 +349,9 @@ export default function Leads() {
 
   // Split leads by type
   const outreachLeads = allLeads.filter(l => l.lead_type !== 'broker_lead');
-  const brokerLeads = allLeads.filter(l => l.lead_type === 'broker_lead');
+  const partnerLeads = allLeads.filter(l => l.lead_type === 'broker_lead');
+  // alias for backward compat with existing references
+  const brokerLeads = partnerLeads;
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Lead.create(data),
@@ -407,7 +409,7 @@ export default function Leads() {
         if (!d.hasMore) break;
         startRow = d.nextStartRow;
       }
-      toast.success(`Broker leads synced — ${totalCreated} new, ${totalUpdated} updated`);
+      toast.success(`Partner leads synced — ${totalCreated} new, ${totalUpdated} updated`);
       queryClient.invalidateQueries({ queryKey: ['leads'] });
     } catch (e) {
       toast.error('Sync failed: ' + e.message);
@@ -585,7 +587,7 @@ export default function Leads() {
   };
 
   const TAB_ITEMS = [
-    { id: 'broker_leads', label: 'Referral Partners', icon: Star, count: brokerLeads.length },
+    { id: 'broker_leads', label: 'Referral Partners', icon: Star, count: partnerLeads.length },
     { id: 'portals',      label: 'Referral Portals', icon: Share2, count: referralPartners.length, alert: pendingReferrals.length },
   ];
 
@@ -721,7 +723,7 @@ export default function Leads() {
             ) : filteredBrokerLeads.length === 0 ? (
               <div className="bg-white rounded-xl p-12 text-center shadow">
                 <Star className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-500">No referral partners yet. Sync your Google Sheet to get started.</p>
+                <p className="text-gray-500">No partner leads yet. Sync your Google Sheet to get started.</p>
               </div>
             ) : brokerViewMode === 'pipeline' ? (
               <PipelineView
@@ -761,7 +763,7 @@ export default function Leads() {
               </button>
             )}
             <div className="flex justify-between items-center mb-6">
-              <p className="text-sm text-gray-500">Manage broker referral partners and their portal access</p>
+              <p className="text-sm text-gray-500">Manage active referral partners and their portal access</p>
               <Button onClick={openNewPartner} className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2">
                 <Plus className="w-4 h-4" /> Add Partner
               </Button>
@@ -1067,7 +1069,7 @@ export default function Leads() {
         <DialogContent className="max-w-md w-[95vw] max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-green-700">
-              <Handshake className="w-5 h-5" /> Active Referral Partners
+              <Handshake className="w-5 h-5" /> Active Partners
             </DialogTitle>
           </DialogHeader>
           <div className="overflow-y-auto flex-1 space-y-2 mt-2">
@@ -1116,7 +1118,7 @@ export default function Leads() {
       {/* Pending Referral Review Dialog */}
       <PendingReferralsReview open={showPendingReview} onOpenChange={setShowPendingReview} />
 
-      {/* Broker Lead Detail Modal */}
+      {/* Partner Lead Detail Modal */}
       {viewingBrokerLead && (
         <BrokerLeadDetail
           lead={viewingBrokerLead}
@@ -1128,10 +1130,10 @@ export default function Leads() {
         />
       )}
 
-      {/* Broker Lead (Referral Partner) Dialog */}
+      {/* Partner Lead Add/Edit Dialog */}
       <Dialog open={isAddBrokerOpen || !!editingBrokerLead} onOpenChange={(open) => { if (!open) { setIsAddBrokerOpen(false); setEditingBrokerLead(null); } }}>
         <DialogContent className="max-w-lg w-[95vw] max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editingBrokerLead ? 'Edit Referral Partner' : 'Add Referral Partner'}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingBrokerLead ? 'Edit Partner Lead' : 'Add Partner Lead'}</DialogTitle></DialogHeader>
           <form onSubmit={handleBrokerLeadSubmit} className="space-y-3 mt-2">
             {/* Contact Identity */}
             <div className="bg-gray-50 rounded-lg p-3 space-y-3">
@@ -1226,7 +1228,7 @@ export default function Leads() {
             </div>
             <Textarea placeholder="Notes" value={brokerForm.notes} onChange={e => setBrokerForm({...brokerForm, notes: e.target.value})} rows={3} />
             <Button type="submit" className="w-full bg-[#013f7c] hover:bg-[#012d5a]">
-              {editingBrokerLead ? 'Save Changes' : 'Add Partner'}
+              {editingBrokerLead ? 'Save Changes' : 'Add Partner Lead'}
             </Button>
           </form>
         </DialogContent>

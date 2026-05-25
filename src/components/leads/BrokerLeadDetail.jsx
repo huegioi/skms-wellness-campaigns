@@ -24,7 +24,7 @@ const STATUS_CONFIG = {
 };
 
 const PARTNER_STATUS_CONFIG = {
-  new:            { label: 'New',            color: 'bg-slate-100 text-slate-700' },
+  new:            { label: 'New Lead',       color: 'bg-slate-100 text-slate-700' },
   nurturing:      { label: 'Nurturing',      color: 'bg-blue-100 text-blue-700' },
   active_partner: { label: 'Active Partner', color: 'bg-green-100 text-green-700' },
   inactive:       { label: 'Inactive',       color: 'bg-red-100 text-red-700' },
@@ -156,7 +156,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const toggleActivePartner = () => {
     const newStatus = isActive ? 'nurturing' : 'active_partner';
     updateLeadMutation.mutate({ partner_status: newStatus });
-    toast.success(isActive ? 'Marked as Nurturing' : 'Marked as Active Partner!');
+    toast.success(isActive ? 'Moved back to Nurturing' : 'Marked as Active Partner!');
   };
 
   // Add a new Referral entity record (and update lead history)
@@ -317,7 +317,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
               size="sm"
             >
               <CheckCircle className="w-4 h-4 mr-1.5" />
-              {isActive ? 'Active Partner ✓' : 'Mark as Active Partner'}
+              {isActive ? 'Active Partner ✓' : 'Promote to Active Partner'}
             </Button>
           </div>
         </DialogHeader>
@@ -396,7 +396,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
             {/* Referrals (merged with Companies) */}
             <TabsContent value="referrals" className="p-6 mt-0">
               <div className="flex justify-between items-center mb-4">
-                <h4 className="font-semibold text-gray-700">Referred Companies</h4>
+                <h4 className="font-semibold text-gray-700">Client Referrals</h4>
                 <Button size="sm" variant="outline" onClick={() => {
                   setReferralForm({ ...EMPTY_REFERRAL, partner_id: matchedPartner?.id || '' });
                   setShowAddReferral(!showAddReferral);
