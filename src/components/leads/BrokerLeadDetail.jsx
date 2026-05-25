@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, DollarSign, ChevronDown } from 'lucide-react';
+import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, DollarSign, ChevronDown, Pencil } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GmailHistory from '@/components/clients/GmailHistory';
 import { toast } from 'sonner';
@@ -96,6 +96,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [localStage, setLocalStage] = useState(lead.follow_up_stage || '');
   const [stageSaving, setStageSaving] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const [showAddReferral, setShowAddReferral] = useState(false);
   const [referralForm, setReferralForm] = useState(EMPTY_REFERRAL);
   const [showAddProposal, setShowAddProposal] = useState(false);
@@ -366,17 +367,27 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                 {stageSaving && <span className="text-xs text-blue-500 ml-2">Saving…</span>}
               </div>
             </div>
-            <Button
-              onClick={toggleActivePartner}
-              disabled={updateLeadMutation.isPending}
-              className={isActive
-                ? 'bg-green-600 hover:bg-green-700 text-white flex-shrink-0'
-                : 'bg-white border-2 border-green-600 text-green-700 hover:bg-green-50 flex-shrink-0'}
-              size="sm"
-            >
-              <CheckCircle className="w-4 h-4 mr-1.5" />
-              {isActive ? 'Active Partner ✓' : 'Promote to Active Partner'}
-            </Button>
+            <div className="flex gap-2 flex-shrink-0">
+              <Button
+                onClick={() => setShowEditDialog(true)}
+                variant="outline"
+                size="sm"
+                className="gap-1"
+              >
+                <Pencil className="w-4 h-4" /> Edit
+              </Button>
+              <Button
+                onClick={toggleActivePartner}
+                disabled={updateLeadMutation.isPending}
+                className={isActive
+                  ? 'bg-green-600 hover:bg-green-700 text-white flex-shrink-0'
+                  : 'bg-white border-2 border-green-600 text-green-700 hover:bg-green-50 flex-shrink-0'}
+                size="sm"
+              >
+                <CheckCircle className="w-4 h-4 mr-1.5" />
+                {isActive ? 'Active Partner ✓' : 'Promote to Active Partner'}
+              </Button>
+            </div>
           </div>
         </DialogHeader>
 
@@ -719,7 +730,150 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
             </TabsContent>
           </Tabs>
         </div>
+
+        {/* Edit Lead Dialog */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="max-w-lg w-[95vw] max-h-[85vh] overflow-y-auto">
+            <DialogHeader><DialogTitle>Edit Partner Lead</DialogTitle></DialogHeader>
+            <EditLeadForm
+              lead={lead}
+              onSave={(data) => {
+                updateLeadMutation.mutate(data);
+                setShowEditDialog(false);
+                if (onUpdate) onUpdate();
+              }}
+              onCancel={() => setShowEditDialog(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Edit Lead Form Component
+function EditLeadForm({ lead, onSave, onCancel }) {
+  const [form, setForm] = useState({
+    name: lead.name || '',
+    email: lead.email || '',
+    email2: lead.email2 || '',
+    company: lead.company || '',
+    title: lead.title || '',
+    phone: lead.phone || '',
+    industry: lead.industry || '',
+    status: lead.status || 'cold',
+    partner_status: lead.partner_status || 'new',
+    referral_potential: lead.referral_potential || 'medium',
+    outreach_channel: lead.outreach_channel || 'other',
+    last_contacted_date: lead.last_contacted_date || '',
+    next_followup_date: lead.next_followup_date || '',
+    referral_count: lead.referral_count || 0,
+    last_referral_date: lead.last_referral_date || '',
+    notes: lead.notes || '',
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(form);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3 mt-2">
+      <div className="bg-gray-50 rounded-lg p-3 space-y-3">
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact Info</p>
+        <Input placeholder="Name *" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Email 1 *</label>
+            <Input type="email" placeholder="Primary email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1 block">Email 2</label>
+            <Input type="email" placeholder="Secondary email" value={form.email2} onChange={e => setForm({...form, email2: e.target.value})} />
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Input placeholder="Company" value={form.company} onChange={e => setForm({...form, company: e.target.value})} />
+        <Input placeholder="Title" value={form.title} onChange={e => setForm({...form, title: e.target.value})} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Input placeholder="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
+        <Input placeholder="Industry" value={form.industry} onChange={e => setForm({...form, industry: e.target.value})} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Outreach Status</label>
+          <Select value={form.status} onValueChange={v => setForm({...form, status: v})}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(STATUS_CONFIG).filter(([k]) => k !== 'current_client').map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Partner Status</label>
+          <Select value={form.partner_status} onValueChange={v => setForm({...form, partner_status: v})}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(PARTNER_STATUS_CONFIG).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Referral Potential</label>
+          <Select value={form.referral_potential} onValueChange={v => setForm({...form, referral_potential: v})}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Channel</label>
+          <Select value={form.outreach_channel} onValueChange={v => setForm({...form, outreach_channel: v})}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {['email','linkedin','phone','referral','other'].map(c => (
+                <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Last Contacted</label>
+          <Input type="date" value={form.last_contacted_date} onChange={e => setForm({...form, last_contacted_date: e.target.value})} />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Next Follow-up</label>
+          <Input type="date" value={form.next_followup_date} onChange={e => setForm({...form, next_followup_date: e.target.value})} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Referral Count</label>
+          <Input type="number" min="0" value={form.referral_count} onChange={e => setForm({...form, referral_count: parseInt(e.target.value) || 0})} />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 mb-1 block">Last Referral Date</label>
+          <Input type="date" value={form.last_referral_date} onChange={e => setForm({...form, last_referral_date: e.target.value})} />
+        </div>
+      </div>
+      <Textarea placeholder="Notes" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={3} />
+      <div className="flex gap-3 pt-2">
+        <Button type="submit" className="flex-1 bg-[#013f7c] hover:bg-[#012d5a]">Save Changes</Button>
+        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+      </div>
+    </form>
   );
 }
