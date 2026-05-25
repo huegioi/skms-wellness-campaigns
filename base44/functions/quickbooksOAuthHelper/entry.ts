@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
       access_token: tokens.access_token,
       realm_id: realmId,
       expires_in: tokens.expires_in,
-      auto_saved: !!(appId && apiKey)
+      auto_saved: true
     });
 
   } catch (error) {
