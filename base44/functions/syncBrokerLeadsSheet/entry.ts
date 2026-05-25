@@ -211,6 +211,35 @@ Deno.serve(async (req) => {
       if (header) colMap[header.trim()] = idx;
     });
 
+    // Ensure required columns exist in header row
+    const requiredColumns = ['Contact Name', 'Owner', 'Email', 'Company', 'Follow Up Stage', 'Title', 'Notes', 'Phone'];
+    const missingColumns = requiredColumns.filter(col => !Object.keys(colMap).some(k => k.toLowerCase() === col.toLowerCase()));
+    
+    // If missing columns, create/update header row
+    if (missingColumns.length > 0) {
+      console.log('Missing columns detected:', missingColumns);
+      // Add missing columns to header
+      const updatedHeader = [...headerRow];
+      missingColumns.forEach(col => {
+        const colIndex = updatedHeader.length;
+        colMap[col] = colIndex;
+        updatedHeader.push(col);
+      });
+      
+      // Write updated header row back to sheet
+      const headerRange = `${SHEET_NAME}!1:1`;
+      const headerUpdateRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(headerRange)}?valueInputOption=USER_ENTERED`,
+        {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ range: headerRange, majorDimension: 'ROWS', values: [updatedHeader] }),
+        }
+      );
+      const headerUpdateData = await headerUpdateRes.json();
+      console.log('Header update response:', headerUpdateData);
+    }
+
     const dataRows = rows.slice(1); // skip header
 
     // ── 3. Load existing broker_lead records for this sheet ────────────────────
