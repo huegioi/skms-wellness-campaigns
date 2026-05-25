@@ -45,6 +45,18 @@ const REFERRAL_POTENTIAL_CONFIG = {
   high:   { label: 'High',   color: 'bg-green-100 text-green-700' },
 };
 
+const FOLLOW_UP_STAGES = [
+  'Day 1: Initial Outreach',
+  'Day 3: Follow-up #1',
+  'Day 7: Follow-up #2',
+  'Day 14: Follow-up #3',
+  'Day 30: Follow-up #4',
+  'Day 60: Follow-up #5',
+  'Day 90: Final Follow-up',
+  'Connected - Not Ready',
+  'Not Interested',
+];
+
 const EMPTY_BROKER_LEAD_FORM = {
   name: '', email: '', email2: '', company: '', title: '', phone: '',
   industry: '', status: 'cold', outreach_channel: 'email',
@@ -494,8 +506,22 @@ export default function Leads() {
               >
                 {lead.name}
               </button>
-              <Badge variant="outline" className={`text-xs ${statusCfg.color}`}>{statusCfg.label}</Badge>
-              {!isActive && <Badge variant="outline" className={`text-xs ${partnerCfg.color}`}>{partnerCfg.label}</Badge>}
+              {!isActive && (
+                <Select value={lead.follow_up_stage || 'no_stage'} onValueChange={(v) => {
+                  updateMutation.mutate({ id: lead.id, data: { follow_up_stage: v === 'no_stage' ? '' : v } });
+                }}>
+                  <SelectTrigger className="h-7 text-xs w-40 bg-white border-gray-200">
+                    <SelectValue placeholder="Stage" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="no_stage">No Stage</SelectItem>
+                    {FOLLOW_UP_STAGES.filter(s => s).map((stage, i) => (
+                      <SelectItem key={i} value={stage}>{stage}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {isActive && <Badge variant="outline" className={`text-xs ${partnerCfg.color}`}>{partnerCfg.label}</Badge>}
               {referralCfg && (
                 <Badge variant="outline" className={`text-xs ${referralCfg.color} flex items-center gap-1`}>
                   <Star className="w-3 h-3" />{referralCfg.label} potential
