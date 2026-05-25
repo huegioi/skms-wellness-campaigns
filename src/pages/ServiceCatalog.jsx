@@ -87,7 +87,7 @@ export default function ServiceCatalog() {
     try {
       const response = await base44.functions.invoke('syncServicesToQB', {});
       console.log('Sync response:', response);
-      toast.success(`QB Sync complete — Created: ${response.data.created || 0}, Updated: ${response.data.updated || 0}, Failed: ${response.data.failed || 0}`);
+      toast.success(`QB Sync complete — Total: ${response.data.total || 0}, Created: ${response.data.created || 0}, Updated: ${response.data.updated || 0}`);
       queryClient.invalidateQueries({ queryKey: ['services'] });
     } catch (error) {
       console.log('QB Sync error:', error);
