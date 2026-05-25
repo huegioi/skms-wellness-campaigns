@@ -75,6 +75,38 @@
     "notes": {
       "type": "string",
       "description": "Internal notes about this partner"
+    },
+    "follow_up_stage": {
+      "type": "string",
+      "description": "Current follow-up stage for this partner"
+    },
+    "follow_up_due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the next follow-up is due"
+    },
+    "owner": {
+      "type": "string",
+      "description": "Team member responsible for this partner relationship"
+    },
+    "last_contacted_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date this partner was last contacted"
+    },
+    "partner_status": {
+      "type": "string",
+      "enum": [
+        "Prospect",
+        "Active Partner",
+        "Inactive"
+      ],
+      "description": "Current status of the partner relationship"
+    },
+    "referral_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Total number of referrals submitted by this partner"
     }
   },
   "required": [
