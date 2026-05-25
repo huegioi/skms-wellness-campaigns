@@ -127,6 +127,56 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
+
+    // ── Handle updateStage action ──────────────────────────────────────────────
+    if (body.action === 'updateStage') {
+      const { sheetRowId, sheetName, follow_up_stage } = body;
+      if (!sheetRowId) {
+        return Response.json({ error: 'Missing sheetRowId' }, { status: 400 });
+      }
+
+      const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
+
+      // Get the spreadsheet metadata to find the Follow Up Stage column index
+      const metaRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const meta = await metaRes.json();
+      const targetSheet = sheetName || meta.sheets?.[0]?.properties?.title || 'Brokers';
+
+      // Read header row to find the column index
+      const headerRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(targetSheet + '!1:1')}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const headerData = await headerRes.json();
+      const headers = (headerData.values?.[0] || []).map(h => h.toLowerCase().trim());
+      const stageColIndex = headers.findIndex(h => h === 'follow up stage' || h === 'follow_up_stage');
+
+      if (stageColIndex === -1) {
+        return Response.json({ error: 'Follow Up Stage column not found in sheet' }, { status: 400 });
+      }
+
+      // sheetRowId is the 1-based row number (including header row)
+      const colLetter = String.fromCharCode(65 + stageColIndex); // A=65
+      const cellRange = `${targetSheet}!${colLetter}${sheetRowId}`;
+
+      const updateRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(cellRange)}?valueInputOption=USER_ENTERED`,
+        {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ range: cellRange, majorDimension: 'ROWS', values: [[follow_up_stage || '']] }),
+        }
+      );
+      const updateData = await updateRes.json();
+      if (updateData.error) {
+        return Response.json({ error: updateData.error.message }, { status: 400 });
+      }
+      return Response.json({ success: true, updatedRange: updateData.updatedRange });
+    }
+
     const startRow = body.startRow || 0;
     const CHUNK_SIZE = 25;
 
