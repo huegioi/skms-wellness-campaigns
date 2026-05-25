@@ -804,9 +804,10 @@ function EditLeadForm({ lead, onSave, onCancel }) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-gray-500 mb-1 block">Follow-up Stage</label>
-          <Select value={form.follow_up_stage} onValueChange={v => setForm({...form, follow_up_stage: v})}>
+          <Select value={form.follow_up_stage || 'none'} onValueChange={v => setForm({...form, follow_up_stage: v === 'none' ? '' : v})}>
             <SelectTrigger><SelectValue placeholder="Select stage" /></SelectTrigger>
             <SelectContent>
+              <SelectItem value="none">None</SelectItem>
               {FOLLOW_UP_STAGES.map(stage => (
                 <SelectItem key={stage} value={stage}>{stage}</SelectItem>
               ))}
