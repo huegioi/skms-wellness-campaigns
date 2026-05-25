@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Building, User, Calendar, AlertCircle, ChevronDown } from 'lucide-react';
 import { format, isToday, isPast, parseISO } from 'date-fns';
 import { base44 } from '@/api/base44Client';
@@ -93,6 +93,11 @@ function StageDropdown({ currentStage, onStageChange, saving }) {
 function PartnerCard({ lead, onClick, onStageChange }) {
   const [saving, setSaving] = useState(false);
   const [localStage, setLocalStage] = useState(lead.follow_up_stage || '');
+
+  // Keep localStage in sync when the lead prop changes (e.g. after a sync)
+  useEffect(() => {
+    setLocalStage(lead.follow_up_stage || '');
+  }, [lead.follow_up_stage]);
 
   const dueDateStatus = getDueDateStatus(lead.follow_up_due_date);
   const isActivePartner = lead.partner_status === 'Active Partner';
