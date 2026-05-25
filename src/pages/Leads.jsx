@@ -61,7 +61,7 @@ const EMPTY_BROKER_LEAD_FORM = {
   name: '', email: '', email2: '', company: '', title: '', phone: '',
   industry: '', status: 'cold', outreach_channel: 'email',
   last_contacted_date: '', next_followup_date: '', notes: '', source: '',
-  lead_type: 'broker_lead', partner_status: 'new',
+  lead_type: 'broker_lead', partner_status: 'new', follow_up_stage: '',
   referral_potential: 'medium', referral_count: 0, last_referral_date: ''
 };
 
@@ -400,6 +400,7 @@ export default function Leads() {
       next_followup_date: lead.next_followup_date || '',
       notes: lead.notes || '', source: lead.source || '', lead_type: 'broker_lead',
       partner_status: lead.partner_status || 'new',
+      follow_up_stage: lead.follow_up_stage || '',
       referral_potential: lead.referral_potential || 'medium',
       referral_count: lead.referral_count || 0,
       last_referral_date: lead.last_referral_date || ''
@@ -506,20 +507,10 @@ export default function Leads() {
               >
                 {lead.name}
               </button>
-              {!isActive && (
-                <Select value={lead.follow_up_stage || 'no_stage'} onValueChange={(v) => {
-                  updateMutation.mutate({ id: lead.id, data: { follow_up_stage: v === 'no_stage' ? '' : v } });
-                }}>
-                  <SelectTrigger className="h-7 text-xs w-40 bg-white border-gray-200">
-                    <SelectValue placeholder="Stage" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no_stage">No Stage</SelectItem>
-                    {FOLLOW_UP_STAGES.filter(s => s).map((stage, i) => (
-                      <SelectItem key={i} value={stage}>{stage}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              {!isActive && lead.follow_up_stage && (
+                <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                  {lead.follow_up_stage}
+                </Badge>
               )}
               {isActive && <Badge variant="outline" className={`text-xs ${partnerCfg.color}`}>{partnerCfg.label}</Badge>}
               {referralCfg && (
@@ -1206,6 +1197,18 @@ export default function Leads() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Follow-up Stage</label>
+              <Select value={brokerForm.follow_up_stage || 'none'} onValueChange={v => setBrokerForm({...brokerForm, follow_up_stage: v === 'none' ? '' : v})}>
+                <SelectTrigger><SelectValue placeholder="Select stage" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Stage</SelectItem>
+                  {FOLLOW_UP_STAGES.filter(s => s).map((stage, i) => (
+                    <SelectItem key={i} value={stage}>{stage}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
