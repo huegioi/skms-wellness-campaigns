@@ -200,7 +200,7 @@ function PartnerCard({ lead, onClick, onStageChange }) {
             'text-gray-500'
           }`}>
             <Calendar className="w-3 h-3 flex-shrink-0" />
-            {format(parseISO(lead.follow_up_due_date), 'MMM d, yyyy')}
+            <span>Follow-up: {format(parseISO(lead.follow_up_due_date), 'MMM d, yyyy')}</span>
           </p>
         )}
 
