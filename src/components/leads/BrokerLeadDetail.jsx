@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, DollarSign } from 'lucide-react';
+import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, DollarSign, ChevronDown } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GmailHistory from '@/components/clients/GmailHistory';
 import { toast } from 'sonner';
@@ -39,6 +39,23 @@ const REFERRAL_STATUS_COLORS = {
   commission_paid:     'bg-emerald-100 text-emerald-800',
   not_eligible:        'bg-red-100 text-red-700',
 };
+
+const FOLLOW_UP_STAGES = [
+  '',
+  'Day 1 - LinkedIn Connection',
+  'Day 2 - Send email #1',
+  'Day 3 - Call #1',
+  'Day 3 - Text f/u to call',
+  'Day 5 - Call #2',
+  'Day 5 - LinkedIn f/u message',
+  'Day 7 - Send email #2',
+  'Day 10 - Call #3',
+  'Day 10 - Send email #3',
+  'Day 11 - LinkedIn message #3',
+  'Day 15 - Send email #4',
+  'Day 20 - Send email #5',
+  'Referral Partner',
+];
 
 const EMPTY_REFERRAL = { date: '', company_name: '', contact_name: '', notes: '', client_id: '', proposal_id: '', partner_id: '' };
 const EMPTY_PROPOSAL_FORM = { referralId: '', proposalId: '' };
@@ -77,6 +94,8 @@ function calcAdjustedRevenue(proposal) {
 
 export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const [activeTab, setActiveTab] = useState('overview');
+  const [localStage, setLocalStage] = useState(lead.follow_up_stage || '');
+  const [stageSaving, setStageSaving] = useState(false);
   const [showAddReferral, setShowAddReferral] = useState(false);
   const [referralForm, setReferralForm] = useState(EMPTY_REFERRAL);
   const [showAddProposal, setShowAddProposal] = useState(false);
@@ -151,6 +170,31 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
     if (diff < 30) return `${diff} days ago`;
     if (diff < 60) return '1 month ago';
     return `${Math.floor(diff / 30)} months ago`;
+  };
+
+  const handleStageChange = async (rawStage) => {
+    const newStage = rawStage === '__none__' ? '' : rawStage;
+    setStageSaving(true);
+    setLocalStage(newStage);
+    try {
+      await base44.entities.Lead.update(lead.id, { follow_up_stage: newStage || null });
+      const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || undefined;
+      await base44.functions.invoke('syncBrokerLeadsSheet', {
+        action: 'updateStage',
+        leadId: lead.id,
+        sheetRowId: lead.sheet_row_id,
+        sheetName,
+        follow_up_stage: newStage,
+      });
+      if (onUpdate) onUpdate();
+      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      toast.success('Stage updated');
+    } catch (e) {
+      setLocalStage(lead.follow_up_stage || '');
+      toast.error('Failed to update stage');
+    } finally {
+      setStageSaving(false);
+    }
   };
 
   const toggleActivePartner = () => {
@@ -298,14 +342,28 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                   {lead.company && <span className="flex items-center gap-1"><Building className="w-3.5 h-3.5" />{lead.company}</span>}
                 </div>
               )}
-              <div className="flex flex-wrap gap-2 mt-2">
-                <Badge variant="outline" className={`text-xs ${statusCfg.color}`}>{statusCfg.label}</Badge>
+              <div className="flex flex-wrap gap-2 mt-2 items-center">
                 <Badge variant="outline" className={`text-xs ${partnerCfg.color}`}>{partnerCfg.label}</Badge>
                 {displayReferrals > 0 && (
                   <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
                     <Star className="w-3 h-3 mr-1" />{displayReferrals} referral{displayReferrals !== 1 ? 's' : ''}
                   </Badge>
                 )}
+              </div>
+              <div className="mt-2 relative">
+                <Select value={localStage || '__none__'} onValueChange={handleStageChange} disabled={stageSaving}>
+                  <SelectTrigger className="h-8 text-xs w-64 bg-gray-50 border-gray-200">
+                    <SelectValue placeholder="Set follow-up stage…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {FOLLOW_UP_STAGES.map((stage, i) => (
+                      <SelectItem key={i} value={stage || '__none__'}>
+                        {stage || <span className="text-gray-400 italic">— No Stage —</span>}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {stageSaving && <span className="text-xs text-blue-500 ml-2">Saving…</span>}
               </div>
             </div>
             <Button
