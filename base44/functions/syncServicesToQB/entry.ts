@@ -7,7 +7,7 @@ async function getStoredRefreshToken(client) {
     const configs = await client.asServiceRole.entities.QuickBooksConfig.filter({ key: 'refresh_token' });
     if (configs && configs.length > 0) return configs[0].value;
   } catch (e) {
-    console.log('Could not read refresh token from DB, using env var:', e.message);
+    console.log('Could not read refresh token from DB:', e.message);
   }
   return Deno.env.get('QUICKBOOKS_REFRESH_TOKEN');
 }
@@ -60,6 +60,30 @@ async function getAccessToken(client) {
   return data.access_token;
 }
 
+async function qbRequest(accessToken, realmId, method, path, body) {
+  const url = `${QB_API_URL}/${realmId}${path}`;
+  const opts = {
+    method,
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'Accept': 'application/json',
+      ...(body ? { 'Content-Type': 'application/json' } : {})
+    },
+    ...(body ? { body: JSON.stringify(body) } : {})
+  };
+  const res = await fetch(url, opts);
+  if (!res.ok) {
+    const text = await res.text();
+    let msg = text;
+    try {
+      const parsed = JSON.parse(text);
+      msg = parsed.Fault?.Error?.[0]?.Detail || parsed.Fault?.Error?.[0]?.Message || text;
+    } catch {}
+    throw new Error(msg);
+  }
+  return res.json();
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -75,92 +99,74 @@ Deno.serve(async (req) => {
     }
 
     const accessToken = await getAccessToken(base44);
-    const services = await base44.asServiceRole.entities.Service.filter({});
+
+    // Fetch all local services and all QB service-type items in parallel
+    const [services, qbQueryResult] = await Promise.all([
+      base44.asServiceRole.entities.Service.filter({}),
+      qbRequest(accessToken, realmId, 'GET',
+        `/query?query=${encodeURIComponent("SELECT * FROM Item WHERE Type = 'Service' MAXRESULTS 1000")}`,
+        null
+      )
+    ]);
+
+    const qbItems = qbQueryResult.QueryResponse?.Item || [];
+
+    // Build lookup maps for quick matching
+    const qbByName = {};
+    const qbById = {};
+    for (const item of qbItems) {
+      qbByName[item.Name.toLowerCase()] = item;
+      qbById[item.Id] = item;
+    }
 
     const results = [];
 
     for (const service of services) {
       try {
-        // Query QB for existing item by name
-        const query = `SELECT * FROM Item WHERE Name = '${service.name.replace(/'/g, "\\'")}'`;
-        const queryResponse = await fetch(
-          `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(query)}`,
-          { headers: { 'Authorization': `Bearer ${accessToken}`, 'Accept': 'application/json' } }
-        );
-
-        if (!queryResponse.ok) {
-          const errorText = await queryResponse.text();
-          throw new Error(`QB query failed: ${errorText}`);
+        // Find match by stored QB id first, then fall back to name
+        let existingItem = null;
+        if (service.quickbooks_item_id && qbById[service.quickbooks_item_id]) {
+          existingItem = qbById[service.quickbooks_item_id];
+        } else if (qbByName[service.name.toLowerCase()]) {
+          existingItem = qbByName[service.name.toLowerCase()];
         }
-
-        const queryResult = await queryResponse.json();
-        const existingItem = queryResult.QueryResponse?.Item?.[0];
 
         let qbItemId;
         let action;
 
         if (existingItem) {
-          // Update existing item
-          const updatePayload = {
+          // Update existing QB item
+          const result = await qbRequest(accessToken, realmId, 'POST', '/item', {
             Id: existingItem.Id,
             SyncToken: existingItem.SyncToken,
-            Name: service.name,
+            Name: existingItem.Name, // preserve original name to avoid conflicts
             Type: 'Service',
             UnitPrice: service.price ?? 0,
             Description: service.description || service.short_description || ''
-          };
-
-          const updateResponse = await fetch(`${QB_API_URL}/${realmId}/item`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify(updatePayload)
           });
-
-          if (!updateResponse.ok) {
-            const errorText = await updateResponse.text();
-            throw new Error(`QB update failed: ${errorText}`);
-          }
-
-          const updateResult = await updateResponse.json();
-          qbItemId = updateResult.Item.Id;
+          qbItemId = result.Item.Id;
           action = 'updated';
         } else {
-          // Create new item
-          const createPayload = {
+          // Create new QB item
+          const result = await qbRequest(accessToken, realmId, 'POST', '/item', {
             Name: service.name,
             Type: 'Service',
             UnitPrice: service.price ?? 0,
             Description: service.description || service.short_description || ''
-          };
-
-          const createResponse = await fetch(`${QB_API_URL}/${realmId}/item`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-            body: JSON.stringify(createPayload)
           });
-
-          if (!createResponse.ok) {
-            const errorText = await createResponse.text();
-            throw new Error(`QB create failed: ${errorText}`);
-          }
-
-          const createResult = await createResponse.json();
-          qbItemId = createResult.Item.Id;
+          qbItemId = result.Item.Id;
           action = 'created';
+          // Add to maps so subsequent services don't create a duplicate
+          qbById[qbItemId] = result.Item;
+          qbByName[service.name.toLowerCase()] = result.Item;
         }
 
-        // Save QB item ID back to the service entity
-        await base44.asServiceRole.entities.Service.update(service.id, {
-          quickbooks_item_id: qbItemId
-        });
+        // Save QB item ID back to the service entity if not already set or changed
+        if (service.quickbooks_item_id !== qbItemId) {
+          await base44.asServiceRole.entities.Service.update(service.id, {
+            quickbooks_item_id: qbItemId
+          });
+        }
 
         results.push({ id: service.id, name: service.name, qb_item_id: qbItemId, action });
       } catch (error) {
