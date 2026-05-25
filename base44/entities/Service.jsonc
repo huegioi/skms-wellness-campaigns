@@ -93,6 +93,10 @@
       "type": "number",
       "default": 0,
       "description": "Display order within category"
+    },
+    "quickbooks_item_id": {
+      "type": "string",
+      "description": "QuickBooks item/product ID for invoice line item syncing"
     }
   },
   "required": [
