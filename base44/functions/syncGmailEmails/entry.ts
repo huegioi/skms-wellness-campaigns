@@ -9,7 +9,14 @@ const IMAP_ACCOUNTS = [
 
 function addrStr(addrs) {
   if (!addrs || addrs.length === 0) return '';
-  return addrs.map(a => a.name ? `${a.name} <${a.mailbox}@${a.host}>` : `${a.mailbox}@${a.host}`).join(', ');
+  return addrs.map(a => {
+    if (a.address) {
+      return a.name ? `${a.name} <${a.address}>` : a.address;
+    } else if (a.mailbox && a.host) {
+      return a.name ? `${a.name} <${a.mailbox}@${a.host}>` : `${a.mailbox}@${a.host}`;
+    }
+    return null;
+  }).filter(Boolean).join(', ');
 }
 
 async function fetchViaImap(accountEmail, password, clientEmail) {
