@@ -655,45 +655,75 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
 
             {/* Related Contacts */}
             {(client.related_contacts || []).map((contact, index) => {
-              const typeColors = {
-                broker: 'bg-orange-100 text-orange-700',
-                wellness_consultant: 'bg-purple-100 text-purple-700',
-                other: 'bg-gray-100 text-gray-700',
-              };
-              const typeLabel = {
-                broker: 'Broker',
-                wellness_consultant: 'Wellness Consultant',
-                other: 'Other',
-              };
-              return (
-              <div key={index} className="bg-white border rounded-lg p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    {contact.contact_type && contact.contact_type !== 'other' && (
-                      <Badge className={`${typeColors[contact.contact_type] || typeColors.other} mb-2`}>
-                        {typeLabel[contact.contact_type] || contact.contact_type}
-                      </Badge>
-                    )}
-                    <p className="font-semibold">{contact.name}</p>
-                    {contact.title && <p className="text-sm text-gray-600">{contact.title}</p>}
-                    {contact.company && <p className="text-sm text-gray-500">{contact.company}</p>}
-                    {contact.email && <p className="text-sm text-gray-500">{contact.email}</p>}
-                    {contact.phone && <p className="text-sm text-gray-500">{contact.phone}</p>}
-                    {contact.linked_partner_id && (
-                      <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                        <LinkIcon className="w-3 h-3" /> Linked referral partner
-                      </p>
-                    )}
-                    {contact.notes && <p className="text-sm text-gray-400 mt-1">{contact.notes}</p>}
-                  </div>
-                  <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => openEditContact(contact, index)}><Pencil className="w-4 h-4" /></Button>
-                    <Button size="icon" variant="ghost" className="text-red-500" onClick={() => handleDeleteContact(index)}><Trash2 className="w-4 h-4" /></Button>
-                  </div>
-                </div>
-              </div>
-              );
-            })}
+               const typeColors = {
+                 broker: 'bg-orange-100 text-orange-700',
+                 wellness_consultant: 'bg-purple-100 text-purple-700',
+                 other: 'bg-gray-100 text-gray-700',
+               };
+               const typeLabel = {
+                 broker: 'Broker',
+                 wellness_consultant: 'Wellness Consultant',
+                 other: 'Other',
+               };
+
+               const handleMakePrimary = () => {
+                 // New primary fields from this contact
+                 const newPrimary = {
+                   name: contact.name || '',
+                   email: contact.email || '',
+                   title: contact.title || '',
+                   phone: contact.phone || '',
+                 };
+                 // Old primary becomes a related contact
+                 const oldPrimaryAsContact = {
+                   name: client.name || '',
+                   email: client.email || '',
+                   title: client.title || '',
+                   phone: client.phone || '',
+                   notes: '',
+                 };
+                 // Remove this contact from related_contacts, add old primary
+                 const updatedContacts = [
+                   ...( client.related_contacts || []).filter((_, i) => i !== index),
+                   oldPrimaryAsContact,
+                 ];
+                 onUpdate({ ...newPrimary, related_contacts: updatedContacts });
+               };
+
+               return (
+               <div key={index} className="bg-white border rounded-lg p-4">
+                 <div className="flex justify-between items-start">
+                   <div>
+                     {contact.contact_type && contact.contact_type !== 'other' && (
+                       <Badge className={`${typeColors[contact.contact_type] || typeColors.other} mb-2`}>
+                         {typeLabel[contact.contact_type] || contact.contact_type}
+                       </Badge>
+                     )}
+                     <p className="font-semibold">{contact.name}</p>
+                     {contact.title && <p className="text-sm text-gray-600">{contact.title}</p>}
+                     {contact.company && <p className="text-sm text-gray-500">{contact.company}</p>}
+                     {contact.email && <p className="text-sm text-gray-500">{contact.email}</p>}
+                     {contact.phone && <p className="text-sm text-gray-500">{contact.phone}</p>}
+                     {contact.linked_partner_id && (
+                       <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                         <LinkIcon className="w-3 h-3" /> Linked referral partner
+                       </p>
+                     )}
+                     {contact.notes && <p className="text-sm text-gray-400 mt-1">{contact.notes}</p>}
+                   </div>
+                   <div className="flex gap-1 items-start flex-col sm:flex-row">
+                     {contact.name && contact.email && (
+                       <Button size="sm" variant="outline" className="text-xs h-7 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={handleMakePrimary}>
+                         Make Primary
+                       </Button>
+                     )}
+                     <Button size="icon" variant="ghost" onClick={() => openEditContact(contact, index)}><Pencil className="w-4 h-4" /></Button>
+                     <Button size="icon" variant="ghost" className="text-red-500" onClick={() => handleDeleteContact(index)}><Trash2 className="w-4 h-4" /></Button>
+                   </div>
+                 </div>
+               </div>
+               );
+             })}
           </div>
         </TabsContent>
 
