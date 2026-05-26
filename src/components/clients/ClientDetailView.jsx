@@ -23,6 +23,7 @@ import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 import FollowUpSettings from '@/components/clients/FollowUpSettings';
 import BrokersEditor from '@/components/clients/BrokersEditor';
 import AddContactDialog from '@/components/clients/AddContactDialog';
+import PrimaryContactEditor from '@/components/clients/PrimaryContactEditor';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
@@ -607,26 +608,17 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
 
         {/* Contacts Tab */}
         <TabsContent value="contacts" className="mt-4">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="font-semibold text-gray-700">All Contacts</h4>
-            <Button size="sm" variant="outline" onClick={() => { setEditingContact(null); setShowAddContact(true); }}>
-              <Plus className="w-4 h-4 mr-1" /> Add Contact
-            </Button>
-          </div>
-          
-          <div className="space-y-3">
-            {/* Primary Contact */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex justify-between items-start">
-                <div>
-                  <Badge className="bg-blue-100 text-blue-700 mb-2">Primary Contact</Badge>
-                  <p className="font-semibold">{client.name}</p>
-                  {client.title && <p className="text-sm text-gray-600">{client.title}</p>}
-                  <p className="text-sm text-gray-500">{client.email}</p>
-                  {client.phone && <p className="text-sm text-gray-500">{client.phone}</p>}
-                </div>
-              </div>
-            </div>
+           <div className="flex justify-between items-center mb-4">
+             <h4 className="font-semibold text-gray-700">All Contacts</h4>
+             <Button size="sm" variant="outline" onClick={() => { setEditingContact(null); setShowAddContact(true); }}>
+               <Plus className="w-4 h-4 mr-1" /> Add Contact
+             </Button>
+           </div>
+
+           <div className="space-y-3">
+             {/* Primary Contact */}
+             <PrimaryContactEditor client={client} onUpdate={onUpdate} />
+
 
             {/* Brokers */}
             {(() => {
