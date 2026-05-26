@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bell, Calendar, Clock, PhoneCall, CheckCircle } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Bell, Calendar, Clock, PhoneCall, CheckCircle, StickyNote } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusConfig = {
@@ -22,7 +23,8 @@ export default function FollowUpSettings({ client, onUpdate }) {
     last_service_date: client.last_service_date || '',
     follow_up_window_days: client.follow_up_window_days || 90,
     last_contacted_date: client.last_contacted_date || '',
-    follow_up_status: client.follow_up_status || ''
+    follow_up_status: client.follow_up_status || '',
+    notes: client.notes || ''
   });
 
   // Fetch most recent completed calendar event for this client
@@ -144,6 +146,19 @@ export default function FollowUpSettings({ client, onUpdate }) {
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        {/* Notes */}
+        <div className="space-y-1">
+          <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+            <StickyNote className="w-3.5 h-3.5" /> Follow-Up Notes
+          </label>
+          <Textarea
+            placeholder="Add notes about this client's follow-up..."
+            value={form.notes}
+            onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+            rows={3}
+          />
         </div>
 
         {client.snooze_until && client.follow_up_status === 'snoozed' && (
