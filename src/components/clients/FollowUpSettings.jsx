@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Bell, Calendar, Clock, PhoneCall, CheckCircle, StickyNote } from 'lucide-react';
+import { Bell, Calendar, Clock, PhoneCall, CheckCircle, StickyNote, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 const statusConfig = {
@@ -19,6 +19,7 @@ const statusConfig = {
 
 export default function FollowUpSettings({ client, onUpdate }) {
   const queryClient = useQueryClient();
+  const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({
     last_service_date: client.last_service_date || '',
     follow_up_window_days: client.follow_up_window_days || 90,
@@ -46,6 +47,8 @@ export default function FollowUpSettings({ client, onUpdate }) {
     await onUpdate(form);
     queryClient.invalidateQueries({ queryKey: ['clients'] });
     toast.success('Follow-up settings saved');
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
   };
 
   const handleSnooze = async () => {
@@ -168,8 +171,8 @@ export default function FollowUpSettings({ client, onUpdate }) {
         )}
 
         <div className="flex gap-2 pt-2">
-          <Button className="bg-[#264d44] hover:bg-[#1a3830] flex-1" onClick={handleSave}>
-            Save Settings
+          <Button className={`flex-1 transition-colors duration-300 ${saved ? 'bg-green-600 hover:bg-green-700' : 'bg-[#264d44] hover:bg-[#1a3830]'}`} onClick={handleSave}>
+            {saved ? <><Check className="w-4 h-4 mr-1" /> Saved!</> : 'Save Settings'}
           </Button>
           <Button variant="outline" onClick={handleSnooze} className="text-gray-600">
             <Clock className="w-4 h-4 mr-1" /> Snooze 1 Week
