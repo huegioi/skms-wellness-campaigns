@@ -29,11 +29,12 @@ async function scanViaImap(accountEmail, password, emailMap, updates) {
       ].map(a => a.address?.toLowerCase()).filter(Boolean);
 
       for (const addr of addresses) {
-        const matchedClient = emailMap[addr];
-        if (!matchedClient) continue;
-        const existing = updates[matchedClient.id];
+        const matched = emailMap[addr];
+        if (!matched) continue;
+        const key = `${matched.entityType}:${matched.record.id}`;
+        const existing = updates[key];
         if (!existing || msgDate > existing.date) {
-          updates[matchedClient.id] = { date: msgDate, client: matchedClient };
+          updates[key] = { date: msgDate, entityType: matched.entityType, record: matched.record };
         }
       }
     }
@@ -45,7 +46,6 @@ async function scanViaImap(accountEmail, password, emailMap, updates) {
 }
 
 async function scanViaGmailApi(accessToken, emailMap, updates) {
-  // Fetch last 90 days of email
   const since = new Date();
   since.setDate(since.getDate() - 90);
   const afterStr = `${since.getFullYear()}/${since.getMonth() + 1}/${since.getDate()}`;
@@ -81,11 +81,12 @@ async function scanViaGmailApi(accessToken, emailMap, updates) {
       .filter(Boolean);
 
     for (const addr of allAddresses) {
-      const matchedClient = emailMap[addr];
-      if (!matchedClient) continue;
-      const existing = updates[matchedClient.id];
+      const matched = emailMap[addr];
+      if (!matched) continue;
+      const key = `${matched.entityType}:${matched.record.id}`;
+      const existing = updates[key];
       if (!existing || msgDate > existing.date) {
-        updates[matchedClient.id] = { date: msgDate, client: matchedClient };
+        updates[key] = { date: msgDate, entityType: matched.entityType, record: matched.record };
       }
     }
   }
@@ -99,17 +100,31 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Admin only' }, { status: 403 });
     }
 
-    const clients = await base44.asServiceRole.entities.Client.list();
+    const [clients, referralPartners] = await Promise.all([
+      base44.asServiceRole.entities.Client.list(),
+      base44.asServiceRole.entities.ReferralPartner.list(),
+    ]);
 
-    // Build email -> client map
+    // Build unified email -> { entityType, record } map
     const emailMap = {};
+
     for (const c of clients) {
-      if (c.email) emailMap[c.email.toLowerCase()] = c;
+      if (c.email) emailMap[c.email.toLowerCase()] = { entityType: 'Client', record: c };
       for (const contact of c.related_contacts || []) {
-        if (contact.email) emailMap[contact.email.toLowerCase()] = c;
+        if (contact.email) emailMap[contact.email.toLowerCase()] = { entityType: 'Client', record: c };
       }
     }
 
+    for (const p of referralPartners) {
+      if (p.email) {
+        // Don't overwrite a Client entry with a ReferralPartner for the same address
+        if (!emailMap[p.email.toLowerCase()]) {
+          emailMap[p.email.toLowerCase()] = { entityType: 'ReferralPartner', record: p };
+        }
+      }
+    }
+
+    // updates keyed by "EntityType:id"
     const updates = {};
 
     // 1. Scan william@skillfulmeans.life via Gmail OAuth connector
@@ -131,11 +146,26 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Update clients where email date is newer than stored last_contacted_date
+    // 3. Scan Heather's account via IMAP
+    const heatherEmail = Deno.env.get('GMAIL_HEATHER_ADDRESS');
+    const heatherPassword = Deno.env.get('GMAIL_HEATHER_PASSWORD');
+    if (heatherEmail && heatherPassword) {
+      try {
+        await scanViaImap(heatherEmail, heatherPassword, emailMap, updates);
+      } catch (err) {
+        console.error(`IMAP scan error for ${heatherEmail}: ${err.message}`);
+      }
+    }
+
+    // Persist updates to Client and ReferralPartner entities
     let updatedCount = 0;
-    for (const { date, client: c } of Object.values(updates)) {
-      if (!c.last_contacted_date || date > c.last_contacted_date) {
-        await base44.asServiceRole.entities.Client.update(c.id, { last_contacted_date: date });
+    for (const { date, entityType, record } of Object.values(updates)) {
+      if (!record.last_contacted_date || date > record.last_contacted_date) {
+        if (entityType === 'Client') {
+          await base44.asServiceRole.entities.Client.update(record.id, { last_contacted_date: date });
+        } else if (entityType === 'ReferralPartner') {
+          await base44.asServiceRole.entities.ReferralPartner.update(record.id, { last_contacted_date: date });
+        }
         updatedCount++;
       }
     }
