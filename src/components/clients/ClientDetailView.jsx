@@ -24,6 +24,7 @@ import FollowUpSettings from '@/components/clients/FollowUpSettings';
 import BrokersEditor from '@/components/clients/BrokersEditor';
 import AddContactDialog from '@/components/clients/AddContactDialog';
 import PrimaryContactEditor from '@/components/clients/PrimaryContactEditor';
+import ClientScheduleTab from '@/components/clients/ClientScheduleTab';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
@@ -399,6 +400,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           <TabsTrigger value="tasks" className="flex-shrink-0">Tasks</TabsTrigger>
           <TabsTrigger value="emails" className="flex-shrink-0">Emails</TabsTrigger>
           <TabsTrigger value="portal" className="flex-shrink-0">Portal Docs</TabsTrigger>
+          <TabsTrigger value="schedule" className="flex-shrink-0">Schedule</TabsTrigger>
           <TabsTrigger value="followup" className="flex-shrink-0">Follow-Up</TabsTrigger>
         </TabsList>
 
@@ -962,6 +964,11 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             </div>
             <TaskList clientId={client.id} showProposalGroups={true} />
           </div>
+        </TabsContent>
+
+        {/* Schedule Tab */}
+        <TabsContent value="schedule" className="mt-4">
+          <ClientScheduleTab client={client} />
         </TabsContent>
 
         {/* Follow-Up Tab */}
