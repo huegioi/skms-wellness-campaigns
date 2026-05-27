@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
 
     const sheetTabs = meta.sheets?.map(s => s.properties?.title) || [];
     // Use the first tab
-    const SHEET_NAME = body.sheetName || sheetTabs[0] || 'Brokers';
+    const SHEET_NAME = body.sheetName || 'Broker Leads';
     const sheetOriginKey = `BrokerLeads:${SHEET_NAME}`;
 
     // ── 2. Read using sheet GID (more reliable than name) ─────────────────────
