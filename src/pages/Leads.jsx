@@ -14,6 +14,7 @@ import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
 import PendingReferralsReview from '@/components/referrals/PendingReferralsReview';
 import PipelineView from '@/components/leads/PipelineView';
+import MergePartnerDuplicatesPanel from '@/components/leads/MergePartnerDuplicatesPanel';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from '@/components/ui/use-toast';
@@ -704,6 +705,8 @@ export default function Leads() {
                 </Button>
               </div>
             </div>
+
+            <MergePartnerDuplicatesPanel onMergeComplete={() => queryClient.invalidateQueries({ queryKey: ['leads', 'referralPartners'] })} />
 
             <ActivePartnerTiles
               activePartners={brokerLeads.filter(l => l.partner_status === 'active_partner').sort((a, b) => (a.name || '').localeCompare(b.name || ''))}
