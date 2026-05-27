@@ -72,11 +72,12 @@
     "client_stage": {
       "type": "string",
       "enum": [
-        "onboarding",
-        "active",
-        "renewal_window",
-        "at_risk",
-        "expanded",
+        "new_client_setup",
+        "program_delivery",
+        "followup_feedback",
+        "nurture",
+        "renewal_outreach",
+        "re_engage",
         "churned"
       ],
       "description": "Current lifecycle stage of the client relationship"

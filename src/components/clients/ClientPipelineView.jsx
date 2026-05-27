@@ -5,14 +5,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { differenceInDays, parseISO } from 'date-fns';
 
 const STAGES = [
-  { key: 'onboarding',      label: 'Onboarding',      desc: 'New clients getting set up',              headerClass: 'bg-blue-50 border-blue-200',    textClass: 'text-blue-700' },
-  { key: 'active',          label: 'Active',           desc: 'Programs running, relationship healthy',  headerClass: 'bg-green-50 border-green-200',  textClass: 'text-green-700' },
-  { key: 'renewal_window',  label: 'Renewal Window',   desc: 'Renewal coming within 90 days',           headerClass: 'bg-amber-50 border-amber-300',  textClass: 'text-amber-700' },
-  { key: 'at_risk',         label: 'At Risk',          desc: 'No contact in 60+ days',                  headerClass: 'bg-red-50 border-red-300',      textClass: 'text-red-700' },
-  { key: 'expanded',        label: 'Expanded',         desc: 'Added new services',                      headerClass: 'bg-purple-50 border-purple-200', textClass: 'text-purple-700' },
-  { key: 'churned',         label: 'Churned',          desc: 'Lost client',                             headerClass: 'bg-gray-100 border-gray-300',   textClass: 'text-gray-500' },
-  { key: '__none__',        label: 'No Stage',         desc: 'Clients with no stage set yet',           headerClass: 'bg-slate-50 border-slate-200',  textClass: 'text-slate-500' },
+  { key: 'new_client_setup',   label: 'New Client Setup',    desc: 'Completing onboarding tasks, scheduling first programs',             headerClass: 'bg-blue-50 border-blue-200',    textClass: 'text-blue-700' },
+  { key: 'program_delivery',   label: 'Program Delivery',    desc: 'Actively delivering workshops, challenges, boxes',                   headerClass: 'bg-green-50 border-green-200',  textClass: 'text-green-700' },
+  { key: 'followup_feedback',  label: 'Follow-up & Feedback',desc: 'Collecting surveys, building ROI reports, sending closing emails',   headerClass: 'bg-teal-50 border-teal-200',    textClass: 'text-teal-700' },
+  { key: 'nurture',            label: 'Nurture',             desc: 'Between programs, maintaining relationship, sharing value',          headerClass: 'bg-purple-50 border-purple-200', textClass: 'text-purple-700' },
+  { key: 'renewal_outreach',   label: 'Renewal Outreach',    desc: 'Approaching plan year renewal, proposing next year\'s programs',     headerClass: 'bg-amber-50 border-amber-300',  textClass: 'text-amber-700' },
+  { key: 're_engage',          label: 'Re-engage',           desc: 'Gone quiet for 60+ days, need proactive outreach',                  headerClass: 'bg-red-50 border-red-300',      textClass: 'text-red-700' },
+  { key: 'churned',            label: 'Churned',             desc: 'Lost client',                                                       headerClass: 'bg-rose-100 border-rose-300',   textClass: 'text-rose-700' },
+  { key: '__none__',           label: 'No Stage',            desc: 'Clients with no stage set yet',                                     headerClass: 'bg-slate-50 border-slate-200',  textClass: 'text-slate-500' },
 ];
+
+const NEEDS_ATTENTION_STAGES = new Set(['nurture', 'program_delivery']);
 
 function daysAgo(dateStr) {
   if (!dateStr) return null;
@@ -42,12 +45,22 @@ function RenewalBadge({ dateStr }) {
 
 function ClientCard({ client, onStageChange, onClick }) {
   const ago = daysAgo(client.last_contacted_date || client.last_contacted);
+  const needsAttention = ago !== null && ago > 60 && NEEDS_ATTENTION_STAGES.has(client.client_stage);
 
   return (
     <div
       className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
       onClick={onClick}
     >
+      {/* Needs attention badge */}
+      {needsAttention && (
+        <div className="mb-2">
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
+            ⚠ Needs attention
+          </span>
+        </div>
+      )}
+
       {/* Name + Company */}
       <div className="mb-1">
         <p className="font-semibold text-[#264d44] text-sm leading-tight">{client.company || client.name}</p>
@@ -85,7 +98,7 @@ function ClientCard({ client, onStageChange, onClick }) {
         )}
       </div>
 
-      {/* Stage dropdown — stop propagation so clicking it doesn't open client detail */}
+      {/* Stage dropdown */}
       <div onClick={(e) => e.stopPropagation()}>
         <Select
           value={client.client_stage || '__none__'}
@@ -95,11 +108,12 @@ function ClientCard({ client, onStageChange, onClick }) {
             <SelectValue placeholder="Set stage" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="onboarding">Onboarding</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="renewal_window">Renewal Window</SelectItem>
-            <SelectItem value="at_risk">At Risk</SelectItem>
-            <SelectItem value="expanded">Expanded</SelectItem>
+            <SelectItem value="new_client_setup">New Client Setup</SelectItem>
+            <SelectItem value="program_delivery">Program Delivery</SelectItem>
+            <SelectItem value="followup_feedback">Follow-up & Feedback</SelectItem>
+            <SelectItem value="nurture">Nurture</SelectItem>
+            <SelectItem value="renewal_outreach">Renewal Outreach</SelectItem>
+            <SelectItem value="re_engage">Re-engage</SelectItem>
             <SelectItem value="churned">Churned</SelectItem>
             <SelectItem value="__none__">No Stage</SelectItem>
           </SelectContent>
@@ -133,7 +147,6 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
 
           return (
             <div key={stage.key} className="w-56 flex-shrink-0">
-              {/* Column header */}
               <div className={`rounded-t-lg border px-3 py-2 mb-2 ${stage.headerClass}`}>
                 <div className="flex items-center justify-between">
                   <span className={`font-semibold text-sm ${stage.textClass}`}>{stage.label}</span>
@@ -144,7 +157,6 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
                 <p className="text-xs text-gray-400 mt-0.5 leading-tight">{stage.desc}</p>
               </div>
 
-              {/* Cards */}
               <div className="space-y-2">
                 {stageClients.length === 0 ? (
                   <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center text-xs text-gray-400">
