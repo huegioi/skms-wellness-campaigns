@@ -18,6 +18,8 @@ import DuplicateChecker from '@/components/clients/DuplicateChecker';
 import { createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 import BrokersEditor from '@/components/clients/BrokersEditor';
+import ClientPipelineView from '@/components/clients/ClientPipelineView';
+import { LayoutList, Columns } from 'lucide-react';
 
 // Client Form Fields Component - defined outside to prevent re-renders
 function ClientFormFields({ formData, setFormData, clients, isEdit, editingClient, onSelectDuplicate, referralPartners = [] }) {
@@ -120,6 +122,8 @@ export default function Clients() {
     referral_partner_id: '', referral_partner_name: '', notes: '' 
   });
   
+  const [viewMode, setViewMode] = useState('list');
+  const [ownerFilter, setOwnerFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterIndustry, setFilterIndustry] = useState('all');
   const [filterSize, setFilterSize] = useState('all');
@@ -378,9 +382,39 @@ export default function Clients() {
     <div className="min-h-screen bg-[#f4f0e9]">
       <ClientsSubNav activePage="Clients" />
 
-      <div className="max-w-5xl mx-auto px-4 md:px-8 py-6">
-        {/* Add Client Button */}
-        <div className="flex justify-end mb-6">
+      <div className={`mx-auto px-4 md:px-8 py-6 ${viewMode === 'pipeline' ? 'max-w-full' : 'max-w-5xl'}`}>
+        {/* Toolbar: view toggle + owner filter + add button */}
+        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            {/* View toggle */}
+            <div className="flex border rounded-lg overflow-hidden">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${viewMode === 'list' ? 'bg-[#264d44] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              >
+                <LayoutList className="w-4 h-4" /> List
+              </button>
+              <button
+                onClick={() => setViewMode('pipeline')}
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${viewMode === 'pipeline' ? 'bg-[#264d44] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              >
+                <Columns className="w-4 h-4" /> Pipeline
+              </button>
+            </div>
+
+            {/* Owner filter (always visible, useful in both views) */}
+            <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+              <SelectTrigger className="w-36 h-9"><SelectValue placeholder="Owner" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Owners</SelectItem>
+                <SelectItem value="William">William</SelectItem>
+                <SelectItem value="Heather">Heather</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Add Client Button */}
+          <div className="flex justify-end">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-[#264d44] hover:bg-[#1a3830]" onClick={resetForm}>
@@ -405,6 +439,7 @@ export default function Clients() {
               </form>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
         {/* Duplicate Alert */}
@@ -577,8 +612,17 @@ export default function Clients() {
           </DialogContent>
         </Dialog>
 
+        {/* Pipeline View */}
+        {viewMode === 'pipeline' && (
+          <ClientPipelineView
+            clients={filteredClients}
+            ownerFilter={ownerFilter}
+            onClientClick={setViewingClient}
+          />
+        )}
+
         {/* Client List */}
-        {filteredClients.length === 0 ? (
+        {viewMode === 'list' && (filteredClients.length === 0 ? (
           <div className="bg-white rounded-xl p-12 text-center shadow-lg">
             <User className="w-16 h-16 mx-auto mb-4 text-gray-300" />
             <h3 className="text-xl font-semibold text-gray-700 mb-2">No clients yet</h3>
@@ -665,7 +709,7 @@ export default function Clients() {
               );
             })}
           </div>
-        )}
+        ))}
       </div>
     </div>
   );

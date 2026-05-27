@@ -60,6 +60,27 @@
       "type": "number",
       "description": "Per-employee wellness fund size (dollar amount)"
     },
+    "renewal_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Client renewal date"
+    },
+    "owner": {
+      "type": "string",
+      "description": "Team member responsible for this client (e.g. William, Heather)"
+    },
+    "client_stage": {
+      "type": "string",
+      "enum": [
+        "onboarding",
+        "active",
+        "renewal_window",
+        "at_risk",
+        "expanded",
+        "churned"
+      ],
+      "description": "Current lifecycle stage of the client relationship"
+    },
     "brokers": {
       "type": "array",
       "description": "List of brokers associated with this client",
