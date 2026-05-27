@@ -489,8 +489,8 @@ export default function Clients() {
           </div>
         )}
 
-        {/* Search and Filters */}
-        <div className="bg-white rounded-xl p-4 shadow-lg mb-6">
+        {/* Search and Filters - list view only */}
+        {viewMode === 'list' && <div className="bg-white rounded-xl p-4 shadow-lg mb-6">
           <div className="flex flex-col gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -546,7 +546,7 @@ export default function Clients() {
               Showing {filteredClients.length} of {clients.length} clients
             </div>
           )}
-        </div>
+        </div>}
 
         {/* Client Detail View Dialog */}
         <Dialog open={!!viewingClient} onOpenChange={(open) => { if (!open) { urlClientDismissed.current = true; setViewingClient(null); } }}>
