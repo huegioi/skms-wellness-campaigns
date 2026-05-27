@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { differenceInDays, parseISO } from 'date-fns';
+import StagePlaybookDialog from './StagePlaybookDialog';
 
 const STAGES = [
   { key: 'new_client_setup',   label: 'New Client Setup',    desc: 'Completing onboarding tasks, scheduling first programs',             headerClass: 'bg-blue-50 border-blue-200',    textClass: 'text-blue-700' },
@@ -125,6 +126,7 @@ function ClientCard({ client, onStageChange, onClick }) {
 
 export default function ClientPipelineView({ clients, ownerFilter, onClientClick }) {
   const queryClient = useQueryClient();
+  const [playbookStage, setPlaybookStage] = useState(null);
 
   const handleStageChange = async (clientId, newStage) => {
     await base44.entities.Client.update(clientId, { client_stage: newStage });
@@ -136,6 +138,7 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
     : clients;
 
   return (
+    <>
     <div className="overflow-x-auto pb-4">
       <div className="flex gap-4 min-w-max">
         {STAGES.map((stage) => {
@@ -147,7 +150,11 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
 
           return (
             <div key={stage.key} className="w-56 flex-shrink-0">
-              <div className={`rounded-t-lg border px-3 py-2 mb-2 ${stage.headerClass}`}>
+              <div
+                className={`rounded-t-lg border px-3 py-2 mb-2 ${stage.headerClass} ${stage.key !== '__none__' ? 'cursor-pointer hover:brightness-95 transition-all' : ''}`}
+                onClick={() => stage.key !== '__none__' && setPlaybookStage(stage.key)}
+                title={stage.key !== '__none__' ? 'Click to view action steps' : undefined}
+              >
                 <div className="flex items-center justify-between">
                   <span className={`font-semibold text-sm ${stage.textClass}`}>{stage.label}</span>
                   <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full bg-white/60 ${stage.textClass}`}>
@@ -178,5 +185,11 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
         })}
       </div>
     </div>
+    <StagePlaybookDialog
+      stageKey={playbookStage}
+      open={!!playbookStage}
+      onClose={() => setPlaybookStage(null)}
+    />
+    </>
   );
 }
