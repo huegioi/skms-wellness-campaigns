@@ -759,14 +759,7 @@ export default function Leads() {
               )}
             </div>
 
-            {isLoading ? (
-              <div className="text-center py-12 text-gray-400">Loading...</div>
-            ) : filteredBrokerLeads.length === 0 ? (
-              <div className="bg-white rounded-xl p-12 text-center shadow">
-                <Star className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-                <p className="text-gray-500">No partner leads yet. Sync your Google Sheet to get started.</p>
-              </div>
-            ) : brokerViewMode === 'pipeline' ? (
+            {brokerViewMode === 'pipeline' ? (
               <PipelineView
                 leads={filteredBrokerLeads}
                 onSelectLead={(lead) => setViewingBrokerLead(lead)}
@@ -776,6 +769,13 @@ export default function Leads() {
                   );
                 }}
               />
+            ) : isLoading ? (
+              <div className="text-center py-12 text-gray-400">Loading...</div>
+            ) : filteredBrokerLeads.length === 0 ? (
+              <div className="bg-white rounded-xl p-12 text-center shadow">
+                <Star className="w-12 h-12 mx-auto mb-3 text-gray-200" />
+                <p className="text-gray-500">No partner leads yet. Sync your Google Sheet to get started.</p>
+              </div>
             ) : (
               <div className="space-y-3">
                 {filteredBrokerLeads.map(lead => <BrokerLeadCard key={lead.id} lead={lead} />)}
