@@ -5,6 +5,7 @@ import FinancialSummary from '@/components/dashboard/FinancialSummary';
 import MarketingDashboard from '@/components/dashboard/MarketingDashboard';
 import ServicesAnalytics from '@/components/dashboard/ServicesAnalytics';
 import ActionableReviewQueue from '@/components/dashboard/ActionableReviewQueue';
+import MayaBriefingCard from '@/components/dashboard/MayaBriefingCard';
 
 export default function Home() {
   const [activeSection, setActiveSection] = useState('clients');
@@ -75,8 +76,9 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Review Queue */}
+      {/* Maya Briefing + Review Queue */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 pt-6">
+        <MayaBriefingCard />
         <ActionableReviewQueue />
       </div>
 
