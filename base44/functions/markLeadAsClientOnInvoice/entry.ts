@@ -17,6 +17,12 @@ Deno.serve(async (req) => {
       return Response.json({ skipped: true, reason: 'No client_email on invoice' });
     }
 
+    // Check if this contact was intentionally deleted
+    const deletedContacts = await base44.asServiceRole.entities.DeletedContact.filter({ email });
+    if (deletedContacts.length > 0) {
+      return Response.json({ skipped: true, reason: `Contact ${email} was deleted and is blocklisted from re-import` });
+    }
+
     // Find matching lead by email
     const leads = await base44.asServiceRole.entities.Lead.list();
     const matchingLead = leads.find(l => l.email?.toLowerCase() === email);

@@ -258,6 +258,10 @@ Deno.serve(async (req) => {
       if (lead.sheet_row_id) byRowId[`${sheetOriginKey}:${lead.sheet_row_id}`] = lead;
     }
 
+    // ── Load deleted contacts blocklist ────────────────────────────────────────
+    const deletedContacts = await base44.asServiceRole.entities.DeletedContact.list('-created_date', 1000);
+    const deletedEmails = new Set(deletedContacts.map(d => d.email?.toLowerCase()).filter(Boolean));
+
     let created = 0;
     let updated = 0;
 
@@ -268,6 +272,12 @@ Deno.serve(async (req) => {
       const rowIndex = startRow + i + 2; // 1-based, row 1 = header
       const lead = rowToLead(chunk[i], rowIndex, sheetOriginKey, colMap);
       if (!lead) continue;
+
+      // Skip contacts that were intentionally deleted from the app
+      if (lead.email && deletedEmails.has(lead.email.toLowerCase())) {
+        console.log(`Skipping deleted contact: ${lead.email}`);
+        continue;
+      }
 
       const existingByRow = byRowId[`${sheetOriginKey}:${String(rowIndex)}`];
       const existingByEmail = byEmail[lead.email.toLowerCase()];

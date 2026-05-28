@@ -1,0 +1,39 @@
+{
+  "name": "DeletedContact",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "Email address of the deleted contact \u2014 used to block re-import from syncs"
+    },
+    "name": {
+      "type": "string",
+      "description": "Name of the deleted contact for reference"
+    },
+    "contact_type": {
+      "type": "string",
+      "enum": [
+        "client",
+        "lead",
+        "partner"
+      ],
+      "description": "What type of record was deleted"
+    },
+    "deleted_by": {
+      "type": "string",
+      "description": "Email of the user who deleted the record"
+    },
+    "original_id": {
+      "type": "string",
+      "description": "Original entity ID that was deleted"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional reason for deletion"
+    }
+  },
+  "required": [
+    "email",
+    "contact_type"
+  ]
+}
