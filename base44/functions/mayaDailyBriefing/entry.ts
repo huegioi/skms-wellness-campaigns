@@ -11,15 +11,11 @@ const SEASONAL_FLAGS = {
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
-  const user = await base44.auth.me();
-  if (!user) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
-  }
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
 
-  // Fetch data in parallel
+  // Fetch data in parallel using service role (works for automations & UI)
   const [allLeads, allClients] = await Promise.all([
     base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' }),
     base44.asServiceRole.entities.Client.list(),
