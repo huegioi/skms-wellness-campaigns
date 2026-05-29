@@ -76,15 +76,15 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Maya Briefing + Review Queue */}
-      <div className="max-w-7xl mx-auto px-4 md:px-8 pt-6">
-        <MayaBriefingCard />
-        <ActionableReviewQueue />
-      </div>
-
       {/* Content Area */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
-        {activeSection === 'clients' && <ClientInformationSection />}
+        {activeSection === 'clients' && (
+          <>
+            <MayaBriefingCard />
+            <ActionableReviewQueue />
+            <ClientInformationSection />
+          </>
+        )}
         {activeSection === 'financial' && <FinancialSummary />}
         {activeSection === 'marketing' && <MarketingDashboard />}
         {activeSection === 'services' && <ServicesAnalytics />}

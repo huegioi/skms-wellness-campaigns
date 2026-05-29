@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Sparkles, RefreshCw, AlertCircle, CheckSquare, Square } from 'lucide-react';
+import { Sparkles, RefreshCw, AlertCircle, CheckSquare, Square, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ReactMarkdown from 'react-markdown';
 import { base44 } from '@/api/base44Client';
@@ -108,6 +108,7 @@ export default function MayaBriefingCard() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [collapsed, setCollapsed] = useState(false);
 
   // Load current user
   useEffect(() => {
@@ -213,30 +214,44 @@ export default function MayaBriefingCard() {
               )}
             </div>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => loadOrGenerate(true)}
-            disabled={loading || generating}
-            className="gap-1.5 text-xs"
-          >
-            <RefreshCw className={`w-3 h-3 ${(loading || generating) ? 'animate-spin' : ''}`} />
-            {generating ? 'Generating...' : loading ? 'Loading...' : 'Refresh Briefing'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => loadOrGenerate(true)}
+              disabled={loading || generating}
+              className="gap-1.5 text-xs"
+            >
+              <RefreshCw className={`w-3 h-3 ${(loading || generating) ? 'animate-spin' : ''}`} />
+              {generating ? 'Generating...' : loading ? 'Loading...' : 'Refresh'}
+            </Button>
+            <button
+              onClick={() => setCollapsed(c => !c)}
+              className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              title={collapsed ? 'Expand' : 'Collapse'}
+            >
+              {collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
 
+        {/* Collapsed state */}
+        {collapsed && !loading && !generating && record && (
+          <p className="text-xs text-gray-400 italic">Briefing hidden — click ↑ to expand</p>
+        )}
+
         {/* Loading */}
-        {(loading || generating) && (
+        {!collapsed && (loading || generating) && (
           <div className="flex items-center gap-3 py-6 text-gray-500">
             <RefreshCw className="w-4 h-4 animate-spin text-[#264d44]" />
             <span className="text-sm italic">
-              {generating ? "Maya is analyzing your pipeline... this may take 15-20 seconds." : "Loading briefing..."}
+              {generating ? 'Maya is analyzing your pipeline... this may take 15-20 seconds.' : 'Loading briefing...'}
             </span>
           </div>
         )}
 
         {/* Error */}
-        {error && !loading && !generating && (
+        {!collapsed && error && !loading && !generating && (
           <div className="flex items-center gap-3 py-4 text-amber-700 bg-amber-50 rounded-xl px-4 mb-3">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span className="text-sm">Maya is taking a coffee break. Try refreshing.</span>
@@ -244,7 +259,7 @@ export default function MayaBriefingCard() {
         )}
 
         {/* Briefing content */}
-        {record && !loading && !generating && (
+        {!collapsed && record && !loading && !generating && (
           <>
             <div className="space-y-1">
               {briefingParts.map((part, i) => {
