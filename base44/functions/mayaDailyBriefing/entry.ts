@@ -86,19 +86,26 @@ ${seasonalFlag || 'No specific seasonal flag for this month.'}
 
 Please give your daily briefing now.`;
 
-  const briefing = await base44.asServiceRole.integrations.Core.InvokeLLM({
-    prompt,
-    model: 'claude_sonnet_4_6',
-  });
+  const stats = {
+    overdue_partners: overduePartners.length,
+    silent_clients: silentClients.length,
+    renewal_clients: renewalClients.length,
+    active_partners: activePartners.length,
+  };
+
+  let briefing;
+  try {
+    briefing = await base44.asServiceRole.integrations.Core.InvokeLLM({
+      prompt,
+      model: 'claude_sonnet_4_6',
+    });
+  } catch (err) {
+    briefing = `**Quick Summary:** ${stats.overdue_partners} overdue partner follow-up${stats.overdue_partners !== 1 ? 's' : ''}, ${stats.silent_clients} client${stats.silent_clients !== 1 ? 's' : ''} need attention, ${stats.renewal_clients} client${stats.renewal_clients !== 1 ? 's' : ''} in renewal window, ${stats.active_partners} active partner${stats.active_partners !== 1 ? 's' : ''}.\n\n_Full briefing unavailable — Maya timed out. Refresh to try again._`;
+  }
 
   return Response.json({
     briefing,
     generated_at: now.toISOString(),
-    stats: {
-      overdue_partners: overduePartners.length,
-      silent_clients: silentClients.length,
-      renewal_clients: renewalClients.length,
-      active_partners: activePartners.length,
-    },
+    stats,
   });
 });

@@ -131,7 +131,10 @@ export default function MayaBriefingCard() {
 
     // Generate new briefing
     setGenerating(true);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
     const res = await base44.functions.invoke('mayaDailyBriefing', {}).catch(() => null);
+    clearTimeout(timeout);
     setGenerating(false);
 
     if (!res?.data?.briefing) {
@@ -227,7 +230,7 @@ export default function MayaBriefingCard() {
           <div className="flex items-center gap-3 py-6 text-gray-500">
             <RefreshCw className="w-4 h-4 animate-spin text-[#264d44]" />
             <span className="text-sm italic">
-              {generating ? "Maya is preparing your briefing..." : "Loading briefing..."}
+              {generating ? "Maya is analyzing your pipeline... this may take 15-20 seconds." : "Loading briefing..."}
             </span>
           </div>
         )}
