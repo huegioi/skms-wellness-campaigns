@@ -72,6 +72,12 @@
     "client_stage": {
       "type": "string",
       "enum": [
+        "discovery_call_scheduled",
+        "discovery_call_complete",
+        "proposal_sent",
+        "proposal_viewed",
+        "negotiation",
+        "verbal_yes",
         "new_client_setup",
         "program_delivery",
         "followup_feedback",
@@ -80,7 +86,7 @@
         "re_engage",
         "churned"
       ],
-      "description": "Current lifecycle stage of the client relationship"
+      "description": "Current lifecycle/sales stage of the client relationship"
     },
     "brokers": {
       "type": "array",
@@ -290,6 +296,11 @@
     "november_checkin_year": {
       "type": "number",
       "description": "Year the November check-in was last completed"
+    },
+    "stage_entered_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the client entered the current stage \u2014 used for stall detection"
     }
   },
   "required": [

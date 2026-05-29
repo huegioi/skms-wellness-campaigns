@@ -3,6 +3,74 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { CheckCircle2 } from 'lucide-react';
 
 const PLAYBOOKS = {
+  // ── Sales Pipeline ──────────────────────────────────────────
+  discovery_call_scheduled: {
+    label: 'Discovery Call Scheduled',
+    description: 'Prepare thoroughly so the call makes a strong first impression.',
+    steps: [
+      'Confirm call time and attendees 1 day before',
+      'Research the company and their current wellness programs',
+      'Prepare relevant case studies for their industry',
+      'Review if they were referred by a broker — note who',
+      'Have service catalog and pricing ready',
+    ],
+  },
+  discovery_call_complete: {
+    label: 'Discovery Call Complete',
+    description: 'Capture insights and move quickly while the conversation is fresh.',
+    steps: [
+      'Send recap email within 24 hours summarizing what was discussed',
+      'Note their pain points, budget, employee count, and timeline',
+      'Identify which services match their needs',
+      'Update the client record with call notes',
+      'If strong fit — begin building a proposal immediately',
+    ],
+  },
+  proposal_sent: {
+    label: 'Proposal Sent',
+    description: 'Stay top of mind without being pushy — follow up with purpose.',
+    steps: [
+      'Follow up Day 3 with a quick check-in email',
+      'Follow up Day 7 with a call if no response',
+      'Follow up Day 14 with a final email offering to answer questions',
+      'Track if proposal link was viewed',
+      'If broker referred — update them on the proposal status',
+    ],
+  },
+  proposal_viewed: {
+    label: 'Proposal Viewed',
+    description: 'Strike while the iron is hot — they\'re actively thinking about it.',
+    steps: [
+      'Call within 24 hours of viewing notification',
+      'Ask if they have questions or need modifications',
+      'Be ready to adjust pricing or scope',
+      'If no response after call attempt — send a short email',
+    ],
+  },
+  negotiation: {
+    label: 'Negotiation',
+    description: 'Move quickly, be flexible, and close the loop with a clear decision deadline.',
+    steps: [
+      'Respond to questions or objections same day',
+      'Prepare modified proposals within 24 hours if needed',
+      'Loop in their broker if they have one — brokers can help close',
+      'Identify the decision maker if you\'re not already talking to them',
+      'Set a clear timeline: "When do you need to decide by?"',
+    ],
+  },
+  verbal_yes: {
+    label: 'Verbal Yes',
+    description: 'Secure the commitment and kickstart the relationship immediately.',
+    steps: [
+      'Send invoice within 24 hours',
+      'Send a formal confirmation email with next steps',
+      'Notify the referring broker with a thank you',
+      'Begin preparing onboarding tasks',
+      'Celebrate internally — update Maya\'s stats',
+    ],
+  },
+
+  // ── Client Lifecycle ─────────────────────────────────────────
   new_client_setup: {
     label: 'New Client Setup',
     description: 'Get the client fully onboarded, programs scheduled, and the relationship off to a strong start.',
