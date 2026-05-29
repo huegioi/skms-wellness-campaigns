@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Plus, User, Building, Mail, Phone, FileText, Trash2, Search, Filter, 
-  DollarSign, Users, Calendar, Eye, AlertTriangle, XCircle, FolderOpen
+  DollarSign, Users, Calendar, Eye, AlertTriangle, XCircle, FolderOpen, RefreshCw
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ClientDetailView from '@/components/clients/ClientDetailView';
@@ -20,6 +21,28 @@ import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 import BrokersEditor from '@/components/clients/BrokersEditor';
 import ClientPipelineView from '@/components/clients/ClientPipelineView';
 import { LayoutList, Columns } from 'lucide-react';
+
+function SyncEmailsButton() {
+  const [syncing, setSyncing] = React.useState(false);
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await base44.functions.invoke('scanAdminGmailContacts', {});
+      const d = res.data;
+      toast.success(`Email sync complete — ${d.new_emails_logged ?? 0} new emails logged`);
+    } catch (err) {
+      toast.error(`Email sync failed — ${err.message}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+  return (
+    <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing} className="gap-1.5 h-9">
+      <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+      {syncing ? 'Syncing...' : 'Sync Emails'}
+    </Button>
+  );
+}
 
 // Client Form Fields Component - defined outside to prevent re-renders
 function ClientFormFields({ formData, setFormData, clients, isEdit, editingClient, onSelectDuplicate, referralPartners = [] }) {
@@ -413,8 +436,9 @@ export default function Clients() {
             </Select>
           </div>
 
-          {/* Add Client Button */}
-          <div className="flex justify-end">
+          {/* Sync Emails + Add Client Buttons */}
+          <div className="flex justify-end gap-2">
+          <SyncEmailsButton />
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-[#264d44] hover:bg-[#1a3830]" onClick={resetForm}>

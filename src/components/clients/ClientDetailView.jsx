@@ -924,7 +924,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
 
         {/* Emails Tab */}
         <TabsContent value="emails" className="mt-4">
-          <GmailHistory clientEmail={client.email} />
+          <GmailHistory clientEmail={client.email} clientId={client.id} />
         </TabsContent>
 
         {/* Tasks Tab */}

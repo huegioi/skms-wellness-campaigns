@@ -1,0 +1,63 @@
+{
+  "name": "EmailLog",
+  "type": "object",
+  "properties": {
+    "from_email": {
+      "type": "string",
+      "description": "Sender email address"
+    },
+    "to_email": {
+      "type": "string",
+      "description": "Recipient email address"
+    },
+    "cc_emails": {
+      "type": "string",
+      "description": "CC email addresses (comma-separated)"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject line"
+    },
+    "snippet": {
+      "type": "string",
+      "description": "Short snippet from Gmail API"
+    },
+    "body_preview": {
+      "type": "string",
+      "description": "First 500 characters of the email body"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Email date/time"
+    },
+    "gmail_message_id": {
+      "type": "string",
+      "description": "Unique Gmail message ID \u2014 used to prevent duplicates"
+    },
+    "gmail_account": {
+      "type": "string",
+      "description": "Which account this came from: william, admin, or heather"
+    },
+    "matched_client_id": {
+      "type": "string",
+      "description": "Client entity ID if email matched a client"
+    },
+    "matched_lead_id": {
+      "type": "string",
+      "description": "Lead entity ID if email matched a lead"
+    },
+    "direction": {
+      "type": "string",
+      "enum": [
+        "inbound",
+        "outbound"
+      ],
+      "description": "Whether the email was sent or received relative to SKMS"
+    }
+  },
+  "required": [
+    "gmail_message_id",
+    "date"
+  ]
+}

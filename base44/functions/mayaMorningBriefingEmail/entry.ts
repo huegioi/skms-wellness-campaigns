@@ -126,6 +126,14 @@ Deno.serve(async (req) => {
     const currentMonth = now.getMonth() + 1;
     const dateStr = formatDate(now);
 
+    // Run email sync first so Maya has the freshest contact data
+    try {
+      await base44.asServiceRole.functions.invoke('scanAdminGmailContacts', {});
+      console.log('[mayaMorningBriefingEmail] Email sync completed before briefing');
+    } catch (syncErr) {
+      console.error('[mayaMorningBriefingEmail] Email sync failed (continuing):', syncErr.message);
+    }
+
     // Fetch data in parallel (same logic as mayaDailyBriefing)
     const [allLeads, allClients] = await Promise.all([
       base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' }),

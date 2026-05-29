@@ -725,7 +725,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
 
             {/* Emails */}
             <TabsContent value="emails" className="p-6 mt-0">
-              <GmailHistory clientEmail={lead.email} />
+              <GmailHistory clientEmail={lead.email} leadId={lead.id} />
             </TabsContent>
           </Tabs>
         </div>
