@@ -121,6 +121,20 @@ function ProposalVerificationCard({ referral }) {
     onError: () => toast.error('Failed to update referral'),
   });
 
+  const dismissMutation = useMutation({
+    mutationFn: () =>
+      base44.entities.Referral.update(referral.id, {
+        status: 'not_eligible',
+        reviewed_date: new Date().toISOString(),
+        review_notes: 'Dismissed — client did not come from a direct broker referral. No commission applies.',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['referrals'] });
+      toast.success('Dismissed — no commission will be issued');
+    },
+    onError: () => toast.error('Failed to dismiss referral'),
+  });
+
   return (
     <div className="bg-white border border-blue-200 rounded-xl shadow-sm overflow-hidden">
       <div className="flex items-start justify-between gap-3 px-4 py-3">
@@ -159,15 +173,27 @@ function ProposalVerificationCard({ referral }) {
           <p className="text-xs text-gray-500">
             This referral's proposal has been accepted. Verify and mark as purchased to trigger partner portal provisioning.
           </p>
-          <Button
-            size="sm"
-            className="bg-[#013f7c] hover:bg-[#013f7c]/90 text-white gap-1.5 text-xs"
-            disabled={markPurchasedMutation.isPending}
-            onClick={() => markPurchasedMutation.mutate()}
-          >
-            <CheckCircle className="w-3.5 h-3.5" />
-            {markPurchasedMutation.isPending ? 'Verifying...' : 'Verify & Mark Purchased'}
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              size="sm"
+              className="bg-[#013f7c] hover:bg-[#013f7c]/90 text-white gap-1.5 text-xs"
+              disabled={markPurchasedMutation.isPending || dismissMutation.isPending}
+              onClick={() => markPurchasedMutation.mutate()}
+            >
+              <CheckCircle className="w-3.5 h-3.5" />
+              {markPurchasedMutation.isPending ? 'Verifying...' : 'Verify & Mark Purchased'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-gray-500 border-gray-300 hover:bg-gray-50 gap-1.5 text-xs"
+              disabled={markPurchasedMutation.isPending || dismissMutation.isPending}
+              onClick={() => dismissMutation.mutate()}
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              {dismissMutation.isPending ? 'Dismissing...' : 'Dismiss (No Commission)'}
+            </Button>
+          </div>
         </div>
       )}
     </div>
