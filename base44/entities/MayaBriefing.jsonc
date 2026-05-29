@@ -1,0 +1,27 @@
+{
+  "name": "MayaBriefing",
+  "type": "object",
+  "properties": {
+    "briefing_text": {
+      "type": "string",
+      "description": "Full briefing text from Maya"
+    },
+    "stats": {
+      "type": "object",
+      "description": "Stats snapshot: overdue_partners, silent_clients, renewal_clients, active_partners"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this briefing was generated"
+    },
+    "checked_items": {
+      "type": "object",
+      "description": "Map of action item key -> { name, timestamp } for completed items"
+    }
+  },
+  "required": [
+    "briefing_text",
+    "generated_at"
+  ]
+}
