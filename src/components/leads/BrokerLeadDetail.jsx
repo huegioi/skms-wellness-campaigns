@@ -11,6 +11,7 @@ import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GmailHistory from '@/components/clients/GmailHistory';
 import { toast } from 'sonner';
+import MayaInsightsWidget from '@/components/shared/MayaInsightsWidget';
 
 const STATUS_CONFIG = {
   cold:               { label: 'Cold',              color: 'bg-slate-100 text-slate-700 border-slate-300' },
@@ -459,6 +460,9 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                   <p className="text-sm text-gray-600 whitespace-pre-wrap">{lead.notes}</p>
                 </div>
               )}
+
+              {/* Maya Insights Widget */}
+              <MayaInsightsWidget recordType="partner" recordId={lead.id} />
             </TabsContent>
 
             {/* Referrals (merged with Companies) */}

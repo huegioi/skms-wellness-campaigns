@@ -27,6 +27,7 @@ import PrimaryContactEditor from '@/components/clients/PrimaryContactEditor';
 import ClientScheduleTab from '@/components/clients/ClientScheduleTab';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
+import MayaInsightsWidget from '@/components/shared/MayaInsightsWidget';
 
 const statusConfig = {
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
@@ -560,6 +561,11 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             </div>
           )}
           </>
+          )}
+
+          {/* Maya Insights Widget */}
+          {!isEditing && (
+            <MayaInsightsWidget recordType="client" recordId={client.id} />
           )}
 
           {/* Purchased Services Section */}
