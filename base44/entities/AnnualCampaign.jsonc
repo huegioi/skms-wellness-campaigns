@@ -1,0 +1,57 @@
+{
+  "name": "AnnualCampaign",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Campaign or event name (e.g., 'Mental Health Awareness Month', 'SHRM Annual Conference')"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Awareness Month",
+        "HR Event",
+        "Broker Event",
+        "Internal SKMS Event"
+      ],
+      "description": "Type of campaign or event"
+    },
+    "target_month": {
+      "type": "string",
+      "enum": [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+      ],
+      "description": "Month this campaign falls in"
+    },
+    "prep_trigger_days": {
+      "type": "number",
+      "default": 45,
+      "description": "Number of days in advance to trigger prep actions"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this campaign is active"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional notes about this campaign"
+    }
+  },
+  "required": [
+    "name",
+    "category",
+    "target_month"
+  ]
+}
