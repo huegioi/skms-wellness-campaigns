@@ -125,7 +125,7 @@ NOTES: ${client.notes || 'None'}`;
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-5',
+        model: 'claude-sonnet-4-5',
         max_tokens: 512,
         system: `You are Maya, the expert Sales Director for SKMS Wellness. Analyze the provided company data. In 3-4 bullet points, deliver immediate, highly actionable sales or relationship management advice for the founder. Tell them exactly what to focus on next, what risks to watch out for, or what specific value-add to bring up in their next conversation. Keep it concise, strategic, and direct.`,
         messages: [
