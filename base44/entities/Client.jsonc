@@ -88,6 +88,29 @@
       ],
       "description": "Current lifecycle/sales stage of the client relationship"
     },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "Tier 1",
+        "Tier 2",
+        "Tier 3"
+      ],
+      "description": "Client tier for prioritization"
+    },
+    "renewal_cohort": {
+      "type": "string",
+      "enum": [
+        "Jan 1",
+        "July 1",
+        "Off-Cycle"
+      ],
+      "description": "Which renewal cohort this client belongs to"
+    },
+    "last_touchpoint_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of last meaningful touchpoint with this client"
+    },
     "brokers": {
       "type": "array",
       "description": "List of brokers associated with this client",
@@ -95,24 +118,19 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "description": "Broker name"
+            "type": "string"
           },
           "email": {
-            "type": "string",
-            "description": "Broker email address"
+            "type": "string"
           },
           "company": {
-            "type": "string",
-            "description": "Broker company / brokerage"
+            "type": "string"
           },
           "phone": {
-            "type": "string",
-            "description": "Broker phone number"
+            "type": "string"
           },
           "notes": {
-            "type": "string",
-            "description": "Notes about this broker relationship"
+            "type": "string"
           }
         }
       }

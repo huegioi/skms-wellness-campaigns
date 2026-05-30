@@ -19,6 +19,29 @@
       "type": "string",
       "description": "Partner's phone number"
     },
+    "tier": {
+      "type": "string",
+      "enum": [
+        "Tier 1",
+        "Tier 2",
+        "Tier 3"
+      ],
+      "description": "Partner tier for prioritization (Tier 1 = highest value)"
+    },
+    "renewal_cohort": {
+      "type": "string",
+      "enum": [
+        "Jan 1",
+        "July 1",
+        "Off-Cycle"
+      ],
+      "description": "Primary renewal cohort this partner's clients belong to"
+    },
+    "last_touchpoint_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of last meaningful touchpoint with this partner"
+    },
     "unique_portal_id": {
       "type": "string",
       "description": "Unique token used to access the referral portal"
@@ -34,25 +57,21 @@
     },
     "commission_tiers": {
       "type": "array",
-      "description": "Tiered commission rates based on annual first-year revenue. Tiers reset Jan 1 and are applied retroactively.",
+      "description": "Tiered commission rates based on annual first-year revenue.",
       "items": {
         "type": "object",
         "properties": {
           "min_revenue": {
-            "type": "number",
-            "description": "Minimum annual revenue threshold for this tier"
+            "type": "number"
           },
           "max_revenue": {
-            "type": "number",
-            "description": "Maximum annual revenue for this tier (null = unlimited)"
+            "type": "number"
           },
           "rate": {
-            "type": "number",
-            "description": "Commission rate as a decimal (e.g. 0.08 = 8%)"
+            "type": "number"
           },
           "label": {
-            "type": "string",
-            "description": "Display label e.g. Tier 1"
+            "type": "string"
           }
         }
       }
@@ -60,7 +79,7 @@
     "ytd_revenue": {
       "type": "number",
       "default": 0,
-      "description": "Year-to-date first-year revenue from placed clients (resets Jan 1)"
+      "description": "Year-to-date first-year revenue from placed clients"
     },
     "total_commissions_paid": {
       "type": "number",
