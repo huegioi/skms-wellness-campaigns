@@ -203,14 +203,13 @@ function ProposalVerificationCard({ referral }) {
 // --- Main Component ---
 export default function ActionableReviewQueue() {
   const queryClient = useQueryClient();
+  const [collapsed, setCollapsed] = useState(false);
 
   const { data: pendingReferrals = [], isLoading: loadingPending } = useQuery({
     queryKey: ['referrals', 'pending_review'],
     queryFn: () => base44.entities.Referral.filter({ status: 'pending_review' }, '-referral_date'),
   });
 
-  // Accepted-proposal referrals = status 'converted_to_client' or 'contacted' (not yet purchased/reviewed)
-  // We look for referrals that are in a "post-contact" state but NOT yet purchased or reviewed
   const { data: allReferrals = [], isLoading: loadingAll } = useQuery({
     queryKey: ['referrals', 'needs_proposal_verification'],
     queryFn: () => base44.entities.Referral.filter({ status: 'converted_to_client' }, '-referral_date'),
@@ -232,79 +231,59 @@ export default function ActionableReviewQueue() {
   const totalItems = pendingReferrals.length + allReferrals.length;
   const isLoading = loadingPending || loadingAll;
 
-  if (isLoading) {
-    return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-8 h-8 border-4 border-[#264d44] border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm text-gray-500">Loading action items...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (totalItems === 0) {
-    return (
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <div className="flex items-center gap-3 mb-2">
-          <AlertTriangle className="w-5 h-5 text-[#264d44]" />
-          <h2 className="text-lg font-bold text-gray-800">Review Queue</h2>
-        </div>
-        <div className="flex items-center gap-3 py-6 text-center justify-center">
-          <CheckCircle className="w-8 h-8 text-green-400" />
-          <p className="text-gray-500 text-sm">No pending reviews — all caught up!</p>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading || totalItems === 0) return null;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-5">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="bg-white rounded-xl border border-amber-200 shadow-sm">
+      {/* Compact Header — always visible */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-amber-50 transition-colors rounded-xl"
+      >
         <div className="flex items-center gap-2">
-          <AlertTriangle className="w-5 h-5 text-amber-500" />
-          <h2 className="text-lg font-bold text-gray-800">Review Queue</h2>
-          <span className="bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+          <AlertTriangle className="w-4 h-4 text-amber-500" />
+          <span className="text-sm font-semibold text-gray-800">Review Queue</span>
+          <span className="bg-amber-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">
             {totalItems}
           </span>
+          <span className="text-xs text-gray-400 hidden sm:inline">
+            {pendingReferrals.length > 0 && `${pendingReferrals.length} referral${pendingReferrals.length !== 1 ? 's' : ''}`}
+            {pendingReferrals.length > 0 && allReferrals.length > 0 && ' · '}
+            {allReferrals.length > 0 && `${allReferrals.length} verification${allReferrals.length !== 1 ? 's' : ''}`}
+          </span>
         </div>
-        <span className="text-xs text-gray-400">Expand a card to take action</span>
-      </div>
+        {collapsed ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronUp className="w-4 h-4 text-gray-400" />}
+      </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Pending Referral Reviews */}
-        {pendingReferrals.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-amber-500" />
-              <h3 className="text-sm font-semibold text-gray-600">Referral Reviews</h3>
-              <span className="bg-amber-100 text-amber-700 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                {pendingReferrals.length}
-              </span>
-            </div>
-            {pendingReferrals.map(r => (
-              <ReferralReviewCard key={r.id} referral={r} onAction={handleReferralAction} />
-            ))}
+      {/* Collapsible body */}
+      {!collapsed && (
+        <div className="border-t border-amber-100 px-4 py-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {pendingReferrals.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-amber-500" />
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Referral Reviews</h3>
+                </div>
+                {pendingReferrals.map(r => (
+                  <ReferralReviewCard key={r.id} referral={r} onAction={handleReferralAction} />
+                ))}
+              </div>
+            )}
+            {allReferrals.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-blue-500" />
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Proposal Verifications</h3>
+                </div>
+                {allReferrals.map(r => (
+                  <ProposalVerificationCard key={r.id} referral={r} />
+                ))}
+              </div>
+            )}
           </div>
-        )}
-
-        {/* Proposal Verifications */}
-        {allReferrals.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-blue-500" />
-              <h3 className="text-sm font-semibold text-gray-600">Proposal Verifications</h3>
-              <span className="bg-blue-100 text-blue-700 text-xs font-bold px-1.5 py-0.5 rounded-full">
-                {allReferrals.length}
-              </span>
-            </div>
-            {allReferrals.map(r => (
-              <ProposalVerificationCard key={r.id} referral={r} />
-            ))}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
