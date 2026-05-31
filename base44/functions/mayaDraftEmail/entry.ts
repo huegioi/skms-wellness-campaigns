@@ -232,6 +232,7 @@ Output the response strictly as a JSON object with exactly two keys: "subject" a
 
     // Save draft to EmailLog
     const emailLogRecord = await base44.asServiceRole.entities.EmailLog.create({
+      is_draft: true,
       from_email: fromEmail,
       to_email: recipientEmail,
       subject: subject,

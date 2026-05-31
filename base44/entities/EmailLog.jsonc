@@ -33,7 +33,7 @@
     },
     "gmail_message_id": {
       "type": "string",
-      "description": "Unique Gmail message ID \u2014 used to prevent duplicates"
+      "description": "Unique Gmail message ID \u2014 used to prevent duplicates. Null for Maya-generated drafts not yet synced to Gmail."
     },
     "gmail_account": {
       "type": "string",
@@ -54,10 +54,14 @@
         "outbound"
       ],
       "description": "Whether the email was sent or received relative to SKMS"
+    },
+    "is_draft": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this is a Maya-generated draft not yet sent"
     }
   },
   "required": [
-    "gmail_message_id",
     "date"
   ]
 }
