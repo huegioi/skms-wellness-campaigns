@@ -452,7 +452,7 @@ export default function ReferralPortal() {
                     clientCompany={selectedClientROI.company}
                     services={services}
                     showReportButton={true}
-                    onGenerateReport={() => window.open(`${window.location.origin}/ClientReport?client_id=${selectedClientROI.id}`, '_blank')}
+                    onGenerateReport={() => window.open(`${window.location.origin}/ClientReport?client_id=${selectedClientROI.id}&portal_id=${portalId}`, '_blank')}
                   />
                 </div>
               ) : (

@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Printer, ArrowLeft } from 'lucide-react';
+import { Printer, ArrowLeft, ShieldAlert } from 'lucide-react';
 
 function avg(arr, key) {
   const vals = arr.map(r => r[key]).filter(v => v != null && !isNaN(v));
@@ -26,18 +26,30 @@ function StarRow({ value, max = 5 }) {
 export default function ClientReport() {
   const urlParams = new URLSearchParams(window.location.search);
   const clientId = urlParams.get('client_id');
+  // portal_id is required when accessed from the Broker Portal to enforce ownership
+  const portalId = urlParams.get('portal_id');
   const printRef = useRef();
+
+  // If a portal_id is present, validate that this broker owns this client before showing any data
+  const { data: accessCheck, isLoading: checkingAccess } = useQuery({
+    queryKey: ['report-access', portalId, clientId],
+    queryFn: () => base44.functions.invoke('validateClientReportAccess', { portal_id: portalId, client_id: clientId }).then(r => r.data),
+    enabled: !!portalId && !!clientId,
+    retry: false,
+  });
+
+  const accessGranted = !portalId || (accessCheck && accessCheck.allowed);
 
   const { data: client } = useQuery({
     queryKey: ['report-client', clientId],
     queryFn: () => base44.entities.Client.filter({ id: clientId }).then(r => r[0] || null),
-    enabled: !!clientId
+    enabled: !!clientId && accessGranted
   });
 
   const { data: responses = [], isLoading } = useQuery({
     queryKey: ['report-responses', clientId],
     queryFn: () => base44.entities.FeedbackResponse.filter({ client_id: clientId }, '-submitted_at', 500),
-    enabled: !!clientId
+    enabled: !!clientId && accessGranted
   });
 
   const { data: services = [] } = useQuery({
@@ -72,6 +84,26 @@ export default function ClientReport() {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-400">
         No client_id provided.
+      </div>
+    );
+  }
+
+  if (checkingAccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-7 h-7 border-4 border-gray-200 border-t-[#013f7c] rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!accessGranted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <div className="text-center max-w-sm">
+          <ShieldAlert className="w-14 h-14 text-red-400 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-700 mb-2">Access Denied</h2>
+          <p className="text-gray-500 text-sm">You do not have permission to view this client report.</p>
+        </div>
       </div>
     );
   }
