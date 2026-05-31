@@ -63,6 +63,7 @@ export default function MayaInsightsWidget({ recordType, recordId }) {
         title: 'Error drafting email',
         description: e?.response?.data?.error || 'Something went wrong. Please try again.',
         variant: 'destructive',
+        duration: 5000,
       });
     } finally {
       setDraftingEmail(false);
