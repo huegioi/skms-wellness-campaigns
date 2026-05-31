@@ -1,0 +1,93 @@
+{
+  "name": "FeedbackResponse",
+  "type": "object",
+  "properties": {
+    "survey_id": {
+      "type": "string",
+      "description": "ID of the FeedbackSurvey this response belongs to (legacy)"
+    },
+    "service_id": {
+      "type": "string",
+      "description": "Foreign key to the Service entity \u2014 which specific service/workshop this feedback is for"
+    },
+    "service_name": {
+      "type": "string",
+      "description": "Name of the service this feedback is for (denormalized for display)"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Foreign key to the Client entity \u2014 which company this attendee belongs to"
+    },
+    "event_label": {
+      "type": "string",
+      "description": "Optional label for this specific delivery (e.g. 'May 2026 All-Hands')"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Full name of the respondent"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Company name of the respondent"
+    },
+    "email_address": {
+      "type": "string",
+      "format": "email",
+      "description": "Email address of the respondent"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the feedback was submitted"
+    },
+    "pre_stress_impact": {
+      "type": "number",
+      "description": "ROI metric: how much the session reduced stress/presenteeism impact (1-5 scale)"
+    },
+    "tool_equipped_confidence": {
+      "type": "number",
+      "description": "ROI metric: how equipped/confident the attendee feels with new tools (1-5 scale)"
+    },
+    "pressure_management_ability": {
+      "type": "number",
+      "description": "ROI metric: ability to manage pressure/absenteeism triggers (1-5 scale)"
+    },
+    "nps_score": {
+      "type": "number",
+      "description": "Net Promoter Score: likelihood to recommend (0-10)"
+    },
+    "biggest_takeaway": {
+      "type": "string",
+      "description": "The attendee's biggest takeaway from the session (long text)"
+    },
+    "answers": {
+      "type": "array",
+      "description": "Legacy: list of question/answer pairs from survey-builder forms",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question_id": {
+            "type": "string"
+          },
+          "question_text": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "raffle_address": {
+      "type": "string",
+      "description": "Mailing address for raffle entry (if provided)"
+    },
+    "overall_rating": {
+      "type": "number",
+      "description": "Calculated average rating across all rating questions"
+    }
+  },
+  "required": [
+    "submitted_at"
+  ]
+}

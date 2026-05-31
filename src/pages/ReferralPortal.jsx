@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown } from 'lucide-react';
+import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown, BarChart3, ArrowLeft, Printer } from 'lucide-react';
+import ROIDashboard from '@/components/portal/ROIDashboard';
 
 const STATUS_COLORS = {
   submitted: 'bg-blue-100 text-blue-700',
@@ -38,6 +40,12 @@ export default function ReferralPortal() {
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({ contact_name: '', contact_email: '', company_name: '', notes: '', proposal_id: '' });
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
+  const [selectedClientROI, setSelectedClientROI] = useState(null); // { id, company }
+
+  const { data: services = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => base44.entities.Service.list('sort_order')
+  });
 
   useEffect(() => {
     if (!portalId) {
@@ -417,6 +425,56 @@ export default function ReferralPortal() {
                   </Button>
                 </a>
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Book of Business — ROI Drill-Down */}
+        {client_companies.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BarChart3 className="w-5 h-5 text-[#013f7c]" />
+                Book of Business — Client ROI
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {selectedClientROI ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedClientROI(null)} className="gap-1 text-xs text-gray-500">
+                      <ArrowLeft className="w-3 h-3" /> All Clients
+                    </Button>
+                    <span className="text-sm font-semibold text-gray-700">{selectedClientROI.company}</span>
+                  </div>
+                  <ROIDashboard
+                    clientId={selectedClientROI.id}
+                    clientCompany={selectedClientROI.company}
+                    services={services}
+                    showReportButton={true}
+                    onGenerateReport={() => window.open(`${window.location.origin}/ClientReport?client_id=${selectedClientROI.id}`, '_blank')}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-400 mb-3">Click any client to view their wellness ROI data and generate a report.</p>
+                  {client_companies.map(c => (
+                    <button
+                      key={c.id}
+                      onClick={() => setSelectedClientROI(c)}
+                      className="w-full text-left flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-blue-50 border border-transparent hover:border-[#013f7c]/20 transition-all group"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{c.company}</p>
+                        {c.name && c.name !== c.company && <p className="text-xs text-gray-400">{c.name}</p>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400 group-hover:text-[#013f7c]">View ROI →</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
