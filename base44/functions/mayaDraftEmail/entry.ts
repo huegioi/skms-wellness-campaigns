@@ -62,7 +62,7 @@ Renewal Cohort: ${matchedPartner?.renewal_cohort || 'Unknown'}
 RECENT REFERRALS (${referrals.length} total):
 ${referrals.slice(0, 5).map(r => `- ${r.company_name || r.contact_name} | Status: ${r.status} | Revenue: $${(r.first_year_revenue || 0).toLocaleString()} | Date: ${r.referral_date ? new Date(r.referral_date).toLocaleDateString() : 'Unknown'}`).join('\n') || 'No referrals yet'}
 
-NOTES: ${lead.notes || 'None'}`;
+INTERNAL NOTES: ${lead.notes || 'None'}`;
 
     } else if (record_type === 'client') {
       let client;
@@ -107,7 +107,7 @@ Latest Proposal Status: ${clientProposals[0]?.status || 'None'}
 RECENT ACTIVITY (last 5 interactions):
 ${interactions.slice(0, 5).map(i => `- ${i.interaction_type} on ${new Date(i.date).toLocaleDateString()}: ${i.subject || ''} ${i.notes ? `| ${i.notes.slice(0, 80)}` : ''}`).join('\n') || 'No logged interactions'}
 
-NOTES: ${client.notes || 'None'}`;
+INTERNAL NOTES: ${client.notes || 'None'}`;
 
     } else {
       return Response.json({ error: 'Invalid record_type' }, { status: 400 });
@@ -180,13 +180,13 @@ ${emailHistory}
 STRATEGIC OBJECTIVE (Maya's Layer 2 advice already generated):
 ${strategic_insights}
 
-TASK: Write a highly personalized, natural, and persuasive email to ${recipientName} executing this exact strategic objective based on our previous conversation history. Write in Maya's voice (warm, professional, direct).
+TASK: Write a highly personalized, natural, and persuasive email to ${recipientName} executing this exact strategic objective. Use our previous email history and our internal notes as context so you do not repeat yourself and you reference relevant details. Write in Maya's voice (warm, professional, direct).
 
 CRITICAL EMAIL RULES:
-1. Short & Punchy: Keep the email incredibly concise (under 120 words). People skim.
-2. No Hyphens/Bullets: Do NOT use bullet points, numbered lists, or excessive hyphens. Write normal, conversational paragraphs (1-3 sentences max per paragraph).
-3. Singular CTA: End the email with ONE clear, low-friction question or call to action (e.g., "Do you have 10 mins on Tuesday to review?" or "Should I send the proposal over?"). Do not ask them to do multiple things.
-4. Formatting: Output the response strictly as a JSON object with two keys: "subject" and "body". Do not include any markdown formatting outside of the JSON block.`;
+1. Short & Punchy: Keep the email under 120 words.
+2. No Hyphens/Bullets: Do NOT use bullet points, numbered lists, or excessive hyphens. Write normal paragraphs (1-3 sentences max per paragraph).
+3. Singular CTA: End with ONE clear, low-friction question or call to action.
+4. Formatting: Output strictly as a JSON object with two keys: "subject" and "body". Do not include any markdown.`;
 
     console.log('Calling Anthropic API for email draft...');
 
