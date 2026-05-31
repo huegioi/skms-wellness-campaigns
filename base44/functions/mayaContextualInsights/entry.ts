@@ -290,7 +290,7 @@ CRITICAL FORMATTING: Output your response entirely in Markdown bullet points for
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1024,
         system: systemPrompt,
         messages: [
