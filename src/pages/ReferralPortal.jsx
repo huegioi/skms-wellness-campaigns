@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown, BarChart3, ArrowLeft, Printer } from 'lucide-react';
+import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown, BarChart3, ArrowLeft, BookOpen, ChevronRight, PlayCircle, Star } from 'lucide-react';
 import ROIDashboard from '@/components/portal/ROIDashboard';
 
 const STATUS_COLORS = {
@@ -41,6 +41,8 @@ export default function ReferralPortal() {
   const [form, setForm] = useState({ contact_name: '', contact_email: '', company_name: '', notes: '', proposal_id: '' });
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const [selectedClientROI, setSelectedClientROI] = useState(null); // { id, company }
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'onboarding' | 'dashboard'
+  const [commissionsOpen, setCommissionsOpen] = useState(false);
 
   const { data: services = [] } = useQuery({
     queryKey: ['services'],
@@ -123,9 +125,155 @@ export default function ReferralPortal() {
             <Badge className="mt-2 bg-red-500 text-white">Inactive Partnership</Badge>
           )}
         </div>
+        {/* Tab Bar */}
+        <div className="max-w-4xl mx-auto mt-5 flex gap-1">
+          {[
+            { key: 'onboarding', label: 'Start Here', icon: BookOpen },
+            { key: 'dashboard', label: 'My Dashboard', icon: BarChart3 },
+          ].map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-semibold transition-colors ${
+                activeTab === key
+                  ? 'bg-[#f4f0e9] text-[#013f7c]'
+                  : 'text-blue-200 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+
+      {/* ─── ONBOARDING TAB ─── */}
+      {activeTab === 'onboarding' && (
+        <div className="space-y-6">
+          {/* Welcome */}
+          <Card className="border-[#013f7c]/20">
+            <CardContent className="pt-6 pb-5">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="p-3 bg-blue-50 rounded-xl">
+                  <Star className="w-8 h-8 text-[#013f7c]" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-[#013f7c]">Welcome to Your Partner Portal, {partner.name.split(' ')[0]}!</h2>
+                  <p className="text-gray-500 text-sm mt-1">Everything you need to track referrals, view client ROI, and grow your partnership with SKMS Wellness — all in one place.</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Welcome Video Placeholder */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <PlayCircle className="w-5 h-5 text-[#264d44]" />
+                Partner Welcome Video
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="aspect-video bg-[#013f7c]/5 border-2 border-dashed border-[#013f7c]/20 rounded-xl flex flex-col items-center justify-center text-center p-8 gap-3">
+                <PlayCircle className="w-12 h-12 text-[#013f7c]/30" />
+                <p className="text-gray-500 text-sm font-medium">Welcome video coming soon</p>
+                <p className="text-gray-400 text-xs max-w-xs">A short walk-through of your portal, how to submit referrals, and how to read your clients' ROI data.</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* How to Use This Portal */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BookOpen className="w-5 h-5 text-[#013f7c]" />
+                How to Use This Portal
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[
+                  {
+                    step: '1',
+                    title: 'Track Your Referrals',
+                    desc: 'On the My Dashboard tab, see every referral you\'ve submitted and its current status — from initial contact all the way to commission paid.',
+                  },
+                  {
+                    step: '2',
+                    title: 'View Client ROI Data',
+                    desc: 'In the "Book of Business" section, click any of your active clients to see NPS scores, stress reduction metrics, and session feedback from their employees.',
+                  },
+                  {
+                    step: '3',
+                    title: 'Generate Client Reports',
+                    desc: 'Inside each client\'s ROI view, hit "Generate Report" to open a print-ready report you can share directly with the client\'s HR team.',
+                  },
+                  {
+                    step: '4',
+                    title: 'Submit New Referrals',
+                    desc: 'Use the "Submit a Referral" section on the dashboard. A first name and company is enough to get started — we take it from there.',
+                  },
+                  {
+                    step: '5',
+                    title: 'Review Your Commission Earnings',
+                    desc: 'Your live commission totals, YTD revenue placed, and pending balance are always visible at the top of your dashboard.',
+                  },
+                ].map(({ step, title, desc }) => (
+                  <div key={step} className="flex gap-4">
+                    <div className="w-8 h-8 rounded-full bg-[#013f7c] text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
+                      {step}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-800 text-sm">{title}</p>
+                      <p className="text-gray-500 text-sm mt-0.5">{desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* SKMS Program Offerings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Gift className="w-5 h-5 text-[#264d44]" />
+                What We Offer Your Clients
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-gray-500 mb-4">These are the core programs your referred clients can access through SKMS Wellness:</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  { name: 'Interactive Workshops', desc: '60–90 minute live sessions on stress, resilience, sleep, and mental performance. Virtual or in-person.', color: 'bg-blue-50 text-blue-700' },
+                  { name: '14-Day Team Challenges', desc: 'Structured micro-habit programs that drive daily engagement and measurable behavior change.', color: 'bg-green-50 text-green-700' },
+                  { name: 'Leadership EQ Programs', desc: 'Emotional intelligence and pressure management training built for managers and executives.', color: 'bg-purple-50 text-purple-700' },
+                  { name: 'Mindful Movement Classes', desc: 'Guided breathwork, yoga, and movement sessions that reduce absenteeism triggers.', color: 'bg-amber-50 text-amber-700' },
+                  { name: 'Wellness Boxes', desc: 'Physical or digital curated boxes with tools and resources to reinforce program takeaways.', color: 'bg-rose-50 text-rose-700' },
+                  { name: 'Annual Workshop for You', desc: 'Every partner gets a complimentary workshop for their own team — virtual or in-person.', color: 'bg-[#264d44]/10 text-[#264d44]' },
+                ].map((item, i) => (
+                  <div key={i} className="p-3 bg-gray-50 rounded-lg border">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${item.color}`}>{item.name}</span>
+                    <p className="text-xs text-gray-500 mt-2">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* CTA to Dashboard */}
+          <div className="text-center pb-2">
+            <Button onClick={() => setActiveTab('dashboard')} className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2">
+              Go to My Dashboard <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── DASHBOARD TAB ─── */}
+      {activeTab === 'dashboard' && (<>
 
         {/* Commission Summary */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -213,42 +361,53 @@ export default function ReferralPortal() {
           </CardContent>
         </Card>
 
-        {/* Commission Tiers */}
+        {/* Commission Tiers — collapsible */}
         {tiers.length > 0 && (
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
+            <button
+              onClick={() => setCommissionsOpen(o => !o)}
+              className="w-full flex items-center justify-between px-6 py-4 text-left"
+            >
+              <span className="flex items-center gap-2 font-semibold text-base text-gray-800">
                 <TrendingUp className="w-5 h-5 text-[#013f7c]" />
                 Commission Tiers
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-500 mb-4">Tiers are based on first-year revenue placed annually. When you reach a new tier, all placements that year are upgraded retroactively.</p>
-              <div className="space-y-2">
-                {tiers.map((tier, i) => {
-                  const isActive = commission_summary.current_tier?.min_revenue === tier.min_revenue;
-                  return (
-                    <div key={i} className={`flex items-center justify-between p-3 rounded-lg border-2 ${isActive ? 'border-[#013f7c] bg-blue-50' : 'border-gray-100 bg-gray-50'}`}>
-                      <div className="flex items-center gap-3">
-                        {isActive && <CheckCircle className="w-4 h-4 text-[#013f7c]" />}
-                        <span className="font-medium text-gray-700">{tier.label || `Tier ${i + 1}`}</span>
-                        <span className="text-sm text-gray-500">
-                          ${tier.min_revenue.toLocaleString()}{tier.max_revenue ? ` – $${tier.max_revenue.toLocaleString()}` : '+'}
+                {commission_summary.current_tier && (
+                  <span className="ml-2 text-xs font-normal text-[#013f7c] bg-blue-50 px-2 py-0.5 rounded-full">
+                    Current rate: {(commission_summary.current_tier.rate * 100 % 1 === 0 ? (commission_summary.current_tier.rate * 100).toFixed(0) : (commission_summary.current_tier.rate * 100).toFixed(1))}%
+                  </span>
+                )}
+              </span>
+              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${commissionsOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {commissionsOpen && (
+              <CardContent className="pt-0">
+                <p className="text-sm text-gray-500 mb-4">Tiers are based on first-year revenue placed annually. When you reach a new tier, all placements that year are upgraded retroactively.</p>
+                <div className="space-y-2">
+                  {tiers.map((tier, i) => {
+                    const isActive = commission_summary.current_tier?.min_revenue === tier.min_revenue;
+                    return (
+                      <div key={i} className={`flex items-center justify-between p-3 rounded-lg border-2 ${isActive ? 'border-[#013f7c] bg-blue-50' : 'border-gray-100 bg-gray-50'}`}>
+                        <div className="flex items-center gap-3">
+                          {isActive && <CheckCircle className="w-4 h-4 text-[#013f7c]" />}
+                          <span className="font-medium text-gray-700">{tier.label || `Tier ${i + 1}`}</span>
+                          <span className="text-sm text-gray-500">
+                            ${tier.min_revenue.toLocaleString()}{tier.max_revenue ? ` – $${tier.max_revenue.toLocaleString()}` : '+'}
+                          </span>
+                        </div>
+                        <span className={`font-bold text-lg ${isActive ? 'text-[#013f7c]' : 'text-gray-600'}`}>
+                          {(tier.rate * 100 % 1 === 0 ? (tier.rate * 100).toFixed(0) : (tier.rate * 100).toFixed(1))}%
                         </span>
                       </div>
-                      <span className={`font-bold text-lg ${isActive ? 'text-[#013f7c]' : 'text-gray-600'}`}>
-                        {(tier.rate * 100 % 1 === 0 ? (tier.rate * 100).toFixed(0) : (tier.rate * 100).toFixed(1))}%
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              {commission_summary.current_tier && (
-                <p className="mt-3 text-sm font-medium text-[#013f7c]">
-                  Your current rate: {(commission_summary.current_tier.rate * 100 % 1 === 0 ? (commission_summary.current_tier.rate * 100).toFixed(0) : (commission_summary.current_tier.rate * 100).toFixed(1))}% · YTD Revenue: ${commission_summary.ytd_revenue.toLocaleString()}
-                </p>
-              )}
-            </CardContent>
+                    );
+                  })}
+                </div>
+                {commission_summary.current_tier && (
+                  <p className="mt-3 text-sm font-medium text-[#013f7c]">
+                    Your current rate: {(commission_summary.current_tier.rate * 100 % 1 === 0 ? (commission_summary.current_tier.rate * 100).toFixed(0) : (commission_summary.current_tier.rate * 100).toFixed(1))}% · YTD Revenue: ${commission_summary.ytd_revenue.toLocaleString()}
+                  </p>
+                )}
+              </CardContent>
+            )}
           </Card>
         )}
 
@@ -480,6 +639,8 @@ export default function ReferralPortal() {
         )}
 
         <p className="text-center text-xs text-gray-400 pb-4">SKMS Wellness · Referral Partner Portal</p>
+      </>)}
+
       </div>
     </div>
   );
