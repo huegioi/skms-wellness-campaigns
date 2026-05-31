@@ -230,9 +230,54 @@ Output the response strictly as a JSON object with exactly two keys: "subject" a
     const isHeather = senderKey.includes('heather');
     const fromEmail = isHeather ? 'heather@skillfulmeans.life' : 'william@skillfulmeans.life';
 
-    // Save draft to EmailLog
+    // Get Gmail OAuth access token (shared connector — builder's account)
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
+
+    // Build RFC 2822 MIME message
+    const mimeLines = [
+      `From: ${fromEmail}`,
+      `To: ${recipientEmail}`,
+      `Subject: ${subject}`,
+      `Content-Type: text/plain; charset="UTF-8"`,
+      `MIME-Version: 1.0`,
+      ``,
+      emailBody,
+    ];
+    const rawMime = mimeLines.join('\r\n');
+
+    // Base64url encode (Gmail API requirement)
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(rawMime);
+    let base64 = btoa(String.fromCharCode(...bytes));
+    // Convert to base64url
+    base64 = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    // Push draft to Gmail API
+    console.log('Creating Gmail draft via API...');
+    const gmailRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ message: { raw: base64 } }),
+    });
+
+    if (!gmailRes.ok) {
+      const errText = await gmailRes.text();
+      console.error('Gmail API error:', gmailRes.status, errText);
+      return Response.json({ error: `Gmail API error ${gmailRes.status}: ${errText}` }, { status: 500 });
+    }
+
+    const gmailDraft = await gmailRes.json();
+    const gmailDraftId = gmailDraft.id;
+    const gmailMessageId = gmailDraft.message?.id;
+    console.log('Gmail draft created:', gmailDraftId, 'message id:', gmailMessageId);
+
+    // Save to EmailLog with the real Gmail IDs
     const emailLogRecord = await base44.asServiceRole.entities.EmailLog.create({
       is_draft: true,
+      gmail_message_id: gmailDraftId,
       from_email: fromEmail,
       to_email: recipientEmail,
       subject: subject,
@@ -251,6 +296,7 @@ Output the response strictly as a JSON object with exactly two keys: "subject" a
       subject,
       body: emailBody,
       email_log_id: emailLogRecord.id,
+      gmail_draft_id: gmailDraftId,
       from_email: fromEmail,
       to_email: recipientEmail,
     });
