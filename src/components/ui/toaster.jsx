@@ -23,7 +23,7 @@ export function Toaster({ position = "bottom-right", closeButton = true }) {
               )}
             </div>
             {action}
-            {closeButton && <ToastClose />}
+            {closeButton && <ToastClose onClick={() => dismiss(id)} />}
           </Toast>
         );
       })}
