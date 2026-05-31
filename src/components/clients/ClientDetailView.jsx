@@ -565,7 +565,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
 
           {/* Maya Insights Widget */}
           {!isEditing && (
-            <MayaInsightsWidget recordType="client" recordId={client.id} />
+            <MayaInsightsWidget recordType="client" recordId={client.id} owner={client.owner} />
           )}
 
           {/* Purchased Services Section */}

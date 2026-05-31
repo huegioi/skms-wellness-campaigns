@@ -1,16 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Mail, Loader2 } from 'lucide-react';
+import { RefreshCw, Mail, Loader2, ChevronDown } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useToast } from '@/components/ui/use-toast';
 
-export default function MayaInsightsWidget({ recordType, recordId }) {
+const SENDERS = [
+  { label: 'William', value: 'william', email: 'william@skillfulmeans.life' },
+  { label: 'Heather', value: 'heather', email: 'heather@skillfulmeans.life' },
+];
+
+function resolveSender(owner) {
+  if (!owner) return 'william';
+  return owner.toLowerCase().includes('heather') ? 'heather' : 'william';
+}
+
+export default function MayaInsightsWidget({ recordType, recordId, owner }) {
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [draftingEmail, setDraftingEmail] = useState(false);
+  const [showSenderPicker, setShowSenderPicker] = useState(false);
+  const [selectedSender, setSelectedSender] = useState(() => resolveSender(owner));
   const { toast } = useToast();
+
+  // Update default sender if owner prop changes
+  useEffect(() => {
+    setSelectedSender(resolveSender(owner));
+  }, [owner]);
 
   const fetchInsights = async () => {
     setLoading(true);
@@ -28,27 +45,29 @@ export default function MayaInsightsWidget({ recordType, recordId }) {
     }
   };
 
-  const handleDraftEmail = async () => {
+  const handleDraftEmail = async (senderValue) => {
     if (!insights) return;
+    setShowSenderPicker(false);
     setDraftingEmail(true);
     try {
       const res = await base44.functions.invoke('mayaDraftEmail', {
         record_type: recordType,
         record_id: recordId,
         strategic_insights: insights,
+        sender_override: senderValue,
       });
-      const { subject, email_log_id } = res.data;
+      const { subject, from_email } = res.data;
+      const senderLabel = SENDERS.find(s => s.value === senderValue)?.label || senderValue;
       toast({
         title: '✅ Draft saved!',
         description: (
           <span>
-            <strong>{subject}</strong> — saved to Email Log.{' '}
+            <strong>{subject}</strong> — saved as {senderLabel}'s draft.{' '}
             <a
-              href={`/Leads`}
+              href="#"
               className="underline text-indigo-600"
               onClick={(e) => {
                 e.preventDefault();
-                // Open Gmail compose with the draft subject as a hint
                 window.open(`https://mail.google.com/mail/u/0/#drafts`, '_blank');
               }}
             >
@@ -117,26 +136,57 @@ export default function MayaInsightsWidget({ recordType, recordId }) {
             <ReactMarkdown>{insights}</ReactMarkdown>
           </div>
 
-          {/* Draft Email Button */}
+          {/* Draft Email Section */}
           <div className="mt-3 pt-3 border-t border-indigo-200">
-            <Button
-              size="sm"
-              onClick={handleDraftEmail}
-              disabled={draftingEmail}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs h-8 gap-1.5"
-            >
-              {draftingEmail ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Maya is drafting…
-                </>
-              ) : (
-                <>
-                  <Mail className="w-3.5 h-3.5" />
-                  Draft Strategic Email
-                </>
-              )}
-            </Button>
+            {!showSenderPicker ? (
+              <Button
+                size="sm"
+                onClick={() => setShowSenderPicker(true)}
+                disabled={draftingEmail}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-xs h-8 gap-1.5"
+              >
+                {draftingEmail ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Maya is drafting…
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-3.5 h-3.5" />
+                    Draft Strategic Email
+                  </>
+                )}
+              </Button>
+            ) : (
+              <div className="bg-indigo-100 rounded-lg p-3 space-y-2">
+                <p className="text-xs font-semibold text-indigo-800">Draft email as:</p>
+                <div className="flex gap-2">
+                  {SENDERS.map((s) => (
+                    <button
+                      key={s.value}
+                      onClick={() => {
+                        setSelectedSender(s.value);
+                        handleDraftEmail(s.value);
+                      }}
+                      className={`flex-1 py-1.5 px-3 rounded-md text-xs font-semibold border transition-all ${
+                        selectedSender === s.value
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-indigo-700 border-indigo-300 hover:bg-indigo-50'
+                      }`}
+                    >
+                      {s.label}
+                      <span className="block font-normal text-[10px] opacity-70">{s.email}</span>
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setShowSenderPicker(false)}
+                  className="text-xs text-indigo-500 hover:text-indigo-700 w-full text-center"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}

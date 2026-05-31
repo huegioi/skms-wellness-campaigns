@@ -462,7 +462,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
               )}
 
               {/* Maya Insights Widget */}
-              <MayaInsightsWidget recordType="partner" recordId={lead.id} />
+              <MayaInsightsWidget recordType="partner" recordId={lead.id} owner={lead.owner} />
             </TabsContent>
 
             {/* Referrals (merged with Companies) */}

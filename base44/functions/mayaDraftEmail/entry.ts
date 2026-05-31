@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const { record_type, record_id, strategic_insights } = body;
+    const { record_type, record_id, strategic_insights, sender_override } = body;
     if (!record_type || !record_id || !strategic_insights) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
@@ -223,12 +223,12 @@ Output the response strictly as a JSON object with exactly two keys: "subject" a
       return Response.json({ error: 'Claude returned invalid JSON. Please try again.' }, { status: 500 });
     }
 
-    // Determine sender email based on owner
-    const ownerLower = owner.toLowerCase();
-    let fromEmail = 'william@skillfulmeans.life';
-    if (ownerLower.includes('heather')) {
-      fromEmail = 'heather@skillfulmeans.life';
-    }
+    // Determine sender: explicit override takes priority, then falls back to record owner
+    const senderKey = sender_override
+      ? sender_override.toLowerCase()
+      : owner.toLowerCase().includes('heather') ? 'heather' : 'william';
+    const isHeather = senderKey.includes('heather');
+    const fromEmail = isHeather ? 'heather@skillfulmeans.life' : 'william@skillfulmeans.life';
 
     // Save draft to EmailLog
     const emailLogRecord = await base44.asServiceRole.entities.EmailLog.create({
@@ -240,7 +240,7 @@ Output the response strictly as a JSON object with exactly two keys: "subject" a
       snippet: emailBody.slice(0, 200),
       date: new Date().toISOString(),
       direction: 'outbound',
-      gmail_account: ownerLower.includes('heather') ? 'heather' : 'william',
+      gmail_account: isHeather ? 'heather' : 'william',
       ...(record_type === 'client' ? { matched_client_id: record_id } : { matched_lead_id: record_id }),
     });
 
