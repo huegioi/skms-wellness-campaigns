@@ -202,6 +202,20 @@ export default function GmailHistory({ clientEmail, clientId, leadId }) {
     staleTime: 2 * 60 * 1000,
   });
 
+  const handleRefresh = async () => {
+    // Purge any drafts that were deleted in Gmail before re-fetching
+    const record_id = clientId || leadId;
+    const record_type = clientId ? 'client' : 'lead';
+    if (record_id) {
+      try {
+        await base44.functions.invoke('purgeStaleDrafts', { record_id, record_type });
+      } catch (e) {
+        console.error('purgeStaleDrafts failed:', e.message);
+      }
+    }
+    refetch();
+  };
+
   const lastEmail = emails[0];
 
   if (isLoading) {
@@ -238,7 +252,7 @@ export default function GmailHistory({ clientEmail, clientId, leadId }) {
             <p className="text-sm text-gray-400 mt-0.5">No emails found</p>
           )}
         </div>
-        <Button size="sm" variant="outline" onClick={refetch} disabled={isFetching}>
+        <Button size="sm" variant="outline" onClick={handleRefresh} disabled={isFetching}>
           <RefreshCw className={`w-4 h-4 mr-1 ${isFetching ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
