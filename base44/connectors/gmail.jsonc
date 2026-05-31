@@ -2,8 +2,9 @@
   "type": "gmail",
   "scopes": [
     "https://www.googleapis.com/auth/gmail.send",
-    "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/gmail.readonly",
-    "openid"
+    "https://www.googleapis.com/auth/gmail.compose",
+    "openid",
+    "https://www.googleapis.com/auth/userinfo.email"
   ]
 }
