@@ -62,7 +62,12 @@ export default function MayaInsightsWidget({ recordType, recordId }) {
       )}
 
       {insights && !loading && (
-        <div className="prose prose-sm max-w-none text-indigo-950 [&_ul]:space-y-1.5 [&_li]:text-sm [&_strong]:text-indigo-900 [&_p]:text-sm">
+        <div className="prose prose-sm max-w-none text-indigo-950
+          [&_ul]:mt-1 [&_ul]:space-y-2 [&_ul]:list-disc [&_ul]:pl-4
+          [&_li]:text-sm [&_li]:leading-snug [&_li]:marker:text-indigo-400
+          [&_strong]:text-indigo-900 [&_strong]:font-semibold
+          [&_p]:text-sm [&_p]:leading-relaxed
+          [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-sm [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-semibold">
           <ReactMarkdown>{insights}</ReactMarkdown>
         </div>
       )}
