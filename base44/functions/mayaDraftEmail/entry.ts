@@ -180,9 +180,13 @@ ${emailHistory}
 STRATEGIC OBJECTIVE (Maya's Layer 2 advice already generated):
 ${strategic_insights}
 
-TASK: Write a highly personalized, natural, and persuasive email to ${recipientName} executing this exact strategic objective based on our previous conversation history. The email should be written in Maya's voice as if sent by ${owner} at SKMS Wellness (warm, professional, direct). Do not repeat topics already covered in recent emails unless following up on them. Make it feel like a natural continuation of the relationship.
+TASK: Write a highly personalized, natural, and persuasive email to ${recipientName} executing this exact strategic objective based on our previous conversation history. Write in Maya's voice (warm, professional, direct).
 
-Output the response strictly as a JSON object with exactly two keys: "subject" and "body". The body should be plain text (no HTML). Do not include any markdown formatting, code fences, or extra text outside the JSON object.`;
+CRITICAL EMAIL RULES:
+1. Short & Punchy: Keep the email incredibly concise (under 120 words). People skim.
+2. No Hyphens/Bullets: Do NOT use bullet points, numbered lists, or excessive hyphens. Write normal, conversational paragraphs (1-3 sentences max per paragraph).
+3. Singular CTA: End the email with ONE clear, low-friction question or call to action (e.g., "Do you have 10 mins on Tuesday to review?" or "Should I send the proposal over?"). Do not ask them to do multiple things.
+4. Formatting: Output the response strictly as a JSON object with two keys: "subject" and "body". Do not include any markdown formatting outside of the JSON block.`;
 
     console.log('Calling Anthropic API for email draft...');
 
