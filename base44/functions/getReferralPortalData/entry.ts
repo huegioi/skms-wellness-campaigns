@@ -22,8 +22,20 @@ Deno.serve(async (req) => {
   // Clients are linked via referral_partner_id on the Client record.
   const ownedClients = await base44.asServiceRole.entities.Client.filter({ referral_partner_id: partner.id }, '-created_date', 500);
 
+  // Build a set of owned client IDs for all sub-queries
+  const ownedClientIdSet = new Set(ownedClients.map(c => c.id));
+
+  // ─── DATA EXISTS FILTER: Only show clients with at least one FeedbackResponse ───
+  // Fetch all feedback responses for any of the owned clients in one query
+  const allFeedback = await base44.asServiceRole.entities.FeedbackResponse.list('-submitted_at', 1000);
+  const clientsWithData = new Set(
+    allFeedback
+      .filter(r => r.client_id && ownedClientIdSet.has(r.client_id))
+      .map(r => r.client_id)
+  );
+
   const clientCompanies = ownedClients
-    .filter(c => c.company)
+    .filter(c => c.company && clientsWithData.has(c.id))
     .map(c => ({ id: c.id, company: c.company, name: c.name, email: c.email }));
 
   // Deduplicate by company name, keeping first match
@@ -33,9 +45,6 @@ Deno.serve(async (req) => {
     seen.add(c.company);
     return true;
   }).sort((a, b) => a.company.localeCompare(b.company));
-
-  // Build a set of owned client IDs for all sub-queries
-  const ownedClientIdSet = new Set(ownedClients.map(c => c.id));
 
   // Get proposals ONLY for this partner's owned clients
   const allProposals = await base44.asServiceRole.entities.Proposal.list('-created_date');
