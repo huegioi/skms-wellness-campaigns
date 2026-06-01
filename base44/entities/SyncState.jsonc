@@ -1,0 +1,17 @@
+{
+  "name": "SyncState",
+  "type": "object",
+  "properties": {
+    "label": {
+      "type": "string",
+      "description": "Identifier for what this sync state tracks (e.g. 'broker_sheet')"
+    },
+    "page_token": {
+      "type": "string",
+      "description": "Google Drive Changes API page token \u2014 persisted between webhook invocations"
+    }
+  },
+  "required": [
+    "page_token"
+  ]
+}
