@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Building, User, Calendar, AlertCircle, ChevronDown, X, Info } from 'lucide-react';
 import { format, isToday, isPast, parseISO } from 'date-fns';
 import { base44 } from '@/api/base44Client';
@@ -32,12 +32,6 @@ const ENGAGEMENT_STAGES = [
   'Renewal Season Outreach',
   'Re-engage Partner',
   'Inactive',
-];
-
-const ALL_STAGES = [
-  '',
-  ...ACQUISITION_STAGES,
-  ...ENGAGEMENT_STAGES.filter(s => !ACQUISITION_STAGES.includes(s)),
 ];
 
 // ── Action Steps ─────────────────────────────────────────────────────────────
@@ -167,44 +161,43 @@ const ACTION_STEPS = {
   ],
 };
 
-// ── Colors ────────────────────────────────────────────────────────────────────
+// ── Section theme config ──────────────────────────────────────────────────────
 
-const STAGE_COLORS = {
-  '': 'bg-gray-100 text-gray-700 border-gray-200',
-  'Day 1 - LinkedIn Connection': 'bg-blue-50 text-blue-700 border-blue-200',
-  'Day 2 - Send email #1': 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  'Day 3 - Call #1': 'bg-purple-50 text-purple-700 border-purple-200',
-  'Day 3 - Text f/u to call': 'bg-pink-50 text-pink-700 border-pink-200',
-  'Day 5 - Call #2': 'bg-red-50 text-red-700 border-red-200',
-  'Day 5 - LinkedIn f/u message': 'bg-orange-50 text-orange-700 border-orange-200',
-  'Day 7 - Send email #2': 'bg-amber-50 text-amber-700 border-amber-200',
-  'Day 10 - Call #3': 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  'Day 10 - Send email #3': 'bg-lime-50 text-lime-700 border-lime-200',
-  'Day 11 - LinkedIn message #3': 'bg-green-50 text-green-700 border-green-200',
-  'Day 15 - Send email #4': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  'Day 20 - Send email #5': 'bg-teal-50 text-teal-700 border-teal-200',
-  'In-Person Meeting': 'bg-emerald-100 text-emerald-900 border-emerald-400',
-  'In-Person Lunch': 'bg-green-100 text-green-900 border-green-400',
-  'New Referral Partner': 'bg-sky-50 text-sky-700 border-sky-200',
-  'Lunch & Learn': 'bg-violet-50 text-violet-700 border-violet-200',
-  'Active & Engaged': 'bg-green-100 text-green-800 border-green-300',
-  'Quarterly Review': 'bg-blue-100 text-blue-800 border-blue-300',
-  'Renewal Season Outreach': 'bg-amber-100 text-amber-800 border-amber-300',
-  'Re-engage Partner': 'bg-orange-100 text-orange-800 border-orange-300',
-  'Inactive': 'bg-gray-200 text-gray-600 border-gray-300',
+const SECTION_THEMES = {
+  engagement: {
+    headerGradient: 'linear-gradient(135deg, #264d44 0%, #1a3830 100%)',
+    columnHeaderBg: 'bg-emerald-50 text-emerald-800 border border-emerald-200',
+    columnHeaderHover: 'hover:bg-emerald-100',
+    cardBorder: 'border-l-emerald-500',
+    badgeBg: 'bg-emerald-100 text-emerald-700',
+    dropdownSection: 'bg-green-50 text-green-700 border-green-100',
+    dropdownHover: 'hover:bg-green-50',
+    dropdownActive: 'bg-green-50 text-green-700 font-semibold',
+    countBadge: 'bg-white/20 text-white',
+  },
+  acquisition: {
+    headerGradient: 'linear-gradient(135deg, #013f7c 0%, #012a54 100%)',
+    columnHeaderBg: 'bg-blue-50 text-blue-800 border border-blue-200',
+    columnHeaderHover: 'hover:bg-blue-100',
+    cardBorder: 'border-l-blue-500',
+    badgeBg: 'bg-blue-100 text-blue-700',
+    dropdownSection: 'bg-blue-50 text-blue-700 border-blue-100',
+    dropdownHover: 'hover:bg-blue-50',
+    dropdownActive: 'bg-blue-50 text-blue-700 font-semibold',
+    countBadge: 'bg-white/20 text-white',
+  },
+  none: {
+    columnHeaderBg: 'bg-gray-100 text-gray-600 border border-gray-200',
+    cardBorder: 'border-l-gray-300',
+  },
 };
 
-function getStageColor(stage) {
-  return STAGE_COLORS[stage] || 'bg-gray-100 text-gray-700 border-gray-200';
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-// For engagement stages that also appear in acquisition (In-Person Meeting/Lunch),
-// determine which section based on partner_status
 function getSection(lead) {
   const stage = lead.follow_up_stage || '';
   if (!stage) return 'none';
   if (ENGAGEMENT_STAGES.includes(stage)) {
-    // If it's shared (In-Person Meeting/Lunch), check partner_status
     if (ACQUISITION_STAGES.includes(stage)) {
       return lead.partner_status === 'active_partner' ? 'engagement' : 'acquisition';
     }
@@ -213,9 +206,6 @@ function getSection(lead) {
   if (ACQUISITION_STAGES.includes(stage)) return 'acquisition';
   return 'none';
 }
-
-const ACQUISITION_ORDER = ['', ...ACQUISITION_STAGES];
-const ENGAGEMENT_ORDER = ENGAGEMENT_STAGES;
 
 function getDueDateStatus(dueDateStr) {
   if (!dueDateStr) return null;
@@ -278,32 +268,20 @@ function StageDropdown({ currentStage, onStageChange, saving }) {
       <button
         onClick={() => setOpen(v => !v)}
         disabled={saving}
-        className="w-full flex items-center justify-between gap-1 text-xs bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md px-2 py-1 text-gray-600 font-medium transition-colors disabled:opacity-50"
+        className="w-full flex items-center justify-between gap-1 text-xs bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md px-2 py-1.5 text-gray-600 font-medium transition-colors disabled:opacity-50"
       >
-        <span className="truncate">{currentStage || 'Set stage…'}</span>
-        <ChevronDown className="w-3 h-3 flex-shrink-0" />
+        <span className="truncate">{currentStage || 'Move to stage…'}</span>
+        <ChevronDown className="w-3 h-3 flex-shrink-0 text-gray-400" />
       </button>
       {open && (
         <div className="absolute z-50 top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-xl overflow-y-auto max-h-72">
           <button
             onClick={() => handleSelect('')}
-            className={`w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors ${currentStage === '' ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-400 italic'}`}
+            className={`w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors ${currentStage === '' ? 'bg-gray-100 text-gray-700 font-semibold' : 'text-gray-400 italic'}`}
           >
             — No Stage —
           </button>
-          <div className="px-3 py-1 text-xs font-bold text-blue-600 bg-blue-50 border-y border-blue-100">
-            🔵 Partner Acquisition
-          </div>
-          {ACQUISITION_STAGES.map((stage, i) => (
-            <button
-              key={i}
-              onClick={() => handleSelect(stage)}
-              className={`w-full text-left text-xs px-3 py-2 hover:bg-blue-50 transition-colors ${stage === currentStage ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700'}`}
-            >
-              {stage}
-            </button>
-          ))}
-          <div className="px-3 py-1 text-xs font-bold text-green-700 bg-green-50 border-y border-green-100">
+          <div className="px-3 py-1.5 text-xs font-bold text-green-700 bg-green-50 border-y border-green-100">
             🟢 Partner Engagement
           </div>
           {ENGAGEMENT_STAGES.map((stage, i) => (
@@ -311,6 +289,18 @@ function StageDropdown({ currentStage, onStageChange, saving }) {
               key={i}
               onClick={() => handleSelect(stage)}
               className={`w-full text-left text-xs px-3 py-2 hover:bg-green-50 transition-colors ${stage === currentStage ? 'bg-green-50 text-green-700 font-semibold' : 'text-gray-700'}`}
+            >
+              {stage}
+            </button>
+          ))}
+          <div className="px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 border-y border-blue-100">
+            🔵 Partner Acquisition
+          </div>
+          {ACQUISITION_STAGES.map((stage, i) => (
+            <button
+              key={i}
+              onClick={() => handleSelect(stage)}
+              className={`w-full text-left text-xs px-3 py-2 hover:bg-blue-50 transition-colors ${stage === currentStage ? 'bg-blue-50 text-blue-700 font-semibold' : 'text-gray-700'}`}
             >
               {stage}
             </button>
@@ -323,7 +313,7 @@ function StageDropdown({ currentStage, onStageChange, saving }) {
 
 // ── Partner Card ──────────────────────────────────────────────────────────────
 
-function PartnerCard({ lead, onClick, onStageChange }) {
+function PartnerCard({ lead, onClick, onStageChange, section }) {
   const [saving, setSaving] = useState(false);
   const [localStage, setLocalStage] = useState(lead.follow_up_stage || '');
 
@@ -333,11 +323,13 @@ function PartnerCard({ lead, onClick, onStageChange }) {
 
   const dueDateStatus = getDueDateStatus(lead.follow_up_due_date);
   const isActivePartner = lead.partner_status === 'active_partner';
+  const theme = SECTION_THEMES[section] || SECTION_THEMES.none;
 
-  const cardBg =
-    dueDateStatus === 'overdue' ? 'bg-red-50 border border-red-200' :
-    dueDateStatus === 'today' ? 'bg-amber-50 border border-amber-200' :
-    'bg-white border border-gray-200';
+  const borderColor = theme.cardBorder;
+  const baseBg =
+    dueDateStatus === 'overdue' ? 'bg-red-50' :
+    dueDateStatus === 'today' ? 'bg-amber-50' :
+    'bg-white';
 
   const handleStageChange = async (newStage) => {
     setSaving(true);
@@ -362,20 +354,22 @@ function PartnerCard({ lead, onClick, onStageChange }) {
   };
 
   return (
-    <div className={`w-full rounded-lg p-3 shadow-sm hover:shadow-md transition-all ${cardBg}`}>
-      <button onClick={() => onClick && onClick(lead)} className="w-full text-left">
+    <div className={`w-full rounded-lg border border-gray-200 border-l-4 ${borderColor} ${baseBg} shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-150`}>
+      <button onClick={() => onClick && onClick(lead)} className="w-full text-left p-3">
         <div className="flex items-start justify-between gap-1 mb-1.5">
           <p className="font-semibold text-gray-800 text-sm leading-tight">{lead.name}</p>
-          {dueDateStatus === 'overdue' && (
-            <span className="flex-shrink-0 text-xs bg-red-100 text-red-700 border border-red-300 px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5">
-              <AlertCircle className="w-2.5 h-2.5" /> Overdue
-            </span>
-          )}
-          {dueDateStatus === 'today' && (
-            <span className="flex-shrink-0 text-xs bg-amber-100 text-amber-700 border border-amber-300 px-1.5 py-0.5 rounded-full font-semibold">
-              Due Today
-            </span>
-          )}
+          <div className="flex gap-1 flex-shrink-0">
+            {dueDateStatus === 'overdue' && (
+              <span className="text-xs bg-red-100 text-red-700 border border-red-300 px-1.5 py-0.5 rounded-full font-semibold flex items-center gap-0.5">
+                <AlertCircle className="w-2.5 h-2.5" /> Overdue
+              </span>
+            )}
+            {dueDateStatus === 'today' && (
+              <span className="text-xs bg-amber-100 text-amber-700 border border-amber-300 px-1.5 py-0.5 rounded-full font-semibold">
+                Due Today
+              </span>
+            )}
+          </div>
         </div>
         {lead.company && (
           <p className="text-xs text-gray-500 flex items-center gap-1 mb-1">
@@ -407,38 +401,46 @@ function PartnerCard({ lead, onClick, onStageChange }) {
           </div>
         )}
       </button>
-      <StageDropdown currentStage={localStage} onStageChange={handleStageChange} saving={saving} />
-      {saving && <p className="text-xs text-blue-500 mt-1">Saving…</p>}
+      <div className="px-3 pb-3">
+        <StageDropdown currentStage={localStage} onStageChange={handleStageChange} saving={saving} />
+        {saving && <p className="text-xs text-blue-500 mt-1">Saving…</p>}
+      </div>
     </div>
   );
 }
 
-// ── Column ────────────────────────────────────────────────────────────────────
+// ── Pipeline Column ───────────────────────────────────────────────────────────
 
-function PipelineColumn({ stage, leads, onSelectLead, onStageChange }) {
+function PipelineColumn({ stage, leads, onSelectLead, onStageChange, section }) {
   const [showPopup, setShowPopup] = useState(false);
   const overdueCount = leads.filter(l => getDueDateStatus(l.follow_up_due_date) === 'overdue').length;
   const dueTodayCount = leads.filter(l => getDueDateStatus(l.follow_up_due_date) === 'today').length;
   const hasActionSteps = !!ACTION_STEPS[stage];
+  const theme = SECTION_THEMES[section] || SECTION_THEMES.none;
+
+  const headerClass = stage === ''
+    ? 'bg-gray-100 text-gray-600 border border-gray-200'
+    : theme.columnHeaderBg;
 
   return (
     <div className="w-64 flex-shrink-0">
-      <div className={`rounded-xl shadow-sm px-3 py-2.5 mb-3 border ${getStageColor(stage)}`}>
+      {/* Column header */}
+      <div className={`rounded-xl px-3 py-2.5 mb-3 ${headerClass}`}>
         <div className="flex items-center justify-between gap-2">
           <button
-            className="text-sm font-semibold truncate text-left hover:underline flex-1"
+            className="text-sm font-semibold truncate text-left flex-1 hover:opacity-80 transition-opacity"
             onClick={() => hasActionSteps && setShowPopup(true)}
             title={hasActionSteps ? 'Click to see action steps' : undefined}
           >
             {stage || 'No Stage'}
           </button>
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             {hasActionSteps && (
               <button onClick={() => setShowPopup(true)} className="opacity-50 hover:opacity-100 transition-opacity">
                 <Info className="w-3.5 h-3.5" />
               </button>
             )}
-            <span className="text-xs rounded-full px-2 py-0.5 font-bold bg-white/50">
+            <span className="text-xs rounded-full px-2 py-0.5 font-bold bg-white/70 text-gray-700 shadow-sm">
               {leads.length}
             </span>
           </div>
@@ -458,13 +460,16 @@ function PipelineColumn({ stage, leads, onSelectLead, onStageChange }) {
           </div>
         )}
       </div>
-      <div className="space-y-2">
+
+      {/* Cards */}
+      <div className="space-y-2.5">
         {leads.map(lead => (
           <PartnerCard
             key={lead.id}
             lead={lead}
             onClick={onSelectLead}
             onStageChange={onStageChange}
+            section={section}
           />
         ))}
       </div>
@@ -475,11 +480,16 @@ function PipelineColumn({ stage, leads, onSelectLead, onStageChange }) {
 
 // ── Section Banner ────────────────────────────────────────────────────────────
 
-function SectionBanner({ label, colorClass, count }) {
+function SectionBanner({ label, gradient, count }) {
   return (
-    <div className={`flex items-center gap-3 px-5 py-3 rounded-xl mb-4 ${colorClass}`}>
-      <span className="text-base font-bold tracking-wide">{label}</span>
-      <span className="text-xs font-semibold bg-white/40 rounded-full px-2 py-0.5">{count} partner{count !== 1 ? 's' : ''}</span>
+    <div
+      className="flex items-center gap-3 px-6 py-4 rounded-xl mb-5 shadow-md"
+      style={{ background: gradient }}
+    >
+      <span className="text-base font-bold tracking-wide text-white">{label}</span>
+      <span className="text-xs font-semibold bg-white/20 text-white rounded-full px-2.5 py-0.5">
+        {count} partner{count !== 1 ? 's' : ''}
+      </span>
     </div>
   );
 }
@@ -495,10 +505,8 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
     );
   }
 
-  // Bucket leads by section
   const noStageLeads = leads.filter(l => !l.follow_up_stage);
 
-  // For shared stages (In-Person Meeting/Lunch) — route by partner_status
   const acquisitionMap = {};
   const engagementMap = {};
 
@@ -515,63 +523,48 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
     }
   }
 
-  // Only show columns that have at least one partner
-  const acqStages = ACQUISITION_ORDER.slice(1).filter(s => acquisitionMap[s]?.length > 0);
-  const engStages = ENGAGEMENT_ORDER.filter(s => engagementMap[s]?.length > 0);
+  const acqStages = ACQUISITION_STAGES.filter(s => acquisitionMap[s]?.length > 0);
+  const engStages = ENGAGEMENT_STAGES.filter(s => engagementMap[s]?.length > 0);
 
   const acqCount = acqStages.reduce((sum, s) => sum + (acquisitionMap[s]?.length || 0), 0);
   const engCount = engStages.reduce((sum, s) => sum + (engagementMap[s]?.length || 0), 0);
 
   return (
-    <div className="space-y-8">
-      {/* No Stage */}
-      {noStageLeads.length > 0 && (
-        <div className="overflow-x-auto pb-2">
-          <div className="flex gap-4 min-w-max">
-            <PipelineColumn
-              stage=""
-              leads={noStageLeads}
-              onSelectLead={onSelectLead}
-              onStageChange={onStageChange}
-            />
-          </div>
-        </div>
-      )}
+    <div className="space-y-10">
 
-      {/* Partner Acquisition Section */}
-      {acqStages.length > 0 && (
+      {/* No Stage — neutral gray, always first */}
+      {noStageLeads.length > 0 && (
         <div>
-          <SectionBanner
-            label="🔵 Partner Acquisition"
-            colorClass="bg-blue-600 text-white"
-            count={acqCount}
-          />
-          <div className="overflow-x-auto pb-4">
-            <div className="flex gap-4 min-w-max">
-              {acqStages.map(stage => (
-                <PipelineColumn
-                  key={stage}
-                  stage={stage}
-                  leads={acquisitionMap[stage]}
-                  onSelectLead={onSelectLead}
-                  onStageChange={onStageChange}
-                />
-              ))}
+          <div className="flex items-center gap-3 px-5 py-3 rounded-xl mb-5 bg-gray-200 shadow-sm">
+            <span className="text-sm font-bold tracking-wide text-gray-600">⬜ No Stage</span>
+            <span className="text-xs font-semibold bg-white/60 text-gray-600 rounded-full px-2.5 py-0.5">
+              {noStageLeads.length} partner{noStageLeads.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="overflow-x-auto pb-2">
+            <div className="flex gap-5 min-w-max">
+              <PipelineColumn
+                stage=""
+                leads={noStageLeads}
+                onSelectLead={onSelectLead}
+                onStageChange={onStageChange}
+                section="none"
+              />
             </div>
           </div>
         </div>
       )}
 
-      {/* Partner Engagement Section */}
+      {/* Partner Engagement — first (higher priority) */}
       {engStages.length > 0 && (
         <div>
           <SectionBanner
             label="🟢 Partner Engagement"
-            colorClass="bg-green-600 text-white"
+            gradient={SECTION_THEMES.engagement.headerGradient}
             count={engCount}
           />
           <div className="overflow-x-auto pb-4">
-            <div className="flex gap-4 min-w-max">
+            <div className="flex gap-5 min-w-max">
               {engStages.map(stage => (
                 <PipelineColumn
                   key={stage}
@@ -579,12 +572,39 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
                   leads={engagementMap[stage]}
                   onSelectLead={onSelectLead}
                   onStageChange={onStageChange}
+                  section="engagement"
                 />
               ))}
             </div>
           </div>
         </div>
       )}
+
+      {/* Partner Acquisition — second */}
+      {acqStages.length > 0 && (
+        <div>
+          <SectionBanner
+            label="🔵 Partner Acquisition"
+            gradient={SECTION_THEMES.acquisition.headerGradient}
+            count={acqCount}
+          />
+          <div className="overflow-x-auto pb-4">
+            <div className="flex gap-5 min-w-max">
+              {acqStages.map(stage => (
+                <PipelineColumn
+                  key={stage}
+                  stage={stage}
+                  leads={acquisitionMap[stage]}
+                  onSelectLead={onSelectLead}
+                  onStageChange={onStageChange}
+                  section="acquisition"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
