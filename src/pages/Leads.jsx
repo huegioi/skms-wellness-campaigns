@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban } from 'lucide-react';
+import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, GitMerge } from 'lucide-react';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
 import PendingReferralsReview from '@/components/referrals/PendingReferralsReview';
@@ -275,6 +275,25 @@ export default function Leads() {
   const [showActivePartnersModal, setShowActivePartnersModal] = useState(false);
   const [brokerViewMode, setBrokerViewMode] = useState('list'); // 'list' | 'pipeline'
   const [brokerFilterOwner, setBrokerFilterOwner] = useState('all');
+
+  // Duplicate cleanup state (lifted up so button lives in header)
+  const [scanningDuplicates, setScanningDuplicates] = useState(false);
+  const [duplicates, setDuplicates] = useState(null);
+  const [duplicateMergeResult, setDuplicateMergeResult] = useState(null);
+
+  const handleScanDuplicates = async () => {
+    setScanningDuplicates(true);
+    setDuplicates(null);
+    setDuplicateMergeResult(null);
+    try {
+      const res = await base44.functions.invoke('mergePartnerDuplicates', { dryRun: true });
+      setDuplicates(res.data.duplicates || []);
+    } catch (e) {
+      toast.error('Scan failed: ' + e.message);
+    } finally {
+      setScanningDuplicates(false);
+    }
+  };
 
   // Referral Portals (ReferralPartnerAdmin) state
   const [showPartnerDialog, setShowPartnerDialog] = useState(false);
@@ -686,6 +705,10 @@ export default function Leads() {
                   <Mail className={`w-4 h-4 ${syncingEmail ? 'animate-spin' : ''}`} />
                   {syncingEmail ? 'Syncing...' : 'Sync Emails'}
                 </Button>
+                <Button variant="outline" onClick={handleScanDuplicates} disabled={scanningDuplicates} className="gap-2 text-amber-700 border-amber-300 hover:bg-amber-50" title="Check for duplicate partner records">
+                  <GitMerge className={`w-4 h-4 ${scanningDuplicates ? 'animate-spin' : ''}`} />
+                  {scanningDuplicates ? 'Scanning…' : 'Check Duplicates'}
+                </Button>
                 <a
                   href="https://docs.google.com/spreadsheets/d/1QyVdp7XWFfUkZyqLMVn6P39X84WgYWOHfqI2US7WKWk/edit"
                   target="_blank"
@@ -706,11 +729,14 @@ export default function Leads() {
               </div>
             </div>
 
-            <MergePartnerDuplicatesPanel onMergeComplete={() => queryClient.invalidateQueries({ queryKey: ['leads', 'referralPartners'] })} />
-
-            <ActivePartnerTiles
-              activePartners={brokerLeads.filter(l => l.partner_status === 'active_partner').sort((a, b) => (a.name || '').localeCompare(b.name || ''))}
-              onSelect={(lead) => setViewingBrokerLead(lead)}
+            <MergePartnerDuplicatesPanel
+              duplicates={duplicates}
+              mergeResult={duplicateMergeResult}
+              onMergeComplete={(result) => {
+                setDuplicateMergeResult(result);
+                setDuplicates(null);
+                queryClient.invalidateQueries({ queryKey: ['leads', 'referralPartners'] });
+              }}
             />
 
             {/* View toggle + filters */}
