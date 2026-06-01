@@ -326,9 +326,9 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const existingByRow = byRowId[`${sheetOriginKey}:${String(rowIndex)}`];
+      // Email is the primary key — row number is only used for write-back (never for matching)
       const existingByEmail = byEmail[lead.email.toLowerCase()];
-      const existing = existingByRow || existingByEmail;
+      const existing = existingByEmail;
 
       if (existing) {
         const appRank = APP_STATUS_RANK.indexOf(existing.status);
