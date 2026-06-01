@@ -17,6 +17,8 @@ const FOLLOW_UP_STAGES = [
   'Day 11 - LinkedIn message #3',
   'Day 15 - Send email #4',
   'Day 20 - Send email #5',
+  'In-Person Meeting',
+  'In-Person Lunch',
   'Referral Partner',
 ];
 
@@ -35,6 +37,8 @@ const STAGE_COLORS = {
   'Day 11 - LinkedIn message #3': 'bg-green-50 text-green-700 border-green-200',
   'Day 15 - Send email #4': 'bg-emerald-50 text-emerald-700 border-emerald-200',
   'Day 20 - Send email #5': 'bg-teal-50 text-teal-700 border-teal-200',
+  'In-Person Meeting': 'bg-emerald-100 text-emerald-900 border-emerald-400',
+  'In-Person Lunch': 'bg-green-100 text-green-900 border-green-400',
   'Referral Partner': 'bg-cyan-50 text-cyan-700 border-cyan-200',
 };
 
@@ -48,20 +52,32 @@ function extractDayNumber(stage) {
   return match ? parseInt(match[1], 10) : null;
 }
 
+const STAGE_ORDER = [
+  '',
+  'Day 1 - LinkedIn Connection',
+  'Day 2 - Send email #1',
+  'Day 3 - Call #1',
+  'Day 3 - Text f/u to call',
+  'Day 5 - Call #2',
+  'Day 5 - LinkedIn f/u message',
+  'Day 7 - Send email #2',
+  'Day 10 - Call #3',
+  'Day 10 - Send email #3',
+  'Day 11 - LinkedIn message #3',
+  'Day 15 - Send email #4',
+  'Day 20 - Send email #5',
+  'In-Person Meeting',
+  'In-Person Lunch',
+  'Referral Partner',
+];
+
 function sortStages(stages) {
   return [...stages].sort((a, b) => {
-    if (!a) return -1;
-    if (!b) return 1;
-    const isRefA = a.toLowerCase().includes('referral partner');
-    const isRefB = b.toLowerCase().includes('referral partner');
-    if (isRefA && !isRefB) return 1;
-    if (!isRefA && isRefB) return -1;
-    const dayA = extractDayNumber(a);
-    const dayB = extractDayNumber(b);
-    if (dayA !== null && dayB !== null) return dayA - dayB;
-    if (dayA !== null) return -1;
-    if (dayB !== null) return 1;
-    return a.localeCompare(b);
+    const idxA = STAGE_ORDER.indexOf(a);
+    const idxB = STAGE_ORDER.indexOf(b);
+    const rankA = idxA === -1 ? 999 : idxA;
+    const rankB = idxB === -1 ? 999 : idxB;
+    return rankA - rankB;
   });
 }
 
