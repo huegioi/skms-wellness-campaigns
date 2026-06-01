@@ -170,29 +170,19 @@ async function scanViaGmailApi(accessToken, emailMap, base44, accountLabel) {
   return { newLogs: newLogs.length, updates: updatesFromApi };
 }
 
-async function scanViaImapAndLog(accountEmail, password, accountLabel, emailMap, base44) {
-  const imapClient = new ImapFlow({
-    host: 'imap.gmail.com',
-    port: 993,
-    secure: true,
-    auth: { user: accountEmail, pass: password },
-    logger: false,
-  });
-
-  await imapClient.connect();
-  const lock = await imapClient.getMailboxLock('INBOX');
-
+async function scanMailboxViaImap(imapClient, mailboxPath, since, existingIds, emailMap, accountLabel) {
   const updatesFromImap = {};
   const newLogs = [];
 
+  let lock;
   try {
-    const since = new Date();
-    since.setDate(since.getDate() - 90);
+    lock = await imapClient.getMailboxLock(mailboxPath);
+  } catch {
+    // Mailbox may not exist on this account, skip silently
+    return { newLogs, updates: updatesFromImap };
+  }
 
-    // Get existing IDs for this account
-    const existingLogs = await base44.asServiceRole.entities.EmailLog.filter({ gmail_account: accountLabel });
-    const existingIds = new Set(existingLogs.map(l => l.gmail_message_id));
-
+  try {
     for await (const message of imapClient.fetch({ since }, { envelope: true, source: false })) {
       const { from, to, cc, date, messageId } = message.envelope;
       if (!date) continue;
@@ -251,14 +241,58 @@ async function scanViaImapAndLog(accountEmail, password, accountLabel, emailMap,
     lock.release();
   }
 
-  await imapClient.logout();
+  return { newLogs, updates: updatesFromImap };
+}
 
-  if (newLogs.length > 0) {
-    await base44.asServiceRole.entities.EmailLog.bulkCreate(newLogs);
-    console.log(`[scanAdminGmailContacts] Created ${newLogs.length} new EmailLog records for account: ${accountLabel}`);
+async function scanViaImapAndLog(accountEmail, password, accountLabel, emailMap, base44) {
+  const imapClient = new ImapFlow({
+    host: 'imap.gmail.com',
+    port: 993,
+    secure: true,
+    auth: { user: accountEmail, pass: password },
+    logger: false,
+  });
+
+  await imapClient.connect();
+
+  const since = new Date();
+  since.setDate(since.getDate() - 90);
+
+  // Get existing IDs for this account once, reuse across mailboxes
+  const existingLogs = await base44.asServiceRole.entities.EmailLog.filter({ gmail_account: accountLabel });
+  const existingIds = new Set(existingLogs.map(l => l.gmail_message_id));
+
+  const allNewLogs = [];
+  const allUpdates = {};
+
+  // Scan both INBOX and Sent Mail to catch both inbound and outbound emails
+  for (const mailbox of ['INBOX', '[Gmail]/Sent Mail']) {
+    try {
+      const { newLogs, updates } = await scanMailboxViaImap(imapClient, mailbox, since, existingIds, emailMap, accountLabel);
+      for (const log of newLogs) {
+        if (!existingIds.has(log.gmail_message_id)) {
+          allNewLogs.push(log);
+          existingIds.add(log.gmail_message_id); // prevent cross-mailbox duplicates
+        }
+      }
+      for (const [key, val] of Object.entries(updates)) {
+        if (!allUpdates[key] || val.date > allUpdates[key].date) {
+          allUpdates[key] = val;
+        }
+      }
+    } catch (err) {
+      console.error(`Error scanning mailbox ${mailbox} for ${accountLabel}: ${err.message}`);
+    }
   }
 
-  return { newLogs: newLogs.length, updates: updatesFromImap };
+  await imapClient.logout();
+
+  if (allNewLogs.length > 0) {
+    await base44.asServiceRole.entities.EmailLog.bulkCreate(allNewLogs);
+    console.log(`[scanAdminGmailContacts] Created ${allNewLogs.length} new EmailLog records for account: ${accountLabel}`);
+  }
+
+  return { newLogs: allNewLogs.length, updates: allUpdates };
 }
 
 Deno.serve(async (req) => {
