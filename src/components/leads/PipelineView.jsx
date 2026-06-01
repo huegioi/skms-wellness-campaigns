@@ -264,7 +264,7 @@ function StageDropdown({ currentStage, onStageChange, saving }) {
   };
 
   return (
-    <div className="relative mt-2" onClick={e => e.stopPropagation()}>
+    <div className="relative mt-2" onClick={e => e.stopPropagation()} onMouseEnter={e => e.stopPropagation()} onMouseLeave={e => e.stopPropagation()}>
       <button
         onClick={() => setOpen(v => !v)}
         disabled={saving}
@@ -274,7 +274,7 @@ function StageDropdown({ currentStage, onStageChange, saving }) {
         <ChevronDown className="w-3 h-3 flex-shrink-0 text-gray-400" />
       </button>
       {open && (
-        <div className="absolute z-50 top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-xl overflow-y-auto max-h-72">
+        <div className="absolute z-[100] top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-2xl overflow-y-auto max-h-72 isolate">
           <button
             onClick={() => handleSelect('')}
             className={`w-full text-left text-xs px-3 py-2 hover:bg-gray-50 transition-colors ${currentStage === '' ? 'bg-gray-100 text-gray-700 font-semibold' : 'text-gray-400 italic'}`}
