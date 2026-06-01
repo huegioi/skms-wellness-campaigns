@@ -1,0 +1,63 @@
+{
+  "name": "ClientTask",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "Associated client ID"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Client name for display"
+    },
+    "proposal_id": {
+      "type": "string",
+      "description": "Associated proposal ID if task is deal-specific"
+    },
+    "description": {
+      "type": "string",
+      "description": "Task description"
+    },
+    "task_order": {
+      "type": "number",
+      "description": "Order of task in sequence"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "completed",
+        "skipped"
+      ],
+      "default": "pending",
+      "description": "Current task status"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Target completion date"
+    },
+    "completed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When task was completed"
+    },
+    "auto_generated": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether task was auto-created"
+    },
+    "source_event": {
+      "type": "string",
+      "description": "Event that triggered creation or completion"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes about the task"
+    }
+  },
+  "required": [
+    "client_id",
+    "description"
+  ]
+}

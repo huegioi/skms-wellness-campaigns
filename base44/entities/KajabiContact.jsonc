@@ -1,0 +1,47 @@
+{
+  "name": "KajabiContact",
+  "type": "object",
+  "properties": {
+    "kajabi_id": {
+      "type": "string",
+      "description": "Kajabi contact ID"
+    },
+    "name": {
+      "type": "string",
+      "description": "Contact name"
+    },
+    "email": {
+      "type": "string",
+      "description": "Contact email address"
+    },
+    "subscribed": {
+      "type": "boolean",
+      "description": "Email subscription status"
+    },
+    "phone_number": {
+      "type": "string",
+      "description": "Contact phone number"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Contact tags from Kajabi"
+    },
+    "kajabi_created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When contact was created in Kajabi"
+    },
+    "last_synced": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last sync timestamp"
+    }
+  },
+  "required": [
+    "kajabi_id",
+    "email"
+  ]
+}

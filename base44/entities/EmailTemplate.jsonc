@@ -1,0 +1,93 @@
+{
+  "name": "EmailTemplate",
+  "type": "object",
+  "properties": {
+    "service_id": {
+      "type": "string",
+      "description": "Associated service ID from catalog"
+    },
+    "service_name": {
+      "type": "string",
+      "description": "Service name for display"
+    },
+    "service_category": {
+      "type": "string",
+      "enum": [
+        "workshop",
+        "challenge",
+        "leadership",
+        "class",
+        "wellness_box"
+      ],
+      "description": "Service category"
+    },
+    "template_type": {
+      "type": "string",
+      "enum": [
+        "announcement",
+        "reminder_2weeks",
+        "reminder_2days",
+        "follow_up"
+      ],
+      "description": "Type of email template"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Email subject line"
+    },
+    "body": {
+      "type": "string",
+      "description": "Email body content (HTML)"
+    },
+    "file_url": {
+      "type": "string",
+      "description": "URL to downloadable template file"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags for categorization (e.g., client names, custom categories)"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Optional client ID for client-specific templates"
+    },
+    "version": {
+      "type": "number",
+      "default": 1,
+      "description": "Current version number"
+    },
+    "version_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "number"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "updated_date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_by": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Version history of template changes"
+    }
+  },
+  "required": [
+    "service_name",
+    "template_type",
+    "subject"
+  ]
+}

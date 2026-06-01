@@ -1,0 +1,56 @@
+{
+  "name": "QuickBooksExpense",
+  "type": "object",
+  "properties": {
+    "quickbooks_id": {
+      "type": "string",
+      "description": "QuickBooks transaction ID"
+    },
+    "transaction_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the expense transaction"
+    },
+    "vendor_name": {
+      "type": "string",
+      "description": "Vendor or payee name"
+    },
+    "category": {
+      "type": "string",
+      "description": "Expense category from QuickBooks"
+    },
+    "sub_category": {
+      "type": "string",
+      "description": "Optional sub-category for more detailed expense tracking"
+    },
+    "account_name": {
+      "type": "string",
+      "description": "Account name from QuickBooks"
+    },
+    "account_type": {
+      "type": "string",
+      "description": "Account type from QuickBooks (e.g., Expense, Cost of Goods Sold)"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Expense amount"
+    },
+    "description": {
+      "type": "string",
+      "description": "Transaction description or memo"
+    },
+    "payment_method": {
+      "type": "string",
+      "description": "Payment method used"
+    },
+    "transaction_type": {
+      "type": "string",
+      "description": "Type of expense transaction (bill, purchase, etc.)"
+    }
+  },
+  "required": [
+    "quickbooks_id",
+    "transaction_date",
+    "amount"
+  ]
+}

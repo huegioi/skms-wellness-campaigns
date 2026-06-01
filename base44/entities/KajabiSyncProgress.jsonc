@@ -1,0 +1,93 @@
+{
+  "name": "KajabiSyncProgress",
+  "type": "object",
+  "properties": {
+    "sync_type": {
+      "type": "string",
+      "default": "contacts",
+      "description": "Type of sync (contacts, events, etc.)"
+    },
+    "next_url": {
+      "type": "string",
+      "description": "Next page URL to continue from"
+    },
+    "page_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of pages processed"
+    },
+    "total_processed": {
+      "type": "number",
+      "default": 0,
+      "description": "Total contacts processed so far"
+    },
+    "new_count": {
+      "type": "number",
+      "default": 0
+    },
+    "updated_count": {
+      "type": "number",
+      "default": 0
+    },
+    "skipped_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Contacts skipped (missing corporate leads tag)"
+    },
+    "error_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of errors encountered"
+    },
+    "retry_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of retries attempted"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "in_progress",
+        "completed",
+        "failed"
+      ],
+      "default": "in_progress"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_successful_page": {
+      "type": "number",
+      "description": "Last successfully processed page number"
+    },
+    "error_message": {
+      "type": "string"
+    },
+    "error_details": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "error": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Detailed error log"
+    }
+  },
+  "required": [
+    "sync_type"
+  ]
+}

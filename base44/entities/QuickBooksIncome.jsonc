@@ -1,0 +1,48 @@
+{
+  "name": "QuickBooksIncome",
+  "type": "object",
+  "properties": {
+    "quickbooks_id": {
+      "type": "string",
+      "description": "QuickBooks transaction ID"
+    },
+    "transaction_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date of the income transaction"
+    },
+    "customer_name": {
+      "type": "string",
+      "description": "Customer name"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Income amount"
+    },
+    "description": {
+      "type": "string",
+      "description": "Transaction description"
+    },
+    "payment_method": {
+      "type": "string",
+      "description": "Payment method received"
+    },
+    "transaction_type": {
+      "type": "string",
+      "description": "Type of income transaction (invoice, sales receipt, payment)"
+    },
+    "deposit_account": {
+      "type": "string",
+      "description": "Account where income was deposited"
+    },
+    "service_line": {
+      "type": "string",
+      "description": "Service or product line associated with this income"
+    }
+  },
+  "required": [
+    "quickbooks_id",
+    "transaction_date",
+    "amount"
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "name": "Invoice",
+  "type": "object",
+  "properties": {
+    "invoice_number": {
+      "type": "string",
+      "description": "Invoice number (auto-generated or custom)"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Associated client ID"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Client name for display"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Client email address"
+    },
+    "company": {
+      "type": "string",
+      "description": "Company name"
+    },
+    "proposal_id": {
+      "type": "string",
+      "description": "Associated proposal ID (optional)"
+    },
+    "line_items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number",
+            "default": 1
+          },
+          "rate": {
+            "type": "number"
+          },
+          "amount": {
+            "type": "number"
+          },
+          "quickbooks_item_id": {
+            "type": "string",
+            "description": "QuickBooks product/service item ID"
+          }
+        }
+      },
+      "description": "Invoice line items"
+    },
+    "subtotal": {
+      "type": "number",
+      "description": "Subtotal amount"
+    },
+    "tax_rate": {
+      "type": "number",
+      "default": 0,
+      "description": "Tax rate percentage"
+    },
+    "tax_amount": {
+      "type": "number",
+      "default": 0,
+      "description": "Calculated tax amount"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Total invoice amount"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "sent",
+        "paid",
+        "overdue",
+        "cancelled"
+      ],
+      "default": "draft",
+      "description": "Invoice status"
+    },
+    "issue_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Invoice issue date"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Payment due date"
+    },
+    "paid_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date payment was received"
+    },
+    "quickbooks_id": {
+      "type": "string",
+      "description": "QuickBooks invoice ID"
+    },
+    "quickbooks_sync_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last sync with QuickBooks"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes"
+    },
+    "memo": {
+      "type": "string",
+      "description": "Memo visible to customer"
+    }
+  },
+  "required": [
+    "client_name",
+    "total_amount",
+    "issue_date"
+  ]
+}

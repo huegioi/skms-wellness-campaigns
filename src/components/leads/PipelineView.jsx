@@ -137,19 +137,18 @@ function PartnerCard({ lead, onClick, onStageChange }) {
     setSaving(true);
     setLocalStage(newStage);
     try {
+      // Entity save is the source of truth — if this succeeds, we keep the new stage
       await base44.entities.Lead.update(lead.id, { follow_up_stage: newStage || null });
-      // Write back to Google Sheet
+      if (onStageChange) onStageChange(lead.id, newStage);
+      // Best-effort sheet sync — don't revert if this fails
       const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || undefined;
-      console.log('updateStage payload:', { leadId: lead.id, sheetRowId: lead.sheet_row_id, sheetName, follow_up_stage: newStage, sheet_origin: lead.sheet_origin });
-      const res = await base44.functions.invoke('syncBrokerLeadsSheet', {
+      base44.functions.invoke('syncBrokerLeadsSheet', {
         action: 'updateStage',
         leadId: lead.id,
         sheetRowId: lead.sheet_row_id,
         sheetName,
         follow_up_stage: newStage,
-      });
-      console.log('updateStage response:', res?.data);
-      if (onStageChange) onStageChange(lead.id, newStage);
+      }).catch(e => console.warn('Sheet sync failed (non-critical):', e));
     } catch (e) {
       console.error('Stage update failed', e);
       setLocalStage(lead.follow_up_stage || '');

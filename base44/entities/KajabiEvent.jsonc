@@ -1,0 +1,43 @@
+{
+  "name": "KajabiEvent",
+  "type": "object",
+  "properties": {
+    "event_type": {
+      "type": "string",
+      "description": "Type of webhook event (form_submitted, member_tag_added, etc.)"
+    },
+    "contact_email": {
+      "type": "string",
+      "description": "Email of the contact involved"
+    },
+    "contact_name": {
+      "type": "string",
+      "description": "Name of the contact involved"
+    },
+    "event_data": {
+      "type": "object",
+      "description": "Full event payload from Kajabi"
+    },
+    "form_name": {
+      "type": "string",
+      "description": "Name of form submitted (if applicable)"
+    },
+    "tag_name": {
+      "type": "string",
+      "description": "Tag added/removed (if applicable)"
+    },
+    "product_name": {
+      "type": "string",
+      "description": "Product/offer involved (if applicable)"
+    },
+    "event_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the event occurred"
+    }
+  },
+  "required": [
+    "event_type",
+    "event_date"
+  ]
+}

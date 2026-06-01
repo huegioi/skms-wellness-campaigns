@@ -1,0 +1,77 @@
+{
+  "name": "Proposal",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "Associated client ID"
+    },
+    "client_name": {
+      "type": "string",
+      "description": "Client name for display"
+    },
+    "client_email": {
+      "type": "string",
+      "description": "Client email address"
+    },
+    "company": {
+      "type": "string",
+      "description": "Company name"
+    },
+    "total_amount": {
+      "type": "number",
+      "description": "Total proposal amount"
+    },
+    "narrative_summary": {
+      "type": "string",
+      "description": "Customizable narrative summary of services"
+    },
+    "selections": {
+      "type": "object",
+      "description": "All selected items and quantities"
+    },
+    "invoiced_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs of items that have been invoiced"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "sent",
+        "viewed",
+        "accepted",
+        "declined"
+      ],
+      "default": "draft",
+      "description": "Proposal status"
+    },
+    "sent_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the proposal was sent"
+    },
+    "viewed_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the proposal was first viewed"
+    },
+    "last_reminder_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the last reminder was sent"
+    },
+    "reminder_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of reminders sent"
+    }
+  },
+  "required": [
+    "client_name",
+    "total_amount"
+  ]
+}

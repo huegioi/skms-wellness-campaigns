@@ -1,0 +1,57 @@
+{
+  "name": "FeedbackSurvey",
+  "type": "object",
+  "properties": {
+    "service_name": {
+      "type": "string",
+      "description": "Name of the service this survey is for (from the Google Sheet)"
+    },
+    "service_id": {
+      "type": "string",
+      "description": "ID of the linked Service entity (optional)"
+    },
+    "sheet_tab": {
+      "type": "string",
+      "description": "Google Sheet tab name this survey was synced from"
+    },
+    "questions": {
+      "type": "array",
+      "description": "List of survey questions",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "boolean",
+              "rating_5",
+              "rating_10",
+              "long_text",
+              "short_text",
+              "raffle_address"
+            ]
+          }
+        }
+      }
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this survey is currently active"
+    },
+    "last_synced": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time this survey was synced from the sheet"
+    }
+  },
+  "required": [
+    "service_name"
+  ]
+}

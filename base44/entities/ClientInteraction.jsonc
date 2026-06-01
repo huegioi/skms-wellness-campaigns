@@ -1,0 +1,51 @@
+{
+  "name": "ClientInteraction",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "Associated client ID"
+    },
+    "proposal_id": {
+      "type": "string",
+      "description": "Associated proposal ID (optional)"
+    },
+    "interaction_type": {
+      "type": "string",
+      "enum": [
+        "call",
+        "email",
+        "meeting",
+        "note"
+      ],
+      "description": "Type of interaction"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date and time of interaction"
+    },
+    "subject": {
+      "type": "string",
+      "description": "Brief subject/title of interaction"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Detailed notes about the interaction"
+    },
+    "outcome": {
+      "type": "string",
+      "description": "Result or next steps from interaction"
+    },
+    "follow_up_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Scheduled follow-up date"
+    }
+  },
+  "required": [
+    "client_id",
+    "interaction_type",
+    "date"
+  ]
+}
