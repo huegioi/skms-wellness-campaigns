@@ -160,6 +160,53 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, updatedRange: updateData.updatedRange, cellRange, targetSheet });
     }
 
+    // ── Handle updateOwner action ──────────────────────────────────────────────
+    if (body.action === 'updateOwner') {
+      const { sheetRowId, sheetName, owner } = body;
+      if (!sheetRowId) {
+        return Response.json({ error: 'Missing sheetRowId' }, { status: 400 });
+      }
+
+      const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
+
+      const metaRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const meta = await metaRes.json();
+      const availableSheets = meta.sheets?.map(s => s.properties?.title) || [];
+      const targetSheet = sheetName || availableSheets[0] || 'Broker Leads';
+
+      const headerRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(targetSheet + '!1:1')}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const headerData = await headerRes.json();
+      const headers = (headerData.values?.[0] || []).map(h => h.toLowerCase().trim());
+      const ownerColIndex = headers.findIndex(h => h === 'owner');
+
+      if (ownerColIndex === -1) {
+        return Response.json({ error: 'Owner column not found in sheet', headers }, { status: 400 });
+      }
+
+      const colLetter = String.fromCharCode(65 + ownerColIndex);
+      const cellRange = `${targetSheet}!${colLetter}${sheetRowId}`;
+
+      const updateRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(cellRange)}?valueInputOption=USER_ENTERED`,
+        {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ range: cellRange, majorDimension: 'ROWS', values: [[owner || '']] }),
+        }
+      );
+      const updateData = await updateRes.json();
+      if (updateData.error) {
+        return Response.json({ error: updateData.error.message }, { status: 400 });
+      }
+      return Response.json({ success: true, updatedRange: updateData.updatedRange, cellRange, targetSheet });
+    }
+
     const startRow = body.startRow || 0;
     const CHUNK_SIZE = 25;
 

@@ -782,9 +782,35 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
             <DialogHeader><DialogTitle>Edit Partner Lead</DialogTitle></DialogHeader>
             <EditLeadForm
               lead={lead}
-              onSave={(data) => {
+              onSave={async (data) => {
                 updateLeadMutation.mutate(data);
                 setShowEditDialog(false);
+                // Sync stage and owner back to the sheet if this lead is sheet-linked
+                if (lead.sheet_row_id) {
+                  const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || undefined;
+                  try {
+                    await base44.functions.invoke('syncBrokerLeadsSheet', {
+                      action: 'updateStage',
+                      leadId: lead.id,
+                      sheetRowId: lead.sheet_row_id,
+                      sheetName,
+                      follow_up_stage: data.follow_up_stage || '',
+                    });
+                  } catch (e) {
+                    console.warn('Sheet stage sync failed:', e);
+                  }
+                  try {
+                    await base44.functions.invoke('syncBrokerLeadsSheet', {
+                      action: 'updateOwner',
+                      leadId: lead.id,
+                      sheetRowId: lead.sheet_row_id,
+                      sheetName,
+                      owner: data.owner || '',
+                    });
+                  } catch (e) {
+                    console.warn('Sheet owner sync failed:', e);
+                  }
+                }
                 if (onUpdate) onUpdate();
               }}
               onCancel={() => setShowEditDialog(false)}
@@ -816,6 +842,7 @@ function EditLeadForm({ lead, onSave, onCancel }) {
     referral_count: lead.referral_count || 0,
     last_referral_date: lead.last_referral_date || '',
     notes: lead.notes || '',
+    owner: lead.owner || '',
   });
 
   const handleSubmit = (e) => {
