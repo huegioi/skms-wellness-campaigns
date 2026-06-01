@@ -8,6 +8,7 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import AddLead from './pages/AddLead';
+import SpeakerPortal from './pages/SpeakerPortal';
 import ReferralPortal from './pages/ReferralPortal';
 import ReferralPartnerAdmin from './pages/ReferralPartnerAdmin';
 import CampaignCalendar from './pages/CampaignCalendar';
@@ -79,6 +80,7 @@ const AuthenticatedApp = () => {
       <Route path="/CampaignCalendar" element={<LayoutWrapper currentPageName="CampaignCalendar"><CampaignCalendar /></LayoutWrapper>} />
       <Route path="/AttendeeForm" element={<AttendeeForm />} />
       <Route path="/ClientReport" element={<ClientReport />} />
+      <Route path="/SpeakerPortal" element={<SpeakerPortal />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

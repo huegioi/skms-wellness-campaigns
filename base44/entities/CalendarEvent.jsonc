@@ -59,6 +59,15 @@
       "type": "string",
       "description": "Event presenter name"
     },
+    "presenter_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Speaker/presenter email \u2014 used to filter their portal view"
+    },
+    "service_id": {
+      "type": "string",
+      "description": "Associated Service ID \u2014 used to generate the feedback link for the speaker"
+    },
     "color": {
       "type": "string",
       "description": "Event color for calendar display"
