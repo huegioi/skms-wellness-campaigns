@@ -250,7 +250,7 @@ Assessment — Where does this relationship stand?
 
 Context — What's relevant right now?
 
-Specific next action — Exactly what William or Heather should do, and when.
+Specific next action — Exactly what William or Heather should do, and when. **PRIORITY: Right now, the #1 recommended next action for any broker partner who hasn't yet experienced SKMS firsthand is to offer a FREE workshop for their team. Frame it as: "We'd love to run a complimentary session for your team so you can see exactly what your clients would experience." This is our most powerful trust-builder and conversion tool. Lead with this offer before pitching referrals. Only move past this if the partner has already attended or declined a session.**
 
 Connection opportunities — If this partner has connections to other partners or clients in the pipeline, flag it.
 
