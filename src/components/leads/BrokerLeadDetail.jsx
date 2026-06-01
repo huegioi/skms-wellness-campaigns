@@ -229,13 +229,15 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
         await base44.entities.ReferralPartner.update(matchedPartner.id, { is_active: true });
       }
     } else {
-      // No ReferralPartner record exists — create one (automation will provision the portal)
+      // No ReferralPartner record exists — create one with a portal ID
+      const portalId = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
       await base44.entities.ReferralPartner.create({
         name: lead.name,
         email: lead.email,
         company: lead.company || '',
         phone: lead.phone || '',
         is_active: true,
+        unique_portal_id: portalId,
         commission_tiers: DEFAULT_TIERS,
         partner_status: 'Active Partner',
       });
