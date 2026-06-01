@@ -805,6 +805,7 @@ function EditLeadForm({ lead, onSave, onCancel }) {
     company: lead.company || '',
     title: lead.title || '',
     phone: lead.phone || '',
+    address: lead.address || '',
     industry: lead.industry || '',
     follow_up_stage: lead.follow_up_stage || '',
     partner_status: lead.partner_status || 'new',
@@ -846,6 +847,7 @@ function EditLeadForm({ lead, onSave, onCancel }) {
         <Input placeholder="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
         <Input placeholder="Industry" value={form.industry} onChange={e => setForm({...form, industry: e.target.value})} />
       </div>
+      <Input placeholder="Address" value={form.address} onChange={e => setForm({...form, address: e.target.value})} />
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-gray-500 mb-1 block">Follow-up Stage</label>

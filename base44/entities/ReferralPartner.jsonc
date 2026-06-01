@@ -19,6 +19,10 @@
       "type": "string",
       "description": "Partner's phone number"
     },
+    "address": {
+      "type": "string",
+      "description": "Partner's mailing or office address"
+    },
     "tier": {
       "type": "string",
       "enum": [

@@ -28,6 +28,10 @@
       "type": "string",
       "description": "Phone number"
     },
+    "address": {
+      "type": "string",
+      "description": "Mailing or office address"
+    },
     "industry": {
       "type": "string",
       "description": "Industry sector"

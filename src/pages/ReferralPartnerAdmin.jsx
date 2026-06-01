@@ -36,7 +36,7 @@ const FOLLOW_UP_STAGES = [
 ];
 
 const EMPTY_FORM = {
-  name: '', email: '', company: '', phone: '', notes: '',
+name: '', email: '', company: '', phone: '', address: '', notes: '',
   agreement_file_url: '', agreement_signed_date: '',
   commission_tiers: DEFAULT_TIERS, is_active: true,
   follow_up_stage: ''
@@ -98,6 +98,7 @@ export default function ReferralPartnerAdmin() {
       email: partner.email || '',
       company: partner.company || '',
       phone: partner.phone || '',
+      address: partner.address || '',
       notes: partner.notes || '',
       agreement_file_url: partner.agreement_file_url || '',
       agreement_signed_date: partner.agreement_signed_date || '',
@@ -296,6 +297,10 @@ export default function ReferralPartnerAdmin() {
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Phone</label>
                 <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium text-gray-700 block mb-1">Address</label>
+                <Input value={form.address || ''} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Main St, City, State ZIP" />
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Agreement File URL</label>
