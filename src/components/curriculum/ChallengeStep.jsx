@@ -3,6 +3,7 @@ import { productCatalog, challengeSolutionMap } from './catalogData';
 import SelectionCard from './SelectionCard';
 import StepNavigation from './StepNavigation';
 import { Sparkles } from 'lucide-react';
+import ChallengePricingEstimator, { calcPricing } from './ChallengePricingEstimator';
 
 export default function ChallengeStep({ selections, updateSelections, onNext, onBack, catalogServices }) {
   // Only use active services from catalog — no static fallback
@@ -12,28 +13,10 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
   ]);
   const assessmentData = selections.assessmentData || {};
 
-  // Calculate challenge price based on company size
-  const calculateChallengePrice = () => {
-    const companySize = assessmentData.companySize || '';
-    const employees = parseInt(companySize, 10);
-    
-    if (!employees || employees <= 0) {
-      return 1500; // Default if no size entered
-    }
-
-    let pricePerParticipant = 25;
-    if (employees >= 200) {
-      pricePerParticipant = 20;
-    } else if (employees >= 50) {
-      pricePerParticipant = 22;
-    }
-
-    // 30% of employees * price per participant
-    const participants = Math.ceil(employees * 0.30);
-    return participants * pricePerParticipant;
-  };
-
-  const challengePrice = calculateChallengePrice();
+  // Use the canonical pricing logic
+  const employees = parseInt(assessmentData.companySize || '0', 10);
+  const pricing = calcPricing(employees);
+  const challengePrice = pricing ? pricing.totalCost : null;
 
   // Get suggested challenges based on:
   // 1. Selected workforce challenges from assessment
@@ -119,19 +102,16 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
         }
       `}</style>
 
-      <div className="mb-8">
+      <div className="mb-6">
         <h2 className="text-3xl font-bold mb-3" style={{ color: '#013f7c' }}>
           Add 14-Day Challenges
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>
-          Challenges provide ongoing engagement and help reinforce workshop concepts. 
-          {assessmentData.companySize ? (
-            <> Based on your organization size, each challenge is <strong>${challengePrice.toLocaleString()}</strong>.</>
-          ) : (
-            <> Select your company size in the Assessment step for accurate pricing.</>
-          )}
+          Challenges provide ongoing engagement and help reinforce workshop concepts.
         </p>
       </div>
+
+      <ChallengePricingEstimator initialHeadcount={employees > 0 ? employees : undefined} />
 
       {suggestedChallenges.length > 0 && (
         <div className="suggestion-banner">
@@ -161,7 +141,7 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
               <SelectionCard
                 title={challenge.name}
                 description={challenge.description}
-                price={challengePrice}
+                price={challengePrice !== null ? challengePrice : challenge.price}
                 icon={challenge.icon}
                 badge={challenge.duration}
                 isSelected={(selections.challengePrograms || []).includes(key)}
