@@ -2,6 +2,22 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
+// ── Seasonal Themes by Month ──────────────────────────────────────────────────
+const SEASONAL_THEMES = {
+  January:   ['New Year Wellness Reset', 'Dry January / Mindful Drinking', 'Goal-Setting & Habit Formation'],
+  February:  ['Heart Health Month', 'Stress & Emotional Wellbeing (Valentine\'s Week)', 'Financial Wellness Month'],
+  March:     ['National Nutrition Month', 'Spring Wellness Kickoff', 'Women\'s History Month — Women\'s Wellbeing'],
+  April:     ['Stress Awareness Month', 'Earth Month / Nature-Based Wellness', 'Spring Mental Fitness'],
+  May:       ['Mental Health Awareness Month', 'Employee Wellbeing Week', 'Physical Fitness & Sports Month'],
+  June:      ['Men\'s Health Month', 'Pride Month — Inclusive Wellness', 'Summer Wellness Preview'],
+  July:      ['Summer Wellness Check-In', 'UV Safety & Outdoor Health', 'Mid-Year Reset'],
+  August:    ['Back-to-School Stress & Family Wellness', 'Immunization Awareness Month', 'Summer Wind-Down'],
+  September: ['Suicide Prevention & Mental Health Awareness', 'Healthy Aging Month', 'Fall Wellness Kickoff'],
+  October:   ['Breast Cancer Awareness Month', 'Mental Health Awareness (World Mental Health Day Oct 10)', 'Halloween & Mindful Eating'],
+  November:  ['Diabetes Awareness Month', 'Gratitude & Resilience', 'Open Enrollment Season — Benefits Wellness'],
+  December:  ['Holiday Stress & Burnout Prevention', 'Year-End Reflection & Goal Planning', 'Giving & Volunteer Wellness'],
+};
+
 // Returns days between two dates (a - b)
 function daysDiff(a, b) {
   return (a - b) / (1000 * 60 * 60 * 24);
@@ -10,7 +26,12 @@ function daysDiff(a, b) {
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
   const now = new Date();
-  const todayStr = now.toDateString();
+  const todayStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const currentMonthName = MONTH_NAMES[now.getMonth()];
+  const currentThemes = SEASONAL_THEMES[currentMonthName] || [];
+  const themesLine = currentThemes.length > 0
+    ? currentThemes.map(t => `• ${t}`).join('\n')
+    : '_No specific seasonal themes for this month._';
 
   // --- Fetch all data in parallel ---
   const [allLeads, allClients, allPartners, activeCampaigns] = await Promise.all([
@@ -120,6 +141,12 @@ Today is ${todayStr}.
 
 ---
 
+## CURRENT ACTIVE SEASONAL CAMPAIGNS — ${currentMonthName}
+
+${themesLine}
+
+---
+
 ## SECTION A: MASS CAMPAIGN ACTIONS
 
 ${campaignSummaries.length > 0
@@ -144,7 +171,11 @@ ${silentClients.slice(0, 5).map(c => `- ${c.company || c.name} | last contacted:
 
 ---
 
-Please write your daily briefing now. Lead with Section A if campaigns are active, then cover Section B high-touch items. Keep it under 600 words. Be specific, use names, and end with a clear "Top 3 Priorities for Today."`;
+Please write your daily briefing now. Follow these rules:
+1. Open with **"Today is ${todayStr}"** so the reader knows the exact date.
+2. Lead with Section A if campaigns are active, then cover Section B high-touch items.
+3. **Seasonal Outreach (NEW):** Cross-reference the client and partner lists above with the Current Active Seasonal Campaigns for ${currentMonthName}. For any client or partner who is a strong fit for this month's themes (based on their industry, past programs, notes, or company profile), specifically call out a suggested outreach angle — e.g. "TechCorp has never done a men's health program — pitch a June Men's Health Month workshop." Include this as a dedicated sub-section titled "🗓️ Seasonal Outreach Opportunities."
+4. Keep the full briefing under 700 words. Be specific, use real names, and end with a clear **"Top 3 Priorities for Today."**`;
 
   let briefing;
   try {
