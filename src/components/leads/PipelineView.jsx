@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Building, User, Calendar, AlertCircle, ChevronDown, X, Info } from 'lucide-react';
 import { format, isToday, isPast, parseISO } from 'date-fns';
 import { base44 } from '@/api/base44Client';
@@ -255,37 +256,72 @@ function ActionStepsPopup({ stage, onClose }) {
 
 // ── Stage Dropdown ────────────────────────────────────────────────────────────
 
-function StageDropdown({ currentStage, onStageChange, saving }) {
+function StageDropdown({ currentStage, onStageChange, saving, onOpenChange }) {
   const [open, setOpen] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0, width: 256 });
+  const triggerRef = useRef(null);
+
+  const setOpenAndNotify = (val) => {
+    setOpen(val);
+    if (onOpenChange) onOpenChange(val);
+  };
+
+  const handleTriggerClick = (e) => {
+    e.stopPropagation();
+    if (open) { setOpenAndNotify(false); return; }
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (rect) {
+      setMenuPos({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: Math.max(256, rect.width),
+      });
+    }
+    setOpenAndNotify(true);
+  };
 
   const handleSelect = (stage) => {
-    setOpen(false);
+    setOpenAndNotify(false);
     if (stage !== currentStage) onStageChange(stage);
   };
 
   return (
-    <div className="relative mt-2" onClick={e => e.stopPropagation()}>
+    <div className="relative mt-2">
       <button
-        onClick={() => setOpen(v => !v)}
+        ref={triggerRef}
+        onClick={handleTriggerClick}
         disabled={saving}
         className="w-full flex items-center justify-between gap-1 text-xs bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-md px-2 py-1.5 text-gray-600 font-medium transition-colors disabled:opacity-50"
       >
         <span className="truncate">{currentStage || 'Move to stage…'}</span>
         <ChevronDown className="w-3 h-3 flex-shrink-0 text-gray-400" />
       </button>
-      {open && (
+
+      {open && createPortal(
         <>
-          {/* Full-screen overlay — blocks all mouse events to cards below */}
+          {/* Full-screen overlay at body level — blocks everything beneath */}
           <div
-            className="fixed inset-0"
-            style={{ zIndex: 40 }}
-            onClick={(e) => { e.stopPropagation(); setOpen(false); }}
+            style={{ position: 'fixed', inset: 0, zIndex: 9998 }}
+            onClick={(e) => { e.stopPropagation(); setOpenAndNotify(false); }}
+            onMouseDown={(e) => e.stopPropagation()}
           />
-          {/* Dropdown menu — above the overlay */}
+          {/* Dropdown menu rendered at body level — never clipped by overflow */}
           <div
-            className="absolute top-full left-0 mt-1 w-64 bg-white border border-gray-200 rounded-lg overflow-y-auto max-h-72"
-            style={{ zIndex: 50, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }}
+            style={{
+              position: 'absolute',
+              top: menuPos.top,
+              left: menuPos.left,
+              width: menuPos.width,
+              zIndex: 9999,
+              background: 'white',
+              border: '1px solid #e5e7eb',
+              borderRadius: '0.5rem',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+              maxHeight: '288px',
+              overflowY: 'auto',
+            }}
             onClick={e => e.stopPropagation()}
+            onMouseDown={e => e.stopPropagation()}
           >
             <button
               onClick={(e) => { e.stopPropagation(); handleSelect(''); }}
@@ -318,7 +354,8 @@ function StageDropdown({ currentStage, onStageChange, saving }) {
               </button>
             ))}
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
@@ -329,6 +366,7 @@ function StageDropdown({ currentStage, onStageChange, saving }) {
 function PartnerCard({ lead, onClick, onStageChange, section }) {
   const [saving, setSaving] = useState(false);
   const [localStage, setLocalStage] = useState(lead.follow_up_stage || '');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     setLocalStage(lead.follow_up_stage || '');
@@ -367,7 +405,7 @@ function PartnerCard({ lead, onClick, onStageChange, section }) {
   };
 
   return (
-    <div className={`w-full rounded-lg border border-gray-200 border-l-4 ${borderColor} ${baseBg} shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-150`}>
+    <div className={`w-full rounded-lg border border-gray-200 border-l-4 ${borderColor} ${baseBg} shadow-sm transition-all duration-150 ${dropdownOpen ? '' : 'hover:shadow-md hover:-translate-y-0.5'}`}>
       <button onClick={() => onClick && onClick(lead)} className="w-full text-left p-3">
         <div className="flex items-start justify-between gap-1 mb-1.5">
           <p className="font-semibold text-gray-800 text-sm leading-tight">{lead.name}</p>
@@ -415,7 +453,7 @@ function PartnerCard({ lead, onClick, onStageChange, section }) {
         )}
       </button>
       <div className="px-3 pb-3">
-        <StageDropdown currentStage={localStage} onStageChange={handleStageChange} saving={saving} />
+        <StageDropdown currentStage={localStage} onStageChange={handleStageChange} saving={saving} onOpenChange={setDropdownOpen} />
         {saving && <p className="text-xs text-blue-500 mt-1">Saving…</p>}
       </div>
     </div>
