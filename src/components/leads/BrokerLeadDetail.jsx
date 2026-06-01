@@ -199,10 +199,50 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
     }
   };
 
-  const toggleActivePartner = () => {
-    const newStatus = isActive ? 'nurturing' : 'active_partner';
-    updateLeadMutation.mutate({ partner_status: newStatus });
-    toast.success(isActive ? 'Moved back to Nurturing' : 'Marked as Active Partner!');
+  const toggleActivePartner = async () => {
+    if (isActive) {
+      // Demote back to nurturing
+      updateLeadMutation.mutate({ partner_status: 'nurturing' });
+      toast.success('Moved back to Nurturing');
+      return;
+    }
+
+    // Promote to Active Partner
+    updateLeadMutation.mutate({ partner_status: 'active_partner' });
+
+    // Create or activate a ReferralPartner record so the portal gets provisioned
+    const DEFAULT_TIERS = [
+      { label: 'Introducing Partner', min_revenue: 0, max_revenue: 74999, rate: 0.10 },
+      { label: 'Active Partner', min_revenue: 75000, max_revenue: 149999, rate: 0.125 },
+      { label: 'Strategic Partner', min_revenue: 150000, max_revenue: null, rate: 0.15 },
+    ];
+
+    if (matchedPartner) {
+      // Partner record exists but may not be active — activate it so the automation fires
+      if (!matchedPartner.is_active) {
+        await base44.entities.ReferralPartner.update(matchedPartner.id, { is_active: true });
+      }
+      // If they already have a portal, nothing more to do
+      if (!matchedPartner.unique_portal_id) {
+        // Trigger the automation by setting is_active (already handled above if it was inactive)
+        // If it was already active but missing portal, do a no-op update to trigger automation
+        await base44.entities.ReferralPartner.update(matchedPartner.id, { is_active: true });
+      }
+    } else {
+      // No ReferralPartner record exists — create one (automation will provision the portal)
+      await base44.entities.ReferralPartner.create({
+        name: lead.name,
+        email: lead.email,
+        company: lead.company || '',
+        phone: lead.phone || '',
+        is_active: true,
+        commission_tiers: DEFAULT_TIERS,
+        partner_status: 'Active Partner',
+      });
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
+    toast.success('Marked as Active Partner — portal provisioning in progress!');
   };
 
   // Add a new Referral entity record (and update lead history)
