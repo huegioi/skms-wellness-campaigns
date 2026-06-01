@@ -41,8 +41,7 @@ const REFERRAL_STATUS_COLORS = {
   not_eligible:        'bg-red-100 text-red-700',
 };
 
-const FOLLOW_UP_STAGES = [
-  '',
+const ACQUISITION_STAGES = [
   'Day 1 - LinkedIn Connection',
   'Day 2 - Send email #1',
   'Day 3 - Call #1',
@@ -55,8 +54,23 @@ const FOLLOW_UP_STAGES = [
   'Day 11 - LinkedIn message #3',
   'Day 15 - Send email #4',
   'Day 20 - Send email #5',
-  'Referral Partner',
+  'In-Person Meeting',
+  'In-Person Lunch',
 ];
+
+const ENGAGEMENT_STAGES = [
+  'New Referral Partner',
+  'Lunch & Learn',
+  'Active & Engaged',
+  'In-Person Meeting',
+  'In-Person Lunch',
+  'Quarterly Review',
+  'Renewal Season Outreach',
+  'Re-engage Partner',
+  'Inactive',
+];
+
+const FOLLOW_UP_STAGES = ['', ...ACQUISITION_STAGES, ...ENGAGEMENT_STAGES.filter(s => !ACQUISITION_STAGES.includes(s))];
 
 const EMPTY_REFERRAL = { date: '', company_name: '', contact_name: '', notes: '', client_id: '', proposal_id: '', partner_id: '' };
 const EMPTY_PROPOSAL_FORM = { referralId: '', proposalId: '' };
@@ -400,9 +414,14 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                     <SelectValue placeholder="Set follow-up stage…" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="no_stage">No Stage</SelectItem>
-                    {FOLLOW_UP_STAGES.filter(s => s).map((stage, i) => (
-                      <SelectItem key={i} value={stage}>{stage}</SelectItem>
+                    <SelectItem value="no_stage">— No Stage —</SelectItem>
+                    <SelectItem value="_acq_header" disabled className="text-xs font-bold text-blue-600 bg-blue-50">🔵 Partner Acquisition</SelectItem>
+                    {ACQUISITION_STAGES.map((stage, i) => (
+                      <SelectItem key={`acq-${i}`} value={stage}>{stage}</SelectItem>
+                    ))}
+                    <SelectItem value="_eng_header" disabled className="text-xs font-bold text-green-700 bg-green-50">🟢 Partner Engagement</SelectItem>
+                    {ENGAGEMENT_STAGES.map((stage, i) => (
+                      <SelectItem key={`eng-${i}`} value={stage}>{stage}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -878,12 +897,17 @@ function EditLeadForm({ lead, onSave, onCancel }) {
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-gray-500 mb-1 block">Follow-up Stage</label>
-          <Select value={form.follow_up_stage || 'no_stage'} onValueChange={v => setForm({...form, follow_up_stage: v === 'no_stage' ? '' : v})}>
+          <Select value={form.follow_up_stage || 'no_stage'} onValueChange={v => setForm({...form, follow_up_stage: v === 'no_stage' || v === '_acq_header' || v === '_eng_header' ? (form.follow_up_stage || '') : v})}>
             <SelectTrigger><SelectValue placeholder="Select stage" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="no_stage">No Stage</SelectItem>
-              {FOLLOW_UP_STAGES.filter(s => s).map(stage => (
-                <SelectItem key={stage} value={stage}>{stage}</SelectItem>
+              <SelectItem value="no_stage">— No Stage —</SelectItem>
+              <SelectItem value="_acq_header" disabled className="text-xs font-bold text-blue-600 bg-blue-50">🔵 Partner Acquisition</SelectItem>
+              {ACQUISITION_STAGES.map(stage => (
+                <SelectItem key={`acq-${stage}`} value={stage}>{stage}</SelectItem>
+              ))}
+              <SelectItem value="_eng_header" disabled className="text-xs font-bold text-green-700 bg-green-50">🟢 Partner Engagement</SelectItem>
+              {ENGAGEMENT_STAGES.map(stage => (
+                <SelectItem key={`eng-${stage}`} value={stage}>{stage}</SelectItem>
               ))}
             </SelectContent>
           </Select>
