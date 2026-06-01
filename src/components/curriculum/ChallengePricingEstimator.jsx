@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 
 const TIERS = [
   { min: 40,   max: 49,   price: 27 },
@@ -33,6 +34,7 @@ function tierLabel(tier) {
 
 export default function ChallengePricingEstimator({ initialHeadcount }) {
   const [headcount, setHeadcount] = useState(initialHeadcount ? String(initialHeadcount) : '');
+  const [tableOpen, setTableOpen] = useState(false);
   const result = calcPricing(parseInt(headcount, 10));
   const activeTier = result
     ? TIERS.find(t => result.targetSlots >= t.min && result.targetSlots <= t.max)
@@ -87,8 +89,14 @@ export default function ChallengePricingEstimator({ initialHeadcount }) {
 
         {/* Volume Pricing Table */}
         <div>
-          <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Challenge Volume Pricing</h4>
-          <div className="rounded-xl overflow-hidden border border-gray-200">
+          <button
+            onClick={() => setTableOpen(o => !o)}
+            className="flex items-center gap-2 text-sm font-bold text-gray-700 uppercase tracking-wide mb-3 hover:text-[#013f7c] transition-colors group"
+          >
+            <ChevronDown className={`w-4 h-4 transition-transform ${tableOpen ? 'rotate-180' : ''}`} />
+            Challenge Volume Pricing
+          </button>
+          {tableOpen && <div className="rounded-xl overflow-hidden border border-gray-200">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
@@ -123,7 +131,7 @@ export default function ChallengePricingEstimator({ initialHeadcount }) {
                 })}
               </tbody>
             </table>
-          </div>
+          </div>}
         </div>
       </div>
     </div>
