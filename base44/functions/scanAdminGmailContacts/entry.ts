@@ -64,35 +64,52 @@ async function scanViaImap(accountEmail, password, emailMap, updates) {
   await imapClient.logout();
 }
 
-async function scanViaGmailApi(accessToken, emailMap, base44, accountLabel) {
+async function scanViaGmailApi(accessToken, emailMap, base44, accountLabel, daysBack = 90) {
   const since = new Date();
-  since.setDate(since.getDate() - 90);
+  since.setDate(since.getDate() - daysBack);
   const afterStr = `${since.getFullYear()}/${since.getMonth() + 1}/${since.getDate()}`;
 
-  const query = encodeURIComponent(`after:${afterStr}`);
-  const listRes = await fetch(
-    `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=500`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  );
-  const listData = await listRes.json();
-
-  if (listData.error) {
-    if (listData.error.code === 429 || (listData.error.message || '').toLowerCase().includes('quota')) {
-      throw new Error('GMAIL_QUOTA: ' + (listData.error.message || 'Rate limit exceeded'));
-    }
-    throw new Error(listData.error.message || 'Gmail API error');
-  }
-
-  if (!listData.messages) return;
+  // Get existing IDs to avoid duplicate fetches
+  const existingLogs = await base44.asServiceRole.entities.EmailLog.filter({ gmail_account: accountLabel });
+  const existingIds = new Set(existingLogs.map(l => l.gmail_message_id));
 
   const newLogs = [];
   const updatesFromApi = {};
 
-  // Fetch existing gmail_message_ids from EmailLog to avoid duplicates
-  const existingLogs = await base44.asServiceRole.entities.EmailLog.filter({ gmail_account: accountLabel });
-  const existingIds = new Set(existingLogs.map(l => l.gmail_message_id));
+  // Search per known contact email to avoid fetching all messages
+  const contactEmails = Object.keys(emailMap);
+  // Batch contacts into groups to reduce API calls (Gmail OR has limits)
+  const BATCH_SIZE = 10;
 
-  for (const { id } of listData.messages) {
+  for (let i = 0; i < contactEmails.length; i += BATCH_SIZE) {
+    const batch = contactEmails.slice(i, i + BATCH_SIZE);
+    const orQuery = batch.map(e => `{from:${e} to:${e}}`).join(' OR ');
+    const query = encodeURIComponent(`(${orQuery}) after:${afterStr}`);
+
+    let pageToken = null;
+    const batchMessageIds = [];
+    do {
+      const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=500${pageToken ? `&pageToken=${pageToken}` : ''}`;
+      const listRes = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+      const listData = await listRes.json();
+
+      if (listData.error) {
+        if (listData.error.code === 429 || (listData.error.message || '').toLowerCase().includes('quota')) {
+          throw new Error('GMAIL_QUOTA: ' + (listData.error.message || 'Rate limit exceeded'));
+        }
+        // Skip this batch on other errors
+        break;
+      }
+
+      if (listData.messages) {
+        for (const m of listData.messages) {
+          if (!existingIds.has(m.id)) batchMessageIds.push(m.id);
+        }
+      }
+      pageToken = listData.nextPageToken || null;
+    } while (pageToken);
+
+    for (const id of batchMessageIds) {
     if (existingIds.has(id)) continue;
 
     const msgRes = await fetch(
@@ -244,7 +261,7 @@ async function scanMailboxViaImap(imapClient, mailboxPath, since, existingIds, e
   return { newLogs, updates: updatesFromImap };
 }
 
-async function scanViaImapAndLog(accountEmail, password, accountLabel, emailMap, base44) {
+async function scanViaImapAndLog(accountEmail, password, accountLabel, emailMap, base44, daysBack = 90) {
   const imapClient = new ImapFlow({
     host: 'imap.gmail.com',
     port: 993,
@@ -256,7 +273,7 @@ async function scanViaImapAndLog(accountEmail, password, accountLabel, emailMap,
   await imapClient.connect();
 
   const since = new Date();
-  since.setDate(since.getDate() - 90);
+  since.setDate(since.getDate() - daysBack);
 
   // Get existing IDs for this account once, reuse across mailboxes
   const existingLogs = await base44.asServiceRole.entities.EmailLog.filter({ gmail_account: accountLabel });
@@ -311,6 +328,9 @@ Deno.serve(async (req) => {
       isScheduled = true;
     }
 
+    const body = await req.json().catch(() => ({}));
+    const daysBack = body.days_back || 90;
+
     const [clients, leads] = await Promise.all([
       base44.asServiceRole.entities.Client.list(),
       base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' }),
@@ -350,7 +370,7 @@ Deno.serve(async (req) => {
     // 1. Scan william@skillfulmeans.life via Gmail OAuth connector
     try {
       const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
-      const result = await scanViaGmailApi(accessToken, emailMap, base44, 'william');
+      const result = await scanViaGmailApi(accessToken, emailMap, base44, 'william', daysBack);
       mergeUpdates(result?.updates);
       totalNewLogs += result?.newLogs || 0;
     } catch (err) {
@@ -372,7 +392,7 @@ Deno.serve(async (req) => {
     const adminPassword = Deno.env.get('GMAIL_ADMIN_PASSWORD');
     if (adminPassword) {
       try {
-        const result = await scanViaImapAndLog(adminEmail, adminPassword, 'admin', emailMap, base44);
+        const result = await scanViaImapAndLog(adminEmail, adminPassword, 'admin', emailMap, base44, daysBack);
         mergeUpdates(result?.updates);
         totalNewLogs += result?.newLogs || 0;
       } catch (err) {
@@ -385,7 +405,7 @@ Deno.serve(async (req) => {
     const heatherPassword = Deno.env.get('GMAIL_HEATHER_PASSWORD');
     if (heatherEmail && heatherPassword) {
       try {
-        const result = await scanViaImapAndLog(heatherEmail, heatherPassword, 'heather', emailMap, base44);
+        const result = await scanViaImapAndLog(heatherEmail, heatherPassword, 'heather', emailMap, base44, daysBack);
         mergeUpdates(result?.updates);
         totalNewLogs += result?.newLogs || 0;
       } catch (err) {
