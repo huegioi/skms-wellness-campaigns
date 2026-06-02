@@ -312,6 +312,9 @@ Deno.serve(async (req) => {
     let created = 0;
     let updated = 0;
 
+    // Track emails processed in this run to prevent intra-chunk duplicates
+    const processedEmails = new Set();
+
     const chunk = dataRows.slice(startRow, startRow + CHUNK_SIZE);
 
     // ── 4. One-way: Sheet → App only ───────────────────────────────────────────
@@ -326,9 +329,17 @@ Deno.serve(async (req) => {
         continue;
       }
 
+      const emailKey = lead.email.toLowerCase();
+
+      // Skip if already processed in this sync run (prevents intra-run duplicates)
+      if (processedEmails.has(emailKey)) {
+        console.log(`Skipping duplicate within this sync run: ${lead.email}`);
+        continue;
+      }
+      processedEmails.add(emailKey);
+
       // Email is the primary key — row number is only used for write-back (never for matching)
-      const existingByEmail = byEmail[lead.email.toLowerCase()];
-      const existing = existingByEmail;
+      const existing = byEmail[emailKey];
 
       if (existing) {
         const appRank = APP_STATUS_RANK.indexOf(existing.status);
@@ -357,7 +368,9 @@ Deno.serve(async (req) => {
         updated++;
       } else {
         console.log('Writing follow_up_stage to lead (create):', lead.follow_up_stage, 'for contact:', lead.name);
-        await base44.asServiceRole.entities.Lead.create(lead);
+        const newLead = await base44.asServiceRole.entities.Lead.create(lead);
+        // Register in byEmail so subsequent rows in the same chunk don't duplicate
+        if (newLead?.id) byEmail[emailKey] = newLead;
         created++;
       }
     }
