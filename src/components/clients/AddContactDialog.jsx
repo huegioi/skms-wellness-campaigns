@@ -14,6 +14,7 @@ const CONTACT_TYPES = [
   { value: 'other', label: 'Other' },
   { value: 'broker', label: 'Broker' },
   { value: 'wellness_consultant', label: 'Wellness Consultant' },
+  { value: 'hr', label: 'HR' },
 ];
 
 const emptyForm = {
