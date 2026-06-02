@@ -89,5 +89,28 @@
   },
   "required": [
     "submitted_at"
-  ]
+  ],
+  "rls": {
+    "create": {},
+    "read": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }
