@@ -1,294 +1,11 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { RefreshCw, Loader2, Star, Users, TrendingUp, MessageSquare, ExternalLink, BarChart2 } from 'lucide-react';
-import { createPageUrl } from '@/utils';
-import { toast } from 'sonner';
-
-export default function FeedbackAnalytics() {
-  const [selectedSurveyId, setSelectedSurveyId] = useState('all');
-  const [isSyncing, setIsSyncing] = useState(false);
-  const queryClient = useQueryClient();
-
-  const { data: surveys = [] } = useQuery({
-    queryKey: ['feedback-surveys'],
-    queryFn: () => base44.entities.FeedbackSurvey.list()
-  });
-
-  const { data: responses = [], isLoading } = useQuery({
-    queryKey: ['feedback-responses', selectedSurveyId],
-    queryFn: () =>
-      selectedSurveyId === 'all'
-        ? base44.entities.FeedbackResponse.list('-submitted_at')
-        : base44.entities.FeedbackResponse.filter({ survey_id: selectedSurveyId }, '-submitted_at')
-  });
-
-  const syncSurvey = async () => {
-    setIsSyncing(true);
-    try {
-      const res = await base44.functions.invoke('syncFeedbackSurvey');
-      toast.success(res.data?.message || 'Sync complete!');
-      queryClient.invalidateQueries({ queryKey: ['feedback-surveys'] });
-    } catch (err) {
-      toast.error('Sync failed: ' + err.message);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  // Calculate stats
-  const avgRating = responses.length > 0
-    ? (responses.reduce((sum, r) => sum + (r.overall_rating || 0), 0) / responses.filter(r => r.overall_rating).length).toFixed(1)
-    : null;
-
-  const avgNPS = responses.length > 0
-    ? (responses.reduce((sum, r) => sum + (r.nps_score || 0), 0) / responses.filter(r => r.nps_score != null).length).toFixed(1)
-    : null;
-
-  const raffleEntries = responses.filter(r => r.raffle_address).length;
-
-  return (
-    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
-          <div>
-            <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Feedback Analytics</h1>
-            <p className="text-gray-600">Workshop participant feedback and insights</p>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              variant="outline"
-              onClick={syncSurvey}
-              disabled={isSyncing}
-              className="border-[#264d44] text-[#264d44] hover:bg-[#264d44] hover:text-white"
-            >
-              <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
-              {isSyncing ? 'Syncing...' : 'Sync Questions'}
-            </Button>
-            <a href={createPageUrl('FeedbackForm')} target="_blank" rel="noopener noreferrer">
-              <Button className="bg-[#770142] hover:bg-[#5a0132]">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                View Form
-              </Button>
-            </a>
-          </div>
-        </div>
-
-        {/* Filter */}
-        <div className="mb-6 max-w-xs">
-          <Select value={selectedSurveyId} onValueChange={setSelectedSurveyId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by workshop..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Workshops</SelectItem>
-              {surveys.map(s => (
-                <SelectItem key={s.id} value={s.id}>
-                  {s.service_name}
-                  {s.sheet_tab && s.sheet_tab !== s.service_name ? ` — ${s.sheet_tab}` : ''}
-                  {s.last_synced ? ` (${new Date(s.last_synced).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })})` : ''}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <StatCard icon={Users} label="Total Responses" value={responses.length} color="#013f7c" />
-          <StatCard icon={Star} label="Avg Rating" value={avgRating ? `${avgRating}/5` : '—'} color="#264d44" />
-          <StatCard icon={TrendingUp} label="Avg NPS" value={avgNPS ? `${avgNPS}/10` : '—'} color="#770142" />
-          <StatCard icon={MessageSquare} label="Raffle Entries" value={raffleEntries} color="#ff9878" />
-        </div>
-
-        <Tabs defaultValue="responses">
-          <TabsList className="bg-white shadow-md mb-6">
-            <TabsTrigger value="responses" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
-              Responses ({responses.length})
-            </TabsTrigger>
-            <TabsTrigger value="benchmarks" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
-              Benchmarks
-            </TabsTrigger>
-            <TabsTrigger value="surveys" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
-              Surveys ({surveys.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="responses">
-            {isLoading ? (
-              <div className="flex items-center justify-center p-12">
-                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-              </div>
-            ) : responses.length === 0 ? (
-              <div className="bg-white rounded-xl p-12 text-center shadow-lg">
-                <MessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">No responses yet</h3>
-                <p className="text-gray-500">Share the feedback form to start collecting responses</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {responses.map(response => (
-                  <ResponseCard key={response.id} response={response} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="benchmarks">
-            <BenchmarksTab responses={responses} surveys={surveys} />
-          </TabsContent>
-
-          <TabsContent value="surveys">
-            <div className="grid gap-4">
-              {surveys.map(survey => (
-                <div key={survey.id} className="bg-white rounded-xl shadow-lg p-5">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-bold" style={{ color: '#264d44' }}>{survey.service_name}</h3>
-                      <p className="text-sm text-gray-500">Tab: {survey.sheet_tab} • {(survey.questions || []).length} questions</p>
-                      {survey.last_synced && (
-                        <p className="text-xs text-gray-400 mt-1">Last synced: {new Date(survey.last_synced).toLocaleString()}</p>
-                      )}
-                    </div>
-                    <Badge className={survey.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}>
-                      {survey.is_active ? 'Active' : 'Inactive'}
-                    </Badge>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-1">
-                    {(survey.questions || []).slice(0, 4).map(q => (
-                      <Badge key={q.id} variant="secondary" className="text-xs">{q.type}</Badge>
-                    ))}
-                    {(survey.questions || []).length > 4 && (
-                      <Badge variant="secondary" className="text-xs">+{(survey.questions || []).length - 4} more</Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  );
-}
-
-function BenchmarksTab({ responses, surveys }) {
-  // Group responses by service name
-  const byService = responses.reduce((acc, r) => {
-    const key = r.service_name || 'Unknown';
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(r);
-    return acc;
-  }, {});
-
-  const overallAvgRating = responses.filter(r => r.overall_rating).length > 0
-    ? (responses.reduce((s, r) => s + (r.overall_rating || 0), 0) / responses.filter(r => r.overall_rating).length).toFixed(1)
-    : null;
-
-  const overallAvgNPS = responses.filter(r => r.nps_score != null).length > 0
-    ? (responses.reduce((s, r) => s + (r.nps_score || 0), 0) / responses.filter(r => r.nps_score != null).length).toFixed(1)
-    : null;
-
-  if (responses.length === 0) {
-    return (
-      <div className="bg-white rounded-xl p-12 text-center shadow-lg">
-        <BarChart2 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-        <h3 className="text-xl font-semibold text-gray-700 mb-2">No data yet</h3>
-        <p className="text-gray-500">Benchmarks will appear once feedback responses are collected.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Overall benchmarks */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h3 className="text-lg font-bold mb-4" style={{ color: '#013f7c' }}>Overall Benchmarks</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 rounded-lg bg-gray-50 border text-center">
-            <p className="text-3xl font-bold" style={{ color: '#264d44' }}>{overallAvgRating ?? '—'}<span className="text-base font-normal text-gray-400">/5</span></p>
-            <p className="text-sm text-gray-500 mt-1">Avg Rating (all services)</p>
-          </div>
-          <div className="p-4 rounded-lg bg-gray-50 border text-center">
-            <p className="text-3xl font-bold" style={{ color: '#013f7c' }}>{overallAvgNPS ?? '—'}<span className="text-base font-normal text-gray-400">/10</span></p>
-            <p className="text-sm text-gray-500 mt-1">Avg NPS (all services)</p>
-          </div>
-          <div className="p-4 rounded-lg bg-gray-50 border text-center">
-            <p className="text-3xl font-bold" style={{ color: '#770142' }}>{responses.length}</p>
-            <p className="text-sm text-gray-500 mt-1">Total Responses</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Per-service breakdown */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h3 className="text-lg font-bold mb-4" style={{ color: '#013f7c' }}>By Service</h3>
-        <div className="space-y-4">
-          {Object.entries(byService).map(([serviceName, svcResponses]) => {
-            const ratingResponses = svcResponses.filter(r => r.overall_rating);
-            const npsResponses = svcResponses.filter(r => r.nps_score != null);
-            const avgRating = ratingResponses.length > 0
-              ? (ratingResponses.reduce((s, r) => s + r.overall_rating, 0) / ratingResponses.length).toFixed(1)
-              : null;
-            const avgNPS = npsResponses.length > 0
-              ? (npsResponses.reduce((s, r) => s + r.nps_score, 0) / npsResponses.length).toFixed(1)
-              : null;
-
-            const ratingPct = avgRating ? ((parseFloat(avgRating) / 5) * 100).toFixed(0) : 0;
-            const npsPct = avgNPS ? ((parseFloat(avgNPS) / 10) * 100).toFixed(0) : 0;
-
-            return (
-              <div key={serviceName} className="border rounded-lg p-4">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <p className="font-semibold text-gray-800">{serviceName}</p>
-                    <p className="text-xs text-gray-400">{svcResponses.length} response{svcResponses.length !== 1 ? 's' : ''}</p>
-                  </div>
-                  <div className="text-right text-sm">
-                    {avgRating && <p className="text-gray-600">⭐ {avgRating}/5</p>}
-                    {avgNPS && <p className="text-gray-600">NPS: {avgNPS}/10</p>}
-                  </div>
-                </div>
-                {avgRating && (
-                  <div className="mb-2">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>Rating vs benchmark ({overallAvgRating}/5)</span>
-                      <span>{ratingPct}%</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{ width: `${ratingPct}%`, backgroundColor: parseFloat(avgRating) >= parseFloat(overallAvgRating) ? '#264d44' : '#f59e0b' }}
-                      />
-                    </div>
-                  </div>
-                )}
-                {avgNPS && (
-                  <div>
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>NPS vs benchmark ({overallAvgNPS}/10)</span>
-                      <span>{npsPct}%</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all"
-                        style={{ width: `${npsPct}%`, backgroundColor: parseFloat(avgNPS) >= parseFloat(overallAvgNPS) ? '#013f7c' : '#ef4444' }}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Users, TrendingUp, MessageSquare, Heart, BarChart2, Loader2 } from 'lucide-react';
 
 function StatCard({ icon: Icon, label, value, color }) {
   return (
@@ -304,51 +21,266 @@ function StatCard({ icon: Icon, label, value, color }) {
   );
 }
 
-function ResponseCard({ response }) {
+function ConfidenceBar({ value, max = 10 }) {
+  const pct = Math.round((value / max) * 100);
+  const color = value >= 7 ? '#264d44' : value >= 4 ? '#f59e0b' : '#ef4444';
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+      </div>
+      <span className="text-xs font-semibold w-8 text-right" style={{ color }}>{value}/10</span>
+    </div>
+  );
+}
+
+export default function FeedbackAnalytics() {
+  const [filterService, setFilterService] = useState('all');
+
+  const { data: services = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => base44.entities.Service.list('sort_order')
+  });
+
+  const { data: responses = [], isLoading } = useQuery({
+    queryKey: ['feedback-responses-all'],
+    queryFn: () => base44.entities.FeedbackResponse.list('-submitted_at', 500)
+  });
+
+  // Universal Pulse responses (have the new fields)
+  const pulseResponses = responses.filter(r => r.behavior_intent || r.fit_confidence != null);
+
+  const filtered = filterService === 'all'
+    ? pulseResponses
+    : pulseResponses.filter(r => r.service_id === filterService);
+
+  const avgConfidence = filtered.length > 0
+    ? (filtered.reduce((s, r) => s + (r.fit_confidence || 0), 0) / filtered.filter(r => r.fit_confidence != null).length).toFixed(1)
+    : null;
+
+  const advocacyCount = filtered.filter(r => r.advocacy_referral?.trim()).length;
+
+  // Group by service
+  const byService = {};
+  for (const r of pulseResponses) {
+    const key = r.service_name || r.service_id || 'Unknown';
+    if (!byService[key]) byService[key] = [];
+    byService[key].push(r);
+  }
+
+  // Group by client/company
+  const byClient = {};
+  for (const r of pulseResponses) {
+    const key = r.company_name || r.client_id || 'Unknown';
+    if (!byClient[key]) byClient[key] = [];
+    byClient[key].push(r);
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Universal Pulse Dashboard</h1>
+          <p className="text-gray-600 mt-1">Behavior intent · Fit confidence · Advocacy referrals</p>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <StatCard icon={Users} label="Total Responses" value={pulseResponses.length} color="#013f7c" />
+          <StatCard icon={TrendingUp} label="Avg Fit Confidence" value={avgConfidence ? `${avgConfidence}/10` : '—'} color="#264d44" />
+          <StatCard icon={Heart} label="Advocacy Mentions" value={advocacyCount} color="#770142" />
+          <StatCard icon={MessageSquare} label="Intent Statements" value={filtered.filter(r => r.behavior_intent?.trim()).length} color="#ff9878" />
+        </div>
+
+        {/* Filter */}
+        <div className="mb-6 max-w-xs">
+          <Select value={filterService} onValueChange={setFilterService}>
+            <SelectTrigger>
+              <SelectValue placeholder="Filter by program..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Programs</SelectItem>
+              {services.filter(s => pulseResponses.some(r => r.service_id === s.id)).map(s => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Tabs defaultValue="responses">
+          <TabsList className="bg-white shadow-md mb-6">
+            <TabsTrigger value="responses" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
+              All Responses ({filtered.length})
+            </TabsTrigger>
+            <TabsTrigger value="by_program" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
+              By Program
+            </TabsTrigger>
+            <TabsTrigger value="by_cohort" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
+              By Cohort
+            </TabsTrigger>
+            <TabsTrigger value="advocacy" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
+              Advocacy ({advocacyCount})
+            </TabsTrigger>
+          </TabsList>
+
+          {/* All Responses */}
+          <TabsContent value="responses">
+            {isLoading ? (
+              <div className="flex items-center justify-center p-12">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="bg-white rounded-xl p-12 text-center shadow-lg">
+                <MessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <h3 className="text-xl font-semibold text-gray-700 mb-2">No pulse responses yet</h3>
+                <p className="text-gray-500">Share the QR code at the end of a session to start collecting.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filtered.map(r => (
+                  <PulseResponseCard key={r.id} response={r} />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* By Program */}
+          <TabsContent value="by_program">
+            <div className="space-y-4">
+              {Object.entries(byService).map(([serviceName, svcR]) => {
+                const avgConf = svcR.filter(r => r.fit_confidence != null).length > 0
+                  ? (svcR.reduce((s, r) => s + (r.fit_confidence || 0), 0) / svcR.filter(r => r.fit_confidence != null).length)
+                  : null;
+                const advCount = svcR.filter(r => r.advocacy_referral?.trim()).length;
+                const intents = svcR.filter(r => r.behavior_intent?.trim());
+                return (
+                  <div key={serviceName} className="bg-white rounded-xl shadow-lg p-5">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-bold text-gray-800">{serviceName}</h3>
+                        <p className="text-xs text-gray-400">{svcR.length} response{svcR.length !== 1 ? 's' : ''}</p>
+                      </div>
+                      <div className="text-right text-sm space-y-0.5">
+                        {avgConf != null && <p className="text-[#013f7c] font-semibold">Confidence: {avgConf.toFixed(1)}/10</p>}
+                        <p className="text-[#770142]">Referrals: {advCount}</p>
+                      </div>
+                    </div>
+                    {avgConf != null && <ConfidenceBar value={parseFloat(avgConf.toFixed(1))} />}
+                    {intents.length > 0 && (
+                      <div className="mt-3 space-y-1 border-t pt-3">
+                        <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Intent Statements</p>
+                        {intents.slice(0, 3).map((r, i) => (
+                          <blockquote key={i} className="text-sm text-gray-600 border-l-3 border-[#264d44]/30 pl-3 italic">
+                            "{r.behavior_intent}"
+                          </blockquote>
+                        ))}
+                        {intents.length > 3 && <p className="text-xs text-gray-400">+{intents.length - 3} more</p>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {Object.keys(byService).length === 0 && (
+                <div className="bg-white rounded-xl p-12 text-center shadow-lg">
+                  <BarChart2 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-gray-500">No data yet</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* By Cohort (Client/Company) */}
+          <TabsContent value="by_cohort">
+            <div className="space-y-4">
+              {Object.entries(byClient).map(([company, cohortR]) => {
+                const avgConf = cohortR.filter(r => r.fit_confidence != null).length > 0
+                  ? (cohortR.reduce((s, r) => s + (r.fit_confidence || 0), 0) / cohortR.filter(r => r.fit_confidence != null).length)
+                  : null;
+                const advCount = cohortR.filter(r => r.advocacy_referral?.trim()).length;
+                return (
+                  <div key={company} className="bg-white rounded-xl shadow-lg p-5">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="font-bold text-gray-800">{company}</h3>
+                        <p className="text-xs text-gray-400">{cohortR.length} response{cohortR.length !== 1 ? 's' : ''}</p>
+                      </div>
+                      <div className="text-right text-sm space-y-0.5">
+                        {avgConf != null && <p className="text-[#013f7c] font-semibold">{avgConf.toFixed(1)}/10 confidence</p>}
+                        <p className="text-[#770142]">{advCount} referral{advCount !== 1 ? 's' : ''}</p>
+                      </div>
+                    </div>
+                    {avgConf != null && <ConfidenceBar value={parseFloat(avgConf.toFixed(1))} />}
+                  </div>
+                );
+              })}
+              {Object.keys(byClient).length === 0 && (
+                <div className="bg-white rounded-xl p-12 text-center shadow-lg">
+                  <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-gray-500">No cohort data yet</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Advocacy */}
+          <TabsContent value="advocacy">
+            <div className="space-y-3">
+              {filtered.filter(r => r.advocacy_referral?.trim()).map(r => (
+                <div key={r.id} className="bg-white rounded-xl shadow-sm p-4 flex flex-col gap-1">
+                  <div className="flex justify-between items-start">
+                    <p className="text-sm font-semibold text-[#770142]">"{r.advocacy_referral}"</p>
+                    {r.fit_confidence != null && (
+                      <Badge className="bg-[#013f7c]/10 text-[#013f7c]">Confidence: {r.fit_confidence}/10</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400">{r.service_name} · {r.company_name} · {r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : '—'}</p>
+                </div>
+              ))}
+              {filtered.filter(r => r.advocacy_referral?.trim()).length === 0 && (
+                <div className="bg-white rounded-xl p-12 text-center shadow-lg">
+                  <Heart className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-gray-500">No advocacy referrals yet</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
+
+function PulseResponseCard({ response }) {
   const [expanded, setExpanded] = useState(false);
   const date = response.submitted_at ? new Date(response.submitted_at).toLocaleDateString() : '—';
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-5">
-      <div className="flex flex-col md:flex-row justify-between gap-3">
-        <div>
-          <p className="font-semibold text-gray-800">{response.full_name || 'Anonymous'}</p>
-          <p className="text-sm text-gray-500">{response.company_name || '—'} • {response.email_address}</p>
-          <p className="text-xs text-gray-400 mt-1">{response.service_name} • {date}</p>
+    <div className="bg-white rounded-xl shadow-sm p-4">
+      <div className="flex flex-col sm:flex-row justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          {response.behavior_intent && (
+            <p className="text-sm text-gray-800 italic">"{response.behavior_intent}"</p>
+          )}
+          <p className="text-xs text-gray-400 mt-1">{response.service_name} · {response.company_name} · {date}</p>
         </div>
-        <div className="flex items-center gap-3">
-          {response.overall_rating && (
-            <div className="flex items-center gap-1">
-              <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-              <span className="font-semibold text-gray-700">{response.overall_rating.toFixed(1)}</span>
-            </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {response.fit_confidence != null && (
+            <Badge className="bg-[#013f7c]/10 text-[#013f7c]">{response.fit_confidence}/10</Badge>
           )}
-          {response.nps_score != null && (
-            <Badge style={{ backgroundColor: response.nps_score >= 9 ? '#264d44' : response.nps_score >= 7 ? '#f59e0b' : '#ef4444', color: 'white' }}>
-              NPS: {response.nps_score}
-            </Badge>
+          {response.advocacy_referral?.trim() && (
+            <Badge className="bg-[#770142]/10 text-[#770142]">Referral</Badge>
           )}
-          {response.raffle_address && <Badge className="bg-amber-100 text-amber-700">Raffle ✓</Badge>}
-          <Button size="sm" variant="outline" onClick={() => setExpanded(!expanded)}>
-            {expanded ? 'Less' : 'Details'}
-          </Button>
+          {response.advocacy_referral?.trim() && (
+            <Button size="sm" variant="outline" onClick={() => setExpanded(!expanded)}>
+              {expanded ? 'Less' : 'See'}
+            </Button>
+          )}
         </div>
       </div>
-
-      {expanded && (
-        <div className="mt-4 space-y-3 border-t pt-4">
-          {(response.answers || []).filter(a => a.value).map((a, idx) => (
-            <div key={idx} className="text-sm">
-              <p className="font-medium text-gray-600">{a.question_text}</p>
-              <p className="text-gray-800 mt-0.5">{a.value}</p>
-            </div>
-          ))}
-          {response.raffle_address && (
-            <div className="text-sm bg-amber-50 rounded-lg p-3">
-              <p className="font-medium text-amber-700">Raffle Address</p>
-              <p className="text-amber-900 mt-0.5">{response.raffle_address}</p>
-            </div>
-          )}
+      {expanded && response.advocacy_referral && (
+        <div className="mt-3 border-t pt-3 text-sm">
+          <p className="text-xs font-semibold text-gray-400 uppercase mb-1">Referral</p>
+          <p className="text-[#770142]">{response.advocacy_referral}</p>
         </div>
       )}
     </div>

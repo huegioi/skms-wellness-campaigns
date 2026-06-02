@@ -4,19 +4,19 @@
   "properties": {
     "survey_id": {
       "type": "string",
-      "description": "ID of the FeedbackSurvey this response belongs to (legacy)"
+      "description": "Legacy: ID of the FeedbackSurvey this response belongs to"
     },
     "service_id": {
       "type": "string",
-      "description": "Foreign key to the Service entity \u2014 which specific service/workshop this feedback is for"
+      "description": "Foreign key to the Service entity"
     },
     "service_name": {
       "type": "string",
-      "description": "Name of the service this feedback is for (denormalized for display)"
+      "description": "Name of the service (denormalized for display)"
     },
     "client_id": {
       "type": "string",
-      "description": "Foreign key to the Client entity \u2014 which company this attendee belongs to"
+      "description": "Foreign key to the Client entity"
     },
     "event_label": {
       "type": "string",
@@ -24,45 +24,57 @@
     },
     "full_name": {
       "type": "string",
-      "description": "Full name of the respondent"
+      "description": "Full name of the respondent (optional)"
     },
     "company_name": {
       "type": "string",
-      "description": "Company name of the respondent"
+      "description": "Company name of the respondent (denormalized)"
     },
     "email_address": {
       "type": "string",
       "format": "email",
-      "description": "Email address of the respondent"
+      "description": "Email address of the respondent (optional)"
     },
     "submitted_at": {
       "type": "string",
       "format": "date-time",
       "description": "When the feedback was submitted"
     },
+    "behavior_intent": {
+      "type": "string",
+      "description": "Universal Pulse: What's one thing you'll do differently this week? (\u2264140 chars)"
+    },
+    "fit_confidence": {
+      "type": "number",
+      "description": "Universal Pulse: How confident are you that this will fit into your life right now? (0-10)"
+    },
+    "advocacy_referral": {
+      "type": "string",
+      "description": "Universal Pulse: Who comes to mind that should experience this? (First name + role, optional)"
+    },
     "pre_stress_impact": {
       "type": "number",
-      "description": "ROI metric: how much the session reduced stress/presenteeism impact (1-5 scale)"
+      "description": "Legacy ROI metric: stress reduction (1-5 scale)"
     },
     "tool_equipped_confidence": {
       "type": "number",
-      "description": "ROI metric: how equipped/confident the attendee feels with new tools (1-5 scale)"
+      "description": "Legacy ROI metric: tool confidence (1-5 scale)"
     },
     "pressure_management_ability": {
       "type": "number",
-      "description": "ROI metric: ability to manage pressure/absenteeism triggers (1-5 scale)"
+      "description": "Legacy ROI metric: pressure management (1-5 scale)"
     },
     "nps_score": {
       "type": "number",
-      "description": "Net Promoter Score: likelihood to recommend (0-10)"
+      "description": "Legacy: Net Promoter Score (0-10)"
     },
     "biggest_takeaway": {
       "type": "string",
-      "description": "The attendee's biggest takeaway from the session (long text)"
+      "description": "Legacy: biggest takeaway text"
     },
     "answers": {
       "type": "array",
-      "description": "Legacy: list of question/answer pairs from survey-builder forms",
+      "description": "Legacy: list of question/answer pairs",
       "items": {
         "type": "object",
         "properties": {
@@ -80,11 +92,11 @@
     },
     "raffle_address": {
       "type": "string",
-      "description": "Mailing address for raffle entry (if provided)"
+      "description": "Legacy: raffle mailing address"
     },
     "overall_rating": {
       "type": "number",
-      "description": "Calculated average rating across all rating questions"
+      "description": "Legacy: calculated average rating"
     }
   },
   "required": [

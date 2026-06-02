@@ -5,41 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 
-// Mobile-optimized slider component
-function ScaleSlider({ value, onChange, min = 1, max = 5, labels }) {
-  return (
-    <div className="space-y-3">
-      <div className="flex gap-2">
-        {Array.from({ length: max - min + 1 }, (_, i) => i + min).map(n => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => onChange(n)}
-            className={`flex-1 h-14 rounded-xl font-bold text-lg transition-all border-2 ${
-              value === n
-                ? 'bg-[#264d44] text-white border-[#264d44] shadow-lg scale-105'
-                : 'bg-white text-gray-500 border-gray-200 hover:border-[#264d44] hover:text-[#264d44]'
-            }`}
-          >
-            {n}
-          </button>
-        ))}
-      </div>
-      {labels && (
-        <div className="flex justify-between text-xs text-gray-400 px-1">
-          <span>{labels[0]}</span>
-          <span>{labels[1]}</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function NPSRow({ value, onChange }) {
+function ConfidenceScale({ value, onChange }) {
   return (
     <div className="space-y-2">
-      <div className="flex gap-1.5 flex-wrap">
-        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+      <div className="flex gap-1 flex-wrap">
+        {[0,1,2,3,4,5,6,7,8,9,10].map(n => (
           <button
             key={n}
             type="button"
@@ -55,8 +25,8 @@ function NPSRow({ value, onChange }) {
         ))}
       </div>
       <div className="flex justify-between text-xs text-gray-400">
-        <span>Not likely</span>
-        <span>Very likely</span>
+        <span>Not at all</span>
+        <span>Absolutely</span>
       </div>
     </div>
   );
@@ -68,13 +38,9 @@ export default function AttendeeForm() {
   const clientIdFromUrl = urlParams.get('client_id');
 
   const [form, setForm] = useState({
-    pre_stress_impact: null,
-    tool_equipped_confidence: null,
-    pressure_management_ability: null,
-    nps_score: null,
-    biggest_takeaway: '',
-    full_name: '',
-    email_address: '',
+    behavior_intent: '',
+    fit_confidence: null,
+    advocacy_referral: '',
   });
   const [submitted, setSubmitted] = useState(false);
 
@@ -104,15 +70,9 @@ export default function AttendeeForm() {
       service_name: service?.name || '',
       client_id: clientIdFromUrl || '',
       company_name: client?.company || '',
-      full_name: form.full_name,
-      email_address: form.email_address,
-      pre_stress_impact: form.pre_stress_impact,
-      tool_equipped_confidence: form.tool_equipped_confidence,
-      pressure_management_ability: form.pressure_management_ability,
-      nps_score: form.nps_score,
-      biggest_takeaway: form.biggest_takeaway,
-      overall_rating: [form.pre_stress_impact, form.tool_equipped_confidence, form.pressure_management_ability]
-        .filter(Boolean).reduce((a, b, _, arr) => a + b / arr.length, 0) || null,
+      behavior_intent: form.behavior_intent,
+      fit_confidence: form.fit_confidence,
+      advocacy_referral: form.advocacy_referral || undefined,
       submitted_at: new Date().toISOString(),
     }),
     onSuccess: () => setSubmitted(true)
@@ -123,16 +83,15 @@ export default function AttendeeForm() {
     submitMutation.mutate();
   };
 
-  const canSubmit = form.pre_stress_impact && form.tool_equipped_confidence &&
-    form.pressure_management_ability && form.nps_score !== null;
+  const canSubmit = form.behavior_intent.trim().length > 0 && form.fit_confidence !== null;
 
   if (submitted) {
     return (
       <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-6">
         <div className="bg-white rounded-2xl shadow-xl p-10 max-w-sm w-full text-center">
           <CheckCircle2 className="w-20 h-20 mx-auto mb-5 text-[#264d44]" />
-          <h2 className="text-2xl font-bold text-[#013f7c] mb-2">Feedback Submitted!</h2>
-          <p className="text-gray-500 text-sm">Thank you for helping us measure the impact of your wellness program.</p>
+          <h2 className="text-2xl font-bold text-[#013f7c] mb-2">Thank you!</h2>
+          <p className="text-gray-500 text-sm">Your response helps us understand the real impact of this program.</p>
         </div>
       </div>
     );
@@ -147,95 +106,68 @@ export default function AttendeeForm() {
           alt="SKMS Wellness"
           className="h-10 mx-auto mb-3"
         />
-        <h1 className="text-xl font-bold">Session Feedback</h1>
-        {service && <p className="text-blue-200 text-sm mt-1">{service.name}</p>}
+        <h1 className="text-xl font-bold">Quick Pulse Check</h1>
+        <p className="text-blue-200 text-xs mt-1">~90 seconds · 3 questions</p>
+        {service && <p className="text-blue-200 text-sm mt-2 font-medium">{service.name}</p>}
         {client && <p className="text-blue-300 text-xs mt-0.5">{client.company}</p>}
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6">
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
 
-          {/* ROI Metrics */}
-          <div className="bg-white rounded-2xl shadow-sm p-5 space-y-6">
-            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Rate Today's Session</p>
-
-            <div>
-              <label className="block text-base font-semibold text-gray-800 mb-1">
-                How much did today reduce your stress/mental load?
-              </label>
-              <p className="text-xs text-gray-400 mb-3">1 = Not at all · 5 = Significantly</p>
-              <ScaleSlider
-                value={form.pre_stress_impact}
-                onChange={v => setForm(f => ({ ...f, pre_stress_impact: v }))}
-                labels={['Not at all', 'Significantly']}
-              />
-            </div>
-
-            <div className="border-t pt-5">
-              <label className="block text-base font-semibold text-gray-800 mb-1">
-                How equipped do you feel to apply these tools at work?
-              </label>
-              <p className="text-xs text-gray-400 mb-3">1 = Not equipped · 5 = Very confident</p>
-              <ScaleSlider
-                value={form.tool_equipped_confidence}
-                onChange={v => setForm(f => ({ ...f, tool_equipped_confidence: v }))}
-                labels={['Not equipped', 'Very confident']}
-              />
-            </div>
-
-            <div className="border-t pt-5">
-              <label className="block text-base font-semibold text-gray-800 mb-1">
-                How much better can you manage pressure after this session?
-              </label>
-              <p className="text-xs text-gray-400 mb-3">1 = No change · 5 = Much better</p>
-              <ScaleSlider
-                value={form.pressure_management_ability}
-                onChange={v => setForm(f => ({ ...f, pressure_management_ability: v }))}
-                labels={['No change', 'Much better']}
-              />
-            </div>
-          </div>
-
-          {/* NPS */}
-          <div className="bg-white rounded-2xl shadow-sm p-5 space-y-3">
-            <label className="block text-base font-semibold text-gray-800">
-              How likely are you to recommend this program to a colleague?
-            </label>
-            <NPSRow
-              value={form.nps_score}
-              onChange={v => setForm(f => ({ ...f, nps_score: v }))}
-            />
-          </div>
-
-          {/* Biggest Takeaway */}
+          {/* Q1: Behavior Intent */}
           <div className="bg-white rounded-2xl shadow-sm p-5">
-            <label className="block text-base font-semibold text-gray-800 mb-2">
-              What's your biggest takeaway from today?
-            </label>
+            <div className="flex items-start gap-2 mb-3">
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-[#013f7c] text-white text-sm font-bold flex items-center justify-center">1</span>
+              <label className="text-base font-semibold text-gray-800 leading-snug">
+                What's one thing you'll do differently this week because of this?
+              </label>
+            </div>
             <Textarea
-              value={form.biggest_takeaway}
-              onChange={e => setForm(f => ({ ...f, biggest_takeaway: e.target.value }))}
-              placeholder="Share one thing you'll carry with you..."
+              value={form.behavior_intent}
+              onChange={e => {
+                if (e.target.value.length <= 140) {
+                  setForm(f => ({ ...f, behavior_intent: e.target.value }));
+                }
+              }}
+              placeholder="e.g. I'll take a 5-minute breathing break before meetings..."
               rows={3}
               className="resize-none"
+              required
+            />
+            <p className="text-right text-xs text-gray-400 mt-1">{form.behavior_intent.length}/140</p>
+          </div>
+
+          {/* Q2: Fit Confidence */}
+          <div className="bg-white rounded-2xl shadow-sm p-5">
+            <div className="flex items-start gap-2 mb-4">
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-[#013f7c] text-white text-sm font-bold flex items-center justify-center">2</span>
+              <label className="text-base font-semibold text-gray-800 leading-snug">
+                How confident are you that this will fit into your life right now?
+              </label>
+            </div>
+            <ConfidenceScale
+              value={form.fit_confidence}
+              onChange={v => setForm(f => ({ ...f, fit_confidence: v }))}
             />
           </div>
 
-          {/* Optional contact */}
-          <div className="bg-white rounded-2xl shadow-sm p-5 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Optional — Your Info</p>
+          {/* Q3: Advocacy / Referral */}
+          <div className="bg-white rounded-2xl shadow-sm p-5">
+            <div className="flex items-start gap-2 mb-3">
+              <span className="flex-shrink-0 w-7 h-7 rounded-full bg-[#264d44] text-white text-sm font-bold flex items-center justify-center">3</span>
+              <div>
+                <label className="text-base font-semibold text-gray-800 leading-snug">
+                  Who comes to mind that should experience this?
+                </label>
+                <p className="text-xs text-gray-400 mt-0.5">First name + role (optional)</p>
+              </div>
+            </div>
             <input
               type="text"
-              value={form.full_name}
-              onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
-              placeholder="Your name (optional)"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#013f7c]/20"
-            />
-            <input
-              type="email"
-              value={form.email_address}
-              onChange={e => setForm(f => ({ ...f, email_address: e.target.value }))}
-              placeholder="Email (optional)"
+              value={form.advocacy_referral}
+              onChange={e => setForm(f => ({ ...f, advocacy_referral: e.target.value }))}
+              placeholder="e.g. Sarah, team lead · Marcus, new hire"
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#013f7c]/20"
             />
           </div>
@@ -248,11 +180,11 @@ export default function AttendeeForm() {
           >
             {submitMutation.isPending
               ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Submitting...</>
-              : 'Submit Feedback'}
+              : 'Submit'}
           </Button>
 
           {!canSubmit && (
-            <p className="text-center text-xs text-gray-400">Please answer all rating questions to submit.</p>
+            <p className="text-center text-xs text-gray-400">Please answer questions 1 and 2 to submit.</p>
           )}
         </form>
       </div>
