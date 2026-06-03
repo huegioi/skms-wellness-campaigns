@@ -16,12 +16,10 @@ Deno.serve(async (req) => {
       submitted_at,
     } = body;
 
-    // Validate required fields
     if (!behavior_intent || fit_confidence == null) {
       return Response.json({ error: 'behavior_intent and fit_confidence are required' }, { status: 400 });
     }
 
-    // Use service role so unauthenticated attendees can submit
     const record = await base44.asServiceRole.entities.FeedbackResponse.create({
       service_id: service_id || '',
       service_name: service_name || '',
