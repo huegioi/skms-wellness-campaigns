@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MoreVertical, UserCog, StickyNote, Pencil, Trash2, ArrowRightLeft } from 'lucide-react';
+import { MoreVertical, UserCog, StickyNote, Pencil, Trash2 } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import StagePlaybookDialog from './StagePlaybookDialog';
 
@@ -31,7 +32,13 @@ const LIFECYCLE_STAGES = [
   { key: '__none__',          label: 'No Stage',            desc: 'Clients with no stage set yet',                                   headerClass: 'bg-slate-50 border-slate-200',   textClass: 'text-slate-500' },
 ];
 
+const ALL_STAGE_KEYS = [
+  ...SALES_STAGES.map(s => s.key),
+  ...LIFECYCLE_STAGES.map(s => s.key),
+];
+
 const NEEDS_ATTENTION_STAGES = new Set(['nurture', 'program_delivery']);
+const OWNERS = ['William', 'Heather'];
 
 function daysAgo(dateStr) {
   if (!dateStr) return null;
@@ -94,72 +101,36 @@ function SalesAlertBadge({ client }) {
   return null;
 }
 
-const ALL_STAGES = [
-  { value: 'discovery_call_scheduled', label: 'Discovery Call Scheduled' },
-  { value: 'discovery_call_complete', label: 'Discovery Call Complete' },
-  { value: 'proposal_sent', label: 'Proposal Sent' },
-  { value: 'proposal_viewed', label: 'Proposal Viewed' },
-  { value: 'negotiation', label: 'Negotiation' },
-  { value: 'verbal_yes', label: 'Verbal Yes' },
-  { value: 'new_client_setup', label: 'New Client Setup' },
-  { value: 'program_delivery', label: 'Program Delivery' },
-  { value: 'followup_feedback', label: 'Follow-up & Feedback' },
-  { value: 'nurture', label: 'Nurture' },
-  { value: 'renewal_outreach', label: 'Renewal Outreach' },
-  { value: 're_engage', label: 'Re-engage' },
-  { value: 'churned', label: 'Churned' },
-];
-
-const OWNERS = ['William', 'Heather'];
-
-function ClientCard({ client, onStageChange, onOwnerChange, onLogNote, onEditInfo, onDelete, onClick, isSalesStage }) {
+function ClientCard({ client, provided, snapshot, onOwnerChange, onLogNote, onEditInfo, onDelete, onClick, isSalesStage }) {
   const ago = daysAgo(client.last_contacted_date || client.last_contacted);
   const needsAttention = ago !== null && ago > 60 && NEEDS_ATTENTION_STAGES.has(client.client_stage);
+  const hasBadges = needsAttention || (isSalesStage && (client.client_stage === 'proposal_sent' || client.client_stage === 'negotiation' || client.client_stage === 'discovery_call_scheduled'));
 
   return (
     <div
-      className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+      ref={provided.innerRef}
+      {...provided.draggableProps}
+      {...provided.dragHandleProps}
+      className={`bg-white rounded-lg border p-3 shadow-sm transition-shadow cursor-grab active:cursor-grabbing select-none ${
+        snapshot.isDragging ? 'shadow-lg border-[#264d44] ring-2 ring-[#264d44]/20 rotate-1' : 'border-gray-200 hover:shadow-md'
+      }`}
       onClick={onClick}
     >
-      {/* Header row: badges + menu */}
-      <div className="flex items-start justify-between mb-1.5">
-        <div className="flex flex-wrap gap-1">
-          {needsAttention && (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
-              ⚠ Needs attention
-            </span>
-          )}
-          {isSalesStage && <SalesAlertBadge client={client} />}
+      {/* Header row: name + menu — tight layout */}
+      <div className="flex items-start justify-between gap-1 mb-1">
+        <div className="min-w-0">
+          <p className="font-semibold text-[#264d44] text-sm leading-tight truncate">{client.company || client.name}</p>
+          {client.company && <p className="text-xs text-gray-500 truncate">{client.name}</p>}
         </div>
-
         {/* Quick-action dropdown */}
-        <div onClick={(e) => e.stopPropagation()}>
+        <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 flex-shrink-0">
-                <MoreVertical className="w-4 h-4" />
+              <button className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                <MoreVertical className="w-3.5 h-3.5" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              {/* Change Stage submenu */}
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="gap-2">
-                  <ArrowRightLeft className="w-4 h-4" /> Change Stage
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
-                  {ALL_STAGES.map(s => (
-                    <DropdownMenuItem
-                      key={s.value}
-                      className={client.client_stage === s.value ? 'font-semibold text-[#264d44]' : ''}
-                      onClick={() => onStageChange(client.id, s.value)}
-                    >
-                      {client.client_stage === s.value ? '✓ ' : ''}{s.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-
-              {/* Assign Owner submenu */}
+            <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className="gap-2">
                   <UserCog className="w-4 h-4" /> Assign Owner
@@ -204,67 +175,52 @@ function ClientCard({ client, onStageChange, onOwnerChange, onLogNote, onEditInf
         </div>
       </div>
 
-      {/* Name + Company */}
-      <div className="mb-1">
-        <p className="font-semibold text-[#264d44] text-sm leading-tight">{client.company || client.name}</p>
-        {client.company && <p className="text-xs text-gray-500">{client.name}</p>}
-      </div>
+      {/* Alert badges — only render row if there are badges */}
+      {hasBadges && (
+        <div className="flex flex-wrap gap-1 mb-1">
+          {needsAttention && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
+              ⚠ Needs attention
+            </span>
+          )}
+          {isSalesStage && <SalesAlertBadge client={client} />}
+        </div>
+      )}
 
-      {client.owner && <p className="text-xs text-gray-500 mb-1.5">👤 {client.owner}</p>}
+      {client.owner && <p className="text-xs text-gray-500 mb-0.5">👤 {client.owner}</p>}
 
       {ago !== null ? (
-        <p className={`text-xs mb-1 ${ago > 60 ? 'text-red-500 font-medium' : ago > 30 ? 'text-amber-600' : 'text-gray-500'}`}>
+        <p className={`text-xs mb-0.5 ${ago > 60 ? 'text-red-500 font-medium' : ago > 30 ? 'text-amber-600' : 'text-gray-500'}`}>
           Last contact: {ago === 0 ? 'today' : `${ago}d ago`}
         </p>
       ) : (
-        <p className="text-xs text-gray-400 mb-1">No contact recorded</p>
+        <p className="text-xs text-gray-400 mb-0.5">No contact recorded</p>
       )}
 
       {client.renewal_date && (
-        <div className="mb-1.5"><RenewalBadge dateStr={client.renewal_date} /></div>
+        <div className="mb-0.5"><RenewalBadge dateStr={client.renewal_date} /></div>
       )}
 
-      <div className="flex items-center gap-3 mb-2 text-xs text-gray-600">
-        {(client.total_invoice_value || 0) > 0 && (
-          <span className="text-green-700 font-medium">${client.total_invoice_value.toLocaleString()}</span>
-        )}
-        {(client.purchased_services?.length || 0) > 0 && (
-          <span>{client.purchased_services.length} service{client.purchased_services.length !== 1 ? 's' : ''}</span>
-        )}
-      </div>
+      {((client.total_invoice_value || 0) > 0 || (client.purchased_services?.length || 0) > 0) && (
+        <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
+          {(client.total_invoice_value || 0) > 0 && (
+            <span className="text-green-700 font-medium">${client.total_invoice_value.toLocaleString()}</span>
+          )}
+          {(client.purchased_services?.length || 0) > 0 && (
+            <span>{client.purchased_services.length} service{client.purchased_services.length !== 1 ? 's' : ''}</span>
+          )}
+        </div>
+      )}
 
-      {/* Stage dropdown */}
-      <div onClick={(e) => e.stopPropagation()}>
-        <Select
-          value={client.client_stage || '__none__'}
-          onValueChange={(val) => onStageChange(client.id, val === '__none__' ? null : val)}
-        >
-          <SelectTrigger className="h-7 text-xs w-full">
-            <SelectValue placeholder="Set stage" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="discovery_call_scheduled" className="text-sky-700 font-medium">Discovery Call Scheduled</SelectItem>
-            <SelectItem value="discovery_call_complete" className="text-cyan-700 font-medium">Discovery Call Complete</SelectItem>
-            <SelectItem value="proposal_sent" className="text-indigo-700 font-medium">Proposal Sent</SelectItem>
-            <SelectItem value="proposal_viewed" className="text-violet-700 font-medium">Proposal Viewed</SelectItem>
-            <SelectItem value="negotiation" className="text-purple-700 font-medium">Negotiation</SelectItem>
-            <SelectItem value="verbal_yes" className="text-blue-800 font-medium">Verbal Yes</SelectItem>
-            <SelectItem value="new_client_setup">New Client Setup</SelectItem>
-            <SelectItem value="program_delivery">Program Delivery</SelectItem>
-            <SelectItem value="followup_feedback">Follow-up & Feedback</SelectItem>
-            <SelectItem value="nurture">Nurture</SelectItem>
-            <SelectItem value="renewal_outreach">Renewal Outreach</SelectItem>
-            <SelectItem value="re_engage">Re-engage</SelectItem>
-            <SelectItem value="churned">Churned</SelectItem>
-            <SelectItem value="__none__">No Stage</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Drag hint */}
+      {!snapshot.isDragging && (
+        <p className="text-xs text-gray-300 mt-1.5 text-center select-none">⠿ drag to move stage</p>
+      )}
     </div>
   );
 }
 
-function StageColumn({ stage, clients, onStageChange, onOwnerChange, onLogNote, onEditInfo, onDelete, onClientClick, onHeaderClick, isSalesStage }) {
+function StageColumn({ stage, clients, onOwnerChange, onLogNote, onEditInfo, onDelete, onClientClick, onHeaderClick, isSalesStage }) {
   return (
     <div className="w-56 flex-shrink-0">
       <div
@@ -281,27 +237,42 @@ function StageColumn({ stage, clients, onStageChange, onOwnerChange, onLogNote, 
         <p className="text-xs text-gray-400 mt-0.5 leading-tight">{stage.desc}</p>
       </div>
 
-      <div className="space-y-2">
-        {clients.length === 0 ? (
-          <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center text-xs text-gray-400">
-            No clients
+      <Droppable droppableId={stage.key}>
+        {(provided, snapshot) => (
+          <div
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className={`space-y-2 min-h-[60px] rounded-b-lg transition-colors ${
+              snapshot.isDraggingOver ? 'bg-[#264d44]/5 ring-2 ring-[#264d44]/20' : ''
+            }`}
+          >
+            {clients.length === 0 && !snapshot.isDraggingOver ? (
+              <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center text-xs text-gray-400">
+                Drop here
+              </div>
+            ) : (
+              clients.map((client, index) => (
+                <Draggable key={client.id} draggableId={client.id} index={index}>
+                  {(provided, snapshot) => (
+                    <ClientCard
+                      client={client}
+                      provided={provided}
+                      snapshot={snapshot}
+                      onOwnerChange={onOwnerChange}
+                      onLogNote={onLogNote}
+                      onEditInfo={onEditInfo}
+                      onDelete={onDelete}
+                      onClick={() => !snapshot.isDragging && onClientClick(client)}
+                      isSalesStage={isSalesStage}
+                    />
+                  )}
+                </Draggable>
+              ))
+            )}
+            {provided.placeholder}
           </div>
-        ) : (
-          clients.map(client => (
-            <ClientCard
-              key={client.id}
-              client={client}
-              onStageChange={onStageChange}
-              onOwnerChange={onOwnerChange}
-              onLogNote={onLogNote}
-              onEditInfo={onEditInfo}
-              onDelete={onDelete}
-              onClick={() => onClientClick(client)}
-              isSalesStage={isSalesStage}
-            />
-          ))
         )}
-      </div>
+      </Droppable>
     </div>
   );
 }
@@ -309,15 +280,23 @@ function StageColumn({ stage, clients, onStageChange, onOwnerChange, onLogNote, 
 export default function ClientPipelineView({ clients, ownerFilter, onClientClick }) {
   const queryClient = useQueryClient();
   const [playbookStage, setPlaybookStage] = useState(null);
-  const [noteDialog, setNoteDialog] = useState(null); // { client }
-  const [editDialog, setEditDialog] = useState(null); // { client }
+  const [noteDialog, setNoteDialog] = useState(null);
+  const [editDialog, setEditDialog] = useState(null);
   const [noteText, setNoteText] = useState('');
   const [editForm, setEditForm] = useState({});
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['clients'] });
 
-  const handleStageChange = async (clientId, newStage) => {
-    await base44.entities.Client.update(clientId, { client_stage: newStage, stage_entered_date: new Date().toISOString().split('T')[0] });
+  const handleDragEnd = async (result) => {
+    const { destination, source, draggableId } = result;
+    if (!destination) return;
+    if (destination.droppableId === source.droppableId) return;
+
+    const newStage = destination.droppableId === '__none__' ? null : destination.droppableId;
+    await base44.entities.Client.update(draggableId, {
+      client_stage: newStage,
+      stage_entered_date: new Date().toISOString().split('T')[0],
+    });
     refresh();
   };
 
@@ -369,69 +348,45 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
   const salesTotal = SALES_STAGES.reduce((sum, s) => sum + stageClients(s.key).length, 0);
   const lifecycleTotal = LIFECYCLE_STAGES.reduce((sum, s) => sum + stageClients(s.key).length, 0);
 
+  const columnProps = { onOwnerChange: handleOwnerChange, onLogNote: handleLogNote, onEditInfo: handleEditInfo, onDelete: handleDelete, onClientClick, onHeaderClick: setPlaybookStage };
+
   return (
     <>
-      <div className="overflow-x-auto pb-4">
-        <div className="flex flex-col gap-4 min-w-max">
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="overflow-x-auto pb-4">
+          <div className="flex flex-col gap-4 min-w-max">
 
-          {/* ── Sales Pipeline section ── */}
-          <div>
-            <div className="mb-3 px-3 py-2 rounded-lg flex items-center gap-2" style={{ background: 'linear-gradient(90deg, #1d4ed8 0%, #2563eb 100%)' }}>
-              <span className="text-white font-bold text-sm tracking-wide">🔵 Sales Pipeline</span>
-              <span className="ml-auto text-blue-100 text-xs font-medium">{salesTotal} prospect{salesTotal !== 1 ? 's' : ''}</span>
+            {/* ── Sales Pipeline ── */}
+            <div>
+              <div className="mb-3 px-3 py-2 rounded-lg flex items-center gap-2" style={{ background: 'linear-gradient(90deg, #1d4ed8 0%, #2563eb 100%)' }}>
+                <span className="text-white font-bold text-sm tracking-wide">🔵 Sales Pipeline</span>
+                <span className="ml-auto text-blue-100 text-xs font-medium">{salesTotal} prospect{salesTotal !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="flex gap-4">
+                {SALES_STAGES.map(stage => (
+                  <StageColumn key={stage.key} stage={stage} clients={stageClients(stage.key)} isSalesStage={true} {...columnProps} />
+                ))}
+              </div>
             </div>
-            <div className="flex gap-4">
-              {SALES_STAGES.map(stage => (
-                <StageColumn
-                  key={stage.key}
-                  stage={stage}
-                  clients={stageClients(stage.key)}
-                  onStageChange={handleStageChange}
-                  onOwnerChange={handleOwnerChange}
-                  onLogNote={handleLogNote}
-                  onEditInfo={handleEditInfo}
-                  onDelete={handleDelete}
-                  onClientClick={onClientClick}
-                  onHeaderClick={setPlaybookStage}
-                  isSalesStage={true}
-                />
-              ))}
+
+            {/* ── Client Lifecycle ── */}
+            <div>
+              <div className="mb-3 px-3 py-2 rounded-lg flex items-center gap-2" style={{ background: 'linear-gradient(90deg, #166534 0%, #16a34a 100%)' }}>
+                <span className="text-white font-bold text-sm tracking-wide">🟢 Client Lifecycle</span>
+                <span className="ml-auto text-green-100 text-xs font-medium">{lifecycleTotal} client{lifecycleTotal !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="flex gap-4">
+                {LIFECYCLE_STAGES.map(stage => (
+                  <StageColumn key={stage.key} stage={stage} clients={stageClients(stage.key)} isSalesStage={false} {...columnProps} />
+                ))}
+              </div>
             </div>
+
           </div>
-
-          {/* ── Client Lifecycle section ── */}
-          <div>
-            <div className="mb-3 px-3 py-2 rounded-lg flex items-center gap-2" style={{ background: 'linear-gradient(90deg, #166534 0%, #16a34a 100%)' }}>
-              <span className="text-white font-bold text-sm tracking-wide">🟢 Client Lifecycle</span>
-              <span className="ml-auto text-green-100 text-xs font-medium">{lifecycleTotal} client{lifecycleTotal !== 1 ? 's' : ''}</span>
-            </div>
-            <div className="flex gap-4">
-              {LIFECYCLE_STAGES.map(stage => (
-                <StageColumn
-                  key={stage.key}
-                  stage={stage}
-                  clients={stageClients(stage.key)}
-                  onStageChange={handleStageChange}
-                  onOwnerChange={handleOwnerChange}
-                  onLogNote={handleLogNote}
-                  onEditInfo={handleEditInfo}
-                  onDelete={handleDelete}
-                  onClientClick={onClientClick}
-                  onHeaderClick={setPlaybookStage}
-                  isSalesStage={false}
-                />
-              ))}
-            </div>
-          </div>
-
         </div>
-      </div>
+      </DragDropContext>
 
-      <StagePlaybookDialog
-        stageKey={playbookStage}
-        open={!!playbookStage}
-        onClose={() => setPlaybookStage(null)}
-      />
+      <StagePlaybookDialog stageKey={playbookStage} open={!!playbookStage} onClose={() => setPlaybookStage(null)} />
 
       {/* Log Note Dialog */}
       <Dialog open={!!noteDialog} onOpenChange={(open) => !open && setNoteDialog(null)}>
@@ -440,17 +395,9 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
             <DialogTitle>Log Note — {noteDialog?.company || noteDialog?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 mt-2">
-            <Textarea
-              placeholder="Enter your note..."
-              rows={4}
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              autoFocus
-            />
+            <Textarea placeholder="Enter your note..." rows={4} value={noteText} onChange={(e) => setNoteText(e.target.value)} autoFocus />
             <div className="flex gap-2">
-              <Button className="flex-1 bg-[#264d44] hover:bg-[#1a3830]" onClick={handleSaveNote} disabled={!noteText.trim()}>
-                Save Note
-              </Button>
+              <Button className="flex-1 bg-[#264d44] hover:bg-[#1a3830]" onClick={handleSaveNote} disabled={!noteText.trim()}>Save Note</Button>
               <Button variant="outline" onClick={() => setNoteDialog(null)}>Cancel</Button>
             </div>
           </div>
