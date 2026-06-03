@@ -44,6 +44,7 @@ export default function ReferralPortal() {
   const [selectedClientROI, setSelectedClientROI] = useState(null); // { id, company }
   const [activeTab, setActiveTab] = useState('dashboard'); // 'onboarding' | 'dashboard'
   const [commissionsOpen, setCommissionsOpen] = useState(false);
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
 
   const { data: services = [] } = useQuery({
     queryKey: ['services'],
@@ -299,15 +300,24 @@ export default function ReferralPortal() {
           })}
         </div>
 
-        {/* How It Works */}
+        {/* Portfolio Feedback Roll-Up — top of dashboard */}
+        {client_companies.length > 0 && (
+          <BrokerFeedbackRollup clientCompanies={client_companies} />
+        )}
+
+        {/* How It Works — collapsible */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
+          <button
+            onClick={() => setHowItWorksOpen(o => !o)}
+            className="w-full flex items-center justify-between px-6 py-4 text-left"
+          >
+            <span className="flex items-center gap-2 font-semibold text-base text-gray-800">
               <TrendingUp className="w-5 h-5 text-[#264d44]" />
               How the Program Works
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
+            </span>
+            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${howItWorksOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {howItWorksOpen && <CardContent className="pt-0 space-y-5">
             {/* Steps */}
             <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
               {[
@@ -359,7 +369,7 @@ export default function ReferralPortal() {
                 ))}
               </div>
             </div>
-          </CardContent>
+          </CardContent>}
         </Card>
 
         {/* Commission Tiers — collapsible */}
@@ -587,11 +597,6 @@ export default function ReferralPortal() {
               </div>
             </CardContent>
           </Card>
-        )}
-
-        {/* Portfolio Feedback Roll-Up */}
-        {client_companies.length > 0 && (
-          <BrokerFeedbackRollup clientCompanies={client_companies} />
         )}
 
         {/* Book of Business — ROI Drill-Down */}
