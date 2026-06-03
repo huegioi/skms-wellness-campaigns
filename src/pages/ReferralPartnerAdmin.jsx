@@ -156,18 +156,22 @@ export default function ReferralPartnerAdmin() {
         <PartnerPipelineView partners={partners} referrals={referrals} />
       )}
 
-      {viewMode === 'list' && isLoading ? (
+      {viewMode === 'list' && isLoading && (
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-4 border-[#013f7c] border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : viewMode === 'list' && partners.length === 0 ? (
+      )}
+
+      {viewMode === 'list' && !isLoading && partners.length === 0 && (
         <Card>
           <CardContent className="text-center py-16">
             <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">No referral partners yet. Add your first partner to get started.</p>
           </CardContent>
         </Card>
-      ) : viewMode === 'list' ? (
+      )}
+
+      {viewMode === 'list' && !isLoading && partners.length > 0 && (
         <div className="space-y-4">
           {partners.map(partner => {
             const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id && r.referral_partner_id);
@@ -258,7 +262,7 @@ export default function ReferralPartnerAdmin() {
             );
           })}
         </div>
-      ) : null}
+      )}
 
       {/* Add/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={v => { setShowDialog(v); if (!v) setEditing(null); }}>
