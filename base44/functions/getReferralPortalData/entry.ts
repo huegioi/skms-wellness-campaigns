@@ -25,17 +25,9 @@ Deno.serve(async (req) => {
   // Build a set of owned client IDs for all sub-queries
   const ownedClientIdSet = new Set(ownedClients.map(c => c.id));
 
-  // ─── DATA EXISTS FILTER: Only show clients with at least one FeedbackResponse ───
-  // Fetch all feedback responses for any of the owned clients in one query
-  const allFeedback = await base44.asServiceRole.entities.FeedbackResponse.list('-submitted_at', 1000);
-  const clientsWithData = new Set(
-    allFeedback
-      .filter(r => r.client_id && ownedClientIdSet.has(r.client_id))
-      .map(r => r.client_id)
-  );
-
+  // Show ALL linked clients regardless of whether they have feedback yet
   const clientCompanies = ownedClients
-    .filter(c => c.company && clientsWithData.has(c.id))
+    .filter(c => c.company)
     .map(c => ({ id: c.id, company: c.company, name: c.name, email: c.email }));
 
   // Deduplicate by company name, keeping first match
