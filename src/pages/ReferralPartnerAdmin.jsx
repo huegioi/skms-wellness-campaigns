@@ -8,9 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, ChevronUp, LayoutGrid, List } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
+import PartnerPipelineView from '@/components/partners/PartnerPipelineView';
 
 const DEFAULT_TIERS = [
   { label: 'Introducing Partner', min_revenue: 0, max_revenue: 74999, rate: 0.10 },
@@ -56,6 +57,7 @@ export default function ReferralPartnerAdmin() {
 
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const [expandedPartner, setExpandedPartner] = useState(null);
+  const [viewMode, setViewMode] = useState('list');
 
   const { data: partners = [], isLoading } = useQuery({
     queryKey: ['referralPartners'],
@@ -129,23 +131,43 @@ export default function ReferralPartnerAdmin() {
           <h1 className="text-2xl font-bold text-gray-800">Referral Partners</h1>
           <p className="text-gray-500 text-sm mt-1">Manage broker referral partners and their portal access</p>
         </div>
-        <Button onClick={openNew} className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2">
-          <Plus className="w-4 h-4" /> Add Partner
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1.5 text-sm flex items-center gap-1.5 transition-colors ${viewMode === 'list' ? 'bg-[#013f7c] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+            >
+              <List className="w-4 h-4" /> List
+            </button>
+            <button
+              onClick={() => setViewMode('pipeline')}
+              className={`px-3 py-1.5 text-sm flex items-center gap-1.5 transition-colors ${viewMode === 'pipeline' ? 'bg-[#013f7c] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+            >
+              <LayoutGrid className="w-4 h-4" /> Pipeline
+            </button>
+          </div>
+          <Button onClick={openNew} className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2">
+            <Plus className="w-4 h-4" /> Add Partner
+          </Button>
+        </div>
       </div>
 
-      {isLoading ? (
+      {viewMode === 'pipeline' && !isLoading && (
+        <PartnerPipelineView partners={partners} referrals={referrals} />
+      )}
+
+      {viewMode === 'list' && isLoading ? (
         <div className="flex items-center justify-center py-20">
           <div className="w-8 h-8 border-4 border-[#013f7c] border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : partners.length === 0 ? (
+      ) : viewMode === 'list' && partners.length === 0 ? (
         <Card>
           <CardContent className="text-center py-16">
             <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">No referral partners yet. Add your first partner to get started.</p>
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === 'list' ? (
         <div className="space-y-4">
           {partners.map(partner => {
             const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id && r.referral_partner_id);
@@ -236,7 +258,7 @@ export default function ReferralPartnerAdmin() {
             );
           })}
         </div>
-      )}
+      ) : null}
 
       {/* Add/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={v => { setShowDialog(v); if (!v) setEditing(null); }}>
