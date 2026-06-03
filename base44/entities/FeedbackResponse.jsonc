@@ -103,7 +103,7 @@
     "submitted_at"
   ],
   "rls": {
-    "create": {},
+    "create": true,
     "read": {
       "user_condition": {
         "role": {

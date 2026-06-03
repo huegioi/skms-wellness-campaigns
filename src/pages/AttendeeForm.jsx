@@ -65,7 +65,7 @@ export default function AttendeeForm() {
   });
 
   const submitMutation = useMutation({
-    mutationFn: () => base44.functions.invoke('submitFeedbackResponse', {
+    mutationFn: () => base44.entities.FeedbackResponse.create({
       service_id: serviceIdFromUrl || '',
       service_name: service?.name || '',
       client_id: clientIdFromUrl || '',
