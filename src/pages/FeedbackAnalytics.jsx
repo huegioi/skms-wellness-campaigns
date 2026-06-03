@@ -44,7 +44,7 @@ function avgConf(arr) {
 
 function GroupCard({ title, subtitle, responses }) {
   const avg = avgConf(responses);
-  const advCount = responses.filter(r => r.advocacy_referral?.trim()).length;
+  const impactCount = responses.filter(r => Array.isArray(r.expected_impact) && r.expected_impact.length > 0).length;
   const intents = responses.filter(r => r.behavior_intent?.trim());
   return (
     <div className="bg-white rounded-xl shadow-lg p-5">
@@ -55,7 +55,7 @@ function GroupCard({ title, subtitle, responses }) {
         </div>
         <div className="text-right text-sm space-y-0.5">
           {avg != null && <p className="text-[#013f7c] font-semibold">Confidence: {avg.toFixed(1)}/10</p>}
-          <p className="text-[#770142]">Referrals: {advCount}</p>
+          <p className="text-[#770142]">Impact selections: {impactCount}</p>
         </div>
       </div>
       {avg != null && <ConfidenceBar value={parseFloat(avg.toFixed(1))} />}
@@ -91,27 +91,28 @@ function PulseResponseCard({ response }) {
             {' · '}{date}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
           {response.fit_confidence != null && (
             <Badge className="bg-[#013f7c]/10 text-[#013f7c]">{response.fit_confidence}/10</Badge>
           )}
           {response.delivery_format && (
             <Badge variant="outline" className="capitalize">{response.delivery_format.replace('_', '-')}</Badge>
           )}
-          {response.advocacy_referral?.trim() && (
-            <Badge className="bg-[#770142]/10 text-[#770142]">Referral</Badge>
-          )}
-          {response.advocacy_referral?.trim() && (
+          {Array.isArray(response.expected_impact) && response.expected_impact.length > 0 && (
             <Button size="sm" variant="outline" onClick={() => setExpanded(!expanded)}>
-              {expanded ? 'Less' : 'See'}
+              {expanded ? 'Less' : `Impact (${response.expected_impact.length})`}
             </Button>
           )}
         </div>
       </div>
-      {expanded && response.advocacy_referral && (
-        <div className="mt-3 border-t pt-3 text-sm">
-          <p className="text-xs font-semibold text-gray-400 uppercase mb-1">Referral</p>
-          <p className="text-[#770142]">{response.advocacy_referral}</p>
+      {expanded && Array.isArray(response.expected_impact) && response.expected_impact.length > 0 && (
+        <div className="mt-3 border-t pt-3">
+          <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Expected Impact</p>
+          <div className="flex flex-wrap gap-1.5">
+            {response.expected_impact.map(imp => (
+              <Badge key={imp} className="bg-[#264d44]/10 text-[#264d44] text-xs">{imp}</Badge>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -206,8 +207,19 @@ export default function FeedbackAnalytics() {
 
   // ── Aggregations ──────────────────────────────────────────────────────────
   const avg = avgConf(filtered);
-  const advocacyCount = filtered.filter(r => r.advocacy_referral?.trim()).length;
   const intentCount = filtered.filter(r => r.behavior_intent?.trim()).length;
+
+  // Aggregate expected_impact (array field) across all filtered responses
+  const impactTally = {};
+  for (const r of filtered) {
+    if (Array.isArray(r.expected_impact)) {
+      for (const impact of r.expected_impact) {
+        impactTally[impact] = (impactTally[impact] || 0) + 1;
+      }
+    }
+  }
+  const impactEntries = Object.entries(impactTally).sort((a, b) => b[1] - a[1]);
+  const maxImpact = impactEntries[0]?.[1] || 1;
 
   // By Program (service_name)
   const byService = useMemo(() => {
@@ -255,7 +267,7 @@ export default function FeedbackAnalytics() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <StatCard icon={Users} label="Responses" value={filtered.length} color="#013f7c" />
           <StatCard icon={TrendingUp} label="Avg Fit Confidence" value={avg ? `${avg.toFixed(1)}/10` : '—'} color="#264d44" />
-          <StatCard icon={Heart} label="Advocacy Mentions" value={advocacyCount} color="#770142" />
+          <StatCard icon={Heart} label="Top Impact Area" value={impactEntries[0]?.[0]?.split(' ').slice(0,2).join(' ') + '…' || '—'} color="#770142" />
           <StatCard icon={MessageSquare} label="Intent Statements" value={intentCount} color="#ff9878" />
         </div>
 
@@ -275,8 +287,8 @@ export default function FeedbackAnalytics() {
               <TabsTrigger value="by_cohort" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
                 By Cohort ({Object.keys(byCohort).length})
               </TabsTrigger>
-              <TabsTrigger value="advocacy" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
-                Advocacy ({advocacyCount})
+              <TabsTrigger value="impact" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
+                Impact Areas ({impactEntries.length})
               </TabsTrigger>
             </TabsList>
 
@@ -341,29 +353,28 @@ export default function FeedbackAnalytics() {
               )}
             </TabsContent>
 
-            {/* Advocacy */}
-            <TabsContent value="advocacy">
-              {filtered.filter(r => r.advocacy_referral?.trim()).length === 0 ? (
+            {/* Impact Areas */}
+            <TabsContent value="impact">
+              {impactEntries.length === 0 ? (
                 <div className="bg-white rounded-xl p-12 text-center shadow-lg">
                   <Heart className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-gray-500">No advocacy referrals match current filters</p>
+                  <p className="text-gray-500">No impact selections match current filters</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {filtered.filter(r => r.advocacy_referral?.trim()).map(r => (
-                    <div key={r.id} className="bg-white rounded-xl shadow-sm p-4 flex flex-col gap-1">
-                      <div className="flex justify-between items-start">
-                        <p className="text-sm font-semibold text-[#770142]">"{r.advocacy_referral}"</p>
-                        {r.fit_confidence != null && (
-                          <Badge className="bg-[#013f7c]/10 text-[#013f7c]">Confidence: {r.fit_confidence}/10</Badge>
-                        )}
+                <div className="bg-white rounded-xl shadow-lg p-6 space-y-4">
+                  <p className="text-sm text-gray-500">Total selections: {Object.values(impactTally).reduce((a, b) => a + b, 0)}</p>
+                  {impactEntries.map(([label, count]) => (
+                    <div key={label}>
+                      <div className="flex justify-between text-sm text-gray-700 mb-1">
+                        <span>{label}</span>
+                        <span className="font-bold text-[#264d44]">{count}</span>
                       </div>
-                      <p className="text-xs text-gray-400">
-                        {r.service_name}
-                        {r.company_name ? ` · ${r.company_name}` : ''}
-                        {r.presenter ? ` · ${r.presenter}` : ''}
-                        {' · '}{r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : '—'}
-                      </p>
+                      <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-[#264d44] transition-all"
+                          style={{ width: `${Math.round((count / maxImpact) * 100)}%` }}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>

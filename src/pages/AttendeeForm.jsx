@@ -40,7 +40,7 @@ export default function AttendeeForm() {
   const [form, setForm] = useState({
     behavior_intent: '',
     fit_confidence: null,
-    advocacy_referral: '',
+    expected_impact: [],
   });
   const [submitted, setSubmitted] = useState(false);
 
@@ -89,7 +89,7 @@ export default function AttendeeForm() {
         delivery_format: calendarEvent?.delivery_format || undefined,
         behavior_intent: form.behavior_intent,
         fit_confidence: form.fit_confidence,
-        advocacy_referral: form.advocacy_referral || undefined,
+        expected_impact: form.expected_impact.length > 0 ? form.expected_impact : undefined,
         submitted_at: new Date().toISOString(),
       });
       // res is an Axios response — data is in res.data
@@ -104,6 +104,47 @@ export default function AttendeeForm() {
     e.preventDefault();
     submitMutation.mutate();
   };
+
+const IMPACT_OPTIONS = [
+  'Personal well-being and stress levels',
+  'Daily focus and productivity',
+  'Communication and teamwork',
+  'Resilience and workplace challenges',
+  'Overall job satisfaction',
+];
+
+function ImpactCheckboxes({ value, onChange }) {
+  const toggle = (option) => {
+    if (value.includes(option)) {
+      onChange(value.filter(v => v !== option));
+    } else {
+      onChange([...value, option]);
+    }
+  };
+  return (
+    <div className="space-y-2">
+      {IMPACT_OPTIONS.map(opt => (
+        <label key={opt} className="flex items-center gap-3 cursor-pointer group">
+          <div
+            onClick={() => toggle(opt)}
+            className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+              value.includes(opt)
+                ? 'bg-[#013f7c] border-[#013f7c]'
+                : 'border-gray-300 group-hover:border-[#013f7c]'
+            }`}
+          >
+            {value.includes(opt) && (
+              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </div>
+          <span className="text-sm text-gray-700">{opt}</span>
+        </label>
+      ))}
+    </div>
+  );
+}
 
   const canSubmit = form.behavior_intent.trim().length > 0 && form.fit_confidence !== null;
 
@@ -142,7 +183,7 @@ export default function AttendeeForm() {
             <div className="flex items-start gap-2 mb-3">
               <span className="flex-shrink-0 w-7 h-7 rounded-full bg-[#013f7c] text-white text-sm font-bold flex items-center justify-center">1</span>
               <label className="text-base font-semibold text-gray-800 leading-snug">
-                What's one thing you'll do differently this week because of this?
+                What is one specific, micro-action you plan to take based on today's session?
               </label>
             </div>
             <Textarea
@@ -165,7 +206,7 @@ export default function AttendeeForm() {
             <div className="flex items-start gap-2 mb-4">
               <span className="flex-shrink-0 w-7 h-7 rounded-full bg-[#013f7c] text-white text-sm font-bold flex items-center justify-center">2</span>
               <label className="text-base font-semibold text-gray-800 leading-snug">
-                How confident are you that this will fit into your life right now?
+                On a scale of 0-10, how confident are you that you can successfully apply that micro-action to your daily life or work?
               </label>
             </div>
             <ConfidenceScale
@@ -174,23 +215,20 @@ export default function AttendeeForm() {
             />
           </div>
 
-          {/* Q3: Advocacy / Referral */}
+          {/* Q3: Expected Impact */}
           <div className="bg-white rounded-2xl shadow-sm p-5">
-            <div className="flex items-start gap-2 mb-3">
+            <div className="flex items-start gap-2 mb-4">
               <span className="flex-shrink-0 w-7 h-7 rounded-full bg-[#264d44] text-white text-sm font-bold flex items-center justify-center">3</span>
               <div>
                 <label className="text-base font-semibold text-gray-800 leading-snug">
-                  Who comes to mind that should experience this?
+                  I expect this micro-action to have the biggest positive impact on my (select all that apply):
                 </label>
-                <p className="text-xs text-gray-400 mt-0.5">First name + role (optional)</p>
+                <p className="text-xs text-gray-400 mt-0.5">Optional</p>
               </div>
             </div>
-            <input
-              type="text"
-              value={form.advocacy_referral}
-              onChange={e => setForm(f => ({ ...f, advocacy_referral: e.target.value }))}
-              placeholder="e.g. Sarah, team lead · Marcus, new hire"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#013f7c]/20"
+            <ImpactCheckboxes
+              value={form.expected_impact}
+              onChange={v => setForm(f => ({ ...f, expected_impact: v }))}
             />
           </div>
 

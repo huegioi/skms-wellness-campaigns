@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { TrendingUp, Users, MessageSquare, Heart, Copy, Check, QrCode } from 'lucide-react';
+import { TrendingUp, Users, MessageSquare, Copy, Check, QrCode } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -52,8 +52,19 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
     ? (withConfidence.reduce((s, r) => s + r.fit_confidence, 0) / withConfidence.length)
     : null;
 
-  const advocacyResponses = responses.filter(r => r.advocacy_referral?.trim());
   const voiceQuotes = responses.filter(r => r.behavior_intent?.trim().length > 10).slice(0, 5);
+
+  // Aggregate expected_impact across all responses
+  const impactTally = {};
+  for (const r of responses) {
+    if (Array.isArray(r.expected_impact)) {
+      for (const impact of r.expected_impact) {
+        impactTally[impact] = (impactTally[impact] || 0) + 1;
+      }
+    }
+  }
+  const impactEntries = Object.entries(impactTally).sort((a, b) => b[1] - a[1]);
+  const maxImpact = impactEntries[0]?.[1] || 1;
 
   // Per-service breakdown
   const serviceStats = services
@@ -62,13 +73,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
       const sR = pulseResponses.filter(r => r.service_id === s.id);
       const sConf = sR.filter(r => r.fit_confidence != null);
       const avgConf = sConf.length ? (sConf.reduce((a, r) => a + r.fit_confidence, 0) / sConf.length) : null;
-      return {
-        id: s.id,
-        name: s.name,
-        count: sR.length,
-        avgConf,
-        advocacy: sR.filter(r => r.advocacy_referral?.trim()).length,
-      };
+      return { id: s.id, name: s.name, count: sR.length, avgConf };
     });
 
   const copyFeedbackUrl = (serviceId, serviceName) => {
@@ -132,9 +137,9 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
               color="#013f7c"
             />
             <StatCard
-              label="Advocacy"
-              value={advocacyResponses.length}
-              sub="referral mentions"
+              label="Impact Areas"
+              value={impactEntries.length > 0 ? impactEntries[0][0].split(' ').slice(0,2).join(' ') + '…' : '—'}
+              sub="top selected impact"
               color="#770142"
             />
             <StatCard
@@ -183,6 +188,29 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
             </div>
           )}
 
+          {/* Expected Impact Chart */}
+          {impactEntries.length > 0 && (
+            <div className="bg-white rounded-xl shadow-sm p-5">
+              <p className="text-sm font-semibold text-gray-700 mb-3">Expected Impact Areas</p>
+              <div className="space-y-2">
+                {impactEntries.map(([label, count]) => (
+                  <div key={label}>
+                    <div className="flex justify-between text-xs text-gray-600 mb-1">
+                      <span>{label}</span>
+                      <span className="font-semibold">{count}</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-[#264d44]"
+                        style={{ width: `${Math.round((count / maxImpact) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Voices — curated intent quotes */}
           {voiceQuotes.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm p-5">
@@ -200,25 +228,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
             </div>
           )}
 
-          {/* Advocacy referrals */}
-          {advocacyResponses.length > 0 && (
-            <div className="bg-white rounded-xl shadow-sm p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Heart className="w-4 h-4 text-[#770142]" />
-                <p className="text-sm font-semibold text-gray-700">Advocacy — Who Should Experience This?</p>
-              </div>
-              <div className="space-y-2">
-                {advocacyResponses.map((r, i) => (
-                  <div key={i} className="flex items-start justify-between gap-2 py-1.5 border-b last:border-0">
-                    <p className="text-sm text-[#770142]">"{r.advocacy_referral}"</p>
-                    {r.fit_confidence != null && (
-                      <Badge className="bg-[#013f7c]/10 text-[#013f7c] flex-shrink-0 text-xs">{r.fit_confidence}/10</Badge>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+
         </>
       )}
 
