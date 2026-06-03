@@ -9,9 +9,9 @@ Deno.serve(async (req) => {
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
     const authHeader = { Authorization: `Bearer ${accessToken}` };
 
-    // Fetch recent messages (last 200) to find last contact dates
+    // Fetch recent messages (last 500) to find last contact dates
     const listRes = await fetch(
-      'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=200',
+      'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=500',
       { headers: authHeader }
     );
     if (!listRes.ok) throw new Error('Failed to fetch Gmail messages');
@@ -31,10 +31,14 @@ Deno.serve(async (req) => {
       if (lead.email2) emailToLead[lead.email2.toLowerCase()] = lead;
     }
 
-    // Build email -> client map
+    // Build email -> client map (primary + all related_contacts emails)
     const emailToClient = {};
     for (const client of clients) {
       if (client.email) emailToClient[client.email.toLowerCase()] = client;
+      // Also index any related contact emails
+      for (const contact of (client.related_contacts || [])) {
+        if (contact.email) emailToClient[contact.email.toLowerCase()] = client;
+      }
     }
 
     // Track best (most recent) contact date per lead/client id

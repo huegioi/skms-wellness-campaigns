@@ -2,6 +2,12 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { MoreVertical, UserCog, StickyNote, Pencil, Trash2, ArrowRightLeft } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
 import StagePlaybookDialog from './StagePlaybookDialog';
 
@@ -88,7 +94,25 @@ function SalesAlertBadge({ client }) {
   return null;
 }
 
-function ClientCard({ client, onStageChange, onClick, isSalesStage }) {
+const ALL_STAGES = [
+  { value: 'discovery_call_scheduled', label: 'Discovery Call Scheduled' },
+  { value: 'discovery_call_complete', label: 'Discovery Call Complete' },
+  { value: 'proposal_sent', label: 'Proposal Sent' },
+  { value: 'proposal_viewed', label: 'Proposal Viewed' },
+  { value: 'negotiation', label: 'Negotiation' },
+  { value: 'verbal_yes', label: 'Verbal Yes' },
+  { value: 'new_client_setup', label: 'New Client Setup' },
+  { value: 'program_delivery', label: 'Program Delivery' },
+  { value: 'followup_feedback', label: 'Follow-up & Feedback' },
+  { value: 'nurture', label: 'Nurture' },
+  { value: 'renewal_outreach', label: 'Renewal Outreach' },
+  { value: 're_engage', label: 'Re-engage' },
+  { value: 'churned', label: 'Churned' },
+];
+
+const OWNERS = ['William', 'Heather'];
+
+function ClientCard({ client, onStageChange, onOwnerChange, onLogNote, onEditInfo, onDelete, onClick, isSalesStage }) {
   const ago = daysAgo(client.last_contacted_date || client.last_contacted);
   const needsAttention = ago !== null && ago > 60 && NEEDS_ATTENTION_STAGES.has(client.client_stage);
 
@@ -97,14 +121,87 @@ function ClientCard({ client, onStageChange, onClick, isSalesStage }) {
       className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
       onClick={onClick}
     >
-      {/* Alert badges */}
-      <div className="flex flex-wrap gap-1 mb-1.5">
-        {needsAttention && (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
-            ⚠ Needs attention
-          </span>
-        )}
-        {isSalesStage && <SalesAlertBadge client={client} />}
+      {/* Header row: badges + menu */}
+      <div className="flex items-start justify-between mb-1.5">
+        <div className="flex flex-wrap gap-1">
+          {needsAttention && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
+              ⚠ Needs attention
+            </span>
+          )}
+          {isSalesStage && <SalesAlertBadge client={client} />}
+        </div>
+
+        {/* Quick-action dropdown */}
+        <div onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 flex-shrink-0">
+                <MoreVertical className="w-4 h-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              {/* Change Stage submenu */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="gap-2">
+                  <ArrowRightLeft className="w-4 h-4" /> Change Stage
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="max-h-72 overflow-y-auto">
+                  {ALL_STAGES.map(s => (
+                    <DropdownMenuItem
+                      key={s.value}
+                      className={client.client_stage === s.value ? 'font-semibold text-[#264d44]' : ''}
+                      onClick={() => onStageChange(client.id, s.value)}
+                    >
+                      {client.client_stage === s.value ? '✓ ' : ''}{s.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+
+              {/* Assign Owner submenu */}
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="gap-2">
+                  <UserCog className="w-4 h-4" /> Assign Owner
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  {OWNERS.map(owner => (
+                    <DropdownMenuItem
+                      key={owner}
+                      className={client.owner === owner ? 'font-semibold text-[#264d44]' : ''}
+                      onClick={() => onOwnerChange(client.id, owner)}
+                    >
+                      {client.owner === owner ? '✓ ' : ''}{owner}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem className="gap-2" onClick={() => onLogNote(client)}>
+                <StickyNote className="w-4 h-4" /> Log Note
+              </DropdownMenuItem>
+
+              <DropdownMenuItem className="gap-2" onClick={() => onEditInfo(client)}>
+                <Pencil className="w-4 h-4" /> Edit Info
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                className="gap-2 text-red-600 focus:text-red-600"
+                onClick={() => {
+                  if (window.confirm(`Delete ${client.company || client.name}? This cannot be undone.`)) {
+                    onDelete(client.id);
+                  }
+                }}
+              >
+                <Trash2 className="w-4 h-4" /> Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Name + Company */}
@@ -167,7 +264,7 @@ function ClientCard({ client, onStageChange, onClick, isSalesStage }) {
   );
 }
 
-function StageColumn({ stage, clients, onStageChange, onClientClick, onHeaderClick, isSalesStage }) {
+function StageColumn({ stage, clients, onStageChange, onOwnerChange, onLogNote, onEditInfo, onDelete, onClientClick, onHeaderClick, isSalesStage }) {
   return (
     <div className="w-56 flex-shrink-0">
       <div
@@ -195,6 +292,10 @@ function StageColumn({ stage, clients, onStageChange, onClientClick, onHeaderCli
               key={client.id}
               client={client}
               onStageChange={onStageChange}
+              onOwnerChange={onOwnerChange}
+              onLogNote={onLogNote}
+              onEditInfo={onEditInfo}
+              onDelete={onDelete}
               onClick={() => onClientClick(client)}
               isSalesStage={isSalesStage}
             />
@@ -208,10 +309,53 @@ function StageColumn({ stage, clients, onStageChange, onClientClick, onHeaderCli
 export default function ClientPipelineView({ clients, ownerFilter, onClientClick }) {
   const queryClient = useQueryClient();
   const [playbookStage, setPlaybookStage] = useState(null);
+  const [noteDialog, setNoteDialog] = useState(null); // { client }
+  const [editDialog, setEditDialog] = useState(null); // { client }
+  const [noteText, setNoteText] = useState('');
+  const [editForm, setEditForm] = useState({});
+
+  const refresh = () => queryClient.invalidateQueries({ queryKey: ['clients'] });
 
   const handleStageChange = async (clientId, newStage) => {
     await base44.entities.Client.update(clientId, { client_stage: newStage, stage_entered_date: new Date().toISOString().split('T')[0] });
-    queryClient.invalidateQueries({ queryKey: ['clients'] });
+    refresh();
+  };
+
+  const handleOwnerChange = async (clientId, owner) => {
+    await base44.entities.Client.update(clientId, { owner });
+    refresh();
+  };
+
+  const handleLogNote = (client) => {
+    setNoteText('');
+    setNoteDialog(client);
+  };
+
+  const handleSaveNote = async () => {
+    if (!noteText.trim() || !noteDialog) return;
+    const existing = noteDialog.notes || '';
+    const timestamp = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const newNotes = existing ? `${existing}\n\n[${timestamp}] ${noteText.trim()}` : `[${timestamp}] ${noteText.trim()}`;
+    await base44.entities.Client.update(noteDialog.id, { notes: newNotes, last_contacted_date: new Date().toISOString().split('T')[0] });
+    refresh();
+    setNoteDialog(null);
+  };
+
+  const handleEditInfo = (client) => {
+    setEditForm({ name: client.name || '', company: client.company || '', email: client.email || '', phone: client.phone || '', owner: client.owner || '' });
+    setEditDialog(client);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editDialog) return;
+    await base44.entities.Client.update(editDialog.id, editForm);
+    refresh();
+    setEditDialog(null);
+  };
+
+  const handleDelete = async (clientId) => {
+    await base44.entities.Client.delete(clientId);
+    refresh();
   };
 
   const filtered = ownerFilter && ownerFilter !== 'all'
@@ -243,6 +387,10 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
                   stage={stage}
                   clients={stageClients(stage.key)}
                   onStageChange={handleStageChange}
+                  onOwnerChange={handleOwnerChange}
+                  onLogNote={handleLogNote}
+                  onEditInfo={handleEditInfo}
+                  onDelete={handleDelete}
                   onClientClick={onClientClick}
                   onHeaderClick={setPlaybookStage}
                   isSalesStage={true}
@@ -264,6 +412,10 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
                   stage={stage}
                   clients={stageClients(stage.key)}
                   onStageChange={handleStageChange}
+                  onOwnerChange={handleOwnerChange}
+                  onLogNote={handleLogNote}
+                  onEditInfo={handleEditInfo}
+                  onDelete={handleDelete}
                   onClientClick={onClientClick}
                   onHeaderClick={setPlaybookStage}
                   isSalesStage={false}
@@ -280,6 +432,58 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
         open={!!playbookStage}
         onClose={() => setPlaybookStage(null)}
       />
+
+      {/* Log Note Dialog */}
+      <Dialog open={!!noteDialog} onOpenChange={(open) => !open && setNoteDialog(null)}>
+        <DialogContent className="max-w-sm w-[95vw]">
+          <DialogHeader>
+            <DialogTitle>Log Note — {noteDialog?.company || noteDialog?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <Textarea
+              placeholder="Enter your note..."
+              rows={4}
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <Button className="flex-1 bg-[#264d44] hover:bg-[#1a3830]" onClick={handleSaveNote} disabled={!noteText.trim()}>
+                Save Note
+              </Button>
+              <Button variant="outline" onClick={() => setNoteDialog(null)}>Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Info Dialog */}
+      <Dialog open={!!editDialog} onOpenChange={(open) => !open && setEditDialog(null)}>
+        <DialogContent className="max-w-sm w-[95vw]">
+          <DialogHeader>
+            <DialogTitle>Edit — {editDialog?.company || editDialog?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <Input placeholder="Company" value={editForm.company || ''} onChange={(e) => setEditForm({ ...editForm, company: e.target.value })} />
+            <Input placeholder="Contact Name" value={editForm.name || ''} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+            <Input type="email" placeholder="Email" value={editForm.email || ''} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
+            <Input placeholder="Phone" value={editForm.phone || ''} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Owner</label>
+              <Select value={editForm.owner || ''} onValueChange={(v) => setEditForm({ ...editForm, owner: v })}>
+                <SelectTrigger><SelectValue placeholder="Assign owner" /></SelectTrigger>
+                <SelectContent>
+                  {OWNERS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2">
+              <Button className="flex-1 bg-[#264d44] hover:bg-[#1a3830]" onClick={handleSaveEdit}>Save</Button>
+              <Button variant="outline" onClick={() => setEditDialog(null)}>Cancel</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
