@@ -66,15 +66,18 @@
     },
     "behavior_intent": {
       "type": "string",
-      "description": "Universal Pulse: What's one thing you'll do differently this week? (\u2264140 chars)"
+      "description": "Q1: One specific micro-action the respondent plans to take (\u2264140 chars)"
     },
     "fit_confidence": {
       "type": "number",
-      "description": "Universal Pulse: How confident are you that this will fit into your life right now? (0-10)"
+      "description": "Q2: Confidence they can apply the micro-action to daily life (0-10)"
     },
-    "advocacy_referral": {
-      "type": "string",
-      "description": "Universal Pulse: Who comes to mind that should experience this? (First name + role, optional)"
+    "expected_impact": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Q3: Impact areas selected (multi-select). Options: Personal well-being and stress levels, Daily focus and productivity, Communication and teamwork, Resilience and workplace challenges, Overall job satisfaction"
     },
     "pre_stress_impact": {
       "type": "number",
