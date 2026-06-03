@@ -6,9 +6,30 @@ import { BarChart3, ClipboardList } from 'lucide-react';
 import ROIDashboard from './ROIDashboard';
 
 export default function PortalFeedback({ client, proposals = [] }) {
-  const { data: services = [] } = useQuery({
-    queryKey: ['services'],
-    queryFn: () => base44.entities.Service.list('sort_order')
+  // Fetch only services tied to this client — via purchased_services IDs or proposal selections
+  const { data: clientServices = [] } = useQuery({
+    queryKey: ['client-services', client?.id],
+    queryFn: async () => {
+      // Collect all service IDs associated with this client
+      const serviceIdSet = new Set();
+
+      // 1. From client.purchased_services array
+      (client?.purchased_services || []).forEach(id => serviceIdSet.add(id));
+
+      // 2. From proposal selections keys (each key is a service ID)
+      proposals.forEach(p => {
+        if (p.selections && typeof p.selections === 'object') {
+          Object.keys(p.selections).forEach(id => serviceIdSet.add(id));
+        }
+      });
+
+      if (serviceIdSet.size === 0) return [];
+
+      // Fetch only those specific services
+      const all = await base44.entities.Service.list('sort_order');
+      return all.filter(s => serviceIdSet.has(s.id));
+    },
+    enabled: !!client?.id
   });
 
   return (
@@ -26,7 +47,7 @@ export default function PortalFeedback({ client, proposals = [] }) {
       <ROIDashboard
         clientId={client?.id}
         clientCompany={client?.company}
-        services={services}
+        services={clientServices}
       />
     </div>
   );
