@@ -300,10 +300,8 @@ export default function ReferralPortal() {
           })}
         </div>
 
-        {/* Portfolio Feedback Roll-Up — top of dashboard */}
-        {client_companies.length > 0 && (
-          <BrokerFeedbackRollup clientCompanies={client_companies} />
-        )}
+        {/* Portfolio Feedback Roll-Up — always rendered */}
+        <BrokerFeedbackRollup clientCompanies={client_companies} />
 
         {/* How It Works — collapsible */}
         <Card>
