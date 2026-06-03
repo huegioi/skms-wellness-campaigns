@@ -37,6 +37,15 @@
       "type": "string",
       "description": "Full name of the respondent (optional)"
     },
+    "attendee_name": {
+      "type": "string",
+      "description": "Attendee name for attributed testimonials (optional)"
+    },
+    "attendee_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Attendee email for attributed testimonials (optional)"
+    },
     "company_name": {
       "type": "string",
       "description": "Company name of the respondent (denormalized)"

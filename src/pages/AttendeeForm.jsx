@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { CheckCircle2, Loader2 } from 'lucide-react';
 
 function ConfidenceScale({ value, onChange }) {
@@ -41,6 +42,8 @@ export default function AttendeeForm() {
     behavior_intent: '',
     fit_confidence: null,
     expected_impact: [],
+    attendee_name: '',
+    attendee_email: '',
   });
   const [submitted, setSubmitted] = useState(false);
 
@@ -90,6 +93,8 @@ export default function AttendeeForm() {
         behavior_intent: form.behavior_intent,
         fit_confidence: form.fit_confidence,
         expected_impact: form.expected_impact.length > 0 ? form.expected_impact : undefined,
+        attendee_name: form.attendee_name.trim() || undefined,
+        attendee_email: form.attendee_email.trim() || undefined,
         submitted_at: new Date().toISOString(),
       });
       // res is an Axios response — data is in res.data
@@ -229,6 +234,23 @@ function ImpactCheckboxes({ value, onChange }) {
             <ImpactCheckboxes
               value={form.expected_impact}
               onChange={v => setForm(f => ({ ...f, expected_impact: v }))}
+            />
+          </div>
+
+          {/* Optional Contact Fields */}
+          <div className="bg-white rounded-2xl shadow-sm p-5 space-y-3">
+            <p className="text-sm font-semibold text-gray-700">Want to be attributed? (Optional)</p>
+            <Input
+              type="text"
+              placeholder="Name (Optional)"
+              value={form.attendee_name}
+              onChange={e => setForm(f => ({ ...f, attendee_name: e.target.value }))}
+            />
+            <Input
+              type="email"
+              placeholder="Email (Optional)"
+              value={form.attendee_email}
+              onChange={e => setForm(f => ({ ...f, attendee_email: e.target.value }))}
             />
           </div>
 

@@ -84,7 +84,14 @@ function PulseResponseCard({ response }) {
           {response.behavior_intent && (
             <p className="text-sm text-gray-800 italic">"{response.behavior_intent}"</p>
           )}
-          <p className="text-xs text-gray-400 mt-1">
+          {(response.attendee_name || response.attendee_email) && (
+            <p className="text-xs font-medium text-[#013f7c] mt-1">
+              {response.attendee_name || ''}
+              {response.attendee_name && response.attendee_email ? ' · ' : ''}
+              {response.attendee_email || ''}
+            </p>
+          )}
+          <p className="text-xs text-gray-400 mt-0.5">
             {response.service_name}
             {response.company_name ? ` · ${response.company_name}` : ''}
             {response.presenter ? ` · ${response.presenter}` : ''}
