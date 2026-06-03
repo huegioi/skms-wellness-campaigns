@@ -16,12 +16,17 @@ export default function PortalFeedback({ client, proposals = [] }) {
       // 1. From client.purchased_services array
       (client?.purchased_services || []).forEach(id => serviceIdSet.add(id));
 
-      // 2. From proposal selections keys (each key is a service ID)
-      proposals.forEach(p => {
-        if (p.selections && typeof p.selections === 'object') {
-          Object.keys(p.selections).forEach(id => serviceIdSet.add(id));
-        }
-      });
+      // 2. From accepted proposal selections — values are arrays of service IDs per category
+      const SERVICE_ARRAY_KEYS = ['workshops', 'challengePrograms', 'leadership', 'movementClasses'];
+      proposals
+        .filter(p => p.status === 'accepted')
+        .forEach(p => {
+          if (!p.selections || typeof p.selections !== 'object') return;
+          SERVICE_ARRAY_KEYS.forEach(key => {
+            const arr = p.selections[key];
+            if (Array.isArray(arr)) arr.forEach(id => id && serviceIdSet.add(id));
+          });
+        });
 
       if (serviceIdSet.size === 0) return [];
 
