@@ -65,17 +65,23 @@ export default function AttendeeForm() {
   });
 
   const submitMutation = useMutation({
-    mutationFn: () => base44.functions.invoke('submitFeedbackResponse', {
-      service_id: serviceIdFromUrl || '',
-      service_name: service?.name || '',
-      client_id: clientIdFromUrl || '',
-      company_name: client?.company || '',
-      behavior_intent: form.behavior_intent,
-      fit_confidence: form.fit_confidence,
-      advocacy_referral: form.advocacy_referral || undefined,
-      submitted_at: new Date().toISOString(),
-    }),
-    onSuccess: () => setSubmitted(true)
+    mutationFn: async () => {
+      const res = await base44.functions.invoke('submitFeedbackResponse', {
+        service_id: serviceIdFromUrl || '',
+        service_name: service?.name || '',
+        client_id: clientIdFromUrl || '',
+        company_name: client?.company || '',
+        behavior_intent: form.behavior_intent,
+        fit_confidence: form.fit_confidence,
+        advocacy_referral: form.advocacy_referral || undefined,
+        submitted_at: new Date().toISOString(),
+      });
+      // res is an Axios response — data is in res.data
+      if (res.data?.error) throw new Error(res.data.error);
+      return res.data;
+    },
+    onSuccess: () => setSubmitted(true),
+    onError: (err) => console.error('Submission error:', err),
   });
 
   const handleSubmit = (e) => {
@@ -185,6 +191,12 @@ export default function AttendeeForm() {
 
           {!canSubmit && (
             <p className="text-center text-xs text-gray-400">Please answer questions 1 and 2 to submit.</p>
+          )}
+
+          {submitMutation.isError && (
+            <p className="text-center text-xs text-red-500 mt-2">
+              Submission failed: {submitMutation.error?.message || 'Unknown error'}. Please try again.
+            </p>
           )}
         </form>
       </div>
