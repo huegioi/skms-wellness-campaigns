@@ -26,9 +26,10 @@ Deno.serve(async (req) => {
   const ownedClientIdSet = new Set(ownedClients.map(c => c.id));
 
   // Show ALL linked clients regardless of whether they have feedback yet
+  // Use company name if available, fall back to client name
   const clientCompanies = ownedClients
-    .filter(c => c.company)
-    .map(c => ({ id: c.id, company: c.company, name: c.name, email: c.email }));
+    .filter(c => c.company || c.name)
+    .map(c => ({ id: c.id, company: c.company || c.name, name: c.name, email: c.email }));
 
   // Deduplicate by company name, keeping first match
   const seen = new Set();
