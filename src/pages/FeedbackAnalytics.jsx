@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, TrendingUp, MessageSquare, Heart, BarChart2, Loader2 } from 'lucide-react';
+import FeedbackFilterBar from '@/components/feedback/FeedbackFilterBar';
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
 function StatCard({ icon: Icon, label, value, color }) {
   return (
@@ -34,218 +36,40 @@ function ConfidenceBar({ value, max = 10 }) {
   );
 }
 
-export default function FeedbackAnalytics() {
-  const [filterService, setFilterService] = useState('all');
+function avgConf(arr) {
+  const with_conf = arr.filter(r => r.fit_confidence != null);
+  if (!with_conf.length) return null;
+  return with_conf.reduce((s, r) => s + r.fit_confidence, 0) / with_conf.length;
+}
 
-  const { data: services = [] } = useQuery({
-    queryKey: ['services'],
-    queryFn: () => base44.entities.Service.list('sort_order')
-  });
-
-  const { data: responses = [], isLoading } = useQuery({
-    queryKey: ['feedback-responses-all'],
-    queryFn: () => base44.entities.FeedbackResponse.list('-submitted_at', 500)
-  });
-
-  // Universal Pulse responses (have the new fields)
-  const pulseResponses = responses.filter(r => r.behavior_intent || r.fit_confidence != null);
-
-  const filtered = filterService === 'all'
-    ? pulseResponses
-    : pulseResponses.filter(r => r.service_id === filterService);
-
-  const avgConfidence = filtered.length > 0
-    ? (filtered.reduce((s, r) => s + (r.fit_confidence || 0), 0) / filtered.filter(r => r.fit_confidence != null).length).toFixed(1)
-    : null;
-
-  const advocacyCount = filtered.filter(r => r.advocacy_referral?.trim()).length;
-
-  // Group by service
-  const byService = {};
-  for (const r of pulseResponses) {
-    const key = r.service_name || r.service_id || 'Unknown';
-    if (!byService[key]) byService[key] = [];
-    byService[key].push(r);
-  }
-
-  // Group by client/company
-  const byClient = {};
-  for (const r of pulseResponses) {
-    const key = r.company_name || r.client_id || 'Unknown';
-    if (!byClient[key]) byClient[key] = [];
-    byClient[key].push(r);
-  }
-
+function GroupCard({ title, subtitle, responses }) {
+  const avg = avgConf(responses);
+  const advCount = responses.filter(r => r.advocacy_referral?.trim()).length;
+  const intents = responses.filter(r => r.behavior_intent?.trim());
   return (
-    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Universal Pulse Dashboard</h1>
-          <p className="text-gray-600 mt-1">Behavior intent · Fit confidence · Advocacy referrals</p>
+    <div className="bg-white rounded-xl shadow-lg p-5">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <h3 className="font-bold text-gray-800">{title}</h3>
+          <p className="text-xs text-gray-400">{subtitle}</p>
         </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <StatCard icon={Users} label="Total Responses" value={pulseResponses.length} color="#013f7c" />
-          <StatCard icon={TrendingUp} label="Avg Fit Confidence" value={avgConfidence ? `${avgConfidence}/10` : '—'} color="#264d44" />
-          <StatCard icon={Heart} label="Advocacy Mentions" value={advocacyCount} color="#770142" />
-          <StatCard icon={MessageSquare} label="Intent Statements" value={filtered.filter(r => r.behavior_intent?.trim()).length} color="#ff9878" />
+        <div className="text-right text-sm space-y-0.5">
+          {avg != null && <p className="text-[#013f7c] font-semibold">Confidence: {avg.toFixed(1)}/10</p>}
+          <p className="text-[#770142]">Referrals: {advCount}</p>
         </div>
-
-        {/* Filter */}
-        <div className="mb-6 max-w-xs">
-          <Select value={filterService} onValueChange={setFilterService}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by program..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Programs</SelectItem>
-              {services.filter(s => pulseResponses.some(r => r.service_id === s.id)).map(s => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <Tabs defaultValue="responses">
-          <TabsList className="bg-white shadow-md mb-6">
-            <TabsTrigger value="responses" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
-              All Responses ({filtered.length})
-            </TabsTrigger>
-            <TabsTrigger value="by_program" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
-              By Program
-            </TabsTrigger>
-            <TabsTrigger value="by_cohort" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
-              By Cohort
-            </TabsTrigger>
-            <TabsTrigger value="advocacy" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
-              Advocacy ({advocacyCount})
-            </TabsTrigger>
-          </TabsList>
-
-          {/* All Responses */}
-          <TabsContent value="responses">
-            {isLoading ? (
-              <div className="flex items-center justify-center p-12">
-                <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="bg-white rounded-xl p-12 text-center shadow-lg">
-                <MessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                <h3 className="text-xl font-semibold text-gray-700 mb-2">No pulse responses yet</h3>
-                <p className="text-gray-500">Share the QR code at the end of a session to start collecting.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filtered.map(r => (
-                  <PulseResponseCard key={r.id} response={r} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
-
-          {/* By Program */}
-          <TabsContent value="by_program">
-            <div className="space-y-4">
-              {Object.entries(byService).map(([serviceName, svcR]) => {
-                const avgConf = svcR.filter(r => r.fit_confidence != null).length > 0
-                  ? (svcR.reduce((s, r) => s + (r.fit_confidence || 0), 0) / svcR.filter(r => r.fit_confidence != null).length)
-                  : null;
-                const advCount = svcR.filter(r => r.advocacy_referral?.trim()).length;
-                const intents = svcR.filter(r => r.behavior_intent?.trim());
-                return (
-                  <div key={serviceName} className="bg-white rounded-xl shadow-lg p-5">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-bold text-gray-800">{serviceName}</h3>
-                        <p className="text-xs text-gray-400">{svcR.length} response{svcR.length !== 1 ? 's' : ''}</p>
-                      </div>
-                      <div className="text-right text-sm space-y-0.5">
-                        {avgConf != null && <p className="text-[#013f7c] font-semibold">Confidence: {avgConf.toFixed(1)}/10</p>}
-                        <p className="text-[#770142]">Referrals: {advCount}</p>
-                      </div>
-                    </div>
-                    {avgConf != null && <ConfidenceBar value={parseFloat(avgConf.toFixed(1))} />}
-                    {intents.length > 0 && (
-                      <div className="mt-3 space-y-1 border-t pt-3">
-                        <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Intent Statements</p>
-                        {intents.slice(0, 3).map((r, i) => (
-                          <blockquote key={i} className="text-sm text-gray-600 border-l-3 border-[#264d44]/30 pl-3 italic">
-                            "{r.behavior_intent}"
-                          </blockquote>
-                        ))}
-                        {intents.length > 3 && <p className="text-xs text-gray-400">+{intents.length - 3} more</p>}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              {Object.keys(byService).length === 0 && (
-                <div className="bg-white rounded-xl p-12 text-center shadow-lg">
-                  <BarChart2 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-gray-500">No data yet</p>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          {/* By Cohort (Client/Company) */}
-          <TabsContent value="by_cohort">
-            <div className="space-y-4">
-              {Object.entries(byClient).map(([company, cohortR]) => {
-                const avgConf = cohortR.filter(r => r.fit_confidence != null).length > 0
-                  ? (cohortR.reduce((s, r) => s + (r.fit_confidence || 0), 0) / cohortR.filter(r => r.fit_confidence != null).length)
-                  : null;
-                const advCount = cohortR.filter(r => r.advocacy_referral?.trim()).length;
-                return (
-                  <div key={company} className="bg-white rounded-xl shadow-lg p-5">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-bold text-gray-800">{company}</h3>
-                        <p className="text-xs text-gray-400">{cohortR.length} response{cohortR.length !== 1 ? 's' : ''}</p>
-                      </div>
-                      <div className="text-right text-sm space-y-0.5">
-                        {avgConf != null && <p className="text-[#013f7c] font-semibold">{avgConf.toFixed(1)}/10 confidence</p>}
-                        <p className="text-[#770142]">{advCount} referral{advCount !== 1 ? 's' : ''}</p>
-                      </div>
-                    </div>
-                    {avgConf != null && <ConfidenceBar value={parseFloat(avgConf.toFixed(1))} />}
-                  </div>
-                );
-              })}
-              {Object.keys(byClient).length === 0 && (
-                <div className="bg-white rounded-xl p-12 text-center shadow-lg">
-                  <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-gray-500">No cohort data yet</p>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          {/* Advocacy */}
-          <TabsContent value="advocacy">
-            <div className="space-y-3">
-              {filtered.filter(r => r.advocacy_referral?.trim()).map(r => (
-                <div key={r.id} className="bg-white rounded-xl shadow-sm p-4 flex flex-col gap-1">
-                  <div className="flex justify-between items-start">
-                    <p className="text-sm font-semibold text-[#770142]">"{r.advocacy_referral}"</p>
-                    {r.fit_confidence != null && (
-                      <Badge className="bg-[#013f7c]/10 text-[#013f7c]">Confidence: {r.fit_confidence}/10</Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-gray-400">{r.service_name} · {r.company_name} · {r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : '—'}</p>
-                </div>
-              ))}
-              {filtered.filter(r => r.advocacy_referral?.trim()).length === 0 && (
-                <div className="bg-white rounded-xl p-12 text-center shadow-lg">
-                  <Heart className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                  <p className="text-gray-500">No advocacy referrals yet</p>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
       </div>
+      {avg != null && <ConfidenceBar value={parseFloat(avg.toFixed(1))} />}
+      {intents.length > 0 && (
+        <div className="mt-3 space-y-1 border-t pt-3">
+          <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Intent Statements</p>
+          {intents.slice(0, 3).map((r, i) => (
+            <blockquote key={i} className="text-sm text-gray-600 border-l-4 border-[#264d44]/30 pl-3 italic">
+              "{r.behavior_intent}"
+            </blockquote>
+          ))}
+          {intents.length > 3 && <p className="text-xs text-gray-400">+{intents.length - 3} more</p>}
+        </div>
+      )}
     </div>
   );
 }
@@ -253,7 +77,6 @@ export default function FeedbackAnalytics() {
 function PulseResponseCard({ response }) {
   const [expanded, setExpanded] = useState(false);
   const date = response.submitted_at ? new Date(response.submitted_at).toLocaleDateString() : '—';
-
   return (
     <div className="bg-white rounded-xl shadow-sm p-4">
       <div className="flex flex-col sm:flex-row justify-between gap-2">
@@ -261,11 +84,19 @@ function PulseResponseCard({ response }) {
           {response.behavior_intent && (
             <p className="text-sm text-gray-800 italic">"{response.behavior_intent}"</p>
           )}
-          <p className="text-xs text-gray-400 mt-1">{response.service_name} · {response.company_name} · {date}</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {response.service_name}
+            {response.company_name ? ` · ${response.company_name}` : ''}
+            {response.presenter ? ` · ${response.presenter}` : ''}
+            {' · '}{date}
+          </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {response.fit_confidence != null && (
             <Badge className="bg-[#013f7c]/10 text-[#013f7c]">{response.fit_confidence}/10</Badge>
+          )}
+          {response.delivery_format && (
+            <Badge variant="outline" className="capitalize">{response.delivery_format.replace('_', '-')}</Badge>
           )}
           {response.advocacy_referral?.trim() && (
             <Badge className="bg-[#770142]/10 text-[#770142]">Referral</Badge>
@@ -283,6 +114,264 @@ function PulseResponseCard({ response }) {
           <p className="text-[#770142]">{response.advocacy_referral}</p>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Main Page ──────────────────────────────────────────────────────────────────
+
+const DEFAULT_FILTERS = {
+  company: 'all',
+  category: 'all',
+  speaker: 'all',
+  format: 'all',
+  cohortYear: 'all',
+  startDate: '',
+  endDate: '',
+};
+
+export default function FeedbackAnalytics() {
+  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+
+  // ── Data fetching ─────────────────────────────────────────────────────────
+  const { data: responses = [], isLoading } = useQuery({
+    queryKey: ['feedback-responses-all'],
+    queryFn: () => base44.entities.FeedbackResponse.list('-submitted_at', 1000),
+  });
+
+  // Fetch calendar events to enrich responses with presenter + delivery_format
+  // (for older responses that predate the denormalized fields)
+  const { data: calendarEvents = [] } = useQuery({
+    queryKey: ['calendar-events-all'],
+    queryFn: () => base44.entities.CalendarEvent.list('-start_date', 500),
+  });
+
+  // Build a lookup: service_id → { presenter, delivery_format } from most recent event
+  const eventLookup = useMemo(() => {
+    const map = {};
+    for (const ev of calendarEvents) {
+      if (!ev.service_id) continue;
+      if (!map[ev.service_id]) {
+        map[ev.service_id] = { presenter: ev.presenter, delivery_format: ev.delivery_format };
+      }
+    }
+    return map;
+  }, [calendarEvents]);
+
+  // Enrich responses with event data for missing fields
+  const enriched = useMemo(() => responses.map(r => ({
+    ...r,
+    presenter: r.presenter || eventLookup[r.service_id]?.presenter || '',
+    delivery_format: r.delivery_format || eventLookup[r.service_id]?.delivery_format || '',
+  })), [responses, eventLookup]);
+
+  // Universal Pulse responses (have at least one Phase 1 field)
+  const pulseResponses = useMemo(
+    () => enriched.filter(r => r.behavior_intent || r.fit_confidence != null),
+    [enriched]
+  );
+
+  // ── Filter options (derived from actual data) ─────────────────────────────
+  const companies = useMemo(() =>
+    [...new Set(pulseResponses.map(r => r.company_name).filter(Boolean))].sort(),
+    [pulseResponses]
+  );
+
+  const speakers = useMemo(() =>
+    [...new Set(pulseResponses.map(r => r.presenter).filter(Boolean))].sort(),
+    [pulseResponses]
+  );
+
+  // ── Apply filters ─────────────────────────────────────────────────────────
+  const filtered = useMemo(() => {
+    return pulseResponses.filter(r => {
+      if (filters.company !== 'all' && r.company_name !== filters.company) return false;
+      if (filters.category !== 'all' && r.service_category !== filters.category) return false;
+      if (filters.speaker !== 'all' && r.presenter !== filters.speaker) return false;
+      if (filters.format !== 'all' && r.delivery_format !== filters.format) return false;
+      if (filters.cohortYear !== 'all') {
+        const year = r.submitted_at ? new Date(r.submitted_at).getFullYear() : null;
+        if (String(year) !== filters.cohortYear) return false;
+      }
+      if (filters.startDate) {
+        if (!r.submitted_at || r.submitted_at < filters.startDate) return false;
+      }
+      if (filters.endDate) {
+        // endDate is inclusive through end of day
+        if (!r.submitted_at || r.submitted_at.slice(0, 10) > filters.endDate) return false;
+      }
+      return true;
+    });
+  }, [pulseResponses, filters]);
+
+  // ── Aggregations ──────────────────────────────────────────────────────────
+  const avg = avgConf(filtered);
+  const advocacyCount = filtered.filter(r => r.advocacy_referral?.trim()).length;
+  const intentCount = filtered.filter(r => r.behavior_intent?.trim()).length;
+
+  // By Program (service_name)
+  const byService = useMemo(() => {
+    const map = {};
+    for (const r of filtered) {
+      const key = r.service_name || 'Unknown';
+      if (!map[key]) map[key] = [];
+      map[key].push(r);
+    }
+    return map;
+  }, [filtered]);
+
+  // By Cohort: group by company + year
+  const byCohort = useMemo(() => {
+    const map = {};
+    for (const r of filtered) {
+      const company = r.company_name || 'Unknown';
+      const year = r.submitted_at ? new Date(r.submitted_at).getFullYear() : 'Unknown';
+      const key = `${company} — ${year}`;
+      if (!map[key]) map[key] = [];
+      map[key].push(r);
+    }
+    return map;
+  }, [filtered]);
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  return (
+    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Universal Pulse Dashboard</h1>
+          <p className="text-gray-600 mt-1">Behavior intent · Fit confidence · Advocacy referrals</p>
+        </div>
+
+        {/* Unified Filter Bar */}
+        <FeedbackFilterBar
+          filters={filters}
+          onChange={setFilters}
+          companies={companies}
+          speakers={speakers}
+        />
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <StatCard icon={Users} label="Responses" value={filtered.length} color="#013f7c" />
+          <StatCard icon={TrendingUp} label="Avg Fit Confidence" value={avg ? `${avg.toFixed(1)}/10` : '—'} color="#264d44" />
+          <StatCard icon={Heart} label="Advocacy Mentions" value={advocacyCount} color="#770142" />
+          <StatCard icon={MessageSquare} label="Intent Statements" value={intentCount} color="#ff9878" />
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center p-24">
+            <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+          </div>
+        ) : (
+          <Tabs defaultValue="responses">
+            <TabsList className="bg-white shadow-md mb-6 flex-wrap h-auto">
+              <TabsTrigger value="responses" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
+                All Responses ({filtered.length})
+              </TabsTrigger>
+              <TabsTrigger value="by_program" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
+                By Program ({Object.keys(byService).length})
+              </TabsTrigger>
+              <TabsTrigger value="by_cohort" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
+                By Cohort ({Object.keys(byCohort).length})
+              </TabsTrigger>
+              <TabsTrigger value="advocacy" className="data-[state=active]:bg-[#264d44] data-[state=active]:text-white">
+                Advocacy ({advocacyCount})
+              </TabsTrigger>
+            </TabsList>
+
+            {/* All Responses */}
+            <TabsContent value="responses">
+              {filtered.length === 0 ? (
+                <div className="bg-white rounded-xl p-12 text-center shadow-lg">
+                  <MessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-xl font-semibold text-gray-700 mb-2">No responses match these filters</h3>
+                  <p className="text-gray-500">Try broadening your filter criteria.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filtered.map(r => <PulseResponseCard key={r.id} response={r} />)}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* By Program */}
+            <TabsContent value="by_program">
+              {Object.keys(byService).length === 0 ? (
+                <div className="bg-white rounded-xl p-12 text-center shadow-lg">
+                  <BarChart2 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-gray-500">No data for current filters</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {Object.entries(byService)
+                    .sort((a, b) => b[1].length - a[1].length)
+                    .map(([name, rows]) => (
+                      <GroupCard
+                        key={name}
+                        title={name}
+                        subtitle={`${rows.length} response${rows.length !== 1 ? 's' : ''}`}
+                        responses={rows}
+                      />
+                    ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* By Cohort */}
+            <TabsContent value="by_cohort">
+              {Object.keys(byCohort).length === 0 ? (
+                <div className="bg-white rounded-xl p-12 text-center shadow-lg">
+                  <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-gray-500">No cohort data for current filters</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {Object.entries(byCohort)
+                    .sort((a, b) => b[1].length - a[1].length)
+                    .map(([cohortKey, rows]) => (
+                      <GroupCard
+                        key={cohortKey}
+                        title={cohortKey}
+                        subtitle={`${rows.length} response${rows.length !== 1 ? 's' : ''}`}
+                        responses={rows}
+                      />
+                    ))}
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Advocacy */}
+            <TabsContent value="advocacy">
+              {filtered.filter(r => r.advocacy_referral?.trim()).length === 0 ? (
+                <div className="bg-white rounded-xl p-12 text-center shadow-lg">
+                  <Heart className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <p className="text-gray-500">No advocacy referrals match current filters</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filtered.filter(r => r.advocacy_referral?.trim()).map(r => (
+                    <div key={r.id} className="bg-white rounded-xl shadow-sm p-4 flex flex-col gap-1">
+                      <div className="flex justify-between items-start">
+                        <p className="text-sm font-semibold text-[#770142]">"{r.advocacy_referral}"</p>
+                        {r.fit_confidence != null && (
+                          <Badge className="bg-[#013f7c]/10 text-[#013f7c]">Confidence: {r.fit_confidence}/10</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        {r.service_name}
+                        {r.company_name ? ` · ${r.company_name}` : ''}
+                        {r.presenter ? ` · ${r.presenter}` : ''}
+                        {' · '}{r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : '—'}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
+      </div>
     </div>
   );
 }

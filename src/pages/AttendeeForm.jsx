@@ -64,13 +64,29 @@ export default function AttendeeForm() {
     enabled: !!clientIdFromUrl
   });
 
+  // Fetch matching CalendarEvent to capture presenter + delivery_format
+  const { data: calendarEvent } = useQuery({
+    queryKey: ['attendee-event', serviceIdFromUrl, clientIdFromUrl],
+    queryFn: async () => {
+      if (!serviceIdFromUrl) return null;
+      const filter = { service_id: serviceIdFromUrl };
+      if (clientIdFromUrl) filter.client_id = clientIdFromUrl;
+      const res = await base44.entities.CalendarEvent.filter(filter, '-start_date', 1);
+      return res[0] || null;
+    },
+    enabled: !!serviceIdFromUrl
+  });
+
   const submitMutation = useMutation({
     mutationFn: async () => {
       const res = await base44.functions.invoke('submitFeedbackResponse', {
         service_id: serviceIdFromUrl || '',
         service_name: service?.name || '',
+        service_category: service?.category || undefined,
         client_id: clientIdFromUrl || '',
         company_name: client?.company || '',
+        presenter: calendarEvent?.presenter || undefined,
+        delivery_format: calendarEvent?.delivery_format || undefined,
         behavior_intent: form.behavior_intent,
         fit_confidence: form.fit_confidence,
         advocacy_referral: form.advocacy_referral || undefined,

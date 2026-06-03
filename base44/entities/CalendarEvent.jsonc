@@ -68,6 +68,15 @@
       "type": "string",
       "description": "Associated Service ID \u2014 used to generate the feedback link for the speaker"
     },
+    "delivery_format": {
+      "type": "string",
+      "enum": [
+        "virtual",
+        "in_person",
+        "hybrid"
+      ],
+      "description": "How the session was delivered"
+    },
     "color": {
       "type": "string",
       "description": "Event color for calendar display"
