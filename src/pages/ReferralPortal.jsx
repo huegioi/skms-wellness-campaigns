@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
 import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown, BarChart3, ArrowLeft, BookOpen, ChevronRight, PlayCircle, Star } from 'lucide-react';
 import ROIDashboard from '@/components/portal/ROIDashboard';
+import BrokerFeedbackRollup from '@/components/portal/BrokerFeedbackRollup';
 
 const STATUS_COLORS = {
   submitted: 'bg-blue-100 text-blue-700',
@@ -586,6 +587,11 @@ export default function ReferralPortal() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Portfolio Feedback Roll-Up */}
+        {client_companies.length > 0 && (
+          <BrokerFeedbackRollup clientCompanies={client_companies} />
         )}
 
         {/* Book of Business — ROI Drill-Down */}
