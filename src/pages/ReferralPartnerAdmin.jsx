@@ -57,7 +57,7 @@ export default function ReferralPartnerAdmin() {
 
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const [expandedPartner, setExpandedPartner] = useState(null);
-  const [viewMode, setViewMode] = useState('list');
+  const [viewMode, setViewMode] = useState('pipeline');
 
   const { data: partners = [], isLoading } = useQuery({
     queryKey: ['referralPartners'],
