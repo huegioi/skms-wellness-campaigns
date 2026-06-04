@@ -43,15 +43,13 @@ Deno.serve(async (req) => {
   const allProposals = await base44.asServiceRole.entities.Proposal.list('-created_date');
   const partnerProposals = allProposals.filter(p => p.client_id && ownedClientIdSet.has(p.client_id));
 
-  // Build proposal revenue map: client_id → total accepted/sent proposal value
+  // Build proposal revenue map: client_id → ACCEPTED proposals only
   const proposalRevenueByClient = {};
   partnerProposals.forEach(p => {
     if (!p.client_id) return;
+    if (p.status !== 'accepted') return; // strictly accepted/signed proposals only
     if (!proposalRevenueByClient[p.client_id]) proposalRevenueByClient[p.client_id] = 0;
-    // Count accepted proposals; fall back to sent if none accepted
-    if (p.status === 'accepted' || p.status === 'sent' || p.status === 'viewed') {
-      proposalRevenueByClient[p.client_id] += p.total_amount || 0;
-    }
+    proposalRevenueByClient[p.client_id] += p.total_amount || 0;
   });
 
   // Calculate commission summary
@@ -146,7 +144,10 @@ Deno.serve(async (req) => {
 
   // Recalculate totals from the full ledger (includes proposal-enriched rows)
   totalCommissionEarned = commissionLedger.reduce((s, r) => s + (r.commission_earned || 0), 0);
-  commissionPending = totalCommissionEarned - totalCommissionPaid;
+  // Pending = earned but NOT yet paid out (admin marks paid via total_commissions_paid on the partner record)
+  // Total Earned = all-time commissions accrued (paid + unpaid)
+  // Pending / Unpaid = earned minus what's already been paid
+  commissionPending = Math.max(0, totalCommissionEarned - totalCommissionPaid);
 
   return Response.json({
     partner: {
