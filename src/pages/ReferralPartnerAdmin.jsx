@@ -37,10 +37,10 @@ const FOLLOW_UP_STAGES = [
 ];
 
 const EMPTY_FORM = {
-name: '', email: '', company: '', phone: '', address: '', notes: '',
+  name: '', email: '', company: '', phone: '', address: '', notes: '',
   agreement_file_url: '', agreement_signed_date: '',
   commission_tiers: DEFAULT_TIERS, is_active: true,
-  follow_up_stage: ''
+  follow_up_stage: '', linked_client_ids: []
 };
 
 function generatePortalId() {
@@ -64,6 +64,11 @@ export default function ReferralPartnerAdmin() {
     queryFn: () => base44.entities.ReferralPartner.list('-created_date')
   });
 
+  const { data: allClients = [] } = useQuery({
+    queryKey: ['clients_for_partners'],
+    queryFn: () => base44.entities.Client.list('-created_date', 500)
+  });
+
   const existingCompanies = useMemo(() => {
     const companies = partners.map(p => p.company).filter(Boolean);
     return [...new Set(companies)].sort();
@@ -76,11 +81,34 @@ export default function ReferralPartnerAdmin() {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
-      if (editing) return base44.entities.ReferralPartner.update(editing.id, data);
-      return base44.entities.ReferralPartner.create({ ...data, unique_portal_id: generatePortalId() });
+      const { linked_client_ids, ...partnerData } = data;
+      let savedPartner;
+      if (editing) {
+        savedPartner = await base44.entities.ReferralPartner.update(editing.id, partnerData);
+      } else {
+        savedPartner = await base44.entities.ReferralPartner.create({ ...partnerData, unique_portal_id: generatePortalId() });
+      }
+      const partnerId = editing ? editing.id : savedPartner.id;
+      const partnerName = data.name;
+
+      // Write referral_partner_id back to newly linked clients
+      const currentlyLinked = allClients
+        .filter(c => c.referral_partner_id === partnerId)
+        .map(c => c.id);
+
+      const toLink = (linked_client_ids || []).filter(id => !currentlyLinked.includes(id));
+      const toUnlink = currentlyLinked.filter(id => !(linked_client_ids || []).includes(id));
+
+      await Promise.all([
+        ...toLink.map(id => base44.entities.Client.update(id, { referral_partner_id: partnerId, referral_partner_name: partnerName })),
+        ...toUnlink.map(id => base44.entities.Client.update(id, { referral_partner_id: null, referral_partner_name: null })),
+      ]);
+
+      return savedPartner;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['referralPartners'] });
+      qc.invalidateQueries({ queryKey: ['clients_for_partners'] });
       setShowDialog(false);
       setEditing(null);
       toast({ title: editing ? 'Partner updated' : 'Partner created' });
@@ -95,6 +123,9 @@ export default function ReferralPartnerAdmin() {
 
   const openEdit = (partner) => {
     setEditing(partner);
+    const currentlyLinked = allClients
+      .filter(c => c.referral_partner_id === partner.id)
+      .map(c => c.id);
     setForm({
       name: partner.name || '',
       email: partner.email || '',
@@ -106,7 +137,8 @@ export default function ReferralPartnerAdmin() {
       agreement_signed_date: partner.agreement_signed_date || '',
       commission_tiers: partner.commission_tiers?.length ? partner.commission_tiers : DEFAULT_TIERS,
       is_active: partner.is_active !== false,
-      follow_up_stage: partner.follow_up_stage || ''
+      follow_up_stage: partner.follow_up_stage || '',
+      linked_client_ids: currentlyLinked
     });
     setShowDialog(true);
   };
@@ -353,6 +385,43 @@ export default function ReferralPartnerAdmin() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Linked Clients */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">Linked Clients</label>
+              <p className="text-xs text-gray-400 mb-2">Select clients referred by this partner. Their revenue will appear on the Commissions page.</p>
+              <div className="max-h-48 overflow-y-auto border rounded-lg divide-y bg-gray-50">
+                {allClients.length === 0 && <p className="text-xs text-gray-400 p-3">No clients found.</p>}
+                {allClients.map(c => {
+                  const checked = (form.linked_client_ids || []).includes(c.id);
+                  return (
+                    <label key={c.id} className="flex items-center gap-3 px-3 py-2 hover:bg-white cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={e => {
+                          const ids = form.linked_client_ids || [];
+                          setForm(f => ({
+                            ...f,
+                            linked_client_ids: e.target.checked
+                              ? [...ids, c.id]
+                              : ids.filter(id => id !== c.id)
+                          }));
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-sm font-medium text-gray-800">{c.company || c.name}</span>
+                      {c.name && c.company && c.name !== c.company && (
+                        <span className="text-xs text-gray-400">— {c.name}</span>
+                      )}
+                      {c.referral_partner_id && c.referral_partner_id !== (editing?.id) && (
+                        <span className="text-xs text-orange-500 ml-auto">linked to another partner</span>
+                      )}
+                    </label>
+                  );
+                })}
               </div>
             </div>
 

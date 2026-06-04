@@ -43,6 +43,17 @@ Deno.serve(async (req) => {
   const allProposals = await base44.asServiceRole.entities.Proposal.list('-created_date');
   const partnerProposals = allProposals.filter(p => p.client_id && ownedClientIdSet.has(p.client_id));
 
+  // Build proposal revenue map: client_id → total accepted/sent proposal value
+  const proposalRevenueByClient = {};
+  partnerProposals.forEach(p => {
+    if (!p.client_id) return;
+    if (!proposalRevenueByClient[p.client_id]) proposalRevenueByClient[p.client_id] = 0;
+    // Count accepted proposals; fall back to sent if none accepted
+    if (p.status === 'accepted' || p.status === 'sent' || p.status === 'viewed') {
+      proposalRevenueByClient[p.client_id] += p.total_amount || 0;
+    }
+  });
+
   // Calculate commission summary
   const currentYear = new Date().getFullYear();
   const tiers = partner.commission_tiers || [];
@@ -59,9 +70,12 @@ Deno.serve(async (req) => {
     .filter(t => ytdRevenue >= t.min_revenue)
     .sort((a, b) => b.min_revenue - a.min_revenue)[0] || null;
 
-  const totalCommissionEarned = referrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
+  // Base commission from referral records (admin-confirmed)
+  const referralCommission = referrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
   const totalCommissionPaid = partner.total_commissions_paid || 0;
-  const commissionPending = totalCommissionEarned - totalCommissionPaid;
+  // Will be recalculated after ledger is built to include proposal-based entries
+  let totalCommissionEarned = referralCommission;
+  let commissionPending = totalCommissionEarned - totalCommissionPaid;
 
   // ─── Per-client commission ledger ───
   // Build a map from client_id → client record for enrichment
@@ -95,17 +109,30 @@ Deno.serve(async (req) => {
     }
   });
 
-  // Also include linked clients that have NO referral record yet (revenue from QB invoices)
+  // Also include ALL linked clients, using proposal revenue or QB invoices as revenue source
   ownedClients.forEach(c => {
     const alreadyInLedger = Object.values(ledgerMap).some(l => l.client_id === c.id);
-    if (!alreadyInLedger && (c.total_invoice_value > 0)) {
-      // Determine commission rate from current tier
-      const rate = currentTier ? currentTier.rate : (tiers[0]?.rate || 0);
+    const rate = currentTier ? currentTier.rate : (tiers[0]?.rate || 0.10);
+    // Revenue priority: QB invoices > proposals > 0
+    const revenue = (c.total_invoice_value > 0)
+      ? c.total_invoice_value
+      : (proposalRevenueByClient[c.id] || 0);
+
+    if (alreadyInLedger) {
+      // Enrich existing ledger row with proposal revenue if first_year_revenue is 0
+      const key = Object.keys(ledgerMap).find(k => ledgerMap[k].client_id === c.id);
+      if (key && ledgerMap[key].first_year_revenue === 0 && revenue > 0) {
+        ledgerMap[key].first_year_revenue = revenue;
+        ledgerMap[key].commission_earned = revenue * (ledgerMap[key].commission_rate || rate);
+        ledgerMap[key].commission_rate = ledgerMap[key].commission_rate || rate;
+      }
+    } else {
+      // Always add all linked clients to the ledger, even if revenue is 0
       ledgerMap[c.id] = {
         client_id: c.id,
         company: c.company || c.name,
-        first_year_revenue: c.total_invoice_value || 0,
-        commission_earned: (c.total_invoice_value || 0) * rate,
+        first_year_revenue: revenue,
+        commission_earned: revenue * rate,
         commission_rate: rate,
         status: 'converted_to_client',
         referral_date: c.created_date,
@@ -116,6 +143,10 @@ Deno.serve(async (req) => {
 
   const commissionLedger = Object.values(ledgerMap)
     .sort((a, b) => (b.commission_earned - a.commission_earned));
+
+  // Recalculate totals from the full ledger (includes proposal-enriched rows)
+  totalCommissionEarned = commissionLedger.reduce((s, r) => s + (r.commission_earned || 0), 0);
+  commissionPending = totalCommissionEarned - totalCommissionPaid;
 
   return Response.json({
     partner: {
