@@ -65,6 +65,7 @@ export default function ReferralPortal() {
     setError(null);
     try {
       const res = await base44.functions.invoke('getReferralPortalData', { portal_id: portalId });
+      console.log('=== getReferralPortalData RAW RESPONSE ===', JSON.stringify(res.data, null, 2));
       if (res.data && res.data.partner) {
         setData(res.data);
       } else {
@@ -483,6 +484,20 @@ export default function ReferralPortal() {
         {/* ─── COMMISSIONS TAB ─── */}
         {activeTab === 'commissions' && (
           <div className="space-y-6">
+            {/* ── DEBUG PANEL (remove after diagnosis) ── */}
+            <div className="bg-gray-900 text-green-400 rounded-lg p-4 text-xs font-mono overflow-x-auto">
+              <p className="text-yellow-400 font-bold mb-2">🔍 DIAGNOSTIC — raw payload</p>
+              <p><span className="text-gray-400">referrals.length:</span> {referrals.length}</p>
+              <p><span className="text-gray-400">commission_ledger.length:</span> {commission_ledger.length}</p>
+              <p><span className="text-gray-400">commission_summary.total_earned:</span> {String(commission_summary?.total_earned)}</p>
+              <p><span className="text-gray-400">commission_summary.pending:</span> {String(commission_summary?.pending)}</p>
+              <p><span className="text-gray-400">commission_summary.ytd_revenue:</span> {String(commission_summary?.ytd_revenue)}</p>
+              <p className="mt-2 text-gray-400">first referral (if any):</p>
+              <pre className="text-green-300 text-xs whitespace-pre-wrap">{referrals[0] ? JSON.stringify({ first_year_revenue: referrals[0].first_year_revenue, commission_amount: referrals[0].commission_amount, commission_rate: referrals[0].commission_rate, status: referrals[0].status }, null, 2) : 'none'}</pre>
+              <p className="mt-2 text-gray-400">first ledger row (if any):</p>
+              <pre className="text-green-300 text-xs whitespace-pre-wrap">{commission_ledger[0] ? JSON.stringify(commission_ledger[0], null, 2) : 'none'}</pre>
+            </div>
+
             {/* Top-line KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <Card className="border-purple-200 bg-purple-50">
