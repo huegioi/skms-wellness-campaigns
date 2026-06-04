@@ -63,6 +63,60 @@ Deno.serve(async (req) => {
   const totalCommissionPaid = partner.total_commissions_paid || 0;
   const commissionPending = totalCommissionEarned - totalCommissionPaid;
 
+  // ─── Per-client commission ledger ───
+  // Build a map from client_id → client record for enrichment
+  const clientById = {};
+  ownedClients.forEach(c => { clientById[c.id] = c; });
+
+  // Group referrals by referred_client_id (or company_name as fallback)
+  const ledgerMap = {};
+  referrals.forEach(r => {
+    const key = r.referred_client_id || r.company_name || r.contact_name;
+    if (!key) return;
+    if (!ledgerMap[key]) {
+      const client = r.referred_client_id ? clientById[r.referred_client_id] : null;
+      ledgerMap[key] = {
+        client_id: r.referred_client_id || null,
+        company: client ? (client.company || client.name) : r.company_name || r.contact_name,
+        first_year_revenue: 0,
+        commission_earned: 0,
+        commission_rate: r.commission_rate || null,
+        status: r.status,
+        referral_date: r.referral_date,
+        invoice_id: r.invoice_id || null,
+      };
+    }
+    ledgerMap[key].first_year_revenue += r.first_year_revenue || 0;
+    ledgerMap[key].commission_earned += r.commission_amount || 0;
+    // Use most recent status
+    if (r.referral_date > ledgerMap[key].referral_date) {
+      ledgerMap[key].status = r.status;
+      ledgerMap[key].referral_date = r.referral_date;
+    }
+  });
+
+  // Also include linked clients that have NO referral record yet (revenue from QB invoices)
+  ownedClients.forEach(c => {
+    const alreadyInLedger = Object.values(ledgerMap).some(l => l.client_id === c.id);
+    if (!alreadyInLedger && (c.total_invoice_value > 0)) {
+      // Determine commission rate from current tier
+      const rate = currentTier ? currentTier.rate : (tiers[0]?.rate || 0);
+      ledgerMap[c.id] = {
+        client_id: c.id,
+        company: c.company || c.name,
+        first_year_revenue: c.total_invoice_value || 0,
+        commission_earned: (c.total_invoice_value || 0) * rate,
+        commission_rate: rate,
+        status: 'converted_to_client',
+        referral_date: c.created_date,
+        invoice_id: null,
+      };
+    }
+  });
+
+  const commissionLedger = Object.values(ledgerMap)
+    .sort((a, b) => (b.commission_earned - a.commission_earned));
+
   return Response.json({
     partner: {
       id: partner.id,
@@ -83,6 +137,7 @@ Deno.serve(async (req) => {
       total_earned: totalCommissionEarned,
       total_paid: totalCommissionPaid,
       pending: commissionPending
-    }
+    },
+    commission_ledger: commissionLedger
   });
 });

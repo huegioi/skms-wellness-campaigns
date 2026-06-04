@@ -112,7 +112,7 @@ export default function ReferralPortal() {
     );
   }
 
-  const { partner, referrals, commission_summary, client_companies = [], partner_proposals = [] } = data;
+  const { partner, referrals, commission_summary, client_companies = [], partner_proposals = [], commission_ledger = [] } = data;
   const tiers = partner.commission_tiers || [];
 
   return (
@@ -483,28 +483,106 @@ export default function ReferralPortal() {
         {/* ─── COMMISSIONS TAB ─── */}
         {activeTab === 'commissions' && (
           <div className="space-y-6">
-            {/* Summary Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { label: 'Total Referrals', value: referrals.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50' },
-                { label: 'YTD Revenue Placed', value: `$${(commission_summary.ytd_revenue || 0).toLocaleString()}`, icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
-                { label: 'Commission Earned', value: `$${(commission_summary.total_earned || 0).toLocaleString()}`, icon: DollarSign, color: 'text-purple-600', bg: 'bg-purple-50' },
-                { label: 'Commission Pending', value: `$${(commission_summary.pending || 0).toLocaleString()}`, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-50' },
-              ].map((stat, i) => {
-                const Icon = stat.icon;
-                return (
-                  <Card key={i}>
-                    <CardContent className="pt-5 pb-4">
-                      <div className={`inline-flex p-2 rounded-lg ${stat.bg} mb-3`}>
-                        <Icon className={`w-5 h-5 ${stat.color}`} />
-                      </div>
-                      <p className="text-2xl font-bold text-gray-800">{stat.value}</p>
-                      <p className="text-xs text-gray-500 mt-1">{stat.label}</p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+            {/* Top-line KPIs */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Card className="border-purple-200 bg-purple-50">
+                <CardContent className="pt-5 pb-4">
+                  <div className="inline-flex p-2 rounded-lg bg-purple-100 mb-3">
+                    <DollarSign className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <p className="text-3xl font-bold text-purple-700">${(commission_summary.total_earned || 0).toLocaleString()}</p>
+                  <p className="text-sm text-purple-600 font-medium mt-1">Total Earned (All-Time)</p>
+                </CardContent>
+              </Card>
+              <Card className="border-orange-200 bg-orange-50">
+                <CardContent className="pt-5 pb-4">
+                  <div className="inline-flex p-2 rounded-lg bg-orange-100 mb-3">
+                    <Clock className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <p className="text-3xl font-bold text-orange-700">${(commission_summary.pending || 0).toLocaleString()}</p>
+                  <p className="text-sm text-orange-600 font-medium mt-1">Pending / Unpaid</p>
+                </CardContent>
+              </Card>
+              <Card className="border-green-200 bg-green-50">
+                <CardContent className="pt-5 pb-4">
+                  <div className="inline-flex p-2 rounded-lg bg-green-100 mb-3">
+                    <TrendingUp className="w-5 h-5 text-green-600" />
+                  </div>
+                  <p className="text-3xl font-bold text-green-700">${(commission_summary.ytd_revenue || 0).toLocaleString()}</p>
+                  <p className="text-sm text-green-600 font-medium mt-1">YTD Revenue Placed</p>
+                </CardContent>
+              </Card>
             </div>
+
+            {/* Per-Client Commission Ledger */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <FileText className="w-5 h-5 text-[#013f7c]" />
+                  Commission Ledger — By Client
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {commission_ledger.length === 0 ? (
+                  <p className="text-center text-gray-400 py-8 text-sm">No commission data yet. Revenue and commission amounts are updated when referrals are reviewed and invoiced.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b text-left">
+                          <th className="pb-2 pr-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Company</th>
+                          <th className="pb-2 pr-4 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Revenue Placed</th>
+                          <th className="pb-2 pr-4 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Rate</th>
+                          <th className="pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wide text-right">Commission Earned</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {commission_ledger.map((row, i) => (
+                          <tr key={i} className="hover:bg-gray-50">
+                            <td className="py-3 pr-4">
+                              <p className="font-medium text-gray-800">{row.company}</p>
+                              <span className={`text-xs px-1.5 py-0.5 rounded-full mt-0.5 inline-block ${
+                                row.status === 'commission_paid' ? 'bg-purple-100 text-purple-700' :
+                                row.status === 'purchased' || row.status === 'converted_to_client' ? 'bg-green-100 text-green-700' :
+                                row.status === 'not_eligible' ? 'bg-gray-100 text-gray-500' :
+                                'bg-blue-100 text-blue-700'
+                              }`}>
+                                {STATUS_LABELS[row.status] || row.status}
+                              </span>
+                            </td>
+                            <td className="py-3 pr-4 text-right text-gray-700">
+                              {row.first_year_revenue > 0 ? `$${row.first_year_revenue.toLocaleString()}` : <span className="text-gray-300">—</span>}
+                            </td>
+                            <td className="py-3 pr-4 text-right text-gray-500">
+                              {row.commission_rate ? `${(row.commission_rate * 100).toFixed(1)}%` : <span className="text-gray-300">—</span>}
+                            </td>
+                            <td className="py-3 text-right font-semibold">
+                              {row.commission_earned > 0
+                                ? <span className="text-[#013f7c]">${row.commission_earned.toLocaleString()}</span>
+                                : <span className="text-gray-300">$0</span>
+                              }
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t-2 border-gray-200">
+                          <td className="pt-3 font-semibold text-gray-700">Total</td>
+                          <td className="pt-3 text-right font-semibold text-gray-700">
+                            ${commission_ledger.reduce((s, r) => s + (r.first_year_revenue || 0), 0).toLocaleString()}
+                          </td>
+                          <td className="pt-3" />
+                          <td className="pt-3 text-right font-bold text-[#013f7c] text-base">
+                            ${commission_summary.total_earned.toLocaleString()}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
+                <p className="text-xs text-gray-400 mt-4">Revenue and commission amounts are populated by SKMS when a referral is reviewed and invoiced. Contact your SKMS representative with questions.</p>
+              </CardContent>
+            </Card>
 
             {/* Commission Tiers */}
             {tiers.length > 0 && (
