@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, ChevronUp, LayoutGrid, List } from 'lucide-react';
+import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, ChevronUp, LayoutGrid, List, Mail } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import PartnerPipelineView from '@/components/partners/PartnerPipelineView';
@@ -58,6 +58,8 @@ export default function ReferralPartnerAdmin() {
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const [expandedPartner, setExpandedPartner] = useState(null);
   const [viewMode, setViewMode] = useState('pipeline');
+  const [sendEmailConfirm, setSendEmailConfirm] = useState(null); // partner to confirm sending to
+  const [sendingEmail, setSendingEmail] = useState(null); // partner id currently sending
 
   const { data: partners = [], isLoading } = useQuery({
     queryKey: ['referralPartners'],
@@ -141,6 +143,23 @@ export default function ReferralPartnerAdmin() {
       linked_client_ids: currentlyLinked
     });
     setShowDialog(true);
+  };
+
+  const sendPortalEmail = async (partner) => {
+    setSendingEmail(partner.id);
+    setSendEmailConfirm(null);
+    try {
+      await base44.functions.invoke('provisionPartnerPortalOnActivation', {
+        event: { type: 'manual' },
+        data: { ...partner, unique_portal_id: partner.unique_portal_id },
+        send_email: true,
+      });
+      toast({ title: 'Portal email sent!', description: `Sent to ${partner.email}` });
+    } catch (e) {
+      toast({ title: 'Failed to send email', description: e.message, variant: 'destructive' });
+    } finally {
+      setSendingEmail(null);
+    }
   };
 
   const copyLink = (partner) => {
@@ -257,6 +276,18 @@ export default function ReferralPartnerAdmin() {
                           <ExternalLink className="w-4 h-4" /> Portal
                         </Button>
                       </a>
+                      {partner.unique_portal_id && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1 text-blue-700 border-blue-200 hover:bg-blue-50"
+                          onClick={() => setSendEmailConfirm(partner)}
+                          disabled={sendingEmail === partner.id}
+                        >
+                          <Mail className="w-4 h-4" />
+                          {sendingEmail === partner.id ? 'Sending…' : 'Send Portal Email'}
+                        </Button>
+                      )}
 
                       {partnerReferrals.length > 0 && (
                         <Button variant="ghost" size="sm" onClick={() => setExpandedPartner(expandedPartner === partner.id ? null : partner.id)}>
@@ -295,6 +326,27 @@ export default function ReferralPartnerAdmin() {
           })}
         </div>
       )}
+
+      {/* Send Email Confirmation Dialog */}
+      <Dialog open={!!sendEmailConfirm} onOpenChange={v => { if (!v) setSendEmailConfirm(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Send Portal Access Email?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 mt-2">
+            This will send a portal access email to <strong>{sendEmailConfirm?.name}</strong> at <strong>{sendEmailConfirm?.email}</strong> with their private portal link.
+          </p>
+          <div className="flex gap-3 mt-4">
+            <Button
+              onClick={() => sendPortalEmail(sendEmailConfirm)}
+              className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2"
+            >
+              <Mail className="w-4 h-4" /> Yes, Send Email
+            </Button>
+            <Button variant="outline" onClick={() => setSendEmailConfirm(null)}>Cancel</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Add/Edit Dialog */}
       <Dialog open={showDialog} onOpenChange={v => { setShowDialog(v); if (!v) setEditing(null); }}>

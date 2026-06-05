@@ -12,7 +12,8 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'Admin only' }, { status: 403 });
   }
 
-  const sendgridKey = Deno.env.get('SENDGRID_API_KEY');
+  const { send_email = false } = await req.json().catch(() => ({}));
+  const sendgridKey = send_email ? Deno.env.get('SENDGRID_API_KEY') : null;
   const appBaseUrl = 'https://curriculum-designer-05b51a3b.base44.app';
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

@@ -10,7 +10,7 @@ Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
   const body = await req.json();
 
-  const { event, data: lead, old_data } = body;
+  const { event, data: lead, old_data, send_email = false } = body;
 
   // Only act when partner_status just became 'active_partner'
   const justActivated =
@@ -89,9 +89,9 @@ Deno.serve(async (req) => {
     wasCreated = true;
   }
 
-  // Send portal access email
+  // Send portal access email only if explicitly requested
   let emailSent = false;
-  if (sendgridKey) {
+  if (send_email && sendgridKey) {
     const portalUrl = `${appBaseUrl}/ReferralPortal?id=${portalId}`;
     const emailBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

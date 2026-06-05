@@ -6,7 +6,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
  */
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
-  const { event, data } = await req.json();
+  const body = await req.json();
+  const { event, data, send_email = false } = body;
 
   const partner = data;
 
@@ -34,9 +35,9 @@ Deno.serve(async (req) => {
   const appBaseUrl = Deno.env.get('APP_BASE_URL') || 'https://app.base44.com/apps/6911f6f4a9d8505805b51a3b';
   const portalUrl = `${appBaseUrl}/ReferralPortal?id=${uniquePortalId}`;
 
-  // Send welcome/access email via SendGrid
+  // Send welcome/access email via SendGrid only if explicitly requested
   const sendgridKey = Deno.env.get('SENDGRID_API_KEY');
-  if (sendgridKey) {
+  if (send_email && sendgridKey) {
     const emailBody = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #013f7c; padding: 24px; text-align: center;">
