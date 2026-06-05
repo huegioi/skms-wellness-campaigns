@@ -10,8 +10,9 @@ Deno.serve(async (req) => {
 
   const partner = data;
 
-  // Only provision for active partners without a portal yet
-  if (!partner || !partner.is_active || partner.unique_portal_id) {
+  // Provision if is_active=true OR partner_status='Active Partner', and no portal yet
+  const isActive = partner?.is_active === true || partner?.partner_status === 'Active Partner';
+  if (!partner || !isActive || partner.unique_portal_id) {
     return Response.json({ skipped: true, reason: 'Not active or portal already exists' });
   }
 
@@ -26,6 +27,7 @@ Deno.serve(async (req) => {
 
   await base44.asServiceRole.entities.ReferralPartner.update(partner.id, {
     unique_portal_id: uniquePortalId,
+    is_active: true,
   });
 
   // Build portal URL

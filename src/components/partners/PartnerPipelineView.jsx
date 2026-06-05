@@ -147,7 +147,12 @@ export default function PartnerPipelineView({ partners, referrals }) {
     if (!destination) return;
     if (destination.droppableId === source.droppableId) return;
     const newStatus = destination.droppableId === '__none__' ? null : destination.droppableId;
-    await base44.entities.ReferralPartner.update(draggableId, { partner_status: newStatus });
+    const updatePayload = { partner_status: newStatus };
+    // When promoting to Active Partner, also set is_active=true so portal provisioning fires
+    if (newStatus === 'Active Partner') updatePayload.is_active = true;
+    // When moving away from Active Partner, set is_active=false
+    if (source.droppableId === 'Active Partner' && newStatus !== 'Active Partner') updatePayload.is_active = false;
+    await base44.entities.ReferralPartner.update(draggableId, updatePayload);
     refresh();
   };
 
