@@ -34,7 +34,8 @@ Deno.serve(async (req) => {
       unique_portal_id: portalId,
       is_active: true,
     });
-    results.provisioned.push({ id: partner.id, name: partner.name, email: partner.email, portal_id: portalId, email_sent: false, source: 'ReferralPartner' });
+    const emailSent = await sendPortalEmail(sendgridKey, partner, portalId, appBaseUrl);
+    results.provisioned.push({ id: partner.id, name: partner.name, email: partner.email, portal_id: portalId, email_sent: emailSent, source: 'ReferralPartner' });
   }
 
   // ── 2. Lead records with partner_status=active_partner, no matching ReferralPartner ──
@@ -62,7 +63,8 @@ Deno.serve(async (req) => {
       if (!results.provisioned.find(p => p.id === existingPartner.id)) {
         const portalId = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
         await base44.asServiceRole.entities.ReferralPartner.update(existingPartner.id, { unique_portal_id: portalId, is_active: true });
-        results.provisioned.push({ id: existingPartner.id, name: existingPartner.name, email: existingPartner.email, portal_id: portalId, email_sent: false, source: 'Lead→ReferralPartner' });
+        const emailSent = await sendPortalEmail(sendgridKey, existingPartner, portalId, appBaseUrl);
+        results.provisioned.push({ id: existingPartner.id, name: existingPartner.name, email: existingPartner.email, portal_id: portalId, email_sent: emailSent, source: 'Lead→ReferralPartner' });
       }
     } else {
       // No ReferralPartner record at all — create one from the Lead
@@ -79,7 +81,8 @@ Deno.serve(async (req) => {
       });
       // Link lead back to partner
       await base44.asServiceRole.entities.Lead.update(lead.id, { partner_status: 'active_partner' });
-      results.provisioned.push({ id: newPartner.id, name: lead.name, email: lead.email, portal_id: portalId, email_sent: false, source: 'Lead→new ReferralPartner' });
+      const emailSent = await sendPortalEmail(sendgridKey, { name: lead.name, email: lead.email }, portalId, appBaseUrl);
+      results.provisioned.push({ id: newPartner.id, name: lead.name, email: lead.email, portal_id: portalId, email_sent: emailSent, source: 'Lead→new ReferralPartner' });
     }
   }
 
