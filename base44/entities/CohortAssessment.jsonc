@@ -1,0 +1,105 @@
+{
+  "name": "CohortAssessment",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "Associated client ID"
+    },
+    "service_id": {
+      "type": "string",
+      "description": "The specific challenge/service ID"
+    },
+    "participant_email": {
+      "type": "string",
+      "description": "Participant email (lowercased + trimmed) \u2014 used as the person key for pairing"
+    },
+    "participant_phone": {
+      "type": "string",
+      "description": "Participant phone number (optional)"
+    },
+    "survey_type": {
+      "type": "string",
+      "enum": [
+        "challenge_day0",
+        "challenge_day14",
+        "annual_baseline",
+        "annual_endline"
+      ],
+      "description": "Which assessment point this row represents"
+    },
+    "who5_cheerful": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5,
+      "description": "WHO-5 Q1: Felt cheerful and in good spirits (0-5)"
+    },
+    "who5_calm": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5,
+      "description": "WHO-5 Q2: Felt calm and relaxed (0-5)"
+    },
+    "who5_active": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5,
+      "description": "WHO-5 Q3: Felt active and vigorous (0-5)"
+    },
+    "who5_rested": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5,
+      "description": "WHO-5 Q4: Woke up feeling fresh and rested (0-5)"
+    },
+    "who5_interested": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5,
+      "description": "WHO-5 Q5: Daily life filled with interesting things (0-5)"
+    },
+    "who5_total": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "WHO-5 total score = sum of 5 items * 4 (0-100)"
+    },
+    "cohort_year": {
+      "type": "integer",
+      "description": "Calendar year of this assessment"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the assessment was submitted"
+    },
+    "assessment_phase": {
+      "type": "string",
+      "default": "Phase 2",
+      "description": "Assessment phase identifier"
+    }
+  },
+  "required": [
+    "participant_email",
+    "survey_type",
+    "submitted_at"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

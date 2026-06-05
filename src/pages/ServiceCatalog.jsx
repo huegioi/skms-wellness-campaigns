@@ -15,6 +15,7 @@ import {
   DollarSign, Target, Loader2, GripVertical, RefreshCw, ExternalLink, FolderOpen, CloudUpload
 } from 'lucide-react';
 import ServiceResourceManager from '@/components/services/ServiceResourceManager';
+import CohortLinksButton from '@/components/services/CohortLinksButton';
 
 const SERVICES_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1qYMjE_ZWwUVl3nFC4k4RGHLpmDCG8lg1hEY9cGZZ-P8/edit';
 
@@ -228,8 +229,11 @@ export default function ServiceCatalog() {
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-2 mr-4">
+                          <div className="flex items-center gap-2 flex-wrap justify-end">
+                            {service.category === 'challenge' && (
+                              <CohortLinksButton service={service} />
+                            )}
+                            <div className="flex items-center gap-2 mr-2">
                               <span className="text-sm text-gray-500">Active</span>
                               <Switch 
                                 checked={service.is_active !== false}
