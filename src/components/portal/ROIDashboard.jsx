@@ -32,6 +32,7 @@ function ConfidenceBar({ value, max = 10 }) {
 export default function ROIDashboard({ clientId, clientCompany, services = [], showReportButton = false, onGenerateReport }) {
   const [selectedServiceId, setSelectedServiceId] = useState('all');
   const [copiedUrl, setCopiedUrl] = useState(null);
+  const [copiedWho5, setCopiedWho5] = useState(null); // `${serviceId}-day0` or `${serviceId}-day14`
 
   const { data: allResponses = [], isLoading } = useQuery({
     queryKey: ['roi-responses', clientId],
@@ -82,6 +83,15 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
     setCopiedUrl(serviceId);
     toast.success(`Feedback link for "${serviceName}" copied!`);
     setTimeout(() => setCopiedUrl(null), 2500);
+  };
+
+  const copyWho5Url = (serviceId, serviceName, timing) => {
+    const url = `${window.location.origin}/CohortAssessment?service_id=${serviceId}&client_id=${clientId}&timing=${timing}`;
+    navigator.clipboard.writeText(url);
+    const key = `${serviceId}-${timing}`;
+    setCopiedWho5(key);
+    toast.success(`WHO-5 ${timing === 'day0' ? 'Day 0' : 'Day 14'} link for "${serviceName}" copied!`);
+    setTimeout(() => setCopiedWho5(null), 2500);
   };
 
   if (isLoading) {
@@ -249,16 +259,40 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
                     <p className="text-sm font-medium text-gray-700 truncate">{s.name}</p>
                     <p className="text-xs text-gray-400">{count} response{count !== 1 ? 's' : ''}</p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => copyFeedbackUrl(s.id, s.name)}
-                    className="shrink-0 text-xs border-[#013f7c] text-[#013f7c]"
-                  >
-                    {copiedUrl === s.id
-                      ? <><Check className="w-3 h-3 mr-1" /> Copied</>
-                      : <><Copy className="w-3 h-3 mr-1" /> Copy Link</>}
-                  </Button>
+                  <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
+                   <Button
+                     size="sm"
+                     variant="outline"
+                     onClick={() => copyFeedbackUrl(s.id, s.name)}
+                     className="text-xs border-[#013f7c] text-[#013f7c]"
+                   >
+                     {copiedUrl === s.id
+                       ? <><Check className="w-3 h-3 mr-1" /> Copied</>
+                       : <><Copy className="w-3 h-3 mr-1" /> Copy Link</>}
+                   </Button>
+                   {s.category === 'challenge' && (<>
+                     <Button
+                       size="sm"
+                       variant="outline"
+                       onClick={() => copyWho5Url(s.id, s.name, 'day0')}
+                       className="text-xs border-[#264d44] text-[#264d44]"
+                     >
+                       {copiedWho5 === `${s.id}-day0`
+                         ? <><Check className="w-3 h-3 mr-1" /> Copied</>
+                         : <><Copy className="w-3 h-3 mr-1" /> WHO-5 Day 0</>}
+                     </Button>
+                     <Button
+                       size="sm"
+                       variant="outline"
+                       onClick={() => copyWho5Url(s.id, s.name, 'day14')}
+                       className="text-xs border-[#ff9878] text-[#c0604a]"
+                     >
+                       {copiedWho5 === `${s.id}-day14`
+                         ? <><Check className="w-3 h-3 mr-1" /> Copied</>
+                         : <><Copy className="w-3 h-3 mr-1" /> WHO-5 Day 14</>}
+                     </Button>
+                   </>)}
+                  </div>
                 </div>
               );
             })}
