@@ -4,8 +4,9 @@ import { base44 } from '@/api/base44Client';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, TrendingUp, MessageSquare, Heart, BarChart2, Loader2 } from 'lucide-react';
+import { Users, TrendingUp, MessageSquare, Heart, BarChart2, Loader2, Activity } from 'lucide-react';
 import FeedbackFilterBar from '@/components/feedback/FeedbackFilterBar';
+import Who5Analytics from '@/components/feedback/Who5Analytics';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -140,6 +141,7 @@ const DEFAULT_FILTERS = {
 
 export default function FeedbackAnalytics() {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [assessmentType, setAssessmentType] = useState('pulse'); // 'pulse' | 'who5'
 
   // ── Data fetching ─────────────────────────────────────────────────────────
   const { data: responses = [], isLoading } = useQuery({
@@ -257,9 +259,26 @@ export default function FeedbackAnalytics() {
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
 
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Universal Pulse Dashboard</h1>
-          <p className="text-gray-600 mt-1">Behavior intent · Fit confidence · Advocacy referrals</p>
+        <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Wellness Analytics</h1>
+            <p className="text-gray-600 mt-1">Behavior intent · Fit confidence · WHO-5 wellbeing</p>
+          </div>
+          {/* Assessment-type toggle */}
+          <div className="flex rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm self-start sm:self-auto">
+            <button
+              onClick={() => setAssessmentType('pulse')}
+              className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 ${assessmentType === 'pulse' ? 'bg-[#013f7c] text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+            >
+              <TrendingUp className="w-3.5 h-3.5" /> Pulse (Phase 1)
+            </button>
+            <button
+              onClick={() => setAssessmentType('who5')}
+              className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 ${assessmentType === 'who5' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-50'}`}
+            >
+              <Activity className="w-3.5 h-3.5" /> WHO-5 (Phase 2)
+            </button>
+          </div>
         </div>
 
         {/* Unified Filter Bar */}
@@ -270,6 +289,13 @@ export default function FeedbackAnalytics() {
           speakers={speakers}
         />
 
+        {/* WHO-5 view */}
+        {assessmentType === 'who5' && (
+          <Who5Analytics filters={filters} />
+        )}
+
+        {/* Pulse view */}
+        {assessmentType === 'pulse' && (<>
         {/* KPI Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <StatCard icon={Users} label="Responses" value={filtered.length} color="#013f7c" />
@@ -389,6 +415,7 @@ export default function FeedbackAnalytics() {
             </TabsContent>
           </Tabs>
         )}
+        </>)}
       </div>
     </div>
   );
