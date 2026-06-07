@@ -11,6 +11,7 @@ Deno.serve(async (req) => {
   const {
     client_id,
     service_id,
+    proposal_id,
     participant_email,
     participant_phone,
     survey_type,
@@ -27,7 +28,7 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'participant_email and survey_type are required' }, { status: 400 });
   }
 
-  const validSurveyTypes = ['challenge_day0', 'challenge_day14', 'annual_baseline', 'annual_endline'];
+  const validSurveyTypes = ['challenge_day0', 'challenge_day14', 'cohort_start', 'cohort_end'];
   if (!validSurveyTypes.includes(survey_type)) {
     return Response.json({ error: 'Invalid survey_type' }, { status: 400 });
   }
@@ -49,6 +50,7 @@ Deno.serve(async (req) => {
   const record = {
     client_id: client_id || null,
     service_id: service_id || null,
+    proposal_id: proposal_id || null,
     participant_email: normalizedEmail,
     participant_phone: participant_phone || null,
     survey_type,

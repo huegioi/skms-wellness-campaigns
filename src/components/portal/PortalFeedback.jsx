@@ -6,6 +6,7 @@ import { BarChart3, ClipboardList } from 'lucide-react';
 import ROIDashboard from './ROIDashboard';
 
 export default function PortalFeedback({ client, proposals = [] }) {
+  const acceptedProposal = proposals.find(p => p.status === 'accepted');
   // Fetch only services tied to this client — via purchased_services IDs or proposal selections
   const { data: clientServices = [] } = useQuery({
     queryKey: ['client-services', client?.id],
@@ -53,6 +54,7 @@ export default function PortalFeedback({ client, proposals = [] }) {
         clientId={client?.id}
         clientCompany={client?.company}
         services={clientServices}
+        acceptedProposalId={acceptedProposal?.id}
       />
     </div>
   );

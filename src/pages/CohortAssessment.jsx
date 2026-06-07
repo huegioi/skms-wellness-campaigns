@@ -25,9 +25,16 @@ export default function CohortAssessmentPage() {
   const params = new URLSearchParams(window.location.search);
   const service_id = params.get('service_id') || '';
   const client_id = params.get('client_id') || '';
+  const proposal_id = params.get('proposal_id') || '';
   const timing = params.get('timing') || 'day0';
-  const survey_type = timing === 'day14' ? 'challenge_day14' : 'challenge_day0';
-  const timingLabel = timing === 'day14' ? 'Day 14 Check-In' : 'Day 0 Baseline';
+
+  const TIMING_MAP = {
+    day0:        { survey_type: 'challenge_day0',  label: 'Day 0 Baseline' },
+    day14:       { survey_type: 'challenge_day14', label: 'Day 14 Check-In' },
+    cohort_start:{ survey_type: 'cohort_start',    label: 'Cohort Start Check-In' },
+    cohort_end:  { survey_type: 'cohort_end',      label: 'Cohort End Check-In' },
+  };
+  const { survey_type, label: timingLabel } = TIMING_MAP[timing] || TIMING_MAP['day0'];
 
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -47,6 +54,7 @@ export default function CohortAssessmentPage() {
     const res = await base44.functions.invoke('submitCohortAssessment', {
       client_id,
       service_id,
+      proposal_id,
       participant_email: email.trim(),
       participant_phone: phone.trim() || undefined,
       survey_type,
@@ -104,7 +112,7 @@ export default function CohortAssessmentPage() {
                 required
                 className="w-full"
               />
-              <p className="text-xs text-gray-400 mt-1">Used to match your Day 0 and Day 14 responses.</p>
+              <p className="text-xs text-gray-400 mt-1">Used to match your check-in responses across time.</p>
             </div>
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1">

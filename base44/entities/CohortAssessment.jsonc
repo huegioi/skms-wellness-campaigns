@@ -8,7 +8,11 @@
     },
     "service_id": {
       "type": "string",
-      "description": "The specific challenge/service ID"
+      "description": "The specific challenge/service ID (for challenge_day0 / challenge_day14 types)"
+    },
+    "proposal_id": {
+      "type": "string",
+      "description": "The accepted proposal ID (for cohort_start / cohort_end types)"
     },
     "participant_email": {
       "type": "string",
@@ -23,8 +27,8 @@
       "enum": [
         "challenge_day0",
         "challenge_day14",
-        "annual_baseline",
-        "annual_endline"
+        "cohort_start",
+        "cohort_end"
       ],
       "description": "Which assessment point this row represents"
     },

@@ -29,7 +29,7 @@ function ConfidenceBar({ value, max = 10 }) {
   );
 }
 
-export default function ROIDashboard({ clientId, clientCompany, services = [], showReportButton = false, onGenerateReport }) {
+export default function ROIDashboard({ clientId, clientCompany, services = [], showReportButton = false, onGenerateReport, acceptedProposalId }) {
   const [selectedServiceId, setSelectedServiceId] = useState('all');
   const [copiedUrl, setCopiedUrl] = useState(null);
   const [copiedWho5, setCopiedWho5] = useState(null); // `${serviceId}-day0` or `${serviceId}-day14`
@@ -92,6 +92,15 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
     setCopiedWho5(key);
     toast.success(`WHO-5 ${timing === 'day0' ? 'Day 0' : 'Day 14'} link for "${serviceName}" copied!`);
     setTimeout(() => setCopiedWho5(null), 2500);
+  };
+
+  const [copiedCohort, setCopiedCohort] = useState(null);
+  const copyCohortUrl = (timing) => {
+    const url = `${window.location.origin}/CohortAssessment?client_id=${clientId}&proposal_id=${acceptedProposalId}&timing=${timing}`;
+    navigator.clipboard.writeText(url);
+    setCopiedCohort(timing);
+    toast.success(`Cohort ${timing === 'cohort_start' ? 'Start' : 'End'} WHO-5 link copied!`);
+    setTimeout(() => setCopiedCohort(null), 2500);
   };
 
   if (isLoading) {
@@ -239,6 +248,39 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
 
 
         </>
+      )}
+
+      {/* Cohort Wellbeing WHO-5 */}
+      {acceptedProposalId && (
+        <div className="bg-white rounded-xl shadow-sm p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="w-4 h-4 text-[#770142]" />
+            <p className="text-sm font-semibold text-gray-700">Cohort Wellbeing (WHO-5)</p>
+            <span className="text-xs text-gray-400">— Yearly cohort baseline &amp; follow-up</span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => copyCohortUrl('cohort_start')}
+              className="text-xs border-[#770142] text-[#770142]"
+            >
+              {copiedCohort === 'cohort_start'
+                ? <><Check className="w-3 h-3 mr-1" /> Copied</>
+                : <><Copy className="w-3 h-3 mr-1" /> Cohort Start WHO-5</>}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => copyCohortUrl('cohort_end')}
+              className="text-xs border-[#013f7c] text-[#013f7c]"
+            >
+              {copiedCohort === 'cohort_end'
+                ? <><Check className="w-3 h-3 mr-1" /> Copied</>
+                : <><Copy className="w-3 h-3 mr-1" /> Cohort End WHO-5</>}
+            </Button>
+          </div>
+        </div>
       )}
 
       {/* QR / Feedback Link Generator */}
