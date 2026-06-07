@@ -5,6 +5,7 @@ import { TrendingUp, Users, MessageSquare, Copy, Check, QrCode } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import Who5ResultsPanel from './Who5ResultsPanel';
 
 function StatCard({ label, value, sub, color = '#013f7c' }) {
   return (
@@ -282,6 +283,13 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
           </div>
         </div>
       )}
+
+      {/* WHO-5 Results */}
+      <Who5ResultsPanel
+        clientId={clientId}
+        acceptedProposalId={acceptedProposalId}
+        services={services}
+      />
 
       {/* QR / Feedback Link Generator */}
       {services.filter(s => s.is_active !== false).length > 0 && (
