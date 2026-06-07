@@ -43,31 +43,38 @@ Deno.serve(async (req) => {
 
   // =========================================================
   // SECTION A: MASS CAMPAIGN ACTIONS
-  // Check if today falls within 7 days of a campaign's trigger date
+  // Active window: from (target-month-start − prep_trigger_days) through end of target month.
+  // If that full window has passed this year, look ahead to next year.
   // =========================================================
-  const triggeredCampaigns = activeCampaigns.filter(campaign => {
+  const triggeredCampaigns = activeCampaigns.map(campaign => {
     const monthIndex = MONTH_NAMES.indexOf(campaign.target_month);
-    if (monthIndex === -1) return false;
+    if (monthIndex === -1) return null;
     const prepDays = campaign.prep_trigger_days ?? 45;
-    // Trigger date = 1st of target month minus prepDays, for the next upcoming occurrence
-    let targetYear = now.getFullYear();
-    const targetFirst = new Date(targetYear, monthIndex, 1);
-    if (targetFirst < now) {
-      // Already passed this year — check next year
-      targetFirst.setFullYear(targetYear + 1);
+
+    // Try this year first, then next year
+    for (const year of [now.getFullYear(), now.getFullYear() + 1]) {
+      const monthStart  = new Date(year, monthIndex, 1);
+      const monthEnd    = new Date(year, monthIndex + 1, 0); // last day of target month
+      const windowStart = new Date(monthStart);
+      windowStart.setDate(windowStart.getDate() - prepDays);
+
+      if (now >= windowStart && now <= monthEnd) {
+        const inMonth = now >= monthStart;
+        const daysOut = inMonth ? 0 : Math.ceil((monthStart - now) / (1000 * 60 * 60 * 24));
+        const label   = inMonth
+          ? `Happening now — ${campaign.target_month}`
+          : `Prep — ${daysOut} day${daysOut !== 1 ? 's' : ''} out`;
+        return { campaign, label };
+      }
     }
-    const triggerDate = new Date(targetFirst);
-    triggerDate.setDate(triggerDate.getDate() - prepDays);
-    const daysFromTrigger = daysDiff(now, triggerDate);
-    // Fire if we're within a 7-day window after the trigger date
-    return daysFromTrigger >= 0 && daysFromTrigger <= 7;
-  });
+    return null;
+  }).filter(Boolean);
 
   const activeClientCount = allClients.filter(c => c.client_stage && c.client_stage !== 'churned').length;
   const activePartnerCount = allPartners.filter(p => p.partner_status === 'Active Partner').length;
 
-  const campaignSummaries = triggeredCampaigns.map(campaign =>
-    `📣 **${campaign.name} Prep** | Target: ${campaign.target_month} | You have **${activeClientCount} Active Clients** and **${activePartnerCount} Referral Partners** to engage. _(Queue Draft Emails)_`
+  const campaignSummaries = triggeredCampaigns.map(({ campaign, label }) =>
+    `📣 **${campaign.name}** (${label}) | Target: ${campaign.target_month} | You have **${activeClientCount} Active Clients** and **${activePartnerCount} Referral Partners** to engage. _(Queue Draft Emails)_`
   );
 
   // =========================================================
@@ -126,7 +133,7 @@ Deno.serve(async (req) => {
     silent_clients: silentClients.length,
     renewal_clients: renewalAlerts.length,
     active_partners: activeLeadPartners.length,
-    triggered_campaigns: triggeredCampaigns.length,
+    triggered_campaigns: triggeredCampaigns.length, // array of {campaign, label}
     stalled_tier1_partners: stalledPartners.length,
   };
 

@@ -1,12 +1,20 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
-const SEASONAL_FLAGS = {
-  1: "New year kickoff — fresh budgets, propose new programs",
-  3: "Share case studies and ROI data with partners",
-  5: "Mental Health Month — offer co-branded campaigns to partners and clients",
-  8: "Pre-renewal planning for summer renewals",
-  10: "Renewal push for January plan years",
-  11: "Thank you outreach and year-end relationship building",
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+const SEASONAL_THEMES = {
+  January:   ['New Year Wellness Reset', 'Dry January / Mindful Drinking', 'Goal-Setting & Habit Formation'],
+  February:  ['Heart Health Month', 'Stress & Emotional Wellbeing (Valentine\'s Week)', 'Financial Wellness Month'],
+  March:     ['National Nutrition Month', 'Spring Wellness Kickoff', 'Women\'s History Month — Women\'s Wellbeing'],
+  April:     ['Stress Awareness Month', 'Earth Month / Nature-Based Wellness', 'Spring Mental Fitness'],
+  May:       ['Mental Health Awareness Month', 'Employee Wellbeing Week', 'Physical Fitness & Sports Month'],
+  June:      ['Men\'s Health Month', 'Pride Month — Inclusive Wellness', 'Summer Wellness Preview'],
+  July:      ['Summer Wellness Check-In', 'UV Safety & Outdoor Health', 'Mid-Year Reset'],
+  August:    ['Back-to-School Stress & Family Wellness', 'Immunization Awareness Month', 'Summer Wind-Down'],
+  September: ['Suicide Prevention & Mental Health Awareness', 'Healthy Aging Month', 'Fall Wellness Kickoff'],
+  October:   ['Breast Cancer Awareness Month', 'Mental Health Awareness (World Mental Health Day Oct 10)', 'Halloween & Mindful Eating'],
+  November:  ['Diabetes Awareness Month', 'Gratitude & Resilience', 'Open Enrollment Season — Benefits Wellness'],
+  December:  ['Holiday Stress & Burnout Prevention', 'Year-End Reflection & Goal Planning', 'Giving & Volunteer Wellness'],
 };
 
 function formatDate(date) {
@@ -123,7 +131,7 @@ Deno.serve(async (req) => {
 
     // This runs as a scheduled automation — use service role throughout
     const now = new Date();
-    const currentMonth = now.getMonth() + 1;
+    const currentMonthName = MONTH_NAMES[now.getMonth()];
     const dateStr = formatDate(now);
 
     // Run email sync first so Maya has the freshest contact data
@@ -135,9 +143,10 @@ Deno.serve(async (req) => {
     }
 
     // Fetch data in parallel (same logic as mayaDailyBriefing)
-    const [allLeads, allClients] = await Promise.all([
+    const [allLeads, allClients, activeCampaigns] = await Promise.all([
       base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' }),
       base44.asServiceRole.entities.Client.list(),
+      base44.asServiceRole.entities.AnnualCampaign.filter({ is_active: true }),
     ]);
 
     const overduePartners = allLeads.filter(l =>
@@ -157,7 +166,36 @@ Deno.serve(async (req) => {
       return daysUntil >= 0 && daysUntil <= 90;
     });
 
-    const seasonalFlag = SEASONAL_FLAGS[currentMonth] || null;
+    // ── Active campaign window: (target-month-start − prep_trigger_days) through end of target month
+    const triggeredCampaigns = activeCampaigns.map(campaign => {
+      const monthIndex = MONTH_NAMES.indexOf(campaign.target_month);
+      if (monthIndex === -1) return null;
+      const prepDays = campaign.prep_trigger_days ?? 45;
+      for (const year of [now.getFullYear(), now.getFullYear() + 1]) {
+        const monthStart  = new Date(year, monthIndex, 1);
+        const monthEnd    = new Date(year, monthIndex + 1, 0);
+        const windowStart = new Date(monthStart);
+        windowStart.setDate(windowStart.getDate() - prepDays);
+        if (now >= windowStart && now <= monthEnd) {
+          const inMonth = now >= monthStart;
+          const daysOut = inMonth ? 0 : Math.ceil((monthStart - now) / (1000 * 60 * 60 * 24));
+          const label   = inMonth
+            ? `Happening now — ${campaign.target_month}`
+            : `Prep — ${daysOut} day${daysOut !== 1 ? 's' : ''} out`;
+          return { campaign, label };
+        }
+      }
+      return null;
+    }).filter(Boolean);
+
+    const currentThemes = SEASONAL_THEMES[currentMonthName] || [];
+    const themesLine = currentThemes.length > 0
+      ? currentThemes.map(t => `• ${t}`).join('\n')
+      : '_No specific seasonal themes for this month._';
+
+    const campaignSummaries = triggeredCampaigns.map(({ campaign, label }) =>
+      `📣 ${campaign.name} (${label}) | Target: ${campaign.target_month}`
+    );
 
     const prompt = `You are Maya, the Sales Director at SKMS Wellness — a mental fitness campaign company that helps organizations through workshops, 14-day challenges, leadership programs, wellness boxes, and classes. You report to William and Heather, the co-founders.
 
@@ -170,13 +208,19 @@ When giving your briefing:
 - Be specific — use names, companies, and dates
 - Suggest the exact next action, not vague advice
 - Flag seasonal opportunities tied to the current month
-- Keep it under 500 words
+- Keep it under 600 words
 - Use a friendly but professional tone
 - Group items by priority: Urgent, Important, Opportunities
 
 Here is today's data:
 
 Today is ${now.toDateString()}.
+
+## CURRENT SEASONAL THEMES — ${currentMonthName}
+${themesLine}
+
+## ACTIVE CAMPAIGNS
+${campaignSummaries.length > 0 ? campaignSummaries.join('\n') : 'None in window today.'}
 
 OVERDUE FOLLOW-UP PARTNERS (${overduePartners.length}):
 ${overduePartners.map(l => `- ${l.name} (${l.company || 'no company'}) | email: ${l.email} | stage: ${l.follow_up_stage || 'unknown'} | due: ${l.follow_up_due_date}`).join('\n') || 'None'}
@@ -190,8 +234,7 @@ ${silentClients.map(c => `- ${c.company || c.name} | contact: ${c.name} | last c
 CLIENTS IN RENEWAL WINDOW — plan year starts within 90 days (${renewalClients.length}):
 ${renewalClients.map(c => `- ${c.company || c.name} | plan year start: ${c.plan_year_start} | owner: ${c.owner || 'unassigned'}`).join('\n') || 'None'}
 
-SEASONAL OPPORTUNITY THIS MONTH:
-${seasonalFlag || 'No specific seasonal flag for this month.'}
+Cross-reference the seasonal themes and active campaigns above with clients/partners. Suggest specific outreach angles in a dedicated "🗓️ Seasonal Outreach Opportunities" section.
 
 Please give your daily briefing now.`;
 
