@@ -186,9 +186,8 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
                         <p className="font-medium text-sm text-gray-800">{s.name}</p>
                         <p className="text-xs text-gray-400">{s.count} response{s.count !== 1 ? 's' : ''}</p>
                       </div>
-                      <div className="text-right text-xs space-y-0.5">
+                      <div className="text-right text-xs">
                         {s.avgConf != null && <p className="text-[#264d44] font-semibold">{s.avgConf.toFixed(1)}/10 confidence</p>}
-                        <p className="text-gray-400">{s.count} response{s.count !== 1 ? 's' : ''}</p>
                       </div>
                     </div>
                     {s.avgConf != null && <ConfidenceBar value={parseFloat(s.avgConf.toFixed(1))} />}
