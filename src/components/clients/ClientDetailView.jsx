@@ -90,6 +90,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
     setEditForm({
       name: client.name || '',
       email: client.email || '',
+      email2: client.email2 || '',
       title: client.title || '',
       phone: client.phone || '',
       company: client.company || '',
@@ -415,6 +416,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
                 <div><label className="text-xs text-gray-500 mb-1 block">Contact Name *</label><Input value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} /></div>
                 <div><label className="text-xs text-gray-500 mb-1 block">Job Title</label><Input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} /></div>
                 <div><label className="text-xs text-gray-500 mb-1 block">Contact Email *</label><Input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} /></div>
+                <div><label className="text-xs text-gray-500 mb-1 block">Secondary Email</label><Input type="email" value={editForm.email2 || ''} onChange={e => setEditForm({...editForm, email2: e.target.value})} placeholder="Secondary email address" /></div>
                 <div><label className="text-xs text-gray-500 mb-1 block">Phone</label><Input value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} /></div>
                 <div><label className="text-xs text-gray-500 mb-1 block">Industry</label><Input value={editForm.industry} onChange={e => setEditForm({...editForm, industry: e.target.value})} /></div>
                 <div>
@@ -479,6 +481,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             <div className="space-y-3">
               <h4 className="font-semibold text-gray-700">Contact Information</h4>
               <p className="flex items-center gap-2 text-sm"><Mail className="w-4 h-4 text-gray-400" /> {client.email}</p>
+              {client.email2 && <p className="flex items-center gap-2 text-sm"><Mail className="w-4 h-4 text-gray-300" /> {client.email2}</p>}
               {client.phone && <p className="flex items-center gap-2 text-sm"><Phone className="w-4 h-4 text-gray-400" /> {client.phone}</p>}
               {client.company_website && (
                 <a href={client.company_website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
