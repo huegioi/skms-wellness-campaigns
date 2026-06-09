@@ -29,7 +29,7 @@ function SyncEmailsButton() {
     try {
       const res = await base44.functions.invoke('scanAdminGmailContacts', {});
       const d = res.data;
-      toast.success(`Email sync complete — ${d.new_emails_logged ?? 0} new emails logged`);
+      toast.success(`Email sync complete — ${d.new_emails_logged ?? 0} new emails, ${d.contacts_updated ?? 0} last-contacted dates updated.`);
     } catch (err) {
       toast.error(`Email sync failed — ${err.message}`);
     } finally {
