@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
     const emails = allEmails.slice(0, 25);
     const lastContactDate = emails[0]?.date || null;
 
-    // Auto-update last_contacted_date on matching Lead if email date is more recent
+    // Auto-update last_contacted_date on matching Lead and Client if email date is more recent
     if (lastContactDate) {
       const emailDateStr = new Date(lastContactDate).toISOString().split('T')[0];
       try {
@@ -171,6 +171,21 @@ Deno.serve(async (req) => {
         }
       } catch (err) {
         console.error(`Failed to update lead last_contacted_date: ${err.message}`);
+      }
+      try {
+        const clients = await base44.asServiceRole.entities.Client.filter({ email: clientEmail });
+        if (clients.length > 0) {
+          const client = clients[0];
+          const existing = client.last_contacted_date;
+          if (!existing || emailDateStr > existing) {
+            await base44.asServiceRole.entities.Client.update(client.id, {
+              last_contacted_date: emailDateStr,
+              last_contacted: emailDateStr,
+            });
+          }
+        }
+      } catch (err) {
+        console.error(`Failed to update client last_contacted_date: ${err.message}`);
       }
     }
 
