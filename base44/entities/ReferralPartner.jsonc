@@ -11,6 +11,11 @@
       "format": "email",
       "description": "Partner's email address"
     },
+    "email2": {
+      "type": "string",
+      "format": "email",
+      "description": "Partner's secondary email address"
+    },
     "company": {
       "type": "string",
       "description": "Partner's company or brokerage name"

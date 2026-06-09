@@ -37,7 +37,7 @@ const FOLLOW_UP_STAGES = [
 ];
 
 const EMPTY_FORM = {
-  name: '', email: '', company: '', phone: '', address: '', notes: '',
+  name: '', email: '', email2: '', company: '', phone: '', address: '', notes: '',
   agreement_file_url: '', agreement_signed_date: '',
   commission_tiers: DEFAULT_TIERS, is_active: true,
   follow_up_stage: '', linked_client_ids: []
@@ -131,6 +131,7 @@ export default function ReferralPartnerAdmin() {
     setForm({
       name: partner.name || '',
       email: partner.email || '',
+      email2: partner.email2 || '',
       company: partner.company || '',
       phone: partner.phone || '',
       address: partner.address || '',
@@ -363,6 +364,10 @@ export default function ReferralPartnerAdmin() {
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Email *</label>
                 <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Secondary Email</label>
+                <Input type="email" value={form.email2 || ''} onChange={e => setForm(f => ({ ...f, email2: e.target.value }))} placeholder="Secondary email address" />
               </div>
               <div className="relative">
                 <label className="text-sm font-medium text-gray-700 block mb-1">Company</label>

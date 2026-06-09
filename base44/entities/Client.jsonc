@@ -11,6 +11,11 @@
       "format": "email",
       "description": "Primary contact email address"
     },
+    "email2": {
+      "type": "string",
+      "format": "email",
+      "description": "Secondary contact email address"
+    },
     "company": {
       "type": "string",
       "description": "Company name"

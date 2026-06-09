@@ -10,6 +10,7 @@ export default function PrimaryContactEditor({ client, onUpdate }) {
   const [form, setForm] = useState({
     name: client.name || '',
     email: client.email || '',
+    email2: client.email2 || '',
     title: client.title || '',
     phone: client.phone || '',
   });
@@ -28,6 +29,7 @@ export default function PrimaryContactEditor({ client, onUpdate }) {
     setForm({
       name: client.name || '',
       email: client.email || '',
+      email2: client.email2 || '',
       title: client.title || '',
       phone: client.phone || '',
     });
@@ -57,6 +59,10 @@ export default function PrimaryContactEditor({ client, onUpdate }) {
               <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="Email address" />
             </div>
             <div>
+              <label className="text-xs text-gray-500 mb-1 block">Secondary Email</label>
+              <Input type="email" value={form.email2} onChange={e => setForm(f => ({ ...f, email2: e.target.value }))} placeholder="Secondary email address" />
+            </div>
+            <div>
               <label className="text-xs text-gray-500 mb-1 block">Job Title</label>
               <Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Job title" />
             </div>
@@ -79,6 +85,7 @@ export default function PrimaryContactEditor({ client, onUpdate }) {
           <p className="font-semibold">{client.name}</p>
           {client.title && <p className="text-sm text-gray-600">{client.title}</p>}
           <p className="text-sm text-gray-500">{client.email}</p>
+          {client.email2 && <p className="text-sm text-gray-400">{client.email2}</p>}
           {client.phone && <p className="text-sm text-gray-500">{client.phone}</p>}
         </div>
       )}
