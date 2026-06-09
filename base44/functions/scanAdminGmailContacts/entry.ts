@@ -64,127 +64,151 @@ async function scanViaImap(accountEmail, password, emailMap, updates) {
   await imapClient.logout();
 }
 
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function fetchWithQuotaRetry(url, headers) {
+  const res = await fetch(url, { headers });
+  if (res.status === 429) {
+    await sleep(3000);
+    return fetch(url, { headers });
+  }
+  return res;
+}
+
 async function scanViaGmailApi(accessToken, emailMap, base44, accountLabel, daysBack = 90) {
   const since = new Date();
   since.setDate(since.getDate() - daysBack);
   const afterStr = `${since.getFullYear()}/${since.getMonth() + 1}/${since.getDate()}`;
 
+  const authHeaders = { Authorization: `Bearer ${accessToken}` };
+
   // Get existing IDs to avoid duplicate fetches
   const existingLogs = await base44.asServiceRole.entities.EmailLog.filter({ gmail_account: accountLabel });
   const existingIds = new Set(existingLogs.map(l => l.gmail_message_id));
 
-  const newLogs = [];
   const updatesFromApi = {};
+  let totalNewLogs = 0;
 
-  // Search per known contact email to avoid fetching all messages
   const contactEmails = Object.keys(emailMap);
-  // Batch contacts into groups to reduce API calls (Gmail OR has limits)
   const BATCH_SIZE = 10;
 
   for (let i = 0; i < contactEmails.length; i += BATCH_SIZE) {
     const batch = contactEmails.slice(i, i + BATCH_SIZE);
-    const orQuery = batch.map(e => `{from:${e} to:${e}}`).join(' OR ');
-    const query = encodeURIComponent(`(${orQuery}) after:${afterStr}`);
+    let batchMessageIds = [];
 
-    let pageToken = null;
-    const batchMessageIds = [];
-    do {
-      const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=500${pageToken ? `&pageToken=${pageToken}` : ''}`;
-      const listRes = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
-      const listData = await listRes.json();
+    // --- List phase: collect message IDs for this batch ---
+    try {
+      const orQuery = batch.map(e => `{from:${e} to:${e}}`).join(' OR ');
+      const query = encodeURIComponent(`(${orQuery}) after:${afterStr}`);
 
-      if (listData.error) {
-        if (listData.error.code === 429 || (listData.error.message || '').toLowerCase().includes('quota')) {
-          throw new Error('GMAIL_QUOTA: ' + (listData.error.message || 'Rate limit exceeded'));
+      let pageToken = null;
+      do {
+        const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${query}&maxResults=500${pageToken ? `&pageToken=${pageToken}` : ''}`;
+        const listRes = await fetchWithQuotaRetry(url, authHeaders);
+        const listData = await listRes.json();
+
+        if (listData.error) {
+          const isQuota = listData.error.code === 429 || (listData.error.message || '').toLowerCase().includes('quota');
+          console.error(`[scanAdminGmailContacts] List error for batch ${i}-${i + batch.length}: ${listData.error.message}${isQuota ? ' (quota)' : ''}`);
+          break;
         }
-        // Skip this batch on other errors
-        break;
-      }
 
-      if (listData.messages) {
-        for (const m of listData.messages) {
-          if (!existingIds.has(m.id)) batchMessageIds.push(m.id);
+        if (listData.messages) {
+          for (const m of listData.messages) {
+            if (!existingIds.has(m.id)) batchMessageIds.push(m.id);
+          }
         }
-      }
-      pageToken = listData.nextPageToken || null;
-    } while (pageToken);
+        pageToken = listData.nextPageToken || null;
+      } while (pageToken);
+    } catch (err) {
+      console.error(`[scanAdminGmailContacts] List phase failed for batch ${i}: ${err.message}`);
+      await sleep(250);
+      continue; // skip to next batch
+    }
 
+    // --- Fetch phase: get metadata for each new message ---
+    const batchLogs = [];
     for (const id of batchMessageIds) {
-    if (existingIds.has(id)) continue;
+      if (existingIds.has(id)) continue;
 
-    const msgRes = await fetch(
-      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Date&metadataHeaders=Subject`,
-      { headers: { Authorization: `Bearer ${accessToken}` } }
-    );
-    const msg = await msgRes.json();
+      try {
+        await sleep(250); // small delay between individual message fetches
+        const msgUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Date&metadataHeaders=Subject`;
+        const msgRes = await fetchWithQuotaRetry(msgUrl, authHeaders);
+        const msg = await msgRes.json();
 
-    if (msg.error) continue;
+        if (msg.error) continue;
 
-    const headers = msg.payload?.headers || [];
-    const get = (name) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+        const headers = msg.payload?.headers || [];
+        const get = (name) => headers.find(h => h.name.toLowerCase() === name.toLowerCase())?.value || '';
 
-    const rawDate = get('Date');
-    if (!rawDate) continue;
-    const msgDate = new Date(rawDate).toISOString().split('T')[0];
-    const msgDateTime = new Date(rawDate).toISOString();
+        const rawDate = get('Date');
+        if (!rawDate) continue;
+        const msgDate = new Date(rawDate).toISOString().split('T')[0];
+        const msgDateTime = new Date(rawDate).toISOString();
 
-    const fromRaw = get('From');
-    const toRaw = get('To');
-    const ccRaw = get('Cc');
-    const subject = get('Subject');
-    const snippet = (msg.snippet || '').slice(0, 300);
-    const bodyPreview = snippet.slice(0, 500);
+        const fromRaw = get('From');
+        const toRaw = get('To');
+        const ccRaw = get('Cc');
+        const subject = get('Subject');
+        const snippet = (msg.snippet || '').slice(0, 300);
 
-    const fromAddr = parseEmail(fromRaw);
-    const toAddrs = parseEmailList(toRaw);
-    const ccAddrs = parseEmailList(ccRaw);
-    const allAddresses = [fromAddr, ...toAddrs, ...ccAddrs];
+        const fromAddr = parseEmail(fromRaw);
+        const toAddrs = parseEmailList(toRaw);
+        const ccAddrs = parseEmailList(ccRaw);
+        const allAddresses = [fromAddr, ...toAddrs, ...ccAddrs];
+        const direction = isOutbound(fromRaw, toRaw) ? 'outbound' : 'inbound';
 
-    const direction = isOutbound(fromRaw, toRaw) ? 'outbound' : 'inbound';
+        let matchedClientId = null;
+        let matchedLeadId = null;
 
-    let matchedClientId = null;
-    let matchedLeadId = null;
+        for (const addr of allAddresses) {
+          const matched = emailMap[addr];
+          if (!matched) continue;
 
-    for (const addr of allAddresses) {
-      const matched = emailMap[addr];
-      if (!matched) continue;
+          const key = `${matched.entityType}:${matched.record.id}`;
+          const existing = updatesFromApi[key];
+          if (!existing || msgDate > existing.date) {
+            updatesFromApi[key] = { date: msgDate, entityType: matched.entityType, record: matched.record };
+          }
 
-      // Update last_contacted tracking
-      const key = `${matched.entityType}:${matched.record.id}`;
-      const existing = updatesFromApi[key];
-      if (!existing || msgDate > existing.date) {
-        updatesFromApi[key] = { date: msgDate, entityType: matched.entityType, record: matched.record };
+          if (!matchedClientId && matched.entityType === 'Client') matchedClientId = matched.record.id;
+          if (!matchedLeadId && matched.entityType === 'Lead') matchedLeadId = matched.record.id;
+        }
+
+        if (matchedClientId || matchedLeadId) {
+          batchLogs.push({
+            gmail_message_id: id,
+            gmail_account: accountLabel,
+            from_email: fromAddr,
+            to_email: toAddrs.join(', '),
+            cc_emails: ccAddrs.join(', '),
+            subject,
+            snippet,
+            body_preview: snippet,
+            date: msgDateTime,
+            matched_client_id: matchedClientId || '',
+            matched_lead_id: matchedLeadId || '',
+            direction,
+          });
+          existingIds.add(id); // prevent re-processing in future batches
+        }
+      } catch (err) {
+        console.error(`[scanAdminGmailContacts] Message fetch failed for ${id}: ${err.message}`);
       }
-
-      if (!matchedClientId && matched.entityType === 'Client') matchedClientId = matched.record.id;
-      if (!matchedLeadId && matched.entityType === 'Lead') matchedLeadId = matched.record.id;
     }
 
-    if (matchedClientId || matchedLeadId) {
-      newLogs.push({
-        gmail_message_id: id,
-        gmail_account: accountLabel,
-        from_email: fromAddr,
-        to_email: toAddrs.join(', '),
-        cc_emails: ccAddrs.join(', '),
-        subject,
-        snippet,
-        body_preview: bodyPreview,
-        date: msgDateTime,
-        matched_client_id: matchedClientId || '',
-        matched_lead_id: matchedLeadId || '',
-        direction,
-      });
+    // Persist incrementally after each batch
+    if (batchLogs.length > 0) {
+      await base44.asServiceRole.entities.EmailLog.bulkCreate(batchLogs);
+      totalNewLogs += batchLogs.length;
+      console.log(`[scanAdminGmailContacts] Batch ${i}-${i + batch.length}: saved ${batchLogs.length} new EmailLog records (${accountLabel})`);
     }
+
+    await sleep(250); // small pause between batches
   }
 
-  // Bulk create new logs
-  if (newLogs.length > 0) {
-    await base44.asServiceRole.entities.EmailLog.bulkCreate(newLogs);
-    console.log(`[scanAdminGmailContacts] Created ${newLogs.length} new EmailLog records for account: ${accountLabel}`);
-  }
-
-  return { newLogs: newLogs.length, updates: updatesFromApi };
+  return { newLogs: totalNewLogs, updates: updatesFromApi };
 }
 
 async function scanMailboxViaImap(imapClient, mailboxPath, since, existingIds, emailMap, accountLabel) {
@@ -374,16 +398,17 @@ Deno.serve(async (req) => {
       mergeUpdates(result?.updates);
       totalNewLogs += result?.newLogs || 0;
     } catch (err) {
-      if (err.message?.startsWith('GMAIL_QUOTA')) {
-        console.error('GMAIL QUOTA ERROR:', err.message);
+      console.error(`Gmail connector scan error: ${err.message}`);
+      // Send quota alert without stopping the run
+      try {
         await base44.asServiceRole.integrations.Core.SendEmail({
           to: 'william@skillfulmeans.life',
-          subject: 'Gmail Sync Quota Error',
-          body: `<p>The Gmail email sync hit a quota/rate limit error at ${new Date().toISOString()}.</p><p>Error details: ${err.message}</p><p>The sync will retry automatically on the next scheduled run.</p>`,
+          subject: 'Gmail Sync Error',
+          body: `<p>The Gmail email sync encountered an error at ${new Date().toISOString()}.</p><p>Error details: ${err.message}</p><p>The sync will retry automatically on the next scheduled run.</p>`,
           from_name: 'SKMS System Alert',
         });
-      } else {
-        console.error(`Gmail connector scan error: ${err.message}`);
+      } catch (mailErr) {
+        console.error('Failed to send quota alert email:', mailErr.message);
       }
     }
 
@@ -418,7 +443,7 @@ Deno.serve(async (req) => {
     for (const { date, entityType, record } of Object.values(allUpdates)) {
       if (!record.last_contacted_date || date > record.last_contacted_date) {
         if (entityType === 'Client') {
-          await base44.asServiceRole.entities.Client.update(record.id, { last_contacted_date: date });
+          await base44.asServiceRole.entities.Client.update(record.id, { last_contacted_date: date, last_contacted: date });
         } else if (entityType === 'Lead') {
           await base44.asServiceRole.entities.Lead.update(record.id, { last_contacted_date: date });
         }
