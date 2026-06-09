@@ -179,9 +179,27 @@ function EmailRow({ email }) {
   );
 }
 
-export default function GmailHistory({ clientEmail, clientId, leadId }) {
-  // Query EmailLog entity filtered by matched_client_id or matched_lead_id
-  const { data: emails = [], isLoading, error, refetch, isFetching } = useQuery({
+function normalizeLiveEmail(e) {
+  return {
+    id: e.id || e.gmail_message_id,
+    gmail_message_id: e.id || e.gmail_message_id,
+    from_email: e.from,
+    to_email: e.to,
+    subject: e.subject,
+    date: e.date,
+    snippet: e.snippet,
+    body_preview: e.snippet,
+    gmail_account: e.account,
+    direction: e.direction === 'received' ? 'inbound' : 'outbound',
+  };
+}
+
+export default function GmailHistory({ clientEmail, clientId, leadId, liveEmails }) {
+  // When liveEmails is provided (from parent's syncGmailEmails query), use it directly.
+  // Otherwise fall back to the EmailLog table.
+  const useLive = Array.isArray(liveEmails);
+
+  const { data: logEmails = [], isLoading, error, refetch, isFetching } = useQuery({
     queryKey: ['emailLog', clientId || leadId || clientEmail],
     queryFn: async () => {
       if (clientId) {
@@ -190,7 +208,6 @@ export default function GmailHistory({ clientEmail, clientId, leadId }) {
       if (leadId) {
         return base44.entities.EmailLog.filter({ matched_lead_id: leadId }, '-date', 100);
       }
-      // Fallback: filter by email address match (slower)
       const all = await base44.entities.EmailLog.list('-date', 200);
       const emailLower = (clientEmail || '').toLowerCase();
       return all.filter(e =>
@@ -199,11 +216,32 @@ export default function GmailHistory({ clientEmail, clientId, leadId }) {
         e.cc_emails?.toLowerCase().includes(emailLower)
       );
     },
+    enabled: !useLive,
     staleTime: 2 * 60 * 1000,
   });
 
+  // Live re-fetch state for the Refresh button when in live mode
+  const [liveRefreshing, setLiveRefreshing] = useState(false);
+  const [liveData, setLiveData] = useState(null); // overrides prop after a manual refresh
+
+  const emails = useLive
+    ? (liveData ?? liveEmails).map(normalizeLiveEmail)
+    : logEmails;
+
   const handleRefresh = async () => {
-    // Purge any drafts that were deleted in Gmail before re-fetching
+    if (useLive) {
+      setLiveRefreshing(true);
+      try {
+        const res = await base44.functions.invoke('syncGmailEmails', { clientEmail });
+        setLiveData(res.data?.emails || []);
+      } catch (e) {
+        console.error('syncGmailEmails refresh failed:', e.message);
+      } finally {
+        setLiveRefreshing(false);
+      }
+      return;
+    }
+    // EmailLog path
     const record_id = clientId || leadId;
     const record_type = clientId ? 'client' : 'lead';
     if (record_id) {
@@ -216,9 +254,11 @@ export default function GmailHistory({ clientEmail, clientId, leadId }) {
     refetch();
   };
 
+  const isBusy = useLive ? liveRefreshing : isFetching;
+
   const lastEmail = emails[0];
 
-  if (isLoading) {
+  if (!useLive && isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <RefreshCw className="w-5 h-5 animate-spin text-gray-400 mr-2" />
@@ -227,7 +267,7 @@ export default function GmailHistory({ clientEmail, clientId, leadId }) {
     );
   }
 
-  if (error) {
+  if (!useLive && error) {
     return (
       <div className="text-center py-8 text-red-500">
         <p className="mb-2">Failed to load emails: {error.message}</p>
@@ -252,8 +292,8 @@ export default function GmailHistory({ clientEmail, clientId, leadId }) {
             <p className="text-sm text-gray-400 mt-0.5">No emails found</p>
           )}
         </div>
-        <Button size="sm" variant="outline" onClick={handleRefresh} disabled={isFetching}>
-          <RefreshCw className={`w-4 h-4 mr-1 ${isFetching ? 'animate-spin' : ''}`} />
+        <Button size="sm" variant="outline" onClick={handleRefresh} disabled={isBusy}>
+          <RefreshCw className={`w-4 h-4 mr-1 ${isBusy ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
       </div>

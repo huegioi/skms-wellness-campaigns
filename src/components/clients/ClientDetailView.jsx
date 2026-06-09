@@ -158,19 +158,17 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
     queryFn: () => base44.entities.Invoice.list('-created_date')
   });
 
-  const { data: gmailEmailCount = 0, isLoading: gmailLoading } = useQuery({
+  const { data: gmailData, isLoading: gmailLoading } = useQuery({
     queryKey: ['gmailHistory', client.email],
     queryFn: async () => {
       const res = await base44.functions.invoke('syncGmailEmails', { clientEmail: client.email });
       return res.data;
     },
-    select: (data) => {
-      if (typeof data === 'number') return data;
-      return data?.emails?.length || 0;
-    },
     staleTime: 5 * 60 * 1000,
     retry: false
   });
+  const gmailEmailCount = typeof gmailData === 'number' ? gmailData : (gmailData?.emails?.length || 0);
+  const liveEmails = gmailData?.emails || null;
 
   const { data: allTemplates = [] } = useQuery({
     queryKey: ['emailTemplates'],
@@ -933,7 +931,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
 
         {/* Emails Tab */}
         <TabsContent value="emails" className="mt-4">
-          <GmailHistory clientEmail={client.email} clientId={client.id} />
+          <GmailHistory clientEmail={client.email} clientId={client.id} liveEmails={liveEmails} />
         </TabsContent>
 
         {/* Tasks Tab */}
