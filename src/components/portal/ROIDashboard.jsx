@@ -7,12 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import Who5ResultsPanel from './Who5ResultsPanel';
 
-function StatCard({ label, value, sub, color = '#013f7c' }) {
+function StatCard({ label, value, caption, color = '#013f7c' }) {
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm">
       <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">{label}</p>
       <p className="text-3xl font-bold" style={{ color }}>{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+      {caption && <p className="text-xs text-gray-500 mt-1.5 leading-snug">{caption}</p>}
     </div>
   );
 }
@@ -115,6 +115,15 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
 
   return (
     <div className="space-y-6">
+
+      {/* How to read this */}
+      <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-[#770142]">
+        <p className="font-semibold text-gray-800 mb-1.5">How to read this</p>
+        <p className="text-sm text-gray-600 leading-relaxed">
+          This dashboard shows how your team is responding to your wellness programs. After each session, participants complete a quick, anonymous 90-second pulse; for challenges, they also complete a short validated wellbeing check (WHO-5) before and after. Everything below is aggregated across your programs — no individual is ever identified. In general, higher numbers are better.
+        </p>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -153,25 +162,25 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
             <StatCard
               label="Reach"
               value={responses.length}
-              sub="voices captured"
+              caption="People who completed a feedback pulse."
               color="#013f7c"
             />
             <StatCard
               label="Impact Areas"
               value={impactEntries.length > 0 ? impactEntries[0][0].split(' ').slice(0,2).join(' ') + '…' : '—'}
-              sub="top selected impact"
+              caption="The outcome people most expect to improve."
               color="#770142"
             />
             <StatCard
               label="Fit Confidence"
               value={avgConfidence != null ? `${avgConfidence.toFixed(1)}/10` : '—'}
-              sub="avg confidence score"
+              caption="On average, how confident participants are that they'll actually apply what they learned (scale of 0–10)."
               color="#264d44"
             />
             <StatCard
               label="Voices"
               value={responses.filter(r => r.behavior_intent?.trim()).length}
-              sub="intent statements"
+              caption="How many people named a specific action they'll take."
               color="#ff9878"
             />
           </div>
@@ -179,7 +188,8 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
           {/* Confidence bar if filtered */}
           {avgConfidence != null && (
             <div className="bg-white rounded-xl shadow-sm p-5">
-              <p className="text-sm font-semibold text-gray-700 mb-3">Fit Confidence Distribution</p>
+              <p className="text-sm font-semibold text-gray-700 mb-0.5">Fit Confidence Distribution</p>
+              <p className="text-xs text-gray-400 mb-3">Average confidence that participants will use what they learned.</p>
               <ConfidenceBar value={parseFloat(avgConfidence.toFixed(1))} />
             </div>
           )}
@@ -187,7 +197,8 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
           {/* Per-service breakdown */}
           {serviceStats.length > 1 && (
             <div className="bg-white rounded-xl shadow-sm p-5">
-              <p className="text-sm font-semibold text-gray-700 mb-3">By Program</p>
+              <p className="text-sm font-semibold text-gray-700 mb-0.5">By Program</p>
+              <p className="text-xs text-gray-400 mb-3">The same results, broken out by each workshop or challenge.</p>
               <div className="space-y-3">
                 {serviceStats.map(s => (
                   <div key={s.id} className="border rounded-lg p-3">
@@ -210,7 +221,8 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
           {/* Expected Impact Chart */}
           {impactEntries.length > 0 && (
             <div className="bg-white rounded-xl shadow-sm p-5">
-              <p className="text-sm font-semibold text-gray-700 mb-3">Expected Impact Areas</p>
+              <p className="text-sm font-semibold text-gray-700 mb-0.5">Expected Impact Areas</p>
+              <p className="text-xs text-gray-400 mb-3">Where participants expect the biggest benefit. They can choose more than one, so totals may exceed the number of responses.</p>
               <div className="space-y-2">
                 {impactEntries.map(([label, count]) => (
                   <div key={label}>
@@ -235,7 +247,10 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
             <div className="bg-white rounded-xl shadow-sm p-5">
               <div className="flex items-center gap-2 mb-3">
                 <MessageSquare className="w-4 h-4 text-[#013f7c]" />
-                <p className="text-sm font-semibold text-gray-700">Voices — What They'll Do Differently</p>
+                <div>
+                  <p className="text-sm font-semibold text-gray-700">Voices — What They'll Do Differently</p>
+                  <p className="text-xs text-gray-400 mt-0.5">In their own words — the specific changes people committed to after a session.</p>
+                </div>
               </div>
               <div className="space-y-2">
                 {voiceQuotes.map((r, i) => (
@@ -254,11 +269,14 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
       {/* Cohort Wellbeing WHO-5 */}
       {acceptedProposalId && (
         <div className="bg-white rounded-xl shadow-sm p-5">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-4 h-4 text-[#770142]" />
             <p className="text-sm font-semibold text-gray-700">Cohort Wellbeing (WHO-5)</p>
-            <span className="text-xs text-gray-400">— Yearly cohort baseline &amp; follow-up</span>
+            <span className="text-xs text-gray-400">— Before vs. after (participants)</span>
           </div>
+          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+            WHO-5 is a validated 5-question wellbeing score from 0 to 100 — higher means better wellbeing. We survey the same participants before and after, and show the average change. Note: this reflects the people who took part, not a comparison against a separate group.
+          </p>
           <div className="flex items-center gap-2 flex-wrap">
             <Button
               size="sm"
@@ -294,11 +312,11 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
       {/* QR / Feedback Link Generator */}
       {services.filter(s => s.is_active !== false).length > 0 && (
         <div className="bg-white rounded-xl shadow-sm p-5">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-0.5">
             <QrCode className="w-4 h-4 text-[#013f7c]" />
             <p className="text-sm font-semibold text-gray-700">Session Pulse Links</p>
-            <span className="text-xs text-gray-400">— Copy link to generate QR code</span>
           </div>
+          <p className="text-xs text-gray-400 mb-3">Share these links or QR codes at the start or end of a session to collect feedback.</p>
           <div className="space-y-2">
             {services.slice(0, 8).map(s => {
               const count = pulseResponses.filter(r => r.service_id === s.id).length;
@@ -348,6 +366,11 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
           </div>
         </div>
       )}
+
+      {/* Footer */}
+      <p className="text-xs text-gray-400 text-center italic pt-2 pb-1">
+        This measures participants' experience and intended change. Sustained results build over time with continued programming.
+      </p>
     </div>
   );
 }
