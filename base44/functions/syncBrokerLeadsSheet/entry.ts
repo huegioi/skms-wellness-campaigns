@@ -121,7 +121,10 @@ Deno.serve(async (req) => {
       const availableSheets = meta.sheets?.map(s => s.properties?.title) || [];
       console.log('Available sheets:', availableSheets, '| requested sheetName:', sheetName);
 
-      const targetSheet = sheetName || availableSheets[0] || 'Brokers';
+      const knownGoodTabs = ['Referral Partners', 'Broker Leads', 'Brokers'];
+      const targetSheet = availableSheets.includes(sheetName)
+        ? sheetName
+        : knownGoodTabs.find(t => availableSheets.includes(t)) || availableSheets[0] || 'Referral Partners';
       console.log('Using targetSheet:', targetSheet, '| sheetRowId:', sheetRowId);
 
       // Read header row to find the column index
@@ -175,7 +178,10 @@ Deno.serve(async (req) => {
       );
       const meta = await metaRes.json();
       const availableSheets = meta.sheets?.map(s => s.properties?.title) || [];
-      const targetSheet = sheetName || availableSheets[0] || 'Broker Leads';
+      const knownGoodTabsOwner = ['Referral Partners', 'Broker Leads', 'Brokers'];
+      const targetSheet = availableSheets.includes(sheetName)
+        ? sheetName
+        : knownGoodTabsOwner.find(t => availableSheets.includes(t)) || availableSheets[0] || 'Referral Partners';
 
       const headerRes = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(targetSheet + '!1:1')}`,
@@ -223,8 +229,37 @@ Deno.serve(async (req) => {
     }
 
     const sheetTabs = meta.sheets?.map(s => s.properties?.title) || [];
-    // Use the first tab
-    const SHEET_NAME = body.sheetName || 'Broker Leads';
+
+    // ── Resilient tab resolution ───────────────────────────────────────────────
+    // 1. Prefer the explicitly passed sheetName if it actually exists
+    // 2. Fall back to known good names
+    // 3. Fall back to any tab whose header contains both 'Contact Name' and 'Follow up Stage'
+    const knownGoodNames = ['Referral Partners', 'Broker Leads', 'Brokers'];
+    let SHEET_NAME = (body.sheetName && sheetTabs.includes(body.sheetName))
+      ? body.sheetName
+      : knownGoodNames.find(n => sheetTabs.includes(n)) || null;
+
+    if (!SHEET_NAME) {
+      // Scan tab headers as last resort
+      const { accessToken: scanToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
+      for (const tab of sheetTabs) {
+        const hRes = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(tab + '!1:1')}`,
+          { headers: { Authorization: `Bearer ${scanToken}` } }
+        );
+        const hData = await hRes.json();
+        const hRow = (hData.values?.[0] || []).map(h => h.toLowerCase());
+        if (hRow.some(h => h.includes('contact name')) && hRow.some(h => h.includes('follow up stage'))) {
+          SHEET_NAME = tab;
+          break;
+        }
+      }
+    }
+
+    if (!SHEET_NAME) {
+      return Response.json({ error: 'Could not find a valid broker leads tab', sheetTabs }, { status: 400 });
+    }
+
     const sheetOriginKey = `BrokerLeads:${SHEET_NAME}`;
 
     // ── 2. Read using sheet GID (more reliable than name) ─────────────────────
@@ -294,15 +329,14 @@ Deno.serve(async (req) => {
 
     const dataRows = rows.slice(1); // skip header
 
-    // ── 3. Load existing broker_lead records for this sheet ────────────────────
+    // ── 3. Load ALL broker_lead records regardless of sheet_origin ────────────
+    // Matching by email so a tab rename doesn't cause duplicate creation.
     const existingLeads = await base44.asServiceRole.entities.Lead.filter(
-      { sheet_origin: sheetOriginKey }, '-created_date', 500
+      { lead_type: 'broker_lead' }, '-created_date', 1000
     );
     const byEmail = {};
-    const byRowId = {};
     for (const lead of existingLeads) {
       if (lead.email) byEmail[lead.email.toLowerCase()] = lead;
-      if (lead.sheet_row_id) byRowId[`${sheetOriginKey}:${lead.sheet_row_id}`] = lead;
     }
 
     // ── Load deleted contacts blocklist ────────────────────────────────────────
