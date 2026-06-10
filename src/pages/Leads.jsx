@@ -307,7 +307,9 @@ export default function Leads() {
   const { data: allLeads = [], isLoading } = useQuery({
     queryKey: ['leads'],
     queryFn: () => base44.entities.Lead.list('-created_date'),
-    staleTime: 0,
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    refetchInterval: brokerViewMode === 'pipeline' ? 60_000 : false,
   });
 
   const { data: clients = [] } = useQuery({
@@ -465,7 +467,8 @@ export default function Leads() {
         startRow = d.nextStartRow;
       }
       toast.success(`Partner leads synced — ${totalCreated} new, ${totalUpdated} updated`);
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
+      await queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.refetchQueries({ queryKey: ['leads'] });
     } catch (e) {
       toast.error('Sync failed: ' + e.message);
     } finally {
