@@ -119,6 +119,17 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
 
   const queryClient = useQueryClient();
 
+  // Live email sync — same pattern as ClientDetailView
+  const { data: liveEmails = [] } = useQuery({
+    queryKey: ['lead-live-emails', lead.email],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('syncGmailEmails', { clientEmail: lead.email });
+      return res.data?.emails || [];
+    },
+    enabled: !!lead.email,
+    staleTime: 60_000,
+  });
+
   const updateLeadMutation = useMutation({
     mutationFn: (data) => base44.entities.Lead.update(lead.id, data),
     onSuccess: () => {
@@ -790,7 +801,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
 
             {/* Emails */}
             <TabsContent value="emails" className="p-6 mt-0">
-              <GmailHistory clientEmail={lead.email} leadId={lead.id} />
+              <GmailHistory clientEmail={lead.email} leadId={lead.id} liveEmails={liveEmails} />
             </TabsContent>
           </Tabs>
         </div>
