@@ -23,7 +23,7 @@ const ACQUISITION_STAGES = [
   'In-Person Lunch',
   'Podcast',
   'Podcast Follow-up',
-  'NABIP',
+  'NABIP ?',
   'NABIP Yes',
   'NABIP No',
 ];
@@ -131,7 +131,7 @@ const ACTION_STEPS = {
     "Ask the host if they know other brokers or HR leaders who could benefit from SKMS's programs.",
     'Add the podcast link to your marketing materials and partner outreach.',
   ],
-  'NABIP': [
+  'NABIP ?': [
     'Confirm attendance at the NABIP event.',
     'Research attendees and identify top broker targets to connect with.',
     'Prepare your elevator pitch and bring printed SKMS materials.',
