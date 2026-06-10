@@ -445,7 +445,20 @@ Deno.serve(async (req) => {
         if (entityType === 'Client') {
           await base44.asServiceRole.entities.Client.update(record.id, { last_contacted_date: date, last_contacted: date });
         } else if (entityType === 'Lead') {
-          await base44.asServiceRole.entities.Lead.update(record.id, { last_contacted_date: date });
+          // Recompute follow_up_due_date anchored to the new contact date
+          const stage = record.follow_up_stage || '';
+          const dayMatch = stage.match(/Day\s+(\d+)/i);
+          const followUpDueDate = dayMatch
+            ? (() => {
+                const d = new Date(date);
+                d.setDate(d.getDate() + parseInt(dayMatch[1], 10));
+                return d.toISOString().split('T')[0];
+              })()
+            : null; // engagement stages never show overdue
+          await base44.asServiceRole.entities.Lead.update(record.id, {
+            last_contacted_date: date,
+            follow_up_due_date: followUpDueDate,
+          });
         }
         updatedCount++;
       }

@@ -166,7 +166,19 @@ Deno.serve(async (req) => {
           const lead = leads[0];
           const existing = lead.last_contacted_date;
           if (!existing || emailDateStr > existing) {
-            await base44.asServiceRole.entities.Lead.update(lead.id, { last_contacted_date: emailDateStr });
+            const stage = lead.follow_up_stage || '';
+            const dayMatch = stage.match(/Day\s+(\d+)/i);
+            const followUpDueDate = dayMatch
+              ? (() => {
+                  const d = new Date(emailDateStr);
+                  d.setDate(d.getDate() + parseInt(dayMatch[1], 10));
+                  return d.toISOString().split('T')[0];
+                })()
+              : null;
+            await base44.asServiceRole.entities.Lead.update(lead.id, {
+              last_contacted_date: emailDateStr,
+              follow_up_due_date: followUpDueDate,
+            });
           }
         }
       } catch (err) {

@@ -19,12 +19,16 @@ const APP_STATUS_RANK = ['cold','contacted','responded','meeting_scheduled','pro
 
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
 
-function calcFollowUpDueDate(followUpStage, lastContactedDate) {
+function calcFollowUpDueDate(followUpStage, lastContactedDate, existingLastContactedDate) {
   if (!followUpStage) return null;
   const match = followUpStage.match(/Day\s+(\d+)/i);
+  // Stages without a "Day N" are engagement stages — never show an overdue badge
   if (!match) return null;
   const days = parseInt(match[1], 10);
-  const base = lastContactedDate ? new Date(lastContactedDate) : new Date();
+  // Prefer the sheet's last contacted, then the existing app value, then don't default to today
+  const baseStr = lastContactedDate || existingLastContactedDate || null;
+  if (!baseStr) return null;
+  const base = new Date(baseStr);
   if (isNaN(base.getTime())) return null;
   base.setDate(base.getDate() + days);
   return base.toISOString().split('T')[0];
@@ -67,7 +71,8 @@ function rowToLead(row, rowIndex, sheetOriginKey, colMap) {
   const sheetStatus = (getByName('Status') || '').toLowerCase();
   const outreachChannel = 'other';
 
-  const followUpDueDate = calcFollowUpDueDate(followUpStage, lastContactedDate || null);
+  // existingLastContactedDate is injected by the caller after email-match lookup
+  const followUpDueDate = calcFollowUpDueDate(followUpStage, lastContactedDate || null, null);
   const partnerStatus = calcPartnerStatus(followUpStage);
 
   return {
@@ -378,6 +383,9 @@ Deno.serve(async (req) => {
       if (existing) {
         const appRank = APP_STATUS_RANK.indexOf(existing.status);
         const sheetRank = APP_STATUS_RANK.indexOf(lead.status);
+        // Recompute due date using the real last_contacted_date if the sheet's column was blank
+        const sheetLastContacted = (chunk[i][colMap['Last Contacted']] || chunk[i][colMap['Last Contact Date']] || '').trim();
+        const recomputedDueDate = calcFollowUpDueDate(lead.follow_up_stage, sheetLastContacted || null, existing.last_contacted_date);
         const updates = {
           sheet_row_id: String(rowIndex),
           sheet_origin: sheetOriginKey,
@@ -393,7 +401,7 @@ Deno.serve(async (req) => {
           ...(lead.notes !== undefined && { notes: lead.notes }),
           ...(lead.follow_up_stage !== undefined && { follow_up_stage: lead.follow_up_stage }),
           ...(lead.owner !== undefined && { owner: lead.owner }),
-          ...(lead.follow_up_due_date !== undefined && { follow_up_due_date: lead.follow_up_due_date }),
+          follow_up_due_date: recomputedDueDate || null,
           partner_status: lead.partner_status,
         };
         if (sheetRank > appRank) updates.status = lead.status;
