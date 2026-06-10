@@ -21,6 +21,8 @@ const ACQUISITION_STAGES = [
   'Day 20 - Send email #5',
   'In-Person Meeting',
   'In-Person Lunch',
+  'Podcast',
+  'Podcast Follow-up',
 ];
 
 const ENGAGEMENT_STAGES = [
@@ -111,6 +113,20 @@ const ACTION_STEPS = {
     "Mention SKMS naturally when relevant, but don't dominate the conversation.",
     'Learn what they value in vendor relationships.',
     'Send a thank-you note same day. Schedule next touchpoint before the lunch ends.',
+  ],
+  'Podcast': [
+    'Confirm recording date, time, and platform (Zoom, Riverside, etc.).',
+    'Send a brief bio and headshot if requested.',
+    'Prepare 3–5 key talking points on mental fitness and workplace wellness.',
+    'Research the host and their audience to tailor your message.',
+    'Follow up with the host after recording to confirm release timeline.',
+  ],
+  'Podcast Follow-up': [
+    'Send a thank-you email to the host within 24 hours of recording.',
+    'Share the episode on LinkedIn and tag the host when it goes live.',
+    'Follow up with any listeners who reach out after the episode.',
+    "Ask the host if they know other brokers or HR leaders who could benefit from SKMS's programs.",
+    'Add the podcast link to your marketing materials and partner outreach.',
   ],
   'New Referral Partner': [
     'Send welcome email with SKMS overview and marketing materials.',
