@@ -65,6 +65,14 @@ export default function BrokerFeedbackRollup({ clientCompanies = [] }) {
       </CardHeader>
       <CardContent className="space-y-6">
 
+        {/* How to read this */}
+        <div className="bg-white rounded-xl border-l-4 border-[#770142] p-4 shadow-sm">
+          <p className="font-semibold text-gray-800 mb-1">How to read this</p>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            This shows how the companies you've referred are responding to their wellness programs, combined across your whole book of business. The numbers are aggregated and anonymous — no individual employee is identified. In general, higher is better, and you're welcome to share these results with your clients.
+          </p>
+        </div>
+
         {/* Loading */}
         {isLoading && (
           <div className="flex items-center justify-center py-10 gap-2 text-gray-400">
@@ -99,9 +107,9 @@ export default function BrokerFeedbackRollup({ clientCompanies = [] }) {
             {/* KPI row — always shows, zeros out if no responses */}
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: 'Total Reach', value: allResponses.length, icon: Users, color: 'text-[#013f7c]', bg: 'bg-blue-50' },
-                { label: 'Avg Fit Confidence', value: overallAvg != null ? `${overallAvg.toFixed(1)}/10` : '0/10', icon: TrendingUp, color: 'text-[#264d44]', bg: 'bg-green-50' },
-                { label: 'Impact Areas', value: impactEntries.length, icon: BarChart2, color: 'text-purple-700', bg: 'bg-purple-50' },
+                { label: 'Total Reach', caption: 'Total feedback responses across all the clients you\'ve referred.', value: allResponses.length, icon: Users, color: 'text-[#013f7c]', bg: 'bg-blue-50' },
+                { label: 'Avg Fit Confidence', caption: 'On average, how confident participants are that they\'ll apply what they learned (scale of 0–10).', value: overallAvg != null ? `${overallAvg.toFixed(1)}/10` : '0/10', icon: TrendingUp, color: 'text-[#264d44]', bg: 'bg-green-50' },
+                { label: 'Impact Areas', caption: 'Where participants across your clients expect the biggest benefit. They can choose more than one, so totals may exceed the number of responses.', value: impactEntries.length, icon: BarChart2, color: 'text-purple-700', bg: 'bg-purple-50' },
               ].map((s, i) => {
                 const Icon = s.icon;
                 return (
@@ -110,7 +118,8 @@ export default function BrokerFeedbackRollup({ clientCompanies = [] }) {
                       <Icon className={`w-4 h-4 ${s.color}`} />
                     </div>
                     <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
+                    <p className="text-xs text-gray-500 font-medium mt-0.5">{s.label}</p>
+                    <p className="text-xs text-gray-400 mt-1 leading-snug">{s.caption}</p>
                   </div>
                 );
               })}
@@ -118,7 +127,8 @@ export default function BrokerFeedbackRollup({ clientCompanies = [] }) {
 
             {/* Impact chart — shown when data exists, placeholder when empty */}
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Aggregate Impact Areas</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Aggregate Impact Areas</p>
+              <p className="text-xs text-gray-400 mb-3">Where participants across your clients expect the biggest benefit. They can choose more than one, so totals may exceed the number of responses.</p>
               {impactEntries.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-3 border border-dashed rounded-lg">
                   No impact data yet — responses will populate this chart after sessions.
@@ -145,7 +155,8 @@ export default function BrokerFeedbackRollup({ clientCompanies = [] }) {
 
             {/* Per-client breakdown — always shown */}
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Client Breakdown</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Client Breakdown</p>
+              <p className="text-xs text-gray-400 mb-3">The same results, broken out by each company you referred. Clients with no responses yet will fill in as their programs run.</p>
               <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
                 {clientBreakdown.map(c => (
                   <div key={c.id} className="flex items-center justify-between px-4 py-3 bg-white hover:bg-gray-50">
@@ -178,6 +189,11 @@ export default function BrokerFeedbackRollup({ clientCompanies = [] }) {
             </div>
           </>
         )}
+
+        {/* Footer */}
+        <p className="text-xs text-gray-400 text-center italic pt-1">
+          This reflects participants' experience and intended change across your referred clients. Sustained results build over time with continued programming.
+        </p>
 
       </CardContent>
     </Card>
