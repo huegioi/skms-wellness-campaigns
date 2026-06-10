@@ -23,6 +23,9 @@ const ACQUISITION_STAGES = [
   'In-Person Lunch',
   'Podcast',
   'Podcast Follow-up',
+  'NABIP',
+  'NABIP Yes',
+  'NABIP No',
 ];
 
 const ENGAGEMENT_STAGES = [
@@ -127,6 +130,27 @@ const ACTION_STEPS = {
     'Follow up with any listeners who reach out after the episode.',
     "Ask the host if they know other brokers or HR leaders who could benefit from SKMS's programs.",
     'Add the podcast link to your marketing materials and partner outreach.',
+  ],
+  'NABIP': [
+    'Confirm attendance at the NABIP event.',
+    'Research attendees and identify top broker targets to connect with.',
+    'Prepare your elevator pitch and bring printed SKMS materials.',
+    'Collect business cards and log new contacts in CRM same day.',
+    'Send follow-up emails within 48 hours of the event.',
+  ],
+  'NABIP Yes': [
+    'Log the contact as interested in partnering with SKMS.',
+    'Send a follow-up email with the SKMS overview and partnership details.',
+    'Schedule a discovery call within 1 week.',
+    'Add to the broker pipeline and assign a follow-up stage.',
+    'Note any specific interests or client needs they mentioned at the event.',
+  ],
+  'NABIP No': [
+    'Thank them for their time and keep the connection warm.',
+    'Add to the newsletter list for future nurture.',
+    'Note their reason for passing — useful for future outreach.',
+    'Set a 6-month reminder to re-engage if circumstances change.',
+    'Monitor for company or role changes that may reopen the conversation.',
   ],
   'New Referral Partner': [
     'Send welcome email with SKMS overview and marketing materials.',
