@@ -40,12 +40,12 @@ export default function PortalFeedback({ client, proposals = [] }) {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-xl shadow-lg p-5">
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
         <div className="flex items-center gap-3 mb-1">
-          <BarChart3 className="w-6 h-6 text-[#013f7c]" />
-          <h2 className="text-xl font-bold text-[#013f7c]">Wellness ROI Dashboard</h2>
+          <BarChart3 className="w-6 h-6 text-blue-700" />
+          <h2 className="text-xl font-bold text-blue-900">Wellness ROI Dashboard</h2>
         </div>
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-blue-800/70">
           Aggregate attendee feedback across all your programs — tracking presenteeism, absenteeism, and EQ impact.
         </p>
       </div>

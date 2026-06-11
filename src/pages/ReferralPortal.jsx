@@ -356,15 +356,15 @@ export default function ReferralPortal() {
         {activeTab === 'start_here' && (
           <div className="space-y-6">
             {/* Welcome */}
-            <Card className="border-[#013f7c]/20">
+            <Card className="border-[#013f7c]/20 bg-blue-50">
               <CardContent className="pt-6 pb-5">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <div className="p-3 bg-blue-50 rounded-xl">
+                  <div className="p-3 bg-blue-100 rounded-xl">
                     <Star className="w-8 h-8 text-[#013f7c]" />
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-[#013f7c]">Welcome to Your Partner Portal, {partner.name.split(' ')[0]}!</h2>
-                    <p className="text-gray-500 text-sm mt-1">Everything you need to track referrals, view client ROI, and grow your partnership with SKMS Wellness — all in one place.</p>
+                    <p className="text-blue-700/70 text-sm mt-1">Everything you need to track referrals, view client ROI, and grow your partnership with SKMS Wellness — all in one place.</p>
                   </div>
                 </div>
               </CardContent>
@@ -388,10 +388,10 @@ export default function ReferralPortal() {
             </Card>
 
             {/* How to Use This Portal */}
-            <Card>
+            <Card className="bg-sky-50 border-sky-200">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <BookOpen className="w-5 h-5 text-[#013f7c]" />
+                <CardTitle className="flex items-center gap-2 text-base text-sky-900">
+                  <BookOpen className="w-5 h-5 text-sky-700" />
                   How to Use This Portal
                 </CardTitle>
               </CardHeader>
@@ -405,12 +405,12 @@ export default function ReferralPortal() {
                     { step: '5', title: 'Review Your Commission Earnings', desc: 'Your live commission totals, YTD revenue placed, and pending balance are always visible on the Commissions tab.' },
                   ].map(({ step, title, desc }) => (
                     <div key={step} className="flex gap-4">
-                      <div className="w-8 h-8 rounded-full bg-[#013f7c] text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-sky-700 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
                         {step}
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-800 text-sm">{title}</p>
-                        <p className="text-gray-500 text-sm mt-0.5">{desc}</p>
+                        <p className="font-semibold text-sky-900 text-sm">{title}</p>
+                        <p className="text-sky-800/70 text-sm mt-0.5">{desc}</p>
                       </div>
                     </div>
                   ))}
@@ -419,10 +419,10 @@ export default function ReferralPortal() {
             </Card>
 
             {/* How the Program Works */}
-            <Card>
+            <Card className="bg-teal-50 border-teal-200">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <TrendingUp className="w-5 h-5 text-[#264d44]" />
+                <CardTitle className="flex items-center gap-2 text-base text-teal-900">
+                  <TrendingUp className="w-5 h-5 text-teal-700" />
                   How the Program Works
                 </CardTitle>
               </CardHeader>

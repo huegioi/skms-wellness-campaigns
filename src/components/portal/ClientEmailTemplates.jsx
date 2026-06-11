@@ -214,13 +214,13 @@ export default function ClientEmailTemplates({ proposal, templates = [], client 
       )}
 
       {/* Header Info */}
-      <Card className="border-l-4" style={{ borderLeftColor: '#013f7c' }}>
+      <Card className="bg-blue-50 border-blue-200">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
-            <Mail className="w-6 h-6 text-[#013f7c] mt-1" />
+            <Mail className="w-6 h-6 text-blue-700 mt-1" />
             <div>
-              <h3 className="font-semibold text-lg text-gray-800 mb-2">Email Templates for Your Program</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
+              <h3 className="font-semibold text-lg text-blue-900 mb-2">Email Templates for Your Program</h3>
+              <p className="text-blue-800/70 text-sm leading-relaxed">
                 Below are the email templates for each service in your wellness program. 
                 Use these to communicate with your employees about upcoming events. 
                 Templates include announcement emails (send 2 weeks before), reminder emails (send 2 days before), 
@@ -337,10 +337,10 @@ export default function ClientEmailTemplates({ proposal, templates = [], client 
       )}
 
       {/* Help Text */}
-      <Card className="bg-[#264d44]/5 border-[#264d44]/20">
+      <Card className="bg-teal-50 border-teal-200">
         <CardContent className="pt-6">
-          <h4 className="font-semibold text-[#264d44] mb-2">Need Custom Templates?</h4>
-          <p className="text-gray-600 text-sm">
+          <h4 className="font-semibold text-teal-800 mb-2">Need Custom Templates?</h4>
+          <p className="text-teal-700/80 text-sm">
             Contact us at <a href="mailto:admin@skillfulmeans.life" className="text-[#770142] underline">admin@skillfulmeans.life</a> if you need customized email templates or have any questions about communicating with your employees.
           </p>
         </CardContent>
