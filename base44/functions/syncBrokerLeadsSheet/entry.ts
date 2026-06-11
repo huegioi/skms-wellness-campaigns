@@ -218,6 +218,113 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, updatedRange: updateData.updatedRange, cellRange, targetSheet });
     }
 
+    // ── Handle appendLead action ───────────────────────────────────────────────
+    // Appends a new row for a lead that was created in the app (not from the sheet).
+    // Returns { rowNumber } (1-based, including header). If the email already exists
+    // in the sheet, returns the existing row number without writing anything.
+    if (body.action === 'appendLead') {
+      const { name, title, owner, email, company, follow_up_stage, notes, source, phone, industry } = body;
+      if (!email) {
+        return Response.json({ error: 'email is required for appendLead' }, { status: 400 });
+      }
+
+      const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
+
+      // Resolve canonical sheet name
+      const metaRes2 = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const meta2 = await metaRes2.json();
+      if (meta2.error) {
+        return Response.json({ error: `Metadata error: ${meta2.error.message}` }, { status: 400 });
+      }
+      const tabs2 = meta2.sheets?.map(s => s.properties?.title) || [];
+      const knownNames2 = ['Referral Partners', 'Broker Leads', 'Brokers'];
+      const targetSheet2 = knownNames2.find(n => tabs2.includes(n)) || tabs2[0] || 'Referral Partners';
+
+      // Read header row
+      const hRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(targetSheet2 + '!1:1')}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const hData = await hRes.json();
+      const headerRow2 = hData.values?.[0] || [];
+      const colMap2 = {};
+      headerRow2.forEach((h, i) => { if (h) colMap2[h.trim().toLowerCase()] = i; });
+
+      // Read entire Email column to check for duplicates
+      const emailColIdx = (() => {
+        const k = Object.keys(colMap2).find(k => k === 'email' || k === 'email address');
+        return k !== undefined ? colMap2[k] : -1;
+      })();
+
+      if (emailColIdx >= 0) {
+        const colLetter2 = String.fromCharCode(65 + emailColIdx);
+        const emailColRes = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(targetSheet2 + '!' + colLetter2 + ':' + colLetter2)}`,
+          { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+        const emailColData = await emailColRes.json();
+        const emailValues = (emailColData.values || []).map(r => (r[0] || '').trim().toLowerCase());
+        const normalizedEmail = email.trim().toLowerCase();
+        // Row 0 = header, data starts at row 1 (1-based row 2 including header)
+        const existingRowIdx = emailValues.findIndex((e, i) => i > 0 && e === normalizedEmail);
+        if (existingRowIdx >= 0) {
+          const existingRowNumber = existingRowIdx + 1; // 1-based
+          return Response.json({ rowNumber: existingRowNumber, existed: true, targetSheet: targetSheet2 });
+        }
+      }
+
+      // Build the row to append — map each known field to the correct column
+      const fieldMap = {
+        'contact name': name || '',
+        'name': name || '',
+        'full name': name || '',
+        'title': title || '',
+        'job title': title || '',
+        'owner': owner || '',
+        'email': email || '',
+        'email address': email || '',
+        'company': company || '',
+        'brokerage': company || '',
+        'follow up stage': follow_up_stage || '',
+        'follow_up_stage': follow_up_stage || '',
+        'notes': notes || '',
+        'linkedin': source || '',
+        'source': source || '',
+        'phone': phone || '',
+        'phone number': phone || '',
+        'industry': industry || '',
+      };
+
+      const newRow = Array(headerRow2.length).fill('');
+      headerRow2.forEach((h, i) => {
+        const key = (h || '').trim().toLowerCase();
+        if (key in fieldMap) newRow[i] = fieldMap[key];
+      });
+
+      const appendRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(targetSheet2 + '!A:A')}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ majorDimension: 'ROWS', values: [newRow] }),
+        }
+      );
+      const appendData = await appendRes.json();
+      if (appendData.error) {
+        return Response.json({ error: appendData.error.message, details: appendData.error }, { status: 400 });
+      }
+
+      // Parse the updated range to get the new row number (e.g. "Sheet1!A42:Z42")
+      const updatedRange = appendData.updates?.updatedRange || '';
+      const rowMatch = updatedRange.match(/!.*?(\d+)/);
+      const rowNumber = rowMatch ? parseInt(rowMatch[1], 10) : null;
+
+      return Response.json({ rowNumber, existed: false, targetSheet: targetSheet2, updatedRange });
+    }
+
     const startRow = body.startRow || 0;
     const CHUNK_SIZE = 25;
 

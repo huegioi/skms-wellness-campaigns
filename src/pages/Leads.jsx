@@ -410,7 +410,36 @@ export default function Leads() {
   const brokerLeads = partnerLeads;
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Lead.create(data),
+    mutationFn: async (data) => {
+      const newLead = await base44.entities.Lead.create(data);
+      // Append to Google Sheet and save back the row reference (fire-and-forget style but
+      // we do await so we can persist sheet_row_id — non-blocking error)
+      try {
+        const appendRes = await base44.functions.invoke('syncBrokerLeadsSheet', {
+          action: 'appendLead',
+          name: data.name,
+          title: data.title,
+          owner: data.owner,
+          email: data.email,
+          company: data.company,
+          follow_up_stage: data.follow_up_stage,
+          notes: data.notes,
+          source: data.source,
+          phone: data.phone,
+          industry: data.industry,
+        });
+        const { rowNumber, targetSheet } = appendRes.data || {};
+        if (rowNumber) {
+          await base44.entities.Lead.update(newLead.id, {
+            sheet_row_id: String(rowNumber),
+            sheet_origin: `BrokerLeads:${targetSheet || 'Referral Partners'}`,
+          });
+        }
+      } catch (e) {
+        console.warn('Sheet append failed (non-critical):', e.message);
+      }
+      return newLead;
+    },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['leads'] }); setIsAddBrokerOpen(false); setBrokerForm(EMPTY_BROKER_LEAD_FORM); toast.success('Lead added'); }
   });
 

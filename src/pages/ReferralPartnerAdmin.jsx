@@ -106,11 +106,57 @@ export default function ReferralPartnerAdmin() {
         ...toUnlink.map(id => base44.entities.Client.update(id, { referral_partner_id: null, referral_partner_name: null })),
       ]);
 
+      // For new partners: upsert a broker Lead and push to Google Sheet
+      if (!editing && savedPartner?.id) {
+        try {
+          const emailKey = (data.email || '').toLowerCase();
+          // Check if a matching broker Lead already exists for this email
+          const allLeads = await base44.entities.Lead.filter({ lead_type: 'broker_lead' }, '-created_date', 500);
+          let matchedLead = allLeads.find(l => l.email?.toLowerCase() === emailKey);
+
+          if (!matchedLead) {
+            matchedLead = await base44.entities.Lead.create({
+              name: data.name,
+              email: data.email,
+              company: data.company || undefined,
+              phone: data.phone || undefined,
+              notes: data.notes || undefined,
+              follow_up_stage: data.follow_up_stage || undefined,
+              lead_type: 'broker_lead',
+              partner_status: 'active_partner',
+              status: 'cold',
+            });
+          }
+
+          if (matchedLead?.id) {
+            const appendRes = await base44.functions.invoke('syncBrokerLeadsSheet', {
+              action: 'appendLead',
+              name: data.name,
+              email: data.email,
+              company: data.company,
+              phone: data.phone,
+              notes: data.notes,
+              follow_up_stage: data.follow_up_stage,
+            });
+            const { rowNumber, targetSheet } = appendRes.data || {};
+            if (rowNumber) {
+              await base44.entities.Lead.update(matchedLead.id, {
+                sheet_row_id: String(rowNumber),
+                sheet_origin: `BrokerLeads:${targetSheet || 'Referral Partners'}`,
+              });
+            }
+          }
+        } catch (e) {
+          console.warn('Lead upsert / sheet append failed (non-critical):', e.message);
+        }
+      }
+
       return savedPartner;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['referralPartners'] });
       qc.invalidateQueries({ queryKey: ['clients_for_partners'] });
+      qc.invalidateQueries({ queryKey: ['leads'] });
       setShowDialog(false);
       setEditing(null);
       toast({ title: editing ? 'Partner updated' : 'Partner created' });
