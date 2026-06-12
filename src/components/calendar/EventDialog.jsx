@@ -23,12 +23,7 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     queryFn: () => base44.entities.Service.list('sort_order')
   });
 
-  // Fetch active presenters
-  const { data: presenters = [] } = useQuery({
-    queryKey: ['presenters'],
-    queryFn: () => base44.entities.Presenter.list('name')
-  });
-
+  // Fetch active presenters for dropdown
   const { data: activePresenters = [] } = useQuery({
     queryKey: ['presenters-active'],
     queryFn: async () => {

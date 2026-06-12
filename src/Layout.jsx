@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays, Mic2 } from 'lucide-react';
+import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays } from 'lucide-react';
 
 export default function Layout({ children, currentPageName }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -20,7 +20,7 @@ export default function Layout({ children, currentPageName }) {
     { name: 'Financials', page: 'Financials', icon: Landmark },
     { name: 'Feedback', page: 'FeedbackAnalytics', icon: ClipboardList },
     { name: 'Campaigns', page: 'CampaignCalendar', icon: CalendarDays },
-    { name: 'Presenters', page: 'Presenters', icon: Mic2 },
+    { name: 'Presenters', page: 'Presenters', icon: Users },
   ];
 
   return (
