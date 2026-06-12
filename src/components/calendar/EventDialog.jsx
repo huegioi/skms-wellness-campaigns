@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Calendar, Clock, MapPin, Loader2, Package, Award, Dumbbell, Users } from 'lucide-react';
+import { Calendar, Clock, MapPin, Loader2, Package, Users } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { productCatalog } from '@/components/curriculum/catalogData';
@@ -23,6 +23,20 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     queryFn: () => base44.entities.Service.list('sort_order')
   });
 
+  // Fetch active presenters
+  const { data: presenters = [] } = useQuery({
+    queryKey: ['presenters'],
+    queryFn: () => base44.entities.Presenter.list('name')
+  });
+
+  const { data: activePresenters = [] } = useQuery({
+    queryKey: ['presenters-active'],
+    queryFn: async () => {
+      const all = await base44.entities.Presenter.list('name');
+      return all.filter(p => p.is_active !== false);
+    }
+  });
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -34,6 +48,7 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     client_name: '',
     proposal_id: '',
     location: '',
+    presenter_id: '',
     color: ''
   });
 
@@ -543,6 +558,37 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
                   placeholder="Office, Zoom link, etc..."
                 />
               </div>
+
+              {activePresenters.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    <Users className="w-4 h-4 inline mr-1" />
+                    Presenter
+                  </label>
+                  <Select
+                    value={formData.presenter_id || 'none'}
+                    onValueChange={(v) => {
+                      const p = activePresenters.find(x => x.id === v);
+                      setFormData(prev => ({
+                        ...prev,
+                        presenter_id: v === 'none' ? '' : v,
+                        presenter: p?.name || prev.presenter,
+                        presenter_email: p?.email || prev.presenter_email
+                      }));
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a presenter..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No presenter</SelectItem>
+                      {activePresenters.map(p => (
+                        <SelectItem key={p.id} value={p.id}>{p.name}{p.email ? ` — ${p.email}` : ''}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <div className="flex gap-2">
                 <Button onClick={handleSave} disabled={saving || !formData.title} className="flex-1 bg-[#770142] hover:bg-[#5a0132]">

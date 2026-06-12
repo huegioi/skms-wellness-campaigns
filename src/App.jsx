@@ -15,6 +15,7 @@ import CampaignCalendar from './pages/CampaignCalendar';
 import AttendeeForm from './pages/AttendeeForm';
 import ClientReport from './pages/ClientReport';
 import CohortAssessmentPage from './pages/CohortAssessment';
+import Presenters from './pages/Presenters';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -83,6 +84,7 @@ const AuthenticatedApp = () => {
       <Route path="/ClientReport" element={<ClientReport />} />
       <Route path="/CohortAssessment" element={<CohortAssessmentPage />} />
       <Route path="/SpeakerPortal" element={<SpeakerPortal />} />
+      <Route path="/Presenters" element={<LayoutWrapper currentPageName="Presenters"><Presenters /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

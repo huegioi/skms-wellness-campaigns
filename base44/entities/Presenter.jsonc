@@ -1,0 +1,61 @@
+{
+  "name": "Presenter",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Presenter's full name"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Presenter's email address"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Presenter's phone number"
+    },
+    "unique_portal_id": {
+      "type": "string",
+      "description": "Unique token used to access the presenter portal"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this presenter is currently active"
+    },
+    "default_rate": {
+      "type": "number",
+      "description": "Default pay rate for this presenter (placeholder for Stage 2)"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes about this presenter"
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

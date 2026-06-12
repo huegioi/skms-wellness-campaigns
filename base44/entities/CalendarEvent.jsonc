@@ -57,7 +57,15 @@
     },
     "presenter": {
       "type": "string",
-      "description": "Event presenter name"
+      "description": "Free-text presenter name (legacy \u2014 kept for backward compatibility)"
+    },
+    "presenter_id": {
+      "type": "string",
+      "description": "ID of the linked Presenter entity"
+    },
+    "presenter_accepted": {
+      "type": "boolean",
+      "description": "Whether the presenter has accepted this session"
     },
     "presenter_email": {
       "type": "string",
