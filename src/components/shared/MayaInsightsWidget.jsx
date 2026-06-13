@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Mail, Loader2, ChevronDown } from 'lucide-react';
+import { RefreshCw, Mail, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -89,10 +89,6 @@ export default function MayaInsightsWidget({ recordType, recordId, owner }) {
     }
   };
 
-  useEffect(() => {
-    if (recordId) fetchInsights();
-  }, [recordId]);
-
   return (
     <div className="rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50 p-4 shadow-sm">
       {/* Header */}
@@ -101,20 +97,37 @@ export default function MayaInsightsWidget({ recordType, recordId, owner }) {
           <span className="text-lg">🧠</span>
           <h3 className="text-sm font-bold text-indigo-900">Maya's Sales Director Insights</h3>
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-7 px-2 text-indigo-600 hover:bg-indigo-100"
-          onClick={fetchInsights}
-          disabled={loading}
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          <span className="ml-1 text-xs">{loading ? 'Thinking...' : 'Refresh'}</span>
-        </Button>
+        {insights && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 text-indigo-600 hover:bg-indigo-100"
+            onClick={fetchInsights}
+            disabled={loading}
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span className="ml-1 text-xs">{loading ? 'Thinking...' : 'Refresh'}</span>
+          </Button>
+        )}
       </div>
 
+      {/* Idle — not yet run */}
+      {!insights && !loading && !error && (
+        <div className="flex flex-col items-center py-4 gap-2">
+          <Button
+            size="sm"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5"
+            onClick={fetchInsights}
+          >
+            <span className="text-base leading-none">🧠</span>
+            Get Maya's Insights
+          </Button>
+          <p className="text-xs text-indigo-400">Runs Maya's AI analysis — uses API credits</p>
+        </div>
+      )}
+
       {/* Loading state */}
-      {loading && !insights && (
+      {loading && (
         <div className="flex items-center gap-3 py-4">
           <div className="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
           <p className="text-sm text-indigo-600 italic">Maya is analyzing this record…</p>
@@ -122,7 +135,10 @@ export default function MayaInsightsWidget({ recordType, recordId, owner }) {
       )}
 
       {error && (
-        <p className="text-xs text-red-500 py-2">{error}</p>
+        <div className="space-y-2 py-2">
+          <p className="text-xs text-red-500">{error}</p>
+          <Button size="sm" variant="outline" className="text-xs h-7" onClick={fetchInsights}>Try again</Button>
+        </div>
       )}
 
       {insights && !loading && (
