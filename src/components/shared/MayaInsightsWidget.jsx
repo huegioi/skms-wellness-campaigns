@@ -92,10 +92,10 @@ export default function MayaInsightsWidget({ recordType, recordId, owner }) {
   return (
     <div className="rounded-xl border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50 p-4 shadow-sm">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">🧠</span>
-          <h3 className="text-sm font-bold text-indigo-900">Maya's Sales Director Insights</h3>
+      <div className="flex items-center justify-between mb-3 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-lg flex-shrink-0">🧠</span>
+          <h3 className="text-sm font-bold text-indigo-900 leading-tight">Maya's Insights</h3>
         </div>
         {insights && (
           <Button
@@ -176,7 +176,7 @@ export default function MayaInsightsWidget({ recordType, recordId, owner }) {
             ) : (
               <div className="bg-indigo-100 rounded-lg p-3 space-y-2">
                 <p className="text-xs font-semibold text-indigo-800">Draft email as:</p>
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   {SENDERS.map((s) => (
                     <button
                       key={s.value}
@@ -207,9 +207,6 @@ export default function MayaInsightsWidget({ recordType, recordId, owner }) {
         </>
       )}
 
-      {!insights && !loading && !error && (
-        <p className="text-xs text-indigo-400 italic py-2">Click Refresh to generate insights.</p>
-      )}
     </div>
   );
 }
