@@ -108,7 +108,7 @@ function CampaignForm({ initial, onSave, onCancel, saving }) {
 }
 
 export default function CampaignCalendar() {
-  const { user } = useAuth();
+  const { user, isLoadingAuth } = useAuth();
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -116,7 +116,7 @@ export default function CampaignCalendar() {
   const { data: campaigns = [], isLoading } = useQuery({
     queryKey: ['annual_campaigns'],
     queryFn: () => base44.entities.AnnualCampaign.list('target_month'),
-    enabled: !!user,
+    enabled: !isLoadingAuth,
   });
 
   const createMutation = useMutation({
@@ -142,19 +142,10 @@ export default function CampaignCalendar() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['annual_campaigns'] }),
   });
 
-  // Wait for user to load before checking role
-  if (!user) {
+  if (isLoadingAuth) {
     return (
       <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#013f7c] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (user.role !== 'admin') {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-        <p className="text-gray-500">Access restricted to administrators.</p>
       </div>
     );
   }

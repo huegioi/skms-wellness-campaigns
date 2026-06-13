@@ -29,7 +29,7 @@ const emptyForm = {
 };
 
 export default function Presenters() {
-  const { user } = useAuth();
+  const { user, isLoadingAuth } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPresenter, setEditingPresenter] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -39,7 +39,7 @@ export default function Presenters() {
   const { data: presenters = [], isLoading } = useQuery({
     queryKey: ['presenters'],
     queryFn: () => base44.entities.Presenter.list('name'),
-    enabled: !!user
+    enabled: !isLoadingAuth
   });
 
   const saveMutation = useMutation({
@@ -96,7 +96,7 @@ export default function Presenters() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  if (!user || isLoading) {
+  if (isLoadingAuth || isLoading) {
     return (
       <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#013f7c] border-t-transparent rounded-full animate-spin" />
