@@ -116,6 +116,7 @@ export default function CampaignCalendar() {
   const { data: campaigns = [], isLoading } = useQuery({
     queryKey: ['annual_campaigns'],
     queryFn: () => base44.entities.AnnualCampaign.list('target_month'),
+    enabled: !!user,
   });
 
   const createMutation = useMutation({
@@ -178,94 +179,123 @@ export default function CampaignCalendar() {
   })).filter(g => g.items.length > 0);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-8 py-8">
+    <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 pb-20">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#013f7c] flex items-center justify-center">
-            <CalendarDays className="w-5 h-5 text-white" />
+          <div className="w-9 h-9 rounded-xl bg-[#013f7c] flex items-center justify-center shrink-0">
+            <CalendarDays className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Campaign Calendar Settings</h1>
-            <p className="text-sm text-gray-500">Manage awareness months, events, and outreach triggers</p>
+            <h1 className="text-xl font-bold text-gray-900 leading-tight">Campaign Calendar</h1>
+            <p className="text-xs text-gray-500 hidden sm:block">Manage awareness months, events, and outreach triggers</p>
           </div>
         </div>
-        <Button onClick={openNew} className="bg-[#013f7c] hover:bg-[#013f7c]/90 text-white gap-2">
-          <Plus className="w-4 h-4" /> New Campaign
+        <Button onClick={openNew} className="bg-[#013f7c] hover:bg-[#013f7c]/90 text-white gap-1.5 text-sm">
+          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">New</span> Campaign
         </Button>
       </div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-5">
         {CATEGORIES.map(cat => {
           const count = campaigns.filter(c => c.category === cat && c.is_active).length;
           return (
-            <div key={cat} className="bg-white rounded-xl border border-gray-100 px-4 py-3 shadow-sm">
-              <p className="text-xs text-gray-500 mb-0.5">{cat}</p>
-              <p className="text-2xl font-bold text-gray-800">{count}</p>
+            <div key={cat} className="bg-white rounded-xl border border-gray-100 px-3 py-2.5 shadow-sm">
+              <p className="text-xs text-gray-500 mb-0.5 leading-tight">{cat}</p>
+              <p className="text-xl font-bold text-gray-800">{count}</p>
             </div>
           );
         })}
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="p-8 text-center text-gray-400 text-sm">Loading campaigns...</div>
-        ) : campaigns.length === 0 ? (
-          <div className="p-12 text-center">
-            <CalendarDays className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 text-sm">No campaigns yet. Add your first one!</p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-4 py-3 font-semibold text-gray-600">Name</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-600">Category</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-600">Month</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-600">Prep (days)</th>
-                <th className="text-center px-4 py-3 font-semibold text-gray-600">Active</th>
-                <th className="text-right px-4 py-3 font-semibold text-gray-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {campaigns.map((c, i) => (
-                <tr key={c.id} className={`border-b border-gray-50 hover:bg-gray-50/60 transition-colors ${!c.is_active ? 'opacity-50' : ''}`}>
-                  <td className="px-4 py-3 font-medium text-gray-800">{c.name}</td>
-                  <td className="px-4 py-3">
-                    <Badge className={`border text-xs font-medium ${CATEGORY_COLORS[c.category] || 'bg-gray-100 text-gray-600'}`}>
-                      {c.category}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{c.target_month}</td>
-                  <td className="px-4 py-3 text-center text-gray-600">{c.prep_trigger_days ?? 45}</td>
-                  <td className="px-4 py-3 text-center">
-                    <Switch
-                      checked={!!c.is_active}
-                      onCheckedChange={v => toggleActiveMutation.mutate({ id: c.id, is_active: v })}
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button size="icon" variant="ghost" className="w-7 h-7 text-gray-400 hover:text-[#013f7c]" onClick={() => openEdit(c)}>
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        size="icon" variant="ghost"
-                        className="w-7 h-7 text-gray-400 hover:text-red-500"
-                        onClick={() => { if (confirm(`Delete "${c.name}"?`)) deleteMutation.mutate(c.id); }}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </td>
+      {/* Campaign list */}
+      {isLoading ? (
+        <div className="p-8 text-center text-gray-400 text-sm">Loading campaigns...</div>
+      ) : campaigns.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
+          <CalendarDays className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+          <p className="text-gray-500 text-sm">No campaigns yet. Add your first one!</p>
+        </div>
+      ) : (
+        <>
+          {/* Desktop table */}
+          <div className="hidden md:block bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50">
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Name</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Category</th>
+                  <th className="text-left px-4 py-3 font-semibold text-gray-600">Month</th>
+                  <th className="text-center px-4 py-3 font-semibold text-gray-600">Prep</th>
+                  <th className="text-center px-4 py-3 font-semibold text-gray-600">Active</th>
+                  <th className="text-right px-4 py-3 font-semibold text-gray-600">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              </thead>
+              <tbody>
+                {campaigns.map((c) => (
+                  <tr key={c.id} className={`border-b border-gray-50 hover:bg-gray-50/60 transition-colors ${!c.is_active ? 'opacity-50' : ''}`}>
+                    <td className="px-4 py-3 font-medium text-gray-800">{c.name}</td>
+                    <td className="px-4 py-3">
+                      <Badge className={`border text-xs font-medium ${CATEGORY_COLORS[c.category] || 'bg-gray-100 text-gray-600'}`}>
+                        {c.category}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{c.target_month}</td>
+                    <td className="px-4 py-3 text-center text-gray-600">{c.prep_trigger_days ?? 45}d</td>
+                    <td className="px-4 py-3 text-center">
+                      <Switch checked={!!c.is_active} onCheckedChange={v => toggleActiveMutation.mutate({ id: c.id, is_active: v })} />
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button size="icon" variant="ghost" className="w-7 h-7 text-gray-400 hover:text-[#013f7c]" onClick={() => openEdit(c)}>
+                          <Pencil className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="w-7 h-7 text-gray-400 hover:text-red-500"
+                          onClick={() => { if (confirm(`Delete "${c.name}"?`)) deleteMutation.mutate(c.id); }}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {campaigns.map((c) => (
+              <div key={c.id} className={`bg-white rounded-xl border border-gray-200 p-4 shadow-sm ${!c.is_active ? 'opacity-60' : ''}`}>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 text-sm leading-snug">{c.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{c.target_month} · {c.prep_trigger_days ?? 45} days prep</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button size="icon" variant="ghost" className="w-8 h-8 text-gray-400" onClick={() => openEdit(c)}>
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="w-8 h-8 text-gray-400"
+                      onClick={() => { if (confirm(`Delete "${c.name}"?`)) deleteMutation.mutate(c.id); }}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between">
+                  <Badge className={`border text-xs font-medium ${CATEGORY_COLORS[c.category] || 'bg-gray-100 text-gray-600'}`}>
+                    {c.category}
+                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">{c.is_active ? 'Active' : 'Inactive'}</span>
+                    <Switch checked={!!c.is_active} onCheckedChange={v => toggleActiveMutation.mutate({ id: c.id, is_active: v })} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {/* New / Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={v => { setDialogOpen(v); if (!v) setEditing(null); }}>
