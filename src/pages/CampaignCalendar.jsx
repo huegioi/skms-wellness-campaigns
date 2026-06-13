@@ -141,7 +141,16 @@ export default function CampaignCalendar() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['annual_campaigns'] }),
   });
 
-  if (user?.role !== 'admin') {
+  // Wait for user to load before checking role
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-[#013f7c] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (user.role !== 'admin') {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center">
         <p className="text-gray-500">Access restricted to administrators.</p>

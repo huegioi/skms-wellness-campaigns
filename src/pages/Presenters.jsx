@@ -101,6 +101,9 @@ export default function Presenters() {
     );
   }
 
+  // Presenter entity is admin-only; if we have no data and no loading, likely a permissions issue
+  // We still render the page — admins will see data, non-admins see empty state
+
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
       <div className="max-w-5xl mx-auto">
