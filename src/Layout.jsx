@@ -28,7 +28,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f0e9] flex">
+    <div className="h-screen bg-[#f4f0e9] flex overflow-hidden">
 
       {/* ── SIDEBAR (desktop) ── */}
       <aside className="hidden lg:flex flex-col w-56 shrink-0 bg-white border-r border-gray-100 fixed inset-y-0 left-0 z-40 shadow-sm">
@@ -142,7 +142,7 @@ export default function Layout({ children, currentPageName }) {
       </aside>
 
       {/* ── MAIN CONTENT ── */}
-      <div className="flex-1 flex flex-col min-w-0 lg:ml-56">
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-56 overflow-y-auto">
         <main className="flex-1 pb-16">
           {children}
         </main>
