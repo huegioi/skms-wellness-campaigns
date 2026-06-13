@@ -38,9 +38,18 @@ export default function SchedulingHub() {
     client_name: '',
     client_email: '',
     presenter: '',
+    presenter_id: '',
     presenter_email: '',
     source: '',
     all_day: false
+  });
+
+  const { data: activePresenters = [] } = useQuery({
+    queryKey: ['presenters-active'],
+    queryFn: async () => {
+      const all = await base44.entities.Presenter.list('name');
+      return all.filter(p => p.is_active !== false);
+    }
   });
 
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -112,6 +121,8 @@ export default function SchedulingHub() {
         client_name: eventData.client_name || '',
         client_id: resolvedClientId,
         presenter: eventData.presenter || '',
+        presenter_id: eventData.presenter_id || null,
+        presenter_email: eventData.presenter_email || '',
         proposal_id: eventData.proposal_id || '',
         color: '#264d44'
       });
@@ -515,6 +526,7 @@ export default function SchedulingHub() {
       client_name: '',
       client_email: '',
       presenter: '',
+      presenter_id: '',
       presenter_email: '',
       source: '',
       all_day: false
@@ -1189,20 +1201,40 @@ export default function SchedulingHub() {
 
                   <div className="border-t border-gray-200 pt-4">
                     <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Presenter</Label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-1">
-                      <Input
-                        value={bookingForm.presenter}
-                        onChange={(e) => setBookingForm(prev => ({ ...prev, presenter: e.target.value }))}
-                        placeholder="Presenter name"
-                        className="bg-white"
-                      />
-                      <Input
-                        type="email"
-                        value={bookingForm.presenter_email}
-                        onChange={(e) => setBookingForm(prev => ({ ...prev, presenter_email: e.target.value }))}
-                        placeholder="Presenter email"
-                        className="bg-white"
-                      />
+                    <div className="mt-1">
+                      {activePresenters.length > 0 ? (
+                        <Select
+                          value={bookingForm.presenter_id || 'none'}
+                          onValueChange={(v) => {
+                            const p = activePresenters.find(x => x.id === v);
+                            setBookingForm(prev => ({
+                              ...prev,
+                              presenter_id: v === 'none' ? '' : v,
+                              presenter: p?.name || '',
+                              presenter_email: p?.email || ''
+                            }));
+                          }}
+                        >
+                          <SelectTrigger className="bg-white">
+                            <SelectValue placeholder="Select a presenter..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">No presenter</SelectItem>
+                            {activePresenters.map(p => (
+                              <SelectItem key={p.id} value={p.id}>
+                                {p.name}{p.email ? ` — ${p.email}` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Input
+                          value={bookingForm.presenter}
+                          onChange={(e) => setBookingForm(prev => ({ ...prev, presenter: e.target.value }))}
+                          placeholder="Presenter name"
+                          className="bg-white"
+                        />
+                      )}
                     </div>
                   </div>
 

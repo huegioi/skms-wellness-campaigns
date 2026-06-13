@@ -14,20 +14,36 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Presenter not found' }, { status: 404 });
     }
     const presenter = presenters[0];
-    const presenterNameLower = (presenter.name || '').trim().toLowerCase();
+    const presenterFullName = (presenter.name || '').trim();
+    const presenterFirstName = presenterFullName.split(' ')[0];
 
-    // Fetch by presenter_id (canonical) AND by legacy free-text presenter name
-    const [byId, byName] = await Promise.all([
+    // Check if first name is unique among all presenters (to avoid ambiguous matches)
+    let firstNameIsUnique = false;
+    if (presenterFirstName && presenterFirstName !== presenterFullName) {
+      const allPresenters = await base44.asServiceRole.entities.Presenter.list('name', 500);
+      const matchingFirst = allPresenters.filter(p =>
+        (p.name || '').trim().split(' ')[0].toLowerCase() === presenterFirstName.toLowerCase()
+      );
+      firstNameIsUnique = matchingFirst.length === 1;
+    }
+
+    // Fetch events by presenter_id, full name, and (if unique) first name — in parallel
+    const queries = [
       base44.asServiceRole.entities.CalendarEvent.filter({ presenter_id: presenter.id }, 'start_date', 500),
-      presenterNameLower
-        ? base44.asServiceRole.entities.CalendarEvent.filter({ presenter: presenter.name }, 'start_date', 500)
+      presenterFullName
+        ? base44.asServiceRole.entities.CalendarEvent.filter({ presenter: presenterFullName }, 'start_date', 500)
+        : Promise.resolve([]),
+      firstNameIsUnique
+        ? base44.asServiceRole.entities.CalendarEvent.filter({ presenter: presenterFirstName }, 'start_date', 500)
         : Promise.resolve([])
-    ]);
+    ];
 
-    // Merge, deduplicate by event id, prefer the byId record if both exist
+    const [byId, byFullName, byFirstName] = await Promise.all(queries);
+
+    // Merge and deduplicate by event id
     const seen = new Set();
     const allEvents = [];
-    for (const e of [...byId, ...byName]) {
+    for (const e of [...byId, ...byFullName, ...byFirstName]) {
       if (!seen.has(e.id)) {
         seen.add(e.id);
         allEvents.push(e);
@@ -38,11 +54,9 @@ Deno.serve(async (req) => {
     const upcoming = allEvents.filter(e => e.start_date >= today).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
     const past = allEvents.filter(e => e.start_date < today).sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
 
-    // Collect unique client IDs and service IDs
     const clientIds = [...new Set(allEvents.map(e => e.client_id).filter(Boolean))];
     const serviceIds = [...new Set(allEvents.map(e => e.service_id).filter(Boolean))];
 
-    // Fetch clients and services in parallel
     const [clientResults, serviceResults] = await Promise.all([
       clientIds.length > 0
         ? Promise.all(clientIds.map(id => base44.asServiceRole.entities.Client.filter({ id }).then(r => r[0] || null)))
@@ -54,7 +68,6 @@ Deno.serve(async (req) => {
 
     const clientMap = {};
     clientResults.forEach(c => { if (c) clientMap[c.id] = c; });
-
     const serviceMap = {};
     serviceResults.forEach(s => { if (s) serviceMap[s.id] = s; });
 
@@ -62,7 +75,6 @@ Deno.serve(async (req) => {
       const client = clientMap[event.client_id] || null;
       const service = serviceMap[event.service_id] || null;
 
-      // Build survey links — never include scores
       const surveyLinks = {};
       if (event.service_id && event.client_id) {
         surveyLinks.pulse = `/AttendeeForm?service_id=${event.service_id}&client_id=${event.client_id}`;
