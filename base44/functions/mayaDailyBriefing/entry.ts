@@ -140,49 +140,35 @@ Deno.serve(async (req) => {
   // =========================================================
   // Build prompt with both sections
   // =========================================================
-  const prompt = `You are Maya, the Sales Director at SKMS Wellness — a mental fitness campaign company that helps organizations through workshops, 14-day challenges, leadership programs, wellness boxes, and classes. You report to William and Heather, the co-founders.
+  const prompt = `You are Maya, the operations AI at SkillfulMeans — a mental fitness company selling workshops, challenges, leadership programs, and wellness boxes. You report to William and Heather.
 
-Your job is to give a concise, actionable daily briefing every morning. You are direct, warm, and strategic. You prioritize revenue-generating activities and relationship maintenance.
+Write a SHORT, scannable daily briefing. HARD LIMIT: ~150 words total. No paragraphs, no filler.
 
-Today is ${todayStr}.
+FORMAT (follow exactly):
+**[Weekday, Month Day]** — [one punchy sentence: the single biggest opportunity or risk today].
 
----
+**Top 3 Priorities Today**
+1. [Name / company] — [one specific action, e.g. "Send renewal proposal"]
+2. [Name / company] — [one specific action]
+3. [Name / company] — [one specific action]
 
-## CURRENT ACTIVE SEASONAL CAMPAIGNS — ${currentMonthName}
-
-${themesLine}
-
----
-
-## SECTION A: MASS CAMPAIGN ACTIONS
-
-${campaignSummaries.length > 0
-  ? campaignSummaries.join('\n')
-  : '_No campaigns are in their prep window today._'}
+**Also Watch**
+• [one line — overdue follow-up, renewal, stalled partner, or seasonal hook]
+• [one line]
+• [one line — max]
 
 ---
+DATA (use this to pick the most urgent items — do not repeat all of it):
 
-## SECTION B: INDIVIDUAL HIGH-TOUCH ACTIONS
+Today: ${todayStr} | Season: ${currentMonthName} themes — ${currentThemes.slice(0,2).join(', ')}
 
-### Renewal Alerts (90-day window):
-${renewalAlerts.length > 0 ? renewalAlerts.join('\n') : '_No clients in 90-day renewal window._'}
+Active campaigns: ${triggeredCampaigns.length > 0 ? triggeredCampaigns.map(t => `${t.campaign.name} (${t.label})`).join('; ') : 'none'}
+Renewals in 90-day window: ${renewalAlerts.length > 0 ? renewalAlerts.map(r => r.replace(/\*\*/g, '').replace(/📅 Upcoming Renewal: /, '').replace(/ Action:.*/, '')).join('; ') : 'none'}
+Stalled Tier 1 partners: ${stalledPartners.length > 0 ? stalledPartners.map(p => `${p.name} (${p.company || ''})`).join(', ') : 'none'}
+Overdue partner follow-ups: ${overduePartners.length > 0 ? overduePartners.slice(0,4).map(l => `${l.name} / ${l.company || ''} due ${l.follow_up_due_date}`).join('; ') : 'none'}
+Clients silent 60+ days: ${silentClients.length > 0 ? silentClients.slice(0,4).map(c => `${c.company || c.name} (${c.owner || 'unassigned'})`).join(', ') : 'none'}
 
-### Stalled Tier 1 Partners (60+ days no touchpoint):
-${stalledPartnerAlerts.length > 0 ? stalledPartnerAlerts.join('\n') : '_All Tier 1 partners are up-to-date._'}
-
-### Overdue Partner Follow-ups (from outreach pipeline) — ${overduePartners.length}:
-${overduePartners.slice(0, 5).map(l => `- ${l.name} (${l.company || 'no company'}) | due: ${l.follow_up_due_date}`).join('\n') || '_None_'}
-
-### Clients with No Contact in 60+ Days — ${silentClients.length}:
-${silentClients.slice(0, 5).map(c => `- ${c.company || c.name} | last contacted: ${c.last_contacted_date || 'never'} | owner: ${c.owner || 'unassigned'}`).join('\n') || '_None_'}
-
----
-
-Please write your daily briefing now. Follow these rules:
-1. Open with **"Today is ${todayStr}"** so the reader knows the exact date.
-2. Lead with Section A if campaigns are active, then cover Section B high-touch items.
-3. **Seasonal Outreach (NEW):** Cross-reference the client and partner lists above with the Current Active Seasonal Campaigns for ${currentMonthName}. For any client or partner who is a strong fit for this month's themes (based on their industry, past programs, notes, or company profile), specifically call out a suggested outreach angle — e.g. "TechCorp has never done a men's health program — pitch a June Men's Health Month workshop." Include this as a dedicated sub-section titled "🗓️ Seasonal Outreach Opportunities."
-4. Keep the full briefing under 700 words. Be specific, use real names, and end with a clear **"Top 3 Priorities for Today."**`;
+Pick the 3 most revenue-relevant names for priorities. Keep every line under 12 words.`;
 
   let briefing;
   try {
@@ -191,11 +177,7 @@ Please write your daily briefing now. Follow these rules:
       model: 'claude_sonnet_4_6',
     });
   } catch (err) {
-    const lines = [];
-    if (campaignSummaries.length) lines.push('**Section A — Campaigns:**\n' + campaignSummaries.join('\n'));
-    if (renewalAlerts.length) lines.push('**Section B — Renewals:**\n' + renewalAlerts.join('\n'));
-    if (stalledPartnerAlerts.length) lines.push('**Section B — Stalled Partners:**\n' + stalledPartnerAlerts.join('\n'));
-    briefing = lines.join('\n\n') || `**Quick Summary:** ${stats.overdue_partners} overdue follow-ups, ${stats.silent_clients} silent clients, ${stats.stalled_tier1_partners} stalled Tier 1 partners.\n\n_Full briefing unavailable — Maya timed out. Refresh to try again._`;
+    briefing = `**${todayStr}**\n\n**Top 3 Priorities Today**\n${overduePartners.slice(0,3).map((l,i) => `${i+1}. ${l.name} — Follow up (overdue ${l.follow_up_due_date})`).join('\n') || '1. Review pipeline\n2. Check renewals\n3. Contact silent clients'}\n\n**Also Watch**\n• ${stats.renewal_clients} renewal(s) in window\n• ${stats.silent_clients} clients silent 60+ days\n• ${stats.stalled_tier1_partners} stalled Tier 1 partner(s)\n\n_Maya timed out — refresh to regenerate._`;
   }
 
   return Response.json({
