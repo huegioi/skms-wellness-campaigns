@@ -1,0 +1,42 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const { portal_id, event_id, accepted, completed } = await req.json();
+
+    if (!portal_id || !event_id) {
+      return Response.json({ error: 'portal_id and event_id are required' }, { status: 400 });
+    }
+
+    // Verify the presenter owns this portal_id
+    const presenters = await base44.asServiceRole.entities.Presenter.filter({ unique_portal_id: portal_id });
+    if (!presenters || presenters.length === 0) {
+      return Response.json({ error: 'Presenter not found' }, { status: 404 });
+    }
+    const presenter = presenters[0];
+
+    // Fetch the event and verify it belongs to this presenter
+    const events = await base44.asServiceRole.entities.CalendarEvent.filter({ id: event_id });
+    if (!events || events.length === 0) {
+      return Response.json({ error: 'Event not found' }, { status: 404 });
+    }
+    const event = events[0];
+
+    if (event.presenter_id !== presenter.id) {
+      return Response.json({ error: 'Forbidden: this event does not belong to your portal' }, { status: 403 });
+    }
+
+    const updates = {};
+    if (accepted !== undefined) updates.presenter_accepted = accepted;
+    if (completed !== undefined) {
+      updates.completed = completed;
+      if (completed) updates.completed_date = new Date().toISOString();
+    }
+
+    const updated = await base44.asServiceRole.entities.CalendarEvent.update(event_id, updates);
+    return Response.json({ success: true, event: updated });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});
