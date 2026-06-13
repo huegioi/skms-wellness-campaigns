@@ -72,6 +72,20 @@
       "format": "email",
       "description": "Speaker/presenter email \u2014 used to filter their portal view"
     },
+    "presenter_fee": {
+      "type": "number",
+      "description": "Per-session fee override for this event. If blank, the presenter's default_rate applies."
+    },
+    "presenter_paid": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the presenter has been paid for this session"
+    },
+    "presenter_paid_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the presenter was paid for this session"
+    },
     "service_id": {
       "type": "string",
       "description": "Associated Service ID \u2014 used to generate the feedback link for the speaker"

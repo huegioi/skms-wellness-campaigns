@@ -36,6 +36,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
     location: event.location || '',
     presenter: event.presenter || '',
     presenter_id: event.presenter_id || '',
+    presenter_fee: event.presenter_fee ?? null,
     client_name: event.client_name || '',
     start_date: event.start_date?.split('T')[0] || '',
     start_time: event.start_date ? format(parseISO(event.start_date), 'HH:mm') : '',
@@ -90,6 +91,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
         location: editForm.location,
         presenter: editForm.presenter,
         presenter_id: editForm.presenter_id || null,
+        presenter_fee: editForm.presenter_fee != null ? editForm.presenter_fee : null,
         client_name: editForm.client_name,
         start_date: startDateTime,
         end_date: endDateTime,
@@ -358,6 +360,16 @@ END:VCALENDAR`;
                   placeholder="Presenter name"
                 />
               )}
+            </div>
+
+            <div>
+              <Label>Presenter Fee Override ($/session)</Label>
+              <Input
+                type="number"
+                value={editForm.presenter_fee ?? ''}
+                onChange={(e) => setEditForm(prev => ({ ...prev, presenter_fee: e.target.value === '' ? null : Number(e.target.value) }))}
+                placeholder="Leave blank to use presenter's default rate"
+              />
             </div>
 
             <div>

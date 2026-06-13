@@ -8,8 +8,10 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Plus, Pencil, Copy, Check, Users, Mail, Phone, DollarSign, Link } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Plus, Pencil, Check, Users, Mail, Phone, DollarSign, Link } from 'lucide-react';
 import { toast } from 'sonner';
+import PresenterPayouts from '@/components/presenter/PresenterPayouts';
 
 const generatePortalId = () => {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -117,79 +119,91 @@ export default function Presenters() {
           </Button>
         </div>
 
-        {/* List */}
-        {presenters.length === 0 ? (
-          <Card className="p-12 text-center">
-            <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p className="text-gray-500 font-medium">No presenters yet</p>
-            <p className="text-gray-400 text-sm mt-1">Add your first presenter to get started</p>
-            <Button onClick={openAdd} className="mt-4 bg-[#013f7c] hover:bg-[#012d5a]">
-              <Plus className="w-4 h-4 mr-2" />
-              Add Presenter
-            </Button>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {presenters.map(presenter => (
-              <Card key={presenter.id} className="p-5 bg-white hover:shadow-md transition-shadow">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <h3 className="font-semibold text-gray-900 text-lg">{presenter.name}</h3>
-                      <Badge className={presenter.is_active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}>
-                        {presenter.is_active !== false ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                      {presenter.email && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3.5 h-3.5" />
-                          {presenter.email}
-                        </span>
-                      )}
-                      {presenter.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3.5 h-3.5" />
-                          {presenter.phone}
-                        </span>
-                      )}
-                      {presenter.default_rate && (
-                        <span className="flex items-center gap-1">
-                          <DollarSign className="w-3.5 h-3.5" />
-                          ${presenter.default_rate}/session
-                        </span>
-                      )}
-                    </div>
-                    {presenter.notes && (
-                      <p className="text-sm text-gray-400 mt-1 truncate">{presenter.notes}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => copyPortalLink(presenter)}
-                      className="gap-1.5"
-                    >
-                      {copiedId === presenter.id ? (
-                        <><Check className="w-3.5 h-3.5 text-green-600" /> Copied</>
-                      ) : (
-                        <><Link className="w-3.5 h-3.5" /> Portal Link</>
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => openEdit(presenter)}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
+        <Tabs defaultValue="roster">
+          <TabsList className="mb-6">
+            <TabsTrigger value="roster">Roster</TabsTrigger>
+            <TabsTrigger value="payouts">Payouts</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="payouts">
+            <PresenterPayouts />
+          </TabsContent>
+
+          <TabsContent value="roster">
+            {presenters.length === 0 ? (
+              <Card className="p-12 text-center">
+                <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                <p className="text-gray-500 font-medium">No presenters yet</p>
+                <p className="text-gray-400 text-sm mt-1">Add your first presenter to get started</p>
+                <Button onClick={openAdd} className="mt-4 bg-[#013f7c] hover:bg-[#012d5a]">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Presenter
+                </Button>
               </Card>
-            ))}
-          </div>
-        )}
+            ) : (
+              <div className="space-y-3">
+                {presenters.map(presenter => (
+                  <Card key={presenter.id} className="p-5 bg-white hover:shadow-md transition-shadow">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-1">
+                          <h3 className="font-semibold text-gray-900 text-lg">{presenter.name}</h3>
+                          <Badge className={presenter.is_active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}>
+                            {presenter.is_active !== false ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
+                        <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                          {presenter.email && (
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-3.5 h-3.5" />
+                              {presenter.email}
+                            </span>
+                          )}
+                          {presenter.phone && (
+                            <span className="flex items-center gap-1">
+                              <Phone className="w-3.5 h-3.5" />
+                              {presenter.phone}
+                            </span>
+                          )}
+                          {presenter.default_rate && (
+                            <span className="flex items-center gap-1">
+                              <DollarSign className="w-3.5 h-3.5" />
+                              ${presenter.default_rate}/session
+                            </span>
+                          )}
+                        </div>
+                        {presenter.notes && (
+                          <p className="text-sm text-gray-400 mt-1 truncate">{presenter.notes}</p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => copyPortalLink(presenter)}
+                          className="gap-1.5"
+                        >
+                          {copiedId === presenter.id ? (
+                            <><Check className="w-3.5 h-3.5 text-green-600" /> Copied</>
+                          ) : (
+                            <><Link className="w-3.5 h-3.5" /> Portal Link</>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => openEdit(presenter)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Add/Edit Dialog */}
