@@ -267,6 +267,16 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
                           className="w-44 h-44 rounded-lg"
                         />
                         <p className="text-center text-xs text-gray-400 mt-2">Scan to submit</p>
+                        <div className="flex justify-center mt-2">
+                          <a
+                            href={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(fullUrl)}&download=1`}
+                            download={`qr-${key}.png`}
+                            className="flex items-center gap-1.5 bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Download QR
+                          </a>
+                        </div>
                       </div>
                     </div>
                     {/* Copy link */}
