@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { format, parseISO, isFuture } from 'date-fns';
-import { Calendar, Clock, Building, ChevronRight, CheckCircle2, Loader2, AlertCircle } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { Calendar, Clock, Building, ChevronRight, CheckCircle2, Loader2, AlertCircle, DollarSign } from 'lucide-react';
 import PresenterSessionDetail from '@/components/presenter/PresenterSessionDetail';
 
 export default function PresenterPortal() {
@@ -55,7 +55,7 @@ export default function PresenterPortal() {
     );
   }
 
-  const { presenter, upcoming, past } = data;
+  const { presenter, upcoming, past, earnings } = data;
 
   // If an event is selected, show detail — re-find it in freshest data
   if (selectedEvent) {
@@ -89,6 +89,32 @@ export default function PresenterPortal() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+
+        {/* Earnings Summary */}
+        {earnings?.has_rate && (
+          <div className="bg-white rounded-2xl shadow-sm p-5">
+            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 flex items-center gap-2">
+              <DollarSign className="w-4 h-4" />
+              My Earnings
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-amber-50 rounded-xl p-4">
+                <p className="text-xs text-amber-600 font-semibold uppercase tracking-wide mb-1">Pending Payment</p>
+                <p className="text-2xl font-bold text-amber-700">
+                  ${earnings.total_pending.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-amber-500 mt-1">Completed sessions awaiting payout</p>
+              </div>
+              <div className="bg-green-50 rounded-xl p-4">
+                <p className="text-xs text-green-600 font-semibold uppercase tracking-wide mb-1">Total Paid</p>
+                <p className="text-2xl font-bold text-green-700">
+                  ${earnings.total_paid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </p>
+                <p className="text-xs text-green-500 mt-1">Sessions paid to date</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Upcoming */}
         <section>
@@ -150,11 +176,17 @@ function SessionCard({ event, upcoming, onClick }) {
               <CheckCircle2 className="w-3 h-3" /> Accepted
             </span>
           )}
-          {event.completed && (
-            <span className="inline-flex items-center gap-1 text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full font-medium">
-              <CheckCircle2 className="w-3 h-3" /> Completed
+          {event.completed && !event.presenter_paid && (
+            <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
+              <CheckCircle2 className="w-3 h-3" /> Completed · Pending payout
             </span>
           )}
+          {event.completed && event.presenter_paid && (
+            <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-medium">
+              <CheckCircle2 className="w-3 h-3" /> Paid
+            </span>
+          )}
+
         </div>
         <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 flex-wrap">
           {event.client_name && (
@@ -167,6 +199,12 @@ function SessionCard({ event, upcoming, onClick }) {
             <Clock className="w-3.5 h-3.5" />
             {format(start, 'h:mm a')}
           </span>
+          {event.session_fee != null && (
+            <span className="flex items-center gap-1 font-medium text-gray-600">
+              <DollarSign className="w-3.5 h-3.5" />
+              ${Number(event.session_fee).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+            </span>
+          )}
         </div>
       </div>
       <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0" />

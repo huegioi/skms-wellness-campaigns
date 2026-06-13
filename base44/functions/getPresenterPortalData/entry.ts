@@ -71,6 +71,12 @@ Deno.serve(async (req) => {
     const serviceMap = {};
     serviceResults.forEach(s => { if (s) serviceMap[s.id] = s; });
 
+    const getSessionFee = (event) => {
+      if (event.presenter_fee != null && event.presenter_fee !== '') return Number(event.presenter_fee);
+      if (presenter.default_rate != null) return Number(presenter.default_rate);
+      return null;
+    };
+
     const enrichEvent = (event) => {
       const client = clientMap[event.client_id] || null;
       const service = serviceMap[event.service_id] || null;
@@ -93,6 +99,9 @@ Deno.serve(async (req) => {
         event_type: event.event_type,
         completed: event.completed,
         presenter_accepted: event.presenter_accepted,
+        presenter_paid: event.presenter_paid || false,
+        presenter_paid_date: event.presenter_paid_date || null,
+        session_fee: getSessionFee(event),
         description: event.description,
         service_id: event.service_id,
         client_id: event.client_id,
@@ -109,15 +118,28 @@ Deno.serve(async (req) => {
       };
     };
 
+    const enrichedUpcoming = upcoming.map(enrichEvent);
+    const enrichedPast = past.map(enrichEvent);
+    const allEnriched = [...enrichedUpcoming, ...enrichedPast];
+
+    const completedSessions = allEnriched.filter(e => e.completed);
+    const earnings = {
+      total_pending: completedSessions.filter(e => !e.presenter_paid).reduce((s, e) => s + (e.session_fee || 0), 0),
+      total_paid: completedSessions.filter(e => e.presenter_paid).reduce((s, e) => s + (e.session_fee || 0), 0),
+      has_rate: presenter.default_rate != null,
+    };
+
     return Response.json({
       presenter: {
         id: presenter.id,
         name: presenter.name,
         email: presenter.email,
         is_active: presenter.is_active,
+        default_rate: presenter.default_rate,
       },
-      upcoming: upcoming.map(enrichEvent),
-      past: past.map(enrichEvent),
+      upcoming: enrichedUpcoming,
+      past: enrichedPast,
+      earnings,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
