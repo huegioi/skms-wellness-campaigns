@@ -23,7 +23,7 @@ export default function ClientsSubNav({ activePage }) {
   };
 
   return (
-    <div className="bg-white border-b px-4 md:px-8 pt-6 pb-0 sticky top-16 z-10">
+    <div className="bg-white border-b px-4 md:px-8 pt-6 pb-0 sticky top-14 lg:top-0 z-10">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl sm:text-3xl font-bold mb-4" style={{ color: '#013f7c' }}>Clients</h1>
 
