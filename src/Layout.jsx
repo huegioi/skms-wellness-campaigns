@@ -146,25 +146,26 @@ export default function Layout({ children, currentPageName }) {
         <main className="flex-1 pb-16">
           {children}
         </main>
+      </div>
 
-        {/* ── MOBILE BOTTOM BAR ── */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex items-center justify-between px-4 h-14 shadow-md">
-          {/* Logo + name on the left */}
-          <Link to={createPageUrl('Home')} className="flex items-center gap-2 touch-manipulation" style={{ WebkitTapHighlightColor: 'transparent' }}>
-            <img src={LOGO_URL} alt="SkillfulMeans" className="h-7 w-auto shrink-0" />
-            <span className="font-bold text-[#013f7c] text-sm">SkillfulMeans Ops</span>
-          </Link>
-
-          {/* Hamburger on the right */}
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="flex items-center justify-center rounded-full bg-[#013f7c] text-white touch-manipulation"
-            style={{ width: 44, height: 44, WebkitTapHighlightColor: 'transparent' }}
-            aria-label="Open menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-        </div>
+      {/* ── MOBILE BOTTOM BAR — outside scroll container, truly fixed ── */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 flex items-center justify-between px-4 shadow-md" style={{ height: 56 }}>
+        <Link
+          to={createPageUrl('Home')}
+          className="flex items-center gap-2 touch-manipulation"
+          style={{ WebkitTapHighlightColor: 'transparent' }}
+        >
+          <img src={LOGO_URL} alt="SkillfulMeans" className="h-7 w-auto shrink-0" />
+          <span className="font-bold text-[#013f7c] text-sm">SkillfulMeans Ops</span>
+        </Link>
+        <button
+          onPointerDown={() => setMobileOpen(true)}
+          className="flex items-center justify-center rounded-full bg-[#013f7c] text-white touch-manipulation"
+          style={{ width: 44, height: 44, WebkitTapHighlightColor: 'transparent' }}
+          aria-label="Open menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
       </div>
 
     </div>
