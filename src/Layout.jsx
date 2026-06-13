@@ -147,9 +147,10 @@ export default function Layout({ children, currentPageName }) {
         <header className="lg:hidden flex items-center gap-3 bg-white border-b border-gray-100 px-4 h-14 sticky top-0 z-30 shadow-sm">
           <button
             onClick={() => setMobileOpen(true)}
-            className="p-2 rounded-lg text-gray-600 hover:bg-gray-100"
+            className="p-3 -ml-1 rounded-lg text-gray-600 hover:bg-gray-100 touch-manipulation"
+            style={{ minWidth: 44, minHeight: 44 }}
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-6 h-6" />
           </button>
           <span className="font-bold text-[#013f7c] text-base">SkillfulMeans Operations</span>
         </header>
