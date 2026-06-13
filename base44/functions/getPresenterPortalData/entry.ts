@@ -14,9 +14,25 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Presenter not found' }, { status: 404 });
     }
     const presenter = presenters[0];
+    const presenterNameLower = (presenter.name || '').trim().toLowerCase();
 
-    // Fetch all calendar events for this presenter
-    const allEvents = await base44.asServiceRole.entities.CalendarEvent.filter({ presenter_id: presenter.id }, 'start_date', 500);
+    // Fetch by presenter_id (canonical) AND by legacy free-text presenter name
+    const [byId, byName] = await Promise.all([
+      base44.asServiceRole.entities.CalendarEvent.filter({ presenter_id: presenter.id }, 'start_date', 500),
+      presenterNameLower
+        ? base44.asServiceRole.entities.CalendarEvent.filter({ presenter: presenter.name }, 'start_date', 500)
+        : Promise.resolve([])
+    ]);
+
+    // Merge, deduplicate by event id, prefer the byId record if both exist
+    const seen = new Set();
+    const allEvents = [];
+    for (const e of [...byId, ...byName]) {
+      if (!seen.has(e.id)) {
+        seen.add(e.id);
+        allEvents.push(e);
+      }
+    }
 
     const today = new Date().toISOString();
     const upcoming = allEvents.filter(e => e.start_date >= today).sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
@@ -57,7 +73,6 @@ Deno.serve(async (req) => {
       }
 
       return {
-        // Logistics
         id: event.id,
         title: event.title,
         start_date: event.start_date,
@@ -70,7 +85,6 @@ Deno.serve(async (req) => {
         service_id: event.service_id,
         client_id: event.client_id,
         client_name: event.client_name,
-        // Client context (read-only, no feedback scores)
         client_context: client ? {
           name: client.name,
           company: client.company,
@@ -78,9 +92,7 @@ Deno.serve(async (req) => {
           industry: client.industry,
           notes: client.notes,
         } : null,
-        // Materials from the linked service
         materials: service?.resources?.map(r => ({ title: r.title, file_url: r.file_url, resource_type: r.resource_type })) || [],
-        // Survey/feedback links
         survey_links: surveyLinks,
       };
     };

@@ -5,16 +5,26 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit, Upload, CheckCircle2, X, Send } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
 
 export default function EventDetailDialog({ event, open, onOpenChange, eventTypeConfig, onUpdated }) {
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
+
+  const { data: activePresenters = [] } = useQuery({
+    queryKey: ['presenters-active'],
+    queryFn: async () => {
+      const all = await base44.entities.Presenter.list('name');
+      return all.filter(p => p.is_active !== false);
+    }
+  });
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [markingComplete, setMarkingComplete] = useState(false);
@@ -25,6 +35,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
     description: event.description || '',
     location: event.location || '',
     presenter: event.presenter || '',
+    presenter_id: event.presenter_id || '',
     client_name: event.client_name || '',
     start_date: event.start_date?.split('T')[0] || '',
     start_time: event.start_date ? format(parseISO(event.start_date), 'HH:mm') : '',
@@ -78,6 +89,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
         description: editForm.description,
         location: editForm.location,
         presenter: editForm.presenter,
+        presenter_id: editForm.presenter_id || null,
         client_name: editForm.client_name,
         start_date: startDateTime,
         end_date: endDateTime,
@@ -317,11 +329,35 @@ END:VCALENDAR`;
 
             <div>
               <Label>Presenter</Label>
-              <Input
-                value={editForm.presenter}
-                onChange={(e) => setEditForm(prev => ({ ...prev, presenter: e.target.value }))}
-                placeholder="Presenter name"
-              />
+              {activePresenters.length > 0 ? (
+                <Select
+                  value={editForm.presenter_id || 'none'}
+                  onValueChange={(v) => {
+                    const p = activePresenters.find(x => x.id === v);
+                    setEditForm(prev => ({
+                      ...prev,
+                      presenter_id: v === 'none' ? '' : v,
+                      presenter: p?.name || ''
+                    }));
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a presenter..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No presenter</SelectItem>
+                    {activePresenters.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}{p.email ? ` — ${p.email}` : ''}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  value={editForm.presenter}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, presenter: e.target.value }))}
+                  placeholder="Presenter name"
+                />
+              )}
             </div>
 
             <div>
