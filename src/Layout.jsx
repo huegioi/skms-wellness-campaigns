@@ -15,6 +15,8 @@ const navItems = [
   { name: 'Presenters', page: 'Presenters', icon: Users },
 ];
 
+const LOGO_URL = 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/bb0a43468_SKMSLogoShieldBrown.png';
+
 const PUBLIC_PAGES = ['ViewProposal', 'MyPortal', 'ClientPortal', 'FeedbackForm', 'ReferralPortal'];
 
 export default function Layout({ children, currentPageName }) {
@@ -33,19 +35,27 @@ export default function Layout({ children, currentPageName }) {
         {/* Logo */}
         <Link
           to={createPageUrl('Home')}
-          className="flex items-center gap-2.5 px-5 py-5 border-b border-gray-100"
+          className="flex items-center gap-2.5 px-4 py-4 border-b border-gray-100"
         >
-          <img
-            src="https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/1272f92b7_SKMSLogoShieldWhite.png"
-            alt="SKMS"
-            className="h-7 w-auto"
-            style={{ filter: 'invert(15%) sepia(72%) saturate(700%) hue-rotate(192deg)' }}
-          />
-          <span className="font-bold text-[#013f7c] text-base leading-tight">SKMS<br/>Wellness</span>
+          <img src={LOGO_URL} alt="SkillfulMeans" className="h-8 w-auto shrink-0" />
+          <span className="font-bold text-[#013f7c] text-sm leading-tight">SkillfulMeans<br/>Operations</span>
         </Link>
 
         {/* Nav items */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+          {/* Builder CTA — top of nav */}
+          <Link
+            to={createPageUrl('CurriculumDesigner')}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold border-2 transition-colors mb-2 ${
+              currentPageName === 'CurriculumDesigner'
+                ? 'bg-[#013f7c] text-white border-[#013f7c]'
+                : 'text-[#013f7c] border-[#013f7c] hover:bg-[#013f7c] hover:text-white'
+            }`}
+          >
+            <Wand2 className="w-4 h-4 shrink-0" />
+            Builder
+          </Link>
+
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPageName === item.page || (item.altPages && item.altPages.includes(currentPageName));
@@ -65,21 +75,6 @@ export default function Layout({ children, currentPageName }) {
             );
           })}
         </nav>
-
-        {/* Builder CTA pinned at bottom */}
-        <div className="px-3 pb-4">
-          <Link
-            to={createPageUrl('CurriculumDesigner')}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold border-2 transition-colors ${
-              currentPageName === 'CurriculumDesigner'
-                ? 'bg-[#013f7c] text-white border-[#013f7c]'
-                : 'text-[#013f7c] border-[#013f7c] hover:bg-[#013f7c] hover:text-white'
-            }`}
-          >
-            <Wand2 className="w-4 h-4 shrink-0" />
-            Builder
-          </Link>
-        </div>
       </aside>
 
       {/* ── MOBILE OVERLAY ── */}
@@ -102,19 +97,28 @@ export default function Layout({ children, currentPageName }) {
             onClick={() => setMobileOpen(false)}
             className="flex items-center gap-2.5"
           >
-            <img
-              src="https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/1272f92b7_SKMSLogoShieldWhite.png"
-              alt="SKMS"
-              className="h-7 w-auto"
-              style={{ filter: 'invert(15%) sepia(72%) saturate(700%) hue-rotate(192deg)' }}
-            />
-            <span className="font-bold text-[#013f7c] text-base">SKMS Wellness</span>
+            <img src={LOGO_URL} alt="SkillfulMeans" className="h-7 w-auto shrink-0" />
+            <span className="font-bold text-[#013f7c] text-base">SkillfulMeans Ops</span>
           </Link>
           <button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100">
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+          {/* Builder CTA — top of nav */}
+          <Link
+            to={createPageUrl('CurriculumDesigner')}
+            onClick={() => setMobileOpen(false)}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold border-2 transition-colors mb-2 ${
+              currentPageName === 'CurriculumDesigner'
+                ? 'bg-[#013f7c] text-white border-[#013f7c]'
+                : 'text-[#013f7c] border-[#013f7c] hover:bg-[#013f7c] hover:text-white'
+            }`}
+          >
+            <Wand2 className="w-4 h-4 shrink-0" />
+            Builder
+          </Link>
+
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPageName === item.page || (item.altPages && item.altPages.includes(currentPageName));
@@ -135,20 +139,6 @@ export default function Layout({ children, currentPageName }) {
             );
           })}
         </nav>
-        <div className="px-3 pb-4">
-          <Link
-            to={createPageUrl('CurriculumDesigner')}
-            onClick={() => setMobileOpen(false)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold border-2 transition-colors ${
-              currentPageName === 'CurriculumDesigner'
-                ? 'bg-[#013f7c] text-white border-[#013f7c]'
-                : 'text-[#013f7c] border-[#013f7c] hover:bg-[#013f7c] hover:text-white'
-            }`}
-          >
-            <Wand2 className="w-4 h-4 shrink-0" />
-            Builder
-          </Link>
-        </div>
       </aside>
 
       {/* ── MAIN CONTENT ── */}
@@ -161,7 +151,7 @@ export default function Layout({ children, currentPageName }) {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <span className="font-bold text-[#013f7c] text-base">SKMS Wellness</span>
+          <span className="font-bold text-[#013f7c] text-base">SkillfulMeans Operations</span>
         </header>
 
         <main className="flex-1 pb-6">
