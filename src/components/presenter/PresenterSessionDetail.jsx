@@ -2,15 +2,19 @@ import React, { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   ArrowLeft, Calendar, Clock, MapPin, Building, FileText, Copy, Check,
-  QrCode, ExternalLink, CheckCircle2, Download, Loader2
+  QrCode, ExternalLink, CheckCircle2, Download, Loader2, Video
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function PresenterSessionDetail({ event, portalId, onBack, onUpdated }) {
   const [accepting, setAccepting] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [copiedKey, setCopiedKey] = useState(null);
+  const [recordingLink, setRecordingLink] = useState(event.recording_link || '');
+  const [savingRecording, setSavingRecording] = useState(false);
+  const { toast } = useToast();
 
   const start = parseISO(event.start_date);
   const end = event.end_date ? parseISO(event.end_date) : null;
@@ -29,6 +33,22 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
     });
     setAccepting(false);
     onUpdated();
+  };
+
+  const handleSaveRecording = async () => {
+    setSavingRecording(true);
+    const res = await base44.functions.invoke('savePresenterRecording', {
+      portal_id: portalId,
+      event_id: event.id,
+      recording_link: recordingLink,
+    });
+    setSavingRecording(false);
+    if (res.data?.success) {
+      toast({ title: 'Recording link saved!', description: res.data.sheet?.warning || `Written to sheet (${res.data.sheet?.cell})` });
+      onUpdated();
+    } else {
+      toast({ title: 'Error saving recording', description: res.data?.error || 'Unknown error', variant: 'destructive' });
+    }
   };
 
   const handleComplete = async () => {
@@ -296,6 +316,44 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
             </div>
           </div>
         )}
+
+        {/* Recording Link */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+            <h2 className="font-bold text-gray-700 text-sm uppercase tracking-wide flex items-center gap-2">
+              <Video className="w-4 h-4" /> Recording Link
+            </h2>
+            <p className="text-gray-400 text-xs mt-0.5">Paste your Loom or Zoom recording URL here</p>
+          </div>
+          <div className="p-5">
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={recordingLink}
+                onChange={e => setRecordingLink(e.target.value)}
+                placeholder="https://loom.com/share/..."
+                className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#013f7c] placeholder-gray-400"
+              />
+              <Button
+                onClick={handleSaveRecording}
+                disabled={savingRecording}
+                className="bg-[#013f7c] hover:bg-[#012a54] text-white text-sm flex-shrink-0"
+              >
+                {savingRecording ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
+              </Button>
+            </div>
+            {recordingLink && (
+              <a
+                href={recordingLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 mt-3 text-xs text-blue-600 hover:text-blue-800"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> Open recording
+              </a>
+            )}
+          </div>
+        </div>
 
         {/* Session notes */}
         {event.description && (

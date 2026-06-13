@@ -102,6 +102,7 @@ Deno.serve(async (req) => {
         presenter_paid: event.presenter_paid || false,
         presenter_paid_date: event.presenter_paid_date || null,
         session_fee: getSessionFee(event),
+        recording_link: event.recording_link || '',
         description: event.description,
         service_id: event.service_id,
         client_id: event.client_id,

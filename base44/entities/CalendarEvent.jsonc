@@ -90,6 +90,10 @@
       "type": "string",
       "description": "Associated Service ID \u2014 used to generate the feedback link for the speaker"
     },
+    "recording_link": {
+      "type": "string",
+      "description": "URL of the session recording (Loom, Zoom, etc.) submitted by the presenter"
+    },
     "delivery_format": {
       "type": "string",
       "enum": [
