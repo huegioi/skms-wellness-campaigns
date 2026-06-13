@@ -140,35 +140,61 @@ Deno.serve(async (req) => {
   // =========================================================
   // Build prompt with both sections
   // =========================================================
-  const prompt = `You are Maya, the operations AI at SkillfulMeans — a mental fitness company selling workshops, challenges, leadership programs, and wellness boxes. You report to William and Heather.
+  const prompt = `You are Maya, the operations AI at SkillfulMeans — a mental fitness company selling workshops, challenges, leadership programs, and wellness boxes. You report to William and Heather. Your voice is warm, direct, and specific.
 
-Write a SHORT, scannable daily briefing. HARD LIMIT: ~150 words total. No paragraphs, no filler.
-
-FORMAT (follow exactly):
-**[Weekday, Month Day]** — [one punchy sentence: the single biggest opportunity or risk today].
-
-**Top 3 Priorities Today**
-1. [Name / company] — [one specific action, e.g. "Send renewal proposal"]
-2. [Name / company] — [one specific action]
-3. [Name / company] — [one specific action]
-
-**Also Watch**
-• [one line — overdue follow-up, renewal, stalled partner, or seasonal hook]
-• [one line]
-• [one line — max]
+Write today's briefing using EXACTLY this format — no extra sections, no paragraphs, no deviation:
 
 ---
-DATA (use this to pick the most urgent items — do not repeat all of it):
 
-Today: ${todayStr} | Season: ${currentMonthName} themes — ${currentThemes.slice(0,2).join(', ')}
+[3 sentences: (1) today's date, (2) a quick read on the overall state of play using real numbers or names, (3) the single most important thing to focus on today. Be specific and human.]
+
+**Client To-Dos**
+1. [Client/company name] — [one specific next action]
+2. [Client/company name] — [one specific next action]
+3. [Client/company name] — [one specific next action]
+
+**Partner To-Dos**
+1. [Partner name] — [one specific next action]
+2. [Partner name] — [one specific next action]
+3. [Partner name] — [one specific next action]
+
+**Campaign To-Do**
+• [The single most relevant seasonal or campaign action for right now — one line]
+
+**Other**
+[1–2 sentences flagging anything else worth noting — stale data, upcoming deadline, a quick win.]
+
+---
+
+RULES:
+- Each to-do is ONE line: name + action only. No sub-bullets, no explanations.
+- If a section has fewer than 3 real items, write as many as the data supports — do not invent names.
+- Total output should be under 200 words.
+
+DATA (use this — do not repeat it verbatim):
+
+Today: ${todayStr}
+${currentMonthName} themes: ${currentThemes.slice(0,2).join(', ')}
 
 Active campaigns: ${triggeredCampaigns.length > 0 ? triggeredCampaigns.map(t => `${t.campaign.name} (${t.label})`).join('; ') : 'none'}
-Renewals in 90-day window: ${renewalAlerts.length > 0 ? renewalAlerts.map(r => r.replace(/\*\*/g, '').replace(/📅 Upcoming Renewal: /, '').replace(/ Action:.*/, '')).join('; ') : 'none'}
-Stalled Tier 1 partners: ${stalledPartners.length > 0 ? stalledPartners.map(p => `${p.name} (${p.company || ''})`).join(', ') : 'none'}
-Overdue partner follow-ups: ${overduePartners.length > 0 ? overduePartners.slice(0,4).map(l => `${l.name} / ${l.company || ''} due ${l.follow_up_due_date}`).join('; ') : 'none'}
-Clients silent 60+ days: ${silentClients.length > 0 ? silentClients.slice(0,4).map(c => `${c.company || c.name} (${c.owner || 'unassigned'})`).join(', ') : 'none'}
 
-Pick the 3 most revenue-relevant names for priorities. Keep every line under 12 words.`;
+Clients in 90-day renewal window: ${allClients.filter(c => {
+  const jan1Next = new Date(now.getFullYear() + 1, 0, 1);
+  const jul1This = new Date(now.getFullYear(), 6, 1);
+  const jul1Next = new Date(now.getFullYear() + 1, 6, 1);
+  if (c.renewal_cohort === 'Jan 1') { const d = Math.round(daysDiff(jan1Next, now)); return d >= 0 && d <= 90; }
+  if (c.renewal_cohort === 'July 1') { const d = Math.round(daysDiff(jul1This < now ? jul1Next : jul1This, now)); return d >= 0 && d <= 90; }
+  return false;
+}).slice(0,4).map(c => `${c.company || c.name} (${c.renewal_cohort}, owner: ${c.owner || 'unassigned'})`).join(', ') || 'none'}
+
+Clients silent 60+ days: ${silentClients.slice(0,5).map(c => `${c.company || c.name} (last contact: ${c.last_contacted_date || 'never'}, owner: ${c.owner || 'unassigned'})`).join('; ') || 'none'}
+
+Overdue partner follow-ups: ${overduePartners.slice(0,5).map(l => `${l.name} / ${l.company || ''} (due: ${l.follow_up_due_date}, stage: ${l.follow_up_stage || l.partner_status || ''})`).join('; ') || 'none'}
+
+Stalled Tier 1 partners (60+ days no touchpoint): ${stalledPartners.slice(0,4).map(p => `${p.name} (${p.company || ''}, last touch: ${p.last_touchpoint_date || p.last_contacted_date || 'never'})`).join(', ') || 'none'}
+
+Active partners total: ${allPartners.filter(p => p.partner_status === 'Active Partner').length}
+Active clients total: ${allClients.filter(c => c.client_stage && c.client_stage !== 'churned').length}`;
 
   let briefing;
   try {
@@ -177,7 +203,10 @@ Pick the 3 most revenue-relevant names for priorities. Keep every line under 12 
       model: 'claude_sonnet_4_6',
     });
   } catch (err) {
-    briefing = `**${todayStr}**\n\n**Top 3 Priorities Today**\n${overduePartners.slice(0,3).map((l,i) => `${i+1}. ${l.name} — Follow up (overdue ${l.follow_up_due_date})`).join('\n') || '1. Review pipeline\n2. Check renewals\n3. Contact silent clients'}\n\n**Also Watch**\n• ${stats.renewal_clients} renewal(s) in window\n• ${stats.silent_clients} clients silent 60+ days\n• ${stats.stalled_tier1_partners} stalled Tier 1 partner(s)\n\n_Maya timed out — refresh to regenerate._`;
+    const clientItems = silentClients.slice(0,3).map((c,i) => `${i+1}. ${c.company || c.name} — Re-engage, last contact ${c.last_contacted_date || 'unknown'}`).join('\n') || '1. Review client pipeline';
+    const partnerItems = overduePartners.slice(0,3).map((l,i) => `${i+1}. ${l.name} — Follow up (overdue ${l.follow_up_due_date})`).join('\n') || '1. Review partner pipeline';
+    const campaignItem = triggeredCampaigns.length > 0 ? `• ${triggeredCampaigns[0].campaign.name} — ${triggeredCampaigns[0].label}` : `• Review ${currentMonthName} seasonal themes`;
+    briefing = `Today is ${todayStr}. ${stats.silent_clients} clients need re-engagement and ${stats.overdue_partners} partner follow-ups are overdue. Start with your most at-risk client relationship.\n\n**Client To-Dos**\n${clientItems}\n\n**Partner To-Dos**\n${partnerItems}\n\n**Campaign To-Do**\n${campaignItem}\n\n**Other**\n${stats.renewal_clients} client(s) are in their 90-day renewal window.\n\n_Maya timed out — refresh to regenerate._`;
   }
 
   return Response.json({
