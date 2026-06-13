@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Plus, Pencil, Check, Users, Mail, Phone, DollarSign, Link } from 'lucide-react';
 import { toast } from 'sonner';
 import PresenterPayouts from '@/components/presenter/PresenterPayouts';
+import { useAuth } from '@/lib/AuthContext';
 
 const generatePortalId = () => {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -28,6 +29,7 @@ const emptyForm = {
 };
 
 export default function Presenters() {
+  const { user } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPresenter, setEditingPresenter] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -36,7 +38,8 @@ export default function Presenters() {
 
   const { data: presenters = [], isLoading } = useQuery({
     queryKey: ['presenters'],
-    queryFn: () => base44.entities.Presenter.list('name')
+    queryFn: () => base44.entities.Presenter.list('name'),
+    enabled: !!user
   });
 
   const saveMutation = useMutation({
@@ -93,16 +96,13 @@ export default function Presenters() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  if (isLoading) {
+  if (!user || isLoading) {
     return (
       <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#013f7c] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
-
-  // Presenter entity is admin-only; if we have no data and no loading, likely a permissions issue
-  // We still render the page — admins will see data, non-admins see empty state
 
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
