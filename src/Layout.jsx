@@ -143,21 +143,54 @@ export default function Layout({ children, currentPageName }) {
 
       {/* ── MAIN CONTENT ── */}
       <div className="flex-1 flex flex-col min-w-0 lg:ml-56">
-        {/* Mobile top bar (hamburger only) */}
+        {/* Mobile top bar (logo only) */}
         <header className="lg:hidden flex items-center gap-3 bg-white border-b border-gray-100 px-4 h-14 sticky top-0 z-30 shadow-sm">
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="p-3 -ml-1 rounded-lg text-gray-600 hover:bg-gray-100 touch-manipulation"
-            style={{ minWidth: 44, minHeight: 44 }}
-          >
-            <Menu className="w-6 h-6" />
-          </button>
+          <img src={LOGO_URL} alt="SkillfulMeans" className="h-7 w-auto shrink-0" />
           <span className="font-bold text-[#013f7c] text-base">SkillfulMeans Operations</span>
         </header>
 
-        <main className="flex-1 pb-6">
+        {/* Extra bottom padding so content isn't hidden behind the bottom nav */}
+        <main className="flex-1 pb-20">
           {children}
         </main>
+
+        {/* ── MOBILE BOTTOM NAV ── */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex items-stretch safe-area-bottom">
+          {[
+            { name: 'Home', page: 'Home', icon: BarChart3 },
+            { name: 'Partners', page: 'Leads', icon: Mail },
+            { name: 'Clients', page: 'Clients', icon: Users },
+            { name: 'Schedule', page: 'SchedulingHub', icon: Calendar },
+            { name: 'More', page: '__more__', icon: Menu },
+          ].map((item) => {
+            const Icon = item.icon;
+            const isMore = item.page === '__more__';
+            const isActive = !isMore && (currentPageName === item.page);
+            return isMore ? (
+              <button
+                key="more"
+                onClick={() => setMobileOpen(true)}
+                className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-gray-500 touch-manipulation"
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="text-[10px] font-medium">More</span>
+              </button>
+            ) : (
+              <Link
+                key={item.page}
+                to={createPageUrl(item.page)}
+                className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 touch-manipulation ${
+                  isActive ? 'text-[#264d44]' : 'text-gray-500'
+                }`}
+                style={{ WebkitTapHighlightColor: 'transparent' }}
+              >
+                <Icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px]' : ''}`} />
+                <span className="text-[10px] font-medium">{item.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
       </div>
 
     </div>
