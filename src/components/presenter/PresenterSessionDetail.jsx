@@ -126,13 +126,21 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
             <p className="text-sm text-emerald-700 font-medium">You've confirmed your availability for this session.</p>
           </div>
         )}
-        {!event.completed && !isUpcoming && (
+        {!event.completed && (
           <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center gap-4">
             <p className="flex-1 text-sm text-gray-600">Did you deliver this session?</p>
-            <Button onClick={handleComplete} disabled={completing} variant="outline" className="text-sm">
-              {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              Mark Complete
-            </Button>
+            <div title={isUpcoming ? 'Available after the session' : undefined}>
+              <Button
+                onClick={handleComplete}
+                disabled={completing || isUpcoming}
+                variant="outline"
+                className={`text-sm ${isUpcoming ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                Mark Complete
+              </Button>
+            </div>
+            {isUpcoming && <p className="text-xs text-gray-400 hidden sm:block">Available after the session</p>}
           </div>
         )}
         {event.completed && (

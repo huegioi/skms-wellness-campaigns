@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { Calendar, Clock, Building, ChevronRight, CheckCircle2, Loader2, AlertCircle, DollarSign } from 'lucide-react';
 import PresenterSessionDetail from '@/components/presenter/PresenterSessionDetail';
+import { Button } from '@/components/ui/button';
 
 export default function PresenterPortal() {
   const portalId = new URLSearchParams(window.location.search).get('id');
@@ -130,7 +131,7 @@ export default function PresenterPortal() {
           ) : (
             <div className="space-y-3">
               {upcoming.map(event => (
-                <SessionCard key={event.id} event={event} upcoming onClick={() => setSelectedEvent(event)} />
+                <SessionCard key={event.id} event={event} upcoming portalId={portalId} onCompleted={handleUpdated} onClick={() => setSelectedEvent(event)} />
               ))}
             </div>
           )}
@@ -145,7 +146,7 @@ export default function PresenterPortal() {
             </h2>
             <div className="space-y-3">
               {past.map(event => (
-                <SessionCard key={event.id} event={event} onClick={() => setSelectedEvent(event)} />
+                <SessionCard key={event.id} event={event} portalId={portalId} onCompleted={handleUpdated} onClick={() => setSelectedEvent(event)} />
               ))}
             </div>
           </section>
@@ -155,59 +156,92 @@ export default function PresenterPortal() {
   );
 }
 
-function SessionCard({ event, upcoming, onClick }) {
+function SessionCard({ event, upcoming, portalId, onCompleted, onClick }) {
+  const [completing, setCompleting] = useState(false);
   const start = parseISO(event.start_date);
+  const sessionPassed = new Date(event.start_date) <= new Date();
+
+  const handleComplete = async (e) => {
+    e.stopPropagation();
+    setCompleting(true);
+    await base44.functions.invoke('updatePresenterSession', {
+      portal_id: portalId, event_id: event.id, completed: true
+    });
+    setCompleting(false);
+    onCompleted();
+  };
+
   return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left bg-white rounded-2xl shadow-sm p-5 flex items-center gap-4 transition-all hover:shadow-md hover:-translate-y-0.5 border-l-4 ${
+    <div
+      className={`w-full bg-white rounded-2xl shadow-sm border-l-4 transition-all hover:shadow-md hover:-translate-y-0.5 ${
         upcoming ? 'border-l-[#013f7c]' : 'border-l-gray-200'
       }`}
     >
-      <div className={`flex-shrink-0 rounded-xl text-center px-3 py-2 min-w-[56px] ${upcoming ? 'bg-[#013f7c]' : 'bg-gray-100'}`}>
-        <p className={`text-xs font-bold uppercase ${upcoming ? 'text-blue-200' : 'text-gray-400'}`}>{format(start, 'MMM')}</p>
-        <p className={`text-2xl font-bold leading-none ${upcoming ? 'text-white' : 'text-gray-500'}`}>{format(start, 'd')}</p>
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="font-semibold text-gray-800 truncate">{event.title}</p>
-          {event.presenter_accepted && (
-            <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
-              <CheckCircle2 className="w-3 h-3" /> Accepted
-            </span>
-          )}
-          {event.completed && !event.presenter_paid && (
-            <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
-              <CheckCircle2 className="w-3 h-3" /> Completed · Pending payout
-            </span>
-          )}
-          {event.completed && event.presenter_paid && (
-            <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-medium">
-              <CheckCircle2 className="w-3 h-3" /> Paid
-            </span>
-          )}
-
+      {/* Main row — clickable to open detail */}
+      <button onClick={onClick} className="w-full text-left p-5 flex items-center gap-4">
+        <div className={`flex-shrink-0 rounded-xl text-center px-3 py-2 min-w-[56px] ${upcoming ? 'bg-[#013f7c]' : 'bg-gray-100'}`}>
+          <p className={`text-xs font-bold uppercase ${upcoming ? 'text-blue-200' : 'text-gray-400'}`}>{format(start, 'MMM')}</p>
+          <p className={`text-2xl font-bold leading-none ${upcoming ? 'text-white' : 'text-gray-500'}`}>{format(start, 'd')}</p>
         </div>
-        <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 flex-wrap">
-          {event.client_name && (
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-semibold text-gray-800 truncate">{event.title}</p>
+            {event.presenter_accepted && (
+              <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full font-medium">
+                <CheckCircle2 className="w-3 h-3" /> Accepted
+              </span>
+            )}
+            {event.completed && !event.presenter_paid && (
+              <span className="inline-flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full font-medium">
+                <CheckCircle2 className="w-3 h-3" /> Completed · Pending payout
+              </span>
+            )}
+            {event.completed && event.presenter_paid && (
+              <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full font-medium">
+                <CheckCircle2 className="w-3 h-3" /> Paid
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 flex-wrap">
+            {event.client_name && (
+              <span className="flex items-center gap-1">
+                <Building className="w-3.5 h-3.5" />
+                {event.client_name}
+              </span>
+            )}
             <span className="flex items-center gap-1">
-              <Building className="w-3.5 h-3.5" />
-              {event.client_name}
+              <Clock className="w-3.5 h-3.5" />
+              {format(start, 'h:mm a')}
             </span>
-          )}
-          <span className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" />
-            {format(start, 'h:mm a')}
-          </span>
-          {event.session_fee != null && (
-            <span className="flex items-center gap-1 font-medium text-gray-600">
-              <DollarSign className="w-3.5 h-3.5" />
-              ${Number(event.session_fee).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-            </span>
-          )}
+            {event.session_fee != null && (
+              <span className="flex items-center gap-1 font-medium text-gray-600">
+                <DollarSign className="w-3.5 h-3.5" />
+                ${Number(event.session_fee).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              </span>
+            )}
+          </div>
         </div>
-      </div>
-      <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0" />
-    </button>
+        <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0" />
+      </button>
+
+      {/* Mark Complete footer — shown when not yet completed */}
+      {!event.completed && (
+        <div className="px-5 pb-4 flex items-center gap-3">
+          <div title={!sessionPassed ? 'Available after the session' : undefined} className="inline-block">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={completing || !sessionPassed}
+              onClick={handleComplete}
+              className={`text-xs gap-1.5 ${!sessionPassed ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {completing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+              Mark Complete
+            </Button>
+          </div>
+          {!sessionPassed && <p className="text-xs text-gray-400">Available after the session</p>}
+        </div>
+      )}
+    </div>
   );
 }
