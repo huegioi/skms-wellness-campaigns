@@ -66,8 +66,8 @@ export default function BrokerFeedbackRollup({ clientCompanies = [] }) {
       <CardContent className="space-y-6">
 
         {/* How to read this */}
-        <div className="bg-white rounded-xl border-l-4 border-[#770142] p-4 shadow-sm">
-          <p className="font-semibold text-gray-800 mb-1">How to read this</p>
+        <div className="rounded-xl border border-[#e6e1d8] border-l-4 border-l-[#013f7c] p-4" style={{ backgroundColor: '#f9f8f5' }}>
+          <p className="font-semibold text-[#013f7c] mb-1">How to read this</p>
           <p className="text-sm text-gray-600 leading-relaxed">
             This shows how the companies you've referred are responding to their wellness programs, combined across your whole book of business. The numbers are aggregated and anonymous — no individual employee is identified. In general, higher is better, and you're welcome to share these results with your clients.
           </p>
@@ -107,9 +107,9 @@ export default function BrokerFeedbackRollup({ clientCompanies = [] }) {
             {/* KPI row — always shows, zeros out if no responses */}
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: 'Total Reach', caption: 'Total feedback responses across all the clients you\'ve referred.', value: allResponses.length, icon: Users, color: 'text-[#013f7c]', bg: 'bg-blue-50' },
-                { label: 'Avg Fit Confidence', caption: 'On average, how confident participants are that they\'ll apply what they learned (scale of 0–10).', value: overallAvg != null ? `${overallAvg.toFixed(1)}/10` : '0/10', icon: TrendingUp, color: 'text-[#264d44]', bg: 'bg-green-50' },
-                { label: 'Impact Areas', caption: 'Where participants across your clients expect the biggest benefit. They can choose more than one, so totals may exceed the number of responses.', value: impactEntries.length, icon: BarChart2, color: 'text-purple-700', bg: 'bg-purple-50' },
+                { label: 'Total Reach', caption: 'Total feedback responses across all the clients you\'ve referred.', value: allResponses.length, icon: Users, color: 'text-[#013f7c]', bg: 'bg-[#013f7c]/10' },
+                { label: 'Avg Fit Confidence', caption: 'On average, how confident participants are that they\'ll apply what they learned (scale of 0–10).', value: overallAvg != null ? `${overallAvg.toFixed(1)}/10` : '0/10', icon: TrendingUp, color: 'text-[#264d44]', bg: 'bg-[#264d44]/10' },
+                { label: 'Impact Areas', caption: 'Where participants across your clients expect the biggest benefit. They can choose more than one, so totals may exceed the number of responses.', value: impactEntries.length, icon: BarChart2, color: 'text-[#013f7c]', bg: 'bg-[#e6e1d8]/60' },
               ].map((s, i) => {
                 const Icon = s.icon;
                 return (
