@@ -356,15 +356,15 @@ export default function ReferralPortal() {
         {activeTab === 'start_here' && (
           <div className="space-y-6">
             {/* Welcome */}
-            <Card className="border-[#013f7c]/20 bg-blue-50">
+            <Card className="border-[#e6e1d8] bg-[#f9f8f5] border-l-4" style={{ borderLeftColor: '#013f7c' }}>
               <CardContent className="pt-6 pb-5">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                  <div className="p-3 bg-blue-100 rounded-xl">
+                  <div className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(1,63,124,0.08)' }}>
                     <Star className="w-8 h-8 text-[#013f7c]" />
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-[#013f7c]">Welcome to Your Partner Portal, {partner.name.split(' ')[0]}!</h2>
-                    <p className="text-blue-700/70 text-sm mt-1">Everything you need to track referrals, view client ROI, and grow your partnership with SKMS Wellness — all in one place.</p>
+                    <p className="text-gray-600 text-sm mt-1">Everything you need to track referrals, view client ROI, and grow your partnership with SKMS Wellness — all in one place.</p>
                   </div>
                 </div>
               </CardContent>
@@ -388,10 +388,10 @@ export default function ReferralPortal() {
             </Card>
 
             {/* How to Use This Portal */}
-            <Card className="bg-sky-50 border-sky-200">
+            <Card className="border-[#e6e1d8] bg-[#f9f8f5] border-l-4" style={{ borderLeftColor: '#013f7c' }}>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base text-sky-900">
-                  <BookOpen className="w-5 h-5 text-sky-700" />
+                <CardTitle className="flex items-center gap-2 text-base text-[#013f7c]">
+                  <BookOpen className="w-5 h-5 text-[#013f7c]" />
                   How to Use This Portal
                 </CardTitle>
               </CardHeader>
@@ -405,12 +405,12 @@ export default function ReferralPortal() {
                     { step: '5', title: 'Review Your Commission Earnings', desc: 'Your live commission totals, YTD revenue placed, and pending balance are always visible on the Commissions tab.' },
                   ].map(({ step, title, desc }) => (
                     <div key={step} className="flex gap-4">
-                      <div className="w-8 h-8 rounded-full bg-sky-700 text-white text-sm font-bold flex items-center justify-center flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full text-white text-sm font-bold flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#013f7c' }}>
                         {step}
                       </div>
                       <div>
-                        <p className="font-semibold text-sky-900 text-sm">{title}</p>
-                        <p className="text-sky-800/70 text-sm mt-0.5">{desc}</p>
+                        <p className="font-semibold text-[#013f7c] text-sm">{title}</p>
+                        <p className="text-gray-600 text-sm mt-0.5">{desc}</p>
                       </div>
                     </div>
                   ))}
@@ -419,10 +419,10 @@ export default function ReferralPortal() {
             </Card>
 
             {/* How the Program Works */}
-            <Card className="bg-teal-50 border-teal-200">
+            <Card className="border-[#e6e1d8] bg-[#f9f8f5] border-l-4" style={{ borderLeftColor: '#013f7c' }}>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base text-teal-900">
-                  <TrendingUp className="w-5 h-5 text-teal-700" />
+                <CardTitle className="flex items-center gap-2 text-base text-[#013f7c]">
+                  <TrendingUp className="w-5 h-5 text-[#013f7c]" />
                   How the Program Works
                 </CardTitle>
               </CardHeader>
@@ -456,16 +456,16 @@ export default function ReferralPortal() {
                 <p className="text-sm text-gray-500 mb-4">These are the core programs your referred clients can access through SKMS Wellness:</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
-                    { name: 'Interactive Workshops', desc: '60–90 minute live sessions on stress, resilience, sleep, and mental performance. Virtual or in-person.', color: 'bg-blue-50 text-blue-700' },
-                    { name: '14-Day Team Challenges', desc: 'Structured micro-habit programs that drive daily engagement and measurable behavior change.', color: 'bg-green-50 text-green-700' },
-                    { name: 'Leadership EQ Programs', desc: 'Emotional intelligence and pressure management training built for managers and executives.', color: 'bg-purple-50 text-purple-700' },
-                    { name: 'Mindful Movement Classes', desc: 'Guided breathwork, yoga, and movement sessions that reduce absenteeism triggers.', color: 'bg-amber-50 text-amber-700' },
-                    { name: 'Wellness Boxes', desc: 'Physical or digital curated boxes with tools and resources to reinforce program takeaways.', color: 'bg-rose-50 text-rose-700' },
-                    { name: 'Annual Workshop for You', desc: 'Every partner gets a complimentary workshop for their own team — virtual or in-person.', color: 'bg-[#264d44]/10 text-[#264d44]' },
+                    { name: 'Interactive Workshops', desc: '60–90 minute live sessions on stress, resilience, sleep, and mental performance. Virtual or in-person.' },
+                    { name: '14-Day Team Challenges', desc: 'Structured micro-habit programs that drive daily engagement and measurable behavior change.' },
+                    { name: 'Leadership EQ Programs', desc: 'Emotional intelligence and pressure management training built for managers and executives.' },
+                    { name: 'Mindful Movement Classes', desc: 'Guided breathwork, yoga, and movement sessions that reduce absenteeism triggers.' },
+                    { name: 'Wellness Boxes', desc: 'Physical or digital curated boxes with tools and resources to reinforce program takeaways.' },
+                    { name: 'Annual Workshop for You', desc: 'Every partner gets a complimentary workshop for their own team — virtual or in-person.' },
                   ].map((item, i) => (
-                    <div key={i} className="p-3 bg-gray-50 rounded-lg border">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${item.color}`}>{item.name}</span>
-                      <p className="text-xs text-gray-500 mt-2">{item.desc}</p>
+                    <div key={i} className="p-3 bg-white rounded-lg border border-[#e6e1d8]">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-[#013f7c]" style={{ backgroundColor: 'rgba(1,63,124,0.08)' }}>{item.name}</span>
+                      <p className="text-xs text-gray-600 mt-2">{item.desc}</p>
                     </div>
                   ))}
                 </div>
@@ -485,31 +485,31 @@ export default function ReferralPortal() {
           <div className="space-y-6">
             {/* Top-line KPIs */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Card className="border-purple-200 bg-purple-50">
+              <Card className="border-[#e6e1d8] bg-[#f9f8f5]">
                 <CardContent className="pt-5 pb-4">
-                  <div className="inline-flex p-2 rounded-lg bg-purple-100 mb-3">
-                    <DollarSign className="w-5 h-5 text-purple-600" />
+                  <div className="inline-flex p-2 rounded-lg mb-3" style={{ backgroundColor: 'rgba(1,63,124,0.08)' }}>
+                    <DollarSign className="w-5 h-5 text-[#013f7c]" />
                   </div>
-                  <p className="text-3xl font-bold text-purple-700">${(commission_summary.total_earned || 0).toLocaleString()}</p>
-                  <p className="text-sm text-purple-600 font-medium mt-1">Total Earned (All-Time)</p>
+                  <p className="text-3xl font-bold text-[#013f7c]">${(commission_summary.total_earned || 0).toLocaleString()}</p>
+                  <p className="text-sm text-[#013f7c] font-medium mt-1">Total Earned (All-Time)</p>
                 </CardContent>
               </Card>
-              <Card className="border-orange-200 bg-orange-50">
+              <Card className="border-[#e6e1d8] bg-[#f9f8f5]">
                 <CardContent className="pt-5 pb-4">
-                  <div className="inline-flex p-2 rounded-lg bg-orange-100 mb-3">
-                    <Clock className="w-5 h-5 text-orange-600" />
+                  <div className="inline-flex p-2 rounded-lg mb-3" style={{ backgroundColor: 'rgba(1,63,124,0.08)' }}>
+                    <Clock className="w-5 h-5 text-[#013f7c]" />
                   </div>
-                  <p className="text-3xl font-bold text-orange-700">${(commission_summary.pending || 0).toLocaleString()}</p>
-                  <p className="text-sm text-orange-600 font-medium mt-1">Pending / Unpaid</p>
+                  <p className="text-3xl font-bold text-gray-700">${(commission_summary.pending || 0).toLocaleString()}</p>
+                  <p className="text-sm text-gray-600 font-medium mt-1">Pending / Unpaid</p>
                 </CardContent>
               </Card>
-              <Card className="border-green-200 bg-green-50">
+              <Card className="border-[#e6e1d8] bg-[#f9f8f5]">
                 <CardContent className="pt-5 pb-4">
-                  <div className="inline-flex p-2 rounded-lg bg-green-100 mb-3">
-                    <TrendingUp className="w-5 h-5 text-green-600" />
+                  <div className="inline-flex p-2 rounded-lg mb-3" style={{ backgroundColor: 'rgba(38,77,68,0.10)' }}>
+                    <TrendingUp className="w-5 h-5 text-[#264d44]" />
                   </div>
-                  <p className="text-3xl font-bold text-green-700">${(commission_summary.ytd_revenue || 0).toLocaleString()}</p>
-                  <p className="text-sm text-green-600 font-medium mt-1">YTD Revenue Placed</p>
+                  <p className="text-3xl font-bold text-[#264d44]">${(commission_summary.ytd_revenue || 0).toLocaleString()}</p>
+                  <p className="text-sm text-[#264d44] font-medium mt-1">YTD Revenue Placed</p>
                 </CardContent>
               </Card>
             </div>
@@ -542,10 +542,10 @@ export default function ReferralPortal() {
                             <td className="py-3 pr-4">
                               <p className="font-medium text-gray-800">{row.company}</p>
                               <span className={`text-xs px-1.5 py-0.5 rounded-full mt-0.5 inline-block ${
-                                row.status === 'commission_paid' ? 'bg-purple-100 text-purple-700' :
-                                row.status === 'purchased' || row.status === 'converted_to_client' ? 'bg-green-100 text-green-700' :
+                                row.status === 'commission_paid' ? 'bg-[#013f7c]/10 text-[#013f7c]' :
+                                row.status === 'purchased' || row.status === 'converted_to_client' ? 'bg-[#264d44]/10 text-[#264d44]' :
                                 row.status === 'not_eligible' ? 'bg-gray-100 text-gray-500' :
-                                'bg-blue-100 text-blue-700'
+                                'bg-[#013f7c]/8 text-[#013f7c]'
                               }`}>
                                 {STATUS_LABELS[row.status] || row.status}
                               </span>
@@ -592,7 +592,7 @@ export default function ReferralPortal() {
                     <TrendingUp className="w-5 h-5 text-[#013f7c]" />
                     Commission Tiers
                     {commission_summary.current_tier && (
-                      <span className="ml-2 text-xs font-normal text-[#013f7c] bg-blue-50 px-2 py-0.5 rounded-full">
+                      <span className="ml-2 text-xs font-normal text-[#013f7c] px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(1,63,124,0.08)' }}>
                         Current rate: {(commission_summary.current_tier.rate * 100 % 1 === 0 ? (commission_summary.current_tier.rate * 100).toFixed(0) : (commission_summary.current_tier.rate * 100).toFixed(1))}%
                       </span>
                     )}
@@ -638,12 +638,12 @@ export default function ReferralPortal() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="bg-blue-50 rounded-lg p-4">
+                  <div className="bg-[#f9f8f5] border border-[#e6e1d8] rounded-lg p-4">
                     <p className="font-semibold text-[#013f7c] text-sm mb-2">What Earns Commission</p>
                     <p className="text-sm text-gray-600">Referred revenue received within <strong>12 months</strong> of a new client's first invoice: interactive workshops, 14-day team challenges, leadership EQ programs, mindful movement classes, and physical or digital wellness boxes. Expansion revenue within that Year-1 window counts toward your tier.</p>
                   </div>
-                  <div className="bg-amber-50 rounded-lg p-4">
-                    <p className="font-semibold text-amber-800 text-sm mb-2">A Few Things to Know</p>
+                  <div className="bg-[#f9f8f5] border border-[#e6e1d8] rounded-lg p-4">
+                    <p className="font-semibold text-[#013f7c] text-sm mb-2">A Few Things to Know</p>
                     <p className="text-sm text-gray-600">A placed client is a new client you introduce who signs an invoice. Clients already in our pipeline within the prior 90 days are excluded. Year 2+ renewals are not commissioned.</p>
                   </div>
                 </div>

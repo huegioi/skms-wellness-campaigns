@@ -117,8 +117,8 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
     <div className="space-y-6">
 
       {/* How to read this */}
-      <div className="bg-white rounded-xl shadow-sm p-5 border-l-4 border-[#770142]">
-        <p className="font-semibold text-gray-800 mb-1.5">How to read this</p>
+      <div className="rounded-xl p-5 border border-[#e6e1d8] border-l-4 border-l-[#013f7c]" style={{ backgroundColor: '#f9f8f5' }}>
+        <p className="font-semibold text-[#013f7c] mb-1.5">How to read this</p>
         <p className="text-sm text-gray-600 leading-relaxed">
           This dashboard shows how your team is responding to your wellness programs. After each session, participants complete a quick, anonymous 90-second pulse; for challenges, they also complete a short validated wellbeing check (WHO-5) before and after. Everything below is aggregated across your programs — no individual is ever identified. In general, higher numbers are better.
         </p>
@@ -181,7 +181,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
               label="Voices"
               value={responses.filter(r => r.behavior_intent?.trim()).length}
               caption="How many people named a specific action they'll take."
-              color="#ff9878"
+              color="#013f7c"
             />
           </div>
 
@@ -268,13 +268,13 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
 
       {/* Cohort Wellbeing WHO-5 */}
       {acceptedProposalId && (
-        <div className="bg-white rounded-xl shadow-sm p-5">
+        <div className="rounded-xl p-5 border border-[#e6e1d8] border-l-4 border-l-[#013f7c]" style={{ backgroundColor: '#f9f8f5' }}>
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="w-4 h-4 text-[#770142]" />
-            <p className="text-sm font-semibold text-gray-700">Cohort Wellbeing (WHO-5)</p>
+            <TrendingUp className="w-4 h-4 text-[#013f7c]" />
+            <p className="text-sm font-semibold text-[#013f7c]">Cohort Wellbeing (WHO-5)</p>
             <span className="text-xs text-gray-400">— Before vs. after (participants)</span>
           </div>
-          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+          <p className="text-xs text-gray-600 mb-3 leading-relaxed">
             WHO-5 is a validated 5-question wellbeing score from 0 to 100 — higher means better wellbeing. We survey the same participants before and after, and show the average change. Note: this reflects the people who took part, not a comparison against a separate group.
           </p>
           <div className="flex items-center gap-2 flex-wrap">
@@ -282,7 +282,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
               size="sm"
               variant="outline"
               onClick={() => copyCohortUrl('cohort_start')}
-              className="text-xs border-[#770142] text-[#770142]"
+              className="text-xs border-[#013f7c] text-[#013f7c]"
             >
               {copiedCohort === 'cohort_start'
                 ? <><Check className="w-3 h-3 mr-1" /> Copied</>
@@ -352,7 +352,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
                        size="sm"
                        variant="outline"
                        onClick={() => copyWho5Url(s.id, s.name, 'day14')}
-                       className="text-xs border-[#ff9878] text-[#c0604a]"
+                         className="text-xs border-[#264d44] text-[#264d44]"
                      >
                        {copiedWho5 === `${s.id}-day14`
                          ? <><Check className="w-3 h-3 mr-1" /> Copied</>
@@ -368,9 +368,11 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
       )}
 
       {/* Footer */}
-      <p className="text-xs text-gray-400 text-center italic pt-2 pb-1">
-        This measures participants' experience and intended change. Sustained results build over time with continued programming.
-      </p>
+      <div className="rounded-xl p-4 border border-[#e6e1d8] text-center" style={{ backgroundColor: '#f9f8f5' }}>
+        <p className="text-xs text-gray-600 italic">
+          This measures participants' experience and intended change. Sustained results build over time with continued programming.
+        </p>
+      </div>
     </div>
   );
 }
