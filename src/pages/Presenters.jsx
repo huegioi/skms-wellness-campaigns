@@ -105,7 +105,7 @@ export default function Presenters() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
+    <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8 pb-24 md:pb-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -146,50 +146,50 @@ export default function Presenters() {
             ) : (
               <div className="space-y-3">
                 {presenters.map(presenter => (
-                  <Card key={presenter.id} className="p-5 bg-white hover:shadow-md transition-shadow">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <Card key={presenter.id} className="p-4 bg-white hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="font-semibold text-gray-900 text-lg">{presenter.name}</h3>
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <h3 className="font-semibold text-gray-900 text-base">{presenter.name}</h3>
                           <Badge className={presenter.is_active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}>
                             {presenter.is_active !== false ? 'Active' : 'Inactive'}
                           </Badge>
                         </div>
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                        <div className="flex flex-col gap-1 text-sm text-gray-500">
                           {presenter.email && (
                             <span className="flex items-center gap-1">
-                              <Mail className="w-3.5 h-3.5" />
-                              {presenter.email}
+                              <Mail className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">{presenter.email}</span>
                             </span>
                           )}
                           {presenter.phone && (
                             <span className="flex items-center gap-1">
-                              <Phone className="w-3.5 h-3.5" />
+                              <Phone className="w-3.5 h-3.5 shrink-0" />
                               {presenter.phone}
                             </span>
                           )}
                           {presenter.default_rate && (
                             <span className="flex items-center gap-1">
-                              <DollarSign className="w-3.5 h-3.5" />
+                              <DollarSign className="w-3.5 h-3.5 shrink-0" />
                               ${presenter.default_rate}/session
                             </span>
                           )}
                         </div>
                         {presenter.notes && (
-                          <p className="text-sm text-gray-400 mt-1 truncate">{presenter.notes}</p>
+                          <p className="text-sm text-gray-400 mt-1 line-clamp-1">{presenter.notes}</p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-1 shrink-0">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => copyPortalLink(presenter)}
-                          className="gap-1.5"
+                          className="gap-1.5 text-xs"
                         >
                           {copiedId === presenter.id ? (
-                            <><Check className="w-3.5 h-3.5 text-green-600" /> Copied</>
+                            <><Check className="w-3.5 h-3.5 text-green-600" /><span className="hidden sm:inline">Copied</span></>
                           ) : (
-                            <><Link className="w-3.5 h-3.5" /> Portal Link</>
+                            <><Link className="w-3.5 h-3.5" /><span className="hidden sm:inline">Portal Link</span></>
                           )}
                         </Button>
                         <Button
