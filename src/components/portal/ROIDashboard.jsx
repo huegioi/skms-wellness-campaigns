@@ -91,7 +91,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
     navigator.clipboard.writeText(url);
     const key = `${serviceId}-${timing}`;
     setCopiedWho5(key);
-    toast.success(`WHO-5 ${timing === 'day0' ? 'Day 0' : 'Day 14'} link for "${serviceName}" copied!`);
+    toast.success(`${timing === 'day0' ? 'Day 0' : 'Day 14'} check-in link for "${serviceName}" copied!`);
     setTimeout(() => setCopiedWho5(null), 2500);
   };
 
@@ -100,7 +100,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
     const url = `${window.location.origin}/CohortAssessment?client_id=${clientId}&proposal_id=${acceptedProposalId}&timing=${timing}`;
     navigator.clipboard.writeText(url);
     setCopiedCohort(timing);
-    toast.success(`Cohort ${timing === 'cohort_start' ? 'Start' : 'End'} WHO-5 link copied!`);
+    toast.success(`Cohort ${timing === 'cohort_start' ? 'Start' : 'End'} check-in link copied!`);
     setTimeout(() => setCopiedCohort(null), 2500);
   };
 
@@ -120,7 +120,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
       <div className="rounded-xl p-5 border border-[#e6e1d8] border-l-4 border-l-[#013f7c]" style={{ backgroundColor: '#f9f8f5' }}>
         <p className="font-semibold text-[#013f7c] mb-1.5">How to read this</p>
         <p className="text-sm text-gray-600 leading-relaxed">
-          This dashboard shows how your team is responding to your wellness programs. After each session, participants complete a quick, anonymous 90-second pulse; for challenges, they also complete a short validated wellbeing check (WHO-5) before and after. Everything below is aggregated across your programs — no individual is ever identified. In general, higher numbers are better.
+          This dashboard shows how your team is responding to your wellness programs. After each session, participants complete a quick, anonymous 90-second pulse; for challenges, they also complete a short validated wellbeing check-in before and after. Everything below is aggregated across your programs — no individual is ever identified. In general, higher numbers are better.
         </p>
       </div>
 
@@ -266,16 +266,16 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
         </>
       )}
 
-      {/* Cohort Wellbeing WHO-5 */}
+      {/* Cohort Wellbeing Check-Ins */}
       {acceptedProposalId && (
         <div className="rounded-xl p-5 border border-[#e6e1d8] border-l-4 border-l-[#013f7c]" style={{ backgroundColor: '#f9f8f5' }}>
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-4 h-4 text-[#013f7c]" />
-            <p className="text-sm font-semibold text-[#013f7c]">Cohort Wellbeing (WHO-5)</p>
-            <span className="text-xs text-gray-400">— Before vs. after (participants)</span>
+            <p className="text-sm font-semibold text-[#013f7c]">Cohort Wellbeing Check-Ins</p>
+            <span className="text-xs text-gray-400">— Full battery before & after</span>
           </div>
           <p className="text-xs text-gray-600 mb-3 leading-relaxed">
-            WHO-5 is a validated 5-question wellbeing score from 0 to 100 — higher means better wellbeing. We survey the same participants before and after, and show the average change. Note: this reflects the people who took part, not a comparison against a separate group.
+            Participants complete a short battery of validated wellbeing instruments (WHO-5, UWES-3, PSS-4, UCLA-3, CBI, eNPS) before and after the cohort. Each link below opens a single combined form for that touchpoint — copy and share via email.
           </p>
           <div className="flex items-center gap-2 flex-wrap">
             <Button
@@ -286,7 +286,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
             >
               {copiedCohort === 'cohort_start'
                 ? <><Check className="w-3 h-3 mr-1" /> Copied</>
-                : <><Copy className="w-3 h-3 mr-1" /> Cohort Start WHO-5</>}
+                : <><Copy className="w-3 h-3 mr-1" /> Cohort Start</>}
             </Button>
             <Button
               size="sm"
@@ -296,7 +296,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
             >
               {copiedCohort === 'cohort_end'
                 ? <><Check className="w-3 h-3 mr-1" /> Copied</>
-                : <><Copy className="w-3 h-3 mr-1" /> Cohort End WHO-5</>}
+                : <><Copy className="w-3 h-3 mr-1" /> Cohort End</>}
             </Button>
           </div>
         </div>
@@ -346,7 +346,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
                      >
                        {copiedWho5 === `${s.id}-day0`
                          ? <><Check className="w-3 h-3 mr-1" /> Copied</>
-                         : <><Copy className="w-3 h-3 mr-1" /> WHO-5 Day 0</>}
+                         : <><Copy className="w-3 h-3 mr-1" /> Day 0 Check-In</>}
                      </Button>
                      <Button
                        size="sm"
@@ -356,7 +356,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
                      >
                        {copiedWho5 === `${s.id}-day14`
                          ? <><Check className="w-3 h-3 mr-1" /> Copied</>
-                         : <><Copy className="w-3 h-3 mr-1" /> WHO-5 Day 14</>}
+                         : <><Copy className="w-3 h-3 mr-1" /> Day 14 Check-In</>}
                      </Button>
                    </>)}
                   </div>
