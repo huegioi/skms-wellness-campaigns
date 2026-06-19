@@ -44,6 +44,7 @@ export default function AttendeeForm() {
     expected_impact: [],
     attendee_name: '',
     attendee_email: '',
+    enps_score: null,
   });
   const [submitted, setSubmitted] = useState(false);
 
@@ -95,6 +96,7 @@ export default function AttendeeForm() {
         expected_impact: form.expected_impact.length > 0 ? form.expected_impact : undefined,
         attendee_name: form.attendee_name.trim() || undefined,
         attendee_email: form.attendee_email.trim() || undefined,
+        nps_score: form.enps_score,
         submitted_at: new Date().toISOString(),
       });
       // res is an Axios response — data is in res.data
@@ -151,7 +153,8 @@ function ImpactCheckboxes({ value, onChange }) {
   );
 }
 
-  const canSubmit = form.behavior_intent.trim().length > 0 && form.fit_confidence !== null;
+  const showEnps = !service || !service.included_assessments || service.included_assessments.length === 0 || service.included_assessments.includes('enps');
+  const canSubmit = form.behavior_intent.trim().length > 0 && form.fit_confidence !== null && (!showEnps || form.enps_score !== null);
 
   if (submitted) {
     return (
@@ -236,6 +239,22 @@ function ImpactCheckboxes({ value, onChange }) {
               onChange={v => setForm(f => ({ ...f, expected_impact: v }))}
             />
           </div>
+
+          {/* Q4: eNPS */}
+          {showEnps && (
+            <div className="bg-white rounded-2xl shadow-sm p-5">
+              <div className="flex items-start gap-2 mb-4">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-[#013f7c] text-white text-sm font-bold flex items-center justify-center">4</span>
+                <label className="text-base font-semibold text-gray-800 leading-snug">
+                  How likely are you to recommend this program to a colleague?
+                </label>
+              </div>
+              <ConfidenceScale
+                value={form.enps_score}
+                onChange={v => setForm(f => ({ ...f, enps_score: v }))}
+              />
+            </div>
+          )}
 
           {/* Optional Contact Fields */}
           <div className="bg-white rounded-2xl shadow-sm p-5 space-y-3">

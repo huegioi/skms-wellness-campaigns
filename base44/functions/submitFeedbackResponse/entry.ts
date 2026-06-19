@@ -13,6 +13,7 @@ Deno.serve(async (req) => {
       behavior_intent,
       fit_confidence,
       advocacy_referral,
+      nps_score,
       submitted_at,
     } = body;
 
@@ -28,6 +29,7 @@ Deno.serve(async (req) => {
       behavior_intent,
       fit_confidence,
       advocacy_referral: advocacy_referral || undefined,
+      nps_score: nps_score != null ? nps_score : undefined,
       submitted_at: submitted_at || new Date().toISOString(),
     });
 

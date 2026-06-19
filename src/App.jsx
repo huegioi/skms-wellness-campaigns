@@ -43,7 +43,7 @@ const AuthenticatedApp = () => {
   // Handle authentication errors
   if (authError) {
     // Allow public pages to render even without auth
-    const publicPaths = ['/ReferralPortal', '/ViewProposal', '/FeedbackForm', '/ClientPortal', '/AttendeeForm', '/ClientReport', '/PresenterPortal'];
+    const publicPaths = ['/ReferralPortal', '/ViewProposal', '/FeedbackForm', '/ClientPortal', '/AttendeeForm', '/ClientReport', '/PresenterPortal', '/CohortAssessment'];
     const isPublicPage = publicPaths.some(p => window.location.pathname === p || window.location.pathname.startsWith(p));
 
     if (authError.type === 'user_not_registered') {
