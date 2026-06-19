@@ -32,6 +32,30 @@
       ],
       "description": "Which assessment point this row represents"
     },
+    "instrument": {
+      "type": "string",
+      "enum": [
+        "who5",
+        "enps",
+        "uwes3",
+        "pss4",
+        "ucla3",
+        "cbi"
+      ],
+      "description": "Which validated instrument this row captures"
+    },
+    "instrument_total": {
+      "type": "number",
+      "description": "Computed total/composite score for the instrument"
+    },
+    "instrument_subscores": {
+      "type": "object",
+      "description": "Optional named sub-scale scores (e.g. CBI personal/work/client burnout)"
+    },
+    "item_responses": {
+      "type": "object",
+      "description": "Raw per-item answers keyed by item id (e.g. {\"q1\": 3, \"q2\": 4})"
+    },
     "who5_cheerful": {
       "type": "integer",
       "minimum": 0,
