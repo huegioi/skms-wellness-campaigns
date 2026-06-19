@@ -15,6 +15,7 @@ import {
   DollarSign, Target, Loader2, GripVertical, RefreshCw, ExternalLink, FolderOpen, CloudUpload
 } from 'lucide-react';
 import ServiceResourceManager from '@/components/services/ServiceResourceManager';
+import AssessmentsSelector from '@/components/services/AssessmentsSelector';
 
 const SERVICES_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1qYMjE_ZWwUVl3nFC4k4RGHLpmDCG8lg1hEY9cGZZ-P8/edit';
 
@@ -453,6 +454,17 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
               type="number"
               value={formData.sort_order || 0} 
               onChange={(e) => setFormData({...formData, sort_order: parseInt(e.target.value) || 0})}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Assessments Included</label>
+            <p className="text-xs text-gray-400 mb-3">Validated instruments delivered with this service, beyond the standard session pulse.</p>
+            <AssessmentsSelector
+              category={formData.category}
+              value={formData.included_assessments || []}
+              onChange={(v) => setFormData(prev => ({ ...prev, included_assessments: v }))}
+              isNew={!service?.id}
             />
           </div>
 

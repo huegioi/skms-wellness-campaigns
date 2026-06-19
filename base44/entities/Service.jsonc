@@ -52,6 +52,21 @@
       },
       "description": "List of key benefits"
     },
+    "included_assessments": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "who5",
+          "enps",
+          "uwes3",
+          "pss4",
+          "ucla3",
+          "cbi"
+        ]
+      },
+      "description": "Validated assessments delivered with this service, beyond the standard session pulse."
+    },
     "resources": {
       "type": "array",
       "items": {
