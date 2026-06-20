@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Award, Dumbbell, Users, Package } from 'lucide-react';
+import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 
 const categoryIcons = { workshops: Award, challengePrograms: Dumbbell, leadership: Users, movementClasses: Dumbbell };
 const categoryLabels = { workshops: 'Workshops', challengePrograms: '14-Day Challenges', leadership: 'Leadership Programs', movementClasses: 'Movement & Mindfulness Classes' };
@@ -90,6 +91,12 @@ export default function ClientProposalView({ proposals: propsList, proposal: sin
                               )}
                               {service?.duration && (
                                 <p className="text-sm text-gray-500 mt-2"><strong>Duration:</strong> {service.duration}</p>
+                              )}
+                              {service?.included_assessments?.length > 0 && (
+                                <div className="mt-2">
+                                  <p className="text-xs text-gray-400 mb-1">Includes assessments:</p>
+                                  <AssessmentBadges assessments={service.included_assessments} size="xs" />
+                                </div>
                               )}
                             </div>
                           );

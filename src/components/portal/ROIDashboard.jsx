@@ -10,6 +10,7 @@ import NarrativeSummary from './NarrativeSummary';
 import EngagementTrendChart from './EngagementTrendChart';
 import AdminLinkSection from './AdminLinkSection';
 import MethodologyNote from '@/components/feedback/MethodologyNote';
+import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 import { getInstrumentKey, getScore, matchPairs, calcStats } from '@/components/feedback/instrumentMeta';
 
 function ConfidenceBar({ value, max = 10 }) {
@@ -259,6 +260,12 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
                             <div>
                               <p className="font-medium text-sm text-gray-800">{s.name}</p>
                               <p className="text-xs text-gray-400">{s.count} response{s.count !== 1 ? 's' : ''}</p>
+                              {(() => {
+                                const svc = services.find(sv => sv.id === s.id);
+                                return svc?.included_assessments?.length > 0 && (
+                                  <div className="mt-1.5"><AssessmentBadges assessments={svc.included_assessments} size="xs" /></div>
+                                );
+                              })()}
                             </div>
                             <div className="text-right text-xs">
                               {s.avgConf != null && <p className="text-[#264d44] font-semibold">{s.avgConf.toFixed(1)}/10 confidence</p>}

@@ -150,7 +150,7 @@ export default function ReferralPortal() {
         {activeTab === 'dashboard' && (
           <>
             {/* Portfolio Wellness Impact */}
-            <BrokerFeedbackRollup clientCompanies={client_companies} />
+            <BrokerFeedbackRollup clientCompanies={client_companies} services={services} />
 
             {/* Submit a Referral */}
             <Card>

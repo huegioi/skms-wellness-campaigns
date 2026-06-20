@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Copy, Check, ChevronDown, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 
 // Admin-only collapsed section with survey link buttons.
 // Hidden from the client-facing view entirely.
@@ -80,6 +81,9 @@ export default function AdminLinkSection({ clientId, acceptedProposalId, service
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-700 truncate">{s.name}</p>
                         <p className="text-xs text-gray-400">{count} response{count !== 1 ? 's' : ''}</p>
+                        {s.included_assessments?.length > 0 && (
+                          <div className="mt-1"><AssessmentBadges assessments={s.included_assessments} size="xs" /></div>
+                        )}
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
                         <Button size="sm" variant="outline" onClick={() => copyFeedbackUrl(s.id, s.name)} className="text-xs border-[#013f7c] text-[#013f7c]">

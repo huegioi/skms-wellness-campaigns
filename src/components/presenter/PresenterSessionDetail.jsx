@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
+import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 
 export default function PresenterSessionDetail({ event, portalId, onBack, onUpdated }) {
   const [accepting, setAccepting] = useState(false);
@@ -174,6 +175,21 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
                 </p>
               </div>
             </div>
+            {event.service_name && (
+              <div className="flex items-start gap-3">
+                <FileText className="w-5 h-5 text-[#013f7c] flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">Service / Program</p>
+                  <p className="font-semibold text-gray-800">{event.service_name}</p>
+                  {event.service_included_assessments?.length > 0 && (
+                    <div className="mt-1.5">
+                      <p className="text-xs text-gray-400 mb-1">Includes assessments:</p>
+                      <AssessmentBadges assessments={event.service_included_assessments} size="xs" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             {event.location && (
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-[#013f7c] flex-shrink-0 mt-0.5" />

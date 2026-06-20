@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart2, Users, Loader2, AlertCircle, ChevronDown, Activity } from 'lucide-react';
 import HeroMetricCard from './HeroMetricCard';
+import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 import { getInstrumentKey, getScore, matchPairs, calcStats } from '@/components/feedback/instrumentMeta';
 
 // Direction-of-good color for a delta.
@@ -33,7 +34,7 @@ function avgEnpsForRows(cohortRows, pulseRows) {
   return npsScores.length ? npsScores.reduce((s, v) => s + v, 0) / npsScores.length : null;
 }
 
-export default function BrokerFeedbackRollup({ clientCompanies = [] }) {
+export default function BrokerFeedbackRollup({ clientCompanies = [], services = [] }) {
   const [expandedClient, setExpandedClient] = useState(null);
   const clientIds = clientCompanies.map(c => c.id);
 
@@ -112,9 +113,14 @@ export default function BrokerFeedbackRollup({ clientCompanies = [] }) {
       const impactEntries = Object.entries(impactTally).sort((a, b) => b[1] - a[1]);
       const topImpact = impactEntries.length > 0 ? impactEntries[0][0] : null;
 
-      return { ...c, responseCount: responses.length, avgConf, who5Delta, enps, topImpact };
+      const clientServiceIds = [...new Set(responses.map(r => r.service_id).filter(Boolean))];
+      const clientServices = clientServiceIds
+        .map(id => services.find(s => s.id === id))
+        .filter(Boolean);
+
+      return { ...c, responseCount: responses.length, avgConf, who5Delta, enps, topImpact, clientServices };
     }).sort((a, b) => b.responseCount - a.responseCount);
-  }, [allResponses, allCohortAssessments, clientCompanies]);
+  }, [allResponses, allCohortAssessments, clientCompanies, services]);
 
   return (
     <Card className="border-[#013f7c]/20">
@@ -257,6 +263,19 @@ export default function BrokerFeedbackRollup({ clientCompanies = [] }) {
                               {c.topImpact ? c.topImpact.split(' ').slice(0, 3).join(' ') + (c.topImpact.split(' ').length > 3 ? '…' : '') : '—'}
                             </p>
                           </div>
+                          {c.clientServices?.length > 0 && (
+                            <div className="col-span-2 sm:col-span-3 mt-1">
+                              <p className="text-xs text-gray-400 mb-1.5">Programs & Assessments</p>
+                              <div className="space-y-1.5">
+                                {c.clientServices.map(sv => (
+                                  <div key={sv.id} className="flex items-center gap-2 flex-wrap">
+                                    <span className="text-sm font-medium text-gray-700">{sv.name}</span>
+                                    {sv.included_assessments?.length > 0 && <AssessmentBadges assessments={sv.included_assessments} size="xs" />}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

@@ -105,6 +105,8 @@ Deno.serve(async (req) => {
         recording_link: event.recording_link || '',
         description: event.description,
         service_id: event.service_id,
+        service_name: service?.name || null,
+        service_included_assessments: service?.included_assessments || [],
         client_id: event.client_id,
         client_name: event.client_name,
         client_context: client ? {

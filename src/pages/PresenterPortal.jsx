@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { Calendar, Clock, Building, ChevronRight, CheckCircle2, Loader2, AlertCircle, DollarSign } from 'lucide-react';
 import PresenterSessionDetail from '@/components/presenter/PresenterSessionDetail';
+import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 import { Button } from '@/components/ui/button';
 
 export default function PresenterPortal() {
@@ -213,6 +214,14 @@ function SessionCard({ event, upcoming, portalId, onCompleted, onClick }) {
               <Clock className="w-3.5 h-3.5" />
               {format(start, 'h:mm a')}
             </span>
+            {event.service_name && (
+              <span className="flex items-center gap-1.5">
+                {event.service_name}
+                {event.service_included_assessments?.length > 0 && (
+                  <AssessmentBadges assessments={event.service_included_assessments} size="xs" />
+                )}
+              </span>
+            )}
             {event.session_fee != null && (
               <span className="flex items-center gap-1 font-medium text-gray-600">
                 <DollarSign className="w-3.5 h-3.5" />
