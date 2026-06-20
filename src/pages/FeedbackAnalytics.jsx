@@ -135,6 +135,8 @@ const DEFAULT_FILTERS = {
   speaker: 'all',
   format: 'all',
   cohortYear: 'all',
+  instrument: 'all',
+  touchpoint: 'all',
   startDate: '',
   endDate: '',
 };

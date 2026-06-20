@@ -88,3 +88,24 @@ export function calcStats(pairs, distinctStarts, directionOfGood = 'higher') {
   const isGood = directionOfGood === 'higher' ? avgDelta >= 0 : avgDelta <= 0;
   return { n, avgStart, avgEnd, avgDelta, completion, isGood };
 }
+
+// Normalization ranges for cross-instrument comparison.
+// invert: true for "lower is better" instruments so "up" always reads as better.
+export const NORM_RANGES = {
+  who5:  { min: 0, max: 100, invert: false },
+  uwes3: { min: 0, max: 18, invert: false },
+  pss4:  { min: 0, max: 16, invert: true },
+  ucla3: { min: 3, max: 9, invert: true },
+  cbi:   { min: 0, max: 24, invert: true },
+  enps:  { min: 0, max: 10, invert: false },
+};
+
+// Normalize a raw instrument score to 0–100, inverting worse-direction
+// instruments so "up" always reads as better.
+export function normalizeScore(score, instrumentKey) {
+  const range = NORM_RANGES[instrumentKey];
+  if (!range || score == null) return null;
+  const pct = ((score - range.min) / (range.max - range.min)) * 100;
+  const clamped = Math.max(0, Math.min(100, pct));
+  return range.invert ? 100 - clamped : clamped;
+}

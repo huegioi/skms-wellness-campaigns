@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Activity, Users } from 'lucide-react';
 import InstrumentResultCard from './InstrumentResultCard';
+import WellbeingProfile from './WellbeingProfile';
 import { INSTRUMENT_META, getInstrumentKey, matchPairs, calcStats } from './instrumentMeta';
 
 function EmptyState({ message }) {
@@ -55,20 +56,33 @@ export default function Who5Analytics({ filters }) {
       }
       if (filters.startDate && r.submitted_at && r.submitted_at.slice(0, 10) < filters.startDate) return false;
       if (filters.endDate   && r.submitted_at && r.submitted_at.slice(0, 10) > filters.endDate)   return false;
+      // Touchpoint filter
+      if (filters.touchpoint && filters.touchpoint !== 'all' && filters.touchpoint !== 'session_pulse') {
+        const touchpointMap = { day0: 'challenge_day0', day14: 'challenge_day14', cohort_start: 'cohort_start', cohort_end: 'cohort_end' };
+        if (touchpointMap[filters.touchpoint] && r.survey_type !== touchpointMap[filters.touchpoint]) return false;
+      }
       return true;
     });
   }, [allAssessments, filters, clients]);
 
+  const instrumentFilter = filters.instrument && filters.instrument !== 'all' && filters.instrument !== 'pulse';
+
   const cohortRows = useMemo(() =>
-    filteredAssessments.filter(r => r.survey_type === 'cohort_start' || r.survey_type === 'cohort_end'),
-    [filteredAssessments]
+    filteredAssessments.filter(r =>
+      (r.survey_type === 'cohort_start' || r.survey_type === 'cohort_end') &&
+      (!instrumentFilter || getInstrumentKey(r) === filters.instrument)
+    ),
+    [filteredAssessments, instrumentFilter, filters.instrument]
   );
 
   const challengeRows = useMemo(() => {
-    let rows = filteredAssessments.filter(r => r.survey_type === 'challenge_day0' || r.survey_type === 'challenge_day14');
+    let rows = filteredAssessments.filter(r =>
+      (r.survey_type === 'challenge_day0' || r.survey_type === 'challenge_day14') &&
+      (!instrumentFilter || getInstrumentKey(r) === filters.instrument)
+    );
     if (filters.category !== 'all' && filters.category !== 'challenge') rows = [];
     return rows;
-  }, [filteredAssessments, filters.category]);
+  }, [filteredAssessments, filters.category, instrumentFilter, filters.instrument]);
 
   const cohortInstrumentStats = useMemo(
     () => buildInstrumentStats(cohortRows, 'cohort_start', 'cohort_end'),
@@ -95,6 +109,8 @@ export default function Who5Analytics({ filters }) {
 
   return (
     <div className="space-y-6">
+      <WellbeingProfile assessments={filteredAssessments} />
+
       {/* By Cohort */}
       {cohortInstrumentStats.length > 0 && (
         <div>

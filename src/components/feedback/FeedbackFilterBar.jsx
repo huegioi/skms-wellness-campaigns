@@ -18,6 +18,26 @@ const FORMAT_LABELS = {
   hybrid: 'Hybrid',
 };
 
+const INSTRUMENT_OPTIONS = [
+  { value: 'all', label: 'All Instruments' },
+  { value: 'pulse', label: 'Pulse' },
+  { value: 'who5', label: 'WHO-5' },
+  { value: 'uwes3', label: 'UWES-3' },
+  { value: 'pss4', label: 'PSS-4' },
+  { value: 'ucla3', label: 'UCLA-3' },
+  { value: 'cbi', label: 'CBI' },
+  { value: 'enps', label: 'eNPS' },
+];
+
+const TOUCHPOINT_OPTIONS = [
+  { value: 'all', label: 'All Touchpoints' },
+  { value: 'session_pulse', label: 'Session Pulse' },
+  { value: 'day0', label: 'Day 0' },
+  { value: 'day14', label: 'Day 14' },
+  { value: 'cohort_start', label: 'Cohort Start' },
+  { value: 'cohort_end', label: 'Cohort End' },
+];
+
 export default function FeedbackFilterBar({ filters, onChange, companies, speakers }) {
   const set = (key, val) => onChange({ ...filters, [key]: val });
   const hasActive = Object.entries(filters).some(([k, v]) => v && v !== 'all' && k !== 'startDate' && k !== 'endDate') || filters.startDate || filters.endDate;
@@ -28,6 +48,8 @@ export default function FeedbackFilterBar({ filters, onChange, companies, speake
     speaker: 'all',
     format: 'all',
     cohortYear: 'all',
+    instrument: 'all',
+    touchpoint: 'all',
     startDate: '',
     endDate: '',
   });
@@ -83,6 +105,36 @@ export default function FeedbackFilterBar({ filters, onChange, companies, speake
               <SelectItem value="all">All Years</SelectItem>
               {years.map(y => (
                 <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* By Instrument */}
+        <div className="min-w-[160px]">
+          <label className="text-xs text-gray-400 font-semibold uppercase mb-1 block">Instrument</label>
+          <Select value={filters.instrument || 'all'} onValueChange={v => set('instrument', v)}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="All Instruments" />
+            </SelectTrigger>
+            <SelectContent>
+              {INSTRUMENT_OPTIONS.map(o => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* By Touchpoint */}
+        <div className="min-w-[160px]">
+          <label className="text-xs text-gray-400 font-semibold uppercase mb-1 block">Touchpoint</label>
+          <Select value={filters.touchpoint || 'all'} onValueChange={v => set('touchpoint', v)}>
+            <SelectTrigger className="h-8 text-sm">
+              <SelectValue placeholder="All Touchpoints" />
+            </SelectTrigger>
+            <SelectContent>
+              {TOUCHPOINT_OPTIONS.map(o => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
