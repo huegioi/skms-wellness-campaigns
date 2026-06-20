@@ -262,7 +262,7 @@ export default function FeedbackAnalytics() {
         <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Wellness Analytics</h1>
-            <p className="text-gray-600 mt-1">Behavior intent · Fit confidence · WHO-5 wellbeing</p>
+            <p className="text-gray-600 mt-1">Behavior intent · Fit confidence · Validated wellbeing instruments</p>
           </div>
           {/* Assessment-type toggle */}
           <div className="flex rounded-lg overflow-hidden border border-gray-200 bg-white shadow-sm self-start sm:self-auto">
@@ -276,7 +276,7 @@ export default function FeedbackAnalytics() {
               onClick={() => setAssessmentType('who5')}
               className={`px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 ${assessmentType === 'who5' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-50'}`}
             >
-              <Activity className="w-3.5 h-3.5" /> WHO-5 (Phase 2)
+              <Activity className="w-3.5 h-3.5" /> Instruments (Phase 2)
             </button>
           </div>
         </div>
