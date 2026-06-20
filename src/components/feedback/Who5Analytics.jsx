@@ -1,10 +1,24 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Activity, Users } from 'lucide-react';
+import { Activity, Zap, TrendingUp, Gauge } from 'lucide-react';
 import InstrumentResultCard from './InstrumentResultCard';
 import WellbeingProfile from './WellbeingProfile';
+import ReachCard from './ReachCard';
+import MethodologyNote from './MethodologyNote';
 import { INSTRUMENT_META, getInstrumentKey, matchPairs, calcStats } from './instrumentMeta';
+
+const COMPANY_SIZE_MIDPOINTS = {
+  '1-50': 25,
+  '51-200': 125,
+  '201-500': 350,
+  '501-1000': 750,
+  '1001-5000': 3000,
+  '5000+': 5000,
+};
+
+const LEADING_INSTRUMENTS = ['enps'];
+const LAGGING_INSTRUMENTS = ['who5', 'uwes3', 'pss4', 'ucla3', 'cbi'];
 
 function EmptyState({ message }) {
   return (
@@ -16,8 +30,31 @@ function EmptyState({ message }) {
   );
 }
 
-// Compute per-instrument matched-pair stats for a set of rows.
-function buildInstrumentStats(rows, startType, endType) {
+function SectionHeader({ icon: Icon, title, subtitle, color = '#013f7c' }) {
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <Icon className="w-4 h-4" style={{ color }} />
+      <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+      <span className="text-xs text-gray-400">{subtitle}</span>
+    </div>
+  );
+}
+
+function MetricCard({ icon: Icon, label, value, subtitle, color = '#013f7c' }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-5">
+      <div className="flex items-center gap-2 mb-2">
+        <Icon className="w-4 h-4" style={{ color }} />
+        <p className="text-sm font-semibold text-gray-700">{label}</p>
+      </div>
+      <p className="text-2xl font-bold text-gray-800">{value}</p>
+      {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
+    </div>
+  );
+}
+
+// Compute combined matched-pair stats across cohort + challenge for a set of rows.
+function buildCombinedStats(rows) {
   const byInstrument = {};
   for (const r of rows) {
     const key = getInstrumentKey(r);
@@ -25,9 +62,12 @@ function buildInstrumentStats(rows, startType, endType) {
     byInstrument[key].push(r);
   }
   return Object.entries(byInstrument).map(([key, rows]) => {
-    const { pairs, distinctStarts } = matchPairs(rows, startType, endType);
+    const cohortResult = matchPairs(rows, 'cohort_start', 'cohort_end');
+    const challengeResult = matchPairs(rows, 'challenge_day0', 'challenge_day14');
+    const allPairs = [...cohortResult.pairs, ...challengeResult.pairs];
+    const allDistinct = cohortResult.distinctStarts + challengeResult.distinctStarts;
     const meta = INSTRUMENT_META[key];
-    const stats = calcStats(pairs, distinctStarts, meta?.directionOfGood || 'higher');
+    const stats = calcStats(allPairs, allDistinct, meta?.directionOfGood || 'higher');
     return { key, stats };
   }).filter(s => s.stats);
 }
@@ -43,7 +83,12 @@ export default function Who5Analytics({ filters }) {
     queryFn: () => base44.entities.Client.list('-created_date', 500),
   });
 
-  // ── Apply filters ──────────────────────────────────────────────────────────
+  const { data: pulseResponses = [] } = useQuery({
+    queryKey: ['feedback-responses-all'],
+    queryFn: () => base44.entities.FeedbackResponse.list('-submitted_at', 1000),
+  });
+
+  // ── Apply filters to assessments ────────────────────────────────────────────
   const filteredAssessments = useMemo(() => {
     return allAssessments.filter(r => {
       if (filters.company !== 'all') {
@@ -56,7 +101,6 @@ export default function Who5Analytics({ filters }) {
       }
       if (filters.startDate && r.submitted_at && r.submitted_at.slice(0, 10) < filters.startDate) return false;
       if (filters.endDate   && r.submitted_at && r.submitted_at.slice(0, 10) > filters.endDate)   return false;
-      // Touchpoint filter
       if (filters.touchpoint && filters.touchpoint !== 'all' && filters.touchpoint !== 'session_pulse') {
         const touchpointMap = { day0: 'challenge_day0', day14: 'challenge_day14', cohort_start: 'cohort_start', cohort_end: 'cohort_end' };
         if (touchpointMap[filters.touchpoint] && r.survey_type !== touchpointMap[filters.touchpoint]) return false;
@@ -84,15 +128,73 @@ export default function Who5Analytics({ filters }) {
     return rows;
   }, [filteredAssessments, filters.category, instrumentFilter, filters.instrument]);
 
-  const cohortInstrumentStats = useMemo(
-    () => buildInstrumentStats(cohortRows, 'cohort_start', 'cohort_end'),
-    [cohortRows]
-  );
+  // Combined stats across cohort + challenge
+  const allRows = useMemo(() => [...cohortRows, ...challengeRows], [cohortRows, challengeRows]);
+  const combinedStats = useMemo(() => buildCombinedStats(allRows), [allRows]);
 
-  const challengeInstrumentStats = useMemo(
-    () => buildInstrumentStats(challengeRows, 'challenge_day0', 'challenge_day14'),
-    [challengeRows]
-  );
+  const leadingStats = combinedStats.filter(s => LEADING_INSTRUMENTS.includes(s.key));
+  const laggingStats = combinedStats.filter(s => LAGGING_INSTRUMENTS.includes(s.key));
+
+  // ── Reach / representativeness ─────────────────────────────────────────────
+  const reachData = useMemo(() => {
+    const responderEmails = new Set();
+    for (const r of filteredAssessments) {
+      const email = (r.participant_email || '').toLowerCase().trim();
+      if (email) responderEmails.add(email);
+    }
+    const responderCount = responderEmails.size;
+
+    // Compute eligible population from company_size midpoints
+    const clientIds = new Set(filteredAssessments.map(r => r.client_id).filter(Boolean));
+    let eligibleCount = 0;
+    let hasRoster = false;
+    for (const c of clients) {
+      if (clientIds.has(c.id) && c.company_size) {
+        const mid = COMPANY_SIZE_MIDPOINTS[c.company_size];
+        if (mid) {
+          eligibleCount += mid;
+          hasRoster = true;
+        }
+      }
+    }
+
+    return { responderCount, eligibleCount, hasRoster };
+  }, [filteredAssessments, clients]);
+
+  // ── Completion rate ──────────────────────────────────────────────────────────
+  const completionData = useMemo(() => {
+    const starterEmails = new Set();
+    const endEmails = new Set();
+    for (const r of allRows) {
+      const email = (r.participant_email || '').toLowerCase().trim();
+      if (!email) continue;
+      if (r.survey_type === 'cohort_start' || r.survey_type === 'challenge_day0') starterEmails.add(email);
+      if (r.survey_type === 'cohort_end' || r.survey_type === 'challenge_day14') endEmails.add(email);
+    }
+    const distinctStarters = starterEmails.size;
+    const distinctEnds = endEmails.size;
+    const completion = distinctStarters > 0 ? Math.round((distinctEnds / distinctStarters) * 100) : 0;
+    return { completion, distinctStarters, distinctEnds };
+  }, [allRows]);
+
+  // ── Session pulse summary ────────────────────────────────────────────────────
+  const pulseSummary = useMemo(() => {
+    const filtered = pulseResponses.filter(r => {
+      if (filters.company !== 'all' && r.company_name !== filters.company) return false;
+      if (filters.category !== 'all' && r.service_category !== filters.category) return false;
+      if (filters.cohortYear !== 'all') {
+        const year = r.submitted_at ? new Date(r.submitted_at).getFullYear() : null;
+        if (String(year) !== filters.cohortYear) return false;
+      }
+      if (filters.startDate && r.submitted_at && r.submitted_at.slice(0, 10) < filters.startDate) return false;
+      if (filters.endDate && r.submitted_at && r.submitted_at.slice(0, 10) > filters.endDate) return false;
+      return true;
+    });
+    const withConf = filtered.filter(r => r.fit_confidence != null);
+    const avgConf = withConf.length ? withConf.reduce((s, r) => s + r.fit_confidence, 0) / withConf.length : null;
+    const intentCount = filtered.filter(r => r.behavior_intent?.trim()).length;
+    return { count: filtered.length, avgConf, intentCount };
+  }, [pulseResponses, filters]);
 
   if (loadingA) {
     return (
@@ -103,45 +205,68 @@ export default function Who5Analytics({ filters }) {
     );
   }
 
-  if (cohortRows.length === 0 && challengeRows.length === 0) {
-    return <EmptyState message="No assessment data matches the current filters." />;
+  if (filteredAssessments.length === 0 && pulseSummary.count === 0) {
+    return <EmptyState message="No data matches the current filters." />;
   }
 
   return (
     <div className="space-y-6">
       <WellbeingProfile assessments={filteredAssessments} />
 
-      {/* By Cohort */}
-      {cohortInstrumentStats.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Users className="w-4 h-4 text-[#770142]" />
-            <h3 className="text-sm font-semibold text-gray-700">By Cohort — Year Arc</h3>
-            <span className="text-xs text-gray-400">cohort_start → cohort_end · matched comparison</span>
-          </div>
-          <div className="grid gap-4">
-            {cohortInstrumentStats.map(({ key, stats }) => (
-              <InstrumentResultCard
-                key={key}
-                instrumentKey={key}
-                stats={stats}
-                evidenceTier="Matched comparison"
-              />
-            ))}
-          </div>
+      {/* Leading Indicators */}
+      <div>
+        <SectionHeader
+          icon={Zap}
+          title="Leading Indicators"
+          subtitle="Engagement and immediate reaction — turn early, predict downstream change"
+          color="#013f7c"
+        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <ReachCard
+            responderCount={reachData.responderCount}
+            eligibleCount={reachData.eligibleCount}
+            hasRoster={reachData.hasRoster}
+          />
+          <MetricCard
+            icon={TrendingUp}
+            label="Session Pulse"
+            value={pulseSummary.count || '—'}
+            subtitle={pulseSummary.avgConf != null
+              ? `${pulseSummary.avgConf.toFixed(1)}/10 avg confidence · ${pulseSummary.intentCount} intent statements`
+              : 'No pulse data for these filters'}
+            color="#264d44"
+          />
+          {leadingStats.map(({ key, stats }) => (
+            <InstrumentResultCard
+              key={key}
+              instrumentKey={key}
+              stats={stats}
+              evidenceTier="Program effect — uncontrolled pre/post"
+            />
+          ))}
+          <MetricCard
+            icon={Gauge}
+            label="Completion Rate"
+            value={completionData.distinctStarters > 0 ? `${completionData.completion}%` : '—'}
+            subtitle={completionData.distinctStarters > 0
+              ? `${completionData.distinctEnds} completers ÷ ${completionData.distinctStarters} starters`
+              : 'No start/end data'}
+            color="#770142"
+          />
         </div>
-      )}
+      </div>
 
-      {/* By Challenge */}
-      {challengeInstrumentStats.length > 0 && (
+      {/* Lagging Indicators */}
+      {laggingStats.length > 0 && (
         <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Activity className="w-4 h-4 text-[#264d44]" />
-            <h3 className="text-sm font-semibold text-gray-700">By Challenge — Program Effect</h3>
-            <span className="text-xs text-gray-400">Day 0 → Day 14 · uncontrolled pre/post</span>
-          </div>
-          <div className="grid gap-4">
-            {challengeInstrumentStats.map(({ key, stats }) => (
+          <SectionHeader
+            icon={Activity}
+            title="Lagging Indicators"
+            subtitle="Validated wellbeing instruments — move slowly, shown as pre→post deltas"
+            color="#264d44"
+          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {laggingStats.map(({ key, stats }) => (
               <InstrumentResultCard
                 key={key}
                 instrumentKey={key}
@@ -152,6 +277,16 @@ export default function Who5Analytics({ filters }) {
           </div>
         </div>
       )}
+
+      {/* Honest-framing footer */}
+      <div className="rounded-xl p-4 border border-[#e6e1d8] text-center" style={{ backgroundColor: '#f9f8f5' }}>
+        <p className="text-xs text-gray-600 italic">
+          These results reflect participants who completed assessments. They are not a randomized controlled trial — changes may reflect program effects, natural variation, or external factors. Small samples should be interpreted with caution.
+        </p>
+      </div>
+
+      {/* Methodology note */}
+      <MethodologyNote />
     </div>
   );
 }
