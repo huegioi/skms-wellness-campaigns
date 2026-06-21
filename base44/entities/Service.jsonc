@@ -85,6 +85,9 @@
               "presentation",
               "recording",
               "guide",
+              "video",
+              "audio",
+              "link",
               "other"
             ]
           },
@@ -97,7 +100,7 @@
           }
         }
       },
-      "description": "Files and resources associated with this service (PDFs, guides, handouts)"
+      "description": "Files and resources associated with this service (PDFs, guides, handouts, videos, audio, links)"
     },
     "is_active": {
       "type": "boolean",

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, ExternalLink, Upload, Loader2, FileText, File, BookOpen, Presentation, FolderOpen } from 'lucide-react';
+import { Trash2, ExternalLink, Upload, Loader2, FileText, File, BookOpen, Presentation, FolderOpen, Video, Music, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const resourceTypeConfig = {
@@ -12,12 +12,51 @@ const resourceTypeConfig = {
   presentation: { label: 'Presentation', color: 'bg-blue-100 text-blue-700', icon: Presentation },
   recording: { label: 'Recording', color: 'bg-red-100 text-red-700', icon: File },
   guide: { label: 'Guide', color: 'bg-purple-100 text-purple-700', icon: BookOpen },
+  video: { label: 'Video', color: 'bg-indigo-100 text-indigo-700', icon: Video },
+  audio: { label: 'Audio', color: 'bg-amber-100 text-amber-700', icon: Music },
+  link: { label: 'Link', color: 'bg-cyan-100 text-cyan-700', icon: Link2 },
   other: { label: 'Other', color: 'bg-gray-100 text-gray-700', icon: FolderOpen },
+};
+
+const isUrlType = (type) => type === 'video' || type === 'link';
+
+const getAccept = (type) => {
+  switch (type) {
+    case 'audio': return '.mp3,.wav,.m4a';
+    case 'handout':
+    case 'guide':
+    case 'presentation': return '.pdf,.ppt,.pptx,.doc,.docx';
+    case 'recording': return '.mp4,.mov,.webm';
+    default: return '';
+  }
 };
 
 export default function ServiceResourceManager({ resources = [], onChange }) {
   const [uploading, setUploading] = useState(false);
   const [newResource, setNewResource] = useState({ title: '', resource_type: 'handout', description: '' });
+  const [urlValue, setUrlValue] = useState('');
+
+  const handleUrlAdd = () => {
+    if (!newResource.title.trim()) {
+      toast.error('Please enter a title before adding');
+      return;
+    }
+    if (!urlValue.trim()) {
+      toast.error('Please enter a URL');
+      return;
+    }
+    const resource = {
+      title: newResource.title.trim(),
+      file_url: urlValue.trim(),
+      resource_type: newResource.resource_type,
+      description: newResource.description.trim(),
+      uploaded_date: new Date().toISOString(),
+    };
+    onChange([...resources, resource]);
+    setNewResource({ title: '', resource_type: 'handout', description: '' });
+    setUrlValue('');
+    toast.success('Resource added!');
+  };
 
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -108,28 +147,55 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
             <SelectItem value="presentation">📊 Presentation</SelectItem>
             <SelectItem value="recording">🎥 Recording</SelectItem>
             <SelectItem value="guide">📖 Guide</SelectItem>
+            <SelectItem value="video">🎬 Video</SelectItem>
+            <SelectItem value="audio">🎵 Audio</SelectItem>
+            <SelectItem value="link">🔗 Link</SelectItem>
             <SelectItem value="other">📁 Other</SelectItem>
           </SelectContent>
         </Select>
-        <div>
-          <label className={`flex items-center gap-2 cursor-pointer justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#264d44] transition-colors ${!newResource.title.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}>
-            {uploading ? (
-              <><Loader2 className="w-4 h-4 animate-spin text-[#264d44]" /><span className="text-sm text-gray-600">Uploading...</span></>
-            ) : (
-              <><Upload className="w-4 h-4 text-gray-400" /><span className="text-sm text-gray-600">Click to choose file (PDF, PPT, etc.)</span></>
-            )}
-            <input
-              type="file"
-              className="hidden"
-              onChange={handleFileUpload}
-              disabled={uploading || !newResource.title.trim()}
-              accept=".pdf,.ppt,.pptx,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.mp4,.mov"
+        {isUrlType(newResource.resource_type) ? (
+          <div className="space-y-2">
+            <Input
+              type="url"
+              placeholder={newResource.resource_type === 'video' ? 'https://drive.google.com/... or YouTube/Vimeo URL' : 'https://...'}
+              value={urlValue}
+              onChange={(e) => setUrlValue(e.target.value)}
             />
-          </label>
-          {!newResource.title.trim() && (
-            <p className="text-xs text-gray-400 mt-1 text-center">Enter a title above before uploading</p>
-          )}
-        </div>
+            {newResource.resource_type === 'video' && (
+              <p className="text-xs text-gray-400">Paste a Google Drive share link (set Drive sharing to &lsquo;Anyone with the link can view&rsquo;), or a YouTube/Vimeo URL.</p>
+            )}
+            <Button
+              onClick={handleUrlAdd}
+              disabled={!newResource.title.trim() || !urlValue.trim()}
+              className="w-full bg-[#264d44] hover:bg-[#1a3830] text-white"
+            >
+              Add {newResource.resource_type === 'video' ? 'Video' : 'Link'}
+            </Button>
+            {!newResource.title.trim() && (
+              <p className="text-xs text-gray-400 text-center">Enter a title above before adding</p>
+            )}
+          </div>
+        ) : (
+          <div>
+            <label className={`flex items-center gap-2 cursor-pointer justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#264d44] transition-colors ${!newResource.title.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              {uploading ? (
+                <><Loader2 className="w-4 h-4 animate-spin text-[#264d44]" /><span className="text-sm text-gray-600">Uploading...</span></>
+              ) : (
+                <><Upload className="w-4 h-4 text-gray-400" /><span className="text-sm text-gray-600">Click to choose file</span></>
+              )}
+              <input
+                type="file"
+                className="hidden"
+                onChange={handleFileUpload}
+                disabled={uploading || !newResource.title.trim()}
+                accept={getAccept(newResource.resource_type)}
+              />
+            </label>
+            {!newResource.title.trim() && (
+              <p className="text-xs text-gray-400 mt-1 text-center">Enter a title above before uploading</p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
