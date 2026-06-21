@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, ExternalLink, Upload, Loader2, FileText, File, BookOpen, Presentation, FolderOpen, Video, Music, Link2 } from 'lucide-react';
+import { Trash2, ExternalLink, Upload, Loader2, FileText, File, BookOpen, Presentation, FolderOpen, Video, Music, Link2, Pencil, Check, X, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 
 const resourceTypeConfig = {
@@ -35,6 +35,8 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
   const [uploading, setUploading] = useState(false);
   const [newResource, setNewResource] = useState({ title: '', resource_type: 'handout', description: '' });
   const [urlValue, setUrlValue] = useState('');
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editResource, setEditResource] = useState(null);
 
   const handleUrlAdd = () => {
     if (!newResource.title.trim()) {
@@ -91,6 +93,41 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
     onChange(resources.filter((_, i) => i !== index));
   };
 
+  const moveResource = (index, direction) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= resources.length) return;
+    const updated = [...resources];
+    [updated[index], updated[newIndex]] = [updated[newIndex], updated[index]];
+    onChange(updated);
+  };
+
+  const startEdit = (index) => {
+    setEditingIndex(index);
+    setEditResource({ ...resources[index] });
+  };
+
+  const cancelEdit = () => {
+    setEditingIndex(null);
+    setEditResource(null);
+  };
+
+  const handleEditSave = () => {
+    if (!editResource.title.trim()) {
+      toast.error('Title cannot be empty');
+      return;
+    }
+    const updated = [...resources];
+    updated[editingIndex] = {
+      ...editResource,
+      title: editResource.title.trim(),
+      description: editResource.description.trim(),
+    };
+    onChange(updated);
+    setEditingIndex(null);
+    setEditResource(null);
+    toast.success('Resource updated');
+  };
+
   return (
     <div className="space-y-4">
       {/* Existing Resources */}
@@ -101,8 +138,55 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
           {resources.map((r, i) => {
             const config = resourceTypeConfig[r.resource_type] || resourceTypeConfig.other;
             const Icon = config.icon;
+            if (editingIndex === i && editResource) {
+              return (
+                <div key={i} className="p-3 bg-blue-50 rounded-lg border border-blue-200 space-y-2">
+                  <Input
+                    placeholder="Resource title"
+                    value={editResource.title}
+                    onChange={(e) => setEditResource({ ...editResource, title: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Description (optional)"
+                    value={editResource.description}
+                    onChange={(e) => setEditResource({ ...editResource, description: e.target.value })}
+                  />
+                  <Select value={editResource.resource_type} onValueChange={(v) => setEditResource({ ...editResource, resource_type: v })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="handout">📄 Handout</SelectItem>
+                      <SelectItem value="presentation">📊 Presentation</SelectItem>
+                      <SelectItem value="recording">🎥 Recording</SelectItem>
+                      <SelectItem value="guide">📖 Guide</SelectItem>
+                      <SelectItem value="video">🎬 Video</SelectItem>
+                      <SelectItem value="audio">🎵 Audio</SelectItem>
+                      <SelectItem value="link">🔗 Link</SelectItem>
+                      <SelectItem value="other">📁 Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <div className="flex gap-2 justify-end">
+                    <Button size="sm" variant="outline" onClick={cancelEdit}>
+                      <X className="w-3.5 h-3.5 mr-1" /> Cancel
+                    </Button>
+                    <Button size="sm" className="bg-[#264d44] hover:bg-[#1a3830] text-white" onClick={handleEditSave}>
+                      <Check className="w-3.5 h-3.5 mr-1" /> Save
+                    </Button>
+                  </div>
+                </div>
+              );
+            }
             return (
-              <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
+              <div key={i} className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border">
+                <div className="flex flex-col flex-shrink-0">
+                  <Button size="icon" variant="ghost" className="h-5 w-5" disabled={i === 0} onClick={() => moveResource(i, -1)}>
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-5 w-5" disabled={i === resources.length - 1} onClick={() => moveResource(i, 1)}>
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${config.color}`}>
                   <Icon className="w-4 h-4" />
                 </div>
@@ -114,6 +198,9 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
                 <div className="flex gap-1 flex-shrink-0">
                   <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => window.open(r.file_url, '_blank')}>
                     <ExternalLink className="w-3 h-3" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(i)}>
+                    <Pencil className="w-3 h-3" />
                   </Button>
                   <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500" onClick={() => removeResource(i)}>
                     <Trash2 className="w-3 h-3" />

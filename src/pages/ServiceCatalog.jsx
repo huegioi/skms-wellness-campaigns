@@ -48,10 +48,42 @@ export default function ServiceCatalog() {
       }
       return base44.entities.Service.create(data);
     },
-    onSuccess: () => {
+    onSuccess: async (result, variables) => {
       queryClient.invalidateQueries({ queryKey: ['services'] });
       setShowDialog(false);
       setEditingService(null);
+      // Sync resources to client portals for clients with this service in an accepted proposal
+      const serviceId = result?.id || variables?.id;
+      if (serviceId && (variables?.resources || []).length > 0) {
+        try {
+          const proposals = await base44.entities.Proposal.filter({ status: 'accepted' });
+          const affectedClientIds = new Set();
+          for (const p of proposals) {
+            const sel = p.selections || {};
+            const allIds = [
+              ...(sel.workshops || []),
+              ...(sel.challengePrograms || []),
+              ...(sel.leadership || []),
+              ...(sel.movementClasses || []),
+            ];
+            if (allIds.includes(serviceId)) {
+              affectedClientIds.add(p.client_id);
+            }
+          }
+          let synced = 0;
+          for (const clientId of affectedClientIds) {
+            if (clientId) {
+              await base44.functions.invoke('syncServiceResourcesToClient', { client_id: clientId });
+              synced++;
+            }
+          }
+          if (synced > 0) {
+            toast.success(`Resources synced to ${synced} client portal${synced !== 1 ? 's' : ''}`);
+          }
+        } catch (err) {
+          console.error('Resource sync failed:', err);
+        }
+      }
     }
   });
 
