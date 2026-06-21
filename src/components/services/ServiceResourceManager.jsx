@@ -37,6 +37,7 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
   const [urlValue, setUrlValue] = useState('');
   const [editingIndex, setEditingIndex] = useState(null);
   const [editResource, setEditResource] = useState(null);
+  const [uploadError, setUploadError] = useState(null);
   const fileInputRef = useRef(null);
 
   const handleUrlAdd = () => {
@@ -64,16 +65,21 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!newResource.title.trim()) {
-      toast.error('Please enter a title before uploading');
-      return;
-    }
+
+    // Default title to the file name (without extension) if none entered
+    const title = newResource.title.trim() || file.name.replace(/\.[^/.]+$/, '');
 
     setUploading(true);
+    setUploadError(null);
+
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      const result = await base44.integrations.Core.UploadFile({ file });
+      const file_url = result?.file_url;
+      if (!file_url) {
+        throw new Error('Upload completed but no file URL was returned.');
+      }
       const resource = {
-        title: newResource.title.trim(),
+        title,
         file_url,
         resource_type: newResource.resource_type,
         description: newResource.description.trim(),
@@ -84,7 +90,10 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
       e.target.value = '';
       toast.success('Resource uploaded!');
     } catch (err) {
-      toast.error('Upload failed: ' + err.message);
+      console.error('File upload failed:', err);
+      const msg = err?.message || 'Unknown upload error';
+      setUploadError(msg);
+      toast.error('Upload failed: ' + msg);
     } finally {
       setUploading(false);
     }
@@ -266,7 +275,7 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
         ) : (
           <div>
             <div
-              className={`flex items-center gap-2 cursor-pointer justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#264d44] transition-colors ${!newResource.title.trim() ? 'opacity-50' : ''}`}
+              className="flex items-center gap-2 cursor-pointer justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#264d44] transition-colors"
               onClick={() => { if (!uploading) fileInputRef.current?.click(); }}
             >
               {uploading ? (
@@ -283,7 +292,10 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
               />
             </div>
             {!newResource.title.trim() && (
-              <p className="text-xs text-gray-400 mt-1 text-center">Enter a title above before uploading</p>
+              <p className="text-xs text-gray-400 mt-1 text-center">Title will default to the file name if left blank</p>
+            )}
+            {uploadError && (
+              <p className="text-xs text-red-600 mt-1 text-center font-medium">Upload error: {uploadError}</p>
             )}
           </div>
         )}

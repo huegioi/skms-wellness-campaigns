@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import ServiceResourceManager from '@/components/services/ServiceResourceManager';
 import AssessmentsSelector from '@/components/services/AssessmentsSelector';
+import { Toaster as SonnerToaster } from '@/components/ui/sonner';
 
 const SERVICES_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1qYMjE_ZWwUVl3nFC4k4RGHLpmDCG8lg1hEY9cGZZ-P8/edit';
 
@@ -349,6 +350,7 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
+        <SonnerToaster position="top-center" style={{ zIndex: 9999 }} />
         <DialogHeader>
           <DialogTitle>{service.id ? 'Edit Service' : 'Add New Service'}</DialogTitle>
         </DialogHeader>
