@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +37,7 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
   const [urlValue, setUrlValue] = useState('');
   const [editingIndex, setEditingIndex] = useState(null);
   const [editResource, setEditResource] = useState(null);
+  const fileInputRef = useRef(null);
 
   const handleUrlAdd = () => {
     if (!newResource.title.trim()) {
@@ -264,20 +265,23 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
           </div>
         ) : (
           <div>
-            <label className={`flex items-center gap-2 cursor-pointer justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#264d44] transition-colors ${!newResource.title.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            <div
+              className={`flex items-center gap-2 cursor-pointer justify-center border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-[#264d44] transition-colors ${!newResource.title.trim() ? 'opacity-50' : ''}`}
+              onClick={() => { if (!uploading) fileInputRef.current?.click(); }}
+            >
               {uploading ? (
                 <><Loader2 className="w-4 h-4 animate-spin text-[#264d44]" /><span className="text-sm text-gray-600">Uploading...</span></>
               ) : (
                 <><Upload className="w-4 h-4 text-gray-400" /><span className="text-sm text-gray-600">Click to choose file</span></>
               )}
               <input
+                ref={fileInputRef}
                 type="file"
                 className="hidden"
                 onChange={handleFileUpload}
-                disabled={uploading || !newResource.title.trim()}
                 accept={getAccept(newResource.resource_type)}
               />
-            </label>
+            </div>
             {!newResource.title.trim() && (
               <p className="text-xs text-gray-400 mt-1 text-center">Enter a title above before uploading</p>
             )}
