@@ -21,16 +21,15 @@ async function getAccessToken() {
     }),
   });
   if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Kajabi auth failed (${response.status}): ${err}`);
+    throw new Error(`Kajabi auth failed (${response.status}): ${await response.text()}`);
   }
   const data = await response.json();
   return data.access_token;
 }
 
-// ── Kajabi helpers ────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-function kajabiHeaders(token) {
+function headers(token) {
   return {
     'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/vnd.api+json',
@@ -38,31 +37,40 @@ function kajabiHeaders(token) {
   };
 }
 
-/** Resolve or create the "Referral Partners" contact tag; returns its Kajabi id. */
+/**
+ * Resolve or create the "Referral Partners" contact tag.
+ * Returns its Kajabi tag id.
+ */
 async function resolveTagId(token, siteId) {
-  // List all tags for the site
-  const res = await fetch(`${KAJABI_API_URL}/contact_tags?filter[site_id]=${siteId}`, {
-    headers: kajabiHeaders(token),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Failed to list contact tags (${res.status}): ${err}`);
-  }
-  const body = await res.json();
-  const tags = body.data || [];
-  const existing = tags.find(
-    (t) => t.attributes?.name?.toLowerCase() === REFERRAL_PARTNERS_TAG_NAME.toLowerCase()
-  );
-  if (existing) {
-    console.log(`Tag "${REFERRAL_PARTNERS_TAG_NAME}" found with id ${existing.id}`);
-    return existing.id;
+  // Fetch all tags (paginate if needed) and match by exact name
+  let page = 1;
+  while (true) {
+    const url = `${KAJABI_API_URL}/contact_tags?filter[site_id]=${siteId}&page[size]=100&page[number]=${page}`;
+    console.log(`Fetching contact_tags page ${page}: ${url}`);
+    const res = await fetch(url, { headers: headers(token) });
+    if (!res.ok) {
+      throw new Error(`Failed to list contact_tags (${res.status}): ${await res.text()}`);
+    }
+    const body = await res.json();
+    const tags = body.data || [];
+    console.log(`Page ${page}: got ${tags.length} tags`);
+    const existing = tags.find(
+      (t) => (t.attributes?.name || '').toLowerCase() === REFERRAL_PARTNERS_TAG_NAME.toLowerCase()
+    );
+    if (existing) {
+      console.log(`Tag "${REFERRAL_PARTNERS_TAG_NAME}" found: id=${existing.id}`);
+      return existing.id;
+    }
+    // No more pages
+    if (!body.links?.next || tags.length === 0) break;
+    page++;
   }
 
-  // Create the tag
-  console.log(`Tag "${REFERRAL_PARTNERS_TAG_NAME}" not found — creating it`);
+  // Create it — note: if this 404s, the tag must be created manually in Kajabi first
+  console.log(`Tag "${REFERRAL_PARTNERS_TAG_NAME}" not found — attempting to create via API`);
   const createRes = await fetch(`${KAJABI_API_URL}/contact_tags`, {
     method: 'POST',
-    headers: kajabiHeaders(token),
+    headers: headers(token),
     body: JSON.stringify({
       data: {
         type: 'contact_tags',
@@ -73,40 +81,40 @@ async function resolveTagId(token, siteId) {
       },
     }),
   });
+  const createBody = await createRes.text();
   if (!createRes.ok) {
-    const err = await createRes.text();
-    throw new Error(`Failed to create contact tag (${createRes.status}): ${err}`);
+    // Provide actionable guidance — tag creation may not be in scope for this OAuth app
+    throw new Error(
+      `Tag "${REFERRAL_PARTNERS_TAG_NAME}" does not exist in Kajabi and could not be created via API (${createRes.status}). ` +
+      `Please create it manually in Kajabi (Contacts → Tags → New Tag) then re-run this function.`
+    );
   }
-  const created = await createRes.json();
+  const created = JSON.parse(createBody);
   const newId = created.data?.id;
-  console.log(`Tag "${REFERRAL_PARTNERS_TAG_NAME}" created with id ${newId}`);
+  console.log(`Tag "${REFERRAL_PARTNERS_TAG_NAME}" created: id=${newId}`);
   return newId;
 }
 
-/** Search Kajabi for a contact by email; returns the contact object or null. */
+/** Search Kajabi for a contact by email; returns contact object or null. */
 async function findContactByEmail(token, siteId, email) {
   const url = `${KAJABI_API_URL}/contacts?filter[site_id]=${siteId}&filter[email]=${encodeURIComponent(email)}`;
-  const res = await fetch(url, { headers: kajabiHeaders(token) });
+  const res = await fetch(url, { headers: headers(token) });
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Failed to search contact by email (${res.status}): ${err}`);
+    throw new Error(`Failed to search contact (${res.status}): ${await res.text()}`);
   }
   const body = await res.json();
   const contacts = body.data || [];
   return contacts.length > 0 ? contacts[0] : null;
 }
 
-/** Create a new Kajabi contact; returns the created contact object. */
+/** Create a new Kajabi contact; returns the contact object. */
 async function createContact(token, siteId, partner) {
-  const attributes = {
-    name: partner.name,
-    email: partner.email,
-  };
+  const attributes = { name: partner.name, email: partner.email };
   if (partner.phone) attributes.phone_number = partner.phone;
 
   const res = await fetch(`${KAJABI_API_URL}/contacts`, {
     method: 'POST',
-    headers: kajabiHeaders(token),
+    headers: headers(token),
     body: JSON.stringify({
       data: {
         type: 'contacts',
@@ -118,57 +126,53 @@ async function createContact(token, siteId, partner) {
     }),
   });
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Failed to create Kajabi contact (${res.status}): ${err}`);
+    throw new Error(`Failed to create contact (${res.status}): ${await res.text()}`);
   }
   const body = await res.json();
   return body.data;
 }
 
-/** Add a tag to a Kajabi contact. */
-async function addTagToContact(token, contactId, tagId) {
-  const res = await fetch(`${KAJABI_API_URL}/contacts/${contactId}/relationships/tags`, {
-    method: 'POST',
-    headers: kajabiHeaders(token),
-    body: JSON.stringify({
-      data: [{ type: 'contact_tags', id: String(tagId) }],
-    }),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Failed to add tag to contact ${contactId} (${res.status}): ${err}`);
-  }
-  console.log(`Tag ${tagId} added to contact ${contactId}`);
-}
-
-/** Remove a tag from a Kajabi contact. */
-async function removeTagFromContact(token, contactId, tagId) {
-  const res = await fetch(`${KAJABI_API_URL}/contacts/${contactId}/relationships/tags`, {
-    method: 'DELETE',
-    headers: kajabiHeaders(token),
-    body: JSON.stringify({
-      data: [{ type: 'contact_tags', id: String(tagId) }],
-    }),
-  });
-  // 404 = tag wasn't on the contact anyway; treat as success
-  if (!res.ok && res.status !== 404) {
-    const err = await res.text();
-    throw new Error(`Failed to remove tag from contact ${contactId} (${res.status}): ${err}`);
-  }
-  console.log(`Tag ${tagId} removed from contact ${contactId} (or was not present)`);
-}
-
-/** Fetch current tags on a Kajabi contact; returns array of tag ids. */
+/** Get current tag ids on a contact. Returns array of string ids. */
 async function getContactTagIds(token, contactId) {
   const res = await fetch(`${KAJABI_API_URL}/contacts/${contactId}/relationships/tags`, {
-    headers: kajabiHeaders(token),
+    headers: headers(token),
   });
   if (!res.ok) {
-    console.warn(`Could not fetch tags for contact ${contactId}: ${res.status}`);
+    console.warn(`Could not fetch contact tags (${res.status}) — assuming none`);
     return [];
   }
   const body = await res.json();
   return (body.data || []).map((t) => String(t.id));
+}
+
+/** Add a tag to a contact. */
+async function addTagToContact(token, contactId, tagId) {
+  const res = await fetch(`${KAJABI_API_URL}/contacts/${contactId}/relationships/tags`, {
+    method: 'POST',
+    headers: headers(token),
+    body: JSON.stringify({
+      data: [{ type: 'contact_tags', id: String(tagId) }],
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to add tag to contact ${contactId} (${res.status}): ${await res.text()}`);
+  }
+  console.log(`Tag ${tagId} added to contact ${contactId}`);
+}
+
+/** Remove a tag from a contact. 404 is treated as success (tag wasn't there). */
+async function removeTagFromContact(token, contactId, tagId) {
+  const res = await fetch(`${KAJABI_API_URL}/contacts/${contactId}/relationships/tags`, {
+    method: 'DELETE',
+    headers: headers(token),
+    body: JSON.stringify({
+      data: [{ type: 'contact_tags', id: String(tagId) }],
+    }),
+  });
+  if (!res.ok && res.status !== 404) {
+    throw new Error(`Failed to remove tag from contact ${contactId} (${res.status}): ${await res.text()}`);
+  }
+  console.log(`Tag ${tagId} removed from contact ${contactId} (or was not present)`);
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -183,75 +187,74 @@ Deno.serve(async (req) => {
 
     const siteId = Deno.env.get('KAJABI_SITE_ID');
     if (!siteId) {
-      return Response.json({ error: 'KAJABI_SITE_ID secret is not set' }, { status: 500 });
+      return Response.json({ error: 'KAJABI_SITE_ID is not set' }, { status: 500 });
     }
 
     const payload = await req.json().catch(() => ({}));
     const { referral_partner_id } = payload;
-
     if (!referral_partner_id) {
       return Response.json({ error: 'referral_partner_id is required' }, { status: 400 });
     }
 
-    // Load partner record
     const partner = await base44.asServiceRole.entities.ReferralPartner.get(referral_partner_id);
     if (!partner) {
       return Response.json({ error: `ReferralPartner ${referral_partner_id} not found` }, { status: 404 });
     }
 
     if (!partner.email) {
-      console.log(`Partner ${partner.name} (${referral_partner_id}) has no email — skipping`);
+      console.log(`Partner "${partner.name}" has no email — skipping`);
       return Response.json({ success: false, skipped: true, reason: 'no_email', partner_name: partner.name });
     }
 
     console.log(`Syncing partner: ${partner.name} <${partner.email}>`);
 
-    // Auth
     const token = await getAccessToken();
-
-    // Resolve tag (look up or create once)
     const tagId = await resolveTagId(token, siteId);
 
     // Upsert contact
     let contact = await findContactByEmail(token, siteId, partner.email);
-    let action;
+    let contactAction;
     if (contact) {
-      console.log(`Contact found in Kajabi with id ${contact.id}`);
-      action = 'found';
+      console.log(`Existing Kajabi contact found: id=${contact.id}`);
+      contactAction = 'found';
     } else {
-      console.log(`Contact not found — creating`);
       contact = await createContact(token, siteId, partner);
-      action = 'created';
-      console.log(`Contact created with id ${contact.id}`);
+      console.log(`Kajabi contact created: id=${contact.id}`);
+      contactAction = 'created';
     }
 
     const contactId = contact.id;
-
-    // Determine active status
     const isActive = partner.is_active === true && partner.partner_status !== 'Inactive';
 
+    // Manage tag
+    const currentTagIds = await getContactTagIds(token, contactId);
+    const hasTag = currentTagIds.includes(String(tagId));
+    let tagAction;
+
     if (isActive) {
-      // Add tag if not already present
-      const currentTagIds = await getContactTagIds(token, contactId);
-      if (currentTagIds.includes(String(tagId))) {
-        console.log(`Tag "${REFERRAL_PARTNERS_TAG_NAME}" already on contact — no change needed`);
+      if (hasTag) {
+        console.log(`Tag already present — no change needed`);
+        tagAction = 'tag_already_present';
       } else {
         await addTagToContact(token, contactId, tagId);
+        tagAction = 'tag_added';
       }
     } else {
-      // Remove tag if present
-      await removeTagFromContact(token, contactId, tagId);
+      if (hasTag) {
+        await removeTagFromContact(token, contactId, tagId);
+        tagAction = 'tag_removed';
+      } else {
+        console.log(`Tag not present and partner inactive — no change needed`);
+        tagAction = 'tag_not_present';
+      }
     }
-
-    const tagAction = isActive ? 'tag_added_or_present' : 'tag_removed_or_absent';
-    console.log(`Done: contact ${action}, tag action: ${tagAction}`);
 
     return Response.json({
       success: true,
       partner_name: partner.name,
       partner_email: partner.email,
       kajabi_contact_id: contactId,
-      contact_action: action,
+      contact_action: contactAction,
       tag_action: tagAction,
       is_active: isActive,
     });
