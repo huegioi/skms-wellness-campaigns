@@ -191,7 +191,8 @@ Deno.serve(async (req) => {
     }
 
     const payload = await req.json().catch(() => ({}));
-    const { referral_partner_id } = payload;
+    // Support both direct calls ({ referral_partner_id }) and entity automation payloads ({ event: { entity_id } })
+    const referral_partner_id = payload.referral_partner_id || payload.event?.entity_id;
     if (!referral_partner_id) {
       return Response.json({ error: 'referral_partner_id is required' }, { status: 400 });
     }
