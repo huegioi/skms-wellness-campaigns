@@ -406,7 +406,7 @@ Deno.serve(async (req) => {
     });
 
     // Ensure required columns exist in header row
-    const requiredColumns = ['Contact Name', 'Owner', 'Email', 'Company', 'Follow Up Stage', 'Title', 'Notes', 'Phone', 'LinkedIn', 'Industry', 'Status', 'Last Contacted'];
+    const requiredColumns = ['Contact Name', 'Owner', 'Email', 'Company', 'Follow Up Stage', 'Title', 'Notes', 'Phone', 'LinkedIn', 'Industry', 'Status', 'Last Contacted', 'Kajabi Contact ID'];
     const missingColumns = requiredColumns.filter(col => !Object.keys(colMap).some(k => k.toLowerCase() === col.toLowerCase()));
     
     // If missing columns, create/update header row
@@ -449,6 +449,13 @@ Deno.serve(async (req) => {
     const byEmail = {};
     for (const lead of existingLeads) {
       if (lead.email) byEmail[lead.email.toLowerCase()] = lead;
+    }
+
+    // Load ReferralPartners by email for Kajabi Contact ID mapping
+    const existingPartners = await base44.asServiceRole.entities.ReferralPartner.list('-created_date', 1000);
+    const partnerByEmail = {};
+    for (const p of existingPartners) {
+      if (p.email) partnerByEmail[p.email.toLowerCase()] = p;
     }
 
     // ── Load deleted contacts blocklist ────────────────────────────────────────
@@ -521,6 +528,19 @@ Deno.serve(async (req) => {
         // Register in byEmail so subsequent rows in the same chunk don't duplicate
         if (newLead?.id) byEmail[emailKey] = newLead;
         created++;
+      }
+
+      // Map Kajabi Contact ID from sheet → ReferralPartner
+      const kajabiColKey = Object.keys(colMap).find(k => k.toLowerCase() === 'kajabi contact id');
+      if (kajabiColKey !== undefined) {
+        const sheetKajabiId = (chunk[i][colMap[kajabiColKey]] || '').trim();
+        if (sheetKajabiId) {
+          const partner = partnerByEmail[emailKey];
+          if (partner && partner.kajabi_contact_id !== sheetKajabiId) {
+            await base44.asServiceRole.entities.ReferralPartner.update(partner.id, { kajabi_contact_id: sheetKajabiId });
+            console.log(`Updated ReferralPartner ${partner.name} kajabi_contact_id from sheet: ${sheetKajabiId}`);
+          }
+        }
       }
     }
 

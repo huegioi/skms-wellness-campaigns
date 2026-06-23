@@ -3,6 +3,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 const KAJABI_API_URL = 'https://api.kajabi.com/v1';
 const REFERRAL_PARTNERS_TAG_NAME = 'Referral Partner';
 
+// Sheet config (reused from syncBrokerLeadsSheet)
+const SPREADSHEET_ID = '1QyVdp7XWFfUkZyqLMVn6P39X84WgYWOHfqI2US7WKWk';
+const KNOWN_TABS = ['Referral Partners', 'Broker Leads', 'Brokers'];
+
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
 async function getAccessToken() {
@@ -37,12 +41,7 @@ function headers(token) {
   };
 }
 
-/**
- * Resolve or create the "Referral Partners" contact tag.
- * Returns its Kajabi tag id.
- */
 async function resolveTagId(token, siteId) {
-  // Fetch all tags (paginate if needed) and match by exact name
   let page = 1;
   while (true) {
     const url = `${KAJABI_API_URL}/contact_tags?filter[site_id]=${siteId}&page[size]=100&page[number]=${page}`;
@@ -61,12 +60,10 @@ async function resolveTagId(token, siteId) {
       console.log(`Tag "${REFERRAL_PARTNERS_TAG_NAME}" found: id=${existing.id}`);
       return existing.id;
     }
-    // No more pages
     if (!body.links?.next || tags.length === 0) break;
     page++;
   }
 
-  // Create it — note: if this 404s, the tag must be created manually in Kajabi first
   console.log(`Tag "${REFERRAL_PARTNERS_TAG_NAME}" not found — attempting to create via API`);
   const createRes = await fetch(`${KAJABI_API_URL}/contact_tags`, {
     method: 'POST',
@@ -83,7 +80,6 @@ async function resolveTagId(token, siteId) {
   });
   const createBody = await createRes.text();
   if (!createRes.ok) {
-    // Provide actionable guidance — tag creation may not be in scope for this OAuth app
     throw new Error(
       `Tag "${REFERRAL_PARTNERS_TAG_NAME}" does not exist in Kajabi and could not be created via API (${createRes.status}). ` +
       `Please create it manually in Kajabi (Contacts → Tags → New Tag) then re-run this function.`
@@ -95,12 +91,16 @@ async function resolveTagId(token, siteId) {
   return newId;
 }
 
-/**
- * Search Kajabi for a contact by email via filter[email].
- * NOTE: filter[email] is unreliable — it may return unrelated contacts.
- * We therefore accept ONLY a contact whose email matches exactly (case-insensitive).
- * Returns the contact object or null.
- */
+/** GET /v1/contacts/{id} — direct lookup by stored Kajabi contact id. Returns null on 404. */
+async function getContactById(token, contactId) {
+  const res = await fetch(`${KAJABI_API_URL}/contacts/${contactId}`, { headers: headers(token) });
+  if (!res.ok) {
+    if (res.status === 404) return null;
+    throw new Error(`Failed to get contact ${contactId} (${res.status}): ${await res.text()}`);
+  }
+  return (await res.json()).data;
+}
+
 async function findContactByEmail(token, siteId, email) {
   const normalized = email.trim().toLowerCase();
   const url = `${KAJABI_API_URL}/contacts?filter[site_id]=${siteId}&filter[email]=${encodeURIComponent(email)}`;
@@ -113,10 +113,6 @@ async function findContactByEmail(token, siteId, email) {
   return contacts.find((c) => (c.attributes?.email || '').trim().toLowerCase() === normalized) || null;
 }
 
-/**
- * Targeted name lookup (used only as a fallback when create 422s "email taken").
- * Accepts ONLY an exact name match. Does NOT preload all contacts.
- */
 async function findContactByName(token, siteId, name) {
   const normalized = (name || '').trim().toLowerCase();
   if (!normalized) return null;
@@ -131,7 +127,6 @@ async function findContactByName(token, siteId, name) {
   return contacts.find((c) => (c.attributes?.name || '').trim().toLowerCase() === normalized) || null;
 }
 
-/** Create a new Kajabi contact; returns the contact object. */
 async function createContact(token, siteId, partner) {
   const attributes = { name: partner.name, email: partner.email };
   if (partner.phone) attributes.phone_number = partner.phone;
@@ -151,7 +146,6 @@ async function createContact(token, siteId, partner) {
   });
   if (!res.ok) {
     const errBody = await res.text();
-    // 422 "email has already been taken" → caller does a targeted lookup + tags the existing contact
     if (res.status === 422 || errBody.includes('already been taken')) {
       const taken = new Error('EMAIL_TAKEN');
       taken.kajabiError = errBody;
@@ -163,7 +157,6 @@ async function createContact(token, siteId, partner) {
   return body.data;
 }
 
-/** Get current tag ids on a contact. Returns array of string ids. */
 async function getContactTagIds(token, contactId) {
   const res = await fetch(`${KAJABI_API_URL}/contacts/${contactId}/relationships/tags`, {
     headers: headers(token),
@@ -176,7 +169,6 @@ async function getContactTagIds(token, contactId) {
   return (body.data || []).map((t) => String(t.id));
 }
 
-/** Add a tag to a contact. */
 async function addTagToContact(token, contactId, tagId) {
   const res = await fetch(`${KAJABI_API_URL}/contacts/${contactId}/relationships/tags`, {
     method: 'POST',
@@ -191,7 +183,6 @@ async function addTagToContact(token, contactId, tagId) {
   console.log(`Tag ${tagId} added to contact ${contactId}`);
 }
 
-/** Remove a tag from a contact. 404 is treated as success (tag wasn't there). */
 async function removeTagFromContact(token, contactId, tagId) {
   const res = await fetch(`${KAJABI_API_URL}/contacts/${contactId}/relationships/tags`, {
     method: 'DELETE',
@@ -206,6 +197,78 @@ async function removeTagFromContact(token, contactId, tagId) {
   console.log(`Tag ${tagId} removed from contact ${contactId} (or was not present)`);
 }
 
+// ── Sheet write-back ──────────────────────────────────────────────────────────
+
+async function writeKajabiContactIdToSheet(base44, partnerEmail, kajabiContactId) {
+  try {
+    const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
+
+    // Resolve tab name
+    const metaRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const meta = await metaRes.json();
+    const tabs = meta.sheets?.map(s => s.properties?.title) || [];
+    const sheetName = KNOWN_TABS.find(t => tabs.includes(t)) || tabs[0];
+    if (!sheetName) return { success: false, reason: 'no_tab' };
+
+    // Read header to find column indices
+    const headerRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName + '!1:1')}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const headerData = await headerRes.json();
+    const headerRow = headerData.values?.[0] || [];
+    const lowerHeaders = headerRow.map(h => h.toLowerCase().trim());
+
+    const emailColIdx = lowerHeaders.findIndex(h => h === 'email' || h === 'email address');
+    const kajabiColIdx = lowerHeaders.findIndex(h => h === 'kajabi contact id' || h === 'kajabi_contact_id');
+    if (emailColIdx === -1 || kajabiColIdx === -1) return { success: false, reason: 'column_not_found' };
+
+    // Read email column to find the partner's row
+    const emailColLetter = String.fromCharCode(65 + emailColIdx);
+    const emailColRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName + '!' + emailColLetter + ':' + emailColLetter)}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const emailColData = await emailColRes.json();
+    const emailValues = (emailColData.values || []).map(r => (r[0] || '').trim().toLowerCase());
+    const normalizedEmail = partnerEmail.trim().toLowerCase();
+    const rowIdx = emailValues.findIndex((e, i) => i > 0 && e === normalizedEmail);
+    if (rowIdx === -1) return { success: false, reason: 'row_not_found' };
+
+    // Check current value — skip if already matches (idempotent)
+    const kajabiColLetter = String.fromCharCode(65 + kajabiColIdx);
+    const rowNum = rowIdx + 1;
+    const currentCellRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(sheetName + '!' + kajabiColLetter + rowNum + ':' + kajabiColLetter + rowNum)}`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    const currentCellData = await currentCellRes.json();
+    const currentValue = (currentCellData.values?.[0]?.[0] || '').trim();
+    if (currentValue === String(kajabiContactId)) return { success: true, reason: 'already_set', sheetName };
+
+    // Write the value
+    const cellRange = `${sheetName}!${kajabiColLetter}${rowNum}`;
+    const updateRes = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(cellRange)}?valueInputOption=USER_ENTERED`,
+      {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ range: cellRange, majorDimension: 'ROWS', values: [[String(kajabiContactId)]] }),
+      }
+    );
+    const updateData = await updateRes.json();
+    if (updateData.error) return { success: false, reason: updateData.error.message };
+    console.log(`Sheet write-back: ${partnerEmail} → Kajabi Contact ID ${kajabiContactId} at ${cellRange}`);
+    return { success: true, cellRange, sheetName };
+  } catch (err) {
+    console.warn(`Sheet write-back failed for ${partnerEmail}: ${err.message}`);
+    return { success: false, reason: err.message };
+  }
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -213,8 +276,6 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const payload = await req.json().catch(() => ({}));
 
-    // Entity automations invoke this with { event, data } and no user session.
-    // Direct manual calls pass { referral_partner_id } and require an admin.
     const isAutomationCall = !!payload.event;
     if (!isAutomationCall) {
       const user = await base44.auth.me();
@@ -228,8 +289,6 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'KAJABI_SITE_ID is not set' }, { status: 500 });
     }
 
-    // Resolve the partner record. Automation payloads include `data` directly;
-    // fall back to fetching by entity_id (handles payload_too_large + direct calls).
     const referral_partner_id = payload.referral_partner_id || payload.event?.entity_id;
     let partner = payload.data || null;
     if (!partner && referral_partner_id) {
@@ -244,36 +303,64 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, skipped: true, reason: 'no_email', partner_name: partner.name });
     }
 
-    console.log(`Syncing partner: ${partner.name} <${partner.email}>`);
+    const partnerId = partner.id || referral_partner_id;
+    console.log(`Syncing partner: ${partner.name} <${partner.email}> (stored kajabi_contact_id: ${partner.kajabi_contact_id || 'none'})`);
 
     const token = await getAccessToken();
     const tagId = await resolveTagId(token, siteId);
 
-    // Upsert contact (one-way: never writes back to the ReferralPartner)
-    let contact = await findContactByEmail(token, siteId, partner.email);
+    let contact = null;
     let contactAction;
-    if (contact) {
-      console.log(`Exact email match found: id=${contact.id}`);
-      contactAction = 'found';
-    } else {
-      try {
-        contact = await createContact(token, siteId, partner);
-        console.log(`Kajabi contact created: id=${contact.id}`);
-        contactAction = 'created';
-      } catch (err) {
-        if (err.message === 'EMAIL_TAKEN') {
-          // Email exists in Kajabi but is stored differently — targeted name lookup (no full contact preload)
-          contact = await findContactByName(token, siteId, partner.name);
-          if (!contact) {
-            throw new Error(
-              `Email "${partner.email}" is already taken in Kajabi but the existing contact could not be located ` +
-              `by exact email or exact name. Resolve manually in Kajabi.`
-            );
+
+    // ── 1. If stored kajabi_contact_id, use it directly (skip filter[email]) ──
+    if (partner.kajabi_contact_id) {
+      contact = await getContactById(token, partner.kajabi_contact_id);
+      if (contact) {
+        console.log(`Using stored kajabi_contact_id: id=${contact.id}`);
+        contactAction = 'found_by_id';
+      } else {
+        console.log(`Stored kajabi_contact_id ${partner.kajabi_contact_id} returned 404 — resolving afresh`);
+      }
+    }
+
+    // ── 2. If no stored ID or stale, resolve via exact-email / name / create ──
+    if (!contact) {
+      contact = await findContactByEmail(token, siteId, partner.email);
+      if (contact) {
+        console.log(`Exact email match found: id=${contact.id}`);
+        contactAction = 'found';
+      } else {
+        try {
+          contact = await createContact(token, siteId, partner);
+          console.log(`Kajabi contact created: id=${contact.id}`);
+          contactAction = 'created';
+        } catch (err) {
+          if (err.message === 'EMAIL_TAKEN') {
+            contact = await findContactByName(token, siteId, partner.name);
+            if (!contact) {
+              throw new Error(
+                `Email "${partner.email}" is already taken in Kajabi but the existing contact could not be located ` +
+                `by exact email or exact name. Resolve manually in Kajabi.`
+              );
+            }
+            console.log(`Located existing contact via name fallback: id=${contact.id}, kajabi_email=${contact.attributes?.email}`);
+            contactAction = 'found_by_name';
+          } else {
+            throw err;
           }
-          console.log(`Located existing contact via name fallback: id=${contact.id}, kajabi_email=${contact.attributes?.email}`);
-          contactAction = 'found_by_name';
+        }
+      }
+
+      // Write back to ReferralPartner entity + sheet (only when missing or changed — idempotent)
+      if (contact.id !== partner.kajabi_contact_id) {
+        await base44.asServiceRole.entities.ReferralPartner.update(partnerId, { kajabi_contact_id: contact.id });
+        console.log(`Wrote kajabi_contact_id ${contact.id} to ReferralPartner ${partnerId}`);
+
+        const sheetResult = await writeKajabiContactIdToSheet(base44, partner.email, contact.id);
+        if (sheetResult.success) {
+          console.log(`Sheet write-back: ${sheetResult.cellRange || 'already set'}`);
         } else {
-          throw err;
+          console.log(`Sheet write-back skipped: ${sheetResult.reason}`);
         }
       }
     }
@@ -281,7 +368,7 @@ Deno.serve(async (req) => {
     const contactId = contact.id;
     const isActive = partner.is_active === true && partner.partner_status !== 'Inactive';
 
-    // Manage tag
+    // ── Tag management ──
     const currentTagIds = await getContactTagIds(token, contactId);
     const hasTag = currentTagIds.includes(String(tagId));
     let tagAction;

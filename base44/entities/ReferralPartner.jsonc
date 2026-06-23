@@ -135,6 +135,10 @@
       "type": "number",
       "default": 0,
       "description": "Total number of referrals submitted by this partner"
+    },
+    "kajabi_contact_id": {
+      "type": "string",
+      "description": "Durable Kajabi contact ID for direct API lookups (skips unreliable email filter)"
     }
   },
   "required": [
