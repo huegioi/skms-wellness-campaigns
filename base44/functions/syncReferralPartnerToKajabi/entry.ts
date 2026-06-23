@@ -95,16 +95,40 @@ async function resolveTagId(token, siteId) {
   return newId;
 }
 
-/** Search Kajabi for a contact by email; returns contact object or null. */
+/**
+ * Search Kajabi for a contact by email via filter[email].
+ * NOTE: filter[email] is unreliable — it may return unrelated contacts.
+ * We therefore accept ONLY a contact whose email matches exactly (case-insensitive).
+ * Returns the contact object or null.
+ */
 async function findContactByEmail(token, siteId, email) {
+  const normalized = email.trim().toLowerCase();
   const url = `${KAJABI_API_URL}/contacts?filter[site_id]=${siteId}&filter[email]=${encodeURIComponent(email)}`;
   const res = await fetch(url, { headers: headers(token) });
   if (!res.ok) {
-    throw new Error(`Failed to search contact (${res.status}): ${await res.text()}`);
+    throw new Error(`Failed to search contact by email (${res.status}): ${await res.text()}`);
   }
   const body = await res.json();
   const contacts = body.data || [];
-  return contacts.length > 0 ? contacts[0] : null;
+  return contacts.find((c) => (c.attributes?.email || '').trim().toLowerCase() === normalized) || null;
+}
+
+/**
+ * Targeted name lookup (used only as a fallback when create 422s "email taken").
+ * Accepts ONLY an exact name match. Does NOT preload all contacts.
+ */
+async function findContactByName(token, siteId, name) {
+  const normalized = (name || '').trim().toLowerCase();
+  if (!normalized) return null;
+  const url = `${KAJABI_API_URL}/contacts?filter[site_id]=${siteId}&filter[name]=${encodeURIComponent(name)}`;
+  const res = await fetch(url, { headers: headers(token) });
+  if (!res.ok) {
+    console.warn(`Targeted name lookup failed (${res.status}) — skipping fallback`);
+    return null;
+  }
+  const body = await res.json();
+  const contacts = body.data || [];
+  return contacts.find((c) => (c.attributes?.name || '').trim().toLowerCase() === normalized) || null;
 }
 
 /** Create a new Kajabi contact; returns the contact object. */
@@ -126,7 +150,14 @@ async function createContact(token, siteId, partner) {
     }),
   });
   if (!res.ok) {
-    throw new Error(`Failed to create contact (${res.status}): ${await res.text()}`);
+    const errBody = await res.text();
+    // 422 "email has already been taken" → caller does a targeted lookup + tags the existing contact
+    if (res.status === 422 || errBody.includes('already been taken')) {
+      const taken = new Error('EMAIL_TAKEN');
+      taken.kajabiError = errBody;
+      throw taken;
+    }
+    throw new Error(`Failed to create contact (${res.status}): ${errBody}`);
   }
   const body = await res.json();
   return body.data;
@@ -180,9 +211,16 @@ async function removeTagFromContact(token, contactId, tagId) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
-    if (!user || user.role !== 'admin') {
-      return Response.json({ error: 'Unauthorized' }, { status: 403 });
+    const payload = await req.json().catch(() => ({}));
+
+    // Entity automations invoke this with { event, data } and no user session.
+    // Direct manual calls pass { referral_partner_id } and require an admin.
+    const isAutomationCall = !!payload.event;
+    if (!isAutomationCall) {
+      const user = await base44.auth.me();
+      if (!user || user.role !== 'admin') {
+        return Response.json({ error: 'Unauthorized' }, { status: 403 });
+      }
     }
 
     const siteId = Deno.env.get('KAJABI_SITE_ID');
@@ -190,16 +228,15 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'KAJABI_SITE_ID is not set' }, { status: 500 });
     }
 
-    const payload = await req.json().catch(() => ({}));
-    // Support both direct calls ({ referral_partner_id }) and entity automation payloads ({ event: { entity_id } })
+    // Resolve the partner record. Automation payloads include `data` directly;
+    // fall back to fetching by entity_id (handles payload_too_large + direct calls).
     const referral_partner_id = payload.referral_partner_id || payload.event?.entity_id;
-    if (!referral_partner_id) {
-      return Response.json({ error: 'referral_partner_id is required' }, { status: 400 });
+    let partner = payload.data || null;
+    if (!partner && referral_partner_id) {
+      partner = await base44.asServiceRole.entities.ReferralPartner.get(referral_partner_id);
     }
-
-    const partner = await base44.asServiceRole.entities.ReferralPartner.get(referral_partner_id);
     if (!partner) {
-      return Response.json({ error: `ReferralPartner ${referral_partner_id} not found` }, { status: 404 });
+      return Response.json({ error: 'ReferralPartner not found and no data in payload' }, { status: 404 });
     }
 
     if (!partner.email) {
@@ -212,16 +249,33 @@ Deno.serve(async (req) => {
     const token = await getAccessToken();
     const tagId = await resolveTagId(token, siteId);
 
-    // Upsert contact
+    // Upsert contact (one-way: never writes back to the ReferralPartner)
     let contact = await findContactByEmail(token, siteId, partner.email);
     let contactAction;
     if (contact) {
-      console.log(`Existing Kajabi contact found: id=${contact.id}`);
+      console.log(`Exact email match found: id=${contact.id}`);
       contactAction = 'found';
     } else {
-      contact = await createContact(token, siteId, partner);
-      console.log(`Kajabi contact created: id=${contact.id}`);
-      contactAction = 'created';
+      try {
+        contact = await createContact(token, siteId, partner);
+        console.log(`Kajabi contact created: id=${contact.id}`);
+        contactAction = 'created';
+      } catch (err) {
+        if (err.message === 'EMAIL_TAKEN') {
+          // Email exists in Kajabi but is stored differently — targeted name lookup (no full contact preload)
+          contact = await findContactByName(token, siteId, partner.name);
+          if (!contact) {
+            throw new Error(
+              `Email "${partner.email}" is already taken in Kajabi but the existing contact could not be located ` +
+              `by exact email or exact name. Resolve manually in Kajabi.`
+            );
+          }
+          console.log(`Located existing contact via name fallback: id=${contact.id}, kajabi_email=${contact.attributes?.email}`);
+          contactAction = 'found_by_name';
+        } else {
+          throw err;
+        }
+      }
     }
 
     const contactId = contact.id;
