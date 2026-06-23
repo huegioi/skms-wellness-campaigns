@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const KAJABI_API_URL = 'https://api.kajabi.com/v1';
-const REFERRAL_PARTNERS_TAG_NAME = 'Referral Partners';
+const REFERRAL_PARTNERS_TAG_NAME = 'Referral Partner';
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
