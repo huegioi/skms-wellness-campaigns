@@ -124,7 +124,7 @@ async function findContactByName(token, siteId, name) {
 }
 
 async function createContact(token, siteId, lead) {
-  const attributes = { name: lead.name, email: lead.email };
+  const attributes = { name: lead.name, email: lead.email, subscribed: true };
   if (lead.phone) attributes.phone_number = lead.phone;
 
   const res = await fetch(`${KAJABI_API_URL}/contacts`, {

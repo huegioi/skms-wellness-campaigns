@@ -87,12 +87,12 @@ async function findContactsByScan(token, siteId, leadsToResolve) {
       const name = (c.attributes?.name || '').trim().toLowerCase();
 
       if (email && emailsLooking.has(email)) {
-        emailFound.set(email, { id: c.id, email: c.attributes?.email, name: c.attributes?.name, _created: false });
+        emailFound.set(email, { id: c.id, email: c.attributes?.email, name: c.attributes?.name, subscribed: c.attributes?.subscribed, _created: false });
         emailsLooking.delete(email);
         remaining--;
         foundThisPage++;
       } else if (name && namesLooking.has(name) && !nameFound.has(name)) {
-        nameFound.set(name, { id: c.id, email: c.attributes?.email, name: c.attributes?.name, _created: false });
+        nameFound.set(name, { id: c.id, email: c.attributes?.email, name: c.attributes?.name, subscribed: c.attributes?.subscribed, _created: false });
         remaining--;
         foundThisPage++;
       }
@@ -109,7 +109,7 @@ async function findContactsByScan(token, siteId, leadsToResolve) {
 }
 
 async function createContact(token, siteId, lead) {
-  const attributes = { name: lead.name, email: lead.email };
+  const attributes = { name: lead.name, email: lead.email, subscribed: true };
   if (lead.phone) attributes.phone_number = lead.phone;
   const res = await fetch(`${KAJABI_API_URL}/contacts`, {
     method: 'POST',
@@ -124,7 +124,7 @@ async function createContact(token, siteId, lead) {
     throw new Error(`Failed to create contact (${res.status}): ${errBody}`);
   }
   const created = (await res.json()).data;
-  return { id: created.id, email: created.attributes?.email, name: created.attributes?.name, _created: true };
+  return { id: created.id, email: created.attributes?.email, name: created.attributes?.name, subscribed: true, _created: true };
 }
 
 async function getContactTagIds(token, contactId) {
@@ -149,6 +149,22 @@ async function removeTagFromContact(token, contactId, tagId) {
     body: JSON.stringify({ data: [{ type: 'contact_tags', id: String(tagId) }] }),
   });
   if (!res.ok && res.status !== 404) throw new Error(`Failed to remove tag from contact ${contactId} (${res.status})`);
+}
+
+async function subscribeContact(token, contactId) {
+  const res = await fetch(`${KAJABI_API_URL}/contacts/${contactId}`, {
+    method: 'PATCH',
+    headers: apiHeaders(token),
+    body: JSON.stringify({
+      data: {
+        id: String(contactId),
+        type: 'contacts',
+        attributes: { subscribed: true },
+      },
+    }),
+  });
+  if (!res.ok) throw new Error(`Failed to subscribe contact ${contactId} (${res.status}): ${await res.text()}`);
+  console.log(`Contact ${contactId} subscribed to marketing emails`);
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -183,7 +199,7 @@ Deno.serve(async (req) => {
       if (lead.kajabi_contact_id) {
         const contact = await getContactById(token, lead.kajabi_contact_id);
         if (contact) {
-          contactMap.set(normEmail, { id: contact.id, email: contact.attributes?.email, name: contact.attributes?.name, _created: false });
+          contactMap.set(normEmail, { id: contact.id, email: contact.attributes?.email, name: contact.attributes?.name, subscribed: contact.attributes?.subscribed, _created: false });
           foundById++;
           console.log(`GET by stored ID: ${lead.email} → contact_id=${contact.id}`);
         } else {
@@ -231,7 +247,7 @@ Deno.serve(async (req) => {
     // Apply tags + write back to entity
     const entityUpdates = [];
     const perLead = [];
-    let contactsFound = 0, contactsCreated = 0, tagsApplied = 0, tagsRemoved = 0, skipped = 0, failed = 0;
+    let contactsFound = 0, contactsCreated = 0, tagsApplied = 0, tagsRemoved = 0, skipped = 0, failed = 0, subscriptionsSet = 0;
 
     for (const lead of leads) {
       if (!lead.email) {
@@ -256,6 +272,14 @@ Deno.serve(async (req) => {
       const contactAction = contact._created ? 'created' : (lead.kajabi_contact_id === contact.id ? 'found_by_id' : 'found');
       if (contactAction === 'created') contactsCreated++;
       else contactsFound++;
+
+      // Ensure contact is subscribed to marketing emails
+      let subscriptionAction = 'already_subscribed';
+      if (!contact.subscribed) {
+        await subscribeContact(token, contact.id);
+        subscriptionAction = 'subscribed';
+        subscriptionsSet++;
+      }
 
       // Tag management ("Partner Lead" only)
       const isActive = lead.partner_status !== 'inactive';
@@ -286,6 +310,7 @@ Deno.serve(async (req) => {
         kajabi_contact_id: contact.id,
         kajabi_contact_email: contact.email,
         contact_action: contactAction,
+        subscription_action: subscriptionAction,
         tag_action: tagAction,
         is_active: isActive,
       });
@@ -298,7 +323,7 @@ Deno.serve(async (req) => {
       console.log(`Bulk updated ${entityUpdates.length} Lead records with kajabi_contact_id`);
     }
 
-    console.log(`Done: found=${contactsFound}, created=${contactsCreated}, found_by_id=${foundById}, tagged=${tagsApplied}, untagged=${tagsRemoved}, failed=${failed}, skipped=${skipped}`);
+    console.log(`Done: found=${contactsFound}, created=${contactsCreated}, found_by_id=${foundById}, tagged=${tagsApplied}, untagged=${tagsRemoved}, subscribed=${subscriptionsSet}, failed=${failed}, skipped=${skipped}`);
 
     return Response.json({
       success: failed === 0,
@@ -307,6 +332,7 @@ Deno.serve(async (req) => {
       contacts_created: contactsCreated,
       found_by_id: foundById,
       tags_applied: tagsApplied,
+      subscriptions_set: subscriptionsSet,
       tags_removed: tagsRemoved,
       skipped_no_email: skipped,
       failed_count: failed,
