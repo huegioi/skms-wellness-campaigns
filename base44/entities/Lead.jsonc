@@ -170,6 +170,10 @@
     "owner": {
       "type": "string",
       "description": "Team member responsible for this lead"
+    },
+    "kajabi_contact_id": {
+      "type": "string",
+      "description": "Durable Kajabi contact ID for direct API lookups (skips unreliable email filter)"
     }
   },
   "required": [
