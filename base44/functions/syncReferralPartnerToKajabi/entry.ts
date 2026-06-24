@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const KAJABI_API_URL = 'https://api.kajabi.com/v1';
 const REFERRAL_PARTNERS_TAG_NAME = 'Referral Partner';
+const PARTNER_LEAD_TAG_NAME = 'Partner Lead';
 
 // Sheet config (reused from syncBrokerLeadsSheet)
 const SPREADSHEET_ID = '1QyVdp7XWFfUkZyqLMVn6P39X84WgYWOHfqI2US7WKWk';
@@ -41,9 +42,13 @@ function headers(token) {
   };
 }
 
-async function resolveTagId(token, siteId) {
+async function resolveTagIds(token, siteId) {
+  const targetNames = [REFERRAL_PARTNERS_TAG_NAME, PARTNER_LEAD_TAG_NAME];
+  const resolved = {};
+
+  // First pass: scan all existing tags for both names
   let page = 1;
-  while (true) {
+  while (Object.keys(resolved).length < targetNames.length) {
     const url = `${KAJABI_API_URL}/contact_tags?filter[site_id]=${siteId}&page[size]=100&page[number]=${page}`;
     console.log(`Fetching contact_tags page ${page}: ${url}`);
     const res = await fetch(url, { headers: headers(token) });
@@ -53,42 +58,50 @@ async function resolveTagId(token, siteId) {
     const body = await res.json();
     const tags = body.data || [];
     console.log(`Page ${page}: got ${tags.length} tags`);
-    const existing = tags.find(
-      (t) => (t.attributes?.name || '').toLowerCase() === REFERRAL_PARTNERS_TAG_NAME.toLowerCase()
-    );
-    if (existing) {
-      console.log(`Tag "${REFERRAL_PARTNERS_TAG_NAME}" found: id=${existing.id}`);
-      return existing.id;
+    for (const t of tags) {
+      const name = (t.attributes?.name || '').toLowerCase();
+      for (const target of targetNames) {
+        if (name === target.toLowerCase() && !resolved[target]) {
+          console.log(`Tag "${target}" found: id=${t.id}`);
+          resolved[target] = t.id;
+        }
+      }
     }
     if (!body.links?.next || tags.length === 0) break;
     page++;
   }
 
-  console.log(`Tag "${REFERRAL_PARTNERS_TAG_NAME}" not found — attempting to create via API`);
-  const createRes = await fetch(`${KAJABI_API_URL}/contact_tags`, {
-    method: 'POST',
-    headers: headers(token),
-    body: JSON.stringify({
-      data: {
-        type: 'contact_tags',
-        attributes: { name: REFERRAL_PARTNERS_TAG_NAME },
-        relationships: {
-          site: { data: { type: 'sites', id: String(siteId) } },
-        },
-      },
-    }),
-  });
-  const createBody = await createRes.text();
-  if (!createRes.ok) {
-    throw new Error(
-      `Tag "${REFERRAL_PARTNERS_TAG_NAME}" does not exist in Kajabi and could not be created via API (${createRes.status}). ` +
-      `Please create it manually in Kajabi (Contacts → Tags → New Tag) then re-run this function.`
-    );
+  // Create any missing tags
+  for (const target of targetNames) {
+    if (!resolved[target]) {
+      console.log(`Tag "${target}" not found — attempting to create via API`);
+      const createRes = await fetch(`${KAJABI_API_URL}/contact_tags`, {
+        method: 'POST',
+        headers: headers(token),
+        body: JSON.stringify({
+          data: {
+            type: 'contact_tags',
+            attributes: { name: target },
+            relationships: {
+              site: { data: { type: 'sites', id: String(siteId) } },
+            },
+          },
+        }),
+      });
+      const createBody = await createRes.text();
+      if (!createRes.ok) {
+        throw new Error(
+          `Tag "${target}" does not exist in Kajabi and could not be created via API (${createRes.status}). ` +
+          `Please create it manually in Kajabi (Contacts → Tags → New Tag) then re-run this function.`
+        );
+      }
+      const created = JSON.parse(createBody);
+      resolved[target] = created.data?.id;
+      console.log(`Tag "${target}" created: id=${resolved[target]}`);
+    }
   }
-  const created = JSON.parse(createBody);
-  const newId = created.data?.id;
-  console.log(`Tag "${REFERRAL_PARTNERS_TAG_NAME}" created: id=${newId}`);
-  return newId;
+
+  return { referralPartnerTagId: resolved[REFERRAL_PARTNERS_TAG_NAME], partnerLeadTagId: resolved[PARTNER_LEAD_TAG_NAME] };
 }
 
 /** GET /v1/contacts/{id} — direct lookup by stored Kajabi contact id. Returns null on 404. */
@@ -307,7 +320,7 @@ Deno.serve(async (req) => {
     console.log(`Syncing partner: ${partner.name} <${partner.email}> (stored kajabi_contact_id: ${partner.kajabi_contact_id || 'none'})`);
 
     const token = await getAccessToken();
-    const tagId = await resolveTagId(token, siteId);
+    const tagIds = await resolveTagIds(token, siteId);
 
     let contact = null;
     let contactAction;
@@ -368,26 +381,33 @@ Deno.serve(async (req) => {
     const contactId = contact.id;
     const isActive = partner.is_active === true && partner.partner_status !== 'Inactive';
 
-    // ── Tag management ──
+    // ── Tag management (both "Referral Partner" and "Partner Lead") ──
     const currentTagIds = await getContactTagIds(token, contactId);
-    const hasTag = currentTagIds.includes(String(tagId));
-    let tagAction;
+    const tagActions = {};
 
-    if (isActive) {
-      if (hasTag) {
-        console.log(`Tag already present — no change needed`);
-        tagAction = 'tag_already_present';
-      } else {
-        await addTagToContact(token, contactId, tagId);
-        tagAction = 'tag_added';
+    for (const [tagName, tagId] of [
+      [REFERRAL_PARTNERS_TAG_NAME, tagIds.referralPartnerTagId],
+      [PARTNER_LEAD_TAG_NAME, tagIds.partnerLeadTagId],
+    ]) {
+      if (!tagId) {
+        tagActions[tagName] = 'tag_not_resolved';
+        continue;
       }
-    } else {
-      if (hasTag) {
-        await removeTagFromContact(token, contactId, tagId);
-        tagAction = 'tag_removed';
+      const hasTag = currentTagIds.includes(String(tagId));
+      if (isActive) {
+        if (hasTag) {
+          tagActions[tagName] = 'tag_already_present';
+        } else {
+          await addTagToContact(token, contactId, tagId);
+          tagActions[tagName] = 'tag_added';
+        }
       } else {
-        console.log(`Tag not present and partner inactive — no change needed`);
-        tagAction = 'tag_not_present';
+        if (hasTag) {
+          await removeTagFromContact(token, contactId, tagId);
+          tagActions[tagName] = 'tag_removed';
+        } else {
+          tagActions[tagName] = 'tag_not_present';
+        }
       }
     }
 
@@ -397,7 +417,7 @@ Deno.serve(async (req) => {
       partner_email: partner.email,
       kajabi_contact_id: contactId,
       contact_action: contactAction,
-      tag_action: tagAction,
+      tag_actions: tagActions,
       is_active: isActive,
     });
 

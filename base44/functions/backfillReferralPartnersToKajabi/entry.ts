@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const KAJABI_API_URL = 'https://api.kajabi.com/v1';
 const REFERRAL_PARTNERS_TAG_NAME = 'Referral Partner';
+const PARTNER_LEAD_TAG_NAME = 'Partner Lead';
 const PAGE_SIZE = 500;
 const MAX_SCAN_PAGES = 20;
 
@@ -31,22 +32,32 @@ function apiHeaders(token) {
   };
 }
 
-async function resolveTagId(token, siteId) {
+async function resolveTagIds(token, siteId) {
+  const targetNames = [REFERRAL_PARTNERS_TAG_NAME, PARTNER_LEAD_TAG_NAME];
+  const resolved = {};
   let page = 1;
-  while (true) {
+  while (Object.keys(resolved).length < targetNames.length) {
     const res = await fetch(`${KAJABI_API_URL}/contact_tags?filter[site_id]=${siteId}&page[size]=100&page[number]=${page}`, { headers: apiHeaders(token) });
     if (!res.ok) throw new Error(`Failed to list contact_tags (${res.status})`);
     const body = await res.json();
     const tags = body.data || [];
-    const existing = tags.find((t) => (t.attributes?.name || '').toLowerCase() === REFERRAL_PARTNERS_TAG_NAME.toLowerCase());
-    if (existing) {
-      console.log(`Tag "${REFERRAL_PARTNERS_TAG_NAME}" found: id=${existing.id}`);
-      return existing.id;
+    for (const t of tags) {
+      const name = (t.attributes?.name || '').toLowerCase();
+      for (const target of targetNames) {
+        if (name === target.toLowerCase() && !resolved[target]) {
+          resolved[target] = t.id;
+          console.log(`Tag "${target}" found: id=${t.id}`);
+        }
+      }
     }
     if (!body.links?.next || tags.length === 0) break;
     page++;
   }
-  throw new Error(`Tag "${REFERRAL_PARTNERS_TAG_NAME}" not found in Kajabi. Please create it manually first.`);
+  const missing = targetNames.filter((n) => !resolved[n]);
+  if (missing.length > 0) {
+    throw new Error(`Tag(s) "${missing.join('", "')}" not found in Kajabi. Please create them manually first.`);
+  }
+  return { referralPartnerTagId: resolved[REFERRAL_PARTNERS_TAG_NAME], partnerLeadTagId: resolved[PARTNER_LEAD_TAG_NAME] };
 }
 
 // ── Contact operations ──────────────────────────────────────────────────────
@@ -234,7 +245,7 @@ Deno.serve(async (req) => {
 
     const siteId = Deno.env.get('KAJABI_SITE_ID');
     const token = await getAccessToken();
-    const tagId = await resolveTagId(token, siteId);
+    const tagIds = await resolveTagIds(token, siteId);
 
     const partners = await base44.asServiceRole.entities.ReferralPartner.list('-created_date', 1000);
     console.log(`Found ${partners.length} referral partners to sync`);
@@ -331,20 +342,31 @@ Deno.serve(async (req) => {
       if (contactAction === 'created') contactsCreated++;
       else contactsFound++;
 
-      // Tag management
+      // Tag management (both "Referral Partner" and "Partner Lead")
       const isActive = partner.is_active === true && partner.partner_status !== 'Inactive';
       const currentTagIds = await getContactTagIds(token, contact.id);
-      const hasTag = currentTagIds.includes(String(tagId));
-      let tagAction = 'no_change';
+      const tagActionMap = {};
 
-      if (isActive && !hasTag) {
-        await addTagToContact(token, contact.id, tagId);
-        tagAction = 'tag_added';
-        tagsApplied++;
-      } else if (!isActive && hasTag) {
-        await removeTagFromContact(token, contact.id, tagId);
-        tagAction = 'tag_removed';
-        tagsRemoved++;
+      for (const [tagName, tagId] of [
+        [REFERRAL_PARTNERS_TAG_NAME, tagIds.referralPartnerTagId],
+        [PARTNER_LEAD_TAG_NAME, tagIds.partnerLeadTagId],
+      ]) {
+        if (!tagId) {
+          tagActionMap[tagName] = 'not_resolved';
+          continue;
+        }
+        const hasTag = currentTagIds.includes(String(tagId));
+        if (isActive && !hasTag) {
+          await addTagToContact(token, contact.id, tagId);
+          tagActionMap[tagName] = 'tag_added';
+          tagsApplied++;
+        } else if (!isActive && hasTag) {
+          await removeTagFromContact(token, contact.id, tagId);
+          tagActionMap[tagName] = 'tag_removed';
+          tagsRemoved++;
+        } else {
+          tagActionMap[tagName] = 'no_change';
+        }
       }
 
       // Write back to entity (if missing or changed)
@@ -364,9 +386,9 @@ Deno.serve(async (req) => {
         kajabi_contact_id: contact.id,
         kajabi_contact_email: contact.email,
         contact_action: contactAction,
-        tag_action: tagAction,
+        tag_actions: tagActionMap,
       });
-      console.log(`OK    [${partner.email}] → contact_id=${contact.id}, action=${contactAction}, tag=${tagAction}`);
+      console.log(`OK    [${partner.email}] → contact_id=${contact.id}, action=${contactAction}, tags=${JSON.stringify(tagActionMap)}`);
     }
 
     // Bulk update entities
