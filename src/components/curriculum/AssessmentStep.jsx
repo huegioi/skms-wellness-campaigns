@@ -24,6 +24,17 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
+  const hydratedRef = useRef(false);
+
+  useEffect(() => {
+    const ad = selections.assessmentData || {};
+    // Hydrate once when client data arrives from the ?clientId pre-load.
+    if (!hydratedRef.current && (ad.clientName || ad.clientEmail || ad.companyName)) {
+      setFormData(prev => ({ ...prev, ...ad }));
+      hydratedRef.current = true;
+    }
+  }, [selections.assessmentData]);
+
   const filteredClients = formData => {
     const q = formData.clientName.toLowerCase();
     if (!q) return [];
