@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -263,6 +263,9 @@ export default function Leads() {
   const { toast: shadToast } = useToast();
   const [activeTab, setActiveTab] = useState('broker_leads');
 
+  const leadIdFromUrl = new URLSearchParams(window.location.search).get('leadId');
+  const urlLeadDismissed = React.useRef(false);
+
   // Broker leads (referral partners) state
   const [brokerSearch, setBrokerSearch] = useState('');
   const [brokerFilterStatus, setBrokerFilterStatus] = useState('all');
@@ -328,6 +331,16 @@ export default function Leads() {
   });
 
   const pendingReferrals = referrals.filter(r => r.status === 'pending_review');
+
+  React.useEffect(() => {
+    if (leadIdFromUrl && !urlLeadDismissed.current) {
+      const lead = (allLeads || []).find(l => l.id === leadIdFromUrl);
+      if (lead) {
+        setActiveTab('broker_leads');
+        setViewingBrokerLead(lead);
+      }
+    }
+  }, [leadIdFromUrl, allLeads]);
 
   const existingCompanies = [...new Set(referralPartners.map(p => p.company).filter(Boolean))].sort();
 
@@ -1219,7 +1232,7 @@ export default function Leads() {
       {viewingBrokerLead && (
         <BrokerLeadDetail
           lead={viewingBrokerLead}
-          onClose={() => setViewingBrokerLead(null)}
+          onClose={() => { urlLeadDismissed.current = true; setViewingBrokerLead(null); }}
           onUpdate={() => {
             queryClient.invalidateQueries({ queryKey: ['leads'] });
             // Keep modal open but refresh local lead data via the list refetch
