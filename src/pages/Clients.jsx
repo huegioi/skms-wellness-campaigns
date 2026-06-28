@@ -712,13 +712,13 @@ export default function Clients() {
                           {clientProposals.length > 0 ? (
                             <Link to={createPageUrl('EditProposal') + `?id=${clientProposals.sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0].id}`}>
                               <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132]">
-                                <FileText className="w-4 h-4 sm:mr-1" /><span className="hidden sm:inline">Proposal</span>
+                                <FileText className="w-4 h-4 sm:mr-1" /><span className="hidden sm:inline">New Proposal</span>
                               </Button>
                             </Link>
                           ) : (
                             <Link to={createPageUrl('CurriculumDesigner') + `?clientId=${client.id}`}>
                               <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132]">
-                                <FileText className="w-4 h-4 sm:mr-1" /><span className="hidden sm:inline">Proposal</span>
+                                <FileText className="w-4 h-4 sm:mr-1" /><span className="hidden sm:inline">New Proposal</span>
                               </Button>
                             </Link>
                           )}
