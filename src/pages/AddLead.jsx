@@ -17,6 +17,7 @@ const EMPTY_FORM = {
   company: '',
   title: '',
   phone: '',
+  address: '',
   notes: '',
   source: '',
   outreach_channel: 'linkedin',
@@ -217,6 +218,7 @@ Leave fields as empty string if not visible.`,
         company: form.company || '',
         title: form.title || '',
         phone: form.phone || '',
+        company_address: form.address || '',
         industry: form.industry || '',
         company_size: form.company_size || '',
         last_contacted_date: new Date().toISOString().split('T')[0],
@@ -363,6 +365,11 @@ Leave fields as empty string if not visible.`,
           </div>
 
           <div className="space-y-1">
+            <Label htmlFor="address">Address</Label>
+            <Input id="address" value={form.address} onChange={e => set('address', e.target.value)} placeholder="123 Main St, City, ST 12345" />
+          </div>
+
+          <div className="space-y-1">
             <Label htmlFor="source">Where did you meet?</Label>
             <Input id="source" value={form.source} onChange={e => set('source', e.target.value)} placeholder="e.g., SHRM Conference 2026" />
           </div>
@@ -385,7 +392,7 @@ Leave fields as empty string if not visible.`,
                 <Select value={form.outreach_channel} onValueChange={v => set('outreach_channel', v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {['email', 'linkedin', 'phone', 'referral', 'other'].map(c => (
+                    {['email', 'linkedin', 'phone', 'referral', 'event', 'other'].map(c => (
                       <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
                     ))}
                   </SelectContent>

@@ -134,6 +134,7 @@
         "linkedin",
         "phone",
         "referral",
+        "event",
         "other"
       ],
       "description": "Primary outreach channel"
