@@ -4,7 +4,6 @@ import { createPageUrl } from '@/utils';
 import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays, ScanText } from 'lucide-react';
 
 const navItems = [
-  { name: 'Quick Capture', page: 'AddLead', icon: ScanText },
   { name: 'Dashboard', page: 'Home', icon: BarChart3 },
   { name: 'Partners', page: 'Leads', icon: Mail, altPages: ['ReferralPartnerAdmin'] },
   { name: 'Clients', page: 'Clients', icon: Users, altPages: ['ManageClientPortals', 'Proposals', 'EditProposal', 'EmailTemplateManager'] },
@@ -55,6 +54,19 @@ export default function Layout({ children, currentPageName }) {
           >
             <Wand2 className="w-4 h-4 shrink-0" />
             Builder
+          </Link>
+
+          {/* Quick Capture CTA — styled like Builder, forest green */}
+          <Link
+            to={createPageUrl('AddLead')}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold border-2 transition-colors mb-2 ${
+              currentPageName === 'AddLead'
+                ? 'bg-[#264d44] text-white border-[#264d44]'
+                : 'text-[#264d44] border-[#264d44] hover:bg-[#264d44] hover:text-white'
+            }`}
+          >
+            <ScanText className="w-4 h-4 shrink-0" />
+            Quick Capture
           </Link>
 
           {navItems.map((item) => {
@@ -118,6 +130,20 @@ export default function Layout({ children, currentPageName }) {
           >
             <Wand2 className="w-4 h-4 shrink-0" />
             Builder
+          </Link>
+
+          {/* Quick Capture CTA — styled like Builder, forest green */}
+          <Link
+            to={createPageUrl('AddLead')}
+            onClick={() => setMobileOpen(false)}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold border-2 transition-colors mb-2 ${
+              currentPageName === 'AddLead'
+                ? 'bg-[#264d44] text-white border-[#264d44]'
+                : 'text-[#264d44] border-[#264d44] hover:bg-[#264d44] hover:text-white'
+            }`}
+          >
+            <ScanText className="w-4 h-4 shrink-0" />
+            Quick Capture
           </Link>
 
           {navItems.map((item) => {
