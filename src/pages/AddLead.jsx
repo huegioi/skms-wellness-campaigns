@@ -238,8 +238,12 @@ Leave fields as empty string if not visible.`,
           <ChevronLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-lg font-bold text-[#013f7c] leading-tight">Quick Lead Capture</h1>
-          <p className="text-xs text-gray-500">Saves directly to your Broker Leads database</p>
+          <h1 className="text-lg font-bold text-[#013f7c] leading-tight">
+            {captureType === 'client' ? 'Quick Client Capture' : 'Quick Lead Capture'}
+          </h1>
+          <p className="text-xs text-gray-500">
+            {captureType === 'client' ? 'Saves directly to your Client pipeline' : 'Saves directly to your Partner pipeline'}
+          </p>
         </div>
       </div>
 
@@ -365,30 +369,32 @@ Leave fields as empty string if not visible.`,
             <Input id="source" value={form.source} onChange={e => set('source', e.target.value)} placeholder="e.g., SHRM Conference 2026" />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Referral Potential</Label>
-              <Select value={form.referral_potential} onValueChange={v => set('referral_potential', v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                </SelectContent>
-              </Select>
+          {captureType === 'partner' && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label>Referral Potential</Label>
+                <Select value={form.referral_potential} onValueChange={v => set('referral_potential', v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">Low</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Channel</Label>
+                <Select value={form.outreach_channel} onValueChange={v => set('outreach_channel', v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {['email', 'linkedin', 'phone', 'referral', 'other'].map(c => (
+                      <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-1">
-              <Label>Channel</Label>
-              <Select value={form.outreach_channel} onValueChange={v => set('outreach_channel', v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {['email', 'linkedin', 'phone', 'referral', 'other'].map(c => (
-                    <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          )}
 
           <div className="space-y-1">
             <Label htmlFor="notes">Notes</Label>
@@ -411,17 +417,17 @@ Leave fields as empty string if not visible.`,
             ) : saved ? (
               <><CheckCircle2 className="w-5 h-5 mr-2" /> Saved!</>
             ) : (
-              <><Save className="w-5 h-5 mr-2" /> {captureType === 'client' ? 'Save Client' : 'Save Lead'}</>
+              <><Save className="w-5 h-5 mr-2" /> {captureType === 'partner' ? 'Save Lead' : 'Save Client'}</>
             )}
           </Button>
         </form>
 
         {/* Quick nav back */}
         <button
-          onClick={() => navigate('/Leads')}
+          onClick={() => navigate(captureType === 'client' ? '/Clients' : '/Leads')}
           className="w-full text-center text-sm text-[#013f7c] hover:underline py-2"
         >
-          View all leads →
+          {captureType === 'client' ? 'View all clients →' : 'View all partners →'}
         </button>
       </div>
     </div>
