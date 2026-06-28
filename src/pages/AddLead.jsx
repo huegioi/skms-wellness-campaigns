@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, ChevronLeft, ScanText, Loader2, CheckCircle2, Camera, Linkedin } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
 const EMPTY_FORM = {
@@ -34,6 +35,7 @@ export default function AddLead() {
   const [scanningCard, setScanningCard] = useState(false);
   const [scanningLinkedIn, setScanningLinkedIn] = useState(false);
   const [captureType, setCaptureType] = useState('partner'); // 'partner' | 'client'
+  const [savedRecord, setSavedRecord] = useState(null); // { id, type: 'lead' | 'client' }
   const cameraInputRef = useRef(null);
   const linkedInInputRef = useRef(null);
 
@@ -85,13 +87,11 @@ Fill in whatever you can find. If a field is not present, leave it as an empty s
 
   const createLeadMutation = useMutation({
     mutationFn: (data) => base44.entities.Lead.create(data),
-    onSuccess: () => {
+    onSuccess: (newLead) => {
+      setSavedRecord({ id: newLead.id, type: 'lead' });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
       setForm(EMPTY_FORM);
       setScannedText('');
-      toast.success('Lead saved to database!');
     },
     onError: (error) => {
       toast.error('Failed to add lead: ' + error.message);
@@ -100,13 +100,11 @@ Fill in whatever you can find. If a field is not present, leave it as an empty s
 
   const createClientMutation = useMutation({
     mutationFn: (data) => base44.entities.Client.create(data),
-    onSuccess: () => {
+    onSuccess: (newClient) => {
+      setSavedRecord({ id: newClient.id, type: 'client' });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
       setForm(EMPTY_FORM);
       setScannedText('');
-      toast.success('Client saved to database!');
     },
     onError: (error) => {
       toast.error('Failed to add client: ' + error.message);
@@ -430,6 +428,31 @@ Leave fields as empty string if not visible.`,
           {captureType === 'client' ? 'View all clients →' : 'View all partners →'}
         </button>
       </div>
+
+      {/* Success Dialog */}
+      <Dialog open={!!savedRecord} onOpenChange={(open) => !open && setSavedRecord(null)}>
+        <DialogContent className="max-w-sm w-[95vw]">
+          <DialogHeader>
+            <DialogTitle>{savedRecord?.type === 'client' ? 'Client saved ✓' : 'Lead saved ✓'}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">The record was added to your database.</p>
+          <div className="flex flex-col gap-2 mt-2">
+            <Button
+              className="w-full bg-[#013f7c] hover:bg-[#012d5a]"
+              onClick={() => {
+                const r = savedRecord;
+                setSavedRecord(null);
+                navigate(r.type === 'client' ? `/Clients?clientId=${r.id}` : `/Leads?leadId=${r.id}`);
+              }}
+            >
+              {savedRecord?.type === 'client' ? 'Open this client →' : 'Open this lead →'}
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => setSavedRecord(null)}>
+              Capture another
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
