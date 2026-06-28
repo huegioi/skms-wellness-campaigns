@@ -33,6 +33,7 @@ export default function AddLead() {
   const [saved, setSaved] = useState(false);
   const [scanningCard, setScanningCard] = useState(false);
   const [scanningLinkedIn, setScanningLinkedIn] = useState(false);
+  const [captureType, setCaptureType] = useState('partner'); // 'partner' | 'client'
   const cameraInputRef = useRef(null);
   const linkedInInputRef = useRef(null);
 
@@ -94,6 +95,21 @@ Fill in whatever you can find. If a field is not present, leave it as an empty s
     },
     onError: (error) => {
       toast.error('Failed to add lead: ' + error.message);
+    },
+  });
+
+  const createClientMutation = useMutation({
+    mutationFn: (data) => base44.entities.Client.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+      setForm(EMPTY_FORM);
+      setScannedText('');
+      toast.success('Client saved to database!');
+    },
+    onError: (error) => {
+      toast.error('Failed to add client: ' + error.message);
     },
   });
 
@@ -196,7 +212,22 @@ Leave fields as empty string if not visible.`,
       toast.error('Name and Email are required.');
       return;
     }
-    createLeadMutation.mutate(form);
+    if (captureType === 'client') {
+      const clientPayload = {
+        name: form.name,
+        email: form.email,
+        company: form.company || '',
+        title: form.title || '',
+        phone: form.phone || '',
+        industry: form.industry || '',
+        company_size: form.company_size || '',
+        last_contacted_date: new Date().toISOString().split('T')[0],
+        notes: form.source ? (form.notes ? form.notes + `\nMet at: ${form.source}` : `Met at: ${form.source}`) : (form.notes || ''),
+      };
+      createClientMutation.mutate(clientPayload);
+    } else {
+      createLeadMutation.mutate(form);
+    }
   };
 
   return (
@@ -279,6 +310,28 @@ Leave fields as empty string if not visible.`,
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border p-4 space-y-4">
+          {/* Capture type toggle */}
+          <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setCaptureType('partner')}
+              className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
+                captureType === 'partner' ? 'bg-[#013f7c] text-white' : 'text-gray-600'
+              }`}
+            >
+              Partner
+            </button>
+            <button
+              type="button"
+              onClick={() => setCaptureType('client')}
+              className={`flex-1 py-2.5 text-sm font-semibold transition-colors ${
+                captureType === 'client' ? 'bg-[#264d44] text-white' : 'text-gray-600'
+              }`}
+            >
+              Client
+            </button>
+          </div>
+
           <h2 className="font-semibold text-gray-800">Contact Details</h2>
 
           <div className="space-y-1">
@@ -350,15 +403,15 @@ Leave fields as empty string if not visible.`,
 
           <Button
             type="submit"
-            className={`w-full text-base py-5 font-semibold transition-all ${saved ? 'bg-green-600 hover:bg-green-700' : 'bg-[#013f7c] hover:bg-[#012d5a]'}`}
-            disabled={createLeadMutation.isPending}
+            className={`w-full text-base py-5 font-semibold transition-all ${saved ? 'bg-green-600 hover:bg-green-700' : (captureType === 'client' ? 'bg-[#264d44] hover:bg-[#1a3a34]' : 'bg-[#013f7c] hover:bg-[#012d5a]')}`}
+            disabled={createLeadMutation.isPending || createClientMutation.isPending}
           >
-            {createLeadMutation.isPending ? (
+            {createLeadMutation.isPending || createClientMutation.isPending ? (
               <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Saving...</>
             ) : saved ? (
               <><CheckCircle2 className="w-5 h-5 mr-2" /> Saved!</>
             ) : (
-              <><Save className="w-5 h-5 mr-2" /> Save Lead</>
+              <><Save className="w-5 h-5 mr-2" /> {captureType === 'client' ? 'Save Client' : 'Save Lead'}</>
             )}
           </Button>
         </form>
