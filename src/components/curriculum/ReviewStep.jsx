@@ -606,6 +606,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
           wellness_budget: assessmentData.wellnessBudget ? parseFloat(assessmentData.wellnessBudget) : null,
           industry: assessmentData.industry || null,
           company_size: companySizeEnum,
+          employee_count: parseInt(assessmentData.companySize, 10) || undefined,
           last_contacted: new Date().toISOString(),
           notes: [
             assessmentData.brokerName && `Broker: ${assessmentData.brokerName}${assessmentData.brokerCompany ? ` (${assessmentData.brokerCompany})` : ''}`,
@@ -621,6 +622,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
           wellness_budget: assessmentData.wellnessBudget ? parseFloat(assessmentData.wellnessBudget) : null,
           industry: assessmentData.industry || null,
           company_size: companySizeEnum,
+          employee_count: parseInt(assessmentData.companySize, 10) || undefined,
           last_contacted: new Date().toISOString(),
           notes: [
             assessmentData.brokerName && `Broker: ${assessmentData.brokerName}${assessmentData.brokerCompany ? ` (${assessmentData.brokerCompany})` : ''}`,
