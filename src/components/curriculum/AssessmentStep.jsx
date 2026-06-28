@@ -6,6 +6,7 @@ import { base44 } from '@/api/base44Client';
 
 export default function AssessmentStep({ selections, updateSelections, onNext, isFirstStep }) {
   const [clients, setClients] = useState([]);
+  const [errors, setErrors] = useState({});
   const [showSuggestions, setShowSuggestions] = useState(false);
   const clientNameRef = useRef(null);
   const suggestionsRef = useRef(null);
@@ -144,9 +145,28 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
       ...prev,
       [field]: value
     }));
+    if (errors[field]) {
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
   };
 
   const handleNext = () => {
+    const next = {};
+    if (!formData.clientName.trim())  next.clientName  = 'Client name is required.';
+    if (!formData.clientEmail.trim()) next.clientEmail = 'Client email is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.clientEmail.trim()))
+      next.clientEmail = 'Enter a valid email address.';
+    if (!formData.companyName.trim()) next.companyName = 'Company name is required.';
+
+    setErrors(next);
+    if (Object.keys(next).length > 0) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     updateSelections('assessmentData', formData);
     onNext();
   };
@@ -464,6 +484,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
                 ))}
               </div>
             )}
+            {errors.clientName && <p className="text-xs mt-1" style={{ color: '#b00020' }}>{errors.clientName}</p>}
           </div>
 
           <div className="question-group">
@@ -476,6 +497,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
               onChange={(e) => handleInputChange('clientEmail', e.target.value)}
               required
             />
+            {errors.clientEmail && <p className="text-xs mt-1" style={{ color: '#b00020' }}>{errors.clientEmail}</p>}
           </div>
         </div>
 
@@ -490,6 +512,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
               onChange={(e) => handleInputChange('companyName', e.target.value)}
               required
             />
+            {errors.companyName && <p className="text-xs mt-1" style={{ color: '#b00020' }}>{errors.companyName}</p>}
           </div>
 
           <div className="question-group">
