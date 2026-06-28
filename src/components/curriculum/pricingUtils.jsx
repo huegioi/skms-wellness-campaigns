@@ -1,22 +1,11 @@
 // Shared pricing calculation utilities
 import { productCatalog } from './catalogData';
+import { calcPricing } from './ChallengePricingEstimator';
 
 export const calculateChallengePrice = (companySize) => {
   const employees = parseInt(companySize, 10);
-  
-  if (!employees || employees <= 0) {
-    return 1500; // Default if no size entered
-  }
-
-  let pricePerParticipant = 25;
-  if (employees >= 200) {
-    pricePerParticipant = 20;
-  } else if (employees >= 50) {
-    pricePerParticipant = 22;
-  }
-
-  const participants = Math.ceil(employees * 0.30);
-  return participants * pricePerParticipant;
+  const result = calcPricing(employees);
+  return result ? result.totalCost : 1500; // 1500 default when no headcount entered
 };
 
 export const getItemPrice = (category, key, priceOverrides = {}, companySize = null) => {
