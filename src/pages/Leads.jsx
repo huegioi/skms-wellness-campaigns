@@ -755,9 +755,7 @@ export default function Leads() {
                 <Button className="bg-[#013f7c] hover:bg-[#012d5a] gap-2" onClick={() => { setBrokerForm(EMPTY_BROKER_LEAD_FORM); setEditingBrokerLead(null); setIsAddBrokerOpen(true); }}>
                   <Plus className="w-4 h-4" /> Add Partner
                 </Button>
-                <Button variant="outline" className="gap-2 border-[#013f7c] text-[#013f7c]" onClick={() => navigate('/AddLead')}>
-                  <ScanText className="w-4 h-4" /> Quick Capture
-                </Button>
+
               </div>
             </div>
 
