@@ -53,6 +53,7 @@ export default function AddLead() {
 - phone
 - company (company/organization name)
 - title (job title)
+- address (full mailing/office address as shown)
 Fill in whatever you can find. If a field is not present, leave it as an empty string.`,
         file_urls: [file_url],
         response_json_schema: {
@@ -63,6 +64,7 @@ Fill in whatever you can find. If a field is not present, leave it as an empty s
             phone: { type: 'string' },
             company: { type: 'string' },
             title: { type: 'string' },
+            address: { type: 'string' },
           }
         }
       });
@@ -76,6 +78,7 @@ Fill in whatever you can find. If a field is not present, leave it as an empty s
         phone: result.phone || prev.phone,
         company: result.company || prev.company,
         title: result.title || prev.title,
+        address: result.address || prev.address,
       }));
       toast.success('Business card scanned! Please review the fields.');
     } catch (err) {
@@ -125,7 +128,8 @@ Fill in whatever you can find. If a field is not present, leave it as an empty s
 - company (current company name)
 - industry (industry sector if visible)
 - company_size (number of employees if visible, e.g. "51-200")
-- notes (any other relevant info like location, bio summary, or mutual connections)
+- address (location shown on the profile, e.g. city/state or full address if visible)
+- notes (any other relevant info like bio summary, or mutual connections — do not duplicate the location here)
 Leave fields as empty string if not visible.`,
         file_urls: [file_url],
         response_json_schema: {
@@ -136,6 +140,7 @@ Leave fields as empty string if not visible.`,
             company: { type: 'string' },
             industry: { type: 'string' },
             company_size: { type: 'string' },
+            address: { type: 'string' },
             notes: { type: 'string' },
           }
         }
@@ -151,6 +156,7 @@ Leave fields as empty string if not visible.`,
         company: data.company || prev.company,
         industry: data.industry || prev.industry,
         company_size: data.company_size || prev.company_size,
+        address: data.address || prev.address,
         notes: data.notes ? (prev.notes ? prev.notes + '\n' + data.notes : data.notes) : prev.notes,
         outreach_channel: 'linkedin',
         source: prev.source || 'LinkedIn',
