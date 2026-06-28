@@ -90,7 +90,7 @@ export default function WorkshopStep({ selections, updateSelections, onNext, onB
       `}</style>
 
       <div className="mb-8">
-        <h2 className="text-3xl font-bold mb-3" style={{ color: '#013f7c' }}>
+        <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-3" style={{ color: '#013f7c' }}>
           Select Workshops
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>

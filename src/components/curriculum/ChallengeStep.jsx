@@ -103,7 +103,7 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
       `}</style>
 
       <div className="mb-6">
-        <h2 className="text-3xl font-bold mb-3" style={{ color: '#013f7c' }}>
+        <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-3" style={{ color: '#013f7c' }}>
           Add 14-Day Challenges
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>

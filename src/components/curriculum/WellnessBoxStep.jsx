@@ -379,8 +379,8 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
       {/* ── PAGE 30: Custom Wellness Boxes Intro ─────────────────────────── */}
       <div className="mb-10">
         <div className="text-center mb-8">
-          <h2 className="text-4xl md:text-5xl font-bold mb-3" style={{ color: '#441d37', fontFamily: 'Georgia, serif' }}>
-            Custom Wellness<br />Boxes
+          <h2 className="text-2xl md:text-3xl font-bold mb-2 md:mb-3" style={{ color: '#013f7c' }}>
+            Custom Wellness Boxes
           </h2>
           <p className="text-lg text-gray-500">Ordering Wellness Boxes is easy</p>
         </div>
