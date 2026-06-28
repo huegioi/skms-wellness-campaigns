@@ -77,7 +77,7 @@ export default function StepIndicator({ steps, currentStep, onStepClick }) {
         }
 
         .step-label {
-          font-size: 9px;
+          font-size: 11px;
           color: #666;
           text-align: center;
           margin-top: 4px;
