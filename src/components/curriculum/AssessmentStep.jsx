@@ -47,6 +47,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
   };
 
   const selectClient = (client) => {
+    const primaryBroker = (client.brokers && client.brokers[0]) || {};
     setFormData(prev => ({
       ...prev,
       clientName: client.name || '',
@@ -57,9 +58,9 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
       wellnessBudget: client.wellness_budget || '',
       planYearStart: client.plan_year_start || '',
       wellnessFundSize: client.wellness_fund_size || '',
-      brokerName: client.broker_name || '',
-      brokerEmail: client.broker_email || '',
-      brokerCompany: '',
+      brokerName: primaryBroker.name || client.broker_name || '',
+      brokerEmail: primaryBroker.email || client.broker_email || '',
+      brokerCompany: primaryBroker.company || '',
       consultantName: client.wellness_consultant_name || '',
       consultantEmail: client.wellness_consultant_email || '',
       consultantCompany: '',

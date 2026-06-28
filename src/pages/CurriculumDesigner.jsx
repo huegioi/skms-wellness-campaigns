@@ -32,6 +32,7 @@ export default function CurriculumDesigner() {
     base44.entities.Client.filter({ id: clientId }).then(results => {
       const client = results[0];
       if (!client) return;
+      const primaryBroker = (client.brokers && client.brokers[0]) || {};
       setSelections(prev => ({
         ...prev,
         assessmentData: {
@@ -42,9 +43,9 @@ export default function CurriculumDesigner() {
           companyAddress: client.company_address || '',
           companySize: client.company_size || '',
           wellnessBudget: client.wellness_budget || '',
-          brokerName: client.broker_name || '',
-          brokerEmail: client.broker_email || '',
-          brokerCompany: '',
+          brokerName: primaryBroker.name || client.broker_name || '',
+          brokerEmail: primaryBroker.email || client.broker_email || '',
+          brokerCompany: primaryBroker.company || '',
           consultantName: client.wellness_consultant_name || '',
           consultantEmail: client.wellness_consultant_email || '',
           consultantCompany: '',
