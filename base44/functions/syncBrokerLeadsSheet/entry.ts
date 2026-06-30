@@ -93,7 +93,7 @@ function rowToLead(row, rowIndex, sheetOriginKey, colMap) {
     owner: owner || undefined,
     follow_up_due_date: followUpDueDate || undefined,
     partner_status: partnerStatus === 'Active Partner' ? 'active_partner' : 'new',
-    tags: (getByName('Tags') || '').split(',').map(s => s.trim()).filter(Boolean),
+    // Tags are write-only (app → sheet). Never read them back during Sheet → App sync.
   };
 }
 
@@ -707,7 +707,7 @@ Deno.serve(async (req) => {
           ...(lead.owner !== undefined && { owner: lead.owner }),
           follow_up_due_date: recomputedDueDate || null,
           partner_status: lead.partner_status,
-          tags: lead.tags,
+          // Tags are write-only — do not overwrite app tags from sheet values
         };
         if (sheetRank > appRank) updates.status = lead.status;
         console.log('Writing follow_up_stage to lead (update):', updates.follow_up_stage, 'for contact:', updates.name);
