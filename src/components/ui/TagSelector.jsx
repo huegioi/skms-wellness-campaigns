@@ -8,7 +8,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-export const TagSelector = ({ value = [], onChange }) => {
+export const TagSelector = ({ value = [], onChange, onManageTags }) => {
   const { tags, tagMap } = useTags();
   const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
@@ -117,7 +117,11 @@ export const TagSelector = ({ value = [], onChange }) => {
         </div>
 
         <div className="border-t pt-2 mt-2">
-          <Button variant="link" className="text-xs h-auto p-0 text-muted-foreground gap-1">
+          <Button
+            variant="link"
+            className="text-xs h-auto p-0 text-muted-foreground gap-1"
+            onClick={onManageTags}
+          >
             <Settings className="w-3 h-3" />
             Manage tags…
           </Button>

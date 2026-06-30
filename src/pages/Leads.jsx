@@ -9,12 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, GitMerge } from 'lucide-react';
+import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, GitMerge, Settings } from 'lucide-react';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
 import PendingReferralsReview from '@/components/referrals/PendingReferralsReview';
 import PipelineView from '@/components/leads/PipelineView';
 import MergePartnerDuplicatesPanel from '@/components/leads/MergePartnerDuplicatesPanel';
+import TagFilter from '@/components/ui/TagFilter';
+import TagManager from '@/components/ui/TagManager';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from '@/components/ui/use-toast';
@@ -279,6 +281,9 @@ export default function Leads() {
   const [showActivePartnersModal, setShowActivePartnersModal] = useState(false);
   const [brokerViewMode, setBrokerViewMode] = useState('list'); // 'list' | 'pipeline'
   const [brokerFilterOwner, setBrokerFilterOwner] = useState('all');
+  const [brokerTagFilter, setBrokerTagFilter] = useState([]);
+  const [brokerTagMatchAll, setBrokerTagMatchAll] = useState(false);
+  const [showTagManager, setShowTagManager] = useState(false);
 
   // Duplicate cleanup state (lifted up so button lives in header)
   const [scanningDuplicates, setScanningDuplicates] = useState(false);
@@ -567,7 +572,10 @@ export default function Leads() {
       lead.company?.toLowerCase().includes(brokerSearch.toLowerCase());
     const matchStatus = brokerFilterStatus === 'all' || (lead.status || 'cold') === brokerFilterStatus;
     const matchOwner = brokerFilterOwner === 'all' || lead.owner === brokerFilterOwner;
-    return matchSearch && matchStatus && matchOwner;
+    const matchTags = brokerTagFilter.length === 0 || (brokerTagMatchAll
+      ? brokerTagFilter.every(t => lead.tags?.includes(t))
+      : brokerTagFilter.some(t => lead.tags?.includes(t)));
+    return matchSearch && matchStatus && matchOwner && matchTags;
   });
 
   const BrokerLeadCard = ({ lead }) => {
@@ -855,7 +863,26 @@ export default function Leads() {
                   </SelectContent>
                 </Select>
               )}
+
+              <TagFilter
+                selected={brokerTagFilter}
+                onChange={setBrokerTagFilter}
+                matchAll={brokerTagMatchAll}
+                onMatchAllChange={setBrokerTagMatchAll}
+              />
+
+              <Button variant="outline" size="sm" className="gap-2 h-9" onClick={() => setShowTagManager(true)}>
+                <Settings className="w-4 h-4" /> Manage Tags
+              </Button>
             </div>
+
+            {(brokerTagFilter.length > 0 || brokerTagMatchAll) && (
+              <div className="mb-3 text-sm text-gray-500">
+                Tag filter: {brokerTagFilter.length > 0
+                  ? `${brokerTagFilter.join(brokerTagMatchAll ? ' AND ' : ' OR ')}`
+                  : 'none'} — Showing {filteredBrokerLeads.length} of {brokerLeads.length} partners
+              </div>
+            )}
 
             {brokerViewMode === 'pipeline' ? (
               <PipelineView
@@ -1268,6 +1295,9 @@ export default function Leads() {
           }}
         />
       )}
+
+      {/* Tag Manager Dialog */}
+      <TagManager open={showTagManager} onOpenChange={setShowTagManager} />
 
       {/* Partner Lead Add/Edit Dialog */}
       <Dialog open={isAddBrokerOpen || !!editingBrokerLead} onOpenChange={(open) => { if (!open) { setIsAddBrokerOpen(false); setEditingBrokerLead(null); } }}>

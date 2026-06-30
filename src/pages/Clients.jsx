@@ -20,7 +20,9 @@ import { createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 import BrokersEditor from '@/components/clients/BrokersEditor';
 import ClientPipelineView from '@/components/clients/ClientPipelineView';
-import { LayoutList, Columns } from 'lucide-react';
+import TagFilter from '@/components/ui/TagFilter';
+import TagManager from '@/components/ui/TagManager';
+import { LayoutList, Columns, Settings } from 'lucide-react';
 
 function SyncEmailsButton() {
   const [syncing, setSyncing] = React.useState(false);
@@ -153,6 +155,9 @@ export default function Clients() {
   const [filterBudget, setFilterBudget] = useState('all');
   const [showDuplicates, setShowDuplicates] = useState(true);
   const [mergingClients, setMergingClients] = useState(null);
+  const [clientTagFilter, setClientTagFilter] = useState([]);
+  const [clientTagMatchAll, setClientTagMatchAll] = useState(false);
+  const [showTagManager, setShowTagManager] = useState(false);
   
   const queryClient = useQueryClient();
 
@@ -381,7 +386,11 @@ export default function Clients() {
       else if (filterBudget === 'over100k') matchesBudget = budget >= 100000;
     }
     
-    return matchesSearch && matchesIndustry && matchesSize && matchesBudget;
+    const matchTags = clientTagFilter.length === 0 || (clientTagMatchAll
+      ? clientTagFilter.every(t => client.tags?.includes(t))
+      : clientTagFilter.some(t => client.tags?.includes(t)));
+
+    return matchesSearch && matchesIndustry && matchesSize && matchesBudget && matchTags;
   });
 
   const statusColors = {
@@ -436,8 +445,16 @@ export default function Clients() {
             </Select>
           </div>
 
-          {/* Sync Emails + Add Client Buttons */}
           <div className="flex justify-end gap-2">
+            <TagFilter
+              selected={clientTagFilter}
+              onChange={setClientTagFilter}
+              matchAll={clientTagMatchAll}
+              onMatchAllChange={setClientTagMatchAll}
+            />
+            <Button variant="outline" size="sm" className="gap-2 h-9" onClick={() => setShowTagManager(true)}>
+              <Settings className="w-4 h-4" /> Manage Tags
+            </Button>
           <SyncEmailsButton />
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
@@ -512,6 +529,9 @@ export default function Clients() {
             </div>
           </div>
         )}
+
+        {/* Tag Manager Dialog */}
+        <TagManager open={showTagManager} onOpenChange={setShowTagManager} />
 
         {/* Search and Filters - list view only */}
         {viewMode === 'list' && <div className="bg-white rounded-xl p-4 shadow-lg mb-6">

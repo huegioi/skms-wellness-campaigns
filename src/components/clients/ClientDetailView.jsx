@@ -26,6 +26,7 @@ import AddContactDialog from '@/components/clients/AddContactDialog';
 import PrimaryContactEditor from '@/components/clients/PrimaryContactEditor';
 import ClientScheduleTab from '@/components/clients/ClientScheduleTab';
 import { TagSelector } from '@/components/ui/TagSelector';
+import TagManager from '@/components/ui/TagManager';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import MayaInsightsWidget from '@/components/shared/MayaInsightsWidget';
@@ -51,6 +52,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   const [editForm, setEditForm] = useState({});
   const [showAddContact, setShowAddContact] = useState(false);
   const [showAddInteraction, setShowAddInteraction] = useState(false);
+  const [showTagManager, setShowTagManager] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', title: '', notes: '' });
   const [interactionForm, setInteractionForm] = useState({
@@ -568,6 +570,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             <h4 className="font-semibold text-gray-700 mb-2">Tags</h4>
             <TagSelector
               value={client.tags || []}
+              onManageTags={() => setShowTagManager(true)}
               onChange={async (tags) => {
                 try {
                   await base44.entities.Client.update(client.id, { tags });
@@ -581,6 +584,9 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           </div>
           </>
           )}
+
+          {/* Tag Manager Dialog */}
+          <TagManager open={showTagManager} onOpenChange={setShowTagManager} />
 
           {/* Maya Insights Widget */}
           {!isEditing && (

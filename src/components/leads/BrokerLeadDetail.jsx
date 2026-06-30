@@ -11,6 +11,7 @@ import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GmailHistory from '@/components/clients/GmailHistory';
 import { TagSelector } from '@/components/ui/TagSelector';
+import TagManager from '@/components/ui/TagManager';
 import { toast } from 'sonner';
 import MayaInsightsWidget from '@/components/shared/MayaInsightsWidget';
 
@@ -117,6 +118,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const [referralForm, setReferralForm] = useState(EMPTY_REFERRAL);
   const [showAddProposal, setShowAddProposal] = useState(false);
   const [proposalForm, setProposalForm] = useState(EMPTY_PROPOSAL_FORM);
+  const [showTagManager, setShowTagManager] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -540,6 +542,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                 <h4 className="font-semibold text-gray-700 text-sm mb-2">Tags</h4>
                 <TagSelector
                   value={lead.tags || []}
+                  onManageTags={() => setShowTagManager(true)}
                   onChange={async (tags) => {
                     try {
                       await base44.entities.Lead.update(lead.id, { tags });
@@ -553,6 +556,9 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
 
               {/* Maya Insights Widget */}
               <MayaInsightsWidget recordType="partner" recordId={lead.id} owner={lead.owner} />
+
+      {/* Tag Manager Dialog */}
+      <TagManager open={showTagManager} onOpenChange={setShowTagManager} />
             </TabsContent>
 
             {/* Referrals (merged with Companies) */}
