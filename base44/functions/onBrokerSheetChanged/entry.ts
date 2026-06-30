@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     if (changedFileIds.has(SPREADSHEET_FILE_ID)) {
       console.log('Broker Leads sheet changed — triggering syncBrokerLeadsSheet');
       // Invoke the existing sync function as service role
-      await base44.asServiceRole.functions.invoke('syncBrokerLeadsSheet', {});
+      await base44.asServiceRole.functions.invoke('syncBrokerLeadsSheet', { sheetName: 'Referral Partners' });
       console.log('syncBrokerLeadsSheet triggered successfully');
     } else {
       console.log('Changed files did not include the Broker Leads sheet — skipping');

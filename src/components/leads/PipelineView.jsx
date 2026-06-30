@@ -437,10 +437,11 @@ function PartnerCard({ lead, onClick, onStageChange, section }) {
     try {
       await base44.entities.Lead.update(lead.id, { follow_up_stage: newStage || null });
       if (onStageChange) onStageChange(lead.id, newStage);
-      const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || undefined;
+      const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || 'Referral Partners';
       base44.functions.invoke('syncBrokerLeadsSheet', {
         action: 'updateStage',
         leadId: lead.id,
+        email: lead.email,
         sheetRowId: lead.sheet_row_id,
         sheetName,
         follow_up_stage: newStage,

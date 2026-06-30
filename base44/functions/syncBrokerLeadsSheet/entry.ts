@@ -108,16 +108,12 @@ Deno.serve(async (req) => {
 
     // ── Handle updateStage action ──────────────────────────────────────────────
     if (body.action === 'updateStage') {
-      const { sheetRowId, sheetName, follow_up_stage, leadId } = body;
-      console.log('updateStage called:', { sheetRowId, sheetName, follow_up_stage, leadId });
-
-      if (!sheetRowId) {
-        return Response.json({ error: 'Missing sheetRowId' }, { status: 400 });
-      }
+      const { sheetRowId, sheetName, follow_up_stage, leadId, email } = body;
+      console.log('updateStage called:', { sheetRowId, sheetName, follow_up_stage, leadId, email });
 
       const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
 
-      // Get the spreadsheet metadata to find the Follow Up Stage column index
+      // Resolve canonical tab name
       const metaRes = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -130,26 +126,55 @@ Deno.serve(async (req) => {
       const targetSheet = availableSheets.includes(sheetName)
         ? sheetName
         : knownGoodTabs.find(t => availableSheets.includes(t)) || availableSheets[0] || 'Referral Partners';
-      console.log('Using targetSheet:', targetSheet, '| sheetRowId:', sheetRowId);
+      console.log('Using targetSheet:', targetSheet);
 
-      // Read header row to find the column index
-      const headerRes = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(targetSheet + '!1:1')}`,
+      // Read the whole tab — header row + all data rows
+      const tabRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(targetSheet + '!A:Z')}`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-      const headerData = await headerRes.json();
-      const headers = (headerData.values?.[0] || []).map(h => h.toLowerCase().trim());
-      console.log('Headers found:', headers);
-      const stageColIndex = headers.findIndex(h => h === 'follow up stage' || h === 'follow_up_stage');
-      console.log('Follow Up Stage column index:', stageColIndex);
+      const tabData = await tabRes.json();
+      const allRows = tabData.values || [];
+      if (allRows.length === 0) {
+        return Response.json({ error: `Tab "${targetSheet}" is empty` }, { status: 400 });
+      }
 
-      if (stageColIndex === -1) {
+      const headers = (allRows[0] || []).map(h => h.toLowerCase().trim());
+      const emailColIdx = headers.findIndex(h => h === 'email' || h === 'email address');
+      const stageColIdx = headers.findIndex(h => h === 'follow up stage' || h === 'follow_up_stage');
+      console.log('Headers:', headers, '| email col:', emailColIdx, '| stage col:', stageColIdx);
+
+      if (stageColIdx === -1) {
         return Response.json({ error: 'Follow Up Stage column not found in sheet', headers }, { status: 400 });
       }
 
-      // sheetRowId is the 1-based row number (including header row)
-      const colLetter = String.fromCharCode(65 + stageColIndex); // A=65
-      const cellRange = `${targetSheet}!${colLetter}${sheetRowId}`;
+      // Find row by email match (case-insensitive, trimmed)
+      let matchedRowNum = null;
+      if (email && emailColIdx >= 0) {
+        const normEmail = email.trim().toLowerCase();
+        for (let i = 1; i < allRows.length; i++) {
+          const cellEmail = (allRows[i][emailColIdx] || '').trim().toLowerCase();
+          if (cellEmail === normEmail) {
+            matchedRowNum = i + 1; // 1-based row number including header
+            break;
+          }
+        }
+      }
+
+      // Fall back to sheetRowId if no email match
+      if (!matchedRowNum && sheetRowId) {
+        matchedRowNum = parseInt(sheetRowId, 10);
+      }
+
+      if (!matchedRowNum) {
+        return Response.json({
+          error: `Could not find row for email "${email}" and no sheetRowId provided`,
+          targetSheet, email, sheetRowId,
+        }, { status: 400 });
+      }
+
+      const colLetter = String.fromCharCode(65 + stageColIdx);
+      const cellRange = `${targetSheet}!${colLetter}${matchedRowNum}`;
       console.log('Writing to cell range:', cellRange, '| value:', follow_up_stage);
 
       const updateRes = await fetch(
@@ -165,15 +190,25 @@ Deno.serve(async (req) => {
       if (updateData.error) {
         return Response.json({ error: updateData.error.message, details: updateData.error }, { status: 400 });
       }
-      return Response.json({ success: true, updatedRange: updateData.updatedRange, cellRange, targetSheet });
+
+      // Write back the matched row number so sheet_row_id stays fresh
+      if (leadId) {
+        try {
+          await base44.asServiceRole.entities.Lead.update(leadId, {
+            sheet_row_id: String(matchedRowNum),
+            sheet_origin: `BrokerLeads:${targetSheet}`,
+          });
+        } catch (e) {
+          console.warn('Failed to update sheet_row_id on lead:', e.message);
+        }
+      }
+
+      return Response.json({ success: true, updatedRange: updateData.updatedRange, cellRange, targetSheet, matchedRowNum });
     }
 
     // ── Handle updateOwner action ──────────────────────────────────────────────
     if (body.action === 'updateOwner') {
-      const { sheetRowId, sheetName, owner } = body;
-      if (!sheetRowId) {
-        return Response.json({ error: 'Missing sheetRowId' }, { status: 400 });
-      }
+      const { sheetRowId, sheetName, owner, leadId, email } = body;
 
       const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
 
@@ -188,20 +223,52 @@ Deno.serve(async (req) => {
         ? sheetName
         : knownGoodTabsOwner.find(t => availableSheets.includes(t)) || availableSheets[0] || 'Referral Partners';
 
-      const headerRes = await fetch(
-        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(targetSheet + '!1:1')}`,
+      // Read the whole tab — header row + all data rows
+      const tabRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(targetSheet + '!A:Z')}`,
         { headers: { Authorization: `Bearer ${accessToken}` } }
       );
-      const headerData = await headerRes.json();
-      const headers = (headerData.values?.[0] || []).map(h => h.toLowerCase().trim());
-      const ownerColIndex = headers.findIndex(h => h === 'owner');
+      const tabData = await tabRes.json();
+      const allRows = tabData.values || [];
+      if (allRows.length === 0) {
+        return Response.json({ error: `Tab "${targetSheet}" is empty` }, { status: 400 });
+      }
 
-      if (ownerColIndex === -1) {
+      const headers = (allRows[0] || []).map(h => h.toLowerCase().trim());
+      const emailColIdx = headers.findIndex(h => h === 'email' || h === 'email address');
+      const ownerColIdx = headers.findIndex(h => h === 'owner');
+
+      if (ownerColIdx === -1) {
         return Response.json({ error: 'Owner column not found in sheet', headers }, { status: 400 });
       }
 
-      const colLetter = String.fromCharCode(65 + ownerColIndex);
-      const cellRange = `${targetSheet}!${colLetter}${sheetRowId}`;
+      // Find row by email match (case-insensitive, trimmed)
+      let matchedRowNum = null;
+      if (email && emailColIdx >= 0) {
+        const normEmail = email.trim().toLowerCase();
+        for (let i = 1; i < allRows.length; i++) {
+          const cellEmail = (allRows[i][emailColIdx] || '').trim().toLowerCase();
+          if (cellEmail === normEmail) {
+            matchedRowNum = i + 1;
+            break;
+          }
+        }
+      }
+
+      // Fall back to sheetRowId if no email match
+      if (!matchedRowNum && sheetRowId) {
+        matchedRowNum = parseInt(sheetRowId, 10);
+      }
+
+      if (!matchedRowNum) {
+        return Response.json({
+          error: `Could not find row for email "${email}" and no sheetRowId provided`,
+          targetSheet, email, sheetRowId,
+        }, { status: 400 });
+      }
+
+      const colLetter = String.fromCharCode(65 + ownerColIdx);
+      const cellRange = `${targetSheet}!${colLetter}${matchedRowNum}`;
 
       const updateRes = await fetch(
         `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(cellRange)}?valueInputOption=USER_ENTERED`,
@@ -215,7 +282,20 @@ Deno.serve(async (req) => {
       if (updateData.error) {
         return Response.json({ error: updateData.error.message }, { status: 400 });
       }
-      return Response.json({ success: true, updatedRange: updateData.updatedRange, cellRange, targetSheet });
+
+      // Write back the matched row number so sheet_row_id stays fresh
+      if (leadId) {
+        try {
+          await base44.asServiceRole.entities.Lead.update(leadId, {
+            sheet_row_id: String(matchedRowNum),
+            sheet_origin: `BrokerLeads:${targetSheet}`,
+          });
+        } catch (e) {
+          console.warn('Failed to update sheet_row_id on lead:', e.message);
+        }
+      }
+
+      return Response.json({ success: true, updatedRange: updateData.updatedRange, cellRange, targetSheet, matchedRowNum });
     }
 
     // ── Handle appendLead action ───────────────────────────────────────────────
