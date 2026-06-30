@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { InlineText } from '@/components/shared/inline/InlineText';
@@ -11,6 +11,12 @@ import TagManager from '@/components/ui/TagManager';
 export function RecordSnapshotHeader({ record, entityType, stages, onUpdate }) {
   const queryClient = useQueryClient();
   const [showTagManager, setShowTagManager] = useState(false);
+  const [localRecord, setLocalRecord] = useState(record);
+
+  // Sync when parent passes an updated record (after refetch)
+  React.useEffect(() => {
+    setLocalRecord(record);
+  }, [record]);
 
   const queryKey =
     entityType === 'Lead' ? ['leads']
@@ -18,6 +24,9 @@ export function RecordSnapshotHeader({ record, entityType, stages, onUpdate }) {
     : ['referralPartners'];
 
   const update = async (updates) => {
+    // Optimistic local update for instant feedback
+    setLocalRecord(prev => ({ ...prev, ...updates }));
+
     if (onUpdate) {
       onUpdate(updates);
       return;
@@ -29,6 +38,7 @@ export function RecordSnapshotHeader({ record, entityType, stages, onUpdate }) {
     try {
       await base44.entities[entityType].update(record.id, updates);
     } catch (e) {
+      setLocalRecord(record); // revert on error
       queryClient.invalidateQueries({ queryKey });
     }
     queryClient.invalidateQueries({ queryKey });
@@ -47,8 +57,9 @@ export function RecordSnapshotHeader({ record, entityType, stages, onUpdate }) {
     update(updates);
   };
 
-  const initials = record.name
-    ? record.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  const r = localRecord;
+  const initials = r.name
+    ? r.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
     : '??';
 
   const stageField =
@@ -56,7 +67,7 @@ export function RecordSnapshotHeader({ record, entityType, stages, onUpdate }) {
     : entityType === 'Client' ? 'client_stage'
     : 'partner_status';
 
-  const stageValue = record[stageField];
+  const stageValue = r[stageField];
 
   return (
     <div className="flex items-start gap-3 flex-wrap p-4 bg-white rounded-xl border border-gray-200">
@@ -65,24 +76,24 @@ export function RecordSnapshotHeader({ record, entityType, stages, onUpdate }) {
       </div>
       <div className="flex-1 min-w-[180px]">
         <InlineText
-          value={record.name}
+          value={r.name}
           onSave={(v) => update({ name: v })}
           className="text-lg font-bold text-[#013f7c]"
         />
         <InlineText
-          value={record.company}
+          value={r.company}
           onSave={(v) => update({ company: v })}
           className="text-sm text-gray-500"
           placeholder="Add company"
         />
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <OwnerChip value={record.owner} onSave={(v) => update({ owner: v })} />
+        <OwnerChip value={r.owner} onSave={(v) => update({ owner: v })} />
         <StageControl stages={stages} value={stageValue} onSave={handleStageChange} />
-        <FollowUpDatePill value={record.follow_up_due_date} onSave={(v) => update({ follow_up_due_date: v })} />
+        <FollowUpDatePill value={r.follow_up_due_date} onSave={(v) => update({ follow_up_due_date: v })} />
         <div className="min-w-[120px]">
           <TagSelector
-            value={record.tags || []}
+            value={r.tags || []}
             onManageTags={() => setShowTagManager(true)}
             onChange={(tags) => update({ tags })}
           />
