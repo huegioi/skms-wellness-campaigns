@@ -274,6 +274,7 @@ export default function Leads() {
   const [brokerForm, setBrokerForm] = useState(EMPTY_BROKER_LEAD_FORM);
   const [syncingBrokers, setSyncingBrokers] = useState(false);
   const [syncingEmail, setSyncingEmail] = useState(false);
+  const [backfillingSheet, setBackfillingSheet] = useState(false);
   const [viewingBrokerLead, setViewingBrokerLead] = useState(null);
   const [showActivePartnersModal, setShowActivePartnersModal] = useState(false);
   const [brokerViewMode, setBrokerViewMode] = useState('list'); // 'list' | 'pipeline'
@@ -533,6 +534,30 @@ export default function Leads() {
     }
   };
 
+  // Backfill app → sheet: append leads not yet in the Google Sheet
+  const handleBackfillToSheet = async () => {
+    setBackfillingSheet(true);
+    try {
+      let startRow = 0;
+      let totalAppended = 0;
+      let totalSkipped = 0;
+      while (true) {
+        const res = await base44.functions.invoke('backfillLeadsToSheet', { startRow });
+        const d = res.data || {};
+        totalAppended += d.appended || 0;
+        totalSkipped += d.skipped || 0;
+        if (!d.hasMore) break;
+        startRow = d.nextStartRow;
+      }
+      toast.success(`Backfill complete — ${totalAppended} appended, ${totalSkipped} skipped`);
+      await queryClient.invalidateQueries({ queryKey: ['leads'] });
+    } catch (e) {
+      toast.error('Backfill failed: ' + e.message);
+    } finally {
+      setBackfillingSheet(false);
+    }
+  };
+
   const brokerOwners = [...new Set(brokerLeads.map(l => l.owner).filter(Boolean))].sort();
 
   const filteredBrokerLeads = brokerLeads.filter(lead => {
@@ -745,6 +770,10 @@ export default function Leads() {
                 <Button variant="outline" onClick={handleSyncBrokerLeads} disabled={syncingBrokers} className="gap-2">
                   <RefreshCw className={`w-4 h-4 ${syncingBrokers ? 'animate-spin' : ''}`} />
                   {syncingBrokers ? 'Syncing...' : 'Sync Sheet'}
+                </Button>
+                <Button variant="outline" onClick={handleBackfillToSheet} disabled={backfillingSheet} className="gap-2 text-[#013f7c] border-[#013f7c]/30 hover:bg-[#013f7c]/5" title="Append app-only leads to the Google Sheet">
+                  <RefreshCw className={`w-4 h-4 ${backfillingSheet ? 'animate-spin' : ''}`} />
+                  {backfillingSheet ? 'Backfilling...' : 'Backfill to Sheet'}
                 </Button>
                 <Button variant="outline" onClick={handleEmailSync} disabled={syncingEmail} className="gap-2">
                   <Mail className={`w-4 h-4 ${syncingEmail ? 'animate-spin' : ''}`} />
