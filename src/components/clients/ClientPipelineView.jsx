@@ -12,35 +12,12 @@ import { MoreVertical, UserCog, StickyNote, Pencil, Trash2 } from 'lucide-react'
 import { differenceInDays, parseISO } from 'date-fns';
 import { TagChips } from '@/components/ui/TagChips';
 import StagePlaybookDialog from './StagePlaybookDialog';
+import { OWNERS, CLIENT_STAGES } from '@/components/shared/constants';
 
-const SALES_STAGES = [
-  { key: 'event_follow_up',          label: 'Event Follow-up',          desc: 'Following up after an event, conference, or speaking engagement', headerClass: 'bg-cyan-50 border-cyan-200',     textClass: 'text-cyan-700' },
-  { key: 'discovery_call_scheduled', label: 'Discovery Call Scheduled', desc: 'Call booked, preparing for first conversation', headerClass: 'bg-sky-50 border-sky-200', textClass: 'text-sky-700' },
-  { key: 'discovery_call_complete',  label: 'Discovery Call Complete',  desc: 'Call done, assessing fit and next steps',    headerClass: 'bg-cyan-50 border-cyan-200', textClass: 'text-cyan-700' },
-  { key: 'proposal_sent',            label: 'Proposal Sent',            desc: 'Proposal delivered, awaiting response',      headerClass: 'bg-indigo-50 border-indigo-200', textClass: 'text-indigo-700' },
-  { key: 'proposal_viewed',          label: 'Proposal Viewed',          desc: 'Prospect opened the proposal — act fast',    headerClass: 'bg-violet-50 border-violet-200', textClass: 'text-violet-700' },
-  { key: 'negotiation',              label: 'Negotiation',              desc: 'Active back-and-forth on scope and pricing',  headerClass: 'bg-purple-50 border-purple-200', textClass: 'text-purple-700' },
-  { key: 'verbal_yes',               label: 'Verbal Yes',               desc: 'Commitment received — closing the deal',     headerClass: 'bg-blue-50 border-blue-300', textClass: 'text-blue-800' },
-];
-
-const LIFECYCLE_STAGES = [
-  { key: 'new_client_setup',  label: 'New Client Setup',    desc: 'Completing onboarding tasks, scheduling first programs',           headerClass: 'bg-emerald-50 border-emerald-200', textClass: 'text-emerald-700' },
-  { key: 'program_delivery',  label: 'Program Delivery',    desc: 'Actively delivering workshops, challenges, boxes',                 headerClass: 'bg-green-50 border-green-200',   textClass: 'text-green-700' },
-  { key: 'followup_feedback', label: 'Follow-up & Feedback',desc: 'Collecting surveys, building ROI reports',                        headerClass: 'bg-teal-50 border-teal-200',     textClass: 'text-teal-700' },
-  { key: 'nurture',           label: 'Nurture',             desc: 'Between programs, maintaining relationship',                      headerClass: 'bg-purple-50 border-purple-200', textClass: 'text-purple-700' },
-  { key: 'renewal_outreach',  label: 'Renewal Outreach',    desc: 'Approaching plan year renewal, proposing next year\'s programs',   headerClass: 'bg-amber-50 border-amber-300',   textClass: 'text-amber-700' },
-  { key: 're_engage',         label: 'Re-engage',           desc: 'Gone quiet for 60+ days, need proactive outreach',                headerClass: 'bg-red-50 border-red-300',       textClass: 'text-red-700' },
-  { key: 'churned',           label: 'Churned',             desc: 'Lost client',                                                     headerClass: 'bg-rose-100 border-rose-300',    textClass: 'text-rose-700' },
-  { key: '__none__',          label: 'No Stage',            desc: 'Clients with no stage set yet',                                   headerClass: 'bg-slate-50 border-slate-200',   textClass: 'text-slate-500' },
-];
-
-const ALL_STAGE_KEYS = [
-  ...SALES_STAGES.map(s => s.key),
-  ...LIFECYCLE_STAGES.map(s => s.key),
-];
-
+const SALES_STAGES = CLIENT_STAGES.filter(s => s.group === 'Sales');
+const LIFECYCLE_STAGES = CLIENT_STAGES.filter(s => s.group === 'Lifecycle');
+const ALL_STAGE_KEYS = CLIENT_STAGES.map(s => s.key);
 const NEEDS_ATTENTION_STAGES = new Set(['nurture', 'program_delivery']);
-const OWNERS = ['William', 'Heather'];
 
 function daysAgo(dateStr) {
   if (!dateStr) return null;

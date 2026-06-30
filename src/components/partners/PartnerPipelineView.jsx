@@ -7,15 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Copy, ExternalLink, Check, Users, DollarSign, MoreVertical, UserCog } from 'lucide-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
-
-const OWNERS = ['William', 'Heather'];
-
-const PARTNER_STAGES = [
-  { key: 'Prospect',       label: 'Prospect',       desc: 'Identified, outreach not yet started',     headerClass: 'bg-sky-50 border-sky-200',     textClass: 'text-sky-700' },
-  { key: 'Active Partner', label: 'Active Partner',  desc: 'Agreement signed, actively referring',      headerClass: 'bg-emerald-50 border-emerald-200', textClass: 'text-emerald-700' },
-  { key: 'Inactive',       label: 'Inactive',        desc: 'No recent referrals or engagement',         headerClass: 'bg-gray-100 border-gray-300',   textClass: 'text-gray-500' },
-  { key: '__none__',       label: 'No Stage',        desc: 'Partners with no stage set yet',            headerClass: 'bg-slate-50 border-slate-200',  textClass: 'text-slate-500' },
-];
+import { OWNERS, PARTNER_STAGES } from '@/components/shared/constants';
 
 function PartnerCard({ partner, provided, snapshot, referrals, onOwnerChange, onLogNote, onCopyLink, copiedId }) {
   const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id);

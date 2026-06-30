@@ -12,28 +12,12 @@ import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, Chevro
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import PartnerPipelineView from '@/components/partners/PartnerPipelineView';
+import { LEAD_STAGES } from '@/components/shared/constants';
 
 const DEFAULT_TIERS = [
   { label: 'Introducing Partner', min_revenue: 0, max_revenue: 74999, rate: 0.10 },
   { label: 'Active Partner', min_revenue: 75000, max_revenue: 149999, rate: 0.125 },
   { label: 'Strategic Partner', min_revenue: 150000, max_revenue: null, rate: 0.15 },
-];
-
-const FOLLOW_UP_STAGES = [
-  '',
-  'Day 1 - LinkedIn Connection',
-  'Day 2 - Send email #1',
-  'Day 3 - Call #1',
-  'Day 3 - Text f/u to call',
-  'Day 5 - Call #2',
-  'Day 5 - LinkedIn f/u message',
-  'Day 7 - Send email #2',
-  'Day 10 - Call #3',
-  'Day 10 - Send email #3',
-  'Day 11 - LinkedIn message #3',
-  'Day 15 - Send email #4',
-  'Day 20 - Send email #5',
-  'Referral Partner',
 ];
 
 const EMPTY_FORM = {
@@ -543,10 +527,11 @@ export default function ReferralPartnerAdmin() {
                   <SelectValue placeholder="Select follow-up stage" />
                 </SelectTrigger>
                 <SelectContent>
-                  {FOLLOW_UP_STAGES.map((stage, i) => (
-                    <SelectItem key={i} value={stage || '__none__'}>
-                      {stage || <span className="text-gray-400 italic">— No Stage —</span>}
-                    </SelectItem>
+                  <SelectItem value="__none__">
+                    <span className="text-gray-400 italic">— No Stage —</span>
+                  </SelectItem>
+                  {LEAD_STAGES.map((stage, i) => (
+                    <SelectItem key={i} value={stage.key}>{stage.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
