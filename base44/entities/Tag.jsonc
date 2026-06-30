@@ -1,0 +1,22 @@
+{
+  "name": "Tag",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The tag label, e.g. \"NABIP NJ 2026\". Treated as unique (case-insensitive)."
+    },
+    "color": {
+      "type": "string",
+      "description": "A hex color for the tag chip, e.g. \"#10b981\""
+    },
+    "description": {
+      "type": "string",
+      "description": "What the tag means"
+    }
+  },
+  "required": [
+    "name",
+    "color"
+  ]
+}

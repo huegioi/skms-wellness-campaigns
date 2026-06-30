@@ -40,6 +40,13 @@
       "type": "string",
       "description": "Estimated company size"
     },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tag labels applied to this lead (shared pool with Client)"
+    },
     "lead_type": {
       "type": "string",
       "enum": [

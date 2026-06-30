@@ -78,6 +78,13 @@
       "type": "string",
       "description": "Team member responsible for this client (e.g. William, Heather)"
     },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tag labels applied to this client (shared pool with Lead)"
+    },
     "client_stage": {
       "type": "string",
       "enum": [
