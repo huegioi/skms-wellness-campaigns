@@ -30,6 +30,7 @@ const ACQUISITION_STAGES = [
 
 const ENGAGEMENT_STAGES = [
   'New Referral Partner',
+  'Event Follow-up',
   'Lunch & Learn',
   'Active & Engaged',
   'In-Person Meeting',
@@ -158,6 +159,14 @@ const ACTION_STEPS = {
     'Share a sample proposal they can show their clients.',
     'Schedule an intro call to discuss their book of business.',
     'Add to monthly check-in cadence.',
+  ],
+  'Event Follow-up': [
+    'Send a personalized follow-up email within 48 hours of the event.',
+    'Reference something specific you discussed to jog their memory.',
+    'Share a relevant resource — case study, one-pager, or ROI data.',
+    'Propose a quick 15-minute discovery call to continue the conversation.',
+    'Connect on LinkedIn if not already connected.',
+    'Log the event name and date in CRM for future reference.',
   ],
   'Lunch & Learn': [
     'Schedule a Lunch & Learn at their office for their team.',

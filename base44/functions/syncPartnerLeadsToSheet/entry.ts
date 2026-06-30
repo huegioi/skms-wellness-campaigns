@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 const SPREADSHEET_ID = '1QyVdp7XWFfUkZyqLMVn6P39X84WgYWOHfqI2US7WKWk';
 const TAB_NAME = 'Partner Leads';
 
-const REQUIRED_COLUMNS = ['Name', 'Email', 'Company', 'Phone', 'Source', 'Kajabi Contact ID'];
+const REQUIRED_COLUMNS = ['Name', 'Email', 'Company', 'Phone', 'Source', 'Kajabi Contact ID', 'Follow up Stage'];
 
 Deno.serve(async (req) => {
   try {
@@ -87,6 +87,7 @@ Deno.serve(async (req) => {
         phone: lead.phone || '',
         source: lead.lead_type === 'broker_lead' ? 'broker_lead' : 'broker',
         kajabi_contact_id: lead.kajabi_contact_id || '',
+        follow_up_stage: lead.follow_up_stage || '',
       });
     }
 
@@ -101,6 +102,7 @@ Deno.serve(async (req) => {
         phone: partner.phone || '',
         source: 'Referral Partner',
         kajabi_contact_id: partner.kajabi_contact_id || '',
+        follow_up_stage: partner.follow_up_stage || '',
       });
     }
 
@@ -116,6 +118,7 @@ Deno.serve(async (req) => {
       if (colMap['phone'] !== undefined) row[colMap['phone']] = rec.phone;
       if (colMap['source'] !== undefined) row[colMap['source']] = rec.source;
       if (colMap['kajabi contact id'] !== undefined) row[colMap['kajabi contact id']] = rec.kajabi_contact_id;
+      if (colMap['follow up stage'] !== undefined) row[colMap['follow up stage']] = rec.follow_up_stage;
       return row;
     });
 

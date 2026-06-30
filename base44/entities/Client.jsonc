@@ -90,6 +90,7 @@
         "new_client_setup",
         "program_delivery",
         "followup_feedback",
+        "event_follow_up",
         "nurture",
         "renewal_outreach",
         "re_engage",

@@ -25,6 +25,7 @@ const LIFECYCLE_STAGES = [
   { key: 'new_client_setup',  label: 'New Client Setup',    desc: 'Completing onboarding tasks, scheduling first programs',           headerClass: 'bg-emerald-50 border-emerald-200', textClass: 'text-emerald-700' },
   { key: 'program_delivery',  label: 'Program Delivery',    desc: 'Actively delivering workshops, challenges, boxes',                 headerClass: 'bg-green-50 border-green-200',   textClass: 'text-green-700' },
   { key: 'followup_feedback', label: 'Follow-up & Feedback',desc: 'Collecting surveys, building ROI reports',                        headerClass: 'bg-teal-50 border-teal-200',     textClass: 'text-teal-700' },
+  { key: 'event_follow_up',   label: 'Event Follow-up',     desc: 'Following up after an event, conference, or speaking engagement', headerClass: 'bg-cyan-50 border-cyan-200',     textClass: 'text-cyan-700' },
   { key: 'nurture',           label: 'Nurture',             desc: 'Between programs, maintaining relationship',                      headerClass: 'bg-purple-50 border-purple-200', textClass: 'text-purple-700' },
   { key: 'renewal_outreach',  label: 'Renewal Outreach',    desc: 'Approaching plan year renewal, proposing next year\'s programs',   headerClass: 'bg-amber-50 border-amber-300',   textClass: 'text-amber-700' },
   { key: 're_engage',         label: 'Re-engage',           desc: 'Gone quiet for 60+ days, need proactive outreach',                headerClass: 'bg-red-50 border-red-300',       textClass: 'text-red-700' },
