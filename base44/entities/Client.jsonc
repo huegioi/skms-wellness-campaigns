@@ -83,7 +83,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Tag labels applied to this client (shared pool with Lead)"
+      "description": "Tag labels applied to this client (shared pool with Lead and ReferralPartner)"
     },
     "client_stage": {
       "type": "string",
@@ -336,6 +336,11 @@
       "type": "string",
       "format": "date",
       "description": "Date the client entered the current stage \u2014 used for stall detection"
+    },
+    "follow_up_due_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Manual follow-up due date (does not replace the window-based follow-up model)"
     }
   },
   "required": [

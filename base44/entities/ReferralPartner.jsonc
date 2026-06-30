@@ -139,6 +139,13 @@
     "kajabi_contact_id": {
       "type": "string",
       "description": "Durable Kajabi contact ID for direct API lookups (skips unreliable email filter)"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tag labels applied to this partner (shared pool with Lead and Client)"
     }
   },
   "required": [
