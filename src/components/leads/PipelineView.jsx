@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Building, User, Calendar, AlertCircle, ChevronDown, X, Info } from 'lucide-react';
 import { format, isToday, isPast, parseISO } from 'date-fns';
 import { base44 } from '@/api/base44Client';
+import { TagChips } from '@/components/ui/TagChips';
 
 // ── Stage Definitions ────────────────────────────────────────────────────────
 
@@ -483,6 +484,11 @@ function PartnerCard({ lead, onClick, onStageChange, section }) {
             <User className="w-3 h-3 flex-shrink-0" />
             {lead.owner}
           </p>
+        )}
+        {lead.tags?.length > 0 && (
+          <div className="mb-1">
+            <TagChips tags={lead.tags} />
+          </div>
         )}
         {lead.follow_up_due_date && (
           <p className={`text-xs flex items-center gap-1 mt-1 font-medium ${

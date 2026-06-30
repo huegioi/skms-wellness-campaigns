@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Save, ChevronLeft, ScanText, Loader2, CheckCircle2, Camera, Linkedin } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { TagSelector } from '@/components/ui/TagSelector';
 import { toast } from 'sonner';
 
 const EMPTY_FORM = {
@@ -26,6 +27,7 @@ const EMPTY_FORM = {
   partner_status: 'new',
   referral_potential: 'medium',
   owner: '',
+  tags: [],
 };
 
 export default function AddLead() {
@@ -229,12 +231,13 @@ Leave fields as empty string if not visible.`,
         industry: form.industry || '',
         company_size: form.company_size || '',
         owner: form.owner || '',
+        tags: form.tags || [],
         last_contacted_date: new Date().toISOString().split('T')[0],
         notes: form.source ? (form.notes ? form.notes + `\nMet at: ${form.source}` : `Met at: ${form.source}`) : (form.notes || ''),
       };
       createClientMutation.mutate(clientPayload);
     } else {
-      createLeadMutation.mutate(form);
+      createLeadMutation.mutate({ ...form, tags: form.tags || [] });
     }
   };
 
@@ -386,6 +389,11 @@ Leave fields as empty string if not visible.`,
                 <SelectItem value="Heather">Heather</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label>Tags</Label>
+            <TagSelector value={form.tags} onChange={v => set('tags', v)} />
           </div>
 
           <div className="space-y-1">

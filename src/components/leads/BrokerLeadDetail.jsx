@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, DollarSign, ChevronDown, Pencil } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GmailHistory from '@/components/clients/GmailHistory';
+import { TagSelector } from '@/components/ui/TagSelector';
 import { toast } from 'sonner';
 import MayaInsightsWidget from '@/components/shared/MayaInsightsWidget';
 
@@ -533,6 +534,22 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                   <p className="text-sm text-gray-600 whitespace-pre-wrap">{lead.notes}</p>
                 </div>
               )}
+
+              {/* Tags */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-semibold text-gray-700 text-sm mb-2">Tags</h4>
+                <TagSelector
+                  value={lead.tags || []}
+                  onChange={async (tags) => {
+                    try {
+                      await base44.entities.Lead.update(lead.id, { tags });
+                      queryClient.invalidateQueries({ queryKey: ['leads'] });
+                    } catch (e) {
+                      toast.error('Failed to update tags: ' + e.message);
+                    }
+                  }}
+                />
+              </div>
 
               {/* Maya Insights Widget */}
               <MayaInsightsWidget recordType="partner" recordId={lead.id} owner={lead.owner} />

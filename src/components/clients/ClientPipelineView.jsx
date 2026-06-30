@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { MoreVertical, UserCog, StickyNote, Pencil, Trash2 } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
+import { TagChips } from '@/components/ui/TagChips';
 import StagePlaybookDialog from './StagePlaybookDialog';
 
 const SALES_STAGES = [
@@ -189,6 +190,10 @@ function ClientCard({ client, provided, snapshot, onOwnerChange, onLogNote, onEd
       )}
 
       {client.owner && <p className="text-xs text-gray-500 mb-0.5">👤 {client.owner}</p>}
+
+      {client.tags?.length > 0 && (
+        <div className="mb-0.5"><TagChips tags={client.tags} /></div>
+      )}
 
       {ago !== null ? (
         <p className={`text-xs mb-0.5 ${ago > 60 ? 'text-red-500 font-medium' : ago > 30 ? 'text-amber-600' : 'text-gray-500'}`}>
