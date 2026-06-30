@@ -22,7 +22,8 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Tag.update(tag.id, updateData);
     }
 
-    // 2. Load all Leads whose tags contain oldName and replace
+    // 2. Replace oldName→newName in all Lead tags arrays; collect affected leads for sheet sync
+    const affectedLeads = [];
     let leadsUpdated = 0;
     let hasMore = true;
     let skip = 0;
@@ -30,19 +31,21 @@ Deno.serve(async (req) => {
       const batch = await base44.asServiceRole.entities.Lead.list('-created_date', 500, skip);
       const toUpdate = batch.filter(l => Array.isArray(l.tags) && l.tags.includes(oldName));
       if (toUpdate.length > 0) {
+        const updatedLeads = toUpdate.map(l => ({
+          ...l,
+          tags: l.tags.map(t => t === oldName ? newName : t),
+        }));
         await base44.asServiceRole.entities.Lead.bulkUpdate(
-          toUpdate.map(l => ({
-            id: l.id,
-            tags: l.tags.map(t => t === oldName ? newName : t),
-          }))
+          updatedLeads.map(l => ({ id: l.id, tags: l.tags }))
         );
         leadsUpdated += toUpdate.length;
+        affectedLeads.push(...updatedLeads);
       }
       hasMore = batch.length === 500;
       skip += 500;
     }
 
-    // 3. Load all Clients whose tags contain oldName and replace
+    // 3. Replace in all Client tags arrays
     let clientsUpdated = 0;
     hasMore = true;
     skip = 0;
@@ -62,11 +65,52 @@ Deno.serve(async (req) => {
       skip += 500;
     }
 
+    // 4. Replace in all ReferralPartner tags arrays
+    let partnersUpdated = 0;
+    hasMore = true;
+    skip = 0;
+    while (hasMore) {
+      const batch = await base44.asServiceRole.entities.ReferralPartner.list('-created_date', 500, skip);
+      const toUpdate = batch.filter(p => Array.isArray(p.tags) && p.tags.includes(oldName));
+      if (toUpdate.length > 0) {
+        await base44.asServiceRole.entities.ReferralPartner.bulkUpdate(
+          toUpdate.map(p => ({
+            id: p.id,
+            tags: p.tags.map(t => t === oldName ? newName : t),
+          }))
+        );
+        partnersUpdated += toUpdate.length;
+      }
+      hasMore = batch.length === 500;
+      skip += 500;
+    }
+
+    // 5. Rewrite Tags cell of affected Lead rows in the Google Sheet (best-effort)
+    let sheetSynced = 0;
+    for (const lead of affectedLeads) {
+      try {
+        const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || 'Referral Partners';
+        await base44.functions.invoke('syncBrokerLeadsSheet', {
+          action: 'updateTags',
+          leadId: lead.id,
+          email: lead.email,
+          sheetRowId: lead.sheet_row_id,
+          sheetName,
+          tags: lead.tags,
+        });
+        sheetSynced++;
+      } catch (e) {
+        console.warn(`Failed to sync tags to sheet for lead ${lead.id}:`, e.message);
+      }
+    }
+
     return Response.json({
       success: true,
       tagUpdated: !!tag,
       leadsUpdated,
       clientsUpdated,
+      partnersUpdated,
+      sheetSynced,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

@@ -8,13 +8,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, ChevronUp, LayoutGrid, List, Mail } from 'lucide-react';
+import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, ChevronUp, LayoutGrid, List, Mail, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import PartnerPipelineView from '@/components/partners/PartnerPipelineView';
 import ReferralPartnerDetail from '@/components/partners/ReferralPartnerDetail';
 import { LEAD_STAGES } from '@/components/shared/constants';
 import { TagSelector } from '@/components/ui/TagSelector';
+import TagFilter from '@/components/ui/TagFilter';
+import TagManager from '@/components/ui/TagManager';
 
 const DEFAULT_TIERS = [
   { label: 'Introducing Partner', min_revenue: 0, max_revenue: 74999, rate: 0.10 },
@@ -46,6 +48,9 @@ export default function ReferralPartnerAdmin() {
   const [viewMode, setViewMode] = useState('pipeline');
   const [sendEmailConfirm, setSendEmailConfirm] = useState(null); // partner to confirm sending to
   const [viewingPartner, setViewingPartner] = useState(null);
+  const [partnerTagFilter, setPartnerTagFilter] = useState([]);
+  const [partnerTagMatchAll, setPartnerTagMatchAll] = useState(false);
+  const [showTagManager, setShowTagManager] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(null); // partner id currently sending
 
   const { data: partners = [], isLoading } = useQuery({
@@ -62,6 +67,13 @@ export default function ReferralPartnerAdmin() {
     const companies = partners.map(p => p.company).filter(Boolean);
     return [...new Set(companies)].sort();
   }, [partners]);
+
+  const filteredPartners = partners.filter(p => {
+    if (partnerTagFilter.length === 0) return true;
+    return partnerTagMatchAll
+      ? partnerTagFilter.every(t => p.tags?.includes(t))
+      : partnerTagFilter.some(t => p.tags?.includes(t));
+  });
 
   const { data: referrals = [] } = useQuery({
     queryKey: ['referrals'],
@@ -209,6 +221,15 @@ export default function ReferralPartnerAdmin() {
               <LayoutGrid className="w-4 h-4" /> Pipeline
             </button>
           </div>
+          <TagFilter
+            selected={partnerTagFilter}
+            onChange={setPartnerTagFilter}
+            matchAll={partnerTagMatchAll}
+            onMatchAllChange={setPartnerTagMatchAll}
+          />
+          <Button variant="outline" size="sm" className="gap-2 h-9" onClick={() => setShowTagManager(true)}>
+            <Settings className="w-4 h-4" /> Manage Tags
+          </Button>
           <Button onClick={openNew} className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2">
             <Plus className="w-4 h-4" /> Add Partner
           </Button>
@@ -216,7 +237,7 @@ export default function ReferralPartnerAdmin() {
       </div>
 
       {viewMode === 'pipeline' && !isLoading && (
-        <PartnerPipelineView partners={partners} referrals={referrals} onSelectPartner={setViewingPartner} />
+        <PartnerPipelineView partners={filteredPartners} referrals={referrals} onSelectPartner={setViewingPartner} />
       )}
 
       {viewMode === 'list' && isLoading && (
@@ -225,7 +246,7 @@ export default function ReferralPartnerAdmin() {
         </div>
       )}
 
-      {viewMode === 'list' && !isLoading && partners.length === 0 && (
+      {viewMode === 'list' && !isLoading && filteredPartners.length === 0 && (
         <Card>
           <CardContent className="text-center py-16">
             <Users className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -234,9 +255,9 @@ export default function ReferralPartnerAdmin() {
         </Card>
       )}
 
-      {viewMode === 'list' && !isLoading && partners.length > 0 && (
+      {viewMode === 'list' && !isLoading && filteredPartners.length > 0 && (
         <div className="space-y-4">
-          {partners.map(partner => {
+          {filteredPartners.map(partner => {
             const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id && r.referral_partner_id);
             const totalCommission = partnerReferrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
             return (
@@ -537,6 +558,9 @@ export default function ReferralPartnerAdmin() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Tag Manager Dialog */}
+      <TagManager open={showTagManager} onOpenChange={setShowTagManager} />
 
       {/* Partner Detail Dialog */}
       {viewingPartner && (

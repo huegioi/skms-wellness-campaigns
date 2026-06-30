@@ -64,6 +64,7 @@ export default function TagManager({ open, onOpenChange }) {
       queryClient.invalidateQueries({ queryKey: ['tagUsage'] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
       setEditingId(null);
     } catch (e) {
       toast.error('Failed to update tag: ' + e.message);
@@ -94,7 +95,7 @@ export default function TagManager({ open, onOpenChange }) {
   };
 
   const handleDelete = async (tag) => {
-    if (!window.confirm(`Delete "${tag.name}"? This will remove it from all leads and clients.`)) return;
+    if (!window.confirm(`Delete "${tag.name}"? This will remove it from all leads, clients, and referral partners.`)) return;
     setSaving(true);
     try {
       await base44.functions.invoke('deleteTag', { name: tag.name });
@@ -102,6 +103,7 @@ export default function TagManager({ open, onOpenChange }) {
       queryClient.invalidateQueries({ queryKey: ['tagUsage'] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
       toast.success(`Deleted "${tag.name}" and stripped from all records`);
     } catch (e) {
       toast.error('Failed to delete tag: ' + e.message);
