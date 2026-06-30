@@ -19,6 +19,7 @@ import DuplicateChecker from '@/components/clients/DuplicateChecker';
 import { createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 import BrokersEditor from '@/components/clients/BrokersEditor';
+import { TagSelector } from '@/components/ui/TagSelector';
 import ClientPipelineView from '@/components/clients/ClientPipelineView';
 import TagFilter from '@/components/ui/TagFilter';
 import TagManager from '@/components/ui/TagManager';
@@ -126,6 +127,10 @@ function ClientFormFields({ formData, setFormData, clients, isEdit, editingClien
           </Select>
         </div>
       )}
+      <div className="border-t pt-4 mt-2">
+        <p className="text-sm font-medium text-gray-600 mb-2">Tags</p>
+        <TagSelector value={formData.tags || []} onChange={(tags) => setFormData({...formData, tags})} />
+      </div>
       <Textarea placeholder="Notes" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} />
     </>
   );
@@ -144,7 +149,7 @@ export default function Clients() {
     plan_year_start: '', wellness_fund_size: '',
     brokers: [],
     wellness_consultant_name: '', wellness_consultant_email: '',
-    referral_partner_id: '', referral_partner_name: '', notes: '' 
+    referral_partner_id: '', referral_partner_name: '', notes: '', tags: [] 
   });
   
   const [viewMode, setViewMode] = useState('list');
@@ -236,7 +241,7 @@ export default function Clients() {
     plan_year_start: '', wellness_fund_size: '',
     brokers: [],
     wellness_consultant_name: '', wellness_consultant_email: '',
-    referral_partner_id: '', referral_partner_name: '', notes: '' 
+    referral_partner_id: '', referral_partner_name: '', notes: '', tags: [] 
   });
 
   const checkForDuplicates = () => {

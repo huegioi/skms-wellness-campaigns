@@ -14,6 +14,11 @@ import { TagSelector } from '@/components/ui/TagSelector';
 import TagManager from '@/components/ui/TagManager';
 import { toast } from 'sonner';
 import MayaInsightsWidget from '@/components/shared/MayaInsightsWidget';
+import RecordSnapshotHeader from '@/components/shared/RecordSnapshotHeader';
+import CollapsibleFieldSection from '@/components/shared/CollapsibleFieldSection';
+import { InlineText } from '@/components/shared/inline/InlineText';
+import { InlineSelect } from '@/components/shared/inline/InlineSelect';
+import { LEAD_STAGES } from '@/components/shared/constants';
 
 const STATUS_CONFIG = {
   cold:               { label: 'Cold',              color: 'bg-slate-100 text-slate-700 border-slate-300' },
@@ -42,37 +47,6 @@ const REFERRAL_STATUS_COLORS = {
   commission_paid:     'bg-emerald-100 text-emerald-800',
   not_eligible:        'bg-red-100 text-red-700',
 };
-
-const ACQUISITION_STAGES = [
-  'Day 1 - LinkedIn Connection',
-  'Day 2 - Send email #1',
-  'Day 3 - Call #1',
-  'Day 3 - Text f/u to call',
-  'Day 5 - Call #2',
-  'Day 5 - LinkedIn f/u message',
-  'Day 7 - Send email #2',
-  'Day 10 - Call #3',
-  'Day 10 - Send email #3',
-  'Day 11 - LinkedIn message #3',
-  'Day 15 - Send email #4',
-  'Day 20 - Send email #5',
-  'In-Person Meeting',
-  'In-Person Lunch',
-];
-
-const ENGAGEMENT_STAGES = [
-  'New Referral Partner',
-  'Lunch & Learn',
-  'Active & Engaged',
-  'In-Person Meeting',
-  'In-Person Lunch',
-  'Quarterly Review',
-  'Renewal Season Outreach',
-  'Re-engage Partner',
-  'Inactive',
-];
-
-const FOLLOW_UP_STAGES = ['', ...ACQUISITION_STAGES, ...ENGAGEMENT_STAGES.filter(s => !ACQUISITION_STAGES.includes(s))];
 
 const EMPTY_REFERRAL = { date: '', company_name: '', contact_name: '', notes: '', client_id: '', proposal_id: '', partner_id: '' };
 const EMPTY_PROPOSAL_FORM = { referralId: '', proposalId: '' };
@@ -111,14 +85,10 @@ function calcAdjustedRevenue(proposal) {
 
 export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const [activeTab, setActiveTab] = useState('overview');
-  const [localStage, setLocalStage] = useState(lead.follow_up_stage || '');
-  const [stageSaving, setStageSaving] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
   const [showAddReferral, setShowAddReferral] = useState(false);
   const [referralForm, setReferralForm] = useState(EMPTY_REFERRAL);
   const [showAddProposal, setShowAddProposal] = useState(false);
   const [proposalForm, setProposalForm] = useState(EMPTY_PROPOSAL_FORM);
-  const [showTagManager, setShowTagManager] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -202,29 +172,38 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
     return `${Math.floor(diff / 30)} months ago`;
   };
 
-  const handleStageChange = async (rawStage) => {
-    const newStage = rawStage === '__none__' ? '' : rawStage;
-    setStageSaving(true);
-    setLocalStage(newStage);
-    try {
-      await base44.entities.Lead.update(lead.id, { follow_up_stage: newStage || null });
-      const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || 'Referral Partners';
-      await base44.functions.invoke('syncBrokerLeadsSheet', {
+  const handleFieldUpdate = (updates) => {
+    updateLeadMutation.mutate(updates);
+
+    const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || 'Referral Partners';
+    if ('follow_up_stage' in updates) {
+      base44.functions.invoke('syncBrokerLeadsSheet', {
         action: 'updateStage',
         leadId: lead.id,
         email: lead.email,
         sheetRowId: lead.sheet_row_id,
         sheetName,
-        follow_up_stage: newStage,
-      });
-      if (onUpdate) onUpdate();
-      queryClient.invalidateQueries({ queryKey: ['leads'] });
-      toast.success('Stage updated');
-    } catch (e) {
-      setLocalStage(lead.follow_up_stage || '');
-      toast.error('Failed to update stage');
-    } finally {
-      setStageSaving(false);
+        follow_up_stage: updates.follow_up_stage || '',
+      }).catch(e => console.warn('Sheet stage sync failed:', e));
+    }
+    if ('owner' in updates) {
+      base44.functions.invoke('syncBrokerLeadsSheet', {
+        action: 'updateOwner',
+        leadId: lead.id,
+        email: lead.email,
+        sheetRowId: lead.sheet_row_id,
+        sheetName,
+        owner: updates.owner || '',
+      }).catch(e => console.warn('Sheet owner sync failed:', e));
+    }
+    if ('tags' in updates) {
+      base44.functions.invoke('syncBrokerLeadsSheet', {
+        action: 'updateTags',
+        leadId: lead.id,
+        email: lead.email,
+        sheetName,
+        tags: updates.tags,
+      }).catch(e => console.warn('Sheet tag sync failed:', e));
     }
   };
 
@@ -406,64 +385,20 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
       <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0">
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <DialogTitle className="text-xl font-bold text-[#013f7c]">{lead.name}</DialogTitle>
-              {(lead.title || lead.company) && (
-                <div className="flex flex-wrap gap-3 mt-1 text-sm text-gray-600">
-                  {lead.title && <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" />{lead.title}</span>}
-                  {lead.company && <span className="flex items-center gap-1"><Building className="w-3.5 h-3.5" />{lead.company}</span>}
-                </div>
-              )}
-              <div className="flex flex-wrap gap-2 mt-2 items-center">
-                <Badge variant="outline" className={`text-xs ${partnerCfg.color}`}>{partnerCfg.label}</Badge>
-                {displayReferrals > 0 && (
-                  <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
-                    <Star className="w-3 h-3 mr-1" />{displayReferrals} referral{displayReferrals !== 1 ? 's' : ''}
-                  </Badge>
-                )}
-              </div>
-              <div className="mt-2 relative">
-                <Select value={localStage || 'no_stage'} onValueChange={handleStageChange} disabled={stageSaving}>
-                  <SelectTrigger className="h-8 text-xs w-64 bg-gray-50 border-gray-200">
-                    <SelectValue placeholder="Set follow-up stage…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no_stage">— No Stage —</SelectItem>
-                    <SelectItem value="_acq_header" disabled className="text-xs font-bold text-blue-600 bg-blue-50">🔵 Partner Acquisition</SelectItem>
-                    {ACQUISITION_STAGES.map((stage, i) => (
-                      <SelectItem key={`acq-${i}`} value={stage}>{stage}</SelectItem>
-                    ))}
-                    <SelectItem value="_eng_header" disabled className="text-xs font-bold text-green-700 bg-green-50">🟢 Partner Engagement</SelectItem>
-                    {ENGAGEMENT_STAGES.map((stage, i) => (
-                      <SelectItem key={`eng-${i}`} value={stage}>{stage}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {stageSaving && <span className="text-xs text-blue-500 ml-2">Saving…</span>}
-              </div>
-            </div>
-            <div className="flex gap-2 flex-shrink-0">
-              <Button
-                onClick={() => setShowEditDialog(true)}
-                variant="outline"
-                size="sm"
-                className="gap-1"
-              >
-                <Pencil className="w-4 h-4" /> Edit
-              </Button>
-              <Button
-                onClick={toggleActivePartner}
-                disabled={updateLeadMutation.isPending}
-                className={isActive
-                  ? 'bg-green-600 hover:bg-green-700 text-white flex-shrink-0'
-                  : 'bg-white border-2 border-green-600 text-green-700 hover:bg-green-50 flex-shrink-0'}
-                size="sm"
-              >
-                <CheckCircle className="w-4 h-4 mr-1.5" />
-                {isActive ? 'Active Partner ✓' : 'Promote to Active Partner'}
-              </Button>
-            </div>
+          <DialogTitle className="sr-only">{lead.name}</DialogTitle>
+          <RecordSnapshotHeader record={lead} entityType="Lead" stages={LEAD_STAGES} onUpdate={handleFieldUpdate} />
+          <div className="flex justify-end mt-2">
+            <Button
+              onClick={toggleActivePartner}
+              disabled={updateLeadMutation.isPending}
+              className={isActive
+                ? 'bg-green-600 hover:bg-green-700 text-white'
+                : 'bg-white border-2 border-green-600 text-green-700 hover:bg-green-50'}
+              size="sm"
+            >
+              <CheckCircle className="w-4 h-4 mr-1.5" />
+              {isActive ? 'Active Partner ✓' : 'Promote to Active Partner'}
+            </Button>
           </div>
         </DialogHeader>
 
@@ -498,75 +433,57 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
             </TabsList>
 
             {/* Overview */}
-            <TabsContent value="overview" className="p-6 space-y-4 mt-0">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-gray-700 text-sm">Contact Info</h4>
-                  {lead.email && <p className="flex items-center gap-2 text-sm"><Mail className="w-4 h-4 text-gray-400" />{lead.email}</p>}
-                  {lead.phone && <p className="flex items-center gap-2 text-sm"><Phone className="w-4 h-4 text-gray-400" />{lead.phone}</p>}
-                  {linkedinUrl && (
+            <TabsContent value="overview" className="p-6 space-y-2 mt-0">
+              <CollapsibleFieldSection title="Contact" icon={User} defaultOpen>
+                <InlineText label="Title" value={lead.title} onSave={v => handleFieldUpdate({ title: v })} />
+                <InlineText label="Email" value={lead.email} onSave={v => handleFieldUpdate({ email: v })} />
+                <InlineText label="Phone" value={lead.phone} onSave={v => handleFieldUpdate({ phone: v })} />
+                <InlineText label="Industry" value={lead.industry} onSave={v => handleFieldUpdate({ industry: v })} />
+                {linkedinUrl && (
+                  <div className="sm:col-span-2">
                     <a href={linkedinUrl.startsWith('http') ? linkedinUrl : `https://${linkedinUrl}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-500 hover:underline">
                       <ExternalLink className="w-4 h-4" />LinkedIn
                     </a>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <h4 className="font-semibold text-gray-700 text-sm">Details</h4>
-                  {lead.industry && <p className="text-sm"><Badge variant="outline">{lead.industry}</Badge></p>}
-                  {lead.last_contacted_date && (
-                    <p className="flex items-center gap-1.5 text-sm text-gray-600">
-                      <Clock className="w-3.5 h-3.5 text-gray-400" />
-                      Last contacted: <span className="font-medium">{new Date(lead.last_contacted_date).toLocaleDateString()}</span>
-                      <span className="text-gray-400 text-xs">({daysSince(lead.last_contacted_date)})</span>
-                    </p>
-                  )}
-                  {lead.next_followup_date && <p className="text-sm text-amber-600">Follow-up: {new Date(lead.next_followup_date).toLocaleDateString()}</p>}
-                  {lead.last_referral_date && (
-                    <p className="flex items-center gap-1.5 text-sm text-purple-600">
-                      <Star className="w-3.5 h-3.5" />
-                      Last referral: <span className="font-medium">{new Date(lead.last_referral_date).toLocaleDateString()}</span>
-                      <span className="text-purple-400 text-xs">({daysSince(lead.last_referral_date)})</span>
-                    </p>
-                  )}
-                </div>
-              </div>
-              {lead.notes && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-700 text-sm mb-2">Notes</h4>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{lead.notes}</p>
-                </div>
-              )}
+                  </div>
+                )}
+              </CollapsibleFieldSection>
 
-              {/* Tags */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="font-semibold text-gray-700 text-sm mb-2">Tags</h4>
-                <TagSelector
-                  value={lead.tags || []}
-                  onManageTags={() => setShowTagManager(true)}
-                  onChange={async (tags) => {
-                    try {
-                      await base44.entities.Lead.update(lead.id, { tags });
-                      queryClient.invalidateQueries({ queryKey: ['leads'] });
-                      const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || 'Referral Partners';
-                      base44.functions.invoke('syncBrokerLeadsSheet', {
-                        action: 'updateTags',
-                        leadId: lead.id,
-                        email: lead.email,
-                        sheetName,
-                        tags,
-                      }).catch(e => console.warn('Tag sheet sync failed (non-critical):', e));
-                    } catch (e) {
-                      toast.error('Failed to update tags: ' + e.message);
-                    }
-                  }}
-                />
-              </div>
+              <CollapsibleFieldSection title="Partner Details" icon={Star}>
+                <div>
+                  <span className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Partner Status</span>
+                  <InlineSelect
+                    label="Partner Status"
+                    value={lead.partner_status}
+                    onSave={v => handleFieldUpdate({ partner_status: v })}
+                    options={[
+                      { value: 'new', label: 'New Lead' },
+                      { value: 'nurturing', label: 'Nurturing' },
+                      { value: 'active_partner', label: 'Active Partner' },
+                      { value: 'inactive', label: 'Inactive' },
+                    ]}
+                  />
+                </div>
+                {lead.last_contacted_date && (
+                  <div>
+                    <span className="block text-[10px] uppercase tracking-wide text-gray-400">Last Contacted</span>
+                    <span className="text-sm text-gray-700">{new Date(lead.last_contacted_date).toLocaleDateString()}</span>
+                  </div>
+                )}
+                {lead.last_referral_date && (
+                  <div>
+                    <span className="block text-[10px] uppercase tracking-wide text-gray-400">Last Referral</span>
+                    <span className="text-sm text-gray-700">{new Date(lead.last_referral_date).toLocaleDateString()}</span>
+                  </div>
+                )}
+              </CollapsibleFieldSection>
 
-              {/* Maya Insights Widget */}
+              <CollapsibleFieldSection title="Notes" icon={FileText}>
+                <div className="sm:col-span-2">
+                  <InlineText value={lead.notes} onSave={v => handleFieldUpdate({ notes: v })} multiline placeholder="Add notes..." />
+                </div>
+              </CollapsibleFieldSection>
+
               <MayaInsightsWidget recordType="partner" recordId={lead.id} owner={lead.owner} />
-
-      {/* Tag Manager Dialog */}
-      <TagManager open={showTagManager} onOpenChange={setShowTagManager} />
             </TabsContent>
 
             {/* Referrals (merged with Companies) */}
@@ -838,185 +755,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
           </Tabs>
         </div>
 
-        {/* Edit Lead Dialog */}
-        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent className="max-w-lg w-[95vw] max-h-[85vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Edit Partner Lead</DialogTitle></DialogHeader>
-            <EditLeadForm
-              lead={lead}
-              onSave={async (data) => {
-                updateLeadMutation.mutate(data);
-                setShowEditDialog(false);
-                // Sync stage and owner back to the sheet (matched by email)
-                const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || 'Referral Partners';
-                try {
-                  await base44.functions.invoke('syncBrokerLeadsSheet', {
-                    action: 'updateStage',
-                    leadId: lead.id,
-                    email: lead.email,
-                    sheetRowId: lead.sheet_row_id,
-                    sheetName,
-                    follow_up_stage: data.follow_up_stage || '',
-                  });
-                } catch (e) {
-                  console.warn('Sheet stage sync failed:', e);
-                }
-                try {
-                  await base44.functions.invoke('syncBrokerLeadsSheet', {
-                    action: 'updateOwner',
-                    leadId: lead.id,
-                    email: lead.email,
-                    sheetRowId: lead.sheet_row_id,
-                    sheetName,
-                    owner: data.owner || '',
-                  });
-                } catch (e) {
-                  console.warn('Sheet owner sync failed:', e);
-                }
-                if (onUpdate) onUpdate();
-              }}
-              onCancel={() => setShowEditDialog(false)}
-            />
-          </DialogContent>
-        </Dialog>
       </DialogContent>
     </Dialog>
-  );
-}
-
-// Edit Lead Form Component
-function EditLeadForm({ lead, onSave, onCancel }) {
-  const [form, setForm] = useState({
-    name: lead.name || '',
-    email: lead.email || '',
-    email2: lead.email2 || '',
-    company: lead.company || '',
-    title: lead.title || '',
-    phone: lead.phone || '',
-    address: lead.address || '',
-    industry: lead.industry || '',
-    follow_up_stage: lead.follow_up_stage || '',
-    partner_status: lead.partner_status || 'new',
-    referral_potential: lead.referral_potential || 'medium',
-    outreach_channel: lead.outreach_channel || 'other',
-    last_contacted_date: lead.last_contacted_date || '',
-    next_followup_date: lead.next_followup_date || '',
-    referral_count: lead.referral_count || 0,
-    last_referral_date: lead.last_referral_date || '',
-    notes: lead.notes || '',
-    owner: lead.owner || '',
-  });
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(form);
-  };
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-3 mt-2">
-      <div className="bg-gray-50 rounded-lg p-3 space-y-3">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact Info</p>
-        <Input placeholder="Name *" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required />
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Email 1 *</label>
-            <Input type="email" placeholder="Primary email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} required />
-          </div>
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">Email 2</label>
-            <Input type="email" placeholder="Secondary email" value={form.email2} onChange={e => setForm({...form, email2: e.target.value})} />
-          </div>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Input placeholder="Company" value={form.company} onChange={e => setForm({...form, company: e.target.value})} />
-        <Input placeholder="Title" value={form.title} onChange={e => setForm({...form, title: e.target.value})} />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Input placeholder="Phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} />
-        <Input placeholder="Industry" value={form.industry} onChange={e => setForm({...form, industry: e.target.value})} />
-      </div>
-      <Input placeholder="Address" value={form.address} onChange={e => setForm({...form, address: e.target.value})} />
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">Follow-up Stage</label>
-          <Select value={form.follow_up_stage || 'no_stage'} onValueChange={v => setForm({...form, follow_up_stage: v === 'no_stage' || v === '_acq_header' || v === '_eng_header' ? (form.follow_up_stage || '') : v})}>
-            <SelectTrigger><SelectValue placeholder="Select stage" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="no_stage">— No Stage —</SelectItem>
-              <SelectItem value="_acq_header" disabled className="text-xs font-bold text-blue-600 bg-blue-50">🔵 Partner Acquisition</SelectItem>
-              {ACQUISITION_STAGES.map(stage => (
-                <SelectItem key={`acq-${stage}`} value={stage}>{stage}</SelectItem>
-              ))}
-              <SelectItem value="_eng_header" disabled className="text-xs font-bold text-green-700 bg-green-50">🟢 Partner Engagement</SelectItem>
-              {ENGAGEMENT_STAGES.map(stage => (
-                <SelectItem key={`eng-${stage}`} value={stage}>{stage}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">Partner Status</label>
-          <Select value={form.partner_status} onValueChange={v => setForm({...form, partner_status: v})}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {Object.entries(PARTNER_STATUS_CONFIG).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">Referral Potential</label>
-          <Select value={form.referral_potential} onValueChange={v => setForm({...form, referral_potential: v})}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">Channel</label>
-          <Select value={form.outreach_channel} onValueChange={v => setForm({...form, outreach_channel: v})}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {['email','linkedin','phone','referral','other'].map(c => (
-                <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">Last Contacted</label>
-          <Input type="date" value={form.last_contacted_date} onChange={e => setForm({...form, last_contacted_date: e.target.value})} />
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">Next Follow-up</label>
-          <Input type="date" value={form.next_followup_date} onChange={e => setForm({...form, next_followup_date: e.target.value})} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">Referral Count</label>
-          <Input type="number" min="0" value={form.referral_count} onChange={e => setForm({...form, referral_count: parseInt(e.target.value) || 0})} />
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 mb-1 block">Last Referral Date</label>
-          <Input type="date" value={form.last_referral_date} onChange={e => setForm({...form, last_referral_date: e.target.value})} />
-        </div>
-      </div>
-      <Textarea placeholder="Notes" value={form.notes} onChange={e => setForm({...form, notes: e.target.value})} rows={3} />
-      <Input placeholder="Owner" value={form.owner} onChange={e => setForm({...form, owner: e.target.value})} />
-      <div className="flex gap-3 pt-2">
-        <Button type="submit" className="flex-1 bg-[#013f7c] hover:bg-[#012d5a]">Save Changes</Button>
-        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
-      </div>
-    </form>
   );
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { InlineText } from '@/components/shared/inline/InlineText';
@@ -6,19 +6,11 @@ import { OwnerChip } from '@/components/shared/inline/OwnerChip';
 import { StageControl } from '@/components/shared/inline/StageControl';
 import { FollowUpDatePill } from '@/components/shared/inline/FollowUpDatePill';
 import { TagSelector } from '@/components/ui/TagSelector';
+import TagManager from '@/components/ui/TagManager';
 
-/**
- * Shared "snapshot" header for the top of every detail view.
- * Shows avatar/initials + editable name & company, then a wrap of chips:
- * OwnerChip, StageControl, FollowUpDatePill, TagSelector.
- *
- * Props:
- *  - record:     the entity record (must have id, name, company, owner, tags, follow_up_due_date)
- *  - entityType: 'Lead' | 'Client' | 'ReferralPartner'
- *  - stages:     the stage list to pass to StageControl (LEAD_STAGES / CLIENT_STAGES / PARTNER_STAGES)
- */
-export function RecordSnapshotHeader({ record, entityType, stages }) {
+export function RecordSnapshotHeader({ record, entityType, stages, onUpdate }) {
   const queryClient = useQueryClient();
+  const [showTagManager, setShowTagManager] = useState(false);
 
   const queryKey =
     entityType === 'Lead' ? ['leads']
@@ -26,7 +18,10 @@ export function RecordSnapshotHeader({ record, entityType, stages }) {
     : ['referralPartners'];
 
   const update = async (updates) => {
-    // Optimistic update
+    if (onUpdate) {
+      onUpdate(updates);
+      return;
+    }
     queryClient.setQueryData(queryKey, (old) => {
       if (!Array.isArray(old)) return old;
       return old.map(r => (r.id === record.id ? { ...r, ...updates } : r));
@@ -34,7 +29,6 @@ export function RecordSnapshotHeader({ record, entityType, stages }) {
     try {
       await base44.entities[entityType].update(record.id, updates);
     } catch (e) {
-      // Revert on error by invalidating
       queryClient.invalidateQueries({ queryKey });
     }
     queryClient.invalidateQueries({ queryKey });
@@ -48,8 +42,6 @@ export function RecordSnapshotHeader({ record, entityType, stages }) {
       updates.client_stage = newStage;
     } else if (entityType === 'ReferralPartner') {
       updates.partner_status = newStage;
-      // Side effect: Active Partner → is_active: true; anything else → is_active: false
-      // This ensures portal provisioning fires when promoted to Active Partner.
       updates.is_active = newStage === 'Active Partner';
     }
     update(updates);
@@ -68,12 +60,9 @@ export function RecordSnapshotHeader({ record, entityType, stages }) {
 
   return (
     <div className="flex items-start gap-3 flex-wrap p-4 bg-white rounded-xl border border-gray-200">
-      {/* Avatar */}
       <div className="w-12 h-12 rounded-full bg-[#013f7c] text-white flex items-center justify-center text-lg font-bold shrink-0">
         {initials}
       </div>
-
-      {/* Editable name & company */}
       <div className="flex-1 min-w-[180px]">
         <InlineText
           value={record.name}
@@ -87,29 +76,19 @@ export function RecordSnapshotHeader({ record, entityType, stages }) {
           placeholder="Add company"
         />
       </div>
-
-      {/* Chip wrap */}
       <div className="flex flex-wrap items-center gap-2">
-        <OwnerChip
-          value={record.owner}
-          onSave={(v) => update({ owner: v })}
-        />
-        <StageControl
-          stages={stages}
-          value={stageValue}
-          onSave={handleStageChange}
-        />
-        <FollowUpDatePill
-          value={record.follow_up_due_date}
-          onSave={(v) => update({ follow_up_due_date: v })}
-        />
+        <OwnerChip value={record.owner} onSave={(v) => update({ owner: v })} />
+        <StageControl stages={stages} value={stageValue} onSave={handleStageChange} />
+        <FollowUpDatePill value={record.follow_up_due_date} onSave={(v) => update({ follow_up_due_date: v })} />
         <div className="min-w-[120px]">
           <TagSelector
             value={record.tags || []}
+            onManageTags={() => setShowTagManager(true)}
             onChange={(tags) => update({ tags })}
           />
         </div>
       </div>
+      <TagManager open={showTagManager} onOpenChange={setShowTagManager} />
     </div>
   );
 }

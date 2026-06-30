@@ -1,23 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-/**
- * Click-to-edit text field. Saves on blur/Enter, reverts on Escape.
- *
- * Props:
- *  - label:    optional small hint shown above the value
- *  - value:    current string
- *  - onSave:   (newValue) => void  — called only when the value changed
- *  - multiline: if true, renders a textarea (Shift+Enter for newline)
- *  - className: applied to the display span and the input
- *  - placeholder: text shown when value is empty (default "Click to add")
- */
 export function InlineText({ label, value, onSave, multiline = false, className = '', placeholder = 'Click to add' }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value || '');
+  const [draft, setDraft] = useState(value != null ? String(value) : '');
   const inputRef = useRef(null);
 
   useEffect(() => {
-    if (!editing) setDraft(value || '');
+    if (!editing) setDraft(value != null ? String(value) : '');
   }, [value, editing]);
 
   useEffect(() => {
@@ -28,24 +17,24 @@ export function InlineText({ label, value, onSave, multiline = false, className 
   }, [editing]);
 
   const startEdit = () => {
-    setDraft(value || '');
+    setDraft(value != null ? String(value) : '');
     setEditing(true);
   };
 
   const save = () => {
     setEditing(false);
     const trimmed = draft.trim();
-    if (trimmed !== (value || '')) onSave(trimmed);
+    if (trimmed !== (value != null ? String(value) : '')) onSave(trimmed);
   };
 
   const cancel = () => {
-    setDraft(value || '');
+    setDraft(value != null ? String(value) : '');
     setEditing(false);
   };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
-      if (multiline && e.shiftKey) return; // allow newline in textarea
+      if (multiline && e.shiftKey) return;
       e.preventDefault();
       save();
     }
@@ -92,7 +81,7 @@ export function InlineText({ label, value, onSave, multiline = false, className 
         <span className="block text-[10px] uppercase tracking-wide text-gray-400">{label}</span>
       )}
       <span className={className || 'text-sm text-gray-700'}>
-        {value || <span className="text-gray-300 italic">{placeholder}</span>}
+        {value != null && value !== '' ? value : <span className="text-gray-300 italic">{placeholder}</span>}
       </span>
     </div>
   );

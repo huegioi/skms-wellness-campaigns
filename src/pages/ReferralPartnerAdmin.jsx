@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import PartnerPipelineView from '@/components/partners/PartnerPipelineView';
 import { LEAD_STAGES } from '@/components/shared/constants';
+import { TagSelector } from '@/components/ui/TagSelector';
 
 const DEFAULT_TIERS = [
   { label: 'Introducing Partner', min_revenue: 0, max_revenue: 74999, rate: 0.10 },
@@ -24,7 +25,7 @@ const EMPTY_FORM = {
   name: '', email: '', email2: '', company: '', phone: '', address: '', notes: '',
   agreement_file_url: '', agreement_signed_date: '',
   commission_tiers: DEFAULT_TIERS, is_active: true,
-  follow_up_stage: '', linked_client_ids: []
+  follow_up_stage: '', linked_client_ids: [], tags: []
 };
 
 function generatePortalId() {
@@ -106,6 +107,7 @@ export default function ReferralPartnerAdmin() {
               phone: data.phone || undefined,
               notes: data.notes || undefined,
               follow_up_stage: data.follow_up_stage || undefined,
+              tags: data.tags || [],
               lead_type: 'broker_lead',
               partner_status: 'active_partner',
               status: 'cold',
@@ -171,6 +173,7 @@ export default function ReferralPartnerAdmin() {
       commission_tiers: partner.commission_tiers?.length ? partner.commission_tiers : DEFAULT_TIERS,
       is_active: partner.is_active !== false,
       follow_up_stage: partner.follow_up_stage || '',
+      tags: partner.tags || [],
       linked_client_ids: currentlyLinked
     });
     setShowDialog(true);
@@ -510,6 +513,11 @@ export default function ReferralPartnerAdmin() {
                   );
                 })}
               </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Tags</label>
+              <TagSelector value={form.tags || []} onChange={(tags) => setForm(f => ({ ...f, tags }))} />
             </div>
 
             <div>
