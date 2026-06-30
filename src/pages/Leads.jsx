@@ -446,6 +446,7 @@ export default function Leads() {
           source: data.source,
           phone: data.phone,
           industry: data.industry,
+          tags: data.tags || [],
         });
         const { rowNumber, targetSheet } = appendRes.data || {};
         if (rowNumber) {

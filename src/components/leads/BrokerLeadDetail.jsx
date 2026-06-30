@@ -547,6 +547,14 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                     try {
                       await base44.entities.Lead.update(lead.id, { tags });
                       queryClient.invalidateQueries({ queryKey: ['leads'] });
+                      const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || 'Referral Partners';
+                      base44.functions.invoke('syncBrokerLeadsSheet', {
+                        action: 'updateTags',
+                        leadId: lead.id,
+                        email: lead.email,
+                        sheetName,
+                        tags,
+                      }).catch(e => console.warn('Tag sheet sync failed (non-critical):', e));
                     } catch (e) {
                       toast.error('Failed to update tags: ' + e.message);
                     }

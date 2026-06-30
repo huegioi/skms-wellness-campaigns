@@ -93,6 +93,7 @@ function rowToLead(row, rowIndex, sheetOriginKey, colMap) {
     owner: owner || undefined,
     follow_up_due_date: followUpDueDate || undefined,
     partner_status: partnerStatus === 'Active Partner' ? 'active_partner' : 'new',
+    tags: (getByName('Tags') || '').split(',').map(s => s.trim()).filter(Boolean),
   };
 }
 
@@ -298,6 +299,114 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, updatedRange: updateData.updatedRange, cellRange, targetSheet, matchedRowNum });
     }
 
+    // ── Handle updateTags action ───────────────────────────────────────────────
+    if (body.action === 'updateTags') {
+      const { sheetRowId, sheetName, tags, leadId, email } = body;
+
+      const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
+
+      const metaRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const meta = await metaRes.json();
+      const availableSheets = meta.sheets?.map(s => s.properties?.title) || [];
+
+      const knownGoodTabsTags = ['Referral Partners', 'Broker Leads', 'Brokers'];
+      const targetSheet = availableSheets.includes(sheetName)
+        ? sheetName
+        : knownGoodTabsTags.find(t => availableSheets.includes(t)) || availableSheets[0] || 'Referral Partners';
+
+      const tabRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(targetSheet + '!A:Z')}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const tabData = await tabRes.json();
+      const allRows = tabData.values || [];
+      if (allRows.length === 0) {
+        return Response.json({ error: `Tab "${targetSheet}" is empty` }, { status: 400 });
+      }
+
+      const headers = (allRows[0] || []).map(h => h.toLowerCase().trim());
+      const emailColIdx = headers.findIndex(h => h === 'email' || h === 'email address');
+      let tagsColIdx = headers.findIndex(h => h === 'tags' || h === 'tag');
+
+      if (tagsColIdx === -1) {
+        // Auto-create the Tags column in the header row
+        const updatedHeader = (allRows[0] || []).slice();
+        const newColIdx = updatedHeader.length;
+        updatedHeader.push('Tags');
+
+        const headerRange = `${targetSheet}!1:1`;
+        await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(headerRange)}?valueInputOption=USER_ENTERED`,
+          {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ range: headerRange, majorDimension: 'ROWS', values: [updatedHeader] }),
+          }
+        );
+
+        tagsColIdx = newColIdx;
+      }
+
+      // Find row by email match (case-insensitive, trimmed)
+      let matchedRowNum = null;
+      if (email && emailColIdx >= 0) {
+        const normEmail = email.trim().toLowerCase();
+        for (let i = 1; i < allRows.length; i++) {
+          const cellEmail = (allRows[i][emailColIdx] || '').trim().toLowerCase();
+          if (cellEmail === normEmail) {
+            matchedRowNum = i + 1;
+            break;
+          }
+        }
+      }
+
+      // Fall back to sheetRowId if no email match
+      if (!matchedRowNum && sheetRowId) {
+        matchedRowNum = parseInt(sheetRowId, 10);
+      }
+
+      if (!matchedRowNum) {
+        return Response.json({
+          error: `Could not find row for email "${email}" and no sheetRowId provided`,
+          targetSheet, email, sheetRowId,
+        }, { status: 400 });
+      }
+
+      const tagsValue = Array.isArray(tags) ? tags.join(', ') : (tags || '');
+      const colLetter = String.fromCharCode(65 + tagsColIdx);
+      const cellRange = `${targetSheet}!${colLetter}${matchedRowNum}`;
+
+      const updateRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(cellRange)}?valueInputOption=USER_ENTERED`,
+        {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ range: cellRange, majorDimension: 'ROWS', values: [[tagsValue]] }),
+        }
+      );
+      const updateData = await updateRes.json();
+      if (updateData.error) {
+        return Response.json({ error: updateData.error.message, details: updateData.error }, { status: 400 });
+      }
+
+      // Write back the matched row number so sheet_row_id stays fresh
+      if (leadId) {
+        try {
+          await base44.asServiceRole.entities.Lead.update(leadId, {
+            sheet_row_id: String(matchedRowNum),
+            sheet_origin: `BrokerLeads:${targetSheet}`,
+          });
+        } catch (e) {
+          console.warn('Failed to update sheet_row_id on lead:', e.message);
+        }
+      }
+
+      return Response.json({ success: true, updatedRange: updateData.updatedRange, cellRange, targetSheet, matchedRowNum });
+    }
+
     // ── Handle appendLead action ───────────────────────────────────────────────
     // Appends a new row for a lead that was created in the app (not from the sheet).
     // Returns { rowNumber } (1-based, including header). If the email already exists
@@ -376,6 +485,7 @@ Deno.serve(async (req) => {
         'phone': phone || '',
         'phone number': phone || '',
         'industry': industry || '',
+        'tags': (body.tags || []).join(', '),
       };
 
       const newRow = Array(headerRow2.length).fill('');
@@ -486,7 +596,7 @@ Deno.serve(async (req) => {
     });
 
     // Ensure required columns exist in header row
-    const requiredColumns = ['Contact Name', 'Owner', 'Email', 'Company', 'Follow Up Stage', 'Title', 'Notes', 'Phone', 'LinkedIn', 'Industry', 'Status', 'Last Contacted', 'Kajabi Contact ID'];
+    const requiredColumns = ['Contact Name', 'Owner', 'Email', 'Company', 'Follow Up Stage', 'Title', 'Notes', 'Phone', 'LinkedIn', 'Industry', 'Status', 'Last Contacted', 'Kajabi Contact ID', 'Tags'];
     const missingColumns = requiredColumns.filter(col => !Object.keys(colMap).some(k => k.toLowerCase() === col.toLowerCase()));
     
     // If missing columns, create/update header row
@@ -597,6 +707,7 @@ Deno.serve(async (req) => {
           ...(lead.owner !== undefined && { owner: lead.owner }),
           follow_up_due_date: recomputedDueDate || null,
           partner_status: lead.partner_status,
+          tags: lead.tags,
         };
         if (sheetRank > appRank) updates.status = lead.status;
         console.log('Writing follow_up_stage to lead (update):', updates.follow_up_stage, 'for contact:', updates.name);

@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
     setCol('Lead Type', lead.lead_type);
     setCol('Partner Status', lead.partner_status);
     setCol('Outreach Channel', lead.outreach_channel);
+    setCol('Tags', (lead.tags || []).join(', '));
 
     // 7. Append using the Sheets API
     const appendRes = await fetch(

@@ -121,6 +121,7 @@ Deno.serve(async (req) => {
       setCol(row, 'Lead Type', lead.lead_type);
       setCol(row, 'Partner Status', lead.partner_status);
       setCol(row, 'Outreach Channel', lead.outreach_channel);
+      setCol(row, 'Tags', (lead.tags || []).join(', '));
       return row;
     });
 

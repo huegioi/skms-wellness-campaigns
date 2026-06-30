@@ -97,6 +97,16 @@ Fill in whatever you can find. If a field is not present, leave it as an empty s
     onSuccess: (newLead) => {
       setSavedRecord({ id: newLead.id, type: 'lead' });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      // Sync tags to Google Sheet (non-critical)
+      if (newLead.tags?.length > 0) {
+        base44.functions.invoke('syncBrokerLeadsSheet', {
+          action: 'updateTags',
+          leadId: newLead.id,
+          email: newLead.email,
+          sheetName: 'Referral Partners',
+          tags: newLead.tags,
+        }).catch(e => console.warn('Tag sheet sync failed (non-critical):', e));
+      }
       setForm(EMPTY_FORM);
       setScannedText('');
     },
