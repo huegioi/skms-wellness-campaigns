@@ -25,6 +25,7 @@ const EMPTY_FORM = {
   lead_type: 'broker_lead',
   partner_status: 'new',
   referral_potential: 'medium',
+  owner: '',
 };
 
 export default function AddLead() {
@@ -227,6 +228,7 @@ Leave fields as empty string if not visible.`,
         company_address: form.address || '',
         industry: form.industry || '',
         company_size: form.company_size || '',
+        owner: form.owner || '',
         last_contacted_date: new Date().toISOString().split('T')[0],
         notes: form.source ? (form.notes ? form.notes + `\nMet at: ${form.source}` : `Met at: ${form.source}`) : (form.notes || ''),
       };
@@ -373,6 +375,17 @@ Leave fields as empty string if not visible.`,
           <div className="space-y-1">
             <Label htmlFor="address">Address</Label>
             <Input id="address" value={form.address} onChange={e => set('address', e.target.value)} placeholder="123 Main St, City, ST 12345" />
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="owner">Owner</Label>
+            <Select value={form.owner} onValueChange={v => set('owner', v)}>
+              <SelectTrigger><SelectValue placeholder="Assign owner" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="William">William</SelectItem>
+                <SelectItem value="Heather">Heather</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1">

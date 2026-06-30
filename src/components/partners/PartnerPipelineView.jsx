@@ -5,7 +5,10 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Copy, ExternalLink, Check, Users, DollarSign } from 'lucide-react';
+import { Copy, ExternalLink, Check, Users, DollarSign, MoreVertical, UserCog } from 'lucide-react';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
+
+const OWNERS = ['William', 'Heather'];
 
 const PARTNER_STAGES = [
   { key: 'Prospect',       label: 'Prospect',       desc: 'Identified, outreach not yet started',     headerClass: 'bg-sky-50 border-sky-200',     textClass: 'text-sky-700' },
@@ -14,7 +17,7 @@ const PARTNER_STAGES = [
   { key: '__none__',       label: 'No Stage',        desc: 'Partners with no stage set yet',            headerClass: 'bg-slate-50 border-slate-200',  textClass: 'text-slate-500' },
 ];
 
-function PartnerCard({ partner, provided, snapshot, referrals, onLogNote, onCopyLink, copiedId }) {
+function PartnerCard({ partner, provided, snapshot, referrals, onOwnerChange, onLogNote, onCopyLink, copiedId }) {
   const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id);
   const totalCommission = partnerReferrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
 
@@ -49,10 +52,41 @@ function PartnerCard({ partner, provided, snapshot, referrals, onLogNote, onCopy
           >
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+                <MoreVertical className="w-3.5 h-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="gap-2">
+                  <UserCog className="w-4 h-4" /> Assign Owner
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  {OWNERS.map(owner => (
+                    <DropdownMenuItem
+                      key={owner}
+                      className={partner.owner === owner ? 'font-semibold text-[#013f7c]' : ''}
+                      onClick={() => onOwnerChange(partner.id, owner)}
+                    >
+                      {partner.owner === owner ? '✓ ' : ''}{owner}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="gap-2" onClick={() => onLogNote(partner)}>
+                <Copy className="w-4 h-4" /> Log Note
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       <p className="text-xs text-gray-400 truncate">{partner.email}</p>
+
+      {partner.owner && <p className="text-xs text-gray-500">👤 {partner.owner}</p>}
 
       <div className="flex items-center gap-3 mt-2 text-xs text-gray-600">
         <span className="flex items-center gap-1 text-blue-700">
@@ -83,7 +117,7 @@ function PartnerCard({ partner, provided, snapshot, referrals, onLogNote, onCopy
   );
 }
 
-function StageColumn({ stage, partners, referrals, onLogNote, onCopyLink, copiedId }) {
+function StageColumn({ stage, partners, referrals, onOwnerChange, onLogNote, onCopyLink, copiedId }) {
   return (
     <div className="w-56 flex-shrink-0">
       <div className={`rounded-t-lg border px-3 py-2 mb-2 ${stage.headerClass}`}>
@@ -118,6 +152,7 @@ function StageColumn({ stage, partners, referrals, onLogNote, onCopyLink, copied
                       provided={provided}
                       snapshot={snapshot}
                       referrals={referrals}
+                      onOwnerChange={onOwnerChange}
                       onLogNote={onLogNote}
                       onCopyLink={onCopyLink}
                       copiedId={copiedId}
@@ -141,6 +176,11 @@ export default function PartnerPipelineView({ partners, referrals }) {
   const [copiedId, setCopiedId] = useState(null);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
+
+  const handleOwnerChange = async (partnerId, owner) => {
+    await base44.entities.ReferralPartner.update(partnerId, { owner });
+    refresh();
+  };
 
   const handleDragEnd = async (result) => {
     const { destination, source, draggableId } = result;
@@ -194,6 +234,7 @@ export default function PartnerPipelineView({ partners, referrals }) {
                 stage={stage}
                 partners={stagePartners(stage.key)}
                 referrals={referrals}
+                onOwnerChange={handleOwnerChange}
                 onLogNote={handleLogNote}
                 onCopyLink={handleCopyLink}
                 copiedId={copiedId}
