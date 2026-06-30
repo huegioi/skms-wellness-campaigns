@@ -2,21 +2,16 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { MoreVertical, UserCog, StickyNote, Pencil, Trash2 } from 'lucide-react';
 import { differenceInDays, parseISO } from 'date-fns';
-import { TagChips } from '@/components/ui/TagChips';
+import { PipelineCard } from '@/components/shared/PipelineCard';
 import StagePlaybookDialog from './StagePlaybookDialog';
-import { OWNERS, CLIENT_STAGES } from '@/components/shared/constants';
+import { CLIENT_STAGES } from '@/components/shared/constants';
 
 const SALES_STAGES = CLIENT_STAGES.filter(s => s.group === 'Sales');
 const LIFECYCLE_STAGES = CLIENT_STAGES.filter(s => s.group === 'Lifecycle');
-const ALL_STAGE_KEYS = CLIENT_STAGES.map(s => s.key);
 const NEEDS_ATTENTION_STAGES = new Set(['nurture', 'program_delivery']);
 
 function daysAgo(dateStr) {
@@ -31,15 +26,6 @@ function daysUntil(dateStr) {
   if (!dateStr) return null;
   try { return differenceInDays(parseISO(dateStr), new Date()); }
   catch { return null; }
-}
-
-function RenewalBadge({ dateStr }) {
-  const days = daysUntil(dateStr);
-  if (days === null) return null;
-  if (days < 0) return <span className="text-xs font-medium text-red-600">Expired</span>;
-  if (days <= 30) return <span className="text-xs font-medium text-red-600">Renews in {days}d</span>;
-  if (days <= 90) return <span className="text-xs font-medium text-amber-600">Renews in {days}d</span>;
-  return <span className="text-xs text-gray-400">Renews in {days}d</span>;
 }
 
 function SalesAlertBadge({ client }) {
@@ -80,130 +66,26 @@ function SalesAlertBadge({ client }) {
   return null;
 }
 
-function ClientCard({ client, provided, snapshot, onOwnerChange, onLogNote, onEditInfo, onDelete, onClick, isSalesStage }) {
+function ClientAlertBadges({ client, isSalesStage }) {
   const ago = daysAgo(client.last_contacted_date || client.last_contacted);
   const needsAttention = ago !== null && ago > 60 && NEEDS_ATTENTION_STAGES.has(client.client_stage);
   const hasBadges = needsAttention || (isSalesStage && (client.client_stage === 'proposal_sent' || client.client_stage === 'negotiation' || client.client_stage === 'discovery_call_scheduled'));
 
+  if (!hasBadges) return null;
+
   return (
-    <div
-      ref={provided.innerRef}
-      {...provided.draggableProps}
-      {...provided.dragHandleProps}
-      className={`bg-white rounded-lg border p-3 shadow-sm transition-shadow cursor-grab active:cursor-grabbing select-none ${
-        snapshot.isDragging ? 'shadow-lg border-[#264d44] ring-2 ring-[#264d44]/20 rotate-1' : 'border-gray-200 hover:shadow-md'
-      }`}
-      onClick={onClick}
-    >
-      {/* Header row: name + menu — tight layout */}
-      <div className="flex items-start justify-between gap-1 mb-1">
-        <div className="min-w-0">
-          <p className="font-semibold text-[#264d44] text-sm leading-tight truncate">{client.company || client.name}</p>
-          {client.company && <p className="text-xs text-gray-500 truncate">{client.name}</p>}
-        </div>
-        {/* Quick-action dropdown */}
-        <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
-                <MoreVertical className="w-3.5 h-3.5" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="gap-2">
-                  <UserCog className="w-4 h-4" /> Assign Owner
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  {OWNERS.map(owner => (
-                    <DropdownMenuItem
-                      key={owner}
-                      className={client.owner === owner ? 'font-semibold text-[#264d44]' : ''}
-                      onClick={() => onOwnerChange(client.id, owner)}
-                    >
-                      {client.owner === owner ? '✓ ' : ''}{owner}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem className="gap-2" onClick={() => onLogNote(client)}>
-                <StickyNote className="w-4 h-4" /> Log Note
-              </DropdownMenuItem>
-
-              <DropdownMenuItem className="gap-2" onClick={() => onEditInfo(client)}>
-                <Pencil className="w-4 h-4" /> Edit Info
-              </DropdownMenuItem>
-
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem
-                className="gap-2 text-red-600 focus:text-red-600"
-                onClick={() => {
-                  if (window.confirm(`Delete ${client.company || client.name}? This cannot be undone.`)) {
-                    onDelete(client.id);
-                  }
-                }}
-              >
-                <Trash2 className="w-4 h-4" /> Delete
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Alert badges — only render row if there are badges */}
-      {hasBadges && (
-        <div className="flex flex-wrap gap-1 mb-1">
-          {needsAttention && (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
-              ⚠ Needs attention
-            </span>
-          )}
-          {isSalesStage && <SalesAlertBadge client={client} />}
-        </div>
+    <div className="flex flex-wrap gap-1 mb-1">
+      {needsAttention && (
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">
+          ⚠ Needs attention
+        </span>
       )}
-
-      {client.owner && <p className="text-xs text-gray-500 mb-0.5">👤 {client.owner}</p>}
-
-      {client.tags?.length > 0 && (
-        <div className="mb-0.5"><TagChips tags={client.tags} /></div>
-      )}
-
-      {ago !== null ? (
-        <p className={`text-xs mb-0.5 ${ago > 60 ? 'text-red-500 font-medium' : ago > 30 ? 'text-amber-600' : 'text-gray-500'}`}>
-          Last contact: {ago === 0 ? 'today' : `${ago}d ago`}
-        </p>
-      ) : (
-        <p className="text-xs text-gray-400 mb-0.5">No contact recorded</p>
-      )}
-
-      {client.renewal_date && (
-        <div className="mb-0.5"><RenewalBadge dateStr={client.renewal_date} /></div>
-      )}
-
-      {((client.total_invoice_value || 0) > 0 || (client.purchased_services?.length || 0) > 0) && (
-        <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
-          {(client.total_invoice_value || 0) > 0 && (
-            <span className="text-green-700 font-medium">${client.total_invoice_value.toLocaleString()}</span>
-          )}
-          {(client.purchased_services?.length || 0) > 0 && (
-            <span>{client.purchased_services.length} service{client.purchased_services.length !== 1 ? 's' : ''}</span>
-          )}
-        </div>
-      )}
-
-      {/* Drag hint */}
-      {!snapshot.isDragging && (
-        <p className="text-xs text-gray-300 mt-1.5 text-center select-none">⠿ drag to move stage</p>
-      )}
+      {isSalesStage && <SalesAlertBadge client={client} />}
     </div>
   );
 }
 
-function StageColumn({ stage, clients, onOwnerChange, onLogNote, onEditInfo, onDelete, onClientClick, onHeaderClick, isSalesStage }) {
+function StageColumn({ stage, clients, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onDelete, onClientClick, onHeaderClick, isSalesStage }) {
   return (
     <div className="w-56 flex-shrink-0">
       <div
@@ -237,16 +119,24 @@ function StageColumn({ stage, clients, onOwnerChange, onLogNote, onEditInfo, onD
               clients.map((client, index) => (
                 <Draggable key={client.id} draggableId={client.id} index={index}>
                   {(provided, snapshot) => (
-                    <ClientCard
-                      client={client}
+                    <PipelineCard
+                      record={client}
                       provided={provided}
                       snapshot={snapshot}
+                      title={client.company || client.name}
+                      subtitle={client.company ? client.name : null}
+                      stages={CLIENT_STAGES}
+                      stageValue={client.client_stage}
+                      onStageChange={onStageChange}
                       onOwnerChange={onOwnerChange}
+                      onTagsChange={onTagsChange}
+                      onFollowUpDateChange={onFollowUpDateChange}
                       onLogNote={onLogNote}
-                      onEditInfo={onEditInfo}
+                      onOpenDetail={onClientClick}
+                      onViewPlaybook={(c) => onHeaderClick(c.client_stage)}
                       onDelete={onDelete}
-                      onClick={() => !snapshot.isDragging && onClientClick(client)}
-                      isSalesStage={isSalesStage}
+                      alertBadges={<ClientAlertBadges client={client} isSalesStage={isSalesStage} />}
+                      accentColor="#264d44"
                     />
                   )}
                 </Draggable>
@@ -264,9 +154,7 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
   const queryClient = useQueryClient();
   const [playbookStage, setPlaybookStage] = useState(null);
   const [noteDialog, setNoteDialog] = useState(null);
-  const [editDialog, setEditDialog] = useState(null);
   const [noteText, setNoteText] = useState('');
-  const [editForm, setEditForm] = useState({});
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['clients'] });
 
@@ -283,8 +171,26 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
     refresh();
   };
 
+  const handleStageChange = async (clientId, newStage) => {
+    await base44.entities.Client.update(clientId, {
+      client_stage: newStage || null,
+      stage_entered_date: new Date().toISOString().split('T')[0],
+    });
+    refresh();
+  };
+
   const handleOwnerChange = async (clientId, owner) => {
     await base44.entities.Client.update(clientId, { owner });
+    refresh();
+  };
+
+  const handleTagsChange = async (clientId, tags) => {
+    await base44.entities.Client.update(clientId, { tags });
+    refresh();
+  };
+
+  const handleFollowUpDateChange = async (clientId, dateStr) => {
+    await base44.entities.Client.update(clientId, { follow_up_due_date: dateStr });
     refresh();
   };
 
@@ -303,18 +209,6 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
     setNoteDialog(null);
   };
 
-  const handleEditInfo = (client) => {
-    setEditForm({ name: client.name || '', company: client.company || '', email: client.email || '', phone: client.phone || '', owner: client.owner || '' });
-    setEditDialog(client);
-  };
-
-  const handleSaveEdit = async () => {
-    if (!editDialog) return;
-    await base44.entities.Client.update(editDialog.id, editForm);
-    refresh();
-    setEditDialog(null);
-  };
-
   const handleDelete = async (clientId) => {
     await base44.entities.Client.delete(clientId);
     refresh();
@@ -331,7 +225,16 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
   const salesTotal = SALES_STAGES.reduce((sum, s) => sum + stageClients(s.key).length, 0);
   const lifecycleTotal = LIFECYCLE_STAGES.reduce((sum, s) => sum + stageClients(s.key).length, 0);
 
-  const columnProps = { onOwnerChange: handleOwnerChange, onLogNote: handleLogNote, onEditInfo: handleEditInfo, onDelete: handleDelete, onClientClick, onHeaderClick: setPlaybookStage };
+  const columnProps = {
+    onOwnerChange: handleOwnerChange,
+    onStageChange: handleStageChange,
+    onTagsChange: handleTagsChange,
+    onFollowUpDateChange: handleFollowUpDateChange,
+    onLogNote: handleLogNote,
+    onDelete: handleDelete,
+    onClientClick,
+    onHeaderClick: setPlaybookStage,
+  };
 
   return (
     <>
@@ -382,34 +285,6 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
             <div className="flex gap-2">
               <Button className="flex-1 bg-[#264d44] hover:bg-[#1a3830]" onClick={handleSaveNote} disabled={!noteText.trim()}>Save Note</Button>
               <Button variant="outline" onClick={() => setNoteDialog(null)}>Cancel</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Info Dialog */}
-      <Dialog open={!!editDialog} onOpenChange={(open) => !open && setEditDialog(null)}>
-        <DialogContent className="max-w-sm w-[95vw]">
-          <DialogHeader>
-            <DialogTitle>Edit — {editDialog?.company || editDialog?.name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 mt-2">
-            <Input placeholder="Company" value={editForm.company || ''} onChange={(e) => setEditForm({ ...editForm, company: e.target.value })} />
-            <Input placeholder="Contact Name" value={editForm.name || ''} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
-            <Input type="email" placeholder="Email" value={editForm.email || ''} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} />
-            <Input placeholder="Phone" value={editForm.phone || ''} onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })} />
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Owner</label>
-              <Select value={editForm.owner || ''} onValueChange={(v) => setEditForm({ ...editForm, owner: v })}>
-                <SelectTrigger><SelectValue placeholder="Assign owner" /></SelectTrigger>
-                <SelectContent>
-                  {OWNERS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex gap-2">
-              <Button className="flex-1 bg-[#264d44] hover:bg-[#1a3830]" onClick={handleSaveEdit}>Save</Button>
-              <Button variant="outline" onClick={() => setEditDialog(null)}>Cancel</Button>
             </div>
           </div>
         </DialogContent>
