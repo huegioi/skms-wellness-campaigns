@@ -7,6 +7,7 @@ import { base44 } from '@/api/base44Client';
 // ── Stage Definitions ────────────────────────────────────────────────────────
 
 const ACQUISITION_STAGES = [
+  'Event Follow-up',
   'Day 1 - LinkedIn Connection',
   'Day 2 - Send email #1',
   'Day 3 - Call #1',
@@ -30,7 +31,6 @@ const ACQUISITION_STAGES = [
 
 const ENGAGEMENT_STAGES = [
   'New Referral Partner',
-  'Event Follow-up',
   'Lunch & Learn',
   'Active & Engaged',
   'In-Person Meeting',
