@@ -5,111 +5,30 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Copy, ExternalLink, Check, Users, DollarSign, MoreVertical, UserCog } from 'lucide-react';
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
-import { OWNERS, PARTNER_STAGES } from '@/components/shared/constants';
+import { Copy, ExternalLink, Check, Users, DollarSign } from 'lucide-react';
+import { PipelineCard } from '@/components/shared/PipelineCard';
+import { PARTNER_STAGES } from '@/components/shared/constants';
 
-function PartnerCard({ partner, provided, snapshot, referrals, onOwnerChange, onLogNote, onCopyLink, copiedId }) {
+function PartnerAlertBadges({ partner, referrals }) {
   const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id);
   const totalCommission = partnerReferrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
-
   return (
-    <div
-      ref={provided.innerRef}
-      {...provided.draggableProps}
-      {...provided.dragHandleProps}
-      className={`bg-white rounded-lg border p-3 shadow-sm transition-shadow cursor-grab active:cursor-grabbing select-none ${
-        snapshot.isDragging ? 'shadow-lg border-[#013f7c] ring-2 ring-[#013f7c]/20 rotate-1' : 'border-gray-200 hover:shadow-md'
-      }`}
-    >
-      <div className="flex items-start justify-between gap-1 mb-1">
-        <div className="min-w-0">
-          <p className="font-semibold text-[#013f7c] text-sm leading-tight truncate">{partner.name}</p>
-          {partner.company && <p className="text-xs text-gray-500 truncate">{partner.company}</p>}
-        </div>
-        <div onClick={e => e.stopPropagation()} className="flex gap-1 flex-shrink-0">
-          <button
-            onClick={() => onCopyLink(partner)}
-            className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-            title="Copy portal link"
-          >
-            {copiedId === partner.id ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
-          </button>
-          <a
-            href={`/ReferralPortal?id=${partner.unique_portal_id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-            title="Open portal"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
-                <MoreVertical className="w-3.5 h-3.5" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuSub>
-                <DropdownMenuSubTrigger className="gap-2">
-                  <UserCog className="w-4 h-4" /> Assign Owner
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent>
-                  {OWNERS.map(owner => (
-                    <DropdownMenuItem
-                      key={owner}
-                      className={partner.owner === owner ? 'font-semibold text-[#013f7c]' : ''}
-                      onClick={() => onOwnerChange(partner.id, owner)}
-                    >
-                      {partner.owner === owner ? '✓ ' : ''}{owner}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="gap-2" onClick={() => onLogNote(partner)}>
-                <Copy className="w-4 h-4" /> Log Note
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      <p className="text-xs text-gray-400 truncate">{partner.email}</p>
-
-      {partner.owner && <p className="text-xs text-gray-500">👤 {partner.owner}</p>}
-
-      <div className="flex items-center gap-3 mt-2 text-xs text-gray-600">
-        <span className="flex items-center gap-1 text-blue-700">
-          <Users className="w-3 h-3" />
-          {partnerReferrals.length} referral{partnerReferrals.length !== 1 ? 's' : ''}
+    <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
+      <span className="flex items-center gap-1 text-blue-700">
+        <Users className="w-3 h-3" />
+        {partnerReferrals.length} ref{partnerReferrals.length !== 1 ? 's' : ''}
+      </span>
+      {totalCommission > 0 && (
+        <span className="flex items-center gap-1 text-green-700">
+          <DollarSign className="w-3 h-3" />
+          ${totalCommission.toLocaleString()}
         </span>
-        {totalCommission > 0 && (
-          <span className="flex items-center gap-1 text-green-700">
-            <DollarSign className="w-3 h-3" />
-            ${totalCommission.toLocaleString()}
-          </span>
-        )}
-      </div>
-
-      <div onClick={e => e.stopPropagation()}>
-        <button
-          onClick={() => onLogNote(partner)}
-          className="mt-2 text-xs text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          + log note
-        </button>
-      </div>
-
-      {!snapshot.isDragging && (
-        <p className="text-xs text-gray-300 mt-1.5 text-center select-none">⠿ drag to move stage</p>
       )}
     </div>
   );
 }
 
-function StageColumn({ stage, partners, referrals, onOwnerChange, onLogNote, onCopyLink, copiedId }) {
+function StageColumn({ stage, partners, referrals, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onCopyLink, copiedId, onSelectPartner, onDelete }) {
   return (
     <div className="w-56 flex-shrink-0">
       <div className={`rounded-t-lg border px-3 py-2 mb-2 ${stage.headerClass}`}>
@@ -139,15 +58,43 @@ function StageColumn({ stage, partners, referrals, onOwnerChange, onLogNote, onC
               partners.map((partner, index) => (
                 <Draggable key={partner.id} draggableId={partner.id} index={index}>
                   {(provided, snapshot) => (
-                    <PartnerCard
-                      partner={partner}
+                    <PipelineCard
+                      record={partner}
                       provided={provided}
                       snapshot={snapshot}
-                      referrals={referrals}
+                      title={partner.name}
+                      subtitle={partner.company}
+                      stages={PARTNER_STAGES}
+                      stageValue={partner.partner_status}
+                      onStageChange={onStageChange}
                       onOwnerChange={onOwnerChange}
+                      onTagsChange={onTagsChange}
+                      onFollowUpDateChange={onFollowUpDateChange}
                       onLogNote={onLogNote}
-                      onCopyLink={onCopyLink}
-                      copiedId={copiedId}
+                      onOpenDetail={onSelectPartner}
+                      onDelete={onDelete}
+                      alertBadges={<PartnerAlertBadges partner={partner} referrals={referrals} />}
+                      accentColor="#013f7c"
+                      extraActions={
+                        <>
+                          <button
+                            onClick={() => onCopyLink(partner)}
+                            className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                            title="Copy portal link"
+                          >
+                            {copiedId === partner.id ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                          <a
+                            href={`/ReferralPortal?id=${partner.unique_portal_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+                            title="Open portal"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </>
+                      }
                     />
                   )}
                 </Draggable>
@@ -161,7 +108,7 @@ function StageColumn({ stage, partners, referrals, onOwnerChange, onLogNote, onC
   );
 }
 
-export default function PartnerPipelineView({ partners, referrals }) {
+export default function PartnerPipelineView({ partners, referrals, onSelectPartner }) {
   const queryClient = useQueryClient();
   const [noteDialog, setNoteDialog] = useState(null);
   const [noteText, setNoteText] = useState('');
@@ -174,15 +121,36 @@ export default function PartnerPipelineView({ partners, referrals }) {
     refresh();
   };
 
+  const handleStageChange = async (partnerId, newStatus) => {
+    const updatePayload = { partner_status: newStatus || null };
+    if (newStatus === 'Active Partner') updatePayload.is_active = true;
+    if (newStatus !== 'Active Partner') updatePayload.is_active = false;
+    await base44.entities.ReferralPartner.update(partnerId, updatePayload);
+    refresh();
+  };
+
+  const handleTagsChange = async (partnerId, tags) => {
+    await base44.entities.ReferralPartner.update(partnerId, { tags });
+    refresh();
+  };
+
+  const handleFollowUpDateChange = async (partnerId, dateStr) => {
+    await base44.entities.ReferralPartner.update(partnerId, { follow_up_due_date: dateStr });
+    refresh();
+  };
+
+  const handleDelete = async (partnerId) => {
+    await base44.entities.ReferralPartner.delete(partnerId);
+    refresh();
+  };
+
   const handleDragEnd = async (result) => {
     const { destination, source, draggableId } = result;
     if (!destination) return;
     if (destination.droppableId === source.droppableId) return;
     const newStatus = destination.droppableId === '__none__' ? null : destination.droppableId;
     const updatePayload = { partner_status: newStatus };
-    // When promoting to Active Partner, also set is_active=true so portal provisioning fires
     if (newStatus === 'Active Partner') updatePayload.is_active = true;
-    // When moving away from Active Partner, set is_active=false
     if (source.droppableId === 'Active Partner' && newStatus !== 'Active Partner') updatePayload.is_active = false;
     await base44.entities.ReferralPartner.update(draggableId, updatePayload);
     refresh();
@@ -215,6 +183,18 @@ export default function PartnerPipelineView({ partners, referrals }) {
       ? partners.filter(p => !p.partner_status)
       : partners.filter(p => p.partner_status === key);
 
+  const columnProps = {
+    onOwnerChange: handleOwnerChange,
+    onStageChange: handleStageChange,
+    onTagsChange: handleTagsChange,
+    onFollowUpDateChange: handleFollowUpDateChange,
+    onLogNote: handleLogNote,
+    onCopyLink: handleCopyLink,
+    copiedId,
+    onSelectPartner,
+    onDelete: handleDelete,
+  };
+
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
@@ -226,10 +206,7 @@ export default function PartnerPipelineView({ partners, referrals }) {
                 stage={stage}
                 partners={stagePartners(stage.key)}
                 referrals={referrals}
-                onOwnerChange={handleOwnerChange}
-                onLogNote={handleLogNote}
-                onCopyLink={handleCopyLink}
-                copiedId={copiedId}
+                {...columnProps}
               />
             ))}
           </div>

@@ -23,6 +23,7 @@ export function PipelineCard({
   onViewPlaybook,
   onDelete,
   alertBadges,
+  extraActions,
   accentColor = '#264d44',
 }) {
   const isDragging = snapshot?.isDragging;
@@ -44,7 +45,8 @@ export function PipelineCard({
           <p className="font-semibold text-sm leading-tight truncate" style={{ color: accentColor }}>{title}</p>
           {subtitle && <p className="text-xs text-gray-500 truncate">{subtitle}</p>}
         </div>
-        <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
+        <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0 flex items-center gap-0.5">
+          {extraActions}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">

@@ -12,6 +12,7 @@ import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, Chevro
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import PartnerPipelineView from '@/components/partners/PartnerPipelineView';
+import ReferralPartnerDetail from '@/components/partners/ReferralPartnerDetail';
 import { LEAD_STAGES } from '@/components/shared/constants';
 import { TagSelector } from '@/components/ui/TagSelector';
 
@@ -44,6 +45,7 @@ export default function ReferralPartnerAdmin() {
   const [expandedPartner, setExpandedPartner] = useState(null);
   const [viewMode, setViewMode] = useState('pipeline');
   const [sendEmailConfirm, setSendEmailConfirm] = useState(null); // partner to confirm sending to
+  const [viewingPartner, setViewingPartner] = useState(null);
   const [sendingEmail, setSendingEmail] = useState(null); // partner id currently sending
 
   const { data: partners = [], isLoading } = useQuery({
@@ -155,30 +157,6 @@ export default function ReferralPartnerAdmin() {
     setShowDialog(true);
   };
 
-  const openEdit = (partner) => {
-    setEditing(partner);
-    const currentlyLinked = allClients
-      .filter(c => c.referral_partner_id === partner.id)
-      .map(c => c.id);
-    setForm({
-      name: partner.name || '',
-      email: partner.email || '',
-      email2: partner.email2 || '',
-      company: partner.company || '',
-      phone: partner.phone || '',
-      address: partner.address || '',
-      notes: partner.notes || '',
-      agreement_file_url: partner.agreement_file_url || '',
-      agreement_signed_date: partner.agreement_signed_date || '',
-      commission_tiers: partner.commission_tiers?.length ? partner.commission_tiers : DEFAULT_TIERS,
-      is_active: partner.is_active !== false,
-      follow_up_stage: partner.follow_up_stage || '',
-      tags: partner.tags || [],
-      linked_client_ids: currentlyLinked
-    });
-    setShowDialog(true);
-  };
-
   const sendPortalEmail = async (partner) => {
     setSendingEmail(partner.id);
     setSendEmailConfirm(null);
@@ -238,7 +216,7 @@ export default function ReferralPartnerAdmin() {
       </div>
 
       {viewMode === 'pipeline' && !isLoading && (
-        <PartnerPipelineView partners={partners} referrals={referrals} />
+        <PartnerPipelineView partners={partners} referrals={referrals} onSelectPartner={setViewingPartner} />
       )}
 
       {viewMode === 'list' && isLoading && (
@@ -268,7 +246,7 @@ export default function ReferralPartnerAdmin() {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <button
-                          onClick={() => openEdit(partner)}
+                          onClick={() => setViewingPartner(partner)}
                           className="font-semibold text-gray-800 text-lg hover:text-[#013f7c] hover:underline transition-colors"
                         >
                           {partner.name}
@@ -559,6 +537,14 @@ export default function ReferralPartnerAdmin() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Partner Detail Dialog */}
+      {viewingPartner && (
+        <ReferralPartnerDetail
+          partner={viewingPartner}
+          onClose={() => setViewingPartner(null)}
+        />
+      )}
     </div>
   );
 }
