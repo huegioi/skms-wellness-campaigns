@@ -12,6 +12,7 @@ import ROIDashboard from '@/components/portal/ROIDashboard';
 import BrokerFeedbackRollup from '@/components/portal/BrokerFeedbackRollup';
 
 const STATUS_COLORS = {
+  pending_review: 'bg-amber-100 text-amber-700',
   submitted: 'bg-blue-100 text-blue-700',
   contacted: 'bg-yellow-100 text-yellow-700',
   converted_to_client: 'bg-green-100 text-green-700',
@@ -21,6 +22,7 @@ const STATUS_COLORS = {
 };
 
 const STATUS_LABELS = {
+  pending_review: 'Under Review',
   submitted: 'Submitted',
   contacted: 'Contacted',
   converted_to_client: 'Converted to Client',
