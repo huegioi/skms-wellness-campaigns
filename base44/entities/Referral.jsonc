@@ -80,6 +80,10 @@
     "invoice_id": {
       "type": "string",
       "description": "ID of the Invoice linked to this placement"
+    },
+    "proposal_id": {
+      "type": "string",
+      "description": "Optional proposal the partner linked when submitting this referral"
     }
   },
   "required": [

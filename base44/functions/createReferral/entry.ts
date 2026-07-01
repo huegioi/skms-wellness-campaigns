@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
 
-  const { portal_id, contact_name, contact_email, company_name, notes } = await req.json();
+  const { portal_id, contact_name, contact_email, company_name, notes, proposal_id } = await req.json();
 
   if (!portal_id || !contact_name) {
     return Response.json({ error: 'portal_id and contact_name are required' }, { status: 400 });
@@ -37,7 +37,8 @@ Deno.serve(async (req) => {
     company_name: company_name || '',
     notes: notes || '',
     referral_date: new Date().toISOString(),
-    status: 'pending_review'
+    status: 'pending_review',
+    ...(proposal_id ? { proposal_id } : {})
   });
 
   return Response.json({ success: true, referral_id: referral.id, lead_id: lead.id });
