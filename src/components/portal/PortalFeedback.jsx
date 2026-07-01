@@ -55,6 +55,8 @@ export default function PortalFeedback({ client, proposals = [] }) {
         clientCompany={client?.company}
         services={clientServices}
         acceptedProposalId={acceptedProposal?.id}
+        showReportButton={!!client?.portal_token}
+        onGenerateReport={() => window.open(`${window.location.origin}/ClientReport?client_id=${client.id}&token=${client.portal_token}`, '_blank')}
       />
     </div>
   );

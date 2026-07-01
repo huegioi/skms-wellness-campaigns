@@ -26,36 +26,26 @@ function StarRow({ value, max = 5 }) {
 export default function ClientReport() {
   const urlParams = new URLSearchParams(window.location.search);
   const clientId = urlParams.get('client_id');
-  // portal_id is required when accessed from the Broker Portal to enforce ownership
   const portalId = urlParams.get('portal_id');
+  const token = urlParams.get('token');
   const printRef = useRef();
 
-  // If a portal_id is present, validate that this broker owns this client before showing any data
-  const { data: accessCheck, isLoading: checkingAccess } = useQuery({
-    queryKey: ['report-access', portalId, clientId],
-    queryFn: () => base44.functions.invoke('validateClientReportAccess', { portal_id: portalId, client_id: clientId }).then(r => r.data),
-    enabled: !!portalId && !!clientId,
+  // Always validate access — portal_id (broker), token (client portal), or admin auth
+  const { data: accessResult, isLoading: checkingAccess } = useQuery({
+    queryKey: ['report-access', portalId, token, clientId],
+    queryFn: () => base44.functions.invoke('validateClientReportAccess', {
+      client_id: clientId,
+      ...(portalId ? { portal_id: portalId } : {}),
+      ...(token ? { token } : {}),
+    }).then(r => r.data),
+    enabled: !!clientId,
     retry: false,
   });
 
-  const accessGranted = !portalId || (accessCheck && accessCheck.allowed);
-
-  const { data: client } = useQuery({
-    queryKey: ['report-client', clientId],
-    queryFn: () => base44.entities.Client.filter({ id: clientId }).then(r => r[0] || null),
-    enabled: !!clientId && accessGranted
-  });
-
-  const { data: responses = [], isLoading } = useQuery({
-    queryKey: ['report-responses', clientId],
-    queryFn: () => base44.entities.FeedbackResponse.filter({ client_id: clientId }, '-submitted_at', 500),
-    enabled: !!clientId && accessGranted
-  });
-
-  const { data: services = [] } = useQuery({
-    queryKey: ['services'],
-    queryFn: () => base44.entities.Service.list('sort_order')
-  });
+  const accessGranted = accessResult?.allowed === true;
+  const client = accessResult?.client || null;
+  const responses = accessResult?.responses || [];
+  const services = accessResult?.services || [];
 
   const serviceMap = Object.fromEntries(services.map(s => [s.id, s]));
 
@@ -140,9 +130,7 @@ export default function ClientReport() {
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="text-center text-gray-400 py-12">Loading report data...</div>
-        ) : responses.length === 0 ? (
+        {responses.length === 0 ? (
           <div className="text-center text-gray-400 py-12">No feedback responses collected yet for this client.</div>
         ) : (
           <>
