@@ -234,8 +234,20 @@ CRITICAL EMAIL RULES:
     const isHeather = senderKey.includes('heather');
     const fromEmail = isHeather ? 'heather@skillfulmeans.life' : 'william@skillfulmeans.life';
 
-    // Get Gmail OAuth access token (shared connector — builder's account)
-    const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
+    // Pick the correct Gmail connector based on sender
+    const HEATHER_GMAIL_CONNECTOR_ID = 'PASTE_HEATHER_CONNECTOR_ID_HERE';
+    const connectorName = isHeather ? HEATHER_GMAIL_CONNECTOR_ID : 'gmail';
+    let accessToken;
+    try {
+      const conn = await base44.asServiceRole.connectors.getConnection(connectorName);
+      accessToken = conn.accessToken;
+    } catch (e) {
+      const who = isHeather ? "Heather's" : "William's";
+      return Response.json(
+        { error: `${who} Gmail isn't connected — add it in Settings → OAuth Connectors` },
+        { status: 400 }
+      );
+    }
 
     // Build RFC 2822 MIME message
     const mimeLines = [

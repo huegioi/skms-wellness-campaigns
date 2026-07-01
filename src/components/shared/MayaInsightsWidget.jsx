@@ -68,7 +68,7 @@ export default function MayaInsightsWidget({ recordType, recordId, owner }) {
               className="underline text-indigo-600"
               onClick={(e) => {
                 e.preventDefault();
-                window.open(`https://mail.google.com/mail/u/0/#drafts`, '_blank');
+                window.open(`https://mail.google.com/mail/u/?authuser=${encodeURIComponent(from_email)}#drafts`, '_blank');
               }}
             >
               Open Gmail Drafts ↗
