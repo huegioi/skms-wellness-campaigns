@@ -138,6 +138,10 @@ export default function ClientPortal() {
     );
   }
 
+  const latestUpdate = [client?.updated_date, ...proposals.map(p => p.updated_date), ...events.map(e => e.updated_date)]
+    .filter(Boolean)
+    .sort((a, b) => new Date(b) - new Date(a))[0];
+
   return (
     <div className="min-h-screen bg-[#f4f0e9]">
       {/* Header */}
@@ -164,10 +168,12 @@ export default function ClientPortal() {
                 <Share2 className="w-4 h-4 mr-2" />
                 {copied ? 'Copied!' : 'Share Portal'}
               </Button>
-              <div className="flex items-center gap-2 text-sm text-white/70">
-                <Clock className="w-4 h-4" />
-                Last updated: {new Date().toLocaleDateString()}
-              </div>
+              {latestUpdate && (
+                <div className="flex items-center gap-2 text-sm text-white/70">
+                  <Clock className="w-4 h-4" />
+                  Last updated: {new Date(latestUpdate).toLocaleDateString()}
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -99,6 +99,10 @@ export default function MyPortal() {
     );
   }
 
+  const latestUpdate = [client?.updated_date, ...proposals.map(p => p.updated_date), ...events.map(e => e.updated_date)]
+    .filter(Boolean)
+    .sort((a, b) => new Date(b) - new Date(a))[0];
+
   return (
     <div className="min-h-screen bg-[#f4f0e9]">
       {/* Header */}
@@ -117,10 +121,12 @@ export default function MyPortal() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <div className="text-sm text-white/70 hidden md:block">
-                <Clock className="w-4 h-4 inline mr-1" />
-                {new Date().toLocaleDateString()}
-              </div>
+              {latestUpdate && (
+                <div className="text-sm text-white/70 hidden md:block">
+                  <Clock className="w-4 h-4 inline mr-1" />
+                  {new Date(latestUpdate).toLocaleDateString()}
+                </div>
+              )}
               <Button 
                 variant="ghost" 
                 size="sm" 
