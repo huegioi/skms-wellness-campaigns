@@ -18,10 +18,13 @@ export default function ClientPortal() {
   const [copied, setCopied] = useState(false);
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
   const clientIdFromUrl = urlParams.get('clientId');
 
   const handleSharePortal = () => {
-    const portalUrl = window.location.origin + window.location.pathname + (clientIdFromUrl ? `?clientId=${clientIdFromUrl}` : '');
+    const tokenToShare = token || client?.portal_token;
+    if (!tokenToShare) return;
+    const portalUrl = `${window.location.origin}/ClientPortal?token=${tokenToShare}`;
     navigator.clipboard.writeText(portalUrl);
     setCopied(true);
     toast.success('Portal link copied to clipboard!', {
@@ -36,19 +39,18 @@ export default function ClientPortal() {
   });
 
   const { data: portalData, isLoading: clientLoading } = useQuery({
-    queryKey: ['clientPortalData', clientIdFromUrl, user?.email],
+    queryKey: ['clientPortalData', token || clientIdFromUrl],
     queryFn: async () => {
       try {
-        const res = await base44.functions.invoke('getClientPortalData', {
-          ...(clientIdFromUrl ? { client_id: clientIdFromUrl } : {})
-        });
+        const payload = token ? { token } : { client_id: clientIdFromUrl };
+        const res = await base44.functions.invoke('getClientPortalData', payload);
         return res.data;
       } catch (e) {
-        if (e?.response?.status === 404) return null;
+        if (e?.response?.status === 404 || e?.response?.status === 403) return null;
         throw e;
       }
     },
-    enabled: !!clientIdFromUrl || !!user?.email
+    enabled: !!token || !!clientIdFromUrl
   });
 
   const client = portalData?.client || null;

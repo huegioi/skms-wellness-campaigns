@@ -2,35 +2,34 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
  * Single data source for the client portal.
- * Input: optional client_id (admin preview mode).
- * Authenticates the caller; non-admins are matched by email/email2.
+ * Input: token (no-login client access) OR client_id (admin preview).
+ * Token: look up Client by portal_token via service role — no auth required.
+ * client_id: caller must be an admin; non-admins get 403.
  * Returns: client, proposals, events (projected), email_templates, services.
  */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
 
     let body = {};
     try { body = await req.json(); } catch { /* no body */ }
-    const { client_id } = body;
+    const { token, client_id } = body;
 
     // ── Resolve the client ──────────────────────────────────────────────
     let client = null;
 
-    if (user?.role === 'admin' && client_id) {
+    if (token) {
+      // Token-based access — no auth required (mirrors referral portal)
+      const byToken = await base44.asServiceRole.entities.Client.filter({ portal_token: token });
+      client = byToken[0] || null;
+    } else if (client_id) {
+      // Admin preview — must be authenticated admin
+      const user = await base44.auth.me();
+      if (user?.role !== 'admin') {
+        return Response.json({ error: 'Forbidden' }, { status: 403 });
+      }
       const byId = await base44.asServiceRole.entities.Client.filter({ id: client_id });
       client = byId[0] || null;
-    } else if (user?.email) {
-      const byEmail = await base44.asServiceRole.entities.Client.filter({ email: user.email });
-      if (byEmail.length > 0) {
-        client = byEmail[0];
-      } else {
-        const byEmail2 = await base44.asServiceRole.entities.Client.filter({ email2: user.email });
-        if (byEmail2.length > 0) {
-          client = byEmail2[0];
-        }
-      }
     }
 
     if (!client) {

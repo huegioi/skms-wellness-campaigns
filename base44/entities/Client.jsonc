@@ -341,6 +341,10 @@
       "type": "string",
       "format": "date",
       "description": "Manual follow-up due date (does not replace the window-based follow-up model)"
+    },
+    "portal_token": {
+      "type": "string",
+      "description": "Secret token for the client's no-login portal link"
     }
   },
   "required": [

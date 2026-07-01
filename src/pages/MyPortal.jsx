@@ -19,19 +19,35 @@ export default function MyPortal() {
     queryFn: () => base44.auth.me()
   });
 
-  const { data: portalData, isLoading: clientLoading } = useQuery({
-    queryKey: ['clientPortalData', user?.email],
+  const { data: tokenData, isLoading: tokenLoading } = useQuery({
+    queryKey: ['myClientPortalToken', user?.email],
     queryFn: async () => {
       try {
-        const res = await base44.functions.invoke('getClientPortalData', {});
+        const res = await base44.functions.invoke('getMyClientPortalToken', {});
+        return res.data;
+      } catch (e) {
+        if (e?.response?.status === 404 || e?.response?.status === 401) return null;
+        throw e;
+      }
+    },
+    enabled: !!user?.email
+  });
+
+  const { data: portalData, isLoading: dataLoading } = useQuery({
+    queryKey: ['clientPortalData', tokenData?.portal_token],
+    queryFn: async () => {
+      try {
+        const res = await base44.functions.invoke('getClientPortalData', { token: tokenData.portal_token });
         return res.data;
       } catch (e) {
         if (e?.response?.status === 404) return null;
         throw e;
       }
     },
-    enabled: !!user?.email
+    enabled: !!tokenData?.portal_token
   });
+
+  const clientLoading = tokenLoading || dataLoading;
 
   const client = portalData?.client || null;
   const proposals = portalData?.proposals || [];
