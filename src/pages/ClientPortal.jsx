@@ -35,82 +35,30 @@ export default function ClientPortal() {
     queryFn: () => base44.auth.me()
   });
 
-  // Find client - either by URL param (admin view) or by logged-in user email
-  const { data: client, isLoading: clientLoading } = useQuery({
-    queryKey: ['portalClient', clientIdFromUrl, user?.email],
+  const { data: portalData, isLoading: clientLoading } = useQuery({
+    queryKey: ['clientPortalData', clientIdFromUrl, user?.email],
     queryFn: async () => {
-      // If clientId in URL, fetch that specific client (admin viewing)
-      if (clientIdFromUrl) {
-        const clients = await base44.entities.Client.filter({ id: clientIdFromUrl });
-        return clients[0] || null;
+      try {
+        const res = await base44.functions.invoke('getClientPortalData', {
+          ...(clientIdFromUrl ? { client_id: clientIdFromUrl } : {})
+        });
+        return res.data;
+      } catch (e) {
+        if (e?.response?.status === 404) return null;
+        throw e;
       }
-      // Otherwise, find by logged-in user email
-      if (!user?.email) return null;
-      const clients = await base44.entities.Client.filter({ email: user.email });
-      return clients[0] || null;
     },
     enabled: !!clientIdFromUrl || !!user?.email
   });
 
-  // Get proposals for this client
-  const { data: proposals = [] } = useQuery({
-    queryKey: ['portalProposals', client?.id],
-    queryFn: async () => {
-      if (!client?.id) return [];
-      return base44.entities.Proposal.filter({ client_id: client.id }, '-created_date');
-    },
-    enabled: !!client?.id
-  });
+  const client = portalData?.client || null;
+  const proposals = portalData?.proposals || [];
+  const events = portalData?.events || [];
+  const allTemplates = portalData?.email_templates || [];
+  const services = portalData?.services || [];
 
   // Get accepted proposal
   const acceptedProposal = proposals.find(p => p.status === 'accepted') || proposals[0];
-
-  // Get events for this client (filter by client_id, client_name, company, or proposal_id)
-  const { data: events = [] } = useQuery({
-    queryKey: ['portalEvents', client?.id, client?.name, proposals],
-    queryFn: async () => {
-      if (!client) return [];
-      const proposalIds = new Set(proposals.map(p => p.id));
-      const allEvents = await base44.entities.CalendarEvent.list('start_date');
-      const clientNameLower = client.name?.toLowerCase().trim() || '';
-      const clientCompanyLower = client.company?.toLowerCase().trim() || '';
-      return allEvents.filter(event => {
-        // Must have a client_name on the event OR a matching proposal/client_id
-        const eventClientLower = event.client_name?.toLowerCase().trim() || '';
-
-        if (event.client_id && event.client_id === client.id) return true;
-        if (event.proposal_id && proposalIds.has(event.proposal_id)) return true;
-
-        // Only do name matching if the event actually has a client_name set
-        if (!eventClientLower) return false;
-
-        if (clientNameLower && eventClientLower === clientNameLower) return true;
-        if (clientCompanyLower && eventClientLower === clientCompanyLower) return true;
-
-        // Allow partial match only when event client_name is a meaningful substring
-        // (covers "Moses Weitzman" matching "Moses Weitzman Health System")
-        if (clientNameLower && clientNameLower.length > 5 && clientNameLower.includes(eventClientLower)) return true;
-        if (clientNameLower && eventClientLower.length > 5 && eventClientLower.includes(clientNameLower)) return true;
-        if (clientCompanyLower && clientCompanyLower.length > 5 && clientCompanyLower.includes(eventClientLower)) return true;
-        if (clientCompanyLower && eventClientLower.length > 5 && eventClientLower.includes(clientCompanyLower)) return true;
-
-        return false;
-      });
-    },
-    enabled: !!client
-  });
-
-  // Get email templates
-  const { data: allTemplates = [] } = useQuery({
-    queryKey: ['emailTemplates'],
-    queryFn: () => base44.entities.EmailTemplate.list()
-  });
-
-  // Get services for resolving IDs to names/descriptions
-  const { data: services = [] } = useQuery({
-    queryKey: ['services'],
-    queryFn: () => base44.entities.Service.list('sort_order')
-  });
 
   if (clientLoading) {
     return (
@@ -228,7 +176,7 @@ export default function ClientPortal() {
             <ClientEmailTemplates proposal={acceptedProposal} templates={allTemplates} client={client} />
           </TabsContent>
           <TabsContent value="profile">
-            <ClientProfileSettings client={client} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['portalClient'] })} />
+            <ClientProfileSettings client={client} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['clientPortalData'] })} />
           </TabsContent>
           <TabsContent value="resources">
             <ClientResources client={client} proposals={proposals} services={services} />

@@ -19,52 +19,26 @@ export default function MyPortal() {
     queryFn: () => base44.auth.me()
   });
 
-  const { data: client, isLoading: clientLoading } = useQuery({
-    queryKey: ['portalClient', user?.email],
+  const { data: portalData, isLoading: clientLoading } = useQuery({
+    queryKey: ['clientPortalData', user?.email],
     queryFn: async () => {
-      if (!user?.email) return null;
-      const clients = await base44.entities.Client.filter({ email: user.email });
-      return clients[0] || null;
+      try {
+        const res = await base44.functions.invoke('getClientPortalData', {});
+        return res.data;
+      } catch (e) {
+        if (e?.response?.status === 404) return null;
+        throw e;
+      }
     },
     enabled: !!user?.email
   });
 
-  const { data: proposals = [] } = useQuery({
-    queryKey: ['portalProposals', client?.id],
-    queryFn: async () => {
-      if (!client?.id) return [];
-      return base44.entities.Proposal.filter({ client_id: client.id }, '-created_date');
-    },
-    enabled: !!client?.id
-  });
-
+  const client = portalData?.client || null;
+  const proposals = portalData?.proposals || [];
+  const events = portalData?.events || [];
+  const allTemplates = portalData?.email_templates || [];
+  const services = portalData?.services || [];
   const acceptedProposal = proposals.find(p => p.status === 'accepted') || proposals[0];
-
-  // Get services for resolving IDs to names/descriptions
-  const { data: services = [] } = useQuery({
-    queryKey: ['services'],
-    queryFn: () => base44.entities.Service.list('sort_order')
-  });
-
-  // Get email templates
-  const { data: allTemplates = [] } = useQuery({
-    queryKey: ['emailTemplates'],
-    queryFn: () => base44.entities.EmailTemplate.list()
-  });
-
-  // Get events for this client (filter by client_id OR client_name)
-  const { data: events = [] } = useQuery({
-    queryKey: ['portalEvents', client?.id, client?.name],
-    queryFn: async () => {
-      if (!client) return [];
-      // Get events by client_id OR client_name to catch all related events
-      const allEvents = await base44.entities.CalendarEvent.list('start_date');
-      return allEvents.filter(event => 
-        event.client_id === client.id || event.client_name === client.name || event.client_name === client.company
-      );
-    },
-    enabled: !!client
-  });
 
   const handleLogout = () => {
     base44.auth.logout();
@@ -178,7 +152,7 @@ export default function MyPortal() {
             <ClientEmailTemplates proposal={acceptedProposal} templates={allTemplates} client={client} />
           </TabsContent>
           <TabsContent value="profile">
-            <ClientProfileSettings client={client} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['portalClient'] })} />
+            <ClientProfileSettings client={client} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['clientPortalData'] })} />
           </TabsContent>
           <TabsContent value="feedback">
             <PortalFeedback client={client} proposals={proposals} />
