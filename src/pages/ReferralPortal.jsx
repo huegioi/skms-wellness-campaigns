@@ -46,6 +46,9 @@ export default function ReferralPortal() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState({ contact_name: '', contact_email: '', company_name: '', notes: '', proposal_id: '' });
+  const [submitError, setSubmitError] = useState(null);
+
+  const updateForm = (updater) => { setForm(updater); setSubmitError(null); };
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const [selectedClientROI, setSelectedClientROI] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -79,6 +82,7 @@ export default function ReferralPortal() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.contact_name) return;
+    setSubmitError(null);
     setSubmitting(true);
     try {
       await base44.functions.invoke('createReferral', { portal_id: portalId, ...form });
@@ -88,6 +92,7 @@ export default function ReferralPortal() {
       await loadData();
     } catch (err) {
       console.error('Failed to submit referral:', err);
+      setSubmitError('Something went wrong submitting your referral — please try again or email us.');
     }
     setSubmitting(false);
   };
@@ -181,18 +186,18 @@ export default function ReferralPortal() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="text-sm font-medium text-gray-700 block mb-1">Contact Name *</label>
-                        <Input value={form.contact_name} onChange={e => setForm(f => ({ ...f, contact_name: e.target.value }))} placeholder="Full name" required />
+                        <Input value={form.contact_name} onChange={e => updateForm(f => ({ ...f, contact_name: e.target.value }))} placeholder="Full name" required />
                       </div>
                       <div>
                         <label className="text-sm font-medium text-gray-700 block mb-1">Contact Email</label>
-                        <Input type="email" value={form.contact_email} onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))} placeholder="email@company.com" />
+                        <Input type="email" value={form.contact_email} onChange={e => updateForm(f => ({ ...f, contact_email: e.target.value }))} placeholder="email@company.com" />
                       </div>
                       <div className="relative">
                         <label className="text-sm font-medium text-gray-700 block mb-1">Company Name</label>
                         <div className="flex gap-1">
                           <Input
                             value={form.company_name}
-                            onChange={e => setForm(f => ({ ...f, company_name: e.target.value, proposal_id: '' }))}
+                            onChange={e => updateForm(f => ({ ...f, company_name: e.target.value, proposal_id: '' }))}
                             placeholder="Company or organization"
                             onFocus={() => setCompanyDropdownOpen(true)}
                             onBlur={() => setTimeout(() => setCompanyDropdownOpen(false), 150)}
@@ -216,7 +221,7 @@ export default function ReferralPortal() {
                                   key={c.id}
                                   type="button"
                                   className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-700"
-                                  onMouseDown={() => { setForm(f => ({ ...f, company_name: c.company, proposal_id: '' })); setCompanyDropdownOpen(false); }}
+                                  onMouseDown={() => { updateForm(f => ({ ...f, company_name: c.company, proposal_id: '' })); setCompanyDropdownOpen(false); }}
                                 >
                                   <span className="font-medium">{c.company}</span>
                                   {c.name && c.name !== c.company && <span className="text-gray-400 ml-1 text-xs">— {c.name}</span>}
@@ -236,7 +241,7 @@ export default function ReferralPortal() {
                             <select
                               className="w-full border border-input rounded-md px-3 py-2 text-sm bg-white"
                               value={form.proposal_id}
-                              onChange={e => setForm(f => ({ ...f, proposal_id: e.target.value }))}
+                              onChange={e => updateForm(f => ({ ...f, proposal_id: e.target.value }))}
                             >
                               <option value="">No proposal linked</option>
                               {availableProposals.map(p => (
@@ -251,8 +256,11 @@ export default function ReferralPortal() {
                     </div>
                     <div>
                       <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
-                      <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any context about this referral..." rows={3} />
+                      <Textarea value={form.notes} onChange={e => updateForm(f => ({ ...f, notes: e.target.value }))} placeholder="Any context about this referral..." rows={3} />
                     </div>
+                    {submitError && (
+                      <p className="text-sm text-red-600 font-medium">{submitError}</p>
+                    )}
                     <div className="flex gap-3">
                       <Button type="submit" disabled={submitting} className="bg-[#013f7c] hover:bg-[#012d5a] text-white">
                         {submitting ? 'Submitting...' : 'Submit Referral'}
