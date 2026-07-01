@@ -6,6 +6,7 @@ import { Calendar, Clock, Building, ChevronRight, CheckCircle2, Loader2, AlertCi
 import PresenterSessionDetail from '@/components/presenter/PresenterSessionDetail';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 import { Button } from '@/components/ui/button';
+import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 
 export default function PresenterPortal() {
   const portalId = new URLSearchParams(window.location.search).get('id');
@@ -27,33 +28,27 @@ export default function PresenterPortal() {
 
   if (!portalId) {
     return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl shadow-sm p-8 text-center max-w-sm">
-          <AlertCircle className="w-10 h-10 text-amber-400 mx-auto mb-3" />
-          <p className="font-semibold text-gray-700">No portal ID provided.</p>
-          <p className="text-sm text-gray-400 mt-1">Please use the link provided to you by SKMS Wellness.</p>
-        </div>
-      </div>
+      <PortalError
+        icon={AlertCircle}
+        iconClass="w-10 h-10 text-amber-400"
+        heading="No portal ID provided."
+        message="Please use the link provided to you by SKMS Wellness."
+      />
     );
   }
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#013f7c]" />
-      </div>
-    );
+    return <PortalLoading accentColor="#013f7c" />;
   }
 
   if (isError || !data?.presenter) {
     return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-6">
-        <div className="bg-white rounded-2xl shadow-sm p-8 text-center max-w-sm">
-          <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
-          <p className="font-semibold text-gray-700">Portal not found.</p>
-          <p className="text-sm text-gray-400 mt-1">This link may be invalid or expired. Please contact SKMS Wellness.</p>
-        </div>
-      </div>
+      <PortalError
+        icon={AlertCircle}
+        iconClass="w-10 h-10 text-red-400"
+        heading="Portal not found."
+        message="This link may be invalid or expired. Please contact SKMS Wellness."
+      />
     );
   }
 
@@ -74,23 +69,17 @@ export default function PresenterPortal() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f0e9]">
-      {/* Header */}
-      <div className="bg-[#013f7c] text-white px-6 py-5">
-        <div className="max-w-3xl mx-auto flex items-center gap-4">
-          <img
-            src="https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/1272f92b7_SKMSLogoShieldWhite.png"
-            alt="SKMS Wellness"
-            className="h-9"
-          />
-          <div>
-            <h1 className="text-xl font-bold">Presenter Portal</h1>
-            <p className="text-blue-200 text-sm">Welcome, {presenter.name}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+    <PortalShell
+      accentColor="#013f7c"
+      title="Presenter Portal"
+      subtitle={`Welcome, ${presenter.name}`}
+      maxWidth="max-w-3xl"
+      headerPadding="px-6 py-5"
+      logoClass="h-9"
+      titleClass="text-xl font-bold"
+      subtitleClass="text-blue-200 text-sm"
+      contentClass="px-4 py-8 space-y-8"
+    >
 
         {/* Earnings Summary */}
         {earnings?.has_rate && (
@@ -152,10 +141,9 @@ export default function PresenterPortal() {
             </div>
           </section>
         )}
-      </div>
-    </div>
-  );
-}
+      </PortalShell>
+    );
+  }
 
 function SessionCard({ event, upcoming, portalId, onCompleted, onClick }) {
   const [completing, setCompleting] = useState(false);

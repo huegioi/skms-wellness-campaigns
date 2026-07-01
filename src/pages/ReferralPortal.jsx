@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown, BarChart3, ArrowLeft, BookOpen, ChevronRight, PlayCircle, Star } from 'lucide-react';
 import ROIDashboard from '@/components/portal/ROIDashboard';
 import BrokerFeedbackRollup from '@/components/portal/BrokerFeedbackRollup';
+import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 
 const STATUS_COLORS = {
   pending_review: 'bg-amber-100 text-amber-700',
@@ -100,22 +101,15 @@ export default function ReferralPortal() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-[#013f7c] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <PortalLoading accentColor="#013f7c" />;
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-6">
-        <Card className="max-w-md w-full text-center p-8">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Portal Not Found</h2>
-          <p className="text-gray-500">This portal link is invalid or has expired. Please contact your SKMS Wellness representative.</p>
-        </Card>
-      </div>
+      <PortalError
+        heading="Portal Not Found"
+        message="This portal link is invalid or has expired. Please contact your SKMS Wellness representative."
+      />
     );
   }
 
@@ -123,35 +117,21 @@ export default function ReferralPortal() {
   const tiers = partner.commission_tiers || [];
 
   return (
-    <div className="min-h-screen bg-[#f4f0e9]">
-      {/* Header */}
-      <div className="bg-[#013f7c] text-white py-6 px-4">
-        <div className="max-w-4xl mx-auto">
-          <p className="text-blue-200 text-sm font-medium mb-1">Referral Partner Portal</p>
-          <h1 className="text-2xl font-bold">{partner.name}</h1>
-          {partner.company && <p className="text-blue-200 mt-1">{partner.company}</p>}
-          {!partner.is_active && <Badge className="mt-2 bg-red-500 text-white">Inactive Partnership</Badge>}
-        </div>
-        {/* Tab Bar */}
-        <div className="max-w-4xl mx-auto mt-5 flex gap-1">
-          {TABS.map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-semibold transition-colors ${
-                activeTab === key
-                  ? 'bg-[#f4f0e9] text-[#013f7c]'
-                  : 'text-blue-200 hover:text-white hover:bg-white/10'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+    <PortalShell
+      accentColor="#013f7c"
+      eyebrow="Referral Partner Portal"
+      title={partner.name}
+      subtitle={partner.company}
+      logo={false}
+      maxWidth="max-w-4xl"
+      headerPadding="py-6 px-4"
+      subtitleClass="text-blue-200"
+      headerExtra={!partner.is_active ? <Badge className="mt-2 bg-red-500 text-white">Inactive Partnership</Badge> : null}
+      tabs={TABS}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      contentClass="px-4 py-8 space-y-6"
+    >
 
         {/* ─── DASHBOARD TAB ─── */}
         {activeTab === 'dashboard' && (
@@ -714,7 +694,6 @@ export default function ReferralPortal() {
           </div>
         )}
 
-      </div>
-    </div>
-  );
-}
+      </PortalShell>
+    );
+  }

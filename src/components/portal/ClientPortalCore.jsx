@@ -12,6 +12,7 @@ import ClientProfileSettings from '@/components/portal/ClientProfileSettings';
 import PortalFeedback from '@/components/portal/PortalFeedback';
 import ClientResources from '@/components/portal/ClientResources';
 import BookSession from '@/components/portal/BookSession';
+import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 
 /**
  * Shared client portal UI driven by mode.
@@ -69,27 +70,17 @@ export default function ClientPortalCore({ mode, token, clientId }) {
   const acceptedProposal = proposals.find(p => p.status === 'accepted') || proposals[0];
 
   if (clientLoading) {
-    return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#770142] mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your portal...</p>
-        </div>
-      </div>
-    );
+    return <PortalLoading accentColor="#223d32" label="Loading your portal..." />;
   }
 
   if (!client) {
     return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
-          <Building className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome!</h2>
-          <p className="text-gray-600 mb-4">
-            Your client portal is being set up. Please contact us if you believe this is an error.
-          </p>
-        </div>
-      </div>
+      <PortalError
+        icon={Building}
+        iconClass="w-16 h-16 text-gray-300"
+        heading="Welcome!"
+        message="Your client portal is being set up. Please contact us if you believe this is an error."
+      />
     );
   }
 
@@ -98,48 +89,46 @@ export default function ClientPortalCore({ mode, token, clientId }) {
     .sort((a, b) => new Date(b) - new Date(a))[0];
 
   return (
-    <div className="min-h-screen bg-[#f4f0e9]">
-      {/* Header */}
-      <div className="bg-[#223d32] text-white py-8 px-4">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div className="flex items-center gap-4">
-              <img
-                src="https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/1272f92b7_SKMSLogoShieldWhite.png"
-                alt="SkillfulMeans"
-                className="h-10 hidden sm:block"
-              />
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold">Welcome, {client.name}</h1>
-                <p className="text-white/80 mt-1">Empowering your team with mindful wellness programs.</p>
-              </div>
+    <PortalShell
+      accentColor="#223d32"
+      title={`Welcome, ${client.name}`}
+      subtitle="Empowering your team with mindful wellness programs."
+      maxWidth="max-w-6xl"
+      headerPadding="py-8 px-4"
+      logoClass="h-10 hidden sm:block"
+      titleClass="text-2xl md:text-3xl font-bold"
+      subtitleClass="text-white/80"
+      contentClass="p-4 md:p-8"
+      headerRight={
+        <>
+          {mode === 'admin' && (
+            <Button
+              onClick={handleSharePortal}
+              variant="outline"
+              disabled={sharing}
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+            >
+              <Share2 className="w-4 h-4 mr-2" />
+              {sharing ? 'Generating...' : copied ? 'Copied!' : 'Share Portal'}
+            </Button>
+          )}
+          {latestUpdate && (
+            <div className="flex items-center gap-2 text-sm text-white/70">
+              <Clock className="w-4 h-4" />
+              Last updated: {new Date(latestUpdate).toLocaleDateString()}
             </div>
-            <div className="flex items-center gap-4">
-              {mode === 'admin' && (
-                <Button
-                  onClick={handleSharePortal}
-                  variant="outline"
-                  disabled={sharing}
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  {sharing ? 'Generating...' : copied ? 'Copied!' : 'Share Portal'}
-                </Button>
-              )}
-              {latestUpdate && (
-                <div className="flex items-center gap-2 text-sm text-white/70">
-                  <Clock className="w-4 h-4" />
-                  Last updated: {new Date(latestUpdate).toLocaleDateString()}
-                </div>
-              )}
-            </div>
+          )}
+        </>
+      }
+      footer={mode === 'client' && (
+        <div className="bg-white border-t py-4 mt-8">
+          <div className="max-w-6xl mx-auto px-4 text-center text-sm text-gray-500">
+            Need help? Contact us at <a href="mailto:admin@skillfulmeans.life" className="text-[#770142] underline">admin@skillfulmeans.life</a>
           </div>
         </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-6xl mx-auto p-4 md:p-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+      )}
+    >
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="overflow-x-auto mb-8 -mx-4 px-4 md:mx-0 md:px-0">
             <TabsList className="inline-flex w-max min-w-full h-auto p-1 gap-1">
               <TabsTrigger value="proposal" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
@@ -195,16 +184,6 @@ export default function ClientPortalCore({ mode, token, clientId }) {
             <PortalFeedback client={client} proposals={proposals} />
           </TabsContent>
         </Tabs>
-      </div>
-
-      {/* Footer — client mode only */}
-      {mode === 'client' && (
-        <div className="bg-white border-t py-4 mt-8">
-          <div className="max-w-6xl mx-auto px-4 text-center text-sm text-gray-500">
-            Need help? Contact us at <a href="mailto:admin@skillfulmeans.life" className="text-[#770142] underline">admin@skillfulmeans.life</a>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+      </PortalShell>
+    );
+  }
