@@ -40,7 +40,10 @@ export function InlineTagEditor({ value = [], onChange, onManageTags }) {
       <PopoverTrigger asChild>
         <button className="w-full text-left min-h-[20px] py-0.5">
           {value.length > 0 ? (
-            <TagChips tags={value} />
+            <div className="flex items-center gap-1 flex-wrap">
+              <TagChips tags={value} />
+              <Plus className="w-3 h-3 text-gray-400 hover:text-gray-600 shrink-0" />
+            </div>
           ) : (
             <span className="text-xs text-gray-400 hover:text-gray-500">+ Add tags</span>
           )}
