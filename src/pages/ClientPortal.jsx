@@ -16,21 +16,30 @@ import BookSession from '@/components/portal/BookSession';
 export default function ClientPortal() {
   const [activeTab, setActiveTab] = useState('proposal');
   const [copied, setCopied] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
   const clientIdFromUrl = urlParams.get('clientId');
 
-  const handleSharePortal = () => {
-    const tokenToShare = token || client?.portal_token;
-    if (!tokenToShare) return;
-    const portalUrl = `${window.location.origin}/ClientPortal?token=${tokenToShare}`;
-    navigator.clipboard.writeText(portalUrl);
-    setCopied(true);
-    toast.success('Portal link copied to clipboard!', {
-      description: 'Share this link with your client to give them access to their portal.'
-    });
-    setTimeout(() => setCopied(false), 2000);
+  const handleSharePortal = async () => {
+    setSharing(true);
+    try {
+      const res = await base44.functions.invoke('generateClientPortalToken', { client_id: client.id });
+      const portalUrl = `${window.location.origin}/ClientPortal?token=${res.data.portal_token}`;
+      await navigator.clipboard.writeText(portalUrl);
+      setCopied(true);
+      toast.success('Portal link copied', {
+        description: `Anyone with this link can view ${client.company || client.name}'s portal.`
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      toast.error('Could not generate portal link', {
+        description: 'Please try again or contact support.'
+      });
+    } finally {
+      setSharing(false);
+    }
   };
 
   const { data: user } = useQuery({
@@ -110,14 +119,17 @@ export default function ClientPortal() {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <Button
-                onClick={handleSharePortal}
-                variant="outline"
-                className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-              >
-                <Share2 className="w-4 h-4 mr-2" />
-                {copied ? 'Copied!' : 'Share Portal'}
-              </Button>
+              {clientIdFromUrl && (
+                <Button
+                  onClick={handleSharePortal}
+                  variant="outline"
+                  disabled={sharing}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  {sharing ? 'Generating...' : copied ? 'Copied!' : 'Share Portal'}
+                </Button>
+              )}
               {latestUpdate && (
                 <div className="flex items-center gap-2 text-sm text-white/70">
                   <Clock className="w-4 h-4" />
