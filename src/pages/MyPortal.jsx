@@ -46,6 +46,12 @@ export default function MyPortal() {
     queryFn: () => base44.entities.Service.list('sort_order')
   });
 
+  // Get email templates
+  const { data: allTemplates = [] } = useQuery({
+    queryKey: ['emailTemplates'],
+    queryFn: () => base44.entities.EmailTemplate.list()
+  });
+
   // Get events for this client (filter by client_id OR client_name)
   const { data: events = [] } = useQuery({
     queryKey: ['portalEvents', client?.id, client?.name],
@@ -163,7 +169,7 @@ export default function MyPortal() {
             <ClientTimeline events={events} proposal={acceptedProposal} />
           </TabsContent>
           <TabsContent value="templates">
-            <ClientEmailTemplates proposal={acceptedProposal} />
+            <ClientEmailTemplates proposal={acceptedProposal} templates={allTemplates} client={client} />
           </TabsContent>
           <TabsContent value="profile">
             <ClientProfileSettings client={client} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['portalClient'] })} />
