@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       action = 'already_provisioned';
     } else {
       // Has partner record but no portal — generate one
-      portalId = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+      portalId = crypto.randomUUID();
       await base44.asServiceRole.entities.ReferralPartner.update(existing.id, {
         unique_portal_id: portalId,
         is_active: true,
@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
     }
   } else {
     // No ReferralPartner exists — create one from Lead data
-    portalId = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+    portalId = crypto.randomUUID();
     const newPartner = await base44.asServiceRole.entities.ReferralPartner.create({
       name: lead.name,
       email: lead.email,

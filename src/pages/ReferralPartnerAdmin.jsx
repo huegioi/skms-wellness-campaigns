@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, ChevronUp, LayoutGrid, List, Mail, Settings } from 'lucide-react';
+import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, ChevronUp, LayoutGrid, List, Mail, Settings, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import PartnerPipelineView from '@/components/partners/PartnerPipelineView';
@@ -52,6 +52,8 @@ export default function ReferralPartnerAdmin() {
   const [partnerTagMatchAll, setPartnerTagMatchAll] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(null); // partner id currently sending
+  const [regenerateConfirm, setRegenerateConfirm] = useState(null);
+  const [regenerating, setRegenerating] = useState(null);
 
   const { data: partners = [], isLoading } = useQuery({
     queryKey: ['referralPartners'],
@@ -193,6 +195,24 @@ export default function ReferralPartnerAdmin() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const regeneratePortalLink = async (partner) => {
+    setRegenerating(partner.id);
+    setRegenerateConfirm(null);
+    try {
+      const res = await base44.functions.invoke('regeneratePartnerPortalId', { partner_id: partner.id });
+      const newUrl = `${window.location.origin}/ReferralPortal?id=${res.data.portal_id}`;
+      navigator.clipboard.writeText(newUrl);
+      setCopiedId(partner.id);
+      setTimeout(() => setCopiedId(null), 3000);
+      qc.invalidateQueries({ queryKey: ['referralPartners'] });
+      toast({ title: 'Portal link regenerated', description: 'New link copied to clipboard.' });
+    } catch (e) {
+      toast({ title: 'Failed to regenerate link', description: e.message, variant: 'destructive' });
+    } finally {
+      setRegenerating(null);
+    }
+  };
+
   const updateTier = (i, field, value) => {
     const tiers = [...form.commission_tiers];
     tiers[i] = { ...tiers[i], [field]: field === 'rate' ? parseFloat(value) || 0 : field.includes('revenue') ? (value === '' ? null : parseFloat(value)) : value };
@@ -310,16 +330,28 @@ export default function ReferralPartnerAdmin() {
                         </Button>
                       </a>
                       {partner.unique_portal_id && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1 text-blue-700 border-blue-200 hover:bg-blue-50"
-                          onClick={() => setSendEmailConfirm(partner)}
-                          disabled={sendingEmail === partner.id}
-                        >
-                          <Mail className="w-4 h-4" />
-                          {sendingEmail === partner.id ? 'Sending…' : 'Send Portal Email'}
-                        </Button>
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 text-blue-700 border-blue-200 hover:bg-blue-50"
+                            onClick={() => setSendEmailConfirm(partner)}
+                            disabled={sendingEmail === partner.id}
+                          >
+                            <Mail className="w-4 h-4" />
+                            {sendingEmail === partner.id ? 'Sending…' : 'Send Portal Email'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 text-orange-700 border-orange-200 hover:bg-orange-50"
+                            onClick={() => setRegenerateConfirm(partner)}
+                            disabled={regenerating === partner.id}
+                          >
+                            <RefreshCw className={`w-4 h-4 ${regenerating === partner.id ? 'animate-spin' : ''}`} />
+                            {regenerating === partner.id ? 'Regenerating…' : 'Regenerate Link'}
+                          </Button>
+                        </>
                       )}
 
                       {partnerReferrals.length > 0 && (
@@ -377,6 +409,27 @@ export default function ReferralPartnerAdmin() {
               <Mail className="w-4 h-4" /> Yes, Send Email
             </Button>
             <Button variant="outline" onClick={() => setSendEmailConfirm(null)}>Cancel</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Regenerate Portal Link Confirmation Dialog */}
+      <Dialog open={!!regenerateConfirm} onOpenChange={v => { if (!v) setRegenerateConfirm(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Regenerate Portal Link?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 mt-2">
+            This will invalidate the partner's current portal link. Continue?
+          </p>
+          <div className="flex gap-3 mt-4">
+            <Button
+              onClick={() => regeneratePortalLink(regenerateConfirm)}
+              className="bg-orange-600 hover:bg-orange-700 text-white gap-2"
+            >
+              <RefreshCw className="w-4 h-4" /> Yes, Regenerate
+            </Button>
+            <Button variant="outline" onClick={() => setRegenerateConfirm(null)}>Cancel</Button>
           </div>
         </DialogContent>
       </Dialog>

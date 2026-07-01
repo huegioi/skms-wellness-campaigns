@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
   };
 
   function makePortalId() {
-    return Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+    return crypto.randomUUID();
   }
 
   // ── 1. Load all ReferralPartner records ──────────────────────────────────

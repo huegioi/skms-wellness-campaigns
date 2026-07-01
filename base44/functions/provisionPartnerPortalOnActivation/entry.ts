@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
   }
 
   // Generate unique portal ID
-  const uniquePortalId = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+  const uniquePortalId = crypto.randomUUID();
 
   await base44.asServiceRole.entities.ReferralPartner.update(partner.id, {
     unique_portal_id: uniquePortalId,
