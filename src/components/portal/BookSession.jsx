@@ -10,7 +10,7 @@ export default function BookSession({ client }) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl flex items-center gap-3" style={{ color: '#013f7c' }}>
+          <CardTitle className="text-2xl flex items-center gap-3 text-brand-navy">
             <CalendarPlus className="w-7 h-7" />
             Book a New Service
           </CardTitle>
@@ -24,7 +24,7 @@ export default function BookSession({ client }) {
         <CardContent className="py-10">
           <div className="max-w-lg mx-auto text-center space-y-6">
             <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto" style={{ backgroundColor: '#264d4420' }}>
-              <Sparkles className="w-10 h-10" style={{ color: '#264d44' }} />
+              <Sparkles className="w-10 h-10 text-brand-green" />
             </div>
 
             <div>
@@ -42,8 +42,7 @@ export default function BookSession({ client }) {
             >
               <Button
                 size="lg"
-                className="text-white font-semibold px-8 py-3 text-base gap-2"
-                style={{ backgroundColor: '#770142' }}
+                className="text-white font-semibold px-8 py-3 text-base gap-2 bg-brand-plum"
               >
                 <CalendarPlus className="w-5 h-5" />
                 Book a Session
@@ -61,7 +60,7 @@ export default function BookSession({ client }) {
       {/* What's available */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg" style={{ color: '#264d44' }}>What We Offer</CardTitle>
+          <CardTitle className="text-lg text-brand-green">What We Offer</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

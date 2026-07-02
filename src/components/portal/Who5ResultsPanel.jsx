@@ -58,7 +58,7 @@ export default function Who5ResultsPanel({ clientId, acceptedProposalId, service
       {acceptedProposalId && (
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Activity className="w-4 h-4 text-[#770142]" />
+            <Activity className="w-4 h-4 text-brand-plum" />
             <p className="text-sm font-semibold text-gray-700">Cohort Wellbeing — Whole Year</p>
           </div>
           <p className="text-xs text-gray-400 mb-3">Year arc — matched comparison</p>
@@ -82,7 +82,7 @@ export default function Who5ResultsPanel({ clientId, acceptedProposalId, service
       {/* ── Section 2: By challenge ─────────────────────────────────────────── */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <Activity className="w-4 h-4 text-[#264d44]" />
+          <Activity className="w-4 h-4 text-brand-green" />
           <p className="text-sm font-semibold text-gray-700">Challenge Wellbeing — By Program</p>
         </div>
         <p className="text-xs text-gray-400 mb-3">Program effect — uncontrolled pre/post</p>

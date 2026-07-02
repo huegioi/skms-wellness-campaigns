@@ -123,9 +123,9 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
   }, [allResponses, allCohortAssessments, clientCompanies, services]);
 
   return (
-    <Card className="border-[#013f7c]/20">
+    <Card className="border-brand-navy/20">
       <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-base text-[#013f7c]">
+        <CardTitle className="flex items-center gap-2 text-base text-brand-navy">
           <BarChart2 className="w-5 h-5" />
           Portfolio Wellness Impact
         </CardTitle>
@@ -134,8 +134,8 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
       <CardContent className="space-y-6">
 
         {/* Roll-up context note */}
-        <div className="rounded-xl border border-[#e6e1d8] border-l-4 border-l-[#013f7c] p-4" style={{ backgroundColor: '#f9f8f5' }}>
-          <p className="font-semibold text-[#013f7c] mb-1">How to read this</p>
+        <div className="rounded-xl border border-[#e6e1d8] border-l-4 border-l-brand-navy p-4" style={{ backgroundColor: '#f9f8f5' }}>
+          <p className="font-semibold text-brand-navy mb-1">How to read this</p>
           <p className="text-sm text-gray-600 leading-relaxed">
             This shows how the companies you&rsquo;ve referred are responding to their wellness programs, combined across your whole book of business. The numbers are aggregated and anonymous — no individual employee is identified. In general, higher is better, and you&rsquo;re welcome to share these results with your clients.
           </p>
@@ -239,7 +239,7 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
                           </div>
                           <div className="text-right">
                             <p className="text-xs text-gray-400">responses</p>
-                            <p className="text-sm font-bold text-[#013f7c]">{c.responseCount}</p>
+                            <p className="text-sm font-bold text-brand-navy">{c.responseCount}</p>
                           </div>
                         </div>
                       </button>

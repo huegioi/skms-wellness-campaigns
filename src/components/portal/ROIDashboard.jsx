@@ -142,7 +142,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16 text-gray-400">
-        <div className="w-6 h-6 border-2 border-gray-300 border-t-[#013f7c] rounded-full animate-spin mr-3" />
+        <div className="w-6 h-6 border-2 border-gray-300 border-t-brand-navy rounded-full animate-spin mr-3" />
         Loading...
       </div>
     );
@@ -154,8 +154,8 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
     <div className="space-y-6">
 
       {/* How to read this */}
-      <div className="rounded-xl p-5 border border-[#e6e1d8] border-l-4 border-l-[#013f7c]" style={{ backgroundColor: '#f9f8f5' }}>
-        <p className="font-semibold text-[#013f7c] mb-1.5">How to read this</p>
+      <div className="rounded-xl p-5 border border-[#e6e1d8] border-l-4 border-l-brand-navy" style={{ backgroundColor: '#f9f8f5' }}>
+        <p className="font-semibold text-brand-navy mb-1.5">How to read this</p>
         <p className="text-sm text-gray-600 leading-relaxed">
           This dashboard shows how your team is responding to your wellness programs. After each session, participants complete a quick, anonymous 90-second pulse; for challenges, they also complete a short validated wellbeing check-in before and after. Everything below is aggregated across your programs — no individual is ever identified. In general, higher numbers are better.
         </p>
@@ -168,7 +168,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
           <p className="text-sm text-gray-500">{peopleEngaged} people engaged{clientCompany ? ` · ${clientCompany}` : ''}</p>
         </div>
         {showReportButton && onGenerateReport && (
-          <Button onClick={onGenerateReport} className="bg-[#013f7c] text-white text-xs">
+          <Button onClick={onGenerateReport} className="bg-brand-navy text-white text-xs">
             Generate Client Report
           </Button>
         )}
@@ -234,9 +234,9 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
           <div className="rounded-xl border border-[#e6e1d8] overflow-hidden" style={{ backgroundColor: '#f9f8f5' }}>
             <button
               onClick={() => setDetailsOpen(!detailsOpen)}
-              className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-[#f4f0e9] transition-colors"
+              className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-brand-cream transition-colors"
             >
-              <span className="text-sm font-semibold text-[#013f7c]">See the details / How we measured this</span>
+              <span className="text-sm font-semibold text-brand-navy">See the details / How we measured this</span>
               <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} />
             </button>
             {detailsOpen && (
@@ -268,7 +268,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
                               })()}
                             </div>
                             <div className="text-right text-xs">
-                              {s.avgConf != null && <p className="text-[#264d44] font-semibold">{s.avgConf.toFixed(1)}/10 confidence</p>}
+                              {s.avgConf != null && <p className="text-brand-green font-semibold">{s.avgConf.toFixed(1)}/10 confidence</p>}
                             </div>
                           </div>
                           {s.avgConf != null && <ConfidenceBar value={parseFloat(s.avgConf.toFixed(1))} />}
@@ -291,7 +291,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
                             <span className="font-semibold">{count}</span>
                           </div>
                           <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div className="h-full rounded-full bg-[#264d44]" style={{ width: `${Math.round((count / maxImpact) * 100)}%` }} />
+                            <div className="h-full rounded-full bg-brand-green" style={{ width: `${Math.round((count / maxImpact) * 100)}%` }} />
                           </div>
                         </div>
                       ))}
@@ -303,7 +303,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
                 {voiceQuotes.length > 0 && (
                   <div className="bg-white rounded-xl shadow-sm p-5">
                     <div className="flex items-center gap-2 mb-3">
-                      <MessageSquare className="w-4 h-4 text-[#013f7c]" />
+                      <MessageSquare className="w-4 h-4 text-brand-navy" />
                       <div>
                         <p className="text-sm font-semibold text-gray-700">Voices — What They'll Do Differently</p>
                         <p className="text-xs text-gray-400 mt-0.5">In their own words — the specific changes people committed to after a session.</p>
@@ -311,7 +311,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
                     </div>
                     <div className="space-y-2">
                       {voiceQuotes.map((r, i) => (
-                        <blockquote key={i} className="text-sm text-gray-600 border-l-4 border-[#264d44]/30 pl-3 italic">
+                        <blockquote key={i} className="text-sm text-gray-600 border-l-4 border-brand-green/30 pl-3 italic">
                           "{r.behavior_intent}"
                         </blockquote>
                       ))}

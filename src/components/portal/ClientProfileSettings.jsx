@@ -81,7 +81,7 @@ export default function ClientProfileSettings({ client, onUpdate, token }) {
         {/* Contact Information */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg" style={{ color: '#013f7c' }}>
+            <CardTitle className="flex items-center gap-2 text-lg text-brand-navy">
               <User className="w-5 h-5" />
               Contact Information
             </CardTitle>
@@ -132,7 +132,7 @@ export default function ClientProfileSettings({ client, onUpdate, token }) {
         {/* Company Details */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg" style={{ color: '#264d44' }}>
+            <CardTitle className="flex items-center gap-2 text-lg text-brand-green">
               <Building className="w-5 h-5" />
               Company Details
             </CardTitle>
@@ -199,7 +199,7 @@ export default function ClientProfileSettings({ client, onUpdate, token }) {
         {/* Additional Notes */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-lg" style={{ color: '#770142' }}>
+            <CardTitle className="text-lg text-brand-plum">
               Additional Notes
             </CardTitle>
           </CardHeader>
@@ -224,7 +224,7 @@ export default function ClientProfileSettings({ client, onUpdate, token }) {
           <Button 
             type="submit" 
             disabled={updateMutation.isPending}
-            className="bg-[#264d44] hover:bg-[#1a3830]"
+            className="bg-brand-green hover:bg-[#1a3830]"
           >
             <Save className="w-4 h-4 mr-2" />
             {updateMutation.isPending ? 'Saving...' : 'Save Changes'}

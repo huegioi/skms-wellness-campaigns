@@ -38,17 +38,17 @@ export default function ClientHomeTab({ events = [], proposals = [], stats, onNa
       {nextSession ? (
         <NextSessionCard event={nextSession} />
       ) : (
-        <div className="bg-white rounded-2xl shadow-sm border-l-4 border-l-[#223d32] p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="bg-white rounded-2xl shadow-sm border-l-4 border-l-brand-forest p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-xl" style={{ backgroundColor: '#223d3214' }}>
-              <Calendar className="w-6 h-6 text-[#223d32]" />
+              <Calendar className="w-6 h-6 text-brand-forest" />
             </div>
             <div>
               <p className="font-semibold text-gray-800">No upcoming sessions</p>
               <p className="text-sm text-gray-500">Book your next one to keep the momentum going.</p>
             </div>
           </div>
-          <Button onClick={() => onNavigate('book')} className="bg-[#223d32] hover:bg-[#1a2d25] text-white gap-2">
+          <Button onClick={() => onNavigate('book')} className="bg-brand-forest hover:bg-[#1a2d25] text-white gap-2">
             Book a Session <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
@@ -75,13 +75,13 @@ function NextSessionCard({ event }) {
   const start = parseISO(event.start_date);
   const isLink = event.location && /^https?:\/\//i.test(event.location);
   return (
-    <div className="bg-white rounded-2xl shadow-sm border-l-4 border-l-[#223d32] p-5 flex items-center gap-4">
-      <div className="flex-shrink-0 rounded-xl text-center px-3 py-2 min-w-[56px] bg-[#223d32]">
+    <div className="bg-white rounded-2xl shadow-sm border-l-4 border-l-brand-forest p-5 flex items-center gap-4">
+      <div className="flex-shrink-0 rounded-xl text-center px-3 py-2 min-w-[56px] bg-brand-forest">
         <p className="text-xs font-bold uppercase text-green-200">{format(start, 'MMM')}</p>
         <p className="text-2xl font-bold leading-none text-white">{format(start, 'd')}</p>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-wide text-[#223d32] mb-0.5">Next Session</p>
+        <p className="text-xs font-semibold uppercase tracking-wide text-brand-forest mb-0.5">Next Session</p>
         <p className="font-semibold text-gray-800 truncate">{event.title}</p>
         <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 flex-wrap">
           <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{format(start, 'h:mm a')}</span>
@@ -90,7 +90,7 @@ function NextSessionCard({ event }) {
           )}
           {event.location && (
             isLink ? (
-              <a href={event.location} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-[#013f7c] hover:underline">
+              <a href={event.location} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-brand-navy hover:underline">
                 <MapPin className="w-3.5 h-3.5" />Join link
               </a>
             ) : (
@@ -108,7 +108,7 @@ function NextSessionCard({ event }) {
           location: event.location,
           description: event.description,
         })}
-        className="flex-shrink-0 p-2 rounded-lg text-gray-400 hover:text-[#223d32] hover:bg-gray-100 transition-colors"
+        className="flex-shrink-0 p-2 rounded-lg text-gray-400 hover:text-brand-forest hover:bg-gray-100 transition-colors"
         title="Add to calendar"
       >
         <CalendarPlus className="w-5 h-5" />

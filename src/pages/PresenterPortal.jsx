@@ -112,7 +112,7 @@ export default function PresenterPortal() {
 
         {/* Upcoming */}
         <section>
-          <h2 className="text-lg font-bold text-[#013f7c] mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-bold text-brand-navy mb-4 flex items-center gap-2">
             <Calendar className="w-5 h-5" />
             Upcoming Sessions
           </h2>
@@ -166,12 +166,12 @@ function SessionCard({ event, upcoming, portalId, onCompleted, onClick }) {
   return (
     <div
       className={`w-full bg-white rounded-2xl shadow-sm border-l-4 transition-all hover:shadow-md hover:-translate-y-0.5 ${
-        upcoming ? 'border-l-[#013f7c]' : 'border-l-gray-200'
+        upcoming ? 'border-l-brand-navy' : 'border-l-gray-200'
       }`}
     >
       {/* Main row — clickable to open detail */}
       <button onClick={onClick} className="w-full text-left p-5 flex items-center gap-4">
-        <div className={`flex-shrink-0 rounded-xl text-center px-3 py-2 min-w-[56px] ${upcoming ? 'bg-[#013f7c]' : 'bg-gray-100'}`}>
+        <div className={`flex-shrink-0 rounded-xl text-center px-3 py-2 min-w-[56px] ${upcoming ? 'bg-brand-navy' : 'bg-gray-100'}`}>
           <p className={`text-xs font-bold uppercase ${upcoming ? 'text-blue-200' : 'text-gray-400'}`}>{format(start, 'MMM')}</p>
           <p className={`text-2xl font-bold leading-none ${upcoming ? 'text-white' : 'text-gray-500'}`}>{format(start, 'd')}</p>
         </div>

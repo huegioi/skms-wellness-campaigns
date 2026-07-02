@@ -43,11 +43,11 @@ export default function AdminLinkSection({ clientId, acceptedProposalId, service
     <div className="rounded-xl border border-[#e6e1d8] overflow-hidden" style={{ backgroundColor: '#f9f8f5' }}>
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-[#f4f0e9] transition-colors"
+        className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-brand-cream transition-colors"
       >
         <div className="flex items-center gap-2">
-          <Shield className="w-4 h-4 text-[#013f7c]" />
-          <span className="text-sm font-semibold text-[#013f7c]">Admin — Survey Links</span>
+          <Shield className="w-4 h-4 text-brand-navy" />
+          <span className="text-sm font-semibold text-brand-navy">Admin — Survey Links</span>
           <span className="text-xs text-gray-400">(not visible to client)</span>
         </div>
         <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`} />
@@ -59,10 +59,10 @@ export default function AdminLinkSection({ clientId, acceptedProposalId, service
             <div>
               <p className="text-xs font-semibold text-gray-600 mb-2">Cohort Check-In Links</p>
               <div className="flex items-center gap-2 flex-wrap">
-                <Button size="sm" variant="outline" onClick={() => copyCohortUrl('cohort_start')} className="text-xs border-[#013f7c] text-[#013f7c]">
+                <Button size="sm" variant="outline" onClick={() => copyCohortUrl('cohort_start')} className="text-xs border-brand-navy text-brand-navy">
                   {copiedCohort === 'cohort_start' ? <><Check className="w-3 h-3 mr-1" /> Copied</> : <><Copy className="w-3 h-3 mr-1" /> Cohort Start</>}
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => copyCohortUrl('cohort_end')} className="text-xs border-[#013f7c] text-[#013f7c]">
+                <Button size="sm" variant="outline" onClick={() => copyCohortUrl('cohort_end')} className="text-xs border-brand-navy text-brand-navy">
                   {copiedCohort === 'cohort_end' ? <><Check className="w-3 h-3 mr-1" /> Copied</> : <><Copy className="w-3 h-3 mr-1" /> Cohort End</>}
                 </Button>
               </div>
@@ -86,14 +86,14 @@ export default function AdminLinkSection({ clientId, acceptedProposalId, service
                         )}
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                        <Button size="sm" variant="outline" onClick={() => copyFeedbackUrl(s.id, s.name)} className="text-xs border-[#013f7c] text-[#013f7c]">
+                        <Button size="sm" variant="outline" onClick={() => copyFeedbackUrl(s.id, s.name)} className="text-xs border-brand-navy text-brand-navy">
                           {copiedUrl === s.id ? <><Check className="w-3 h-3 mr-1" /> Copied</> : <><Copy className="w-3 h-3 mr-1" /> Copy Link</>}
                         </Button>
                         {s.category === 'challenge' && (<>
-                          <Button size="sm" variant="outline" onClick={() => copyWho5Url(s.id, s.name, 'day0')} className="text-xs border-[#264d44] text-[#264d44]">
+                          <Button size="sm" variant="outline" onClick={() => copyWho5Url(s.id, s.name, 'day0')} className="text-xs border-brand-green text-brand-green">
                             {copiedWho5 === `${s.id}-day0` ? <><Check className="w-3 h-3 mr-1" /> Copied</> : <><Copy className="w-3 h-3 mr-1" /> Day 0</>}
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => copyWho5Url(s.id, s.name, 'day14')} className="text-xs border-[#264d44] text-[#264d44]">
+                          <Button size="sm" variant="outline" onClick={() => copyWho5Url(s.id, s.name, 'day14')} className="text-xs border-brand-green text-brand-green">
                             {copiedWho5 === `${s.id}-day14` ? <><Check className="w-3 h-3 mr-1" /> Copied</> : <><Copy className="w-3 h-3 mr-1" /> Day 14</>}
                           </Button>
                         </>)}

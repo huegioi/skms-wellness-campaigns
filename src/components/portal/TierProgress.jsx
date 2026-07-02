@@ -36,13 +36,13 @@ export default function TierProgress({ tiers = [], commissionSummary = {} }) {
       <Card className="border-[#e6e1d8] bg-[#f9f8f5]">
         <CardContent className="pt-5 pb-4">
           <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="w-4 h-4 text-[#013f7c]" />
-            <p className="text-sm font-semibold text-[#013f7c]">
+            <TrendingUp className="w-4 h-4 text-brand-navy" />
+            <p className="text-sm font-semibold text-brand-navy">
               You're at the top tier — {fmtRate(current.rate)}% on every placement
             </p>
           </div>
           <div className="h-3 rounded-full bg-gray-200 overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: '100%', backgroundColor: '#013f7c' }} />
+            <div className="h-full rounded-full bg-brand-navy" style={{ width: '100%' }} />
           </div>
           <p className="text-xs text-gray-400 mt-2">Based on first-year revenue placed this calendar year.</p>
         </CardContent>
@@ -61,7 +61,7 @@ export default function TierProgress({ tiers = [], commissionSummary = {} }) {
     <Card className="border-[#e6e1d8] bg-[#f9f8f5]">
       <CardContent className="pt-5 pb-4">
         <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-          <p className="text-sm font-semibold text-[#013f7c]">
+          <p className="text-sm font-semibold text-brand-navy">
             You're <span className="font-bold">${remaining.toLocaleString()}</span> away from the {fmtRate(next.rate)}% tier
           </p>
           <span className="text-xs text-gray-500">
@@ -70,8 +70,8 @@ export default function TierProgress({ tiers = [], commissionSummary = {} }) {
         </div>
         <div className="relative h-3 rounded-full bg-gray-200 overflow-hidden">
           <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${pct}%`, backgroundColor: '#013f7c' }}
+            className="h-full rounded-full transition-all bg-brand-navy"
+            style={{ width: `${pct}%` }}
           />
         </div>
         <div className="flex justify-between mt-1.5 text-xs text-gray-400">

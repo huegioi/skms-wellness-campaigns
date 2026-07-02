@@ -140,19 +140,19 @@ export default function ClientTimeline({ events, proposal }) {
         <CardContent>
           <div className="flex flex-wrap gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#013f7c]"></div>
+              <div className="w-3 h-3 rounded-full bg-brand-navy"></div>
               <span className="text-sm text-gray-600">Announcement Email (2 weeks before)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#ff9878]"></div>
+              <div className="w-3 h-3 rounded-full bg-brand-peach"></div>
               <span className="text-sm text-gray-600">Reminder Email (2 days before)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#770142]"></div>
+              <div className="w-3 h-3 rounded-full bg-brand-plum"></div>
               <span className="text-sm text-gray-600">App Notifications (3 days before challenge)</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-[#264d44]"></div>
+              <div className="w-3 h-3 rounded-full bg-brand-green"></div>
               <span className="text-sm text-gray-600">Event Day</span>
             </div>
           </div>
@@ -177,7 +177,7 @@ export default function ClientTimeline({ events, proposal }) {
                   <div 
                     className={`absolute left-0 w-8 h-8 rounded-full flex items-center justify-center border-2 ${
                       status === 'past' ? 'bg-gray-100 border-gray-300' :
-                      status === 'today' ? 'bg-white border-[#770142] ring-4 ring-[#770142]/20' :
+                      status === 'today' ? 'bg-white border-brand-plum ring-4 ring-brand-plum/20' :
                       'bg-white border-gray-300'
                     }`}
                     style={{ 
@@ -189,7 +189,7 @@ export default function ClientTimeline({ events, proposal }) {
                   </div>
                   <div className={`p-4 rounded-lg border ${
                     status === 'past' ? 'bg-gray-50 border-gray-200' :
-                    status === 'today' ? 'bg-white border-[#770142] shadow-md' :
+                    status === 'today' ? 'bg-white border-brand-plum shadow-md' :
                     'bg-white border-gray-200'
                   }`}>
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
@@ -209,7 +209,7 @@ export default function ClientTimeline({ events, proposal }) {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm ${status === 'today' ? 'font-semibold text-[#770142]' : 'text-gray-500'}`}>
+                        <span className={`text-sm ${status === 'today' ? 'font-semibold text-brand-plum' : 'text-gray-500'}`}>
                           {format(new Date(item.date), 'MMM d, yyyy')}
                         </span>
                         <Badge variant={status === 'past' ? 'secondary' : status === 'today' ? 'default' : 'outline'}>
@@ -225,7 +225,7 @@ export default function ClientTimeline({ events, proposal }) {
                               location: item.event.location,
                               description: item.event.description,
                             })}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-[#264d44] hover:bg-gray-100 transition-colors"
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-brand-green hover:bg-gray-100 transition-colors"
                             title="Add to calendar"
                           >
                             <CalendarPlus className="w-4 h-4" />

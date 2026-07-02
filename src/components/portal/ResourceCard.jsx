@@ -29,7 +29,7 @@ export default function ResourceCard({ resource }) {
   const isDocument = documentTypes.includes(type);
 
   return (
-    <div className="p-4 bg-gray-50 rounded-lg border hover:border-[#264d44] transition-all">
+    <div className="p-4 bg-gray-50 rounded-lg border hover:border-brand-green transition-all">
       <div className="flex items-start gap-3 mb-3">
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${config.color}`}>
           <Icon className="w-4 h-4" />

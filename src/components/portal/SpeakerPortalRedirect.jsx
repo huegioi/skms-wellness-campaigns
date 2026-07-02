@@ -32,15 +32,15 @@ export default function SpeakerPortalRedirect() {
   // Still resolving or about to redirect
   if (portalData === undefined || portalData?.portal_id) {
     return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#013f7c]" />
+      <div className="min-h-screen bg-brand-cream flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-brand-navy" />
       </div>
     );
   }
 
   // No presenter found
   return (
-    <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-brand-cream flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-lg p-8 max-w-md text-center">
         <AlertCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
         <h2 className="text-xl font-bold text-gray-800 mb-2">No Presenter Profile Found</h2>

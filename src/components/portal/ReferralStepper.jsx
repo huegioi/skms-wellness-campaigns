@@ -11,8 +11,6 @@ const STATUS_TO_STEP = {
   commission_paid: 5,
 };
 
-const PORTAL_BLUE = '#013f7c';
-
 export default function ReferralStepper({ status }) {
   const currentStep = STATUS_TO_STEP[status];
   if (!currentStep) return null; // not_eligible etc. — no stepper
@@ -27,19 +25,17 @@ export default function ReferralStepper({ status }) {
           <React.Fragment key={label}>
             <div className="flex items-center shrink-0">
               <span
-                className="rounded-full"
+                className={`rounded-full ${filled ? 'bg-brand-navy' : 'bg-gray-300'}`}
                 style={{
                   width: 10,
                   height: 10,
-                  backgroundColor: filled ? PORTAL_BLUE : '#d1d5db',
                 }}
                 title={label}
               />
             </div>
             {!isLast && (
               <div
-                className="h-0.5 flex-1 mx-1 min-w-[6px]"
-                style={{ backgroundColor: stepNum < currentStep ? PORTAL_BLUE : '#d1d5db' }}
+                className={`h-0.5 flex-1 mx-1 min-w-[6px] ${stepNum < currentStep ? 'bg-brand-navy' : 'bg-gray-300'}`}
               />
             )}
           </React.Fragment>

@@ -37,10 +37,10 @@ export default function ClientProposalView({ proposals: propsList, proposal: sin
         <CardHeader className="pb-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <CardTitle className="text-2xl" style={{ color: '#013f7c' }}>Your Wellness Programming</CardTitle>
+              <CardTitle className="text-2xl text-brand-navy">Your Wellness Programming</CardTitle>
               <p className="text-gray-500 mt-1">Total Programming Investment</p>
             </div>
-            <div className="text-3xl font-bold" style={{ color: '#770142' }}>
+            <div className="text-3xl font-bold text-brand-plum">
               ${totalAmount.toLocaleString()}
             </div>
           </div>
@@ -51,9 +51,9 @@ export default function ClientProposalView({ proposals: propsList, proposal: sin
         const selections = p.selections || {};
 
         return (
-          <Card key={p.id} className="border-2" style={{ borderColor: '#264d44' }}>
+          <Card key={p.id} className="border-2 border-brand-green">
             <CardHeader className="pb-4" style={{ backgroundColor: '#264d4410' }}>
-              <CardTitle className="text-lg" style={{ color: '#264d44' }}>
+              <CardTitle className="text-lg text-brand-green">
                 Program Created: {new Date(p.created_date).toLocaleDateString()}
               </CardTitle>
               {p.narrative_summary && (
@@ -113,7 +113,7 @@ export default function ClientProposalView({ proposals: propsList, proposal: sin
                   if (!hasBoxes) return null;
                   return (
                     <div>
-                      <h3 className="flex items-center gap-2 font-semibold mb-3" style={{ color: '#264d44' }}>
+                      <h3 className="flex items-center gap-2 font-semibold mb-3 text-brand-green">
                         <Package className="w-5 h-5" />
                         Wellness Boxes
                       </h3>

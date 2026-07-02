@@ -29,7 +29,7 @@ export function PortalShell({
   contentClass = 'px-4 py-8',
 }) {
   return (
-    <div className="min-h-screen bg-[#f4f0e9]">
+    <div className="min-h-screen bg-brand-cream">
       {/* Header */}
       <div className="text-white" style={{ backgroundColor: accentColor }}>
         <div className={`${maxWidth} mx-auto ${headerPadding}`}>
@@ -57,7 +57,7 @@ export function PortalShell({
                 onClick={() => onTabChange(key)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-semibold transition-colors ${
                   activeTab === key
-                    ? 'bg-[#f4f0e9] text-[#013f7c]'
+                    ? 'bg-brand-cream text-brand-navy'
                     : 'text-blue-200 hover:text-white hover:bg-white/10'
                 }`}
               >
@@ -84,7 +84,7 @@ export function PortalShell({
  */
 export function PortalLoading({ accentColor = '#013f7c', label }) {
   return (
-    <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
+    <div className="min-h-screen bg-brand-cream flex items-center justify-center">
       <div className="text-center">
         <div
           className="w-8 h-8 border-4 rounded-full animate-spin mx-auto"
@@ -106,7 +106,7 @@ export function PortalError({
   message,
 }) {
   return (
-    <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-brand-cream flex items-center justify-center p-6">
       <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
         <Icon className={`${iconClass} mx-auto mb-4`} />
         <h2 className="text-xl font-bold text-gray-800 mb-2">{heading}</h2>

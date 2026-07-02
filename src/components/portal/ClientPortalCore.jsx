@@ -125,7 +125,7 @@ export default function ClientPortalCore({ mode, token, clientId }) {
       footer={mode === 'client' && (
         <div className="bg-white border-t py-4 mt-8">
           <div className="max-w-6xl mx-auto px-4 text-center text-sm text-gray-500">
-            Need help? Contact us at <a href="mailto:admin@skillfulmeans.life" className="text-[#770142] underline">admin@skillfulmeans.life</a>
+            Need help? Contact us at <a href="mailto:admin@skillfulmeans.life" className="text-brand-plum underline">admin@skillfulmeans.life</a>
           </div>
         </div>
       )}

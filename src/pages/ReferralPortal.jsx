@@ -164,11 +164,11 @@ export default function ReferralPortal() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <Plus className="w-5 h-5 text-[#264d44]" />
+                    <Plus className="w-5 h-5 text-brand-green" />
                     Submit a Referral
                   </CardTitle>
                   {!showForm && (
-                    <Button onClick={() => { setShowForm(true); setSubmitted(false); }} className="bg-[#264d44] hover:bg-[#1e3a33] text-white">
+                    <Button onClick={() => { setShowForm(true); setSubmitted(false); }} className="bg-brand-green hover:bg-[#1e3a33] text-white">
                       New Referral
                     </Button>
                   )}
@@ -264,7 +264,7 @@ export default function ReferralPortal() {
                       <p className="text-sm text-red-600 font-medium">{submitError}</p>
                     )}
                     <div className="flex gap-3">
-                      <Button type="submit" disabled={submitting} className="bg-[#013f7c] hover:bg-[#012d5a] text-white">
+                      <Button type="submit" disabled={submitting} className="bg-brand-navy hover:bg-[#012d5a] text-white">
                         {submitting ? 'Submitting...' : 'Submit Referral'}
                       </Button>
                       <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
@@ -278,7 +278,7 @@ export default function ReferralPortal() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Users className="w-5 h-5 text-[#013f7c]" />
+                  <Users className="w-5 h-5 text-brand-navy" />
                   Your Referrals ({referrals.length})
                 </CardTitle>
               </CardHeader>
@@ -316,7 +316,7 @@ export default function ReferralPortal() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <BarChart3 className="w-5 h-5 text-[#013f7c]" />
+                    <BarChart3 className="w-5 h-5 text-brand-navy" />
                     Book of Business — Client ROI
                   </CardTitle>
                 </CardHeader>
@@ -344,13 +344,13 @@ export default function ReferralPortal() {
                         <button
                           key={c.id}
                           onClick={() => setSelectedClientROI(c)}
-                          className="w-full text-left flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-blue-50 border border-transparent hover:border-[#013f7c]/20 transition-all group"
+                          className="w-full text-left flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-blue-50 border border-transparent hover:border-brand-navy/20 transition-all group"
                         >
                           <div>
                             <p className="text-sm font-medium text-gray-800">{c.company}</p>
                             {c.name && c.name !== c.company && <p className="text-xs text-gray-400">{c.name}</p>}
                           </div>
-                          <span className="text-xs text-gray-400 group-hover:text-[#013f7c]">View ROI →</span>
+                          <span className="text-xs text-gray-400 group-hover:text-brand-navy">View ROI →</span>
                         </button>
                       ))}
                     </div>
@@ -367,14 +367,14 @@ export default function ReferralPortal() {
         {activeTab === 'start_here' && (
           <div className="space-y-6">
             {/* Welcome */}
-            <Card className="border-[#e6e1d8] bg-[#f9f8f5] border-l-4" style={{ borderLeftColor: '#013f7c' }}>
+            <Card className="border-[#e6e1d8] bg-[#f9f8f5] border-l-4 border-l-brand-navy">
               <CardContent className="pt-6 pb-5">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                   <div className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(1,63,124,0.08)' }}>
-                    <Star className="w-8 h-8 text-[#013f7c]" />
+                    <Star className="w-8 h-8 text-brand-navy" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-[#013f7c]">Welcome to Your Partner Portal, {partner.name.split(' ')[0]}!</h2>
+                    <h2 className="text-xl font-bold text-brand-navy">Welcome to Your Partner Portal, {partner.name.split(' ')[0]}!</h2>
                     <p className="text-gray-600 text-sm mt-1">Everything you need to track referrals, view client ROI, and grow your partnership with SKMS Wellness — all in one place.</p>
                   </div>
                 </div>
@@ -385,13 +385,13 @@ export default function ReferralPortal() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <PlayCircle className="w-5 h-5 text-[#264d44]" />
+                  <PlayCircle className="w-5 h-5 text-brand-green" />
                   Partner Welcome Video
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="aspect-video bg-[#013f7c]/5 border-2 border-dashed border-[#013f7c]/20 rounded-xl flex flex-col items-center justify-center text-center p-8 gap-3">
-                  <PlayCircle className="w-12 h-12 text-[#013f7c]/30" />
+                <div className="aspect-video bg-brand-navy/5 border-2 border-dashed border-brand-navy/20 rounded-xl flex flex-col items-center justify-center text-center p-8 gap-3">
+                  <PlayCircle className="w-12 h-12 text-brand-navy/30" />
                   <p className="text-gray-500 text-sm font-medium">Welcome video coming soon</p>
                   <p className="text-gray-400 text-xs max-w-xs">A short walk-through of your portal, how to submit referrals, and how to read your clients' ROI data.</p>
                 </div>
@@ -399,10 +399,10 @@ export default function ReferralPortal() {
             </Card>
 
             {/* How to Use This Portal */}
-            <Card className="border-[#e6e1d8] bg-[#f9f8f5] border-l-4" style={{ borderLeftColor: '#013f7c' }}>
+            <Card className="border-[#e6e1d8] bg-[#f9f8f5] border-l-4 border-l-brand-navy">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base text-[#013f7c]">
-                  <BookOpen className="w-5 h-5 text-[#013f7c]" />
+                <CardTitle className="flex items-center gap-2 text-base text-brand-navy">
+                  <BookOpen className="w-5 h-5 text-brand-navy" />
                   How to Use This Portal
                 </CardTitle>
               </CardHeader>
@@ -416,11 +416,11 @@ export default function ReferralPortal() {
                     { step: '5', title: 'Review Your Commission Earnings', desc: 'Your live commission totals, YTD revenue placed, and pending balance are always visible on the Commissions tab.' },
                   ].map(({ step, title, desc }) => (
                     <div key={step} className="flex gap-4">
-                      <div className="w-8 h-8 rounded-full text-white text-sm font-bold flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#013f7c' }}>
+                      <div className="w-8 h-8 rounded-full text-white text-sm font-bold flex items-center justify-center flex-shrink-0 bg-brand-navy">
                         {step}
                       </div>
                       <div>
-                        <p className="font-semibold text-[#013f7c] text-sm">{title}</p>
+                        <p className="font-semibold text-brand-navy text-sm">{title}</p>
                         <p className="text-gray-600 text-sm mt-0.5">{desc}</p>
                       </div>
                     </div>
@@ -430,10 +430,10 @@ export default function ReferralPortal() {
             </Card>
 
             {/* How the Program Works */}
-            <Card className="border-[#e6e1d8] bg-[#f9f8f5] border-l-4" style={{ borderLeftColor: '#013f7c' }}>
+            <Card className="border-[#e6e1d8] bg-[#f9f8f5] border-l-4 border-l-brand-navy">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base text-[#013f7c]">
-                  <TrendingUp className="w-5 h-5 text-[#013f7c]" />
+                <CardTitle className="flex items-center gap-2 text-base text-brand-navy">
+                  <TrendingUp className="w-5 h-5 text-brand-navy" />
                   How the Program Works
                 </CardTitle>
               </CardHeader>
@@ -446,8 +446,8 @@ export default function ReferralPortal() {
                     { num: '04', text: 'Commission paid within 30 days of client invoice' },
                     { num: '05', text: 'Quarterly partner statement with all placements' },
                   ].map(s => (
-                    <div key={s.num} className="bg-[#f4f0e9] rounded-lg p-3 text-center">
-                      <p className="text-2xl font-bold text-[#013f7c] mb-1">{s.num}</p>
+                    <div key={s.num} className="bg-brand-cream rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-brand-navy mb-1">{s.num}</p>
                       <p className="text-xs text-gray-600">{s.text}</p>
                     </div>
                   ))}
@@ -459,7 +459,7 @@ export default function ReferralPortal() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Gift className="w-5 h-5 text-[#264d44]" />
+                  <Gift className="w-5 h-5 text-brand-green" />
                   What We Offer Your Clients
                 </CardTitle>
               </CardHeader>
@@ -475,7 +475,7 @@ export default function ReferralPortal() {
                     { name: 'Annual Workshop for You', desc: 'Every partner gets a complimentary workshop for their own team — virtual or in-person.' },
                   ].map((item, i) => (
                     <div key={i} className="p-3 bg-white rounded-lg border border-[#e6e1d8]">
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-[#013f7c]" style={{ backgroundColor: 'rgba(1,63,124,0.08)' }}>{item.name}</span>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-brand-navy" style={{ backgroundColor: 'rgba(1,63,124,0.08)' }}>{item.name}</span>
                       <p className="text-xs text-gray-600 mt-2">{item.desc}</p>
                     </div>
                   ))}
@@ -484,7 +484,7 @@ export default function ReferralPortal() {
             </Card>
 
             <div className="text-center pb-2">
-              <Button onClick={() => setActiveTab('dashboard')} className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2">
+              <Button onClick={() => setActiveTab('dashboard')} className="bg-brand-navy hover:bg-[#012d5a] text-white gap-2">
                 Go to Dashboard <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
@@ -499,16 +499,16 @@ export default function ReferralPortal() {
               <Card className="border-[#e6e1d8] bg-[#f9f8f5]">
                 <CardContent className="pt-5 pb-4">
                   <div className="inline-flex p-2 rounded-lg mb-3" style={{ backgroundColor: 'rgba(1,63,124,0.08)' }}>
-                    <DollarSign className="w-5 h-5 text-[#013f7c]" />
+                    <DollarSign className="w-5 h-5 text-brand-navy" />
                   </div>
-                  <p className="text-3xl font-bold text-[#013f7c]">${(commission_summary.total_earned || 0).toLocaleString()}</p>
-                  <p className="text-sm text-[#013f7c] font-medium mt-1">Total Earned (All-Time)</p>
+                  <p className="text-3xl font-bold text-brand-navy">${(commission_summary.total_earned || 0).toLocaleString()}</p>
+                  <p className="text-sm text-brand-navy font-medium mt-1">Total Earned (All-Time)</p>
                 </CardContent>
               </Card>
               <Card className="border-[#e6e1d8] bg-[#f9f8f5]">
                 <CardContent className="pt-5 pb-4">
                   <div className="inline-flex p-2 rounded-lg mb-3" style={{ backgroundColor: 'rgba(1,63,124,0.08)' }}>
-                    <Clock className="w-5 h-5 text-[#013f7c]" />
+                    <Clock className="w-5 h-5 text-brand-navy" />
                   </div>
                   <p className="text-3xl font-bold text-gray-700">${(commission_summary.pending || 0).toLocaleString()}</p>
                   <p className="text-sm text-gray-600 font-medium mt-1">Pending / Unpaid</p>
@@ -517,10 +517,10 @@ export default function ReferralPortal() {
               <Card className="border-[#e6e1d8] bg-[#f9f8f5]">
                 <CardContent className="pt-5 pb-4">
                   <div className="inline-flex p-2 rounded-lg mb-3" style={{ backgroundColor: 'rgba(38,77,68,0.10)' }}>
-                    <TrendingUp className="w-5 h-5 text-[#264d44]" />
+                    <TrendingUp className="w-5 h-5 text-brand-green" />
                   </div>
-                  <p className="text-3xl font-bold text-[#264d44]">${(commission_summary.ytd_revenue || 0).toLocaleString()}</p>
-                  <p className="text-sm text-[#264d44] font-medium mt-1">YTD Revenue Placed</p>
+                  <p className="text-3xl font-bold text-brand-green">${(commission_summary.ytd_revenue || 0).toLocaleString()}</p>
+                  <p className="text-sm text-brand-green font-medium mt-1">YTD Revenue Placed</p>
                 </CardContent>
               </Card>
             </div>
@@ -533,7 +533,7 @@ export default function ReferralPortal() {
               <CardHeader>
                 <div className="flex items-center justify-between gap-3">
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <FileText className="w-5 h-5 text-[#013f7c]" />
+                    <FileText className="w-5 h-5 text-brand-navy" />
                     Commission Ledger — By Client
                   </CardTitle>
                   {commission_ledger.length > 0 && (
@@ -564,10 +564,10 @@ export default function ReferralPortal() {
                             <td className="py-3 pr-4">
                               <p className="font-medium text-gray-800">{row.company}</p>
                               <span className={`text-xs px-1.5 py-0.5 rounded-full mt-0.5 inline-block ${
-                                row.status === 'commission_paid' ? 'bg-[#013f7c]/10 text-[#013f7c]' :
-                                row.status === 'purchased' || row.status === 'converted_to_client' ? 'bg-[#264d44]/10 text-[#264d44]' :
+                                row.status === 'commission_paid' ? 'bg-brand-navy/10 text-brand-navy' :
+                                row.status === 'purchased' || row.status === 'converted_to_client' ? 'bg-brand-green/10 text-brand-green' :
                                 row.status === 'not_eligible' ? 'bg-gray-100 text-gray-500' :
-                                'bg-[#013f7c]/8 text-[#013f7c]'
+                                'bg-brand-navy/8 text-brand-navy'
                               }`}>
                                 {STATUS_LABELS[row.status] || row.status}
                               </span>
@@ -580,7 +580,7 @@ export default function ReferralPortal() {
                             </td>
                             <td className="py-3 text-right font-semibold">
                               {row.commission_earned > 0
-                                ? <span className="text-[#013f7c]">${row.commission_earned.toLocaleString()}</span>
+                                ? <span className="text-brand-navy">${row.commission_earned.toLocaleString()}</span>
                                 : <span className="text-gray-300">$0</span>
                               }
                             </td>
@@ -594,7 +594,7 @@ export default function ReferralPortal() {
                             ${commission_ledger.reduce((s, r) => s + (r.first_year_revenue || 0), 0).toLocaleString()}
                           </td>
                           <td className="pt-3" />
-                          <td className="pt-3 text-right font-bold text-[#013f7c] text-base">
+                          <td className="pt-3 text-right font-bold text-brand-navy text-base">
                             ${commission_summary.total_earned.toLocaleString()}
                           </td>
                         </tr>
@@ -611,10 +611,10 @@ export default function ReferralPortal() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <TrendingUp className="w-5 h-5 text-[#013f7c]" />
+                    <TrendingUp className="w-5 h-5 text-brand-navy" />
                     Commission Tiers
                     {commission_summary.current_tier && (
-                      <span className="ml-2 text-xs font-normal text-[#013f7c] px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(1,63,124,0.08)' }}>
+                      <span className="ml-2 text-xs font-normal text-brand-navy px-2 py-0.5 rounded-full" style={{ backgroundColor: 'rgba(1,63,124,0.08)' }}>
                         Current rate: {(commission_summary.current_tier.rate * 100 % 1 === 0 ? (commission_summary.current_tier.rate * 100).toFixed(0) : (commission_summary.current_tier.rate * 100).toFixed(1))}%
                       </span>
                     )}
@@ -626,15 +626,15 @@ export default function ReferralPortal() {
                     {tiers.map((tier, i) => {
                       const isActive = commission_summary.current_tier?.min_revenue === tier.min_revenue;
                       return (
-                        <div key={i} className={`flex items-center justify-between p-3 rounded-lg border-2 ${isActive ? 'border-[#013f7c] bg-blue-50' : 'border-gray-100 bg-gray-50'}`}>
+                        <div key={i} className={`flex items-center justify-between p-3 rounded-lg border-2 ${isActive ? 'border-brand-navy bg-blue-50' : 'border-gray-100 bg-gray-50'}`}>
                           <div className="flex items-center gap-3">
-                            {isActive && <CheckCircle className="w-4 h-4 text-[#013f7c]" />}
+                            {isActive && <CheckCircle className="w-4 h-4 text-brand-navy" />}
                             <span className="font-medium text-gray-700">{tier.label || `Tier ${i + 1}`}</span>
                             <span className="text-sm text-gray-500">
                               ${tier.min_revenue.toLocaleString()}{tier.max_revenue ? ` – $${tier.max_revenue.toLocaleString()}` : '+'}
                             </span>
                           </div>
-                          <span className={`font-bold text-lg ${isActive ? 'text-[#013f7c]' : 'text-gray-600'}`}>
+                          <span className={`font-bold text-lg ${isActive ? 'text-brand-navy' : 'text-gray-600'}`}>
                             {(tier.rate * 100 % 1 === 0 ? (tier.rate * 100).toFixed(0) : (tier.rate * 100).toFixed(1))}%
                           </span>
                         </div>
@@ -642,7 +642,7 @@ export default function ReferralPortal() {
                     })}
                   </div>
                   {commission_summary.current_tier && (
-                    <p className="mt-3 text-sm font-medium text-[#013f7c]">
+                    <p className="mt-3 text-sm font-medium text-brand-navy">
                       Your current rate: {(commission_summary.current_tier.rate * 100 % 1 === 0 ? (commission_summary.current_tier.rate * 100).toFixed(0) : (commission_summary.current_tier.rate * 100).toFixed(1))}% · YTD Revenue: ${commission_summary.ytd_revenue.toLocaleString()}
                     </p>
                   )}
@@ -654,18 +654,18 @@ export default function ReferralPortal() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <DollarSign className="w-5 h-5 text-[#264d44]" />
+                  <DollarSign className="w-5 h-5 text-brand-green" />
                   Commission Rules
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="bg-[#f9f8f5] border border-[#e6e1d8] rounded-lg p-4">
-                    <p className="font-semibold text-[#013f7c] text-sm mb-2">What Earns Commission</p>
+                    <p className="font-semibold text-brand-navy text-sm mb-2">What Earns Commission</p>
                     <p className="text-sm text-gray-600">Referred revenue received within <strong>12 months</strong> of a new client's first invoice: interactive workshops, 14-day team challenges, leadership EQ programs, mindful movement classes, and physical or digital wellness boxes. Expansion revenue within that Year-1 window counts toward your tier.</p>
                   </div>
                   <div className="bg-[#f9f8f5] border border-[#e6e1d8] rounded-lg p-4">
-                    <p className="font-semibold text-[#013f7c] text-sm mb-2">A Few Things to Know</p>
+                    <p className="font-semibold text-brand-navy text-sm mb-2">A Few Things to Know</p>
                     <p className="text-sm text-gray-600">A placed client is a new client you introduce who signs an invoice. Clients already in our pipeline within the prior 90 days are excluded. Year 2+ renewals are not commissioned.</p>
                   </div>
                 </div>
@@ -673,7 +673,7 @@ export default function ReferralPortal() {
                 {/* Every Partner Also Receives */}
                 <div>
                   <p className="font-semibold text-gray-700 text-sm mb-3 flex items-center gap-2">
-                    <Gift className="w-4 h-4 text-[#264d44]" />
+                    <Gift className="w-4 h-4 text-brand-green" />
                     Every Partner Also Receives
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -684,7 +684,7 @@ export default function ReferralPortal() {
                       { title: 'Branded Apps & Tools', desc: 'Full access to our ROI Calculator, plus first access to the forthcoming Broker Toolkit & Partner Portal.' },
                     ].map((item, i) => (
                       <div key={i} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
-                        <div className="w-2 h-2 rounded-full bg-[#264d44] mt-1.5 flex-shrink-0" />
+                        <div className="w-2 h-2 rounded-full bg-brand-green mt-1.5 flex-shrink-0" />
                         <div>
                           <p className="text-sm font-semibold text-gray-800">{item.title}</p>
                           <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
@@ -701,7 +701,7 @@ export default function ReferralPortal() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <FileText className="w-5 h-5 text-[#013f7c]" />
+                    <FileText className="w-5 h-5 text-brand-navy" />
                     Partnership Agreement
                   </CardTitle>
                 </CardHeader>

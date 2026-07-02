@@ -101,7 +101,7 @@ export default function ClientResources({ client, proposals = [], services = [] 
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <CardTitle className="text-2xl" style={{ color: '#013f7c' }}>Session Resources</CardTitle>
+              <CardTitle className="text-2xl text-brand-navy">Session Resources</CardTitle>
               <p className="text-gray-500 text-sm mt-1">
                 Access your session recordings, presentations, and handout materials below.
               </p>
@@ -110,7 +110,7 @@ export default function ClientResources({ client, proposals = [], services = [] 
               <Button
                 size="sm"
                 variant={groupBy === 'service' ? 'default' : 'outline'}
-                className={groupBy === 'service' ? 'bg-[#264d44] hover:bg-[#1a3830]' : ''}
+                className={groupBy === 'service' ? 'bg-brand-green hover:bg-[#1a3830]' : ''}
                 onClick={() => setGroupBy('service')}
               >
                 <List className="w-4 h-4 mr-1" /> By Service
@@ -118,7 +118,7 @@ export default function ClientResources({ client, proposals = [], services = [] 
               <Button
                 size="sm"
                 variant={groupBy === 'type' ? 'default' : 'outline'}
-                className={groupBy === 'type' ? 'bg-[#264d44] hover:bg-[#1a3830]' : ''}
+                className={groupBy === 'type' ? 'bg-brand-green hover:bg-[#1a3830]' : ''}
                 onClick={() => setGroupBy('type')}
               >
                 <LayoutGrid className="w-4 h-4 mr-1" /> By Type
@@ -135,8 +135,8 @@ export default function ClientResources({ client, proposals = [], services = [] 
         return (
           <Card key={key}>
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#264d44' }}>
-                <FolderOpen className="w-5 h-5 text-[#264d44]" />
+              <CardTitle className="text-lg flex items-center gap-2 text-brand-green">
+                <FolderOpen className="w-5 h-5 text-brand-green" />
                 {getGroupLabel(key)}
                 <Badge variant="secondary" className="ml-auto">{items.length}</Badge>
               </CardTitle>
