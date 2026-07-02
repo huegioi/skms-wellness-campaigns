@@ -42,9 +42,11 @@ Deno.serve(async (req) => {
     return true;
   }).sort((a, b) => a.company.localeCompare(b.company));
 
-  // Get proposals ONLY for this partner's owned clients
-  const allProposals = await base44.asServiceRole.entities.Proposal.list('-created_date');
-  const partnerProposals = allProposals.filter(p => p.client_id && ownedClientIdSet.has(p.client_id));
+  // Get proposals ONLY for this partner's owned clients — server-side filtered per client
+  const proposalResults = await Promise.all(
+    ownedClients.map(c => base44.asServiceRole.entities.Proposal.filter({ client_id: c.id }, '-created_date'))
+  );
+  const partnerProposals = proposalResults.flat();
 
   // Build proposal revenue map: client_id → ACCEPTED proposals only
   const proposalRevenueByClient = {};
