@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Building, User, Mail, Phone, DollarSign, Users, Briefcase, Save, CheckCircle } from 'lucide-react';
 
-export default function ClientProfileSettings({ client, onUpdate }) {
+const PORTAL_WHITELIST = ['name', 'email', 'email2', 'phone', 'title', 'company', 'company_address', 'company_website'];
+
+export default function ClientProfileSettings({ client, onUpdate, token }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -37,7 +39,18 @@ export default function ClientProfileSettings({ client, onUpdate }) {
   }, [client]);
 
   const updateMutation = useMutation({
-    mutationFn: (data) => base44.entities.Client.update(client.id, data),
+    mutationFn: (data) => {
+      if (token) {
+        // Client portal mode — save through backend function with whitelisted fields only
+        const safeUpdates = {};
+        for (const key of PORTAL_WHITELIST) {
+          if (data[key] !== undefined) safeUpdates[key] = data[key];
+        }
+        return base44.functions.invoke('updateClientPortalProfile', { token, updates: safeUpdates });
+      }
+      // Admin preview mode — direct update with all fields
+      return base44.entities.Client.update(client.id, data);
+    },
     onSuccess: () => {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
