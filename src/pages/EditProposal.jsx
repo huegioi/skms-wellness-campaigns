@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, Save, Download, Plus, Minus, X, Sparkles, RefreshCw } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
 import { markTaskComplete, createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
@@ -15,9 +15,9 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 export default function EditProposal() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const proposalId = urlParams.get('id');
-  const preloadClientId = urlParams.get('clientId');
+  const [searchParams] = useSearchParams();
+  const proposalId = searchParams.get('id');
+  const preloadClientId = searchParams.get('clientId');
   const isNewProposal = !proposalId;
   const navigate = useNavigate();
 

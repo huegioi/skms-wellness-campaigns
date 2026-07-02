@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Printer, ArrowLeft, ShieldAlert } from 'lucide-react';
 
@@ -24,10 +25,10 @@ function StarRow({ value, max = 5 }) {
 }
 
 export default function ClientReport() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const clientId = urlParams.get('client_id');
-  const portalId = urlParams.get('portal_id');
-  const token = urlParams.get('token');
+  const [searchParams] = useSearchParams();
+  const clientId = searchParams.get('client_id');
+  const portalId = searchParams.get('portal_id');
+  const token = searchParams.get('token');
   const printRef = useRef();
 
   // Always validate access — portal_id (broker), token (client portal), or admin auth

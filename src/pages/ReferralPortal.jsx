@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,8 +24,8 @@ const TABS = [
 ];
 
 export default function ReferralPortal() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const portalId = urlParams.get('id');
+  const [searchParams] = useSearchParams();
+  const portalId = searchParams.get('id');
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

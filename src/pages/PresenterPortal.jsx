@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { Calendar, Clock, Building, ChevronRight, CheckCircle2, Loader2, AlertCircle, DollarSign } from 'lucide-react';
@@ -10,7 +11,8 @@ import { Button } from '@/components/ui/button';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 
 export default function PresenterPortal() {
-  const portalId = new URLSearchParams(window.location.search).get('id');
+  const [searchParams] = useSearchParams();
+  const portalId = searchParams.get('id');
   const [selectedEvent, setSelectedEvent] = useState(null);
   const queryClient = useQueryClient();
 

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
@@ -15,11 +16,11 @@ const TIMING_MAP = {
 };
 
 export default function CohortAssessmentPage() {
-  const params = new URLSearchParams(window.location.search);
-  const service_id = params.get('service_id') || '';
-  const client_id = params.get('client_id') || '';
-  const proposal_id = params.get('proposal_id') || '';
-  const timing = params.get('timing') || 'day0';
+  const [searchParams] = useSearchParams();
+  const service_id = searchParams.get('service_id') || '';
+  const client_id = searchParams.get('client_id') || '';
+  const proposal_id = searchParams.get('proposal_id') || '';
+  const timing = searchParams.get('timing') || 'day0';
   const { survey_type, label: timingLabel } = TIMING_MAP[timing] || TIMING_MAP['day0'];
   const isCensus = timing === 'cohort_start' || timing === 'cohort_end';
 

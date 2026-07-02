@@ -1,11 +1,12 @@
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Building } from 'lucide-react';
 import ClientPortalCore from '@/components/portal/ClientPortalCore';
 
 export default function ClientPortal() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const token = urlParams.get('token');
-  const clientId = urlParams.get('clientId');
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
+  const clientId = searchParams.get('clientId');
 
   if (token) {
     return <ClientPortalCore mode="client" token={token} />;

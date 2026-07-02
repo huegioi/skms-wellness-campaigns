@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,10 +10,10 @@ import { CheckCircle2, Loader2, Star } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function FeedbackForm() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const preselectedSurveyId = urlParams.get('survey_id');
-  const prefilledCompany = urlParams.get('company') || '';
-  const prefilledClientId = urlParams.get('clientId') || '';
+  const [searchParams] = useSearchParams();
+  const preselectedSurveyId = searchParams.get('survey_id');
+  const prefilledCompany = searchParams.get('company') || '';
+  const prefilledClientId = searchParams.get('clientId') || '';
 
   const [selectedSurveyId, setSelectedSurveyId] = useState(preselectedSurveyId || '');
   const [formData, setFormData] = useState({ full_name: '', company_name: prefilledCompany, email_address: '' });

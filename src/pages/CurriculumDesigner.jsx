@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { useSearchParams } from 'react-router-dom';
 import StepIndicator from '../components/curriculum/StepIndicator';
 import AssessmentStep from '../components/curriculum/AssessmentStep';
 import WorkshopStep from '../components/curriculum/WorkshopStep';
@@ -28,11 +29,11 @@ export default function CurriculumDesigner() {
     largeBoxes: 0
   });
   const [clientLoaded, setClientLoaded] = useState(false);
+  const [searchParams] = useSearchParams();
 
   // Pre-load client data from URL param
   React.useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const clientId = urlParams.get('clientId');
+    const clientId = searchParams.get('clientId');
     if (!clientId || clientLoaded) return;
     base44.entities.Client.filter({ id: clientId }).then(results => {
       const client = results[0];
@@ -59,7 +60,7 @@ export default function CurriculumDesigner() {
       }));
       setClientLoaded(true);
     }).catch(() => {});
-  }, [clientLoaded]);
+  }, [clientLoaded, searchParams]);
 
   const { data: allServices = [] } = useQuery({
     queryKey: ['services'],

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,9 +35,9 @@ function ConfidenceScale({ value, onChange }) {
 }
 
 export default function AttendeeForm() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const serviceIdFromUrl = urlParams.get('service_id');
-  const clientIdFromUrl = urlParams.get('client_id');
+  const [searchParams] = useSearchParams();
+  const serviceIdFromUrl = searchParams.get('service_id');
+  const clientIdFromUrl = searchParams.get('client_id');
 
   const [form, setForm] = useState({
     behavior_intent: '',
