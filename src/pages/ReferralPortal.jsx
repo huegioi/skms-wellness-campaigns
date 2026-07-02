@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown, BarChart3, ArrowLeft, BookOpen, ChevronRight, PlayCircle, Star } from 'lucide-react';
 import ROIDashboard from '@/components/portal/ROIDashboard';
 import BrokerFeedbackRollup from '@/components/portal/BrokerFeedbackRollup';
+import TierProgress from '@/components/portal/TierProgress';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 
 const STATUS_COLORS = {
@@ -503,6 +504,9 @@ export default function ReferralPortal() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Tier Progress */}
+            <TierProgress tiers={tiers} commissionSummary={commission_summary} />
 
             {/* Per-Client Commission Ledger */}
             <Card>
