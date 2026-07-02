@@ -11,6 +11,7 @@ import RecordSnapshotHeader from '@/components/shared/RecordSnapshotHeader';
 import CollapsibleFieldSection from '@/components/shared/CollapsibleFieldSection';
 import { InlineText } from '@/components/shared/inline/InlineText';
 import { PARTNER_STAGES } from '@/components/shared/constants';
+import { REFERRAL_STATUS_COLORS } from '@/lib/statusConfig';
 
 function TierField({ value, onSave, type = 'text', placeholder, step }) {
   const [draft, setDraft] = useState(value != null ? String(value) : '');
@@ -247,13 +248,7 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
                       {r.commission_amount > 0 && (
                         <span className="text-xs text-green-700 font-medium">${r.commission_amount.toLocaleString()}</span>
                       )}
-                      <Badge className={
-                        r.status === 'commission_paid' ? 'bg-purple-100 text-purple-700' :
-                        r.status === 'purchased' ? 'bg-emerald-100 text-emerald-700' :
-                        r.status === 'converted_to_client' ? 'bg-green-100 text-green-700' :
-                        r.status === 'contacted' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-blue-100 text-blue-700'
-                      }>
+                      <Badge className={REFERRAL_STATUS_COLORS[r.status] || 'bg-blue-100 text-blue-700'}>
                         {r.status?.replace(/_/g, ' ')}
                       </Badge>
                     </div>

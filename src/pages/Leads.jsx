@@ -23,24 +23,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea as TextareaUI } from '@/components/ui/textarea';
-
-const STATUS_CONFIG = {
-  cold:               { label: 'Cold',              color: 'bg-slate-100 text-slate-700 border-slate-300', chart: '#94a3b8' },
-  contacted:          { label: 'Contacted',          color: 'bg-blue-100 text-blue-700 border-blue-300',   chart: '#3b82f6' },
-  responded:          { label: 'Responded',          color: 'bg-purple-100 text-purple-700 border-purple-300', chart: '#a855f7' },
-  meeting_scheduled:  { label: 'Meeting Scheduled',  color: 'bg-amber-100 text-amber-700 border-amber-300',  chart: '#f59e0b' },
-  proposal_sent:      { label: 'Proposal Sent',      color: 'bg-orange-100 text-orange-700 border-orange-300', chart: '#f97316' },
-  converted:          { label: 'Converted ✓',        color: 'bg-green-100 text-green-700 border-green-300',  chart: '#22c55e' },
-  not_interested:     { label: 'Not Interested',     color: 'bg-red-100 text-red-700 border-red-300',       chart: '#ef4444' },
-  current_client:     { label: 'Current Client',     color: 'bg-teal-100 text-teal-800 border-teal-400 font-semibold', chart: '#14b8a6' },
-};
-
-const PARTNER_STATUS_CONFIG = {
-  new:            { label: 'New Lead',           color: 'bg-slate-100 text-slate-700 border-slate-300', chart: '#94a3b8' },
-  nurturing:      { label: 'Nurturing',          color: 'bg-blue-100 text-blue-700 border-blue-300',   chart: '#3b82f6' },
-  active_partner: { label: 'Active Partner',     color: 'bg-green-100 text-green-700 border-green-300', chart: '#22c55e' },
-  inactive:       { label: 'Inactive',           color: 'bg-red-100 text-red-700 border-red-300',      chart: '#ef4444' },
-};
+import { LEAD_STATUS_CONFIG as STATUS_CONFIG, PARTNER_STATUS_CONFIG, REFERRAL_STATUS_COLORS } from '@/lib/statusConfig';
 
 const REFERRAL_POTENTIAL_CONFIG = {
   low:    { label: 'Low',    color: 'bg-slate-100 text-slate-600' },
@@ -1027,15 +1010,7 @@ export default function Leads() {
                                   {r.company_name && <span className="text-gray-500 ml-1">— {r.company_name}</span>}
                                   <span className="text-gray-400 ml-2 text-xs">{r.referral_date ? format(new Date(r.referral_date), 'MMM d, yyyy') : ''}</span>
                                 </div>
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                  r.status === 'pending_review' ? 'bg-amber-100 text-amber-700' :
-                                  r.status === 'commission_paid' ? 'bg-purple-100 text-purple-700' :
-                                  r.status === 'purchased' ? 'bg-emerald-100 text-emerald-700' :
-                                  r.status === 'converted_to_client' ? 'bg-green-100 text-green-700' :
-                                  r.status === 'contacted' ? 'bg-yellow-100 text-yellow-700' :
-                                  r.status === 'not_eligible' ? 'bg-red-100 text-red-700' :
-                                  'bg-blue-100 text-blue-700'
-                                }`}>{r.status?.replace(/_/g, ' ')}</span>
+                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${REFERRAL_STATUS_COLORS[r.status] || 'bg-blue-100 text-blue-700'}`}>{r.status?.replace(/_/g, ' ')}</span>
                               </div>
                             ))}
                           </div>
@@ -1204,15 +1179,7 @@ export default function Leads() {
                           <span className="font-medium text-gray-800">{r.contact_name}</span>
                           {r.company_name && <span className="text-gray-500 ml-1.5">— {r.company_name}</span>}
                           <div className="flex items-center gap-2 mt-0.5">
-                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${
-                              r.status === 'pending_review' ? 'bg-amber-100 text-amber-700' :
-                              r.status === 'commission_paid' ? 'bg-purple-100 text-purple-700' :
-                              r.status === 'purchased' ? 'bg-emerald-100 text-emerald-700' :
-                              r.status === 'converted_to_client' ? 'bg-green-100 text-green-700' :
-                              r.status === 'contacted' ? 'bg-yellow-100 text-yellow-700' :
-                              r.status === 'not_eligible' ? 'bg-red-100 text-red-700' :
-                              'bg-blue-100 text-blue-700'
-                            }`}>{r.status?.replace(/_/g, ' ')}</span>
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${REFERRAL_STATUS_COLORS[r.status] || 'bg-blue-100 text-blue-700'}`}>{r.status?.replace(/_/g, ' ')}</span>
                             {r.referral_date && <span className="text-xs text-gray-400">{format(new Date(r.referral_date), 'MMM d, yyyy')}</span>}
                             {r.commission_amount > 0 && <span className="text-xs text-green-700 font-medium">${r.commission_amount.toLocaleString()} comm.</span>}
                           </div>

@@ -17,6 +17,7 @@ import { LEAD_STAGES } from '@/components/shared/constants';
 import { TagSelector } from '@/components/ui/TagSelector';
 import TagFilter from '@/components/ui/TagFilter';
 import TagManager from '@/components/ui/TagManager';
+import { REFERRAL_STATUS_COLORS } from '@/lib/statusConfig';
 
 const DEFAULT_TIERS = [
   { label: 'Introducing Partner', min_revenue: 0, max_revenue: 74999, rate: 0.10 },
@@ -372,13 +373,7 @@ export default function ReferralPartnerAdmin() {
                             {r.company_name && <span className="text-gray-500 ml-1">— {r.company_name}</span>}
                             <span className="text-gray-400 ml-2 text-xs">{r.referral_date ? format(new Date(r.referral_date), 'MMM d, yyyy') : ''}</span>
                           </div>
-                          <Badge className={
-                            r.status === 'commission_paid' ? 'bg-purple-100 text-purple-700' :
-                            r.status === 'purchased' ? 'bg-emerald-100 text-emerald-700' :
-                            r.status === 'converted_to_client' ? 'bg-green-100 text-green-700' :
-                            r.status === 'contacted' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-blue-100 text-blue-700'
-                          }>
+                          <Badge className={REFERRAL_STATUS_COLORS[r.status] || 'bg-blue-100 text-blue-700'}>
                             {r.status?.replace(/_/g, ' ')}
                           </Badge>
                         </div>

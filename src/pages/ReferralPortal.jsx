@@ -14,26 +14,7 @@ import TierProgress from '@/components/portal/TierProgress';
 import ReferralStepper from '@/components/portal/ReferralStepper';
 import RecentActivity from '@/components/portal/RecentActivity';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
-
-const STATUS_COLORS = {
-  pending_review: 'bg-amber-100 text-amber-700',
-  submitted: 'bg-blue-100 text-blue-700',
-  contacted: 'bg-yellow-100 text-yellow-700',
-  converted_to_client: 'bg-green-100 text-green-700',
-  purchased: 'bg-emerald-100 text-emerald-700',
-  commission_paid: 'bg-purple-100 text-purple-700',
-  not_eligible: 'bg-gray-100 text-gray-600',
-};
-
-const STATUS_LABELS = {
-  pending_review: 'Under Review',
-  submitted: 'Submitted',
-  contacted: 'Contacted',
-  converted_to_client: 'Converted to Client',
-  purchased: 'Purchased',
-  commission_paid: 'Commission Paid',
-  not_eligible: 'Not Eligible',
-};
+import { REFERRAL_STATUS_COLORS as STATUS_COLORS, REFERRAL_STATUS_LABELS as STATUS_LABELS } from '@/lib/statusConfig';
 
 const TABS = [
   { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },

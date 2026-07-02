@@ -15,6 +15,7 @@ import { createPageUrl } from '@/utils';
 import SendProposalDialog from '@/components/proposals/SendProposalDialog';
 import SendReminderDialog from '@/components/proposals/SendReminderDialog';
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
+import { PROPOSAL_STATUS_CONFIG as statusConfig } from '@/lib/statusConfig';
 
 export default function Proposals() {
   const [sortBy, setSortBy] = useState('date');
@@ -161,13 +162,7 @@ export default function Proposals() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['proposals'] })
   });
 
-  const statusConfig = {
-    draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
-    sent: { label: 'Sent', color: 'bg-blue-100 text-blue-700', icon: Send },
-    viewed: { label: 'Viewed', color: 'bg-purple-100 text-purple-700', icon: Eye },
-    accepted: { label: 'Accepted', color: 'bg-green-100 text-green-700', icon: CheckCircle },
-    declined: { label: 'Declined', color: 'bg-red-100 text-red-700', icon: XCircle }
-  };
+
 
   // Filter and sort proposals
   const filteredProposals = proposals

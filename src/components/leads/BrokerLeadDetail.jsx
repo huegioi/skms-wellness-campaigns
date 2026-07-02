@@ -19,34 +19,7 @@ import CollapsibleFieldSection from '@/components/shared/CollapsibleFieldSection
 import { InlineText } from '@/components/shared/inline/InlineText';
 import { InlineSelect } from '@/components/shared/inline/InlineSelect';
 import { LEAD_STAGES } from '@/components/shared/constants';
-
-const STATUS_CONFIG = {
-  cold:               { label: 'Cold',              color: 'bg-slate-100 text-slate-700 border-slate-300' },
-  contacted:          { label: 'Contacted',          color: 'bg-blue-100 text-blue-700 border-blue-300' },
-  responded:          { label: 'Responded',          color: 'bg-purple-100 text-purple-700 border-purple-300' },
-  meeting_scheduled:  { label: 'Meeting Scheduled',  color: 'bg-amber-100 text-amber-700 border-amber-300' },
-  proposal_sent:      { label: 'Proposal Sent',      color: 'bg-orange-100 text-orange-700 border-orange-300' },
-  converted:          { label: 'Converted ✓',        color: 'bg-green-100 text-green-700 border-green-300' },
-  not_interested:     { label: 'Not Interested',     color: 'bg-red-100 text-red-700 border-red-300' },
-  current_client:     { label: 'Current Client',     color: 'bg-teal-100 text-teal-800 border-teal-400' },
-};
-
-const PARTNER_STATUS_CONFIG = {
-  new:            { label: 'New Lead',       color: 'bg-slate-100 text-slate-700' },
-  nurturing:      { label: 'Nurturing',      color: 'bg-blue-100 text-blue-700' },
-  active_partner: { label: 'Active Partner', color: 'bg-green-100 text-green-700' },
-  inactive:       { label: 'Inactive',       color: 'bg-red-100 text-red-700' },
-};
-
-const REFERRAL_STATUS_COLORS = {
-  pending_review:      'bg-amber-100 text-amber-700',
-  submitted:           'bg-blue-100 text-blue-700',
-  contacted:           'bg-purple-100 text-purple-700',
-  converted_to_client: 'bg-teal-100 text-teal-700',
-  purchased:           'bg-green-100 text-green-700',
-  commission_paid:     'bg-emerald-100 text-emerald-800',
-  not_eligible:        'bg-red-100 text-red-700',
-};
+import { LEAD_STATUS_CONFIG as STATUS_CONFIG, PARTNER_STATUS_CONFIG, REFERRAL_STATUS_COLORS, PROPOSAL_STATUS_CONFIG } from '@/lib/statusConfig';
 
 const EMPTY_REFERRAL = { date: '', company_name: '', contact_name: '', notes: '', client_id: '', proposal_id: '', partner_id: '' };
 const EMPTY_PROPOSAL_FORM = { referralId: '', proposalId: '' };
@@ -730,13 +703,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                               )}
                               <p className="text-xs text-gray-400 mt-0.5">Created: {new Date(proposal.created_date).toLocaleDateString()}</p>
                             </div>
-                            <Badge className={`text-xs ${
-                              proposal.status === 'accepted' ? 'bg-green-100 text-green-700' :
-                              proposal.status === 'sent' ? 'bg-blue-100 text-blue-700' :
-                              proposal.status === 'viewed' ? 'bg-purple-100 text-purple-700' :
-                              proposal.status === 'declined' ? 'bg-red-100 text-red-700' :
-                              'bg-gray-100 text-gray-700'
-                            }`}>
+                            <Badge className={`text-xs ${PROPOSAL_STATUS_CONFIG[proposal.status || 'draft']?.color || 'bg-gray-100 text-gray-700'}`}>
                               {(proposal.status || 'draft').charAt(0).toUpperCase() + (proposal.status || 'draft').slice(1)}
                             </Badge>
                           </div>
