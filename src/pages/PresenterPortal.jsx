@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { Calendar, Clock, Building, ChevronRight, CheckCircle2, Loader2, AlertCircle, DollarSign } from 'lucide-react';
 import PresenterSessionDetail from '@/components/presenter/PresenterSessionDetail';
+import EarningsDetail from '@/components/presenter/EarningsDetail';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 import { Button } from '@/components/ui/button';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
@@ -104,6 +105,8 @@ export default function PresenterPortal() {
                 <p className="text-xs text-green-500 mt-1">Sessions paid to date</p>
               </div>
             </div>
+
+            <EarningsDetail past={past} earnings={earnings} />
           </div>
         )}
 
