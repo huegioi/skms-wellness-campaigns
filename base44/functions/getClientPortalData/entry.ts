@@ -101,8 +101,19 @@ Deno.serve(async (req) => {
       updated_date: e.updated_date,
     }));
 
+    const PORTAL_CLIENT_FIELDS = [
+      'id', 'name', 'email', 'email2', 'company', 'phone', 'title',
+      'company_address', 'company_website', 'company_size', 'employee_count',
+      'industry', 'portal_token', 'portal_template_ids', 'purchased_services',
+      'portal_documents', 'session_resources', 'updated_date'
+    ];
+    const projectedClient = {};
+    for (const f of PORTAL_CLIENT_FIELDS) {
+      if (client[f] !== undefined) projectedClient[f] = client[f];
+    }
+
     return Response.json({
-      client,
+      client: projectedClient,
       proposals,
       events: portalEvents,
       email_templates: emailTemplates,

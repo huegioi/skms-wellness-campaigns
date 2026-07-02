@@ -64,11 +64,25 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.Service.list('sort_order'),
     ]);
 
+    const PORTAL_CLIENT_FIELDS = [
+      'id', 'name', 'email', 'email2', 'company', 'phone', 'title',
+      'company_address', 'company_website', 'company_size', 'employee_count',
+      'industry', 'portal_token', 'portal_template_ids', 'purchased_services',
+      'portal_documents', 'session_resources', 'updated_date'
+    ];
+    const rawClient = clients[0] || null;
+    const projectedClient = rawClient ? {} : null;
+    if (rawClient) {
+      for (const f of PORTAL_CLIENT_FIELDS) {
+        if (rawClient[f] !== undefined) projectedClient[f] = rawClient[f];
+      }
+    }
+
     return Response.json({
       allowed: true,
       partner_id,
       client_id,
-      client: clients[0] || null,
+      client: projectedClient,
       responses,
       services,
     });
