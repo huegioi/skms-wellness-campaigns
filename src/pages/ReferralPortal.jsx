@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown, BarChart3, ArrowLeft, BookOpen, ChevronRight, PlayCircle, Star } from 'lucide-react';
+import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown, BarChart3, ArrowLeft, BookOpen, ChevronRight, PlayCircle, Star, Download } from 'lucide-react';
 import ROIDashboard from '@/components/portal/ROIDashboard';
 import BrokerFeedbackRollup from '@/components/portal/BrokerFeedbackRollup';
 import TierProgress from '@/components/portal/TierProgress';
@@ -118,6 +118,39 @@ export default function ReferralPortal() {
 
   const { partner, referrals, commission_summary, client_companies = [], partner_proposals = [], commission_ledger = [], activities = [] } = data;
   const tiers = partner.commission_tiers || [];
+
+  const exportCommissionCSV = () => {
+    const quote = (val) => {
+      const s = String(val ?? '');
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    };
+    const headers = ['Company', 'Status', 'Revenue Placed', 'Commission Rate', 'Commission Earned', 'Referral Date'];
+    const rows = commission_ledger.map(row => [
+      row.company || '',
+      STATUS_LABELS[row.status] || row.status || '',
+      row.first_year_revenue || 0,
+      row.commission_rate ? `${(row.commission_rate * 100).toFixed(1)}%` : '',
+      row.commission_earned || 0,
+      row.referral_date ? format(new Date(row.referral_date), 'yyyy-MM-dd') : ''
+    ]);
+    const totalRevenue = commission_ledger.reduce((s, r) => s + (r.first_year_revenue || 0), 0);
+    rows.push(['Total', '', totalRevenue, '', commission_summary.total_earned || 0, '']);
+    const csv = [headers, ...rows].map(r => r.map(quote).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const safeName = (partner.name || 'partner').replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    const dateStr = format(new Date(), 'yyyy-MM-dd');
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `skms-commissions-${safeName}-${dateStr}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <PortalShell
@@ -517,10 +550,18 @@ export default function ReferralPortal() {
             {/* Per-Client Commission Ledger */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <FileText className="w-5 h-5 text-[#013f7c]" />
-                  Commission Ledger — By Client
-                </CardTitle>
+                <div className="flex items-center justify-between gap-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <FileText className="w-5 h-5 text-[#013f7c]" />
+                    Commission Ledger — By Client
+                  </CardTitle>
+                  {commission_ledger.length > 0 && (
+                    <Button variant="outline" size="sm" className="gap-1.5" onClick={exportCommissionCSV}>
+                      <Download className="w-4 h-4" />
+                      Export CSV
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {commission_ledger.length === 0 ? (
