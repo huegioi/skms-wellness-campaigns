@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Calendar, Mail, Building, Clock, Settings, Share2, ClipboardList, FolderOpen, CalendarPlus } from 'lucide-react';
+import { FileText, Calendar, Mail, Building, Clock, Settings, Share2, ClipboardList, FolderOpen, CalendarPlus, LayoutDashboard } from 'lucide-react';
 import { toast } from 'sonner';
 import ClientProposalView from '@/components/portal/ClientProposalView';
 import ClientTimeline from '@/components/portal/ClientTimeline';
@@ -13,6 +13,7 @@ import PortalFeedback from '@/components/portal/PortalFeedback';
 import ClientResources from '@/components/portal/ClientResources';
 import BookSession from '@/components/portal/BookSession';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
+import ClientHomeTab from '@/components/portal/ClientHomeTab';
 
 /**
  * Shared client portal UI driven by mode.
@@ -20,7 +21,7 @@ import { PortalShell, PortalLoading, PortalError } from '@/components/portal/Por
  * mode="client" — uses token credential, shows footer contact strip
  */
 export default function ClientPortalCore({ mode, token, clientId }) {
-  const [activeTab, setActiveTab] = useState('proposal');
+  const [activeTab, setActiveTab] = useState('home');
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
   const queryClient = useQueryClient();
@@ -67,6 +68,7 @@ export default function ClientPortalCore({ mode, token, clientId }) {
   const events = portalData?.events || [];
   const allTemplates = portalData?.email_templates || [];
   const services = portalData?.services || [];
+  const stats = portalData?.stats || null;
   const acceptedProposal = proposals.find(p => p.status === 'accepted') || proposals[0];
 
   if (clientLoading) {
@@ -131,6 +133,10 @@ export default function ClientPortalCore({ mode, token, clientId }) {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
           <div className="overflow-x-auto mb-8 -mx-4 px-4 md:mx-0 md:px-0">
             <TabsList className="inline-flex w-max min-w-full h-auto p-1 gap-1">
+              <TabsTrigger value="home" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
+                <LayoutDashboard className="w-4 h-4 shrink-0" />
+                <span>Home</span>
+              </TabsTrigger>
               <TabsTrigger value="proposal" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
                 <FileText className="w-4 h-4 shrink-0" />
                 <span>Programming</span>
@@ -162,6 +168,14 @@ export default function ClientPortalCore({ mode, token, clientId }) {
             </TabsList>
           </div>
 
+          <TabsContent value="home">
+            <ClientHomeTab
+              events={events}
+              proposals={proposals}
+              stats={stats}
+              onNavigate={setActiveTab}
+            />
+          </TabsContent>
           <TabsContent value="proposal">
             <ClientProposalView proposals={proposals} client={client} services={services} />
           </TabsContent>

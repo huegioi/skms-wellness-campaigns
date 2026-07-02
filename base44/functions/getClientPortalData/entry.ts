@@ -37,12 +37,23 @@ Deno.serve(async (req) => {
     }
 
     // ── Fetch all data in parallel ──────────────────────────────────────
-    const [proposals, allEvents, emailTemplates, services] = await Promise.all([
+    const [proposals, allEvents, emailTemplates, services, feedbackResponses, cohortAssessments] = await Promise.all([
       base44.asServiceRole.entities.Proposal.filter({ client_id: client.id }, '-created_date'),
       base44.asServiceRole.entities.CalendarEvent.list('start_date'),
       base44.asServiceRole.entities.EmailTemplate.list(),
       base44.asServiceRole.entities.Service.list('sort_order'),
+      base44.asServiceRole.entities.FeedbackResponse.filter({ client_id: client.id }, '-submitted_at', 200),
+      base44.asServiceRole.entities.CohortAssessment.filter({ client_id: client.id }, '-submitted_at', 500),
     ]);
+
+    // People engaged: distinct participant emails across pulse feedback + cohort assessments
+    const pulseEmails = new Set(
+      feedbackResponses.map(r => (r.attendee_email || r.email_address || '').toLowerCase().trim()).filter(Boolean)
+    );
+    const cohortEmails = new Set(
+      cohortAssessments.map(r => (r.participant_email || '').toLowerCase().trim()).filter(Boolean)
+    );
+    const peopleEngaged = new Set([...pulseEmails, ...cohortEmails]).size;
 
     // Build service name lookup
     const serviceNameMap = {};
@@ -96,6 +107,7 @@ Deno.serve(async (req) => {
       events: portalEvents,
       email_templates: emailTemplates,
       services,
+      stats: { people_engaged: peopleEngaged },
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
