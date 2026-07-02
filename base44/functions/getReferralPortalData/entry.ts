@@ -18,6 +18,9 @@ Deno.serve(async (req) => {
   // Get all referrals for this partner only
   const referrals = await base44.asServiceRole.entities.Referral.filter({ referral_partner_id: partner.id });
 
+  // Get the 15 most recent activities for the partner's in-portal feed
+  const activities = await base44.asServiceRole.entities.ReferralActivity.filter({ referral_partner_id: partner.id }, '-activity_date', 15);
+
   // ─── DATA PRIVACY: Only return clients explicitly referred by this partner ───
   // Clients are linked via referral_partner_id on the Client record.
   const ownedClients = await base44.asServiceRole.entities.Client.filter({ referral_partner_id: partner.id }, '-created_date', 500);
@@ -170,6 +173,11 @@ Deno.serve(async (req) => {
       total_paid: totalCommissionPaid,
       pending: commissionPending
     },
-    commission_ledger: commissionLedger
+    commission_ledger: commissionLedger,
+    activities: activities.map(a => ({
+      id: a.id,
+      message: a.message,
+      activity_date: a.activity_date
+    }))
   });
 });

@@ -41,5 +41,14 @@ Deno.serve(async (req) => {
     ...(proposal_id ? { proposal_id } : {})
   });
 
+  // Log activity for the partner's in-portal feed
+  const displayName = company_name || contact_name;
+  await base44.asServiceRole.entities.ReferralActivity.create({
+    referral_partner_id: partner.id,
+    referral_id: referral.id,
+    message: `New referral submitted: ${displayName}`,
+    activity_date: new Date().toISOString()
+  });
+
   return Response.json({ success: true, referral_id: referral.id, lead_id: lead.id });
 });

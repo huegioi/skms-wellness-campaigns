@@ -1,5 +1,15 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
+const STATUS_LABELS = {
+  pending_review: 'Under Review',
+  submitted: 'Submitted',
+  contacted: 'Contacted',
+  converted_to_client: 'Converted to Client',
+  purchased: 'Purchased',
+  commission_paid: 'Commission Paid',
+  not_eligible: 'Not Eligible'
+};
+
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
 
@@ -31,6 +41,12 @@ Deno.serve(async (req) => {
       review_notes: review_notes || '',
       reviewed_date: new Date().toISOString()
     });
+    await base44.asServiceRole.entities.ReferralActivity.create({
+      referral_partner_id: referral.referral_partner_id,
+      referral_id: referral.id,
+      message: `${referral.company_name || referral.contact_name} moved to ${STATUS_LABELS['not_eligible']}`,
+      activity_date: new Date().toISOString()
+    });
     return Response.json({ success: true, status: 'not_eligible' });
   }
 
@@ -40,6 +56,12 @@ Deno.serve(async (req) => {
       status: 'submitted',
       review_notes: review_notes || '',
       reviewed_date: new Date().toISOString()
+    });
+    await base44.asServiceRole.entities.ReferralActivity.create({
+      referral_partner_id: referral.referral_partner_id,
+      referral_id: referral.id,
+      message: `${referral.company_name || referral.contact_name} moved to ${STATUS_LABELS['submitted']}`,
+      activity_date: new Date().toISOString()
     });
     return Response.json({ success: true, status: 'submitted' });
   }

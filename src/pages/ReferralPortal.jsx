@@ -12,6 +12,7 @@ import ROIDashboard from '@/components/portal/ROIDashboard';
 import BrokerFeedbackRollup from '@/components/portal/BrokerFeedbackRollup';
 import TierProgress from '@/components/portal/TierProgress';
 import ReferralStepper from '@/components/portal/ReferralStepper';
+import RecentActivity from '@/components/portal/RecentActivity';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 
 const STATUS_COLORS = {
@@ -115,7 +116,7 @@ export default function ReferralPortal() {
     );
   }
 
-  const { partner, referrals, commission_summary, client_companies = [], partner_proposals = [], commission_ledger = [] } = data;
+  const { partner, referrals, commission_summary, client_companies = [], partner_proposals = [], commission_ledger = [], activities = [] } = data;
   const tiers = partner.commission_tiers || [];
 
   return (
@@ -140,6 +141,9 @@ export default function ReferralPortal() {
           <>
             {/* Portfolio Wellness Impact */}
             <BrokerFeedbackRollup clientCompanies={client_companies} services={services} />
+
+            {/* Recent Activity */}
+            <RecentActivity activities={activities} />
 
             {/* Submit a Referral */}
             <Card>

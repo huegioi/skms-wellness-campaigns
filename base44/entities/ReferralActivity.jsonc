@@ -1,0 +1,28 @@
+{
+  "name": "ReferralActivity",
+  "type": "object",
+  "properties": {
+    "referral_partner_id": {
+      "type": "string",
+      "description": "ID of the ReferralPartner this activity belongs to"
+    },
+    "referral_id": {
+      "type": "string",
+      "description": "ID of the Referral this activity relates to"
+    },
+    "message": {
+      "type": "string",
+      "description": "Human-readable activity message"
+    },
+    "activity_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the activity occurred"
+    }
+  },
+  "required": [
+    "referral_partner_id",
+    "message",
+    "activity_date"
+  ]
+}
