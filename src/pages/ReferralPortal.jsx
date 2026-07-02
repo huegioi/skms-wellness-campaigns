@@ -11,6 +11,7 @@ import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, Exte
 import ROIDashboard from '@/components/portal/ROIDashboard';
 import BrokerFeedbackRollup from '@/components/portal/BrokerFeedbackRollup';
 import TierProgress from '@/components/portal/TierProgress';
+import ReferralStepper from '@/components/portal/ReferralStepper';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 
 const STATUS_COLORS = {
@@ -284,6 +285,7 @@ export default function ReferralPortal() {
                             <span className="text-sm font-semibold text-green-700">${r.commission_amount.toLocaleString()} commission</span>
                           )}
                         </div>
+                        <ReferralStepper status={r.status} />
                       </div>
                     ))}
                   </div>
