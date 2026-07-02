@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, Award, Dumbbell, Package, Users, Clock,
-  DollarSign, Target, Loader2, GripVertical, RefreshCw, ExternalLink, FolderOpen, CloudUpload
+  DollarSign, Target, Loader2, GripVertical, RefreshCw, ExternalLink, FolderOpen, CloudUpload, ClipboardList
 } from 'lucide-react';
 import ServiceResourceManager from '@/components/services/ServiceResourceManager';
 import AssessmentsSelector from '@/components/services/AssessmentsSelector';
@@ -367,6 +367,15 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="prep" className="flex-1 flex items-center gap-2">
+              <ClipboardList className="w-4 h-4" />
+              Presenter Prep
+              {((formData.presenter_materials?.length || 0) > 0 || formData.presenter_notes) && (
+                <span className="ml-1 bg-[#770142] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {(formData.presenter_materials?.length || 0) + (formData.presenter_notes ? 1 : 0)}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="details">
@@ -520,6 +529,83 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
             <Button onClick={handleSave} disabled={saving || !formData.name} className="w-full mt-4 bg-[#770142] hover:bg-[#5a0132]">
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               {saving ? 'Saving...' : 'Save Resources'}
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="prep" className="mt-4">
+            <p className="text-sm text-gray-500 mb-4">
+              Decks, facilitation guides, and run-of-show notes shared with presenters for this service. These appear in each presenter's Session Prep card.
+            </p>
+
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-600 mb-2">Presenter Materials</label>
+              <div className="space-y-2 mb-2">
+                {(formData.presenter_materials || []).map((m, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <Input
+                      value={m.label || ''}
+                      onChange={(e) => {
+                        const arr = [...(formData.presenter_materials || [])];
+                        arr[idx] = { ...arr[idx], label: e.target.value };
+                        setFormData({ ...formData, presenter_materials: arr });
+                      }}
+                      placeholder="Label (e.g., Facilitation Guide)"
+                      className="flex-1"
+                    />
+                    <Input
+                      value={m.url || ''}
+                      onChange={(e) => {
+                        const arr = [...(formData.presenter_materials || [])];
+                        arr[idx] = { ...arr[idx], url: e.target.value };
+                        setFormData({ ...formData, presenter_materials: arr });
+                      }}
+                      placeholder="https://..."
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-500 shrink-0"
+                      onClick={() => {
+                        setFormData({
+                          ...formData,
+                          presenter_materials: (formData.presenter_materials || []).filter((_, i) => i !== idx)
+                        });
+                      }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setFormData({
+                  ...formData,
+                  presenter_materials: [...(formData.presenter_materials || []), { label: '', url: '' }]
+                })}
+                className="gap-2"
+              >
+                <Plus className="w-4 h-4" /> Add Material
+              </Button>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-600 mb-1">Run-of-Show Notes</label>
+              <Textarea
+                value={formData.presenter_notes || ''}
+                onChange={(e) => setFormData({ ...formData, presenter_notes: e.target.value })}
+                placeholder="Run-of-show guidance, timing, key talking points, facilitation tips..."
+                rows={5}
+              />
+            </div>
+
+            <Button onClick={handleSave} disabled={saving || !formData.name} className="w-full bg-[#770142] hover:bg-[#5a0132]">
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              {saving ? 'Saving...' : 'Save Presenter Prep'}
             </Button>
           </TabsContent>
         </Tabs>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   ArrowLeft, Calendar, Clock, MapPin, Building, FileText, Copy, Check,
-  QrCode, ExternalLink, CheckCircle2, Download, Loader2, Video
+  QrCode, ExternalLink, CheckCircle2, Download, Loader2, Video, ClipboardList, Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
@@ -199,6 +199,55 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
             </div>
           </div>
         </div>
+
+        {/* Session Prep */}
+        {((event.presenter_notes && event.presenter_notes.trim()) || (event.presenter_materials && event.presenter_materials.some(m => m.url)) || event.attendee_count) && (
+          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-100 bg-gray-50">
+              <h2 className="font-bold text-gray-700 text-sm uppercase tracking-wide flex items-center gap-2">
+                <ClipboardList className="w-4 h-4" /> Session Prep
+              </h2>
+            </div>
+            <div className="p-5 space-y-4">
+              {event.attendee_count && (
+                <div className="flex items-center gap-3">
+                  <Users className="w-5 h-5 text-[#013f7c] flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide">Expected Attendees</p>
+                    <p className="font-semibold text-gray-800">{event.attendee_count.toLocaleString()} people</p>
+                  </div>
+                </div>
+              )}
+              {event.presenter_notes && event.presenter_notes.trim() && (
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Run-of-Show Notes</p>
+                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                    {event.presenter_notes}
+                  </div>
+                </div>
+              )}
+              {event.presenter_materials && event.presenter_materials.some(m => m.url) && (
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Materials & Guides</p>
+                  <div className="flex flex-wrap gap-2">
+                    {event.presenter_materials.filter(m => m.url).map((m, i) => (
+                      <a
+                        key={i}
+                        href={m.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#013f7c] text-white text-sm font-medium hover:bg-[#012a54] transition-colors"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                        {m.label || m.url}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Client Context */}
         {event.client_context && (

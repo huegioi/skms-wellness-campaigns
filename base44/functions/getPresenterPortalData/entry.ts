@@ -117,6 +117,9 @@ Deno.serve(async (req) => {
           notes: client.notes,
         } : null,
         materials: service?.resources?.map(r => ({ title: r.title, file_url: r.file_url, resource_type: r.resource_type })) || [],
+        presenter_materials: service?.presenter_materials || [],
+        presenter_notes: service?.presenter_notes || '',
+        attendee_count: client?.employee_count || null,
         survey_links: surveyLinks,
       };
     };

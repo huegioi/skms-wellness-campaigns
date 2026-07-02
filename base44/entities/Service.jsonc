@@ -102,6 +102,27 @@
       },
       "description": "Files and resources associated with this service (PDFs, guides, handouts, videos, audio, links)"
     },
+    "presenter_materials": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "description": "Display label for the material (e.g., 'Facilitation Guide', 'Slide Deck')"
+          },
+          "url": {
+            "type": "string",
+            "description": "URL to the material"
+          }
+        }
+      },
+      "description": "Links to decks, facilitation guides, and other prep materials shared with presenters"
+    },
+    "presenter_notes": {
+      "type": "string",
+      "description": "Run-of-show guidance and facilitation notes for presenters"
+    },
     "is_active": {
       "type": "boolean",
       "default": true,
