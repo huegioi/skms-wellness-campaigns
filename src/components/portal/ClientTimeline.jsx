@@ -3,8 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
   Calendar, Mail, Bell, Clock, AlertCircle, CheckCircle2, 
-  Users, Award, Dumbbell, Package, MessageSquare, ChevronDown, ChevronRight
+  Users, Award, Dumbbell, Package, MessageSquare, ChevronDown, ChevronRight, CalendarPlus
 } from 'lucide-react';
+import { downloadICS } from '@/lib/ics';
 import { format, subDays, differenceInDays, isPast, isToday } from 'date-fns';
 
 export default function ClientTimeline({ events, proposal }) {
@@ -214,6 +215,22 @@ export default function ClientTimeline({ events, proposal }) {
                         <Badge variant={status === 'past' ? 'secondary' : status === 'today' ? 'default' : 'outline'}>
                           {getDaysUntil(item.date)}
                         </Badge>
+                        {item.isEvent && status !== 'past' && (
+                          <button
+                            onClick={() => downloadICS({
+                              id: item.event.id,
+                              title: item.event.title,
+                              start: item.event.start_date,
+                              end: item.event.end_date,
+                              location: item.event.location,
+                              description: item.event.description,
+                            })}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-[#264d44] hover:bg-gray-100 transition-colors"
+                            title="Add to calendar"
+                          >
+                            <CalendarPlus className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                     <p className={`text-sm ${status === 'past' ? 'text-gray-400' : 'text-gray-600'}`}>

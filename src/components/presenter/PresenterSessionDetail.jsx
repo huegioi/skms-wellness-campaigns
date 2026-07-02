@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
+import { downloadICS } from '@/lib/ics';
 
 export default function PresenterSessionDetail({ event, portalId, onBack, onUpdated }) {
   const [accepting, setAccepting] = useState(false);
@@ -61,31 +62,14 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
     onUpdated();
   };
 
-  const generateICS = () => {
-    const fmt = (d) => format(d, "yyyyMMdd'T'HHmmss");
-    const ics = [
-      'BEGIN:VCALENDAR',
-      'VERSION:2.0',
-      'PRODID:-//SKMS Wellness//Presenter Portal//EN',
-      'BEGIN:VEVENT',
-      `DTSTART:${fmt(start)}`,
-      `DTEND:${fmt(end || new Date(start.getTime() + 60 * 60 * 1000))}`,
-      `SUMMARY:${event.title}`,
-      event.location ? `LOCATION:${event.location}` : '',
-      event.description ? `DESCRIPTION:${event.description.replace(/\n/g, '\\n')}` : '',
-      `UID:${event.id}@skms-wellness`,
-      'END:VEVENT',
-      'END:VCALENDAR',
-    ].filter(Boolean).join('\r\n');
-
-    const blob = new Blob([ics], { type: 'text/calendar' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${event.title.replace(/\s+/g, '_')}.ics`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const handleAddToCalendar = () => downloadICS({
+    id: event.id,
+    title: event.title,
+    start: event.start_date,
+    end: event.end_date,
+    location: event.location,
+    description: event.description,
+  });
 
   const isUpcoming = new Date(event.start_date) >= new Date();
 
@@ -208,7 +192,7 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
               </div>
             )}
             <div className="pt-2">
-              <Button variant="outline" size="sm" onClick={generateICS} className="gap-2 text-sm">
+              <Button variant="outline" size="sm" onClick={handleAddToCalendar} className="gap-2 text-sm">
                 <Download className="w-4 h-4" />
                 Add to Calendar (.ics)
               </Button>

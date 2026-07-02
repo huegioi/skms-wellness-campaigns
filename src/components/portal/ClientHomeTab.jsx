@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Calendar, Users, Package, ArrowRight, MapPin, Clock, FileText, BarChart3, FolderOpen } from 'lucide-react';
+import { Calendar, Users, Package, ArrowRight, MapPin, Clock, FileText, BarChart3, FolderOpen, CalendarPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { downloadICS } from '@/lib/ics';
 
 const SELECTION_CATEGORIES = ['workshops', 'challengePrograms', 'leadership', 'movementClasses'];
 
@@ -98,6 +99,20 @@ function NextSessionCard({ event }) {
           )}
         </div>
       </div>
+      <button
+        onClick={() => downloadICS({
+          id: event.id,
+          title: event.title,
+          start: event.start_date,
+          end: event.end_date,
+          location: event.location,
+          description: event.description,
+        })}
+        className="flex-shrink-0 p-2 rounded-lg text-gray-400 hover:text-[#223d32] hover:bg-gray-100 transition-colors"
+        title="Add to calendar"
+      >
+        <CalendarPlus className="w-5 h-5" />
+      </button>
     </div>
   );
 }
