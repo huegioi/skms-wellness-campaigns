@@ -239,7 +239,7 @@ const EMPTY_PARTNER_FORM = {
 };
 
 function generatePortalId() {
-  return Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+  return crypto.randomUUID();
 }
 
 export default function Leads() {

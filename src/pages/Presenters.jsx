@@ -14,10 +14,7 @@ import { toast } from 'sonner';
 import PresenterPayouts from '@/components/presenter/PresenterPayouts';
 import { useAuth } from '@/lib/AuthContext';
 
-const generatePortalId = () => {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  return Array.from({ length: 16 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-};
+const generatePortalId = () => crypto.randomUUID();
 
 const emptyForm = {
   name: '',

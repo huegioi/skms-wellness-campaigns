@@ -211,7 +211,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
       }
     } else {
       // No ReferralPartner record exists — create one with a portal ID
-      const portalId = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10);
+      const portalId = crypto.randomUUID();
       await base44.entities.ReferralPartner.create({
         name: lead.name,
         email: lead.email,
