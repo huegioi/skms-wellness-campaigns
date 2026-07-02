@@ -5,9 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Mail, Download, FileText, Award, Dumbbell, Users, Package, Eye } from 'lucide-react';
-import { productCatalog } from '@/components/curriculum/catalogData';
-
-export default function ClientEmailTemplates({ proposal, templates = [], client }) {
+export default function ClientEmailTemplates({ proposal, templates = [], client, services = [] }) {
   const [viewingTemplate, setViewingTemplate] = useState(null);
 
   const selections = proposal?.selections || {};
@@ -19,29 +17,21 @@ export default function ClientEmailTemplates({ proposal, templates = [], client 
 
   // Get all services included in the proposal
   const getProposalServices = () => {
-    const services = [];
-    
-    selections.workshops?.forEach(key => {
-      const workshop = productCatalog.workshops[key];
-      if (workshop) services.push({ key, name: workshop.name, category: 'workshop' });
-    });
-    
-    selections.challengePrograms?.forEach(key => {
-      const challenge = productCatalog.challenges[key];
-      if (challenge) services.push({ key, name: challenge.name, category: 'challenge' });
-    });
-    
-    selections.leadership?.forEach(key => {
-      const program = productCatalog.leadership[key];
-      if (program) services.push({ key, name: program.name, category: 'leadership' });
-    });
-    
-    selections.movementClasses?.forEach(key => {
-      const classItem = productCatalog.movementClasses[key];
-      if (classItem) services.push({ key, name: classItem.name, category: 'class' });
-    });
+    const serviceMap = {};
+    services.forEach(s => { serviceMap[s.id] = s; });
 
-    return services;
+    const result = [];
+    const addIfFound = (id, category) => {
+      const service = serviceMap[id];
+      if (service) result.push({ key: id, name: service.name, category });
+    };
+
+    selections.workshops?.forEach(id => addIfFound(id, 'workshop'));
+    selections.challengePrograms?.forEach(id => addIfFound(id, 'challenge'));
+    selections.leadership?.forEach(id => addIfFound(id, 'leadership'));
+    selections.movementClasses?.forEach(id => addIfFound(id, 'class'));
+
+    return result;
   };
 
   const proposalServices = getProposalServices();

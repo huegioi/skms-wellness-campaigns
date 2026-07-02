@@ -186,7 +186,7 @@ export default function ClientPortalCore({ mode, token, clientId }) {
             <BookSession client={client} />
           </TabsContent>
           <TabsContent value="templates">
-            <ClientEmailTemplates proposal={acceptedProposal} templates={allTemplates} client={client} />
+            <ClientEmailTemplates proposal={acceptedProposal} templates={allTemplates} client={client} services={services} />
           </TabsContent>
           <TabsContent value="profile">
             <ClientProfileSettings client={client} token={token} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['clientPortalData'] })} />
