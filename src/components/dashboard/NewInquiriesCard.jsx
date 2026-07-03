@@ -2,8 +2,8 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { User, Users, ArrowRight, Sparkles, Package } from 'lucide-react';
-import { parseQuickBuilderGoals, timeSince, isNewQuickBuilderInquiry } from '@/lib/quickbuilderUtils';
+import { User, Users, ArrowRight, Sparkles, Package, Gift } from 'lucide-react';
+import { parseQuickBuilderGoals, parseWellnessBoxesPreference, timeSince, isNewQuickBuilderInquiry } from '@/lib/quickbuilderUtils';
 
 export default function NewInquiriesCard() {
   const { data: allLeads = [] } = useQuery({
@@ -43,6 +43,7 @@ export default function NewInquiriesCard() {
       <div className="space-y-2">
         {top5.map(lead => {
           const goals = parseQuickBuilderGoals(lead.notes);
+          const wantsBoxes = parseWellnessBoxesPreference(lead.notes);
           const selCount = lead.quickbuilder_selections?.length || 0;
           return (
             <div
@@ -73,6 +74,13 @@ export default function NewInquiriesCard() {
                   {selCount > 0 && (
                     <span className="text-[10px] bg-[#264d44]/10 text-[#264d44] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
                       <Package className="w-2.5 h-2.5" />{selCount} service{selCount !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                  {wantsBoxes !== null && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5 ${
+                      wantsBoxes ? 'bg-[#7a8c1e]/10 text-[#7a8c1e]' : 'bg-gray-100 text-gray-400'
+                    }`}>
+                      <Gift className="w-2.5 h-2.5" />Boxes: {wantsBoxes ? 'Yes' : 'No'}
                     </span>
                   )}
                 </div>

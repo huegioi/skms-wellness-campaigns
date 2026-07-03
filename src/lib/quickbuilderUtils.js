@@ -11,6 +11,13 @@ export function parseQuickBuilderGoals(notes) {
   return m[1].split(',').map(s => s.trim()).filter(Boolean);
 }
 
+export function parseWellnessBoxesPreference(notes) {
+  if (!notes) return null;
+  const m = String(notes).match(/Wellness boxes:\s*(yes|no)/i);
+  if (!m) return null;
+  return m[1].toLowerCase() === 'yes';
+}
+
 export function timeSince(dateStr) {
   if (!dateStr) return '';
   const diff = Date.now() - new Date(dateStr).getTime();

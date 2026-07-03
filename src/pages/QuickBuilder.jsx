@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PortalShell } from '@/components/portal/PortalShell';
 import { toast } from 'sonner';
-import { Award, Dumbbell, Activity, Crown, Package, Check, ArrowRight, ArrowLeft, CheckCircle, CalendarPlus, ExternalLink, Sparkles } from 'lucide-react';
+import { Award, Dumbbell, Activity, Crown, Package, Check, ArrowRight, ArrowLeft, CheckCircle, CalendarPlus, ExternalLink } from 'lucide-react';
 import QuickBuilderIntro from '@/components/quickbuilder/QuickBuilderIntro';
-import QuickBuilderServiceCard from '@/components/quickbuilder/QuickBuilderServiceCard';
+import QuickBuilderCategoryStep from '@/components/quickbuilder/QuickBuilderCategoryStep';
+import QuickBuilderWellnessBoxStep from '@/components/quickbuilder/QuickBuilderWellnessBoxStep';
 
 const CALENDLY_LINK = 'https://calendly.com/skillfulmeans/skms-corporate-wellness-offerings-2';
 
@@ -38,7 +39,7 @@ const CATEGORY_CONFIG = {
   wellness_box: { label: 'Wellness Boxes', icon: Package },
 };
 
-const STEP_LABELS = ['About your team', 'Pick what interests you', 'Review & submit'];
+const STEP_LABELS = ['About your team', 'Workshops', '14-Day Challenges', 'Leadership', 'Wellness Boxes', 'Review & submit'];
 
 export default function QuickBuilder() {
   const [searchParams] = useSearchParams();
@@ -47,6 +48,7 @@ export default function QuickBuilder() {
   const [form, setForm] = useState({ company_name: '', contact_name: '', email: '', team_size: '' });
   const [goals, setGoals] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [wantsWellnessBoxes, setWantsWellnessBoxes] = useState(null);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [emailError, setEmailError] = useState('');
@@ -90,20 +92,11 @@ export default function QuickBuilder() {
     !emailError &&
     form.team_size;
 
-  // Campaign nudge logic
-  const selectedCategories = new Set();
-  selectedIds.forEach(id => {
-    const svc = publicServices.find(s => s.id === id);
-    if (svc) selectedCategories.add(svc.category);
-  });
-  const hasWorkshop = selectedCategories.has('workshop');
-  const hasChallenge = selectedCategories.has('challenge');
-  const hasBox = selectedCategories.has('wellness_box');
+  const selectedServices = publicServices.filter(s => selectedIds.has(s.id));
+  const hasWorkshop = selectedServices.some(s => s.category === 'workshop');
+  const hasChallenge = selectedServices.some(s => s.category === 'challenge');
+  const hasBox = wantsWellnessBoxes === true;
   const isFullCampaign = hasWorkshop && hasChallenge && hasBox;
-  const missing = [];
-  if (!hasWorkshop) missing.push('a workshop');
-  if (!hasChallenge) missing.push('a 14-day challenge');
-  if (!hasBox) missing.push('wellness boxes');
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -115,6 +108,7 @@ export default function QuickBuilder() {
         team_size: form.team_size,
         goals,
         selected_service_ids: Array.from(selectedIds),
+        wants_wellness_boxes: wantsWellnessBoxes === true,
         ref,
       });
       setSubmitted(true);
@@ -162,8 +156,6 @@ export default function QuickBuilder() {
     );
   }
 
-  const selectedServices = publicServices.filter(s => selectedIds.has(s.id));
-
   return (
     <PortalShell
       accentColor="#013f7c"
@@ -173,8 +165,14 @@ export default function QuickBuilder() {
     >
       {step === 1 && <QuickBuilderIntro />}
 
-      {/* Step indicator */}
-      <div className="flex items-center gap-2 mb-6">
+      {/* Step indicator — mobile */}
+      <div className="sm:hidden mb-6 flex items-center justify-between">
+        <span className="text-sm font-bold text-brand-navy">Step {step} of 6</span>
+        <span className="text-sm text-gray-500">{STEP_LABELS[step - 1]}</span>
+      </div>
+
+      {/* Step indicator — desktop */}
+      <div className="hidden sm:flex items-center gap-2 mb-6">
         {STEP_LABELS.map((label, idx) => {
           const stepNum = idx + 1;
           const isActive = step === stepNum;
@@ -191,7 +189,7 @@ export default function QuickBuilder() {
                 >
                   {isComplete ? <Check className="w-4 h-4" /> : stepNum}
                 </div>
-                <span className={`text-sm font-medium hidden sm:inline ${isActive ? 'text-brand-navy' : 'text-gray-400'}`}>
+                <span className={`text-sm font-medium ${isActive ? 'text-brand-navy' : 'text-gray-400'}`}>
                   {label}
                 </span>
               </div>
@@ -289,73 +287,60 @@ export default function QuickBuilder() {
         </div>
       )}
 
-      {/* ── Step 2: Pick what interests you ── */}
+      {/* ── Step 2: Workshops ── */}
       {step === 2 && (
-        <div className="space-y-6">
-          {/* Campaign nudge */}
-          {selectedIds.size > 0 && (
-            <div className={`rounded-xl p-4 flex items-center gap-3 ${
-              isFullCampaign ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'
-            }`}>
-              {isFullCampaign ? (
-                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-              ) : (
-                <Sparkles className="w-5 h-5 text-amber-600 flex-shrink-0" />
-              )}
-              <p className={`text-sm font-medium ${isFullCampaign ? 'text-green-700' : 'text-amber-700'}`}>
-                {isFullCampaign
-                  ? 'Full campaign — nice choice'
-                  : `Most effective: pair a workshop with its follow-up challenge and wellness boxes. Missing: ${missing.join(', ')}.`}
-              </p>
-            </div>
-          )}
-
-          {/* Services by category */}
-          {isLoading ? (
-            <div className="text-center py-12 text-gray-400">Loading services...</div>
-          ) : (
-            Object.entries(CATEGORY_CONFIG).map(([catKey, config]) => {
-              const catServices = publicServices.filter(s => s.category === catKey);
-              if (catServices.length === 0) return null;
-              const Icon = config.icon;
-              return (
-                <div key={catKey}>
-                  <h3 className="flex items-center gap-2 font-bold text-gray-700 mb-3">
-                    <Icon className="w-5 h-5 text-brand-navy" />
-                    {config.label}
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {catServices.map(svc => (
-                      <QuickBuilderServiceCard
-                        key={svc.id}
-                        service={svc}
-                        isSelected={selectedIds.has(svc.id)}
-                        onToggle={() => toggleService(svc.id)}
-                      />
-                    ))}
-                  </div>
-                </div>
-              );
-            })
-          )}
-
-          <div className="flex justify-between pt-2">
-            <Button variant="outline" onClick={() => setStep(1)} className="gap-2">
-              <ArrowLeft className="w-4 h-4" /> Back
-            </Button>
-            <Button
-              disabled={selectedIds.size === 0}
-              onClick={() => setStep(3)}
-              className="bg-brand-navy hover:bg-[#012d5a] gap-2"
-            >
-              Review <ArrowRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
+        <QuickBuilderCategoryStep
+          title="Workshops"
+          subtitle="Tap to select. Optional — pick what interests you."
+          services={publicServices.filter(s => s.category === 'workshop')}
+          selectedIds={selectedIds}
+          onToggle={toggleService}
+          onBack={() => setStep(1)}
+          onNext={() => setStep(3)}
+          isLoading={isLoading}
+        />
       )}
 
-      {/* ── Step 3: Review & submit ── */}
+      {/* ── Step 3: 14-Day Challenges ── */}
       {step === 3 && (
+        <QuickBuilderCategoryStep
+          title="14-Day Challenges"
+          subtitle="Tap to select. Optional — pick what interests you."
+          services={publicServices.filter(s => s.category === 'challenge')}
+          selectedIds={selectedIds}
+          onToggle={toggleService}
+          onBack={() => setStep(2)}
+          onNext={() => setStep(4)}
+          isLoading={isLoading}
+        />
+      )}
+
+      {/* ── Step 4: Leadership ── */}
+      {step === 4 && (
+        <QuickBuilderCategoryStep
+          title="Leadership"
+          subtitle="Tap to select. Optional — pick what interests you."
+          services={publicServices.filter(s => s.category === 'leadership')}
+          selectedIds={selectedIds}
+          onToggle={toggleService}
+          onBack={() => setStep(3)}
+          onNext={() => setStep(5)}
+          isLoading={isLoading}
+        />
+      )}
+
+      {/* ── Step 5: Wellness Boxes ── */}
+      {step === 5 && (
+        <QuickBuilderWellnessBoxStep
+          value={wantsWellnessBoxes}
+          onChange={setWantsWellnessBoxes}
+          onBack={() => setStep(4)}
+          onNext={() => setStep(6)}
+        />
+      )}
+
+      {/* ── Step 6: Review & submit ── */}
+      {step === 6 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-5">
           <h2 className="text-lg font-bold text-gray-800">Review your selections</h2>
           <div className="space-y-2">
@@ -378,13 +363,46 @@ export default function QuickBuilder() {
               </div>
             ))}
           </div>
-          <div className="bg-brand-cream rounded-xl p-4">
-            <p className="text-sm text-gray-600 text-center">
-              We'll send a tailored proposal with pricing within 2 business days.
-            </p>
+
+          {/* Wellness box incentives row */}
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <span className="text-sm font-medium text-gray-700">Wellness box incentives</span>
+            <span className={`text-sm font-semibold ${hasBox ? 'text-green-600' : 'text-gray-400'}`}>
+              {hasBox ? 'Yes' : 'No'}
+            </span>
           </div>
+
+          {/* Campaign pillars nudge */}
+          <div className="bg-brand-cream rounded-xl p-4">
+            <div className="flex items-center gap-4 justify-center flex-wrap">
+              {[
+                { label: 'Workshop', covered: hasWorkshop },
+                { label: 'Challenge', covered: hasChallenge },
+                { label: 'Wellness boxes', covered: hasBox },
+              ].map(p => (
+                <div key={p.label} className="flex items-center gap-1.5">
+                  {p.covered ? (
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
+                  )}
+                  <span className={`text-sm font-medium ${p.covered ? 'text-gray-800' : 'text-gray-400'}`}>{p.label}</span>
+                </div>
+              ))}
+            </div>
+            {!isFullCampaign && (
+              <p className="text-xs text-gray-500 text-center mt-3">
+                A full campaign (workshop + challenge + wellness boxes) reinforces learning and builds lasting habits.
+              </p>
+            )}
+          </div>
+
+          <p className="text-sm text-gray-500 text-center">
+            We'll send a tailored proposal with pricing within 2 business days.
+          </p>
+
           <div className="flex justify-between pt-2">
-            <Button variant="outline" onClick={() => setStep(2)} className="gap-2">
+            <Button variant="outline" onClick={() => setStep(5)} className="gap-2">
               <ArrowLeft className="w-4 h-4" /> Back
             </Button>
             <Button

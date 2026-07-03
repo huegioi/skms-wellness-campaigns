@@ -4,7 +4,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { company_name, contact_name, email, team_size, goals, selected_service_ids, ref } = body;
+    const { company_name, contact_name, email, team_size, goals, selected_service_ids, wants_wellness_boxes, ref } = body;
 
     // ── Validate required fields ──
     if (!company_name || !contact_name || !email || !team_size) {
@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
     if (serviceNames.length > 0) {
       notesLines.push(`Selected services:\n${serviceNames.map(n => `- ${n}`).join('\n')}`);
     }
+    notesLines.push(`Wellness boxes: ${wants_wellness_boxes ? 'yes' : 'no'}`);
     const notes = notesLines.join('\n\n');
 
     // ── Build source ──
