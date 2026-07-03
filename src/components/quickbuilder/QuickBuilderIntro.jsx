@@ -1,30 +1,27 @@
 import React from 'react';
-import { Lightbulb, Target, Crown, Gift, ChevronRight, ExternalLink, LayoutDashboard, BarChart3, Mail } from 'lucide-react';
+import { ExternalLink, LayoutDashboard, BarChart3, Mail } from 'lucide-react';
+import ProgramJourney from '@/components/quickbuilder/ProgramJourney';
 
 export const ROI_CALCULATOR_URL = 'https://skillfulmeans-roi-production.up.railway.app/';
-
-const JOURNEY_STEPS = [
-  { icon: Lightbulb, title: 'Workshops', desc: 'Introduce skills' },
-  { icon: Target, title: 'Challenges', desc: 'Build habits' },
-  { icon: Crown, title: 'Leadership EQ', desc: 'Deepens' },
-  { icon: Gift, title: 'Incentives', desc: 'Reinforce' },
-];
 
 const CAMPAIGN_INCLUDES = [
   {
     icon: LayoutDashboard,
     title: 'Client portal',
     desc: 'Your own portal with program timeline, session booking, and resources.',
+    color: '#013f7c',
   },
   {
     icon: BarChart3,
     title: 'Survey & ROI data',
     desc: 'Wellbeing and engagement measurement across your campaign, visible in your portal.',
+    color: '#264d44',
   },
   {
     icon: Mail,
     title: 'Turn-key rollout',
     desc: 'Email templates and materials to get your workforce excited.',
+    color: '#770142',
   },
 ];
 
@@ -40,30 +37,8 @@ export default function QuickBuilderIntro() {
           That's why we recommend a campaign of at least a workshop + a 14-day challenge + wellness boxes.
         </p>
 
-        {/* Four-step journey */}
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {JOURNEY_STEPS.map((step, idx) => {
-            const Icon = step.icon;
-            return (
-              <React.Fragment key={step.title}>
-                <div className="flex items-center gap-3 bg-brand-cream rounded-xl p-4">
-                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#013f7c15' }}>
-                    <Icon className="w-5 h-5 text-brand-navy" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-gray-800">{step.title}</p>
-                    <p className="text-xs text-gray-500">{step.desc}</p>
-                  </div>
-                </div>
-                {idx < JOURNEY_STEPS.length - 1 && (
-                  <div className="hidden lg:flex items-center justify-center">
-                    <ChevronRight className="w-5 h-5 text-gray-300" />
-                  </div>
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
+        {/* Four-step journey — imagery pillars */}
+        <ProgramJourney />
 
         {/* ROI calculator link */}
         <a
@@ -80,16 +55,16 @@ export default function QuickBuilderIntro() {
       {/* Every campaign includes */}
       <div>
         <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Every campaign includes</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {CAMPAIGN_INCLUDES.map(item => {
             const Icon = item.icon;
             return (
-              <div key={item.title} className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3" style={{ backgroundColor: '#264d4415' }}>
-                  <Icon className="w-5 h-5 text-brand-green" />
+              <div key={item.title} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2" style={{ backgroundColor: item.color + '15' }}>
+                  <Icon className="w-4 h-4" style={{ color: item.color }} />
                 </div>
-                <p className="font-semibold text-sm text-gray-800 mb-1">{item.title}</p>
-                <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
+                <p className="font-semibold text-sm text-gray-800">{item.title}</p>
+                <p className="text-xs text-gray-500 leading-snug mt-0.5">{item.desc}</p>
               </div>
             );
           })}
