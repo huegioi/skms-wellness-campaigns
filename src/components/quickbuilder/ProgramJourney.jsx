@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight, ChevronDown, Users } from 'lucide-react';
+import { ChevronRight, ChevronDown } from 'lucide-react';
 
 const PURPLE = '#422E33';
 
@@ -37,10 +37,11 @@ const PILLARS = [
 export default function ProgramJourney() {
   return (
     <div className="mt-6 rounded-2xl p-4 md:p-6" style={{ backgroundColor: '#F7F3EF' }}>
-      {/* Subtitle */}
-      <p className="text-center text-sm mb-5" style={{ color: PURPLE }}>
-        A <strong>structured journey</strong> from learning to long-term behavior change.
-      </p>
+      {/* Section header */}
+      <div className="flex items-baseline gap-2 mb-4">
+        <h4 className="font-bold text-sm" style={{ color: PURPLE }}>A structured journey</h4>
+        <span className="text-xs" style={{ color: PURPLE }}>from learning to long-term behavior change</span>
+      </div>
 
       {/* Four pillars */}
       <div className="flex flex-col lg:flex-row lg:items-stretch gap-2">
@@ -76,14 +77,6 @@ export default function ProgramJourney() {
         ))}
       </div>
 
-      {/* Vertical connector + outcome */}
-      <div className="flex flex-col items-center mt-4">
-        <div className="border-l-2 border-dashed h-6" style={{ borderColor: PURPLE }} />
-        <div className="w-16 h-16 rounded-full bg-white border-2 flex items-center justify-center shadow-sm" style={{ borderColor: PURPLE }}>
-          <Users className="w-7 h-7" style={{ color: PURPLE }} />
-        </div>
-        <p className="text-xs font-bold uppercase tracking-wider mt-2" style={{ color: PURPLE }}>Long-Term Team Resilience</p>
-      </div>
     </div>
   );
 }

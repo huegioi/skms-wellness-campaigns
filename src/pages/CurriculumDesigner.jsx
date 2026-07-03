@@ -29,6 +29,8 @@ export default function CurriculumDesigner() {
     largeBoxes: 0
   });
   const [clientLoaded, setClientLoaded] = useState(false);
+  const [leadLoaded, setLeadLoaded] = useState(false);
+  const [pendingQbSelections, setPendingQbSelections] = useState([]);
   const [searchParams] = useSearchParams();
 
   // Pre-load client data from URL param
@@ -62,10 +64,54 @@ export default function CurriculumDesigner() {
     }).catch(() => {});
   }, [clientLoaded, searchParams]);
 
+  // Pre-load Quick Builder lead data from URL param
+  React.useEffect(() => {
+    const leadId = searchParams.get('leadId');
+    if (!leadId || leadLoaded) return;
+    base44.entities.Lead.filter({ id: leadId }).then(results => {
+      const lead = results[0];
+      if (!lead) return;
+      setSelections(prev => ({
+        ...prev,
+        assessmentData: {
+          ...prev.assessmentData,
+          clientName: lead.name || '',
+          clientEmail: lead.email || '',
+          companyName: lead.company || '',
+          companySize: lead.company_size || '',
+          industry: lead.industry || '',
+        }
+      }));
+      if (lead.quickbuilder_selections?.length) {
+        setPendingQbSelections(lead.quickbuilder_selections);
+      }
+      setLeadLoaded(true);
+    }).catch(() => {});
+  }, [leadLoaded, searchParams]);
+
   const { data: allServices = [] } = useQuery({
     queryKey: ['services'],
     queryFn: () => base44.entities.Service.list('sort_order')
   });
+
+  // Distribute pending Quick Builder selections into the matching step arrays
+  React.useEffect(() => {
+    if (pendingQbSelections.length === 0 || allServices.length === 0) return;
+    const buckets = { workshop: [], challenge: [], leadership: [], class: [] };
+    pendingQbSelections.forEach(serviceId => {
+      const svc = allServices.find(s => s.id === serviceId);
+      if (!svc || !buckets[svc.category]) return;
+      buckets[svc.category].push(serviceId);
+    });
+    setSelections(prev => ({
+      ...prev,
+      workshops: [...new Set([...(prev.workshops || []), ...buckets.workshop])],
+      challengePrograms: [...new Set([...(prev.challengePrograms || []), ...buckets.challenge])],
+      leadership: [...new Set([...(prev.leadership || []), ...buckets.leadership])],
+      movementClasses: [...new Set([...(prev.movementClasses || []), ...buckets.class])],
+    }));
+    setPendingQbSelections([]);
+  }, [pendingQbSelections, allServices]);
 
   const workshopServices = allServices.filter(s => s.category === 'workshop' && s.is_active !== false);
   const challengeServices = allServices.filter(s => s.category === 'challenge' && s.is_active !== false);

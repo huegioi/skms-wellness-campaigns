@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, DollarSign, ChevronDown, Pencil } from 'lucide-react';
+import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, DollarSign, ChevronDown, Pencil, Wand2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import GmailHistory from '@/components/clients/GmailHistory';
 import { TagSelector } from '@/components/ui/TagSelector';
@@ -57,6 +58,7 @@ function calcAdjustedRevenue(proposal) {
 }
 
 export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [showAddReferral, setShowAddReferral] = useState(false);
   const [referralForm, setReferralForm] = useState(EMPTY_REFERRAL);
@@ -360,7 +362,17 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
         <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
           <DialogTitle className="sr-only">{lead.name}</DialogTitle>
           <RecordSnapshotHeader record={lead} entityType="Lead" stages={LEAD_STAGES} onUpdate={handleFieldUpdate} />
-          <div className="flex justify-end mt-2">
+          <div className="flex justify-end gap-2 mt-2 flex-wrap">
+            {(lead.lead_type === 'company_inquiry' || (lead.quickbuilder_selections?.length || 0) > 0) && (
+              <Button
+                onClick={() => navigate(`/CurriculumDesigner?leadId=${lead.id}`)}
+                className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-1.5"
+                size="sm"
+              >
+                <Wand2 className="w-4 h-4" />
+                Open in Curriculum Designer
+              </Button>
+            )}
             <Button
               onClick={toggleActivePartner}
               disabled={updateLeadMutation.isPending}
