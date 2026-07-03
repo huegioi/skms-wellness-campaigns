@@ -1,5 +1,6 @@
 import React from 'react';
 import { ExternalLink, LayoutDashboard, BarChart3, Mail } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import ProgramJourney from '@/components/quickbuilder/ProgramJourney';
 
 export const ROI_CALCULATOR_URL = 'https://skillfulmeans-roi-production.up.railway.app/';
@@ -41,15 +42,12 @@ export default function QuickBuilderIntro() {
         <ProgramJourney />
 
         {/* ROI calculator link */}
-        <a
-          href={ROI_CALCULATOR_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-brand-plum hover:underline"
-        >
-          See projected impact for your organization
-          <ExternalLink className="w-4 h-4" />
-        </a>
+        <Button asChild variant="outline" className="mt-5 gap-2 border-[#770142]/40 text-[#770142] hover:bg-[#770142]/5">
+          <a href={ROI_CALCULATOR_URL} target="_blank" rel="noopener noreferrer">
+            See projected impact for your organization
+            <ExternalLink className="w-4 h-4" />
+          </a>
+        </Button>
       </div>
 
       {/* Every campaign includes */}
