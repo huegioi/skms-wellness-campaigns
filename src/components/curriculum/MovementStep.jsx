@@ -7,7 +7,7 @@ export default function MovementStep({ selections, updateSelections, onNext, onB
   // Only use active services from catalog — no static fallback
   const movementClasses = (catalogServices || []).map(s => [
     s.id,
-    { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Activity' }
+    { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Activity', image: s.images?.[0]?.url }
   ]);
 
   const toggleSelection = (key) => {
@@ -38,6 +38,7 @@ export default function MovementStep({ selections, updateSelections, onNext, onB
             description={classItem.description}
             price={classItem.price}
             icon={classItem.icon}
+            image={classItem.image}
             isSelected={(selections.movementClasses || []).includes(key)}
             onToggle={() => toggleSelection(key)}
           />

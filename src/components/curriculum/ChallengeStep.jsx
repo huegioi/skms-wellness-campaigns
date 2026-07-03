@@ -9,7 +9,7 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
   // Only use active services from catalog — no static fallback
   const challenges = (catalogServices || []).map(s => [
     s.id,
-    { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Flame', duration: s.duration || '14 days' }
+    { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Flame', duration: s.duration || '14 days', image: s.images?.[0]?.url }
   ]);
   const assessmentData = selections.assessmentData || {};
 
@@ -143,6 +143,7 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
                 description={challenge.description}
                 price={challengePrice !== null ? challengePrice : challenge.price}
                 icon={challenge.icon}
+                image={challenge.image}
                 badge={challenge.duration}
                 isSelected={(selections.challengePrograms || []).includes(key)}
                 onToggle={() => toggleSelection(key)}

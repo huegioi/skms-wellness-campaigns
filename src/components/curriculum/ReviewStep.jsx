@@ -7,11 +7,12 @@ import { base44 } from '@/api/base44Client';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
-function CartItem({ removed, name, price, qty, total, itemKey, note, noteExpanded, onQtyChange, onNoteChange, onToggleNote, onRemove, onRestore }) {
+function CartItem({ removed, name, price, qty, total, itemKey, note, noteExpanded, image, onQtyChange, onNoteChange, onToggleNote, onRemove, onRestore }) {
   return (
     <div className={`mb-3 rounded-xl border transition-all ${removed ? 'opacity-50 bg-gray-50 border-gray-200' : 'bg-white border-gray-200 shadow-sm'}`}>
       <div className="flex items-center gap-2 p-3">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          {image && <img src={image} alt="" className="w-8 h-8 rounded object-cover flex-shrink-0" />}
           <span className={`font-medium text-sm ${removed ? 'line-through text-gray-400' : 'text-gray-800'}`}>{name}</span>
           {price > 0 && <span className="text-xs text-gray-400 ml-2">${price.toLocaleString()} each</span>}
         </div>
@@ -55,7 +56,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
   // Helper: look up a service by ID in allServices, fall back to productCatalog static data
   const getServiceById = (id, catalogCategory) => {
     const fromDb = allServices.find(s => s.id === id);
-    if (fromDb) return { name: fromDb.name, price: fromDb.price, description: fromDb.short_description || fromDb.description || '' };
+    if (fromDb) return { name: fromDb.name, price: fromDb.price, description: fromDb.short_description || fromDb.description || '', image: fromDb.images?.[0]?.url };
     const fromCatalog = productCatalog[catalogCategory]?.[id];
     if (fromCatalog) return { name: fromCatalog.name, price: fromCatalog.price, description: fromCatalog.description || '' };
     return null;
@@ -983,7 +984,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
                 const qty = getQty(itemKey);
                 const total = (svc?.price || 0) * qty;
                 return (
-                  <CartItem key={key} removed={removed} name={svc?.name || key}
+                  <CartItem key={key} removed={removed} name={svc?.name || key} image={svc?.image}
                     price={svc?.price || 0} qty={qty} total={total} itemKey={itemKey}
                     note={getNote(itemKey)} noteExpanded={expandedNotes.has(itemKey)}
                     onQtyChange={setQty} onNoteChange={setNote} onToggleNote={toggleNote}
@@ -1002,7 +1003,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
                 const removed = removedItems.has(itemKey);
                 const qty = getQty(itemKey);
                 return (
-                  <CartItem key={key} removed={removed} name={svc?.name || key}
+                  <CartItem key={key} removed={removed} name={svc?.name || key} image={svc?.image}
                     price={challengePrice} qty={qty} total={challengePrice * qty} itemKey={itemKey}
                     note={getNote(itemKey)} noteExpanded={expandedNotes.has(itemKey)}
                     onQtyChange={setQty} onNoteChange={setNote} onToggleNote={toggleNote}
@@ -1021,7 +1022,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
                 const removed = removedItems.has(itemKey);
                 const qty = getQty(itemKey);
                 return (
-                  <CartItem key={key} removed={removed} name={svc?.name || key}
+                  <CartItem key={key} removed={removed} name={svc?.name || key} image={svc?.image}
                     price={svc?.price || 0} qty={qty} total={(svc?.price || 0) * qty} itemKey={itemKey}
                     note={getNote(itemKey)} noteExpanded={expandedNotes.has(itemKey)}
                     onQtyChange={setQty} onNoteChange={setNote} onToggleNote={toggleNote}
@@ -1040,7 +1041,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
                 const removed = removedItems.has(itemKey);
                 const qty = getQty(itemKey);
                 return (
-                  <CartItem key={key} removed={removed} name={svc?.name || key}
+                  <CartItem key={key} removed={removed} name={svc?.name || key} image={svc?.image}
                     price={svc?.price || 0} qty={qty} total={(svc?.price || 0) * qty} itemKey={itemKey}
                     note={getNote(itemKey)} noteExpanded={expandedNotes.has(itemKey)}
                     onQtyChange={setQty} onNoteChange={setNote} onToggleNote={toggleNote}

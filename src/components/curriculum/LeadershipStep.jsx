@@ -7,7 +7,7 @@ export default function LeadershipStep({ selections, updateSelections, onNext, o
   // Only use active services from catalog — no static fallback
   const leadership = (catalogServices || []).map(s => [
     s.id,
-    { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Crown' }
+    { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Crown', image: s.images?.[0]?.url }
   ]);
 
   const toggleSelection = (key) => {
@@ -38,6 +38,7 @@ export default function LeadershipStep({ selections, updateSelections, onNext, o
             description={program.description}
             price={program.price}
             icon={program.icon}
+            image={program.image}
             isSelected={(selections.leadership || []).includes(key)}
             onToggle={() => toggleSelection(key)}
           />

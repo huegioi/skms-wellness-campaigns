@@ -8,7 +8,7 @@ export default function WorkshopStep({ selections, updateSelections, onNext, onB
   // Only use active services from catalog — no static fallback
   const workshops = (catalogServices || []).map(s => [
     s.id,
-    { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Award', seasonal: false }
+    { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Award', seasonal: false, image: s.images?.[0]?.url }
   ]);
 
   // Get suggested workshops based on selected challenges
@@ -135,6 +135,7 @@ export default function WorkshopStep({ selections, updateSelections, onNext, onB
                 description={workshop.description}
                 price={workshop.price}
                 icon={workshop.icon}
+                image={workshop.image}
                 isSelected={(selections.workshops || []).includes(key)}
                 onToggle={() => toggleSelection(key)}
               />

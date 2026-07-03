@@ -80,9 +80,14 @@ export default function ClientProposalView({ proposals: propsList, proposal: sin
                           const service = serviceMap[key];
                           return (
                             <div key={key} className="border rounded-lg p-4 bg-gray-50">
-                              <h4 className="font-semibold text-gray-800 mb-1">
-                                {service ? service.name : key}
-                              </h4>
+                              <div className="flex items-center gap-3 mb-1">
+                                {service?.images?.[0]?.url && (
+                                  <img src={service.images[0].url} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0" />
+                                )}
+                                <h4 className="font-semibold text-gray-800">
+                                  {service ? service.name : key}
+                                </h4>
+                              </div>
                               {service?.short_description && (
                                 <p className="text-gray-600 text-sm leading-relaxed">{service.short_description}</p>
                               )}
