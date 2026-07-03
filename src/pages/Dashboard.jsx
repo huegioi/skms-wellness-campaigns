@@ -5,6 +5,7 @@ import ClientInformationSection from '@/components/dashboard/ClientInformationSe
 import FinancialInformationSection from '@/components/dashboard/FinancialInformationSection';
 import MarketingDashboard from '@/components/dashboard/MarketingDashboard';
 import ServicesAnalytics from '@/components/dashboard/ServicesAnalytics';
+import NewInquiriesCard from '@/components/dashboard/NewInquiriesCard';
 
 export default function Dashboard() {
   const [activeSection, setActiveSection] = useState('clients');
@@ -88,6 +89,7 @@ export default function Dashboard() {
 
         {/* Content Area */}
         <div className="p-4 md:p-8">
+          <NewInquiriesCard />
           {activeSection === 'clients' && <ClientInformationSection />}
           {activeSection === 'financial' && <FinancialInformationSection />}
           {activeSection === 'marketing' && <MarketingDashboard />}

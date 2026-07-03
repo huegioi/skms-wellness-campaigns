@@ -34,12 +34,20 @@ Deno.serve(async (req) => {
     : '_No specific seasonal themes for this month._';
 
   // --- Fetch all data in parallel ---
-  const [allLeads, allClients, allPartners, activeCampaigns] = await Promise.all([
+  const [allLeads, allClients, allPartners, activeCampaigns, qbInquiryLeads] = await Promise.all([
     base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' }),
     base44.asServiceRole.entities.Client.list(),
     base44.asServiceRole.entities.ReferralPartner.filter({ is_active: true }),
     base44.asServiceRole.entities.AnnualCampaign.filter({ is_active: true }),
+    base44.asServiceRole.entities.Lead.filter({ lead_type: 'company_inquiry' }),
   ]);
+
+  // New Quick Builder inquiries: submitted via public Quick Builder, still cold, no interaction yet
+  const newInquiries = qbInquiryLeads.filter(l =>
+    (l.source || '').startsWith('Quick Builder') &&
+    (l.status || 'cold') === 'cold' &&
+    !l.last_contacted_date
+  );
 
   // =========================================================
   // SECTION A: MASS CAMPAIGN ACTIONS
@@ -135,6 +143,7 @@ Deno.serve(async (req) => {
     active_partners: activeLeadPartners.length,
     triggered_campaigns: triggeredCampaigns.length, // array of {campaign, label}
     stalled_tier1_partners: stalledPartners.length,
+    new_inquiries: newInquiries.length,
   };
 
   // =========================================================
@@ -162,7 +171,7 @@ Write today's briefing using EXACTLY this format — no extra sections, no parag
 • [The single most relevant seasonal or campaign action for right now — one line]
 
 **Other**
-[1–2 sentences flagging anything else worth noting — stale data, upcoming deadline, a quick win.]
+[1–2 sentences flagging anything else worth noting — stale data, upcoming deadline, a quick win, or new Quick Builder inquiries awaiting review.]
 
 ---
 
@@ -194,7 +203,9 @@ Overdue partner follow-ups: ${overduePartners.slice(0,5).map(l => `${l.name} / $
 Stalled Tier 1 partners (60+ days no touchpoint): ${stalledPartners.slice(0,4).map(p => `${p.name} (${p.company || ''}, last touch: ${p.last_touchpoint_date || p.last_contacted_date || 'never'})`).join(', ') || 'none'}
 
 Active partners total: ${allPartners.filter(p => p.partner_status === 'Active Partner').length}
-Active clients total: ${allClients.filter(c => c.client_stage && c.client_stage !== 'churned').length}`;
+Active clients total: ${allClients.filter(c => c.client_stage && c.client_stage !== 'churned').length}
+
+New Quick Builder inquiries (awaiting first contact): ${newInquiries.slice(0,5).map(l => (l.company || l.name) + ' (team: ' + (l.company_size || '?') + ', ' + (l.quickbuilder_selections?.length || 0) + ' services selected, submitted: ' + (l.created_date ? new Date(l.created_date).toLocaleDateString() : 'recently') + ')').join('; ') || 'none'}`;
 
   let briefing;
   try {

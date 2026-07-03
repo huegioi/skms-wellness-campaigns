@@ -143,11 +143,19 @@ Deno.serve(async (req) => {
     }
 
     // Fetch data in parallel (same logic as mayaDailyBriefing)
-    const [allLeads, allClients, activeCampaigns] = await Promise.all([
+    const [allLeads, allClients, activeCampaigns, qbInquiryLeads] = await Promise.all([
       base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' }),
       base44.asServiceRole.entities.Client.list(),
       base44.asServiceRole.entities.AnnualCampaign.filter({ is_active: true }),
+      base44.asServiceRole.entities.Lead.filter({ lead_type: 'company_inquiry' }),
     ]);
+
+    // New Quick Builder inquiries: submitted via public Quick Builder, still cold, no interaction yet
+    const newInquiries = qbInquiryLeads.filter(l =>
+      (l.source || '').startsWith('Quick Builder') &&
+      (l.status || 'cold') === 'cold' &&
+      !l.last_contacted_date
+    );
 
     const overduePartners = allLeads.filter(l =>
       l.follow_up_due_date && new Date(l.follow_up_due_date) < now
@@ -234,6 +242,9 @@ ${silentClients.map(c => `- ${c.company || c.name} | contact: ${c.name} | last c
 CLIENTS IN RENEWAL WINDOW — plan year starts within 90 days (${renewalClients.length}):
 ${renewalClients.map(c => `- ${c.company || c.name} | plan year start: ${c.plan_year_start} | owner: ${c.owner || 'unassigned'}`).join('\n') || 'None'}
 
+NEW QUICK BUILDER INQUIRIES — awaiting first contact (${newInquiries.length}):
+${newInquiries.slice(0,8).map(l => '- ' + (l.company || l.name) + ' | contact: ' + l.name + ' | email: ' + l.email + ' | team size: ' + (l.company_size || '?') + ' | services selected: ' + (l.quickbuilder_selections?.length || 0) + ' | submitted: ' + (l.created_date ? new Date(l.created_date).toLocaleDateString() : 'recently')).join('\n') || 'None'}
+
 Cross-reference the seasonal themes and active campaigns above with clients/partners. Suggest specific outreach angles in a dedicated "🗓️ Seasonal Outreach Opportunities" section.
 
 Please give your daily briefing now.`;
@@ -248,6 +259,7 @@ Please give your daily briefing now.`;
       silent_clients: silentClients.length,
       renewal_clients: renewalClients.length,
       active_partners: activePartners.length,
+      new_inquiries: newInquiries.length,
     };
 
     const subject = `Maya's Daily Briefing — ${dateStr}`;

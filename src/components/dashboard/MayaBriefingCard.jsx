@@ -312,6 +312,12 @@ export default function MayaBriefingCard() {
                   <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
                   <strong className="text-gray-700">{record.stats.active_partners}</strong> active partners
                 </span>
+                {record.stats.new_inquiries > 0 && (
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-[#770142] inline-block" />
+                    <strong className="text-gray-700">{record.stats.new_inquiries}</strong> new inquiries
+                  </span>
+                )}
               </div>
             )}
           </>

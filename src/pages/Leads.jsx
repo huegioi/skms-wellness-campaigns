@@ -9,10 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, GitMerge, Settings } from 'lucide-react';
+import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, GitMerge, Settings, Inbox } from 'lucide-react';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
 import PendingReferralsReview from '@/components/referrals/PendingReferralsReview';
+import QuickBuilderInquiriesBanner from '@/components/leads/QuickBuilderInquiriesBanner';
+import QuickBuilderInquiriesList from '@/components/leads/QuickBuilderInquiriesList';
 import PipelineView from '@/components/leads/PipelineView';
 import MergePartnerDuplicatesPanel from '@/components/leads/MergePartnerDuplicatesPanel';
 import TagFilter from '@/components/ui/TagFilter';
@@ -248,7 +250,9 @@ export default function Leads() {
   const { toast: shadToast } = useToast();
   const [activeTab, setActiveTab] = useState('broker_leads');
 
-  const leadIdFromUrl = new URLSearchParams(window.location.search).get('leadId');
+  const urlParams = new URLSearchParams(window.location.search);
+  const leadIdFromUrl = urlParams.get('leadId');
+  const filterParam = urlParams.get('filter');
   const urlLeadDismissed = React.useRef(false);
 
   // Broker leads (referral partners) state
@@ -322,14 +326,12 @@ export default function Leads() {
   const pendingReferrals = referrals.filter(r => r.status === 'pending_review');
 
   React.useEffect(() => {
+    if (filterParam === 'quick_builder') setActiveTab('inquiries');
     if (leadIdFromUrl && !urlLeadDismissed.current) {
       const lead = (allLeads || []).find(l => l.id === leadIdFromUrl);
-      if (lead) {
-        setActiveTab('broker_leads');
-        setViewingBrokerLead(lead);
-      }
+      if (lead) setViewingBrokerLead(lead);
     }
-  }, [leadIdFromUrl, allLeads]);
+  }, [leadIdFromUrl, filterParam, allLeads]);
 
   const existingCompanies = [...new Set(referralPartners.map(p => p.company).filter(Boolean))].sort();
 
@@ -410,6 +412,13 @@ export default function Leads() {
   const partnerLeads = allLeads.filter(l => l.lead_type === 'broker_lead');
   // alias for backward compat with existing references
   const brokerLeads = partnerLeads;
+
+  // Quick Builder inquiries: company_inquiry leads with no interaction yet
+  const qbInquiryLeads = allLeads.filter(l =>
+    (l.source || '').startsWith('Quick Builder') &&
+    (l.status || 'cold') === 'cold' &&
+    !l.last_contacted_date
+  );
 
   const createMutation = useMutation({
     mutationFn: async (data) => {
@@ -709,6 +718,9 @@ export default function Leads() {
   const TAB_ITEMS = [
     { id: 'broker_leads', label: 'Referral Partners', icon: Star, count: partnerLeads.length },
     { id: 'portals',      label: 'Referral Portals', icon: Share2, count: referralPartners.length, alert: pendingReferrals.length },
+    ...(qbInquiryLeads.length > 0 || filterParam === 'quick_builder'
+      ? [{ id: 'inquiries', label: 'Inquiries', icon: Inbox, count: qbInquiryLeads.length }]
+      : []),
   ];
 
   return (
@@ -752,6 +764,15 @@ export default function Leads() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-6">
+        {activeTab !== 'inquiries' && (
+          <QuickBuilderInquiriesBanner
+            inquiries={qbInquiryLeads}
+            onViewInquiries={() => {
+              setActiveTab('inquiries');
+              navigate('/Leads?filter=quick_builder', { replace: true });
+            }}
+          />
+        )}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="hidden" />
 
@@ -1021,6 +1042,17 @@ export default function Leads() {
                 })}
               </div>
             )}
+          </TabsContent>
+
+          {/* ── Quick Builder Inquiries Tab ─────────────────────────────────── */}
+          <TabsContent value="inquiries">
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-sm text-gray-500">New campaign inquiries submitted via the public Quick Builder</p>
+            </div>
+            <QuickBuilderInquiriesList
+              inquiries={qbInquiryLeads}
+              onSelectLead={(lead) => setViewingBrokerLead(lead)}
+            />
           </TabsContent>
         </Tabs>
       </div>

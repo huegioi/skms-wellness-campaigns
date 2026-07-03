@@ -6,6 +6,7 @@ import MarketingDashboard from '@/components/dashboard/MarketingDashboard';
 import ServicesAnalytics from '@/components/dashboard/ServicesAnalytics';
 import ActionableReviewQueue from '@/components/dashboard/ActionableReviewQueue';
 import MayaBriefingCard from '@/components/dashboard/MayaBriefingCard';
+import NewInquiriesCard from '@/components/dashboard/NewInquiriesCard';
 
 export default function Home() {
   const [activeSection, setActiveSection] = useState('clients');
@@ -78,6 +79,7 @@ export default function Home() {
 
       {/* Content Area */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
+        <NewInquiriesCard />
         {activeSection === 'clients' && (
           <>
             <MayaBriefingCard />
