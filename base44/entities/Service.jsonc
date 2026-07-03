@@ -52,6 +52,26 @@
       },
       "description": "List of key benefits"
     },
+    "images": {
+      "type": "array",
+      "description": "Images for this service. The first image (index 0) is the primary image.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Image URL (uploaded via file upload integration)"
+          },
+          "caption": {
+            "type": "string",
+            "description": "Optional caption for the image"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      }
+    },
     "included_assessments": {
       "type": "array",
       "items": {

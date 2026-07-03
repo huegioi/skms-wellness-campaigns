@@ -12,10 +12,11 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { 
   Plus, Pencil, Trash2, Award, Dumbbell, Package, Users, Clock,
-  DollarSign, Target, Loader2, GripVertical, RefreshCw, ExternalLink, FolderOpen, CloudUpload, ClipboardList
+  DollarSign, Target, Loader2, GripVertical, RefreshCw, ExternalLink, FolderOpen, CloudUpload, ClipboardList, Image as ImageIcon
 } from 'lucide-react';
 import ServiceResourceManager from '@/components/services/ServiceResourceManager';
 import AssessmentsSelector from '@/components/services/AssessmentsSelector';
+import ServiceImagesManager from '@/components/services/ServiceImagesManager';
 import { Toaster as SonnerToaster } from '@/components/ui/sonner';
 
 const SERVICES_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1qYMjE_ZWwUVl3nFC4k4RGHLpmDCG8lg1hEY9cGZZ-P8/edit';
@@ -223,12 +224,20 @@ export default function ServiceCatalog() {
                       >
                         <div className="flex flex-col md:flex-row justify-between gap-4">
                           <div className="flex gap-4 flex-1">
-                            <div 
-                              className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                              style={{ backgroundColor: config.color }}
-                            >
-                              <Icon className="w-6 h-6 text-white" />
-                            </div>
+                            {service.images?.[0]?.url ? (
+                              <img
+                                src={service.images[0].url}
+                                alt={service.name}
+                                className="w-12 h-12 rounded-xl object-cover flex-shrink-0 border"
+                              />
+                            ) : (
+                              <div 
+                                className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                                style={{ backgroundColor: config.color }}
+                              >
+                                <Icon className="w-6 h-6 text-white" />
+                              </div>
+                            )}
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <h3 className="text-lg font-bold" style={{ color: '#264d44' }}>
@@ -373,6 +382,15 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
               {((formData.presenter_materials?.length || 0) > 0 || formData.presenter_notes) && (
                 <span className="ml-1 bg-[#770142] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                   {(formData.presenter_materials?.length || 0) + (formData.presenter_notes ? 1 : 0)}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="images" className="flex-1 flex items-center gap-2">
+              <ImageIcon className="w-4 h-4" />
+              Images
+              {(formData.images?.length || 0) > 0 && (
+                <span className="ml-1 bg-[#264d44] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {formData.images.length}
                 </span>
               )}
             </TabsTrigger>
@@ -606,6 +624,20 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
             <Button onClick={handleSave} disabled={saving || !formData.name} className="w-full bg-[#770142] hover:bg-[#5a0132]">
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
               {saving ? 'Saving...' : 'Save Presenter Prep'}
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="images" className="mt-4">
+            <p className="text-sm text-gray-500 mb-4">
+              Upload images for this service. The first image is the primary image and appears on the service card.
+            </p>
+            <ServiceImagesManager
+              images={formData.images || []}
+              onChange={(images) => setFormData({ ...formData, images })}
+            />
+            <Button onClick={handleSave} disabled={saving || !formData.name} className="w-full mt-4 bg-[#770142] hover:bg-[#5a0132]">
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              {saving ? 'Saving...' : 'Save Images'}
             </Button>
           </TabsContent>
         </Tabs>
