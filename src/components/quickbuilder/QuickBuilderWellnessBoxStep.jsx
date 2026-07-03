@@ -2,15 +2,6 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Check, Package, X } from 'lucide-react';
 
-const IMG_BASE = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/';
-
-const COLLAGE_IMAGES = [
-  '582be99d3_MindfulnessCards.png',
-  '9483b8c12_WeightedAromatherapyEyePillow.png',
-  'e5cc21c9f_CalmingTeaHerbalBlend.png',
-  '916a98720_EssentialOilRoller.png',
-].map(x => IMG_BASE + x);
-
 export default function QuickBuilderWellnessBoxStep({ value, onChange, onBack, onNext }) {
   return (
     <div className="space-y-6">
@@ -21,11 +12,13 @@ export default function QuickBuilderWellnessBoxStep({ value, onChange, onBack, o
         </p>
       </div>
 
-      {/* Collage */}
-      <div className="grid grid-cols-4 gap-2 max-w-xs">
-        {COLLAGE_IMAGES.map((img, i) => (
-          <img key={i} src={img} alt="" className="w-full aspect-square object-cover rounded-lg" />
-        ))}
+      {/* Hero image */}
+      <div className="rounded-2xl overflow-hidden">
+        <img
+          src="https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/95bf723e9_Screenshot2026-02-18at32939PM.png"
+          alt="A SkillfulMeans wellness box being opened"
+          className="w-full object-cover"
+        />
       </div>
 
       {/* Toggle buttons */}
