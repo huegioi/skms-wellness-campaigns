@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     const source = ref ? `Quick Builder (${ref})` : 'Quick Builder';
 
     // ── Create Lead ──
-    await base44.asServiceRole.entities.Lead.create({
+    const lead = await base44.asServiceRole.entities.Lead.create({
       name: contact_name,
       email: normalizedEmail,
       company: company_name,
@@ -68,7 +68,53 @@ Deno.serve(async (req) => {
       quickbuilder_selections: serviceIds,
     });
 
-    return Response.json({ success: true });
+    // ── If ref matches a ReferralPartner's unique_portal_id, create a pending_review Referral ──
+    // Reuses createReferral logic: links to the lead above, logs activity for the partner feed.
+    let referral_created = false;
+    if (ref) {
+      const partners = await base44.asServiceRole.entities.ReferralPartner.filter({ unique_portal_id: ref });
+      if (partners && partners.length > 0) {
+        const partner = partners[0];
+
+        // Duplicate guard: same email + partner within 30 days
+        const recentReferrals = await base44.asServiceRole.entities.Referral.filter(
+          { referral_partner_id: partner.id },
+          '-referral_date',
+          50
+        );
+        const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        const isDuplicate = recentReferrals.some(r => {
+          if (!r.referral_date) return false;
+          const emailMatch = (r.contact_email || '').toLowerCase().trim() === normalizedEmail;
+          return emailMatch && new Date(r.referral_date).getTime() > thirtyDaysAgo;
+        });
+
+        if (!isDuplicate) {
+          const referral = await base44.asServiceRole.entities.Referral.create({
+            referral_partner_id: partner.id,
+            referral_partner_name: partner.name,
+            referred_lead_id: lead.id,
+            contact_name,
+            contact_email: normalizedEmail,
+            company_name,
+            notes,
+            referral_date: new Date().toISOString(),
+            status: 'pending_review'
+          });
+
+          const displayName = company_name || contact_name;
+          await base44.asServiceRole.entities.ReferralActivity.create({
+            referral_partner_id: partner.id,
+            referral_id: referral.id,
+            message: `New referral submitted: ${displayName}`,
+            activity_date: new Date().toISOString()
+          });
+          referral_created = true;
+        }
+      }
+    }
+
+    return Response.json({ success: true, referral_created });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
