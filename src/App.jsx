@@ -17,6 +17,7 @@ import ClientReport from './pages/ClientReport';
 import CohortAssessmentPage from './pages/CohortAssessment';
 import Presenters from './pages/Presenters';
 import PresenterPortal from './pages/PresenterPortal';
+import QuickBuilder from './pages/QuickBuilder';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -43,7 +44,7 @@ const AuthenticatedApp = () => {
   // Handle authentication errors
   if (authError) {
     // Allow public pages to render even without auth
-    const publicPaths = ['/ReferralPortal', '/ViewProposal', '/FeedbackForm', '/ClientPortal', '/AttendeeForm', '/ClientReport', '/PresenterPortal', '/CohortAssessment'];
+    const publicPaths = ['/ReferralPortal', '/ViewProposal', '/FeedbackForm', '/ClientPortal', '/AttendeeForm', '/ClientReport', '/PresenterPortal', '/CohortAssessment', '/QuickBuilder'];
     const isPublicPage = publicPaths.some(p => window.location.pathname === p || window.location.pathname.startsWith(p));
 
     if (authError.type === 'user_not_registered') {
@@ -87,6 +88,7 @@ const AuthenticatedApp = () => {
       <Route path="/SpeakerPortal" element={<SpeakerPortalRedirect />} />
       <Route path="/Presenters" element={<LayoutWrapper currentPageName="Presenters"><Presenters /></LayoutWrapper>} />
       <Route path="/PresenterPortal" element={<PresenterPortal />} />
+      <Route path="/QuickBuilder" element={<QuickBuilder />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

@@ -52,10 +52,11 @@
       "enum": [
         "broker",
         "broker_lead",
-        "ec"
+        "ec",
+        "company_inquiry"
       ],
       "default": "broker",
-      "description": "Type of lead: broker (cold outreach), broker_lead (high-quality referral partner), ec (engagement consultant)"
+      "description": "Type of lead: broker (cold outreach), broker_lead (high-quality referral partner), ec (engagement consultant), company_inquiry (self-serve Quick Builder submission)"
     },
     "partner_status": {
       "type": "string",
@@ -182,6 +183,13 @@
     "kajabi_contact_id": {
       "type": "string",
       "description": "Durable Kajabi contact ID for direct API lookups (skips unreliable email filter)"
+    },
+    "quickbuilder_selections": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Service IDs selected via the public Quick Builder form (stored on the Lead until reviewed; does not enter the proposal pipeline)"
     }
   },
   "required": [

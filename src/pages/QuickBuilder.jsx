@@ -1,0 +1,402 @@
+import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PortalShell } from '@/components/portal/PortalShell';
+import { toast } from 'sonner';
+import { Award, Dumbbell, Activity, Crown, Package, Check, ArrowRight, ArrowLeft, CheckCircle, CalendarPlus, ExternalLink, Sparkles } from 'lucide-react';
+import QuickBuilderIntro from '@/components/quickbuilder/QuickBuilderIntro';
+import QuickBuilderServiceCard from '@/components/quickbuilder/QuickBuilderServiceCard';
+
+const CALENDLY_LINK = 'https://calendly.com/skillfulmeans/skms-corporate-wellness-offerings-2';
+
+const TEAM_SIZES = [
+  { value: '1-50', label: '1–50' },
+  { value: '51-200', label: '51–200' },
+  { value: '201-500', label: '201–500' },
+  { value: '501-1000', label: '501–1,000' },
+  { value: '1001-5000', label: '1,001–5,000' },
+  { value: '5000+', label: '5,000+' },
+];
+
+const GOALS = [
+  'Reduce burnout & stress',
+  'Team connection',
+  'Leadership EQ',
+  'Healthy habits',
+  'Retention & culture',
+];
+
+const CATEGORY_CONFIG = {
+  workshop: { label: 'Workshops', icon: Award },
+  challenge: { label: '14-Day Challenges', icon: Dumbbell },
+  class: { label: 'Classes', icon: Activity },
+  leadership: { label: 'Leadership', icon: Crown },
+  wellness_box: { label: 'Wellness Boxes', icon: Package },
+};
+
+const STEP_LABELS = ['About your team', 'Pick what interests you', 'Review & submit'];
+
+export default function QuickBuilder() {
+  const [searchParams] = useSearchParams();
+  const ref = searchParams.get('ref');
+  const [step, setStep] = useState(1);
+  const [form, setForm] = useState({ company_name: '', contact_name: '', email: '', team_size: '' });
+  const [goals, setGoals] = useState([]);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [emailError, setEmailError] = useState('');
+
+  const { data: services = [], isLoading } = useQuery({
+    queryKey: ['quickBuilderServices'],
+    queryFn: () => base44.entities.Service.list('sort_order'),
+  });
+
+  const publicServices = services.filter(s => s.is_active !== false && s.public_visible !== false);
+
+  const toggleGoal = (goal) => {
+    setGoals(prev =>
+      prev.includes(goal)
+        ? prev.filter(g => g !== goal)
+        : prev.length < 3 ? [...prev, goal] : prev
+    );
+  };
+
+  const toggleService = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const validateEmail = (val) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (val && !regex.test(val)) {
+      setEmailError('Please enter a valid work email address.');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const step1Valid =
+    form.company_name.trim() &&
+    form.contact_name.trim() &&
+    form.email.trim() &&
+    !emailError &&
+    form.team_size;
+
+  // Campaign nudge logic
+  const selectedCategories = new Set();
+  selectedIds.forEach(id => {
+    const svc = publicServices.find(s => s.id === id);
+    if (svc) selectedCategories.add(svc.category);
+  });
+  const hasWorkshop = selectedCategories.has('workshop');
+  const hasChallenge = selectedCategories.has('challenge');
+  const hasBox = selectedCategories.has('wellness_box');
+  const isFullCampaign = hasWorkshop && hasChallenge && hasBox;
+  const missing = [];
+  if (!hasWorkshop) missing.push('a workshop');
+  if (!hasChallenge) missing.push('a 14-day challenge');
+  if (!hasBox) missing.push('wellness boxes');
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      await base44.functions.invoke('submitQuickBuilderInquiry', {
+        company_name: form.company_name.trim(),
+        contact_name: form.contact_name.trim(),
+        email: form.email.trim(),
+        team_size: form.team_size,
+        goals,
+        selected_service_ids: Array.from(selectedIds),
+        ref,
+      });
+      setSubmitted(true);
+    } catch (err) {
+      if (err?.response?.status === 429) {
+        toast.error("You've already submitted recently. Please try again later.");
+      } else {
+        toast.error('Something went wrong. Please try again.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ── Success screen ──
+  if (submitted) {
+    return (
+      <PortalShell
+        accentColor="#013f7c"
+        title="Quick Builder"
+        subtitle="Design your wellness campaign in minutes"
+        maxWidth="max-w-2xl"
+      >
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-12 text-center">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: '#264d4415' }}>
+            <CheckCircle className="w-9 h-9 text-brand-green" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Thank you!</h2>
+          <p className="text-gray-500 leading-relaxed max-w-md mx-auto">
+            Your campaign selections have been received. Our team will review and send a tailored proposal
+            with pricing within 2 business days.
+          </p>
+          <div className="mt-8">
+            <p className="text-sm font-semibold text-gray-700 mb-3">Want to talk sooner?</p>
+            <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer" className="inline-block">
+              <Button size="lg" className="bg-brand-plum gap-2">
+                <CalendarPlus className="w-5 h-5" />
+                Book a Discovery Call
+                <ExternalLink className="w-4 h-4 ml-1" />
+              </Button>
+            </a>
+          </div>
+        </div>
+      </PortalShell>
+    );
+  }
+
+  const selectedServices = publicServices.filter(s => selectedIds.has(s.id));
+
+  return (
+    <PortalShell
+      accentColor="#013f7c"
+      title="Quick Builder"
+      subtitle="Design your wellness campaign in minutes"
+      maxWidth="max-w-4xl"
+    >
+      {step === 1 && <QuickBuilderIntro />}
+
+      {/* Step indicator */}
+      <div className="flex items-center gap-2 mb-6">
+        {STEP_LABELS.map((label, idx) => {
+          const stepNum = idx + 1;
+          const isActive = step === stepNum;
+          const isComplete = step > stepNum;
+          return (
+            <React.Fragment key={label}>
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                    isActive || isComplete
+                      ? 'bg-brand-navy text-white'
+                      : 'bg-gray-200 text-gray-500'
+                  }`}
+                >
+                  {isComplete ? <Check className="w-4 h-4" /> : stepNum}
+                </div>
+                <span className={`text-sm font-medium hidden sm:inline ${isActive ? 'text-brand-navy' : 'text-gray-400'}`}>
+                  {label}
+                </span>
+              </div>
+              {idx < STEP_LABELS.length - 1 && (
+                <div className={`flex-1 h-px mx-2 ${step > stepNum ? 'bg-brand-navy' : 'bg-gray-200'}`} />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* ── Step 1: About your team ── */}
+      {step === 1 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-5">
+          <h2 className="text-lg font-bold text-gray-800">About your team</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Company name *</label>
+              <Input
+                value={form.company_name}
+                onChange={e => setForm({ ...form, company_name: e.target.value })}
+                placeholder="Acme Corp"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Your name *</label>
+              <Input
+                value={form.contact_name}
+                onChange={e => setForm({ ...form, contact_name: e.target.value })}
+                placeholder="Jane Smith"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Work email *</label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={e => {
+                  setForm({ ...form, email: e.target.value });
+                  validateEmail(e.target.value);
+                }}
+                placeholder="jane@acme.com"
+              />
+              {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Team size *</label>
+              <Select value={form.team_size} onValueChange={v => setForm({ ...form, team_size: v })}>
+                <SelectTrigger><SelectValue placeholder="Select size" /></SelectTrigger>
+                <SelectContent>
+                  {TEAM_SIZES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-2">
+              Goals <span className="text-gray-400 font-normal">(up to 3)</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {GOALS.map(goal => {
+                const selected = goals.includes(goal);
+                const disabled = !selected && goals.length >= 3;
+                return (
+                  <button
+                    key={goal}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => toggleGoal(goal)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                      selected
+                        ? 'bg-brand-navy text-white border-brand-navy'
+                        : disabled
+                          ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-brand-navy hover:text-brand-navy'
+                    }`}
+                  >
+                    {goal}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button
+              disabled={!step1Valid}
+              onClick={() => setStep(2)}
+              className="bg-brand-navy hover:bg-[#012d5a] gap-2"
+            >
+              Next <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 2: Pick what interests you ── */}
+      {step === 2 && (
+        <div className="space-y-6">
+          {/* Campaign nudge */}
+          {selectedIds.size > 0 && (
+            <div className={`rounded-xl p-4 flex items-center gap-3 ${
+              isFullCampaign ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'
+            }`}>
+              {isFullCampaign ? (
+                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
+              ) : (
+                <Sparkles className="w-5 h-5 text-amber-600 flex-shrink-0" />
+              )}
+              <p className={`text-sm font-medium ${isFullCampaign ? 'text-green-700' : 'text-amber-700'}`}>
+                {isFullCampaign
+                  ? 'Full campaign — nice choice'
+                  : `Most effective: pair a workshop with its follow-up challenge and wellness boxes. Missing: ${missing.join(', ')}.`}
+              </p>
+            </div>
+          )}
+
+          {/* Services by category */}
+          {isLoading ? (
+            <div className="text-center py-12 text-gray-400">Loading services...</div>
+          ) : (
+            Object.entries(CATEGORY_CONFIG).map(([catKey, config]) => {
+              const catServices = publicServices.filter(s => s.category === catKey);
+              if (catServices.length === 0) return null;
+              const Icon = config.icon;
+              return (
+                <div key={catKey}>
+                  <h3 className="flex items-center gap-2 font-bold text-gray-700 mb-3">
+                    <Icon className="w-5 h-5 text-brand-navy" />
+                    {config.label}
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {catServices.map(svc => (
+                      <QuickBuilderServiceCard
+                        key={svc.id}
+                        service={svc}
+                        isSelected={selectedIds.has(svc.id)}
+                        onToggle={() => toggleService(svc.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          <div className="flex justify-between pt-2">
+            <Button variant="outline" onClick={() => setStep(1)} className="gap-2">
+              <ArrowLeft className="w-4 h-4" /> Back
+            </Button>
+            <Button
+              disabled={selectedIds.size === 0}
+              onClick={() => setStep(3)}
+              className="bg-brand-navy hover:bg-[#012d5a] gap-2"
+            >
+              Review <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 3: Review & submit ── */}
+      {step === 3 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-5">
+          <h2 className="text-lg font-bold text-gray-800">Review your selections</h2>
+          <div className="space-y-2">
+            {selectedServices.map(svc => (
+              <div key={svc.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                {svc.images?.[0]?.url ? (
+                  <img src={svc.images[0].url} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-12 h-12 rounded-lg bg-brand-navy/10 flex items-center justify-center flex-shrink-0">
+                    {(() => {
+                      const Icon = CATEGORY_CONFIG[svc.category]?.icon || Package;
+                      return <Icon className="w-5 h-5 text-brand-navy" />;
+                    })()}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm text-gray-800">{svc.name}</p>
+                  <p className="text-xs text-gray-400">{CATEGORY_CONFIG[svc.category]?.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="bg-brand-cream rounded-xl p-4">
+            <p className="text-sm text-gray-600 text-center">
+              We'll send a tailored proposal with pricing within 2 business days.
+            </p>
+          </div>
+          <div className="flex justify-between pt-2">
+            <Button variant="outline" onClick={() => setStep(2)} className="gap-2">
+              <ArrowLeft className="w-4 h-4" /> Back
+            </Button>
+            <Button
+              disabled={submitting}
+              onClick={handleSubmit}
+              className="bg-brand-plum hover:bg-[#5a0132] gap-2"
+            >
+              {submitting ? 'Submitting...' : 'Submit Inquiry'}
+            </Button>
+          </div>
+        </div>
+      )}
+    </PortalShell>
+  );
+}
