@@ -1,5 +1,6 @@
 import React from 'react';
 import { Check } from 'lucide-react';
+import ServiceImage from '@/components/quickbuilder/ServiceImage';
 
 export default function QuickBuilderServiceCard({ service, isSelected, onToggle }) {
   const image = service.images?.[0]?.url;
@@ -15,7 +16,7 @@ export default function QuickBuilderServiceCard({ service, isSelected, onToggle 
     >
       <div className="relative aspect-video bg-gray-100">
         {image ? (
-          <img src={image} alt={service.name} className="w-full h-full object-cover" />
+          <ServiceImage src={image} alt={service.name} className="w-full h-full" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-brand-navy/10 p-2">
             <span className="text-xs text-gray-500 text-center font-medium">{service.name}</span>

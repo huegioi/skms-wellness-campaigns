@@ -11,6 +11,7 @@ import { Award, Dumbbell, Activity, Crown, Package, Check, ArrowRight, ArrowLeft
 import QuickBuilderIntro from '@/components/quickbuilder/QuickBuilderIntro';
 import QuickBuilderCategoryStep from '@/components/quickbuilder/QuickBuilderCategoryStep';
 import QuickBuilderWellnessBoxStep from '@/components/quickbuilder/QuickBuilderWellnessBoxStep';
+import ServiceImage from '@/components/quickbuilder/ServiceImage';
 
 const CALENDLY_LINK = 'https://calendly.com/skillfulmeans/skms-corporate-wellness-offerings-2';
 
@@ -347,7 +348,7 @@ export default function QuickBuilder() {
             {selectedServices.map(svc => (
               <div key={svc.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                 {svc.images?.[0]?.url ? (
-                  <img src={svc.images[0].url} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                  <ServiceImage src={svc.images[0].url} alt="" className="w-12 h-12 rounded-lg flex-shrink-0" />
                 ) : (
                   <div className="w-12 h-12 rounded-lg bg-brand-navy/10 flex items-center justify-center flex-shrink-0">
                     {(() => {
