@@ -17,6 +17,7 @@ import QuickBuilderInquiriesBanner from '@/components/leads/QuickBuilderInquirie
 import QuickBuilderInquiriesList from '@/components/leads/QuickBuilderInquiriesList';
 import PipelineView from '@/components/leads/PipelineView';
 import { ActivityStrip, getLeadStaleThreshold } from '@/components/shared/ActivityStrip';
+import { buildLatestTouchMap } from '@/lib/lastTouch';
 import MergePartnerDuplicatesPanel from '@/components/leads/MergePartnerDuplicatesPanel';
 import TagFilter from '@/components/ui/TagFilter';
 import TagManager from '@/components/ui/TagManager';
@@ -329,21 +330,19 @@ export default function Leads() {
     queryFn: () => base44.entities.ClientInteraction.list('-date', 500),
   });
 
+  const { data: listEmailLogs = [] } = useQuery({
+    queryKey: ['email-logs-list'],
+    queryFn: () => base44.entities.EmailLog.list('-date', 500),
+  });
+
   const { data: listEvents = [] } = useQuery({
     queryKey: ['calendar-events-list'],
     queryFn: () => base44.entities.CalendarEvent.list('start_date', 200),
   });
 
-  const latestInteractionByLead = React.useMemo(() => {
-    const map = {};
-    for (const i of listInteractions) {
-      if (!i.lead_id) continue;
-      if (!map[i.lead_id] || new Date(i.date) > new Date(map[i.lead_id].date)) {
-        map[i.lead_id] = i;
-      }
-    }
-    return map;
-  }, [listInteractions]);
+  const latestTouchByLead = React.useMemo(() => {
+    return buildLatestTouchMap(listInteractions, listEmailLogs, 'lead_id', ['matched_lead_id']);
+  }, [listInteractions, listEmailLogs]);
 
   const nextEventByLead = React.useMemo(() => {
     const now = new Date();
@@ -607,7 +606,7 @@ export default function Leads() {
     return matchSearch && matchStatus && matchOwner && matchTags;
   });
 
-  const BrokerLeadCard = ({ lead, latestInteraction, nextEvent }) => {
+  const BrokerLeadCard = ({ lead, latestTouch, nextEvent }) => {
     const [showEmails, setShowEmails] = useState(false);
     const statusCfg = STATUS_CONFIG[lead.status || 'cold'] || STATUS_CONFIG.cold;
     const partnerCfg = PARTNER_STATUS_CONFIG[lead.partner_status || 'new'] || PARTNER_STATUS_CONFIG.new;
@@ -694,8 +693,8 @@ export default function Leads() {
               {lead.industry && <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{lead.industry}</span>}
               <ActivityStrip
                 compact
-                touchDate={latestInteraction?.date || lead.last_contacted_date}
-                touchChannel={latestInteraction?.channel || lead.outreach_channel || 'other'}
+                touchDate={latestTouch?.date || lead.last_contacted_date}
+                touchChannel={latestTouch?.channel || lead.outreach_channel || 'other'}
                 staleThreshold={getLeadStaleThreshold(lead.status)}
                 nextEvent={nextEvent}
                 followUpDate={lead.follow_up_due_date || lead.next_followup_date}
@@ -938,7 +937,7 @@ export default function Leads() {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredBrokerLeads.map(lead => <BrokerLeadCard key={lead.id} lead={lead} latestInteraction={latestInteractionByLead[lead.id]} nextEvent={nextEventByLead[lead.id]} />)}
+                {filteredBrokerLeads.map(lead => <BrokerLeadCard key={lead.id} lead={lead} latestTouch={latestTouchByLead[lead.id]} nextEvent={nextEventByLead[lead.id]} />)}
               </div>
             )}
           </TabsContent>

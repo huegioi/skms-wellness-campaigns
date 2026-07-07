@@ -6,6 +6,7 @@ import { PipelineCard } from '@/components/shared/PipelineCard';
 import { LEAD_STATUS_STAGES } from '@/components/shared/constants';
 import { normalizeLeadStatus } from '@/lib/statusConfig';
 import { ActivityStrip } from '@/components/shared/ActivityStrip';
+import { buildLatestTouchMap } from '@/lib/lastTouch';
 import LeadPlaybookDialog from '@/components/leads/LeadPlaybookDialog';
 import EngagementBoard from '@/components/leads/EngagementBoard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -67,7 +68,7 @@ function LeadAlertBadges({ lead }) {
 
 // ── Status Column ────────────────────────────────────────────────────────────
 
-function StatusColumn({ col, leads, handlers, latestInteractionByLead, nextEventByLead, onPlaybook }) {
+function StatusColumn({ col, leads, handlers, latestTouchByLead, nextEventByLead, onPlaybook }) {
   const accent = col.accent;
 
   return (
@@ -122,8 +123,8 @@ function StatusColumn({ col, leads, handlers, latestInteractionByLead, nextEvent
                     accentColor={accent}
                     activityStrip={
                       <ActivityStrip
-                        touchDate={latestInteractionByLead[lead.id]?.date || lead.last_contacted_date}
-                        touchChannel={latestInteractionByLead[lead.id]?.channel || lead.outreach_channel || 'other'}
+                        touchDate={latestTouchByLead[lead.id]?.date || lead.last_contacted_date}
+                        touchChannel={latestTouchByLead[lead.id]?.channel || lead.outreach_channel || 'other'}
                         staleThreshold={col.staleThreshold}
                         nextEvent={nextEventByLead[lead.id]}
                         followUpDate={lead.follow_up_due_date}
@@ -180,23 +181,22 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
     queryFn: () => base44.entities.ClientInteraction.list('-date', 500),
   });
 
+  // Fetch matched email logs (last touch — emails count as channel 'email')
+  const { data: emailLogs = [] } = useQuery({
+    queryKey: ['email-logs-pipeline'],
+    queryFn: () => base44.entities.EmailLog.list('-date', 500),
+  });
+
   // Fetch calendar events for activity strips (next)
   const { data: calendarEvents = [] } = useQuery({
     queryKey: ['calendar-events-pipeline'],
     queryFn: () => base44.entities.CalendarEvent.list('start_date', 200),
   });
 
-  // Latest interaction per lead_id
-  const latestInteractionByLead = useMemo(() => {
-    const map = {};
-    for (const i of interactions) {
-      if (!i.lead_id) continue;
-      if (!map[i.lead_id] || new Date(i.date) > new Date(map[i.lead_id].date)) {
-        map[i.lead_id] = i;
-      }
-    }
-    return map;
-  }, [interactions]);
+  // Latest touch per lead_id (merges interactions + matched emails)
+  const latestTouchByLead = useMemo(() => {
+    return buildLatestTouchMap(interactions, emailLogs, 'lead_id', ['matched_lead_id']);
+  }, [interactions, emailLogs]);
 
   // Next upcoming calendar event per lead_id
   const nextEventByLead = useMemo(() => {
@@ -395,7 +395,7 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
                       col={col}
                       leads={statusMap[col.key] || []}
                       handlers={handlers}
-                      latestInteractionByLead={latestInteractionByLead}
+                      latestTouchByLead={latestTouchByLead}
                       nextEventByLead={nextEventByLead}
                       onPlaybook={setPlaybookStatus}
                     />
@@ -416,7 +416,7 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
                             col={{ ...col, staleThreshold: null }}
                             leads={colLeads}
                             handlers={handlers}
-                            latestInteractionByLead={latestInteractionByLead}
+                            latestTouchByLead={latestTouchByLead}
                             nextEventByLead={nextEventByLead}
                             onPlaybook={setPlaybookStatus}
                           />

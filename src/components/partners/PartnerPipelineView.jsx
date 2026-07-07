@@ -9,6 +9,7 @@ import { Copy, ExternalLink, Check, Users, DollarSign, AlertTriangle } from 'luc
 import { PipelineCard } from '@/components/shared/PipelineCard';
 import { PARTNER_STAGES } from '@/components/shared/constants';
 import { ActivityStrip } from '@/components/shared/ActivityStrip';
+import { buildLatestTouchMap } from '@/lib/lastTouch';
 import { getActiveCohort } from '@/lib/renewal';
 import LogTouchDialog from '@/components/dashboard/LogTouchDialog';
 
@@ -88,7 +89,7 @@ function PartnerAlertBadges({ partner, referrals, assist, onLogTouch }) {
   );
 }
 
-function StageColumn({ stage, partners, referrals, latestInteractionByPartner, nextEventByPartner, renewalAssistByPartner, onLogTouch, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onCopyLink, copiedId, onSelectPartner, onDelete }) {
+function StageColumn({ stage, partners, referrals, latestTouchByPartner, nextEventByPartner, renewalAssistByPartner, onLogTouch, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onCopyLink, copiedId, onSelectPartner, onDelete }) {
   return (
     <div className="w-56 flex-shrink-0">
       <div className={`rounded-t-lg border px-3 py-2 mb-2 ${stage.headerClass}`}>
@@ -136,8 +137,8 @@ function StageColumn({ stage, partners, referrals, latestInteractionByPartner, n
                       alertBadges={<PartnerAlertBadges partner={partner} referrals={referrals} assist={renewalAssistByPartner[partner.id]} onLogTouch={onLogTouch} />}
                       activityStrip={
                         <ActivityStrip
-                          touchDate={latestInteractionByPartner[partner.id]?.date || partner.last_touchpoint_date || partner.last_contacted_date}
-                          touchChannel={latestInteractionByPartner[partner.id]?.channel || 'other'}
+                          touchDate={latestTouchByPartner[partner.id]?.date || partner.last_touchpoint_date || partner.last_contacted_date}
+                          touchChannel={latestTouchByPartner[partner.id]?.channel || 'other'}
                           staleThreshold={stage.staleThreshold}
                           nextEvent={nextEventByPartner[partner.id]}
                           followUpDate={partner.follow_up_due_date}
@@ -215,17 +216,16 @@ export default function PartnerPipelineView({ partners, referrals, onSelectPartn
     queryFn: () => base44.entities.ClientInteraction.list('-date', 500),
   });
 
-  // Latest interaction per referral_partner_id
-  const latestInteractionByPartner = useMemo(() => {
-    const map = {};
-    for (const i of interactions) {
-      if (!i.referral_partner_id) continue;
-      if (!map[i.referral_partner_id] || new Date(i.date) > new Date(map[i.referral_partner_id].date)) {
-        map[i.referral_partner_id] = i;
-      }
-    }
-    return map;
-  }, [interactions]);
+  // Fetch matched email logs (last touch — emails count as channel 'email')
+  const { data: emailLogs = [] } = useQuery({
+    queryKey: ['email-logs-partner-pipeline'],
+    queryFn: () => base44.entities.EmailLog.list('-date', 500),
+  });
+
+  // Latest touch per referral_partner_id (merges interactions + matched emails)
+  const latestTouchByPartner = useMemo(() => {
+    return buildLatestTouchMap(interactions, emailLogs, 'referral_partner_id', []);
+  }, [interactions, emailLogs]);
 
   // Fetch calendar events for partner quarterly reviews / next meetings
   const { data: calendarEvents = [] } = useQuery({
@@ -339,7 +339,7 @@ export default function PartnerPipelineView({ partners, referrals, onSelectPartn
                 stage={stage}
                 partners={stagePartners(stage.key)}
                 referrals={referrals}
-                latestInteractionByPartner={latestInteractionByPartner}
+                latestTouchByPartner={latestTouchByPartner}
                 nextEventByPartner={nextEventByPartner}
                 renewalAssistByPartner={renewalAssistByPartner}
                 onLogTouch={setLogTouchPartner}
