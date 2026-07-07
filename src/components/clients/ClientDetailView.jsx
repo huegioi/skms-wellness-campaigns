@@ -46,8 +46,24 @@ const statusConfig = {
   declined: { label: 'Declined', color: 'bg-red-100 text-red-700', icon: XCircle }
 };
 
+const TAB_MIGRATION = {
+  proposals: 'commercial',
+  invoices: 'commercial',
+  interactions: 'activity',
+  tasks: 'delivery',
+  schedule: 'delivery',
+  contacts: 'setup',
+  portal: 'setup',
+  followup: 'setup',
+};
+
 export default function ClientDetailView({ client: initialClient, onClose, onUpdate }) {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const requested = urlParams.get('tab');
+    if (!requested) return 'overview';
+    return TAB_MIGRATION[requested] || requested;
+  });
   const [showAddContact, setShowAddContact] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', title: '', notes: '' });
@@ -311,18 +327,23 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex w-full overflow-x-auto h-auto flex-wrap gap-1 justify-start bg-muted p-1 rounded-lg">
           <TabsTrigger value="overview" className="flex-shrink-0">Overview</TabsTrigger>
-          <TabsTrigger value="contacts" className="flex-shrink-0">Contacts ({(client.related_contacts?.length || 0) + 1})</TabsTrigger>
-          <TabsTrigger value="proposals" className="flex-shrink-0">Proposals ({proposals.length})</TabsTrigger>
-          <TabsTrigger value="invoices" className="flex-shrink-0">Invoices ({clientInvoices.length})</TabsTrigger>
-          <TabsTrigger value="interactions" className="flex-shrink-0">Activity ({interactions.length})</TabsTrigger>
-          <TabsTrigger value="tasks" className="flex-shrink-0">Tasks</TabsTrigger>
-          <TabsTrigger value="portal" className="flex-shrink-0">Portal Docs</TabsTrigger>
-          <TabsTrigger value="schedule" className="flex-shrink-0">Schedule</TabsTrigger>
-          <TabsTrigger value="followup" className="flex-shrink-0">Follow-Up</TabsTrigger>
+          <TabsTrigger value="activity" className="flex-shrink-0">Activity ({interactions.length + gmailEmailCount})</TabsTrigger>
+          <TabsTrigger value="delivery" className="flex-shrink-0">Delivery</TabsTrigger>
+          <TabsTrigger value="commercial" className="flex-shrink-0">Commercial ({proposals.length} · {clientInvoices.length})</TabsTrigger>
+          <TabsTrigger value="setup" className="flex-shrink-0">Setup</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-1 mt-4">
+          {deliverySnapshot && (
+            <div className="rounded-xl border border-slate-300 bg-gradient-to-r from-slate-50 to-blue-50 p-4 mb-2 shadow-sm">
+              <h4 className="font-semibold text-gray-700 text-sm mb-2 flex items-center gap-2">
+                <Package className="w-4 h-4 text-slate-600" />
+                Delivery Snapshot
+              </h4>
+              <ClientDeliveryStrip snapshot={deliverySnapshot} client={client} />
+            </div>
+          )}
           <CollapsibleFieldSection title="Contact" icon={User} defaultOpen>
             <div className="sm:col-span-2">
               <InlineText label="Email" value={client.email} onSave={v => onUpdate({ email: v })} />
@@ -407,17 +428,6 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
 
           <MayaInsightsWidget recordType="client" recordId={client.id} owner={client.owner} />
 
-          {/* Delivery Status */}
-          {deliverySnapshot && (
-            <div className="rounded-lg border p-4 bg-slate-50 border-slate-200">
-              <h4 className="font-semibold text-gray-700 text-sm mb-2 flex items-center gap-2">
-                <Package className="w-4 h-4 text-slate-600" />
-                Delivery Status
-              </h4>
-              <ClientDeliveryStrip snapshot={deliverySnapshot} client={client} />
-            </div>
-          )}
-
           {/* Purchased Services Section */}
           <div className="rounded-lg border p-4 bg-emerald-50 border-emerald-200">
             <div className="flex justify-between items-center mb-3">
@@ -464,8 +474,196 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           </div>
         </TabsContent>
 
-        {/* Contacts Tab */}
-        <TabsContent value="contacts" className="mt-4">
+        {/* Activity Tab */}
+        <TabsContent value="activity" className="mt-4">
+          <InteractionTimeline client_id={client.id} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['client', client.id] })} />
+        </TabsContent>
+
+        {/* Delivery Tab — Schedule + Tasks */}
+        <TabsContent value="delivery" className="mt-4 space-y-4">
+          <ClientScheduleTab client={client} />
+          <div className="bg-white border rounded-lg p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h4 className="font-semibold text-gray-700 flex items-center gap-2">
+                <ListTodo className="w-5 h-5" />
+                Client Tasks
+              </h4>
+              <Button
+                size="sm"
+                className="bg-green-600 hover:bg-green-700 text-white"
+                onClick={async () => {
+                  if (!confirm('Mark all tasks as complete for this client?')) return;
+                  try {
+                    const allTasks = await base44.entities.ClientTask.filter({ client_id: client.id });
+                    const pendingTasks = allTasks.filter(t => t.status !== 'completed');
+                    
+                    for (const task of pendingTasks) {
+                      await base44.entities.ClientTask.update(task.id, {
+                        status: 'completed',
+                        completed_date: new Date().toISOString()
+                      });
+                    }
+                    
+                    queryClient.invalidateQueries({ queryKey: ['clientTasks'] });
+                    alert(`${pendingTasks.length} task(s) marked as complete!`);
+                  } catch (error) {
+                    alert('Failed to complete tasks: ' + error.message);
+                  }
+                }}
+              >
+                <CheckCircle className="w-4 h-4 mr-1" />
+                All Tasks Complete
+              </Button>
+            </div>
+            <TaskList clientId={client.id} showProposalGroups={true} />
+          </div>
+        </TabsContent>
+
+        {/* Commercial Tab — Proposals + Invoices */}
+        <TabsContent value="commercial" className="mt-4 space-y-6">
+          {proposalsLoading ? (
+            <p className="text-center text-gray-500 py-8">Loading proposals...</p>
+          ) : (
+            <>
+              {/* Activity Timeline */}
+              <div className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-100">
+                <h4 className="font-semibold mb-3 text-gray-800 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Recent Activity
+                </h4>
+                <div className="space-y-2">
+                  {proposals.slice(0, 5).map(proposal => {
+                    const status = statusConfig[proposal.status || 'draft'];
+                    const StatusIcon = status.icon;
+                    const latestDate = proposal.viewed_date || proposal.sent_date || proposal.created_date;
+                    const latestAction = proposal.viewed_date ? 'Viewed' : proposal.sent_date ? 'Sent' : 'Created';
+
+                    return (
+                      <div key={proposal.id} className="flex items-center gap-3 text-sm bg-white rounded-lg p-2 border">
+                        <StatusIcon className={`w-4 h-4 ${status.color.split(' ')[1]}`} />
+                        <div className="flex-1">
+                          <span className="font-medium">${proposal.total_amount?.toLocaleString()}</span>
+                          <span className="text-gray-500 mx-2">•</span>
+                          <span className="text-gray-600">{latestAction}</span>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {new Date(latestDate).toLocaleDateString()}
+                        </span>
+                        <Badge className={`${status.color} text-xs`}>
+                          {status.label}
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                  {proposals.length === 0 && (
+                    <p className="text-sm text-gray-500 text-center py-2">No activity yet</p>
+                  )}
+                </div>
+              </div>
+
+              {/* All Proposals */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-gray-700">All Proposals ({proposals.length})</h4>
+                {proposals.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">No proposals yet</p>
+                ) : (
+                proposals.map(proposal => {
+                  const status = statusConfig[proposal.status || 'draft'];
+                  const StatusIcon = status.icon;
+                  return (
+                    <div key={proposal.id} className="bg-white border rounded-lg p-4">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold text-lg">${proposal.total_amount?.toLocaleString()}</p>
+                          <p className="text-sm text-gray-500">
+                            Created: {new Date(proposal.created_date).toLocaleDateString()}
+                            {proposal.sent_date && ` • Sent: ${new Date(proposal.sent_date).toLocaleDateString()}`}
+                          </p>
+                          {proposal.narrative_summary && (
+                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{proposal.narrative_summary}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge className={status.color}>
+                            <StatusIcon className="w-3 h-3 mr-1" />
+                            {status.label}
+                          </Badge>
+                          <Button size="sm" variant="outline" onClick={() => setViewingProposal(proposal)}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Link to={createPageUrl('EditProposal') + `?id=${proposal.id}`}>
+                            <Button size="sm" variant="outline"><Pencil className="w-4 h-4" /></Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </>
+          )}
+
+          {/* Invoices */}
+          <div className="border-t pt-6">
+            <h4 className="font-semibold text-gray-700 mb-4">Invoices ({clientInvoices.length})</h4>
+            <div className="space-y-3">
+              {clientInvoices.length === 0 ? (
+                <p className="text-center text-gray-500 py-8">No invoices yet</p>
+              ) : (
+                clientInvoices.map(invoice => {
+                  const statusColors = {
+                    draft: 'bg-gray-100 text-gray-700',
+                    sent: 'bg-blue-100 text-blue-700',
+                    paid: 'bg-green-100 text-green-700',
+                    overdue: 'bg-red-100 text-red-700',
+                    cancelled: 'bg-gray-100 text-gray-500'
+                  };
+                  return (
+                    <div key={invoice.id} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setViewingInvoice(invoice)}>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-semibold text-lg">{invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}</p>
+                            <Badge className={statusColors[invoice.status || 'draft']}>
+                              {invoice.status || 'draft'}
+                            </Badge>
+                            {invoice.quickbooks_id && (
+                              <Badge variant="outline" className="text-green-600 border-green-200 text-xs">
+                                QB Synced
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-500">
+                            Issue: {new Date(invoice.issue_date).toLocaleDateString()}
+                            {' • '}
+                            Due: {new Date(invoice.due_date).toLocaleDateString()}
+                            {invoice.paid_date && ` • Paid: ${new Date(invoice.paid_date).toLocaleDateString()}`}
+                          </p>
+                          {invoice.memo && (
+                            <p className="text-sm text-gray-600 mt-1 line-clamp-1">{invoice.memo}</p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold" style={{ color: '#770142' }}>
+                            ${invoice.total_amount?.toLocaleString()}
+                          </p>
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setViewingInvoice(invoice); }}>
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Setup Tab — Contacts + Portal Docs + Follow-Up */}
+        <TabsContent value="setup" className="mt-4 space-y-2">
+          <CollapsibleFieldSection title="Contacts" icon={Users} defaultOpen>
            <div className="flex justify-between items-center mb-4">
              <h4 className="font-semibold text-gray-700">All Contacts</h4>
              <Button size="sm" variant="outline" onClick={() => { setEditingContact(null); setShowAddContact(true); }}>
@@ -583,205 +781,9 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
                );
              })}
           </div>
-        </TabsContent>
+          </CollapsibleFieldSection>
 
-        {/* Proposals Tab */}
-        <TabsContent value="proposals" className="mt-4">
-          {proposalsLoading ? (
-            <p className="text-center text-gray-500 py-8">Loading proposals...</p>
-          ) : (
-            <>
-              {/* Activity Timeline */}
-              <div className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-100">
-                <h4 className="font-semibold mb-3 text-gray-800 flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Recent Activity
-                </h4>
-                <div className="space-y-2">
-                  {proposals.slice(0, 5).map(proposal => {
-                    const status = statusConfig[proposal.status || 'draft'];
-                    const StatusIcon = status.icon;
-                    const latestDate = proposal.viewed_date || proposal.sent_date || proposal.created_date;
-                    const latestAction = proposal.viewed_date ? 'Viewed' : proposal.sent_date ? 'Sent' : 'Created';
-
-                    return (
-                      <div key={proposal.id} className="flex items-center gap-3 text-sm bg-white rounded-lg p-2 border">
-                        <StatusIcon className={`w-4 h-4 ${status.color.split(' ')[1]}`} />
-                        <div className="flex-1">
-                          <span className="font-medium">${proposal.total_amount?.toLocaleString()}</span>
-                          <span className="text-gray-500 mx-2">•</span>
-                          <span className="text-gray-600">{latestAction}</span>
-                        </div>
-                        <span className="text-xs text-gray-500">
-                          {new Date(latestDate).toLocaleDateString()}
-                        </span>
-                        <Badge className={`${status.color} text-xs`}>
-                          {status.label}
-                        </Badge>
-                      </div>
-                    );
-                  })}
-                  {proposals.length === 0 && (
-                    <p className="text-sm text-gray-500 text-center py-2">No activity yet</p>
-                  )}
-                </div>
-              </div>
-
-              {/* All Proposals */}
-              <div className="space-y-3">
-                <h4 className="font-semibold text-gray-700">All Proposals ({proposals.length})</h4>
-                {proposals.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">No proposals yet</p>
-                ) : (
-                proposals.map(proposal => {
-                  const status = statusConfig[proposal.status || 'draft'];
-                  const StatusIcon = status.icon;
-                  return (
-                    <div key={proposal.id} className="bg-white border rounded-lg p-4">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="font-semibold text-lg">${proposal.total_amount?.toLocaleString()}</p>
-                          <p className="text-sm text-gray-500">
-                            Created: {new Date(proposal.created_date).toLocaleDateString()}
-                            {proposal.sent_date && ` • Sent: ${new Date(proposal.sent_date).toLocaleDateString()}`}
-                          </p>
-                          {proposal.narrative_summary && (
-                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{proposal.narrative_summary}</p>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge className={status.color}>
-                            <StatusIcon className="w-3 h-3 mr-1" />
-                            {status.label}
-                          </Badge>
-                          <Button size="sm" variant="outline" onClick={() => setViewingProposal(proposal)}>
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Link to={createPageUrl('EditProposal') + `?id=${proposal.id}`}>
-                            <Button size="sm" variant="outline"><Pencil className="w-4 h-4" /></Button>
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </>
-          )}
-        </TabsContent>
-
-        {/* Invoices Tab */}
-        <TabsContent value="invoices" className="mt-4">
-          <div className="space-y-3">
-            {clientInvoices.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">No invoices yet</p>
-            ) : (
-              clientInvoices.map(invoice => {
-                const statusColors = {
-                  draft: 'bg-gray-100 text-gray-700',
-                  sent: 'bg-blue-100 text-blue-700',
-                  paid: 'bg-green-100 text-green-700',
-                  overdue: 'bg-red-100 text-red-700',
-                  cancelled: 'bg-gray-100 text-gray-500'
-                };
-                return (
-                  <div key={invoice.id} className="bg-white border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer" onClick={() => setViewingInvoice(invoice)}>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <p className="font-semibold text-lg">{invoice.invoice_number || `INV-${invoice.id.slice(0, 8)}`}</p>
-                          <Badge className={statusColors[invoice.status || 'draft']}>
-                            {invoice.status || 'draft'}
-                          </Badge>
-                          {invoice.quickbooks_id && (
-                            <Badge variant="outline" className="text-green-600 border-green-200 text-xs">
-                              QB Synced
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          Issue: {new Date(invoice.issue_date).toLocaleDateString()}
-                          {' • '}
-                          Due: {new Date(invoice.due_date).toLocaleDateString()}
-                          {invoice.paid_date && ` • Paid: ${new Date(invoice.paid_date).toLocaleDateString()}`}
-                        </p>
-                        {invoice.memo && (
-                          <p className="text-sm text-gray-600 mt-1 line-clamp-1">{invoice.memo}</p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-2xl font-bold" style={{ color: '#770142' }}>
-                          ${invoice.total_amount?.toLocaleString()}
-                        </p>
-                        <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setViewingInvoice(invoice); }}>
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </TabsContent>
-
-        {/* Interactions Tab */}
-        <TabsContent value="interactions" className="mt-4">
-          <InteractionTimeline client_id={client.id} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['client', client.id] })} />
-        </TabsContent>
-
-        {/* Tasks Tab */}
-        <TabsContent value="tasks" className="mt-4">
-          <div className="bg-white border rounded-lg p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-semibold text-gray-700 flex items-center gap-2">
-                <ListTodo className="w-5 h-5" />
-                Client Tasks
-              </h4>
-              <Button
-                size="sm"
-                className="bg-green-600 hover:bg-green-700 text-white"
-                onClick={async () => {
-                  if (!confirm('Mark all tasks as complete for this client?')) return;
-                  try {
-                    const allTasks = await base44.entities.ClientTask.filter({ client_id: client.id });
-                    const pendingTasks = allTasks.filter(t => t.status !== 'completed');
-                    
-                    for (const task of pendingTasks) {
-                      await base44.entities.ClientTask.update(task.id, {
-                        status: 'completed',
-                        completed_date: new Date().toISOString()
-                      });
-                    }
-                    
-                    queryClient.invalidateQueries({ queryKey: ['clientTasks'] });
-                    alert(`${pendingTasks.length} task(s) marked as complete!`);
-                  } catch (error) {
-                    alert('Failed to complete tasks: ' + error.message);
-                  }
-                }}
-              >
-                <CheckCircle className="w-4 h-4 mr-1" />
-                All Tasks Complete
-              </Button>
-            </div>
-            <TaskList clientId={client.id} showProposalGroups={true} />
-          </div>
-        </TabsContent>
-
-        {/* Schedule Tab */}
-        <TabsContent value="schedule" className="mt-4">
-          <ClientScheduleTab client={client} />
-        </TabsContent>
-
-        {/* Follow-Up Tab */}
-        <TabsContent value="followup" className="mt-4">
-          <FollowUpSettings client={client} onUpdate={onUpdate} />
-        </TabsContent>
-
-        {/* Portal Tab */}
-        <TabsContent value="portal" className="mt-4 space-y-6">
+          <CollapsibleFieldSection title="Portal Documents" icon={FileText}>
           {/* Templates Info */}
           <Card className="bg-blue-50 border-blue-200">
             <CardContent className="pt-6">
@@ -1032,6 +1034,11 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
               </div>
             </CardContent>
           </Card>
+          </CollapsibleFieldSection>
+
+          <CollapsibleFieldSection title="Follow-Up Settings" icon={Clock}>
+            <FollowUpSettings client={client} onUpdate={onUpdate} />
+          </CollapsibleFieldSection>
         </TabsContent>
       </Tabs>
 
