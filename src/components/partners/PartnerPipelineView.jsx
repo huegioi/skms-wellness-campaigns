@@ -5,14 +5,13 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Copy, ExternalLink, Check, Users, DollarSign } from 'lucide-react';
+import { Copy, ExternalLink, Check, Users, DollarSign, AlertTriangle } from 'lucide-react';
 import { PipelineCard } from '@/components/shared/PipelineCard';
 import { PARTNER_STAGES } from '@/components/shared/constants';
 import { PartnerActivityStrip } from '@/components/partners/PartnerActivityStrip';
 
 function PartnerAlertBadges({ partner, referrals }) {
   const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id);
-  const totalCommission = partnerReferrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
   const isActive = partner.partner_status === 'Active Partner';
 
   const ninetyDaysAgo = new Date();
@@ -21,25 +20,62 @@ function PartnerAlertBadges({ partner, referrals }) {
     r.referral_date && new Date(r.referral_date) >= ninetyDaysAgo
   );
 
+  // Last referral date (most recent)
+  const lastReferralDate = partnerReferrals
+    .map(r => r.referral_date)
+    .filter(Boolean)
+    .sort((a, b) => new Date(b) - new Date(a))[0];
+
+  // YTD revenue placed: partner field, fallback to sum of first_year_revenue
+  const ytdRevenue = partner.ytd_revenue || partnerReferrals
+    .filter(r => (r.first_year_revenue || 0) > 0)
+    .reduce((sum, r) => sum + (r.first_year_revenue || 0), 0);
+
+  // Days since last referral
+  const daysSinceReferral = lastReferralDate
+    ? Math.floor((new Date() - new Date(lastReferralDate)) / (1000 * 60 * 60 * 24))
+    : null;
+
+  if (!isActive) {
+    return (
+      <div className="flex items-center gap-3 mt-1 text-xs">
+        {daysSinceReferral !== null ? (
+          <span className="flex items-center gap-1 text-red-600 font-medium">
+            <AlertTriangle className="w-3 h-3" />
+            no referral in {daysSinceReferral}d
+          </span>
+        ) : (
+          <span className="flex items-center gap-1 text-red-600 font-medium">
+            <AlertTriangle className="w-3 h-3" />
+            no referrals
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
+    <div className="flex items-center gap-3 mt-1 text-xs text-gray-600 flex-wrap">
       <span className="flex items-center gap-1 text-blue-700">
         <Users className="w-3 h-3" />
-        {isActive
-          ? `${recentReferrals.length} referral${recentReferrals.length !== 1 ? 's' : ''} · last 90d`
-          : `${partnerReferrals.length} ref${partnerReferrals.length !== 1 ? 's' : ''}`}
+        {recentReferrals.length} referral{recentReferrals.length !== 1 ? 's' : ''} · last 90d
       </span>
-      {totalCommission > 0 && (
+      {lastReferralDate && (
+        <span className="text-gray-500">
+          last: {new Date(lastReferralDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </span>
+      )}
+      {ytdRevenue > 0 && (
         <span className="flex items-center gap-1 text-green-700">
           <DollarSign className="w-3 h-3" />
-          ${totalCommission.toLocaleString()}
+          ${ytdRevenue.toLocaleString()} YTD
         </span>
       )}
     </div>
   );
 }
 
-function StageColumn({ stage, partners, referrals, latestInteractionByPartner, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onCopyLink, copiedId, onSelectPartner, onDelete }) {
+function StageColumn({ stage, partners, referrals, latestInteractionByPartner, nextEventByPartner, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onCopyLink, copiedId, onSelectPartner, onDelete }) {
   return (
     <div className="w-56 flex-shrink-0">
       <div className={`rounded-t-lg border px-3 py-2 mb-2 ${stage.headerClass}`}>
@@ -89,6 +125,7 @@ function StageColumn({ stage, partners, referrals, latestInteractionByPartner, o
                         <PartnerActivityStrip
                           partner={partner}
                           latestInteraction={latestInteractionByPartner[partner.id]}
+                          nextEvent={nextEventByPartner[partner.id]}
                           staleThreshold={stage.staleThreshold}
                           onOwnerChange={onOwnerChange}
                           onFollowUpDateChange={onFollowUpDateChange}
@@ -151,6 +188,26 @@ export default function PartnerPipelineView({ partners, referrals, onSelectPartn
     }
     return map;
   }, [interactions]);
+
+  // Fetch calendar events for partner quarterly reviews / next meetings
+  const { data: calendarEvents = [] } = useQuery({
+    queryKey: ['calendarEvents-partner-pipeline'],
+    queryFn: () => base44.entities.CalendarEvent.list('-start_date', 500),
+  });
+
+  // Next upcoming event per referral_partner_id
+  const nextEventByPartner = useMemo(() => {
+    const now = new Date();
+    const map = {};
+    for (const e of calendarEvents) {
+      if (!e.referral_partner_id) continue;
+      if (!e.start_date || new Date(e.start_date) < now) continue;
+      if (!map[e.referral_partner_id] || new Date(e.start_date) < new Date(map[e.referral_partner_id].start_date)) {
+        map[e.referral_partner_id] = e;
+      }
+    }
+    return map;
+  }, [calendarEvents]);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
 
@@ -245,6 +302,7 @@ export default function PartnerPipelineView({ partners, referrals, onSelectPartn
                 partners={stagePartners(stage.key)}
                 referrals={referrals}
                 latestInteractionByPartner={latestInteractionByPartner}
+                nextEventByPartner={nextEventByPartner}
                 {...columnProps}
               />
             ))}

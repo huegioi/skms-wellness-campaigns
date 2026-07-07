@@ -47,6 +47,10 @@
       "type": "string",
       "description": "Associated lead ID (used when the event is booked with a Lead rather than a Client)"
     },
+    "referral_partner_id": {
+      "type": "string",
+      "description": "Associated referral partner ID (used for quarterly reviews and partner-specific meetings)"
+    },
     "client_name": {
       "type": "string",
       "description": "Contact name for display (client or lead name)"

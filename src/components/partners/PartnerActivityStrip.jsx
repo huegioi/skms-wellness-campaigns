@@ -1,6 +1,6 @@
 import React from 'react';
-import { Mail, Phone, MessageSquare, Users, Clock, AlertTriangle } from 'lucide-react';
-import { differenceInDays } from 'date-fns';
+import { Mail, Phone, MessageSquare, Users, Clock, Calendar, AlertTriangle } from 'lucide-react';
+import { format, parseISO, differenceInDays, isValid } from 'date-fns';
 import { OwnerChip } from '@/components/shared/inline/OwnerChip';
 import { FollowUpDatePill } from '@/components/shared/inline/FollowUpDatePill';
 
@@ -36,7 +36,7 @@ function timeAgo(dateStr) {
  *  - staleThreshold: max days before the last touch is shown in red (null = no stale check)
  *  - onOwnerChange, onFollowUpDateChange: callbacks
  */
-export function PartnerActivityStrip({ partner, latestInteraction, staleThreshold, onOwnerChange, onFollowUpDateChange }) {
+export function PartnerActivityStrip({ partner, latestInteraction, nextEvent, staleThreshold, onOwnerChange, onFollowUpDateChange }) {
   const touchDate = latestInteraction?.date || partner.last_touchpoint_date || partner.last_contacted_date;
   const touchChannel = latestInteraction?.channel || 'other';
   const channelMeta = CHANNEL_META[touchChannel] || CHANNEL_META.other;
@@ -47,7 +47,21 @@ export function PartnerActivityStrip({ partner, latestInteraction, staleThreshol
   const isStale = staleThreshold && touchDays !== null && touchDays > staleThreshold;
 
   let nextLine = null;
-  if (partner.follow_up_due_date) {
+  if (nextEvent) {
+    let eventLabel = 'Event';
+    try {
+      const parsed = parseISO(nextEvent.start_date);
+      if (isValid(parsed)) {
+        eventLabel = format(parsed, 'EEE h:mm a');
+      }
+    } catch { /* keep default */ }
+    nextLine = (
+      <span className="text-xs text-blue-600 flex items-center gap-0.5 font-medium">
+        <Calendar className="w-3 h-3" />
+        {eventLabel}
+      </span>
+    );
+  } else if (partner.follow_up_due_date) {
     nextLine = (
       <FollowUpDatePill value={partner.follow_up_due_date} onSave={(v) => onFollowUpDateChange(partner.id, v)} />
     );
