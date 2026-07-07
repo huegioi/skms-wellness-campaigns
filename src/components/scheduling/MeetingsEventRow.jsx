@@ -1,6 +1,7 @@
 import React from 'react';
-import { Calendar as CalIcon, Users, ExternalLink } from 'lucide-react';
+import { Calendar as CalIcon, Users, ExternalLink, MoreVertical, ArrowRightLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { format, parseISO } from 'date-fns';
 import SourceBadge from './SourceBadge';
 import { getSourceCalendarLabel } from './eventLenses';
@@ -11,7 +12,7 @@ import { getSourceCalendarLabel } from './eventLenses';
  * Shows the linked contact (clickable to their detail view) and which
  * calendar the event came from.
  */
-export default function MeetingsEventRow({ event, onSelectEvent }) {
+export default function MeetingsEventRow({ event, onSelectEvent, onMoveLens }) {
   const isPast = event.isPast;
   const calendarLabel = getSourceCalendarLabel(event.source_calendar);
 
@@ -77,6 +78,27 @@ export default function MeetingsEventRow({ event, onSelectEvent }) {
               {calendarLabel}'s calendar
             </div>
           )}
+        </div>
+
+        {/* Actions */}
+        <div className="self-start shrink-0">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+                onClick={(e) => e.stopPropagation()}
+                title="More actions"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={() => onMoveLens(event, 'delivery')}>
+                <ArrowRightLeft className="w-4 h-4 mr-2" />
+                Move to Delivery
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>

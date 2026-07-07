@@ -205,6 +205,7 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     switch(type) {
       case 'workshop': duration = 1; title = '1-Hour Workshop'; break;
       case 'leadership': duration = 1; title = 'Leadership Workshop'; break;
+      case 'presentation': duration = 1; title = 'Presentation'; break;
       case 'challenge': title = '14-Day Challenge Start'; break;
       case 'class': duration = 1; title = 'Weekly Class'; break;
       case 'delivery': title = 'Wellness Box Delivery'; break;

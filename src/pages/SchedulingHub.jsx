@@ -83,6 +83,7 @@ export default function SchedulingHub() {
     workshop: { label: 'Workshop', color: '#8B5CF6', icon: Calendar },
     challenge: { label: 'Challenge', color: '#10B981', icon: Calendar },
     leadership: { label: 'Leadership', color: '#F59E0B', icon: Calendar },
+    presentation: { label: 'Presentation', color: '#770142', icon: Calendar },
     class: { label: 'Class', color: '#EC4899', icon: Calendar },
     delivery: { label: 'Delivery', color: '#06B6D4', icon: Calendar },
     follow_up: { label: 'Follow Up', color: '#14B8A6', icon: Calendar },
@@ -432,6 +433,17 @@ export default function SchedulingHub() {
   const meetingEvents = enrichedEvents.filter(e => e.lens === 'meetings');
   const lensEvents = eventLens === 'delivery' ? deliveryEvents : meetingEvents;
 
+  const handleMoveLens = async (event, targetLens) => {
+    const newType = targetLens === 'delivery' ? 'workshop' : 'meeting';
+    try {
+      await base44.entities.CalendarEvent.update(event.id, { event_type: newType });
+      queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
+      toast.success(`Moved to ${targetLens === 'delivery' ? 'Delivery' : 'Meetings'}`);
+    } catch (e) {
+      toast.error('Failed to move event: ' + e.message);
+    }
+  };
+
   const addSheetEventToAppCalendar = async (event) => {
     setAddingToCalendar(event.title);
     try {
@@ -745,6 +757,7 @@ export default function SchedulingHub() {
                       onSelectEvent={setSelectedEvent}
                       onAddToCalendar={addSheetEventToAppCalendar}
                       addingToCalendar={addingToCalendar}
+                      onMoveLens={handleMoveLens}
                     />
                   ))
                 ) : (
@@ -753,6 +766,7 @@ export default function SchedulingHub() {
                       key={event.id || `meeting-${idx}`}
                       event={event}
                       onSelectEvent={setSelectedEvent}
+                      onMoveLens={handleMoveLens}
                     />
                   ))
                 )}

@@ -1,6 +1,7 @@
 import React from 'react';
-import { Calendar, Users, MapPin, Plus, CheckCircle2 } from 'lucide-react';
+import { Calendar, Users, MapPin, Plus, CheckCircle2, MoreVertical, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { format, parseISO } from 'date-fns';
 import SourceBadge from './SourceBadge';
 import PresenterStatusIcon from './PresenterStatusIcon';
@@ -12,7 +13,7 @@ import { isChallengeEvent, getChallengeDayProgress } from '@/lib/challengeUtils'
  * service_id or proposal_id. Shows facilitation state for challenges,
  * presenter status icon, day-0/day-14 assessment marks, and booking actions.
  */
-export default function DeliveryEventRow({ event, allServices, getEventAssessmentCounts, onSelectEvent, onAddToCalendar, addingToCalendar }) {
+export default function DeliveryEventRow({ event, allServices, getEventAssessmentCounts, onSelectEvent, onAddToCalendar, addingToCalendar, onMoveLens }) {
   const isSheet = event.source === 'sheet';
   const isCalendar = event.source === 'calendar';
   const isPast = event.isPast;
@@ -104,18 +105,39 @@ export default function DeliveryEventRow({ event, allServices, getEventAssessmen
           )}
         </div>
 
-        {/* Actions — sheet events only */}
-        {!isPast && isSheet && (
-          <Button
-            size="sm"
-            onClick={(e) => { e.stopPropagation(); onAddToCalendar(event); }}
-            disabled={addingToCalendar === event.title}
-            className="bg-[#264d44] hover:bg-[#1a3830] whitespace-nowrap self-start"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            {addingToCalendar === event.title ? 'Adding...' : 'Add to Calendar'}
-          </Button>
-        )}
+        {/* Actions */}
+        <div className="flex items-center gap-1 self-start shrink-0">
+          {!isPast && isSheet && (
+            <Button
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); onAddToCalendar(event); }}
+              disabled={addingToCalendar === event.title}
+              className="bg-[#264d44] hover:bg-[#1a3830] whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              {addingToCalendar === event.title ? 'Adding...' : 'Add to Calendar'}
+            </Button>
+          )}
+          {isCalendar && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"
+                  onClick={(e) => e.stopPropagation()}
+                  title="More actions"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem onClick={() => onMoveLens(event, 'meetings')}>
+                  <ArrowRightLeft className="w-4 h-4 mr-2" />
+                  Move to Meetings
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
     </div>
   );

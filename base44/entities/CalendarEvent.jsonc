@@ -20,6 +20,7 @@
         "class",
         "delivery",
         "follow_up",
+        "presentation",
         "other"
       ],
       "description": "Type of event"
