@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar, Clock, MapPin, Loader2, Package, Users } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
@@ -32,6 +32,12 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     }
   });
 
+  // Fetch leads for the contact picker (clients are passed as a prop)
+  const { data: leads = [] } = useQuery({
+    queryKey: ['leads-for-event'],
+    queryFn: () => base44.entities.Lead.list('name', 500)
+  });
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -40,6 +46,7 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     end_date: selectedDate ? format(selectedDate, "yyyy-MM-dd'T'10:00") : '',
     all_day: false,
     client_id: '',
+    lead_id: '',
     client_name: '',
     proposal_id: '',
     location: '',
@@ -47,16 +54,29 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     color: ''
   });
 
-  const handleClientChange = (clientId) => {
-    const client = clients.find(c => c.id === clientId);
-    setFormData(prev => ({
-      ...prev,
-      client_id: clientId,
-      client_name: client?.name || '',
-      proposal_id: ''
-    }));
+  // Unified contact picker — value encodes type:id ('client:<id>' | 'lead:<id>' | 'none')
+  const handleContactChange = (value) => {
+    if (value === 'none') {
+      setFormData(prev => ({ ...prev, client_id: '', lead_id: '', client_name: '', proposal_id: '' }));
+      setSelectedProposal(null);
+      return;
+    }
+    const [type, id] = value.split(':');
+    if (type === 'client') {
+      const client = clients.find(c => c.id === id);
+      setFormData(prev => ({ ...prev, client_id: id, lead_id: '', client_name: client?.name || '', proposal_id: '' }));
+    } else {
+      const lead = leads.find(l => l.id === id);
+      setFormData(prev => ({ ...prev, lead_id: id, client_id: '', client_name: lead?.name || '', proposal_id: '' }));
+    }
     setSelectedProposal(null);
   };
+
+  const contactValue = formData.client_id
+    ? `client:${formData.client_id}`
+    : formData.lead_id
+      ? `lead:${formData.lead_id}`
+      : 'none';
 
   const handleProposalChange = (proposalId) => {
     const proposal = proposals.find(p => p.id === proposalId);
@@ -290,21 +310,37 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
         </DialogHeader>
         
         <div className="space-y-4 mt-4">
-          {/* Client Selection */}
+          {/* Contact Selection — Clients + Leads */}
           <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Client</label>
-            <Select value={formData.client_id || "none"} onValueChange={(v) => handleClientChange(v === "none" ? "" : v)}>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Client / Lead</label>
+            <Select value={contactValue} onValueChange={handleContactChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a client..." />
+                <SelectValue placeholder="Select a client or lead..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No client</SelectItem>
-                {clients.map(client => (
-                  <SelectItem key={client.id} value={client.id}>
-                    <span className="font-medium">{client.name}</span>
-                    {client.company && <span className="text-gray-500 ml-1">({client.company})</span>}
-                  </SelectItem>
-                ))}
+                <SelectItem value="none">No contact</SelectItem>
+                {clients.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Clients</SelectLabel>
+                    {clients.map(client => (
+                      <SelectItem key={client.id} value={`client:${client.id}`}>
+                        <span className="font-medium">{client.name}</span>
+                        {client.company && <span className="text-gray-500 ml-1">({client.company})</span>}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {leads.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Leads</SelectLabel>
+                    {leads.map(lead => (
+                      <SelectItem key={lead.id} value={`lead:${lead.id}`}>
+                        <span className="font-medium">{lead.name}</span>
+                        {lead.company && <span className="text-gray-500 ml-1">({lead.company})</span>}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
               </SelectContent>
             </Select>
           </div>

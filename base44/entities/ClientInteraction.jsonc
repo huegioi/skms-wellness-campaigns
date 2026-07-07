@@ -69,6 +69,10 @@
       "type": "string",
       "format": "date",
       "description": "Scheduled follow-up date"
+    },
+    "owner": {
+      "type": "string",
+      "description": "Team member who owns/made this touch (e.g. 'William', 'Heather'). Set from the source calendar when ingested from Google Calendar."
     }
   },
   "required": [

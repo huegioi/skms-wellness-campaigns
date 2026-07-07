@@ -43,9 +43,13 @@
       "type": "string",
       "description": "Associated client ID"
     },
+    "lead_id": {
+      "type": "string",
+      "description": "Associated lead ID (used when the event is booked with a Lead rather than a Client)"
+    },
     "client_name": {
       "type": "string",
-      "description": "Client name for display"
+      "description": "Contact name for display (client or lead name)"
     },
     "proposal_id": {
       "type": "string",
@@ -134,6 +138,10 @@
     "outlook_event_id": {
       "type": "string",
       "description": "Outlook Calendar event ID for sync"
+    },
+    "source_calendar": {
+      "type": "string",
+      "description": "Which watched Google calendar this event was ingested from (e.g. 'primary', 'heather@skillfulmeans.life', 'admin@skillfulmeans.life'). Used to attribute touches to William vs Heather."
     }
   },
   "required": [
