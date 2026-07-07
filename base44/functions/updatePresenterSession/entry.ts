@@ -30,6 +30,20 @@ Deno.serve(async (req) => {
     const updates = {};
     if (accepted !== undefined) updates.presenter_accepted = accepted;
     if (completed !== undefined) {
+      // Server-side guard: reject completion of challenge events before end_date
+      if (completed === true) {
+        let isChallenge = event.event_type === 'challenge';
+        if (!isChallenge && event.service_id) {
+          const services = await base44.asServiceRole.entities.Service.filter({ id: event.service_id });
+          if (services[0]?.category === 'challenge') isChallenge = true;
+        }
+        if (isChallenge && event.end_date) {
+          const endDate = new Date(event.end_date);
+          if (!isNaN(endDate.getTime()) && endDate > new Date()) {
+            return Response.json({ error: 'Challenge facilitation cannot be marked complete before the end date.' }, { status: 400 });
+          }
+        }
+      }
       updates.completed = completed;
       if (completed) updates.completed_date = new Date().toISOString();
     }

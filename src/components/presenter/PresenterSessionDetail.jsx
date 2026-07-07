@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import {
   ArrowLeft, Calendar, Clock, MapPin, Building, FileText, Copy, Check,
-  QrCode, ExternalLink, CheckCircle2, Download, Loader2, Video, ClipboardList, Users
+  QrCode, ExternalLink, CheckCircle2, Download, Loader2, Video, ClipboardList, Users, AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
+import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
+import { isChallengeEvent, getChallengeDayProgress } from '@/lib/challengeUtils';
 import { downloadICS } from '@/lib/ics';
 
 export default function PresenterSessionDetail({ event, portalId, onBack, onUpdated }) {
@@ -16,6 +18,7 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
   const [copiedKey, setCopiedKey] = useState(null);
   const [recordingLink, setRecordingLink] = useState(event.recording_link || '');
   const [savingRecording, setSavingRecording] = useState(false);
+  const [showDay14Reminder, setShowDay14Reminder] = useState(false);
   const { toast } = useToast();
 
   const start = parseISO(event.start_date);
@@ -54,7 +57,12 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
   };
 
   const handleComplete = async () => {
+    if (isChallenge && event.assessment_counts?.day14 === 0 && !showDay14Reminder) {
+      setShowDay14Reminder(true);
+      return;
+    }
     setCompleting(true);
+    setShowDay14Reminder(false);
     await base44.functions.invoke('updatePresenterSession', {
       portal_id: portalId, event_id: event.id, completed: true
     });
@@ -72,6 +80,9 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
   });
 
   const isUpcoming = new Date(event.start_date) >= new Date();
+  const isChallenge = isChallengeEvent(event);
+  const challengeProgress = isChallenge ? getChallengeDayProgress(event) : null;
+  const canComplete = isChallenge ? (challengeProgress?.isPastEnd ?? false) : !isUpcoming;
 
   return (
     <div className="min-h-screen bg-[#f4f0e9]">
@@ -111,28 +122,100 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
             <p className="text-sm text-emerald-700 font-medium">You've confirmed your availability for this session.</p>
           </div>
         )}
-        {!event.completed && (
-          <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center gap-4">
-            <p className="flex-1 text-sm text-gray-600">Did you deliver this session?</p>
-            <div title={isUpcoming ? 'Available after the session' : undefined}>
+        {/* Day-14 reminder banner (challenges with no day-14 responses) */}
+        {showDay14Reminder && (
+          <div className="bg-amber-50 border border-amber-300 rounded-2xl p-4 space-y-3">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-800 text-sm">Day-14 assessment has no responses yet</p>
+                <p className="text-sm text-amber-700 mt-0.5">Please share the Day-14 survey link with participants before completing facilitation.</p>
+              </div>
+            </div>
+            {event.survey_links?.challenge_day14 && (
+              <div className="flex items-center gap-2 bg-white rounded-lg p-2 border border-amber-200">
+                <p className="flex-1 text-xs text-gray-600 break-all font-mono">{origin}{event.survey_links.challenge_day14}</p>
+                <button
+                  onClick={() => handleCopy(`${origin}${event.survey_links.challenge_day14}`, 'day14reminder')}
+                  className="flex-shrink-0 flex items-center gap-1.5 bg-amber-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-amber-700 transition-colors"
+                >
+                  {copiedKey === 'day14reminder' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedKey === 'day14reminder' ? 'Copied!' : 'Copy Link'}
+                </button>
+              </div>
+            )}
+            <div className="flex items-center gap-3">
               <Button
                 onClick={handleComplete}
-                disabled={completing || isUpcoming}
-                variant="outline"
-                className={`text-sm ${isUpcoming ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={completing}
+                className="bg-[#264d44] hover:bg-[#1a3830] text-white text-sm"
               >
-                {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                Mark Complete
+                {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+                Complete facilitation anyway
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setShowDay14Reminder(false)} className="text-sm">
+                Not yet
               </Button>
             </div>
-            {isUpcoming && <p className="text-xs text-gray-400 hidden sm:block">Available after the session</p>}
+          </div>
+        )}
+        {!event.completed && !showDay14Reminder && (
+          <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center gap-4">
+            {isChallenge ? (
+              <>
+                <p className="flex-1 text-sm text-gray-600">
+                  {canComplete
+                    ? 'All sessions complete — ready to mark facilitation as done.'
+                    : challengeProgress?.isFacilitating
+                      ? `Facilitating — day ${challengeProgress.currentDay} of ${challengeProgress.totalDays}`
+                      : 'Challenge has not started yet.'}
+                </p>
+                <div title={!canComplete ? 'Available after the challenge ends' : undefined}>
+                  <Button
+                    onClick={handleComplete}
+                    disabled={completing || !canComplete}
+                    variant="outline"
+                    className={`text-sm ${!canComplete ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+                    Mark facilitation complete
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="flex-1 text-sm text-gray-600">Did you deliver this session?</p>
+                <div title={isUpcoming ? 'Available after the session' : undefined}>
+                  <Button
+                    onClick={handleComplete}
+                    disabled={completing || isUpcoming}
+                    variant="outline"
+                    className={`text-sm ${isUpcoming ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {completing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                    Mark Complete
+                  </Button>
+                </div>
+                {isUpcoming && <p className="text-xs text-gray-400 hidden sm:block">Available after the session</p>}
+              </>
+            )}
           </div>
         )}
         {event.completed && (
           <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-gray-400" />
-            <p className="text-sm text-gray-500 font-medium">Session marked as complete.</p>
+            <p className="text-sm text-gray-500 font-medium">
+              {isChallenge ? 'Facilitation marked as complete.' : 'Session marked as complete.'}
+            </p>
           </div>
+        )}
+        {/* Facilitation checklist (challenge events only) */}
+        {isChallenge && event.assessment_counts && (
+          <FacilitationChecklist
+            day0Count={event.assessment_counts.day0}
+            day14Count={event.assessment_counts.day14}
+            hasRecording={!!event.recording_link}
+          />
         )}
 
         {/* Logistics */}

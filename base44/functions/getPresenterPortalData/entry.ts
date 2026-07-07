@@ -71,6 +71,22 @@ Deno.serve(async (req) => {
     const serviceMap = {};
     serviceResults.forEach(s => { if (s) serviceMap[s.id] = s; });
 
+    // Fetch challenge assessment responses (day-0 / day-14) for facilitation checklist
+    const [day0Assessments, day14Assessments] = await Promise.all([
+      base44.asServiceRole.entities.CohortAssessment.filter({ survey_type: 'challenge_day0' }, '-submitted_at', 500),
+      base44.asServiceRole.entities.CohortAssessment.filter({ survey_type: 'challenge_day14' }, '-submitted_at', 500),
+    ]);
+    const day0Counts = new Map();
+    for (const a of day0Assessments) {
+      const k = `${a.client_id}|${a.service_id}`;
+      day0Counts.set(k, (day0Counts.get(k) || 0) + 1);
+    }
+    const day14Counts = new Map();
+    for (const a of day14Assessments) {
+      const k = `${a.client_id}|${a.service_id}`;
+      day14Counts.set(k, (day14Counts.get(k) || 0) + 1);
+    }
+
     const getSessionFee = (event) => {
       if (event.presenter_fee != null && event.presenter_fee !== '') return Number(event.presenter_fee);
       if (presenter.default_rate != null) return Number(presenter.default_rate);
@@ -106,7 +122,12 @@ Deno.serve(async (req) => {
         description: event.description,
         service_id: event.service_id,
         service_name: service?.name || null,
+        service_category: service?.category || null,
         service_included_assessments: service?.included_assessments || [],
+        assessment_counts: (event.event_type === 'challenge' || service?.category === 'challenge') && event.client_id && event.service_id ? {
+          day0: day0Counts.get(`${event.client_id}|${event.service_id}`) || 0,
+          day14: day14Counts.get(`${event.client_id}|${event.service_id}`) || 0,
+        } : null,
         client_id: event.client_id,
         client_name: event.client_name,
         client_context: client ? {

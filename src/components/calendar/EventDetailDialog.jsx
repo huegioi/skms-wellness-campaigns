@@ -6,13 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit, Upload, CheckCircle2, X, Send } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit, Upload, CheckCircle2, X, Send, ClipboardCheck } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
+import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
+import { isChallengeEvent } from '@/lib/challengeUtils';
 
 export default function EventDetailDialog({ event, open, onOpenChange, eventTypeConfig, onUpdated }) {
   const [deleting, setDeleting] = useState(false);
@@ -47,6 +49,20 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
   
   const config = eventTypeConfig[event.event_type] || eventTypeConfig.other;
   const Icon = config.icon;
+
+  const isChallenge = isChallengeEvent(event);
+  const { data: assessmentCounts } = useQuery({
+    queryKey: ['event-assessment-counts', event.id],
+    queryFn: async () => {
+      if (!event.client_id || !event.service_id) return null;
+      const [day0, day14] = await Promise.all([
+        base44.entities.CohortAssessment.filter({ client_id: event.client_id, service_id: event.service_id, survey_type: 'challenge_day0' }, '-submitted_at', 500),
+        base44.entities.CohortAssessment.filter({ client_id: event.client_id, service_id: event.service_id, survey_type: 'challenge_day14' }, '-submitted_at', 500),
+      ]);
+      return { day0: day0.length, day14: day14.length };
+    },
+    enabled: isChallenge && !!event.client_id && !!event.service_id,
+  });
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this event?')) return;
@@ -513,6 +529,21 @@ END:VCALENDAR`;
           {event.description && (
             <div className="pt-3 border-t">
               <p className="text-sm text-gray-600 whitespace-pre-wrap">{event.description}</p>
+            </div>
+          )}
+
+          {/* Facilitation checklist (challenge events) */}
+          {isChallenge && (
+            <div className="pt-3 border-t">
+              <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <ClipboardCheck className="w-4 h-4" /> Facilitation Progress
+              </p>
+              <FacilitationChecklist
+                day0Count={assessmentCounts?.day0 ?? 0}
+                day14Count={assessmentCounts?.day14 ?? 0}
+                hasRecording={!!event.recording_link}
+                compact
+              />
             </div>
           )}
 

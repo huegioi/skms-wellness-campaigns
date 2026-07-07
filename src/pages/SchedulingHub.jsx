@@ -15,6 +15,8 @@ import WeeklyCalendar from '@/components/scheduling/WeeklyCalendar';
 import CompanySearch from '@/components/scheduling/CompanySearch';
 import ScheduleChecklist from '@/components/scheduling/ScheduleChecklist';
 import EventDetailDialog from '@/components/calendar/EventDetailDialog';
+import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
+import { isChallengeEvent, getChallengeDayProgress } from '@/lib/challengeUtils';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 
@@ -117,6 +119,31 @@ export default function SchedulingHub() {
     queryKey: ['calendarEvents'],
     queryFn: () => base44.entities.CalendarEvent.list('-start_date')
   });
+
+  const { data: cohortAssessments = [] } = useQuery({
+    queryKey: ['cohort-assessments-challenge'],
+    queryFn: async () => {
+      const [day0, day14] = await Promise.all([
+        base44.entities.CohortAssessment.filter({ survey_type: 'challenge_day0' }, '-submitted_at', 500),
+        base44.entities.CohortAssessment.filter({ survey_type: 'challenge_day14' }, '-submitted_at', 500),
+      ]);
+      return [...day0, ...day14];
+    },
+  });
+
+  // Build assessment count map: client_id|service_id|survey_type → count
+  const assessmentCountMap = {};
+  for (const a of cohortAssessments) {
+    const key = `${a.client_id}|${a.service_id}|${a.survey_type}`;
+    assessmentCountMap[key] = (assessmentCountMap[key] || 0) + 1;
+  }
+  const getEventAssessmentCounts = (event) => {
+    if (!event.client_id || !event.service_id) return { day0: 0, day14: 0 };
+    return {
+      day0: assessmentCountMap[`${event.client_id}|${event.service_id}|challenge_day0`] || 0,
+      day14: assessmentCountMap[`${event.client_id}|${event.service_id}|challenge_day14`] || 0,
+    };
+  };
 
   const bookServiceMutation = useMutation({
     mutationFn: async (eventData) => {
@@ -739,6 +766,16 @@ export default function SchedulingHub() {
                             <span className="break-all">{event.location}</span>
                           </div>
                         )}
+                        {event.source === 'calendar' && isChallengeEvent(event, allServices.find(s => s.id === event.service_id)?.category) && (
+                          <div className="mt-2 pt-2 border-t border-gray-100">
+                            <FacilitationChecklist
+                              day0Count={getEventAssessmentCounts(event).day0}
+                              day14Count={getEventAssessmentCounts(event).day14}
+                              hasRecording={!!event.recording_link}
+                              compact
+                            />
+                          </div>
+                        )}
                       </div>
                       {!event.isPast && event.source === 'sheet' && (
                         <Button
@@ -902,6 +939,16 @@ export default function SchedulingHub() {
                               <div className="text-sm text-gray-600 flex items-center gap-1 mt-1">
                                 <MapPin className="w-3 h-3" />
                                 {event.location}
+                              </div>
+                            )}
+                            {isChallengeEvent(event, allServices.find(s => s.id === event.service_id)?.category) && (
+                              <div className="mt-2 pt-2 border-t border-gray-100">
+                                <FacilitationChecklist
+                                  day0Count={getEventAssessmentCounts(event).day0}
+                                  day14Count={getEventAssessmentCounts(event).day14}
+                                  hasRecording={!!event.recording_link}
+                                  compact
+                                />
                               </div>
                             )}
                           </div>

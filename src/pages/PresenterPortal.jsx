@@ -7,6 +7,7 @@ import { Calendar, Clock, Building, ChevronRight, CheckCircle2, Loader2, AlertCi
 import PresenterSessionDetail from '@/components/presenter/PresenterSessionDetail';
 import EarningsDetail from '@/components/presenter/EarningsDetail';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
+import { isChallengeEvent, getChallengeDayProgress } from '@/lib/challengeUtils';
 import { Button } from '@/components/ui/button';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 
@@ -153,7 +154,10 @@ export default function PresenterPortal() {
 function SessionCard({ event, upcoming, portalId, onCompleted, onClick }) {
   const [completing, setCompleting] = useState(false);
   const start = parseISO(event.start_date);
+  const isChallenge = isChallengeEvent(event);
+  const challengeProgress = isChallenge ? getChallengeDayProgress(event) : null;
   const sessionPassed = new Date(event.start_date) <= new Date();
+  const canComplete = isChallenge ? (challengeProgress?.isPastEnd ?? false) : sessionPassed;
 
   const handleComplete = async (e) => {
     e.stopPropagation();
@@ -229,19 +233,22 @@ function SessionCard({ event, upcoming, portalId, onCompleted, onClick }) {
       {/* Mark Complete footer — shown when not yet completed */}
       {!event.completed && (
         <div className="px-5 pb-4 flex items-center gap-3">
-          <div title={!sessionPassed ? 'Available after the session' : undefined} className="inline-block">
+          <div title={!canComplete ? (isChallenge ? 'Available after the challenge ends' : 'Available after the session') : undefined} className="inline-block">
             <Button
               size="sm"
               variant="outline"
-              disabled={completing || !sessionPassed}
+              disabled={completing || !canComplete}
               onClick={handleComplete}
-              className={`text-xs gap-1.5 ${!sessionPassed ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`text-xs gap-1.5 ${!canComplete ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {completing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-              Mark Complete
+              {isChallenge ? 'Mark facilitation complete' : 'Mark Complete'}
             </Button>
           </div>
-          {!sessionPassed && <p className="text-xs text-gray-400">Available after the session</p>}
+          {!canComplete && isChallenge && challengeProgress && (
+            <p className="text-xs text-gray-500 font-medium">Facilitating — day {challengeProgress.currentDay} of {challengeProgress.totalDays}</p>
+          )}
+          {!canComplete && !isChallenge && <p className="text-xs text-gray-400">Available after the session</p>}
         </div>
       )}
     </div>
