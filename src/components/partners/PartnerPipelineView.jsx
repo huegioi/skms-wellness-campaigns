@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -8,15 +8,26 @@ import { Textarea } from '@/components/ui/textarea';
 import { Copy, ExternalLink, Check, Users, DollarSign } from 'lucide-react';
 import { PipelineCard } from '@/components/shared/PipelineCard';
 import { PARTNER_STAGES } from '@/components/shared/constants';
+import { PartnerActivityStrip } from '@/components/partners/PartnerActivityStrip';
 
 function PartnerAlertBadges({ partner, referrals }) {
   const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id);
   const totalCommission = partnerReferrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
+  const isActive = partner.partner_status === 'Active Partner';
+
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  const recentReferrals = partnerReferrals.filter(r =>
+    r.referral_date && new Date(r.referral_date) >= ninetyDaysAgo
+  );
+
   return (
     <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
       <span className="flex items-center gap-1 text-blue-700">
         <Users className="w-3 h-3" />
-        {partnerReferrals.length} ref{partnerReferrals.length !== 1 ? 's' : ''}
+        {isActive
+          ? `${recentReferrals.length} referral${recentReferrals.length !== 1 ? 's' : ''} · last 90d`
+          : `${partnerReferrals.length} ref${partnerReferrals.length !== 1 ? 's' : ''}`}
       </span>
       {totalCommission > 0 && (
         <span className="flex items-center gap-1 text-green-700">
@@ -28,7 +39,7 @@ function PartnerAlertBadges({ partner, referrals }) {
   );
 }
 
-function StageColumn({ stage, partners, referrals, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onCopyLink, copiedId, onSelectPartner, onDelete }) {
+function StageColumn({ stage, partners, referrals, latestInteractionByPartner, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onCopyLink, copiedId, onSelectPartner, onDelete }) {
   return (
     <div className="w-56 flex-shrink-0">
       <div className={`rounded-t-lg border px-3 py-2 mb-2 ${stage.headerClass}`}>
@@ -74,6 +85,15 @@ function StageColumn({ stage, partners, referrals, onOwnerChange, onStageChange,
                       onOpenDetail={onSelectPartner}
                       onDelete={onDelete}
                       alertBadges={<PartnerAlertBadges partner={partner} referrals={referrals} />}
+                      activityStrip={
+                        <PartnerActivityStrip
+                          partner={partner}
+                          latestInteraction={latestInteractionByPartner[partner.id]}
+                          staleThreshold={stage.staleThreshold}
+                          onOwnerChange={onOwnerChange}
+                          onFollowUpDateChange={onFollowUpDateChange}
+                        />
+                      }
                       accentColor="#013f7c"
                       extraActions={
                         <>
@@ -113,6 +133,24 @@ export default function PartnerPipelineView({ partners, referrals, onSelectPartn
   const [noteDialog, setNoteDialog] = useState(null);
   const [noteText, setNoteText] = useState('');
   const [copiedId, setCopiedId] = useState(null);
+
+  // Fetch interactions for activity strips (last touch)
+  const { data: interactions = [] } = useQuery({
+    queryKey: ['interactions-partner-pipeline'],
+    queryFn: () => base44.entities.ClientInteraction.list('-date', 500),
+  });
+
+  // Latest interaction per referral_partner_id
+  const latestInteractionByPartner = useMemo(() => {
+    const map = {};
+    for (const i of interactions) {
+      if (!i.referral_partner_id) continue;
+      if (!map[i.referral_partner_id] || new Date(i.date) > new Date(map[i.referral_partner_id].date)) {
+        map[i.referral_partner_id] = i;
+      }
+    }
+    return map;
+  }, [interactions]);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
 
@@ -206,6 +244,7 @@ export default function PartnerPipelineView({ partners, referrals, onSelectPartn
                 stage={stage}
                 partners={stagePartners(stage.key)}
                 referrals={referrals}
+                latestInteractionByPartner={latestInteractionByPartner}
                 {...columnProps}
               />
             ))}

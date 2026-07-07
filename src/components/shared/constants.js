@@ -80,8 +80,8 @@ export const CLIENT_STAGES = [
 
 // ── Partner stages (maps to ReferralPartner.partner_status) ──────────────────
 export const PARTNER_STAGES = [
-  { key: 'Prospect',       label: 'Prospect',        group: 'Status', desc: 'Identified, outreach not yet started',   headerClass: 'bg-sky-50 border-sky-200',        textClass: 'text-sky-700' },
-  { key: 'Active Partner', label: 'Active Partner',  group: 'Status', desc: 'Agreement signed, actively referring',    headerClass: 'bg-emerald-50 border-emerald-200', textClass: 'text-emerald-700' },
-  { key: 'Inactive',       label: 'Inactive',        group: 'Status', desc: 'No recent referrals or engagement',       headerClass: 'bg-gray-100 border-gray-300',     textClass: 'text-gray-500' },
-  { key: '__none__',       label: 'No Stage',        group: 'Status', desc: 'Partners with no stage set yet',          headerClass: 'bg-slate-50 border-slate-200',    textClass: 'text-slate-500' },
+  { key: 'Prospect',       label: 'Prospect',        group: 'Status', desc: 'Identified, outreach not yet started',   headerClass: 'bg-sky-50 border-sky-200',        textClass: 'text-sky-700',    staleThreshold: 14 },
+  { key: 'Active Partner', label: 'Active Partner',  group: 'Status', desc: 'Agreement signed, actively referring',    headerClass: 'bg-emerald-50 border-emerald-200', textClass: 'text-emerald-700', staleThreshold: 30 },
+  { key: 'Inactive',       label: 'Inactive',        group: 'Status', desc: 'No recent referrals or engagement',       headerClass: 'bg-gray-100 border-gray-300',     textClass: 'text-gray-500',   staleThreshold: null },
+  { key: '__none__',       label: 'No Stage',        group: 'Status', desc: 'Partners with no stage set yet',          headerClass: 'bg-slate-50 border-slate-200',    textClass: 'text-slate-500',  staleThreshold: null },
 ];

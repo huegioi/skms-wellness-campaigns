@@ -27,7 +27,7 @@ export function normalizeLeadStatus(status) {
 
 // ── Partner status (Lead.partner_status) ──────────────────────────────────────
 export const PARTNER_STATUS_CONFIG = {
-  new:            { label: 'New Lead',           color: 'bg-slate-100 text-slate-700 border-slate-300', chart: '#94a3b8' },
+  new:            { label: 'Prospect',           color: 'bg-slate-100 text-slate-700 border-slate-300', chart: '#94a3b8' },
   nurturing:      { label: 'Nurturing',          color: 'bg-blue-100 text-blue-700 border-blue-300',   chart: '#3b82f6' },
   active_partner: { label: 'Active Partner',     color: 'bg-green-100 text-green-700 border-green-300', chart: '#22c55e' },
   inactive:       { label: 'Inactive',           color: 'bg-red-100 text-red-700 border-red-300',      chart: '#ef4444' },
