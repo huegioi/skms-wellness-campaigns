@@ -146,6 +146,11 @@
     "source_calendar": {
       "type": "string",
       "description": "Which watched Google calendar this event was ingested from (e.g. 'primary', 'heather@skillfulmeans.life', 'admin@skillfulmeans.life'). Used to attribute touches to William vs Heather."
+    },
+    "ingested": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this event was auto-ingested from Google Calendar ingestion (not manually created). Used to distinguish ingestion-created events from manually booked ones."
     }
   },
   "required": [

@@ -9,15 +9,15 @@ const WATCHED_CALENDARS = [
   { id: 'admin@skillfulmeans.life', owner: null },
 ];
 
-// Guarded substring match: one string must contain the other, and the
-// contained string must be >5 chars to avoid false positives (e.g. "Call").
-// Mirrors the rule from getClientPortalData.
-function titleMatchesName(titleLower, nameLower) {
-  if (!titleLower || !nameLower) return false;
-  if (nameLower.length > 5 && titleLower.includes(nameLower)) return true;
-  if (titleLower.length > 5 && nameLower.includes(titleLower)) return true;
-  return false;
-}
+// Internal email blocklist — these are the watched calendar owners / team accounts.
+// Events whose only attendees are internal are personal and must not be ingested.
+// Also prevents matching our own team's Lead/Client/Partner records by email.
+const INTERNAL_EMAILS = new Set([
+  'williamcharlesjackson@gmail.com',
+  'william@skillfulmeans.life',
+  'heather@skillfulmeans.life',
+  'admin@skillfulmeans.life',
+]);
 
 // Chunked bulkCreate (SDK limit: 500 per call)
 async function batchBulkCreate(entity, records) {
@@ -156,38 +156,30 @@ Deno.serve(async (req) => {
           || (event.end?.date ? new Date(event.end.date + 'T00:00:00').toISOString() : null)
           || startISO;
         const location = event.hangoutLink || event.location || '';
-        const summaryLower = title.toLowerCase();
         const attendeeEmails = (event.attendees || [])
           .map(a => a.email?.toLowerCase().trim())
           .filter(Boolean);
 
-        // Match to contact: (a) lead email → lead_id, (b) client email/email2 → client_id,
-        // (c) fallback: title substring match (>5 chars) against lead/client names
+        // Rule (a): event is only ingestible if it has at least one attendee
+        // whose email is NOT in the internal blocklist (i.e. a real external contact).
+        const externalAttendees = attendeeEmails.filter(e => !INTERNAL_EMAILS.has(e));
+        if (externalAttendees.length === 0) {
+          unmatchedSkipped++;
+          continue;
+        }
+
+        // Rule (b)+(c): match contacts by attendee email only — no title fallback.
+        // Only external attendees are checked, so internal contact records (whose
+        // emails are in the blocklist) can never be matched.
         let matchedLead = null;
         let matchedClient = null;
 
-        for (const email of attendeeEmails) {
+        for (const email of externalAttendees) {
           if (leadByEmail[email]) { matchedLead = leadByEmail[email]; break; }
         }
         if (!matchedLead) {
-          for (const email of attendeeEmails) {
+          for (const email of externalAttendees) {
             if (clientByEmail[email]) { matchedClient = clientByEmail[email]; break; }
-          }
-        }
-        if (!matchedLead && !matchedClient) {
-          for (const lead of leads) {
-            if (titleMatchesName(summaryLower, (lead.name || '').toLowerCase()) ||
-                titleMatchesName(summaryLower, (lead.company || '').toLowerCase())) {
-              matchedLead = lead; break;
-            }
-          }
-        }
-        if (!matchedLead && !matchedClient) {
-          for (const client of clients) {
-            if (titleMatchesName(summaryLower, (client.name || '').toLowerCase()) ||
-                titleMatchesName(summaryLower, (client.company || '').toLowerCase())) {
-              matchedClient = client; break;
-            }
           }
         }
 
@@ -217,6 +209,7 @@ Deno.serve(async (req) => {
               event_type: 'meeting',
               google_event_id: event.id || undefined,
               source_calendar: cal.id,
+              ingested: true,
               lead_id: matchedLead?.id || undefined,
               client_id: matchedClient?.id || undefined,
               client_name: matchedLead?.name || matchedClient?.name || '',

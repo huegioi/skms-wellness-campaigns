@@ -267,9 +267,8 @@ export default function SchedulingHub() {
   // Parse all sheet events for upcoming section
   const parseSheetEvents = () => {
     const events = [];
-    const sevenDaysAgoParsed = new Date();
-    sevenDaysAgoParsed.setDate(sevenDaysAgoParsed.getDate() - 7);
-    sevenDaysAgoParsed.setHours(0, 0, 0, 0);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
@@ -311,7 +310,7 @@ export default function SchedulingHub() {
         }
 
         // Check if within last 7 days or next 30 days
-        if (eventDate >= sevenDaysAgoParsed && eventDate <= thirtyDaysFromNow) {
+        if (eventDate >= startOfToday && eventDate <= thirtyDaysFromNow) {
           // Find event/service name
           let title = 'Untitled Event';
           for (const [key, value] of Object.entries(row)) {
@@ -362,9 +361,8 @@ export default function SchedulingHub() {
   const now = new Date();
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-  const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  sevenDaysAgo.setHours(0, 0, 0, 0);
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
   
   // Get unique presenters for filter
   const allPresenters = [...new Set(calendarEvents
@@ -383,7 +381,7 @@ export default function SchedulingHub() {
   const upcomingCalendarEvents = filteredCalendarEvents
     .filter(event => {
       const eventDate = parseISO(event.start_date);
-      return eventDate >= sevenDaysAgo && eventDate <= thirtyDaysFromNow;
+      return eventDate >= startOfToday && eventDate <= thirtyDaysFromNow;
     })
     .sort((a, b) => parseISO(a.start_date) - parseISO(b.start_date));
 
