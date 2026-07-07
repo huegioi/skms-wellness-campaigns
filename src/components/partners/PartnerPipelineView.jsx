@@ -9,8 +9,10 @@ import { Copy, ExternalLink, Check, Users, DollarSign, AlertTriangle } from 'luc
 import { PipelineCard } from '@/components/shared/PipelineCard';
 import { PARTNER_STAGES } from '@/components/shared/constants';
 import { PartnerActivityStrip } from '@/components/partners/PartnerActivityStrip';
+import { getActiveCohort } from '@/lib/renewal';
+import LogTouchDialog from '@/components/dashboard/LogTouchDialog';
 
-function PartnerAlertBadges({ partner, referrals }) {
+function PartnerAlertBadges({ partner, referrals, assist, onLogTouch }) {
   const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id);
   const isActive = partner.partner_status === 'Active Partner';
 
@@ -71,11 +73,22 @@ function PartnerAlertBadges({ partner, referrals }) {
           ${ytdRevenue.toLocaleString()} YTD
         </span>
       )}
+      {assist && (
+        <span className="flex items-center gap-1.5 text-[#770142] font-medium">
+          🔁 {assist.count} of your client{assist.count !== 1 ? 's' : ''} renew {assist.cohortLabel}
+          <button
+            onClick={(e) => { e.stopPropagation(); onLogTouch?.(partner); }}
+            className="px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#770142] text-white hover:bg-[#5a0132]"
+          >
+            Log touch
+          </button>
+        </span>
+      )}
     </div>
   );
 }
 
-function StageColumn({ stage, partners, referrals, latestInteractionByPartner, nextEventByPartner, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onCopyLink, copiedId, onSelectPartner, onDelete }) {
+function StageColumn({ stage, partners, referrals, latestInteractionByPartner, nextEventByPartner, renewalAssistByPartner, onLogTouch, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onCopyLink, copiedId, onSelectPartner, onDelete }) {
   return (
     <div className="w-56 flex-shrink-0">
       <div className={`rounded-t-lg border px-3 py-2 mb-2 ${stage.headerClass}`}>
@@ -120,7 +133,7 @@ function StageColumn({ stage, partners, referrals, latestInteractionByPartner, n
                       onLogNote={onLogNote}
                       onOpenDetail={onSelectPartner}
                       onDelete={onDelete}
-                      alertBadges={<PartnerAlertBadges partner={partner} referrals={referrals} />}
+                      alertBadges={<PartnerAlertBadges partner={partner} referrals={referrals} assist={renewalAssistByPartner[partner.id]} onLogTouch={onLogTouch} />}
                       activityStrip={
                         <PartnerActivityStrip
                           partner={partner}
@@ -170,6 +183,28 @@ export default function PartnerPipelineView({ partners, referrals, onSelectPartn
   const [noteDialog, setNoteDialog] = useState(null);
   const [noteText, setNoteText] = useState('');
   const [copiedId, setCopiedId] = useState(null);
+  const [logTouchPartner, setLogTouchPartner] = useState(null);
+
+  // Clients — to find referred clients in the renewing cohort (partner season assist)
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => base44.entities.Client.list(),
+  });
+  const activeCohort = useMemo(() => getActiveCohort(), []);
+  const renewalAssistByPartner = useMemo(() => {
+    const map = {};
+    if (!activeCohort) return map;
+    for (const partner of partners) {
+      if (partner.partner_status !== 'Active Partner') continue;
+      const count = clients.filter(c =>
+        c.referral_partner_id === partner.id &&
+        c.renewal_cohort === activeCohort.label &&
+        c.client_stage !== 'churned'
+      ).length;
+      if (count > 0) map[partner.id] = { count, cohortLabel: activeCohort.label, daysRemaining: activeCohort.daysRemaining };
+    }
+    return map;
+  }, [partners, clients, activeCohort]);
 
   // Fetch interactions for activity strips (last touch)
   const { data: interactions = [] } = useQuery({
@@ -303,6 +338,8 @@ export default function PartnerPipelineView({ partners, referrals, onSelectPartn
                 referrals={referrals}
                 latestInteractionByPartner={latestInteractionByPartner}
                 nextEventByPartner={nextEventByPartner}
+                renewalAssistByPartner={renewalAssistByPartner}
+                onLogTouch={setLogTouchPartner}
                 {...columnProps}
               />
             ))}
@@ -324,6 +361,13 @@ export default function PartnerPipelineView({ partners, referrals, onSelectPartn
           </div>
         </DialogContent>
       </Dialog>
+
+      <LogTouchDialog
+        open={!!logTouchPartner}
+        onClose={() => setLogTouchPartner(null)}
+        partnerId={logTouchPartner?.id}
+        entityName={logTouchPartner?.name}
+      />
     </>
   );
 }

@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { differenceInDays, parseISO } from 'date-fns';
+import { daysUntilRenewal } from '@/lib/renewal';
 
 function daysAgo(dateStr) {
   if (!dateStr) return null;
@@ -126,11 +127,11 @@ function computeSnapshot(client, data) {
     if (f.client_id === client.id) feedbackCount++;
   }
 
-  // Renewal chip (within 90 days)
+  // Renewal chip (within 90 days) — shared cohort-aware resolver
   let renewal = null;
-  if (client.renewal_date) {
-    const d = daysUntil(client.renewal_date);
-    if (d !== null && d >= 0 && d <= 90) {
+  {
+    const d = daysUntilRenewal(client);
+    if (d !== null && d <= 90) {
       renewal = { daysUntil: d, suggestMove: d < 60 };
     }
   }

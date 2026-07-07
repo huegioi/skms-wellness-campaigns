@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import StagePlaybookDialog from './StagePlaybookDialog';
 import { CLIENT_STAGES } from '@/components/shared/constants';
 import { useClientDeliveryStatus } from '@/hooks/useClientDeliveryStatus';
 import ClientDeliveryStrip from '@/components/clients/ClientDeliveryStrip';
+import RenewalSeasonBanner from '@/components/clients/RenewalSeasonBanner';
+import { getActiveCohort, hasRenewalReviewBooked } from '@/lib/renewal';
 
 const SALES_STAGES = CLIENT_STAGES.filter(s => s.group === 'Sales');
 const LIFECYCLE_STAGES = CLIENT_STAGES.filter(s => s.group === 'Lifecycle');
@@ -162,8 +164,16 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
   const [playbookStage, setPlaybookStage] = useState(null);
   const [noteDialog, setNoteDialog] = useState(null);
   const [noteText, setNoteText] = useState('');
+  const [cohortFilter, setCohortFilter] = useState(null);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['clients'] });
+
+  // Reuse the delivery hook's events cache for "renewal review booked" checks
+  const { data: renewalEvents = [] } = useQuery({
+    queryKey: ['delivery-events'],
+    queryFn: () => base44.entities.CalendarEvent.list('-start_date', 500),
+  });
+  const activeCohort = useMemo(() => getActiveCohort(), []);
 
   const handleDragEnd = async (result) => {
     const { destination, source, draggableId } = result;
@@ -221,14 +231,22 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
     refresh();
   };
 
-  const filtered = ownerFilter && ownerFilter !== 'all'
+  const filtered = useMemo(() => ownerFilter && ownerFilter !== 'all'
     ? clients.filter(c => c.owner === ownerFilter)
-    : clients;
+    : clients, [clients, ownerFilter]);
 
-  const lifecycleClients = useMemo(() => filtered.filter(c => LIFECYCLE_STAGES.some(s => s.key === c.client_stage)), [filtered]);
-  const snapshots = useClientDeliveryStatus(lifecycleClients);
+  const snapshots = useClientDeliveryStatus(filtered);
 
-  const stageClients = (key) => filtered.filter(c =>
+  // Renewal-season banner stats (full owner-filtered set, ignoring cohort filter)
+  const cohortClients = activeCohort
+    ? filtered.filter(c => c.renewal_cohort === activeCohort.label && c.client_stage !== 'churned')
+    : [];
+  const reviewsBooked = cohortClients.filter(c => hasRenewalReviewBooked(c, renewalEvents)).length;
+  const unscheduledInCohort = cohortClients.filter(c => (snapshots[c.id]?.unscheduledServices?.length || 0) > 0).length;
+
+  const displayClients = cohortFilter ? filtered.filter(c => c.renewal_cohort === cohortFilter) : filtered;
+
+  const stageClients = (key) => displayClients.filter(c =>
     key === '__none__' ? !c.client_stage : c.client_stage === key
   );
 
@@ -248,6 +266,14 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
 
   return (
     <>
+      <RenewalSeasonBanner
+        activeCohort={activeCohort}
+        cohortClients={cohortClients}
+        reviewsBooked={reviewsBooked}
+        unscheduledCount={unscheduledInCohort}
+        cohortFilter={cohortFilter}
+        onToggleFilter={() => setCohortFilter(cohortFilter === activeCohort?.label ? null : activeCohort?.label)}
+      />
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="overflow-x-auto pb-4">
           <div className="flex flex-col gap-4 min-w-max">

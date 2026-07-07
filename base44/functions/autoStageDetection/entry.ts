@@ -5,6 +5,34 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const now = new Date();
 
+    // ── Renewal-date resolver (ported from src/lib/renewal.js — keep in sync) ──
+    const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+    const daysBetween = (from, to) => Math.round((startOfDay(to) - startOfDay(from)) / 86400000);
+    const nextCohortDate = (monthIndex, day) => {
+      const year = now.getFullYear();
+      let d = new Date(year, monthIndex, day);
+      if (d < now) d = new Date(year + 1, monthIndex, day);
+      return d;
+    };
+    const nextAnniversary = (baseStr) => {
+      if (!baseStr) return null;
+      const base = new Date(baseStr);
+      if (isNaN(base.getTime())) return null;
+      const year = now.getFullYear();
+      let d = new Date(year, base.getMonth(), base.getDate());
+      if (d < now) d = new Date(year + 1, base.getMonth(), base.getDate());
+      return d;
+    };
+    const getEffectiveRenewalDate = (client) => {
+      if (!client) return null;
+      const cohort = client.renewal_cohort;
+      if (cohort === 'Jan 1') return nextCohortDate(0, 1);
+      if (cohort === 'July 1') return nextCohortDate(6, 1);
+      if (client.renewal_date) { const d = new Date(client.renewal_date); if (!isNaN(d.getTime())) return d; }
+      if (client.plan_year_start) return nextAnniversary(client.plan_year_start);
+      return null;
+    };
+
     // ── Clients ──────────────────────────────────────────────────────────────
     const allClients = await base44.asServiceRole.entities.Client.list();
 
@@ -21,16 +49,14 @@ Deno.serve(async (req) => {
       // Skip intentionally-set stages
       if (SKIP_STAGES.has(stage)) continue;
 
-      // Check renewal window first (higher priority)
+      // Check renewal window first (higher priority) — cohort-aware resolver
       let movedToRenewal = false;
-      if (client.plan_year_start && RENEWAL_ELIGIBLE.has(stage)) {
-        const planDate = new Date(client.plan_year_start);
-        let candidate = new Date(now.getFullYear(), planDate.getMonth(), planDate.getDate());
-        if (candidate < now) candidate = new Date(now.getFullYear() + 1, planDate.getMonth(), planDate.getDate());
-        const daysUntil = (candidate - now) / (1000 * 60 * 60 * 24);
+      const renewalDate = getEffectiveRenewalDate(client);
+      if (renewalDate && RENEWAL_ELIGIBLE.has(stage)) {
+        const daysUntil = daysBetween(now, renewalDate);
         if (daysUntil >= 0 && daysUntil <= 90) {
           await base44.asServiceRole.entities.Client.update(client.id, { client_stage: 'renewal_outreach' });
-          console.log(`[CLIENT STAGE] ${client.company || client.name}: ${stage} → renewal_outreach (plan year in ${Math.round(daysUntil)} days)`);
+          console.log(`[CLIENT STAGE] ${client.company || client.name}: ${stage} → renewal_outreach (renews in ${daysUntil} days)`);
           clients_moved_to_renewal++;
           movedToRenewal = true;
         }

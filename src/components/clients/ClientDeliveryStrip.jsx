@@ -134,18 +134,27 @@ export default function ClientDeliveryStrip({ snapshot, client }) {
         </Link>
       )}
 
-      {/* Renewal chip */}
-      {showRenewal && (
-        <button
-          onClick={handleRenewalClick}
-          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-medium transition-colors ${
-            renewal.suggestMove
-              ? 'bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-200'
-              : 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
-          }`}
-        >
-          🔁 renews in {renewal.daysUntil}d
-        </button>
+      {/* Cohort + Renewal chips */}
+      {((client.renewal_cohort === 'Jan 1' || client.renewal_cohort === 'July 1') || showRenewal) && (
+        <div className="flex items-center gap-1 flex-wrap">
+          {(client.renewal_cohort === 'Jan 1' || client.renewal_cohort === 'July 1') && (
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-medium bg-blue-50 text-blue-700 border-blue-200">
+              {client.renewal_cohort}
+            </span>
+          )}
+          {showRenewal && (
+            <button
+              onClick={handleRenewalClick}
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-medium transition-colors ${
+                renewal.suggestMove
+                  ? 'bg-amber-100 text-amber-700 border-amber-300 hover:bg-amber-200'
+                  : 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100'
+              }`}
+            >
+              🔁 renews in {renewal.daysUntil}d
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

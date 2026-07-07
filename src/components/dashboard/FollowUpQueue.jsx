@@ -12,6 +12,7 @@ import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 import LeadsAttentionSection from '@/components/dashboard/LeadsAttentionSection';
 import UnscheduledServicesSection from '@/components/dashboard/UnscheduledServicesSection';
+import RenewalSeasonSection from '@/components/dashboard/RenewalSeasonSection';
 
 const CHANNEL_ICONS = {
   email: Mail,
@@ -256,6 +257,8 @@ export default function FollowUpQueue() {
 
   if (isLoading) return null;
   if (queueClients.length === 0) return (
+    <>
+    <RenewalSeasonSection />
     <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl text-green-800">
@@ -267,10 +270,12 @@ export default function FollowUpQueue() {
         <p className="text-green-700 text-sm">All clients are up to date — no follow-ups needed right now! 🎉</p>
       </CardContent>
     </Card>
+    </>
   );
 
   return (
     <>
+    <RenewalSeasonSection />
       <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
