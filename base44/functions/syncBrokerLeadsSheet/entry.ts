@@ -7,15 +7,45 @@ const SHEET_STATUS_TO_APP = {
   'cold': 'cold',
   'contacted': 'contacted',
   'contacted (linkedin)': 'contacted',
-  'responded': 'responded',
+  'responded': 'in_conversation',
+  'in conversation': 'in_conversation',
   'meeting scheduled': 'meeting_scheduled',
   'proposal sent': 'proposal_sent',
   'converted': 'converted',
   'not interested': 'not_interested',
   'client': 'current_client',
+  'current client': 'current_client',
 };
 
-const APP_STATUS_RANK = ['cold','contacted','responded','meeting_scheduled','proposal_sent','converted','not_interested','current_client'];
+const APP_STATUS_RANK = ['cold','contacted','in_conversation','meeting_scheduled','proposal_sent','converted','not_interested','current_client'];
+
+// Pipeline Stage column label ↔ Lead.status enum mapping
+const PIPELINE_STAGE_LABEL_TO_ENUM = {
+  'new': 'cold',
+  'contacted': 'contacted',
+  'in conversation': 'in_conversation',
+  'meeting scheduled': 'meeting_scheduled',
+  'proposal sent': 'proposal_sent',
+  'converted': 'converted',
+  'not interested': 'not_interested',
+  'current client': 'current_client',
+};
+
+const ENUM_TO_PIPELINE_STAGE_LABEL = {
+  'cold': 'New',
+  'contacted': 'Contacted',
+  'in_conversation': 'In Conversation',
+  'meeting_scheduled': 'Meeting Scheduled',
+  'proposal_sent': 'Proposal Sent',
+  'converted': 'Converted',
+  'not_interested': 'Not Interested',
+  'current_client': 'Current Client',
+  'responded': 'In Conversation',
+};
+
+function normalizeStatus(status) {
+  return status === 'responded' ? 'in_conversation' : (status || 'cold');
+}
 
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
 
@@ -63,17 +93,14 @@ function rowToLead(row, rowIndex, sheetOriginKey, colMap) {
   const company = getByName('Company') || getByName('Brokerage') || '';
   const phone = getByName('Phone') || getByName('Phone Number') || '';
   const notes = getByName('Notes') || '';
-  const followUpStage = getByName('Follow up Stage') || getByName('Follow Up Stage') || getByName('Follow-Up Stage') || '';
   const owner = getByName('Owner') || '';
-  const lastContactedDate = getByName('Last Contacted') || getByName('Last Contact Date') || '';
 
-  // No longer using positional status/channel — default to cold/other if no named column
-  const sheetStatus = (getByName('Status') || '').toLowerCase();
-  const outreachChannel = 'other';
-
-  // existingLastContactedDate is injected by the caller after email-match lookup
-  const followUpDueDate = calcFollowUpDueDate(followUpStage, lastContactedDate || null, null);
-  const partnerStatus = calcPartnerStatus(followUpStage);
+  // Pipeline Stage is the canonical status source (replaces old Status + Follow Up Stage columns)
+  const pipelineStageRaw = (getByName('Pipeline Stage') || '').toLowerCase().trim();
+  const pipelineStatus = pipelineStageRaw ? (PIPELINE_STAGE_LABEL_TO_ENUM[pipelineStageRaw] || null) : null;
+  if (pipelineStageRaw && !pipelineStatus) {
+    console.warn(`Unrecognized Pipeline Stage "${pipelineStageRaw}" for ${email} — ignoring`);
+  }
 
   return {
     name,
@@ -82,17 +109,16 @@ function rowToLead(row, rowIndex, sheetOriginKey, colMap) {
     company: company || undefined,
     industry: getByName('Industry') || undefined,
     source: getByName('LinkedIn') || getByName('Source') || undefined,
-    status: SHEET_STATUS_TO_APP[sheetStatus] || 'cold',
-    outreach_channel: outreachChannel,
+    status: pipelineStatus || 'cold',
+    _hasPipelineStage: !!pipelineStatus,
+    outreach_channel: 'other',
     sheet_row_id: String(rowIndex),
     sheet_origin: sheetOriginKey,
     lead_type: 'broker_lead',
     phone: phone || undefined,
     notes: notes || undefined,
-    follow_up_stage: followUpStage || undefined,
     owner: owner || undefined,
-    follow_up_due_date: followUpDueDate || undefined,
-    partner_status: partnerStatus === 'Active Partner' ? 'active_partner' : 'new',
+    // follow_up_stage, follow_up_due_date, partner_status are no longer synced from the sheet.
     // Tags are write-only (app → sheet). Never read them back during Sheet → App sync.
   };
 }
@@ -106,6 +132,231 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
+
+    // ── Handle initPipelineStage action (one-time: add column + backfill) ──────
+    if (body.action === 'initPipelineStage') {
+      const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
+
+      // 1. Get spreadsheet metadata to find sheetId
+      const metaRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const meta = await metaRes.json();
+      const targetSheet = 'Referral Partners';
+      const sheetObj = meta.sheets?.find(s => s.properties?.title === targetSheet);
+      const sheetId = sheetObj?.properties?.sheetId;
+      if (sheetId === undefined) {
+        return Response.json({ error: `Tab "${targetSheet}" not found` }, { status: 400 });
+      }
+
+      // 2. Read header row
+      const headerRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(targetSheet + '!1:1')}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const headerData = await headerRes.json();
+      const headers = (headerData.values?.[0] || []).map(h => h.toLowerCase().trim());
+
+      // 3. Find Follow Up Stage column
+      const followUpIdx = headers.findIndex(h => h === 'follow up stage' || h === 'follow_up_stage');
+      if (followUpIdx === -1) {
+        return Response.json({ error: 'Follow Up Stage column not found' }, { status: 400 });
+      }
+
+      // 4. Check if Pipeline Stage already exists
+      const existingPipelineIdx = headers.findIndex(h => h === 'pipeline stage');
+      if (existingPipelineIdx !== -1) {
+        console.log('Pipeline Stage column already exists at index', existingPipelineIdx);
+      } else {
+        // 5. Insert a new column after Follow Up Stage
+        const insertRes = await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}:batchUpdate`,
+          {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              requests: [{
+                insertDimension: {
+                  range: {
+                    sheetId,
+                    dimension: 'COLUMNS',
+                    startIndex: followUpIdx + 1,
+                    endIndex: followUpIdx + 2,
+                  },
+                  inheritFromBefore: true,
+                },
+              }],
+            }),
+          }
+        );
+        const insertData = await insertRes.json();
+        if (insertData.error) {
+          return Response.json({ error: insertData.error.message }, { status: 400 });
+        }
+
+        // 6. Write header "Pipeline Stage"
+        const colLetter = String.fromCharCode(65 + followUpIdx + 1);
+        const headerRange = `${targetSheet}!${colLetter}1:${colLetter}1`;
+        await fetch(
+          `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(headerRange)}?valueInputOption=USER_ENTERED`,
+          {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ range: headerRange, majorDimension: 'ROWS', values: [['Pipeline Stage']] }),
+          }
+        );
+        console.log('Pipeline Stage column inserted at index', followUpIdx + 1);
+      }
+
+      // 7. Backfill: read all leads and build email → status label map
+      const allLeads = await base44.asServiceRole.entities.Lead.filter(
+        { lead_type: 'broker_lead' }, '-created_date', 1000
+      );
+      const statusLabelByEmail = {};
+      for (const lead of allLeads) {
+        if (lead.email) {
+          const ns = normalizeStatus(lead.status);
+          statusLabelByEmail[lead.email.toLowerCase()] = ENUM_TO_PIPELINE_STAGE_LABEL[ns] || 'New';
+        }
+      }
+
+      // 8. Read all rows and write Pipeline Stage values
+      const tabRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(targetSheet + '!A:Z')}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const tabData = await tabRes.json();
+      const allRows = tabData.values || [];
+      if (allRows.length < 2) {
+        return Response.json({ success: true, message: 'No data rows to backfill', targetSheet });
+      }
+
+      const updatedHeaders = (allRows[0] || []).map(h => h.toLowerCase().trim());
+      const emailColIdx = updatedHeaders.findIndex(h => h === 'email' || h === 'email address');
+      const pipelineColIdx = updatedHeaders.findIndex(h => h === 'pipeline stage');
+
+      if (emailColIdx === -1 || pipelineColIdx === -1) {
+        return Response.json({ error: 'Email or Pipeline Stage column not found after insertion', updatedHeaders }, { status: 400 });
+      }
+
+      const pipelineValues = [];
+      let backfilled = 0;
+      for (let i = 1; i < allRows.length; i++) {
+        const email = (allRows[i][emailColIdx] || '').trim().toLowerCase();
+        const label = statusLabelByEmail[email];
+        pipelineValues.push([label || '']);
+        if (label) backfilled++;
+      }
+
+      const pipelineColLetter = String.fromCharCode(65 + pipelineColIdx);
+      const dataRange = `${targetSheet}!${pipelineColLetter}2:${pipelineColLetter}${allRows.length}`;
+      const writeRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(dataRange)}?valueInputOption=USER_ENTERED`,
+        {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ range: dataRange, majorDimension: 'ROWS', values: pipelineValues }),
+        }
+      );
+      const writeData = await writeRes.json();
+      if (writeData.error) {
+        return Response.json({ error: writeData.error.message }, { status: 400 });
+      }
+
+      return Response.json({ success: true, targetSheet, backfilled, totalRows: allRows.length - 1 });
+    }
+
+    // ── Handle updatePipelineStage action (app → sheet single-cell write) ───────
+    if (body.action === 'updatePipelineStage') {
+      const { sheetRowId, sheetName, status, leadId, email } = body;
+
+      const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
+
+      const metaRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const meta = await metaRes.json();
+      const availableSheets = meta.sheets?.map(s => s.properties?.title) || [];
+      const knownGoodTabs = ['Referral Partners', 'Broker Leads', 'Brokers'];
+      const targetSheet = availableSheets.includes(sheetName)
+        ? sheetName
+        : knownGoodTabs.find(t => availableSheets.includes(t)) || availableSheets[0] || 'Referral Partners';
+
+      const tabRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(targetSheet + '!A:Z')}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const tabData = await tabRes.json();
+      const allRows = tabData.values || [];
+      if (allRows.length === 0) {
+        return Response.json({ error: `Tab "${targetSheet}" is empty` }, { status: 400 });
+      }
+
+      const headers = (allRows[0] || []).map(h => h.toLowerCase().trim());
+      const emailColIdx = headers.findIndex(h => h === 'email' || h === 'email address');
+      const pipelineColIdx = headers.findIndex(h => h === 'pipeline stage');
+
+      if (pipelineColIdx === -1) {
+        return Response.json({ error: 'Pipeline Stage column not found. Run initPipelineStage first.', headers }, { status: 400 });
+      }
+
+      let matchedRowNum = null;
+      if (email && emailColIdx >= 0) {
+        const normEmail = email.trim().toLowerCase();
+        for (let i = 1; i < allRows.length; i++) {
+          const cellEmail = (allRows[i][emailColIdx] || '').trim().toLowerCase();
+          if (cellEmail === normEmail) {
+            matchedRowNum = i + 1;
+            break;
+          }
+        }
+      }
+
+      if (!matchedRowNum && sheetRowId) {
+        matchedRowNum = parseInt(sheetRowId, 10);
+      }
+
+      if (!matchedRowNum) {
+        return Response.json({
+          error: `Could not find row for email "${email}" and no sheetRowId provided`,
+          targetSheet, email, sheetRowId,
+        }, { status: 400 });
+      }
+
+      const ns = normalizeStatus(status);
+      const label = ENUM_TO_PIPELINE_STAGE_LABEL[ns] || '';
+
+      const colLetter = String.fromCharCode(65 + pipelineColIdx);
+      const cellRange = `${targetSheet}!${colLetter}${matchedRowNum}`;
+
+      const updateRes = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(cellRange)}?valueInputOption=USER_ENTERED`,
+        {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ range: cellRange, majorDimension: 'ROWS', values: [[label]] }),
+        }
+      );
+      const updateData = await updateRes.json();
+      if (updateData.error) {
+        return Response.json({ error: updateData.error.message }, { status: 400 });
+      }
+
+      if (leadId) {
+        try {
+          await base44.asServiceRole.entities.Lead.update(leadId, {
+            sheet_row_id: String(matchedRowNum),
+            sheet_origin: `BrokerLeads:${targetSheet}`,
+          });
+        } catch (e) {
+          console.warn('Failed to update sheet_row_id on lead:', e.message);
+        }
+      }
+
+      return Response.json({ success: true, updatedRange: updateData.updatedRange, cellRange, targetSheet, matchedRowNum, label });
+    }
 
     // ── Handle updateStage action ──────────────────────────────────────────────
     if (body.action === 'updateStage') {
@@ -412,7 +663,7 @@ Deno.serve(async (req) => {
     // Returns { rowNumber } (1-based, including header). If the email already exists
     // in the sheet, returns the existing row number without writing anything.
     if (body.action === 'appendLead') {
-      const { name, title, owner, email, company, follow_up_stage, notes, source, phone, industry } = body;
+      const { name, title, owner, email, company, status, notes, source, phone, industry } = body;
       if (!email) {
         return Response.json({ error: 'email is required for appendLead' }, { status: 400 });
       }
@@ -477,8 +728,7 @@ Deno.serve(async (req) => {
         'email address': email || '',
         'company': company || '',
         'brokerage': company || '',
-        'follow up stage': follow_up_stage || '',
-        'follow_up_stage': follow_up_stage || '',
+        'pipeline stage': ENUM_TO_PIPELINE_STAGE_LABEL[normalizeStatus(status)] || 'New',
         'notes': notes || '',
         'linkedin': source || '',
         'source': source || '',
@@ -685,11 +935,9 @@ Deno.serve(async (req) => {
       const existing = byEmail[emailKey];
 
       if (existing) {
-        const appRank = APP_STATUS_RANK.indexOf(existing.status);
+        const normalizedAppStatus = normalizeStatus(existing.status);
+        const appRank = APP_STATUS_RANK.indexOf(normalizedAppStatus);
         const sheetRank = APP_STATUS_RANK.indexOf(lead.status);
-        // Recompute due date using the real last_contacted_date if the sheet's column was blank
-        const sheetLastContacted = (chunk[i][colMap['Last Contacted']] || chunk[i][colMap['Last Contact Date']] || '').trim();
-        const recomputedDueDate = calcFollowUpDueDate(lead.follow_up_stage, sheetLastContacted || null, existing.last_contacted_date);
         const updates = {
           sheet_row_id: String(rowIndex),
           sheet_origin: sheetOriginKey,
@@ -703,18 +951,20 @@ Deno.serve(async (req) => {
           outreach_channel: lead.outreach_channel,
           ...(lead.phone !== undefined && { phone: lead.phone }),
           ...(lead.notes !== undefined && { notes: lead.notes }),
-          ...(lead.follow_up_stage !== undefined && { follow_up_stage: lead.follow_up_stage }),
           ...(lead.owner !== undefined && { owner: lead.owner }),
-          follow_up_due_date: recomputedDueDate || null,
-          partner_status: lead.partner_status,
+          // follow_up_stage, follow_up_due_date, partner_status are no longer synced from sheet
           // Tags are write-only — do not overwrite app tags from sheet values
         };
-        if (sheetRank > appRank) updates.status = lead.status;
-        console.log('Writing follow_up_stage to lead (update):', updates.follow_up_stage, 'for contact:', updates.name);
+        // Only update status from Pipeline Stage if the cell had a recognized value
+        // and it's at the same or higher rank (never downgrade from sheet)
+        if (lead._hasPipelineStage && sheetRank >= appRank) {
+          updates.status = lead.status;
+        }
+        console.log('Updating lead from sheet:', updates.name, '| pipeline status:', lead.status);
         await base44.asServiceRole.entities.Lead.update(existing.id, updates);
         updated++;
       } else {
-        console.log('Writing follow_up_stage to lead (create):', lead.follow_up_stage, 'for contact:', lead.name);
+        console.log('Creating lead from sheet:', lead.name, '| pipeline status:', lead.status);
         const newLead = await base44.asServiceRole.entities.Lead.create(lead);
         // Register in byEmail so subsequent rows in the same chunk don't duplicate
         if (newLead?.id) byEmail[emailKey] = newLead;

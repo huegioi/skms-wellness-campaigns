@@ -152,15 +152,15 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
     updateLeadMutation.mutate(updates);
 
     const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || 'Referral Partners';
-    if ('follow_up_stage' in updates) {
+    if ('status' in updates) {
       base44.functions.invoke('syncBrokerLeadsSheet', {
-        action: 'updateStage',
+        action: 'updatePipelineStage',
         leadId: lead.id,
         email: lead.email,
         sheetRowId: lead.sheet_row_id,
         sheetName,
-        follow_up_stage: updates.follow_up_stage || '',
-      }).catch(e => console.warn('Sheet stage sync failed:', e));
+        status: updates.status || 'cold',
+      }).catch(e => console.warn('Sheet pipeline stage sync failed:', e));
     }
     if ('owner' in updates) {
       base44.functions.invoke('syncBrokerLeadsSheet', {

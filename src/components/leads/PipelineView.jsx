@@ -223,11 +223,23 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
   // ── Status change (internal — updates Lead.status) ──────────────────────────
   const handleStatusChange = async (leadId, newStatus) => {
     const status = newStatus || 'cold';
+    const lead = leads.find(l => l.id === leadId);
     queryClient.setQueryData(['leads'], (old) =>
       (old || []).map(l => l.id === leadId ? { ...l, status } : l)
     );
     try {
       await base44.entities.Lead.update(leadId, { status });
+      if (lead) {
+        const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || 'Referral Partners';
+        base44.functions.invoke('syncBrokerLeadsSheet', {
+          action: 'updatePipelineStage',
+          leadId,
+          email: lead.email,
+          sheetRowId: lead.sheet_row_id,
+          sheetName,
+          status,
+        }).catch(e => console.warn('Sheet pipeline stage sync failed:', e));
+      }
     } catch (e) {
       console.error('Status update failed:', e);
       refresh();
@@ -241,15 +253,7 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
     onStageChange(leadId, newStage);
     try {
       await base44.entities.Lead.update(leadId, { follow_up_stage: newStage || null });
-      const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || 'Referral Partners';
-      base44.functions.invoke('syncBrokerLeadsSheet', {
-        action: 'updateStage',
-        leadId,
-        email: lead.email,
-        sheetRowId: lead.sheet_row_id,
-        sheetName,
-        follow_up_stage: newStage,
-      }).catch(e => console.warn('Sheet sync failed:', e));
+      // No longer syncing follow_up_stage to the sheet — Pipeline Stage column is the canonical source
     } catch (e) {
       console.error('Stage update failed:', e);
       onStageChange(leadId, lead.follow_up_stage || '');

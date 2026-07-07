@@ -433,7 +433,7 @@ export default function Leads() {
           owner: data.owner,
           email: data.email,
           company: data.company,
-          follow_up_stage: data.follow_up_stage,
+          status: data.status || 'cold',
           notes: data.notes,
           source: data.source,
           phone: data.phone,
