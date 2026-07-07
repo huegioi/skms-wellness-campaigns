@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 import LeadsAttentionSection from '@/components/dashboard/LeadsAttentionSection';
+import UnscheduledServicesSection from '@/components/dashboard/UnscheduledServicesSection';
 
 const CHANNEL_ICONS = {
   email: Mail,
@@ -380,6 +381,8 @@ export default function FollowUpQueue() {
       </Card>
 
       <LeadsAttentionSection />
+
+      <UnscheduledServicesSection />
 
       <BookSessionDialog
         client={bookingClient}

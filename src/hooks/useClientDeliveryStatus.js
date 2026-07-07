@@ -38,6 +38,23 @@ function computeSnapshot(client, data) {
     ].forEach(id => { if (id) selectedServiceIds.add(id); });
   }
 
+  // Build service name + category lookup from DB services and proposal enriched data
+  const serviceMeta = {};
+  for (const s of services) {
+    if (selectedServiceIds.has(s.id)) serviceMeta[s.id] = { name: s.name || s.id, category: s.category || 'other' };
+  }
+  for (const proposal of acceptedProposals) {
+    const sel = proposal.selections || {};
+    const enrichMap = [['workshopsData', 'workshop'], ['challengeProgramsData', 'challenge'], ['leadershipData', 'leadership'], ['movementClassesData', 'class']];
+    for (const [key, cat] of enrichMap) {
+      for (const svc of (sel[key] || [])) {
+        if (svc.id && selectedServiceIds.has(svc.id) && !serviceMeta[svc.id]) {
+          serviceMeta[svc.id] = { name: svc.name || svc.id, category: cat };
+        }
+      }
+    }
+  }
+
   // Determine which selected services are challenges
   const challengeServiceIds = new Set();
   for (const s of services) {
@@ -66,6 +83,14 @@ function computeSnapshot(client, data) {
     }
   }
   const unscheduledCount = totalServices - scheduledServiceIds.size;
+
+  const unscheduledServices = [];
+  for (const id of selectedServiceIds) {
+    if (!scheduledServiceIds.has(id)) {
+      const meta = serviceMeta[id] || { name: id, category: 'other' };
+      unscheduledServices.push({ id, name: meta.name, category: meta.category });
+    }
+  }
 
   // Next upcoming event
   const now = new Date();
@@ -124,11 +149,15 @@ function computeSnapshot(client, data) {
     health = 'amber';
   }
 
+  const acceptedProposalId = acceptedProposals[0]?.id || null;
+
   return {
     totalServices,
     deliveredCount: deliveredServiceIds.size,
     nextEvent,
     unscheduledCount,
+    unscheduledServices,
+    acceptedProposalId,
     presenterStatus,
     challengeAssessment,
     feedbackCount,

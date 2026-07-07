@@ -13,6 +13,7 @@ import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink, Plus, Pencil, 
 import MonthlyCalendar from '@/components/scheduling/MonthlyCalendar';
 import WeeklyCalendar from '@/components/scheduling/WeeklyCalendar';
 import CompanySearch from '@/components/scheduling/CompanySearch';
+import ScheduleChecklist from '@/components/scheduling/ScheduleChecklist';
 import EventDetailDialog from '@/components/calendar/EventDetailDialog';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
@@ -55,6 +56,16 @@ export default function SchedulingHub() {
   });
 
   const [selectedEvent, setSelectedEvent] = useState(null);
+
+  // Deep-link checklist (from pipeline card / detail view)
+  const urlParams = new URLSearchParams(window.location.search);
+  const [checklistClientId, setChecklistClientId] = useState(urlParams.get('clientId') || '');
+  const [checklistProposalId, setChecklistProposalId] = useState(urlParams.get('proposalId') || '');
+  const closeChecklist = () => {
+    setChecklistClientId('');
+    setChecklistProposalId('');
+    window.history.replaceState({}, '', window.location.pathname);
+  };
   const [addingToCalendar, setAddingToCalendar] = useState(null);
   const [calendarView, setCalendarView] = useState('week'); // 'month', 'week', 'list'
   const [filterType, setFilterType] = useState('all');
@@ -121,6 +132,12 @@ export default function SchedulingHub() {
         resolvedClientId = proposal?.client_id || '';
       }
 
+      // Derive event_type from service category (challenge, workshop, etc.)
+      const matchedService = eventData.service_id ? allServices.find(s => s.id === eventData.service_id) : null;
+      const derivedEventType = matchedService && ['workshop', 'challenge', 'leadership', 'class'].includes(matchedService.category)
+        ? matchedService.category
+        : 'other';
+
       // Create event in CalendarEvent entity only
       const calendarEvent = await base44.entities.CalendarEvent.create({
         title: eventData.title,
@@ -129,7 +146,7 @@ export default function SchedulingHub() {
         start_date: startDateTime,
         end_date: endDateTime,
         all_day: eventData.all_day,
-        event_type: 'other',
+        event_type: derivedEventType,
         client_name: eventData.client_name || '',
         client_id: eventData.client_id || resolvedClientId,
         service_id: eventData.service_id || null,
@@ -632,6 +649,19 @@ export default function SchedulingHub() {
             </a>
           </div>
         </div>
+
+        {/* Deep-link To-Schedule Checklist */}
+        {checklistClientId && (
+          <ScheduleChecklist
+            clientId={checklistClientId}
+            proposalId={checklistProposalId}
+            proposals={proposals}
+            calendarEvents={calendarEvents}
+            allServices={allServices}
+            allClients={allClients}
+            onClose={closeChecklist}
+          />
+        )}
 
         {/* Coming Up Section - Combined Events */}
         {combinedUpcomingEvents.length > 0 && (

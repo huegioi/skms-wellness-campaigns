@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 import { CheckCircle, Clock, Circle, ClipboardList, MessageSquare, Calendar } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const HEALTH_COLORS = { green: 'bg-green-500', amber: 'bg-amber-400', red: 'bg-red-500' };
 const HEALTH_LABELS = { green: 'On track', amber: 'Needs attention', red: 'At risk' };
@@ -120,6 +121,17 @@ export default function ClientDeliveryStrip({ snapshot, client }) {
             </div>
           )}
         </>
+      )}
+
+      {/* Unscheduled services chip */}
+      {showProgress && snapshot.unscheduledServices?.length > 0 && (
+        <Link
+          to={`/SchedulingHub?clientId=${client.id}&proposalId=${snapshot.acceptedProposalId || ''}`}
+          onClick={(e) => e.stopPropagation()}
+          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-medium bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+        >
+          ⚠ {snapshot.unscheduledServices.length} unscheduled
+        </Link>
       )}
 
       {/* Renewal chip */}
