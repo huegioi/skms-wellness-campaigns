@@ -90,7 +90,7 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
             outreach_channel: CHANNEL_TO_OUTREACH[channel] || 'other',
           });
         } else if (client_id) {
-          await base44.entities.Client.update(client_id, { last_contacted: now });
+          await base44.entities.Client.update(client_id, { last_contacted_date: today });
         } else if (referral_partner_id) {
           await base44.entities.ReferralPartner.update(referral_partner_id, { last_contacted_date: today });
         }

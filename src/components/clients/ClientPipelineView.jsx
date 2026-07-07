@@ -31,7 +31,7 @@ function daysUntil(dateStr) {
 function SalesAlertBadge({ client }) {
   const stage = client.client_stage;
   const stageEnteredDays = client.stage_entered_date ? daysAgo(client.stage_entered_date) : null;
-  const lastActivityDays = daysAgo(client.last_contacted_date || client.last_contacted);
+  const lastActivityDays = daysAgo(client.last_contacted_date);
 
   if (stage === 'proposal_sent') {
     const staleDays = lastActivityDays ?? stageEnteredDays;
@@ -67,7 +67,7 @@ function SalesAlertBadge({ client }) {
 }
 
 function ClientAlertBadges({ client, isSalesStage }) {
-  const ago = daysAgo(client.last_contacted_date || client.last_contacted);
+  const ago = daysAgo(client.last_contacted_date);
   const needsAttention = ago !== null && ago > 60 && NEEDS_ATTENTION_STAGES.has(client.client_stage);
   const hasBadges = needsAttention || (isSalesStage && (client.client_stage === 'proposal_sent' || client.client_stage === 'negotiation' || client.client_stage === 'discovery_call_scheduled'));
 

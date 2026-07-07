@@ -608,7 +608,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
           industry: assessmentData.industry || null,
           company_size: companySizeEnum,
           employee_count: parseInt(assessmentData.companySize, 10) || undefined,
-          last_contacted: new Date().toISOString(),
+          last_contacted_date: new Date().toISOString().split('T')[0],
           notes: [
             assessmentData.brokerName && `Broker: ${assessmentData.brokerName}${assessmentData.brokerCompany ? ` (${assessmentData.brokerCompany})` : ''}`,
             assessmentData.consultantName && `Consultant: ${assessmentData.consultantName}${assessmentData.consultantCompany ? ` (${assessmentData.consultantCompany})` : ''}`
@@ -624,7 +624,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
           industry: assessmentData.industry || null,
           company_size: companySizeEnum,
           employee_count: parseInt(assessmentData.companySize, 10) || undefined,
-          last_contacted: new Date().toISOString(),
+          last_contacted_date: new Date().toISOString().split('T')[0],
           notes: [
             assessmentData.brokerName && `Broker: ${assessmentData.brokerName}${assessmentData.brokerCompany ? ` (${assessmentData.brokerCompany})` : ''}`,
             assessmentData.consultantName && `Consultant: ${assessmentData.consultantName}${assessmentData.consultantCompany ? ` (${assessmentData.consultantCompany})` : ''}`

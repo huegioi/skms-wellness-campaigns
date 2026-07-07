@@ -192,7 +192,6 @@ Deno.serve(async (req) => {
           if (!existing || emailDateStr > existing) {
             await base44.asServiceRole.entities.Client.update(client.id, {
               last_contacted_date: emailDateStr,
-              last_contacted: emailDateStr,
             });
           }
         }

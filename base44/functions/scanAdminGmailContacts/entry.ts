@@ -443,7 +443,7 @@ Deno.serve(async (req) => {
     for (const { date, entityType, record } of Object.values(allUpdates)) {
       if (!record.last_contacted_date || date > record.last_contacted_date) {
         if (entityType === 'Client') {
-          await base44.asServiceRole.entities.Client.update(record.id, { last_contacted_date: date, last_contacted: date });
+          await base44.asServiceRole.entities.Client.update(record.id, { last_contacted_date: date });
         } else if (entityType === 'Lead') {
           // Recompute follow_up_due_date anchored to the new contact date
           const stage = record.follow_up_stage || '';

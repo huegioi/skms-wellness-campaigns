@@ -358,7 +358,7 @@ export default function Clients() {
       await base44.entities.Client.update(primaryClient.id, {
         related_contacts: mergedContacts,
         notes: [primaryClient.notes, duplicateClient.notes].filter(Boolean).join('\n\n---\n\n'),
-        last_contacted: duplicateClient.last_contacted || primaryClient.last_contacted
+        last_contacted_date: duplicateClient.last_contacted_date || primaryClient.last_contacted_date
       });
 
       // Delete duplicate client
@@ -724,8 +724,8 @@ export default function Clients() {
                           {totalValue > 0 && (
                             <Badge className="bg-green-100 text-green-700">${totalValue.toLocaleString()} won</Badge>
                           )}
-                          {client.last_contacted && (
-                            <span className="flex items-center gap-1 text-sm text-gray-500"><Calendar className="w-4 h-4" /> {new Date(client.last_contacted).toLocaleDateString()}</span>
+                          {client.last_contacted_date && (
+                            <span className="flex items-center gap-1 text-sm text-gray-500"><Calendar className="w-4 h-4" /> {new Date(client.last_contacted_date).toLocaleDateString()}</span>
                           )}
                         </div>
                       </div>

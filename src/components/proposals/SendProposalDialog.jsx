@@ -196,7 +196,7 @@ ${proposalHTML}
           date: new Date().toISOString()
         });
         await base44.entities.Client.update(proposal.client_id, {
-          last_contacted: new Date().toISOString()
+          last_contacted_date: new Date().toISOString().split('T')[0]
         });
       }
 

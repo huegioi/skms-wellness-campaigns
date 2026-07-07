@@ -42,7 +42,7 @@ SkillfulMeans Team`);
     // Update client's last contacted date
     if (proposal.client_id) {
       await base44.entities.Client.update(proposal.client_id, {
-        last_contacted: new Date().toISOString()
+        last_contacted_date: new Date().toISOString().split('T')[0]
       });
     }
 
