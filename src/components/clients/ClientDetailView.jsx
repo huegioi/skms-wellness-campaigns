@@ -36,6 +36,8 @@ import { InlineText } from '@/components/shared/inline/InlineText';
 import { InlineSelect } from '@/components/shared/inline/InlineSelect';
 import { CLIENT_STAGES } from '@/components/shared/constants';
 import InteractionTimeline from '@/components/shared/InteractionTimeline';
+import { useClientDeliveryStatus } from '@/hooks/useClientDeliveryStatus';
+import ClientDeliveryStrip from '@/components/clients/ClientDeliveryStrip';
 
 const statusConfig = {
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
@@ -74,6 +76,9 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   });
 
   const client = freshClient;
+
+  const deliverySnapshots = useClientDeliveryStatus(client ? [client] : []);
+  const deliverySnapshot = client ? deliverySnapshots[client.id] : null;
 
   // Initialize selected templates when client data loads
   React.useEffect(() => {
@@ -404,6 +409,17 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           </CollapsibleFieldSection>
 
           <MayaInsightsWidget recordType="client" recordId={client.id} owner={client.owner} />
+
+          {/* Delivery Status */}
+          {deliverySnapshot && (
+            <div className="rounded-lg border p-4 bg-slate-50 border-slate-200">
+              <h4 className="font-semibold text-gray-700 text-sm mb-2 flex items-center gap-2">
+                <Package className="w-4 h-4 text-slate-600" />
+                Delivery Status
+              </h4>
+              <ClientDeliveryStrip snapshot={deliverySnapshot} client={client} />
+            </div>
+          )}
 
           {/* Purchased Services Section */}
           <div className="rounded-lg border p-4 bg-emerald-50 border-emerald-200">

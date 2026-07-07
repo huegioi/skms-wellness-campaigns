@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQueryClient } from '@tanstack/react-query';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -9,6 +9,8 @@ import { differenceInDays, parseISO } from 'date-fns';
 import { PipelineCard } from '@/components/shared/PipelineCard';
 import StagePlaybookDialog from './StagePlaybookDialog';
 import { CLIENT_STAGES } from '@/components/shared/constants';
+import { useClientDeliveryStatus } from '@/hooks/useClientDeliveryStatus';
+import ClientDeliveryStrip from '@/components/clients/ClientDeliveryStrip';
 
 const SALES_STAGES = CLIENT_STAGES.filter(s => s.group === 'Sales');
 const LIFECYCLE_STAGES = CLIENT_STAGES.filter(s => s.group === 'Lifecycle');
@@ -85,7 +87,7 @@ function ClientAlertBadges({ client, isSalesStage }) {
   );
 }
 
-function StageColumn({ stage, clients, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onDelete, onClientClick, onHeaderClick, isSalesStage }) {
+function StageColumn({ stage, clients, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onDelete, onClientClick, onHeaderClick, isSalesStage, snapshots }) {
   return (
     <div className="w-56 flex-shrink-0">
       <div
@@ -135,7 +137,12 @@ function StageColumn({ stage, clients, onOwnerChange, onStageChange, onTagsChang
                       onOpenDetail={onClientClick}
                       onViewPlaybook={(c) => onHeaderClick(c.client_stage)}
                       onDelete={onDelete}
-                      alertBadges={<ClientAlertBadges client={client} isSalesStage={isSalesStage} />}
+                      alertBadges={
+                        <>
+                          <ClientAlertBadges client={client} isSalesStage={isSalesStage} />
+                          {!isSalesStage && <ClientDeliveryStrip snapshot={snapshots?.[client.id]} client={client} />}
+                        </>
+                      }
                       accentColor="#264d44"
                     />
                   )}
@@ -218,6 +225,9 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
     ? clients.filter(c => c.owner === ownerFilter)
     : clients;
 
+  const lifecycleClients = useMemo(() => filtered.filter(c => LIFECYCLE_STAGES.some(s => s.key === c.client_stage)), [filtered]);
+  const snapshots = useClientDeliveryStatus(lifecycleClients);
+
   const stageClients = (key) => filtered.filter(c =>
     key === '__none__' ? !c.client_stage : c.client_stage === key
   );
@@ -263,7 +273,7 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
               </div>
               <div className="flex gap-4">
                 {LIFECYCLE_STAGES.map(stage => (
-                  <StageColumn key={stage.key} stage={stage} clients={stageClients(stage.key)} isSalesStage={false} {...columnProps} />
+                  <StageColumn key={stage.key} stage={stage} clients={stageClients(stage.key)} isSalesStage={false} snapshots={snapshots} {...columnProps} />
                 ))}
               </div>
             </div>
