@@ -23,6 +23,7 @@ export function PipelineCard({
   onViewPlaybook,
   onDelete,
   alertBadges,
+  activityStrip,
   extraActions,
   accentColor = '#264d44',
 }) {
@@ -81,11 +82,17 @@ export function PipelineCard({
         </div>
       </div>
 
-      {/* Line 2: Owner + Follow-up date */}
-      <div className="flex flex-wrap items-center gap-1.5 mb-1" onClick={(e) => e.stopPropagation()}>
-        <OwnerChip value={record.owner} onSave={(v) => onOwnerChange(record.id, v)} />
-        <FollowUpDatePill value={record.follow_up_due_date} onSave={(v) => onFollowUpDateChange(record.id, v)} />
-      </div>
+      {/* Line 2: Owner + Follow-up date (or activity strip when provided) */}
+      {activityStrip ? (
+        <div className="space-y-1 mb-1" onClick={(e) => e.stopPropagation()}>
+          {activityStrip}
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-1.5 mb-1" onClick={(e) => e.stopPropagation()}>
+          <OwnerChip value={record.owner} onSave={(v) => onOwnerChange(record.id, v)} />
+          <FollowUpDatePill value={record.follow_up_due_date} onSave={(v) => onFollowUpDateChange(record.id, v)} />
+        </div>
+      )}
 
       {/* Line 3: Tags */}
       <div className="mb-1" onClick={(e) => e.stopPropagation()}>

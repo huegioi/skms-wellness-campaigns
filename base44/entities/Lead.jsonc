@@ -116,6 +116,7 @@
         "cold",
         "contacted",
         "responded",
+        "in_conversation",
         "meeting_scheduled",
         "proposal_sent",
         "converted",
@@ -123,7 +124,7 @@
         "current_client"
       ],
       "default": "cold",
-      "description": "Outreach status"
+      "description": "Outreach status. 'in_conversation' is the canonical value; 'responded' is a legacy synonym (normalized to in_conversation in the UI)."
     },
     "last_contacted_date": {
       "type": "string",
@@ -169,7 +170,7 @@
     },
     "follow_up_stage": {
       "type": "string",
-      "description": "Current follow-up stage in the outreach sequence"
+      "description": "Current follow-up stage in the outreach sequence (legacy \u2014 pipeline board now uses 'status'). Data preserved for reference and tagging."
     },
     "follow_up_due_date": {
       "type": "string",

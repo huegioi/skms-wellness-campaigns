@@ -45,6 +45,18 @@ export const LEAD_STAGES = [
   ...LEAD_ENGAGEMENT.map(s => ({ key: s, label: s, group: 'Engagement' })),
 ];
 
+// ── Lead status pipeline (maps to Lead.status) ───────────────────────────────
+export const LEAD_STATUS_STAGES = [
+  { key: 'cold',              label: 'New',                group: 'Pipeline' },
+  { key: 'contacted',         label: 'Contacted',          group: 'Pipeline' },
+  { key: 'in_conversation',  label: 'In Conversation',   group: 'Pipeline' },
+  { key: 'meeting_scheduled', label: 'Meeting Scheduled',  group: 'Pipeline' },
+  { key: 'proposal_sent',    label: 'Proposal Sent',      group: 'Pipeline' },
+  { key: 'converted',        label: 'Won — Converted',     group: 'Closed' },
+  { key: 'current_client',   label: 'Won — Current Client', group: 'Closed' },
+  { key: 'not_interested',   label: 'Not Now',            group: 'Closed' },
+];
+
 // ── Client stages (maps to Client.client_stage) ──────────────────────────────
 export const CLIENT_STAGES = [
   // Sales pipeline
