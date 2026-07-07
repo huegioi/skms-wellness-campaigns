@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mail, Phone, MessageSquare, Linkedin, Video, StickyNote, Plus, Loader2, X } from 'lucide-react';
+import { Mail, Phone, MessageSquare, Linkedin, Video, StickyNote, Plus, Loader2, X, Send, Inbox } from 'lucide-react';
+import { FullEmailModal } from '@/components/clients/GmailHistory';
 
 const CHANNEL_OPTIONS = [
   { value: 'email', label: 'Email', icon: Mail },
@@ -66,6 +67,29 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
       return base44.entities.ClientInteraction.filter(f, '-date');
     },
   });
+
+  // Fetch matched EmailLog rows for the same contact and interleave chronologically
+  const emailFilter = lead_id
+    ? { matched_lead_id: lead_id }
+    : client_id
+      ? { matched_client_id: client_id }
+      : null;
+
+  const { data: emailLogs = [] } = useQuery({
+    queryKey: [...scopeKey, 'emails'],
+    queryFn: () => base44.entities.EmailLog.filter(emailFilter, '-date', 100),
+    enabled: !!emailFilter,
+  });
+
+  const merged = useMemo(() => {
+    const items = [
+      ...interactions.map(it => ({ ...it, _type: 'interaction' })),
+      ...emailLogs.map(e => ({ ...e, _type: 'email' })),
+    ];
+    return items.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [interactions, emailLogs]);
+
+  const [selectedEmail, setSelectedEmail] = useState(null);
 
   const logMutation = useMutation({
     mutationFn: async () => {
@@ -172,29 +196,60 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
 
       {isLoading ? (
         <p className="text-center text-sm text-gray-400 py-6">Loading...</p>
-      ) : interactions.length === 0 ? (
+      ) : merged.length === 0 ? (
         <p className="text-center text-sm text-gray-400 py-6">No activity logged yet.</p>
       ) : (
         <div className="space-y-2">
-          {interactions.map(it => {
-            const Icon = CHANNEL_ICONS[it.channel] || StickyNote;
+          {merged.map(item => {
+            if (item._type === 'email') {
+              const isOutbound = item.direction === 'outbound';
+              return (
+                <button
+                  type="button"
+                  key={`email-${item.id}`}
+                  onClick={() => setSelectedEmail(item)}
+                  className="w-full flex gap-3 bg-white border rounded-lg p-3 text-left hover:border-blue-300 hover:shadow-sm transition-all"
+                >
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isOutbound ? 'bg-blue-50' : 'bg-green-50'}`}>
+                    {isOutbound ? <Send className="w-4 h-4 text-blue-500" /> : <Inbox className="w-4 h-4 text-green-600" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-gray-800 truncate flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                        {item.subject || '(no subject)'}
+                      </p>
+                      <span className="text-xs text-gray-400 flex-shrink-0">{relDate(item.date)}</span>
+                    </div>
+                    {(item.snippet || item.body_preview) && (
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{item.snippet || item.body_preview}</p>
+                    )}
+                  </div>
+                </button>
+              );
+            }
+            const Icon = CHANNEL_ICONS[item.channel] || StickyNote;
             return (
-              <div key={it.id} className="flex gap-3 bg-white border rounded-lg p-3">
+              <div key={item.id} className="flex gap-3 bg-white border rounded-lg p-3">
                 <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
                   <Icon className="w-4 h-4 text-gray-600" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-medium text-gray-800 truncate">{it.subject || it.interaction_type}</p>
-                    <span className="text-xs text-gray-400 flex-shrink-0">{relDate(it.date)}</span>
+                    <p className="text-sm font-medium text-gray-800 truncate">{item.subject || item.interaction_type}</p>
+                    <span className="text-xs text-gray-400 flex-shrink-0">{relDate(item.date)}</span>
                   </div>
-                  {it.notes && <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{it.notes}</p>}
-                  {it.outcome && <p className="text-xs text-green-600 mt-1">→ {it.outcome}</p>}
+                  {item.notes && <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{item.notes}</p>}
+                  {item.outcome && <p className="text-xs text-green-600 mt-1">→ {item.outcome}</p>}
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {selectedEmail && (
+        <FullEmailModal email={selectedEmail} onClose={() => setSelectedEmail(null)} />
       )}
     </div>
   );

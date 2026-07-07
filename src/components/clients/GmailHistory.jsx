@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-function FullEmailModal({ email, onClose }) {
+export function FullEmailModal({ email, onClose }) {
   const [body, setBody] = useState(null);
   const [isHtml, setIsHtml] = useState(false);
   const [loading, setLoading] = useState(true);

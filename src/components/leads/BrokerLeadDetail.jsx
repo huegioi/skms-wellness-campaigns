@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, DollarSign, ChevronDown, Pencil, Wand2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import GmailHistory from '@/components/clients/GmailHistory';
 import { TagSelector } from '@/components/ui/TagSelector';
 import TagManager from '@/components/ui/TagManager';
 import { toast } from 'sonner';
@@ -67,17 +66,6 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const [proposalForm, setProposalForm] = useState(EMPTY_PROPOSAL_FORM);
 
   const queryClient = useQueryClient();
-
-  // Live email sync — same pattern as ClientDetailView
-  const { data: liveEmails = [] } = useQuery({
-    queryKey: ['lead-live-emails', lead.email],
-    queryFn: async () => {
-      const res = await base44.functions.invoke('syncGmailEmails', { clientEmail: lead.email });
-      return res.data?.emails || [];
-    },
-    enabled: !!lead.email,
-    staleTime: 60_000,
-  });
 
   const updateLeadMutation = useMutation({
     mutationFn: (data) => base44.entities.Lead.update(lead.id, data),
@@ -416,7 +404,6 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                 Proposals ({displayProposalCount})
               </TabsTrigger>
               <TabsTrigger value="activity" className="text-sm">Activity</TabsTrigger>
-              <TabsTrigger value="emails" className="text-sm">Emails</TabsTrigger>
             </TabsList>
 
             {/* Overview */}
@@ -732,11 +719,6 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
             {/* Activity */}
             <TabsContent value="activity" className="p-6 mt-0">
               <InteractionTimeline lead_id={lead.id} onUpdate={onUpdate} />
-            </TabsContent>
-
-            {/* Emails */}
-            <TabsContent value="emails" className="p-6 mt-0">
-              <GmailHistory clientEmail={lead.email} leadId={lead.id} liveEmails={liveEmails} />
             </TabsContent>
           </Tabs>
         </div>

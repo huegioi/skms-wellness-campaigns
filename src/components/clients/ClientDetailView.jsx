@@ -17,7 +17,6 @@ import {
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import TaskList from '@/components/tasks/TaskList';
-import GmailHistory from '@/components/clients/GmailHistory';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 import FollowUpSettings from '@/components/clients/FollowUpSettings';
@@ -126,7 +125,6 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
     retry: false
   });
   const gmailEmailCount = typeof gmailData === 'number' ? gmailData : (gmailData?.emails?.length || 0);
-  const liveEmails = gmailData?.emails || null;
 
   const { data: allTemplates = [] } = useQuery({
     queryKey: ['emailTemplates'],
@@ -318,7 +316,6 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           <TabsTrigger value="invoices" className="flex-shrink-0">Invoices ({clientInvoices.length})</TabsTrigger>
           <TabsTrigger value="interactions" className="flex-shrink-0">Activity ({interactions.length})</TabsTrigger>
           <TabsTrigger value="tasks" className="flex-shrink-0">Tasks</TabsTrigger>
-          <TabsTrigger value="emails" className="flex-shrink-0">Emails</TabsTrigger>
           <TabsTrigger value="portal" className="flex-shrink-0">Portal Docs</TabsTrigger>
           <TabsTrigger value="schedule" className="flex-shrink-0">Schedule</TabsTrigger>
           <TabsTrigger value="followup" className="flex-shrink-0">Follow-Up</TabsTrigger>
@@ -732,11 +729,6 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
         {/* Interactions Tab */}
         <TabsContent value="interactions" className="mt-4">
           <InteractionTimeline client_id={client.id} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['client', client.id] })} />
-        </TabsContent>
-
-        {/* Emails Tab */}
-        <TabsContent value="emails" className="mt-4">
-          <GmailHistory clientEmail={client.email} clientId={client.id} liveEmails={liveEmails} />
         </TabsContent>
 
         {/* Tasks Tab */}
