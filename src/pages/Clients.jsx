@@ -21,6 +21,10 @@ import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 import BrokersEditor from '@/components/clients/BrokersEditor';
 import { TagSelector } from '@/components/ui/TagSelector';
 import ClientPipelineView from '@/components/clients/ClientPipelineView';
+import { ActivityStrip } from '@/components/shared/ActivityStrip';
+import { useClientDeliveryStatus } from '@/hooks/useClientDeliveryStatus';
+import { isInRenewalRamp } from '@/lib/renewal';
+import { CLIENT_STAGES } from '@/components/shared/constants';
 import TagFilter from '@/components/ui/TagFilter';
 import TagManager from '@/components/ui/TagManager';
 import { LayoutList, Columns, Settings } from 'lucide-react';
@@ -190,6 +194,43 @@ export default function Clients() {
     queryKey: ['proposals'],
     queryFn: () => base44.entities.Proposal.list('-created_date')
   });
+
+  const { data: listInteractions = [] } = useQuery({
+    queryKey: ['interactions-clients-list'],
+    queryFn: () => base44.entities.ClientInteraction.list('-date', 500),
+  });
+
+  const { data: listEvents = [] } = useQuery({
+    queryKey: ['calendar-events-clients-list'],
+    queryFn: () => base44.entities.CalendarEvent.list('start_date', 200),
+  });
+
+  const latestInteractionByClient = React.useMemo(() => {
+    const map = {};
+    for (const i of listInteractions) {
+      if (!i.client_id) continue;
+      if (!map[i.client_id] || new Date(i.date) > new Date(map[i.client_id].date)) {
+        map[i.client_id] = i;
+      }
+    }
+    return map;
+  }, [listInteractions]);
+
+  const nextEventByClient = React.useMemo(() => {
+    const now = new Date();
+    const map = {};
+    for (const e of listEvents) {
+      if (!e.client_id) continue;
+      const start = new Date(e.start_date);
+      if (start < now) continue;
+      if (!map[e.client_id] || start < new Date(map[e.client_id].start_date)) {
+        map[e.client_id] = e;
+      }
+    }
+    return map;
+  }, [listEvents]);
+
+  const deliverySnapshots = useClientDeliveryStatus(clients);
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Client.create(data),
@@ -728,6 +769,34 @@ export default function Clients() {
                             <span className="flex items-center gap-1 text-sm text-gray-500"><Calendar className="w-4 h-4" /> {new Date(client.last_contacted_date).toLocaleDateString()}</span>
                           )}
                         </div>
+                        {/* Vitals line */}
+                        {(() => {
+                          const stage = CLIENT_STAGES.find(s => s.key === client.client_stage) || CLIENT_STAGES.find(s => s.key === '__none__');
+                          const snap = deliverySnapshots[client.id];
+                          const inRenewal = isInRenewalRamp(client);
+                          return (
+                            <div className="flex flex-wrap items-center gap-2 mt-2">
+                              <span className={`text-xs px-2 py-0.5 rounded-full border ${stage.headerClass} ${stage.textClass}`}>{stage.label}</span>
+                              {snap && snap.totalServices > 0 && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+                                  {snap.deliveredCount}/{snap.totalServices} delivered
+                                </span>
+                              )}
+                              {inRenewal && client.renewal_cohort && (
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-medium">
+                                  ↻ {client.renewal_cohort}
+                                </span>
+                              )}
+                              <ActivityStrip
+                                compact
+                                touchDate={latestInteractionByClient[client.id]?.date || client.last_contacted_date || client.last_contacted}
+                                touchChannel={latestInteractionByClient[client.id]?.channel || 'other'}
+                                nextEvent={nextEventByClient[client.id]}
+                                followUpDate={client.follow_up_due_date}
+                              />
+                            </div>
+                          );
+                        })()}
                       </div>
                       <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 ml-2 flex-shrink-0">
                         <div className="flex items-center gap-1">

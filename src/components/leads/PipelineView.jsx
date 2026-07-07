@@ -5,7 +5,7 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { PipelineCard } from '@/components/shared/PipelineCard';
 import { LEAD_STATUS_STAGES } from '@/components/shared/constants';
 import { normalizeLeadStatus } from '@/lib/statusConfig';
-import { LeadActivityStrip } from '@/components/leads/LeadActivityStrip';
+import { ActivityStrip } from '@/components/shared/ActivityStrip';
 import LeadPlaybookDialog from '@/components/leads/LeadPlaybookDialog';
 import EngagementBoard from '@/components/leads/EngagementBoard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -121,11 +121,14 @@ function StatusColumn({ col, leads, handlers, latestInteractionByLead, nextEvent
                     alertBadges={<LeadAlertBadges lead={lead} />}
                     accentColor={accent}
                     activityStrip={
-                      <LeadActivityStrip
-                        lead={lead}
-                        latestInteraction={latestInteractionByLead[lead.id]}
-                        nextEvent={nextEventByLead[lead.id]}
+                      <ActivityStrip
+                        touchDate={latestInteractionByLead[lead.id]?.date || lead.last_contacted_date}
+                        touchChannel={latestInteractionByLead[lead.id]?.channel || lead.outreach_channel || 'other'}
                         staleThreshold={col.staleThreshold}
+                        nextEvent={nextEventByLead[lead.id]}
+                        followUpDate={lead.follow_up_due_date}
+                        recordId={lead.id}
+                        owner={lead.owner}
                         onOwnerChange={handlers.onOwnerChange}
                         onFollowUpDateChange={handlers.onFollowUpDateChange}
                       />

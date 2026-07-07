@@ -16,6 +16,7 @@ import PendingReferralsReview from '@/components/referrals/PendingReferralsRevie
 import QuickBuilderInquiriesBanner from '@/components/leads/QuickBuilderInquiriesBanner';
 import QuickBuilderInquiriesList from '@/components/leads/QuickBuilderInquiriesList';
 import PipelineView from '@/components/leads/PipelineView';
+import { ActivityStrip, getLeadStaleThreshold } from '@/components/shared/ActivityStrip';
 import MergePartnerDuplicatesPanel from '@/components/leads/MergePartnerDuplicatesPanel';
 import TagFilter from '@/components/ui/TagFilter';
 import TagManager from '@/components/ui/TagManager';
@@ -323,6 +324,41 @@ export default function Leads() {
     queryFn: () => base44.entities.Referral.list('-created_date')
   });
 
+  const { data: listInteractions = [] } = useQuery({
+    queryKey: ['interactions-list'],
+    queryFn: () => base44.entities.ClientInteraction.list('-date', 500),
+  });
+
+  const { data: listEvents = [] } = useQuery({
+    queryKey: ['calendar-events-list'],
+    queryFn: () => base44.entities.CalendarEvent.list('start_date', 200),
+  });
+
+  const latestInteractionByLead = React.useMemo(() => {
+    const map = {};
+    for (const i of listInteractions) {
+      if (!i.lead_id) continue;
+      if (!map[i.lead_id] || new Date(i.date) > new Date(map[i.lead_id].date)) {
+        map[i.lead_id] = i;
+      }
+    }
+    return map;
+  }, [listInteractions]);
+
+  const nextEventByLead = React.useMemo(() => {
+    const now = new Date();
+    const map = {};
+    for (const e of listEvents) {
+      if (!e.lead_id) continue;
+      const start = new Date(e.start_date);
+      if (start < now) continue;
+      if (!map[e.lead_id] || start < new Date(map[e.lead_id].start_date)) {
+        map[e.lead_id] = e;
+      }
+    }
+    return map;
+  }, [listEvents]);
+
   const pendingReferrals = referrals.filter(r => r.status === 'pending_review');
 
   React.useEffect(() => {
@@ -571,7 +607,7 @@ export default function Leads() {
     return matchSearch && matchStatus && matchOwner && matchTags;
   });
 
-  const BrokerLeadCard = ({ lead }) => {
+  const BrokerLeadCard = ({ lead, latestInteraction, nextEvent }) => {
     const [showEmails, setShowEmails] = useState(false);
     const statusCfg = STATUS_CONFIG[lead.status || 'cold'] || STATUS_CONFIG.cold;
     const partnerCfg = PARTNER_STATUS_CONFIG[lead.partner_status || 'new'] || PARTNER_STATUS_CONFIG.new;
@@ -653,23 +689,17 @@ export default function Leads() {
               )}
             </div>
 
-            {/* Always show last contacted + other details */}
-            <div className="flex flex-wrap gap-2 mt-2">
+            {/* Vitals line */}
+            <div className="flex flex-wrap items-center gap-2 mt-2">
               {lead.industry && <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full">{lead.industry}</span>}
-              {lead.last_contacted_date && !isActive && (
-                <span className={`text-xs font-medium ${contactUrgency}`}>
-                  Last contact: {new Date(lead.last_contacted_date).toLocaleDateString()} ({lastContactedAgo})
-                </span>
-              )}
-              {lead.last_contacted_date && isActive && (
-                <span className={`text-xs font-medium ${contactUrgency} flex items-center gap-1`}>
-                  <Mail className="w-3 h-3" /> Last contact: {new Date(lead.last_contacted_date).toLocaleDateString()} ({lastContactedAgo})
-                </span>
-              )}
-              {!lead.last_contacted_date && (
-                <span className="text-xs text-gray-400 italic">No contact date recorded</span>
-              )}
-              {lead.next_followup_date && <span className="text-xs text-amber-600">Follow-up: {new Date(lead.next_followup_date).toLocaleDateString()}</span>}
+              <ActivityStrip
+                compact
+                touchDate={latestInteraction?.date || lead.last_contacted_date}
+                touchChannel={latestInteraction?.channel || lead.outreach_channel || 'other'}
+                staleThreshold={getLeadStaleThreshold(lead.status)}
+                nextEvent={nextEvent}
+                followUpDate={lead.follow_up_due_date || lead.next_followup_date}
+              />
             </div>
 
             {/* Active partner: last 3 referrals */}
@@ -908,7 +938,7 @@ export default function Leads() {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredBrokerLeads.map(lead => <BrokerLeadCard key={lead.id} lead={lead} />)}
+                {filteredBrokerLeads.map(lead => <BrokerLeadCard key={lead.id} lead={lead} latestInteraction={latestInteractionByLead[lead.id]} nextEvent={nextEventByLead[lead.id]} />)}
               </div>
             )}
           </TabsContent>

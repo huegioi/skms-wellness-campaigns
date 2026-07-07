@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Copy, ExternalLink, Check, Users, DollarSign, AlertTriangle } from 'lucide-react';
 import { PipelineCard } from '@/components/shared/PipelineCard';
 import { PARTNER_STAGES } from '@/components/shared/constants';
-import { PartnerActivityStrip } from '@/components/partners/PartnerActivityStrip';
+import { ActivityStrip } from '@/components/shared/ActivityStrip';
 import { getActiveCohort } from '@/lib/renewal';
 import LogTouchDialog from '@/components/dashboard/LogTouchDialog';
 
@@ -135,11 +135,14 @@ function StageColumn({ stage, partners, referrals, latestInteractionByPartner, n
                       onDelete={onDelete}
                       alertBadges={<PartnerAlertBadges partner={partner} referrals={referrals} assist={renewalAssistByPartner[partner.id]} onLogTouch={onLogTouch} />}
                       activityStrip={
-                        <PartnerActivityStrip
-                          partner={partner}
-                          latestInteraction={latestInteractionByPartner[partner.id]}
-                          nextEvent={nextEventByPartner[partner.id]}
+                        <ActivityStrip
+                          touchDate={latestInteractionByPartner[partner.id]?.date || partner.last_touchpoint_date || partner.last_contacted_date}
+                          touchChannel={latestInteractionByPartner[partner.id]?.channel || 'other'}
                           staleThreshold={stage.staleThreshold}
+                          nextEvent={nextEventByPartner[partner.id]}
+                          followUpDate={partner.follow_up_due_date}
+                          recordId={partner.id}
+                          owner={partner.owner}
                           onOwnerChange={onOwnerChange}
                           onFollowUpDateChange={onFollowUpDateChange}
                         />

@@ -7,9 +7,12 @@ import { FollowUpDatePill } from '@/components/shared/inline/FollowUpDatePill';
 const CHANNEL_META = {
   email:    { icon: Mail,           label: 'emailed' },
   call:     { icon: Phone,           label: 'called' },
+  phone:    { icon: Phone,           label: 'called' },
   text:     { icon: MessageSquare,   label: 'texted' },
   linkedin: { icon: MessageSquare,   label: 'LinkedIn' },
   meeting:  { icon: Users,           label: 'met' },
+  referral: { icon: Users,           label: 'referred' },
+  event:    { icon: Calendar,        label: 'event' },
   other:    { icon: Clock,           label: 'touched' },
 };
 
@@ -24,21 +27,28 @@ function timeAgo(dateStr) {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
+/** Stale threshold (days) based on lead acquisition status. */
+export function getLeadStaleThreshold(status) {
+  const map = {
+    cold: 3, contacted: 3, responded: 5, in_conversation: 5,
+    meeting_scheduled: 7, proposal_sent: 7,
+  };
+  return map[status] || null;
+}
+
 /**
- * Two-line activity strip for partner pipeline cards.
+ * Shared activity strip: last touch (channel icon + relative time, red when stale)
+ * and next (upcoming event / follow-up date / ⚠ nothing scheduled).
  *
- * Line 1 — last touch: channel icon + "emailed · 3d ago" (red when stale).
- * Line 2 — next: follow-up pill, else "⚠️ nothing scheduled".
- *
- * Props:
- *  - partner: the ReferralPartner entity
- *  - latestInteraction: most recent ClientInteraction for this partner (or null)
- *  - staleThreshold: max days before the last touch is shown in red (null = no stale check)
- *  - onOwnerChange, onFollowUpDateChange: callbacks
+ * compact=true → single inline line for list rows.
+ * compact=false → two lines (owner + last touch, then next) for board cards.
  */
-export function PartnerActivityStrip({ partner, latestInteraction, nextEvent, staleThreshold, onOwnerChange, onFollowUpDateChange }) {
-  const touchDate = latestInteraction?.date || partner.last_touchpoint_date || partner.last_contacted_date;
-  const touchChannel = latestInteraction?.channel || 'other';
+export function ActivityStrip({
+  touchDate, touchChannel = 'other', staleThreshold = null,
+  nextEvent, followUpDate, onFollowUpDateChange, recordId,
+  owner, onOwnerChange,
+  compact = false,
+}) {
   const channelMeta = CHANNEL_META[touchChannel] || CHANNEL_META.other;
   const ChannelIcon = channelMeta.icon;
   const ago = timeAgo(touchDate);
@@ -46,14 +56,21 @@ export function PartnerActivityStrip({ partner, latestInteraction, nextEvent, st
   const touchDays = touchDate ? differenceInDays(new Date(), new Date(touchDate)) : null;
   const isStale = staleThreshold && touchDays !== null && touchDays > staleThreshold;
 
+  const touchLine = ago ? (
+    <span className={`text-xs flex items-center gap-0.5 ${isStale ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+      <ChannelIcon className="w-3 h-3" />
+      {channelMeta.label} · {ago}
+    </span>
+  ) : (
+    <span className="text-xs text-gray-400 italic">No contact yet</span>
+  );
+
   let nextLine = null;
   if (nextEvent) {
     let eventLabel = 'Event';
     try {
       const parsed = parseISO(nextEvent.start_date);
-      if (isValid(parsed)) {
-        eventLabel = format(parsed, 'EEE h:mm a');
-      }
+      if (isValid(parsed)) eventLabel = format(parsed, 'EEE h:mm a');
     } catch { /* keep default */ }
     nextLine = (
       <span className="text-xs text-blue-600 flex items-center gap-0.5 font-medium">
@@ -61,9 +78,14 @@ export function PartnerActivityStrip({ partner, latestInteraction, nextEvent, st
         {eventLabel}
       </span>
     );
-  } else if (partner.follow_up_due_date) {
-    nextLine = (
-      <FollowUpDatePill value={partner.follow_up_due_date} onSave={(v) => onFollowUpDateChange(partner.id, v)} />
+  } else if (followUpDate) {
+    nextLine = onFollowUpDateChange ? (
+      <FollowUpDatePill value={followUpDate} onSave={(v) => onFollowUpDateChange(recordId, v)} />
+    ) : (
+      <span className="text-xs text-amber-600 flex items-center gap-0.5 font-medium">
+        <Calendar className="w-3 h-3" />
+        {(() => { try { return format(parseISO(followUpDate), 'MMM d'); } catch { return followUpDate; } })()}
+      </span>
     );
   } else {
     nextLine = (
@@ -74,22 +96,24 @@ export function PartnerActivityStrip({ partner, latestInteraction, nextEvent, st
     );
   }
 
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2 flex-wrap">
+        {touchLine}
+        <span className="text-gray-300">·</span>
+        {nextLine}
+      </div>
+    );
+  }
+
   return (
     <>
-      {/* Line 1: Owner + last touch */}
       <div className="flex items-center gap-1.5 flex-wrap">
-        <OwnerChip value={partner.owner} onSave={(v) => onOwnerChange(partner.id, v)} />
-        {ago ? (
-          <span className={`text-xs flex items-center gap-0.5 ${isStale ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
-            <ChannelIcon className="w-3 h-3" />
-            {channelMeta.label} · {ago}
-          </span>
-        ) : (
-          <span className="text-xs text-gray-400 italic">No contact yet</span>
+        {owner !== undefined && onOwnerChange && (
+          <OwnerChip value={owner} onSave={(v) => onOwnerChange(recordId, v)} />
         )}
+        {touchLine}
       </div>
-
-      {/* Line 2: Next */}
       <div className="flex items-center gap-1">
         {nextLine}
       </div>
@@ -97,4 +121,4 @@ export function PartnerActivityStrip({ partner, latestInteraction, nextEvent, st
   );
 }
 
-export default PartnerActivityStrip;
+export default ActivityStrip;
