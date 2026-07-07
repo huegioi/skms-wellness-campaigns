@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -118,6 +119,14 @@ export default function EditProposal() {
             await createDefaultTasksForClient(base44, proposal.client_id, proposal.client_name, savedProposal);
           }
           await markTaskComplete(base44, proposal.client_id, 'Send or Accept Proposal', 'proposal_accepted', proposalId);
+          try {
+            const res = await base44.functions.invoke('autoAdvanceClientStage', { trigger: 'proposal_accepted', proposal_id: proposalId });
+            if (res.data?.transitioned) {
+              toast.success('Client stage → New Client Setup', {
+                description: `${res.data.client_name} auto-advanced from ${res.data.from_stage || 'empty'}.`,
+              });
+            }
+          } catch { /* non-fatal */ }
         }
       }
       setIsDirty(false);

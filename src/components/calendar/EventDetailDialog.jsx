@@ -231,6 +231,14 @@ END:VCALENDAR`;
         completed_date: new Date().toISOString()
       });
       toast.success('Event marked as completed');
+      try {
+        const res = await base44.functions.invoke('autoAdvanceClientStage', { trigger: 'event_completed', event_id: event.id });
+        if (res.data?.transitioned) {
+          toast.success('Client stage → Program Delivery', {
+            description: `${res.data.client_name} advanced from New Client Setup — first completed session.`,
+          });
+        }
+      } catch { /* non-fatal */ }
       onUpdated?.();
       onOpenChange(false);
     } catch (error) {

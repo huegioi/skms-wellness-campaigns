@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -48,7 +49,19 @@ export default function Proposals() {
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }) => base44.entities.Proposal.update(id, { status }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['proposals'] })
+    onSuccess: async (_data, variables) => {
+      await queryClient.invalidateQueries({ queryKey: ['proposals'] });
+      if (variables.status === 'accepted') {
+        try {
+          const res = await base44.functions.invoke('autoAdvanceClientStage', { trigger: 'proposal_accepted', proposal_id: variables.id });
+          if (res.data?.transitioned) {
+            toast.success('Client stage → New Client Setup', {
+              description: `${res.data.client_name} auto-advanced from ${res.data.from_stage || 'empty'}.`,
+            });
+          }
+        } catch { /* non-fatal — stage advance is best-effort */ }
+      }
+    }
   });
 
   const deleteMutation = useMutation({

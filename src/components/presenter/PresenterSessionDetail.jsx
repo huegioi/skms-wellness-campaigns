@@ -66,6 +66,12 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
     await base44.functions.invoke('updatePresenterSession', {
       portal_id: portalId, event_id: event.id, completed: true
     });
+    try {
+      const res = await base44.functions.invoke('autoAdvanceClientStage', { trigger: 'event_completed', event_id: event.id });
+      if (res.data?.transitioned) {
+        toast({ title: 'Client moved to Program Delivery', description: `${res.data.client_name} advanced from New Client Setup.` });
+      }
+    } catch { /* non-fatal */ }
     setCompleting(false);
     onUpdated();
   };
