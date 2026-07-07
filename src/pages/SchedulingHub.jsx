@@ -16,6 +16,9 @@ import CompanySearch from '@/components/scheduling/CompanySearch';
 import ScheduleChecklist from '@/components/scheduling/ScheduleChecklist';
 import EventDetailDialog from '@/components/calendar/EventDetailDialog';
 import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
+import DeliveryEventRow from '@/components/scheduling/DeliveryEventRow';
+import MeetingsEventRow from '@/components/scheduling/MeetingsEventRow';
+import { getEventSourceBadge, getEventLens } from '@/components/scheduling/eventLenses';
 import { isChallengeEvent, getChallengeDayProgress } from '@/lib/challengeUtils';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
@@ -70,6 +73,7 @@ export default function SchedulingHub() {
   };
   const [addingToCalendar, setAddingToCalendar] = useState(null);
   const [calendarView, setCalendarView] = useState('week'); // 'month', 'week', 'list'
+  const [eventLens, setEventLens] = useState('delivery'); // 'delivery' | 'meetings'
   const [filterType, setFilterType] = useState('all');
   const [filterPresenter, setFilterPresenter] = useState('all');
   const queryClient = useQueryClient();
@@ -418,6 +422,16 @@ export default function SchedulingHub() {
     return combined.sort((a, b) => a.date - b.date);
   })();
 
+  // Split into Delivery and Meetings lenses
+  const enrichedEvents = combinedUpcomingEvents.map(event => ({
+    ...event,
+    sourceBadge: getEventSourceBadge(event),
+    lens: getEventLens(event),
+  }));
+  const deliveryEvents = enrichedEvents.filter(e => e.lens === 'delivery');
+  const meetingEvents = enrichedEvents.filter(e => e.lens === 'meetings');
+  const lensEvents = eventLens === 'delivery' ? deliveryEvents : meetingEvents;
+
   const addSheetEventToAppCalendar = async (event) => {
     setAddingToCalendar(event.title);
     try {
@@ -688,114 +702,64 @@ export default function SchedulingHub() {
           />
         )}
 
-        {/* Coming Up Section - Combined Events */}
+        {/* Coming Up Section - with Delivery/Meetings lens toggle */}
         {combinedUpcomingEvents.length > 0 && (
           <Card className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
             <div className="p-6">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2" style={{ color: '#013f7c' }}>
-                <Clock className="w-5 h-5" />
-                Coming Up (Next 30 Days)
-              </h2>
-              <div className="space-y-3">
-                {combinedUpcomingEvents.slice(0, 10).map((event, idx) => (
-                  <div 
-                    key={event.source === 'calendar' ? event.id : `sheet-${idx}`} 
-                    className={`rounded-lg p-4 border hover:shadow-md transition-shadow ${
-                      event.isPast 
-                        ? 'bg-gray-50 border-gray-200 opacity-70' 
-                        : event.source === 'calendar' 
-                          ? 'bg-white cursor-pointer border-blue-100' 
-                          : 'bg-white border-gray-200'
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: '#013f7c' }}>
+                  <Clock className="w-5 h-5" />
+                  Coming Up (Next 30 Days)
+                </h2>
+                <div className="flex gap-1 border rounded-lg p-1 bg-white">
+                  <button
+                    onClick={() => setEventLens('delivery')}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      eventLens === 'delivery' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
                     }`}
-                    onClick={() => !event.isPast && event.source === 'calendar' && setSelectedEvent(event)}
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
-                      <div className="flex items-center gap-3 min-w-[140px]">
-                        <Calendar className={`w-5 h-5 ${event.isPast ? 'text-gray-400' : event.source === 'calendar' ? 'text-blue-600' : 'text-gray-500'}`} />
-                        <div>
-                          <div className={`font-semibold text-sm ${event.isPast ? 'text-gray-400' : ''}`} style={event.isPast ? {} : { color: '#013f7c' }}>
-                            {event.source === 'calendar' 
-                              ? format(parseISO(event.start_date), 'MMM d')
-                              : event.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                            }
-                          </div>
-                          {event.source === 'calendar' && !event.all_day && (
-                            <div className="text-xs text-gray-500">{format(parseISO(event.start_date), 'h:mm a')}</div>
-                          )}
-                          {event.source === 'sheet' && event.time && (
-                            <div className="text-xs text-gray-500">{event.time}</div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className={`font-semibold ${event.isPast ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{event.title}</div>
-                          {event.isPast && (
-                            <span className="text-xs px-2 py-0.5 rounded bg-gray-200 text-gray-500">Past</span>
-                          )}
-                          {!event.isPast && event.source === 'calendar' && event.google_event_id && (
-                            <CheckCircle2 className="w-4 h-4 text-green-600" />
-                          )}
-                          {!event.isPast && event.source === 'sheet' && (
-                            <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
-                              From Sheet
-                            </span>
-                          )}
-                          {event.isPast && event.source === 'sheet' && (
-                            <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-400">
-                              From Sheet
-                            </span>
-                          )}
-                        </div>
-                        {event.client_name && (
-                          <div className={`text-sm flex items-center gap-1 mb-1 ${event.isPast ? 'text-gray-400' : 'text-gray-600'}`}>
-                            <Users className="w-3 h-3" />
-                            {event.client_name}
-                          </div>
-                        )}
-                        {event.presenter && (
-                          <div className={`text-sm mb-1 ${event.isPast ? 'text-gray-400' : 'text-gray-600'}`}>
-                            <span className="font-medium">Presenter:</span> {event.presenter}
-                          </div>
-                        )}
-                        {event.location && (
-                          <div className={`text-sm flex items-start gap-1 ${event.isPast ? 'text-gray-400' : 'text-gray-600'}`}>
-                            <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                            <span className="break-all">{event.location}</span>
-                          </div>
-                        )}
-                        {event.source === 'calendar' && isChallengeEvent(event, allServices.find(s => s.id === event.service_id)?.category) && (
-                          <div className="mt-2 pt-2 border-t border-gray-100">
-                            <FacilitationChecklist
-                              day0Count={getEventAssessmentCounts(event).day0}
-                              day14Count={getEventAssessmentCounts(event).day14}
-                              hasRecording={!!event.recording_link}
-                              compact
-                            />
-                          </div>
-                        )}
-                      </div>
-                      {!event.isPast && event.source === 'sheet' && (
-                        <Button
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            addSheetEventToAppCalendar(event);
-                          }}
-                          disabled={addingToCalendar === event.title}
-                          className="bg-[#264d44] hover:bg-[#1a3830] whitespace-nowrap self-start"
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          {addingToCalendar === event.title ? 'Adding...' : 'Add to Calendar'}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                    Delivery ({deliveryEvents.length})
+                  </button>
+                  <button
+                    onClick={() => setEventLens('meetings')}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                      eventLens === 'meetings' ? 'bg-[#264d44] text-white' : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    Meetings ({meetingEvents.length})
+                  </button>
+                </div>
               </div>
-              {combinedUpcomingEvents.length > 10 && (
+              <div className="space-y-3">
+                {lensEvents.length === 0 ? (
+                  <p className="text-center text-gray-500 py-8">
+                    No {eventLens === 'delivery' ? 'deliveries' : 'meetings'} coming up.
+                  </p>
+                ) : eventLens === 'delivery' ? (
+                  lensEvents.slice(0, 10).map((event, idx) => (
+                    <DeliveryEventRow
+                      key={event.source === 'calendar' ? event.id : `sheet-${idx}`}
+                      event={event}
+                      allServices={allServices}
+                      getEventAssessmentCounts={getEventAssessmentCounts}
+                      onSelectEvent={setSelectedEvent}
+                      onAddToCalendar={addSheetEventToAppCalendar}
+                      addingToCalendar={addingToCalendar}
+                    />
+                  ))
+                ) : (
+                  lensEvents.slice(0, 10).map((event, idx) => (
+                    <MeetingsEventRow
+                      key={event.id || `meeting-${idx}`}
+                      event={event}
+                      onSelectEvent={setSelectedEvent}
+                    />
+                  ))
+                )}
+              </div>
+              {lensEvents.length > 10 && (
                 <p className="text-sm text-gray-500 mt-3 text-center">
-                  +{combinedUpcomingEvents.length - 10} more event{combinedUpcomingEvents.length - 10 !== 1 ? 's' : ''} coming up
+                  +{lensEvents.length - 10} more event{lensEvents.length - 10 !== 1 ? 's' : ''} coming up
                 </p>
               )}
             </div>
