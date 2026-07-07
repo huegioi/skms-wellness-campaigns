@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,10 +6,29 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Bell, CalendarPlus, PhoneCall, Clock, Building, AlertTriangle, Leaf, Snowflake, X, ExternalLink, RefreshCw } from 'lucide-react';
+import { Bell, CalendarPlus, PhoneCall, Clock, Building, AlertTriangle, Leaf, Snowflake, X, ExternalLink, RefreshCw, Mail, Phone, MessageSquare, Linkedin, Video, StickyNote } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
+import LeadsAttentionSection from '@/components/dashboard/LeadsAttentionSection';
+
+const CHANNEL_ICONS = {
+  email: Mail,
+  call: Phone,
+  text: MessageSquare,
+  linkedin: Linkedin,
+  meeting: Video,
+  other: StickyNote,
+};
+
+const CHANNEL_LABELS = {
+  email: 'Email',
+  call: 'Call',
+  text: 'Text',
+  linkedin: 'LinkedIn',
+  meeting: 'Meeting',
+  other: 'Note',
+};
 
 function getFollowUpReason(client) {
   const today = new Date();
@@ -172,6 +191,24 @@ export default function FollowUpQueue() {
     queryFn: () => base44.entities.Client.list()
   });
 
+  // Fetch interactions to derive days-since-contact + last touch channel
+  const { data: interactions = [] } = useQuery({
+    queryKey: ['interactions-followup'],
+    queryFn: () => base44.entities.ClientInteraction.list('-date', 500),
+  });
+
+  // Latest interaction per client_id
+  const latestInteractionByClient = useMemo(() => {
+    const map = {};
+    for (const i of interactions) {
+      if (!i.client_id) continue;
+      if (!map[i.client_id] || new Date(i.date) > new Date(map[i.client_id].date)) {
+        map[i.client_id] = i;
+      }
+    }
+    return map;
+  }, [interactions]);
+
   const queueClients = clients.filter(needsFollowUp);
 
   const markContacted = async (client) => {
@@ -275,9 +312,21 @@ export default function FollowUpQueue() {
                       {client.last_service_date && (
                         <span className="text-xs text-gray-500">🗓 Last service: <strong>{new Date(client.last_service_date).toLocaleDateString()}</strong></span>
                       )}
-                      {client.last_contacted_date && (
-                        <span className="text-xs text-gray-500">📞 Last contacted: <strong>{new Date(client.last_contacted_date).toLocaleDateString()}</strong></span>
-                      )}
+                      {(() => {
+                        const latest = latestInteractionByClient[client.id];
+                        const touchDate = latest?.date || client.last_contacted_date;
+                        const touchChannel = latest?.channel || 'other';
+                        const ChannelIcon = CHANNEL_ICONS[touchChannel] || StickyNote;
+                        const daysSince = touchDate ? Math.floor((new Date() - new Date(touchDate)) / 86400000) : null;
+                        return daysSince !== null ? (
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <ChannelIcon className="w-3 h-3" />
+                            {CHANNEL_LABELS[touchChannel] || 'Touch'} · {daysSince}d ago
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic">No contact yet</span>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="flex gap-2 flex-shrink-0 flex-wrap">
@@ -329,6 +378,8 @@ export default function FollowUpQueue() {
           </div>
         </CardContent>
       </Card>
+
+      <LeadsAttentionSection />
 
       <BookSessionDialog
         client={bookingClient}

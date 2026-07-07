@@ -11,7 +11,7 @@ import { format } from 'date-fns';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import { useQuery } from '@tanstack/react-query';
 
-export default function EventDialog({ open, onOpenChange, selectedDate, clients, proposals, eventTypeConfig, onSaved }) {
+export default function EventDialog({ open, onOpenChange, selectedDate, clients, proposals, eventTypeConfig, onSaved, prefillLeadId }) {
   const [saving, setSaving] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState(null);
   const [showServicePicker, setShowServicePicker] = useState(false);
@@ -53,6 +53,23 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     presenter_id: '',
     color: ''
   });
+
+  // Prefill a lead when opened from outside the scheduler (e.g., follow-up queue "Book Call")
+  useEffect(() => {
+    if (open && prefillLeadId) {
+      const lead = leads.find(l => l.id === prefillLeadId);
+      if (lead) {
+        setFormData(prev => ({
+          ...prev,
+          lead_id: prefillLeadId,
+          client_id: '',
+          client_name: lead.name || '',
+          proposal_id: '',
+        }));
+        setSelectedProposal(null);
+      }
+    }
+  }, [open, prefillLeadId, leads]);
 
   // Unified contact picker — value encodes type:id ('client:<id>' | 'lead:<id>' | 'none')
   const handleContactChange = (value) => {
