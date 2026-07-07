@@ -6,8 +6,9 @@ const CHALLENGE_APP_TASK = '[CHALLENGE] SETUP — Challenge added to the Skillfu
 
 async function completeTask(base44, filter, sourceEvent) {
   const tasks = await base44.asServiceRole.entities.ClientTask.filter(filter);
-  if (tasks.length > 0) {
-    await base44.asServiceRole.entities.ClientTask.update(tasks[0].id, {
+  const pending = tasks.find(t => t.status !== 'completed');
+  if (pending) {
+    await base44.asServiceRole.entities.ClientTask.update(pending.id, {
       status: 'completed',
       completed_date: new Date().toISOString(),
       source_event: sourceEvent,
@@ -42,22 +43,21 @@ Deno.serve(async (req) => {
       } catch { /* service not found — ignore */ }
     }
 
-    // Trigger 1: event_scheduled — complete "Event Scheduling" task
+    // Trigger 1: event_scheduled — complete "Event Scheduling" task (any non-completed status)
     if (proposalId) {
       const did = await completeTask(base44, {
         proposal_id: proposalId,
         description: EVENT_SCHEDULING_TASK,
-        status: 'pending',
       }, 'event_scheduled');
       if (did) completed.push('event_scheduling');
     }
 
-    // Trigger 2: challenge_scheduled — complete [CHALLENGE] SETUP app task
+    // Trigger 2: challenge_event_created — complete [CHALLENGE] SETUP app task
     if (isChallenge && (proposalId || clientId)) {
       const filter = proposalId
-        ? { proposal_id: proposalId, description: CHALLENGE_APP_TASK, status: 'pending' }
-        : { client_id: clientId, description: CHALLENGE_APP_TASK, status: 'pending' };
-      const did = await completeTask(base44, filter, 'challenge_scheduled');
+        ? { proposal_id: proposalId, description: CHALLENGE_APP_TASK }
+        : { client_id: clientId, description: CHALLENGE_APP_TASK };
+      const did = await completeTask(base44, filter, 'challenge_event_created');
       if (did) completed.push('challenge_app_setup');
     }
 
