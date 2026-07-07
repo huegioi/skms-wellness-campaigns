@@ -21,6 +21,7 @@ import { InlineText } from '@/components/shared/inline/InlineText';
 import { InlineSelect } from '@/components/shared/inline/InlineSelect';
 import { LEAD_STAGES } from '@/components/shared/constants';
 import { LEAD_STATUS_CONFIG as STATUS_CONFIG, PARTNER_STATUS_CONFIG, REFERRAL_STATUS_COLORS, PROPOSAL_STATUS_CONFIG } from '@/lib/statusConfig';
+import InteractionTimeline from '@/components/shared/InteractionTimeline';
 
 const EMPTY_REFERRAL = { date: '', company_name: '', contact_name: '', notes: '', client_id: '', proposal_id: '', partner_id: '' };
 const EMPTY_PROPOSAL_FORM = { referralId: '', proposalId: '' };
@@ -414,6 +415,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
               <TabsTrigger value="proposals" className="text-sm">
                 Proposals ({displayProposalCount})
               </TabsTrigger>
+              <TabsTrigger value="activity" className="text-sm">Activity</TabsTrigger>
               <TabsTrigger value="emails" className="text-sm">Emails</TabsTrigger>
             </TabsList>
 
@@ -725,6 +727,11 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                   </div>
                 </>
               )}
+            </TabsContent>
+
+            {/* Activity */}
+            <TabsContent value="activity" className="p-6 mt-0">
+              <InteractionTimeline lead_id={lead.id} onUpdate={onUpdate} />
             </TabsContent>
 
             {/* Emails */}

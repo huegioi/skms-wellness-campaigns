@@ -35,6 +35,7 @@ import CollapsibleFieldSection from '@/components/shared/CollapsibleFieldSection
 import { InlineText } from '@/components/shared/inline/InlineText';
 import { InlineSelect } from '@/components/shared/inline/InlineSelect';
 import { CLIENT_STAGES } from '@/components/shared/constants';
+import InteractionTimeline from '@/components/shared/InteractionTimeline';
 
 const statusConfig = {
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
@@ -44,28 +45,11 @@ const statusConfig = {
   declined: { label: 'Declined', color: 'bg-red-100 text-red-700', icon: XCircle }
 };
 
-const interactionIcons = {
-  call: PhoneCall,
-  email: Mail,
-  meeting: Video,
-  note: StickyNote
-};
-
 export default function ClientDetailView({ client: initialClient, onClose, onUpdate }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [showAddContact, setShowAddContact] = useState(false);
-  const [showAddInteraction, setShowAddInteraction] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', title: '', notes: '' });
-  const [interactionForm, setInteractionForm] = useState({
-    interaction_type: 'call',
-    date: new Date().toISOString().slice(0, 16),
-    subject: '',
-    notes: '',
-    outcome: '',
-    follow_up_date: '',
-    proposal_id: ''
-  });
   const [viewingProposal, setViewingProposal] = useState(null);
   const [showAddService, setShowAddService] = useState(false);
   const [serviceToAdd, setServiceToAdd] = useState('');
@@ -148,22 +132,6 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
     client.invoice_ids?.includes(inv.id) || 
     inv.client_email?.toLowerCase() === client.email?.toLowerCase()
   );
-
-  const createInteractionMutation = useMutation({
-    mutationFn: (data) => base44.entities.ClientInteraction.create({ ...data, client_id: client.id }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['interactions', client.id] });
-      setShowAddInteraction(false);
-      setInteractionForm({ interaction_type: 'call', date: new Date().toISOString().slice(0, 16), subject: '', notes: '', outcome: '', follow_up_date: '', proposal_id: '' });
-      // Update last_contacted
-      onUpdate({ last_contacted: new Date().toISOString() });
-    }
-  });
-
-  const deleteInteractionMutation = useMutation({
-    mutationFn: (id) => base44.entities.ClientInteraction.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['interactions', client.id] })
-  });
 
   const handleAddContact = () => {
     const contacts = [...(client.related_contacts || [])];
@@ -747,54 +715,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
 
         {/* Interactions Tab */}
         <TabsContent value="interactions" className="mt-4">
-          <div className="flex justify-between items-center mb-4">
-            <h4 className="font-semibold text-gray-700">Activity Log</h4>
-            <Button size="sm" variant="outline" onClick={() => setShowAddInteraction(true)}>
-              <Plus className="w-4 h-4 mr-1" /> Log Interaction
-            </Button>
-          </div>
-
-          <div className="space-y-3">
-            {interactions.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">No interactions logged yet</p>
-            ) : (
-              interactions.map(interaction => {
-                const Icon = interactionIcons[interaction.interaction_type] || MessageSquare;
-                const linkedProposal = proposals.find(p => p.id === interaction.proposal_id);
-                return (
-                  <div key={interaction.id} className="bg-white border rounded-lg p-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex gap-3">
-                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                          <Icon className="w-5 h-5 text-gray-600" />
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-semibold capitalize">{interaction.interaction_type}</p>
-                            {interaction.subject && <span className="text-gray-500">- {interaction.subject}</span>}
-                          </div>
-                          <p className="text-sm text-gray-500">{new Date(interaction.date).toLocaleString()}</p>
-                          {interaction.notes && <p className="text-sm text-gray-600 mt-1">{interaction.notes}</p>}
-                          {interaction.outcome && <p className="text-sm text-green-600 mt-1"><strong>Outcome:</strong> {interaction.outcome}</p>}
-                          {interaction.follow_up_date && (
-                            <p className="text-sm text-amber-600 mt-1"><Calendar className="w-3 h-3 inline mr-1" /> Follow-up: {new Date(interaction.follow_up_date).toLocaleDateString()}</p>
-                          )}
-                          {linkedProposal && (
-                            <Badge variant="outline" className="mt-2">
-                              <FileText className="w-3 h-3 mr-1" /> ${linkedProposal.total_amount?.toLocaleString()} proposal
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                      <Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteInteractionMutation.mutate(interaction.id)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
+          <InteractionTimeline client_id={client.id} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['client', client.id] })} />
         </TabsContent>
 
         {/* Emails Tab */}
@@ -1247,47 +1168,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
         />
       )}
 
-      {/* Add Interaction Dialog */}
-      <Dialog open={showAddInteraction} onOpenChange={setShowAddInteraction}>
-        <DialogContent className="w-[95vw] sm:w-full">
-          <DialogHeader>
-            <DialogTitle>Log Interaction</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <Select value={interactionForm.interaction_type} onValueChange={(v) => setInteractionForm({ ...interactionForm, interaction_type: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="call">📞 Phone Call</SelectItem>
-                <SelectItem value="email">✉️ Email</SelectItem>
-                <SelectItem value="meeting">🎥 Meeting</SelectItem>
-                <SelectItem value="note">📝 Note</SelectItem>
-              </SelectContent>
-            </Select>
-            <Input type="datetime-local" value={interactionForm.date} onChange={(e) => setInteractionForm({ ...interactionForm, date: e.target.value })} />
-            <Input placeholder="Subject" value={interactionForm.subject} onChange={(e) => setInteractionForm({ ...interactionForm, subject: e.target.value })} />
-            <Textarea placeholder="Notes / Details" value={interactionForm.notes} onChange={(e) => setInteractionForm({ ...interactionForm, notes: e.target.value })} rows={3} />
-            <Input placeholder="Outcome / Next Steps" value={interactionForm.outcome} onChange={(e) => setInteractionForm({ ...interactionForm, outcome: e.target.value })} />
-            <div>
-              <label className="text-sm text-gray-600">Follow-up Date (optional)</label>
-              <Input type="date" value={interactionForm.follow_up_date} onChange={(e) => setInteractionForm({ ...interactionForm, follow_up_date: e.target.value })} />
-            </div>
-            {proposals.length > 0 && (
-              <Select value={interactionForm.proposal_id || "none"} onValueChange={(v) => setInteractionForm({ ...interactionForm, proposal_id: v === "none" ? "" : v })}>
-                <SelectTrigger><SelectValue placeholder="Link to Proposal (optional)" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No linked proposal</SelectItem>
-                  {proposals.map(p => (
-                    <SelectItem key={p.id} value={p.id}>${p.total_amount?.toLocaleString()} - {new Date(p.created_date).toLocaleDateString()}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            <Button onClick={() => createInteractionMutation.mutate(interactionForm)} className="w-full bg-[#264d44] hover:bg-[#1a3830]">
-              Log Interaction
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+
     </div>
   );
 }

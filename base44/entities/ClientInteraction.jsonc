@@ -4,11 +4,27 @@
   "properties": {
     "client_id": {
       "type": "string",
-      "description": "Associated client ID"
+      "description": "Associated client ID (optional \u2014 at least one of client_id / lead_id / referral_partner_id is required, enforced in code)"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Associated lead ID (optional)"
+    },
+    "referral_partner_id": {
+      "type": "string",
+      "description": "Associated referral partner ID (optional)"
     },
     "proposal_id": {
       "type": "string",
       "description": "Associated proposal ID (optional)"
+    },
+    "calendar_event_id": {
+      "type": "string",
+      "description": "Linked CalendarEvent ID (optional)"
+    },
+    "email_log_id": {
+      "type": "string",
+      "description": "Linked EmailLog ID (optional)"
     },
     "interaction_type": {
       "type": "string",
@@ -18,7 +34,19 @@
         "meeting",
         "note"
       ],
-      "description": "Type of interaction"
+      "description": "Broad interaction category (legacy)"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "email",
+        "call",
+        "text",
+        "linkedin",
+        "meeting",
+        "other"
+      ],
+      "description": "Contact channel for this touch"
     },
     "date": {
       "type": "string",
@@ -44,7 +72,6 @@
     }
   },
   "required": [
-    "client_id",
     "interaction_type",
     "date"
   ]

@@ -185,8 +185,16 @@ ${proposalHTML}
         sent_date: new Date().toISOString()
       });
 
-      // Update client's last contacted date
+      // Log the proposal send as a client interaction + update last contacted date
       if (proposal.client_id) {
+        await base44.entities.ClientInteraction.create({
+          client_id: proposal.client_id,
+          proposal_id: proposal.id,
+          channel: 'email',
+          interaction_type: 'email',
+          subject: 'Proposal sent',
+          date: new Date().toISOString()
+        });
         await base44.entities.Client.update(proposal.client_id, {
           last_contacted: new Date().toISOString()
         });

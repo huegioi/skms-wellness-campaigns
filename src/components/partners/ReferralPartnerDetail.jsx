@@ -12,6 +12,7 @@ import CollapsibleFieldSection from '@/components/shared/CollapsibleFieldSection
 import { InlineText } from '@/components/shared/inline/InlineText';
 import { PARTNER_STAGES } from '@/components/shared/constants';
 import { REFERRAL_STATUS_COLORS } from '@/lib/statusConfig';
+import InteractionTimeline from '@/components/shared/InteractionTimeline';
 
 function TierField({ value, onSave, type = 'text', placeholder, step }) {
   const [draft, setDraft] = useState(value != null ? String(value) : '');
@@ -223,6 +224,13 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
           <CollapsibleFieldSection title="Notes" icon={StickyNote}>
             <div className="sm:col-span-2">
               <InlineText multiline value={partner.notes} onSave={v => handleUpdate({ notes: v })} placeholder="Add notes..." />
+            </div>
+          </CollapsibleFieldSection>
+
+          {/* Activity Timeline */}
+          <CollapsibleFieldSection title="Activity" icon={StickyNote} defaultOpen>
+            <div className="sm:col-span-2">
+              <InteractionTimeline referral_partner_id={initialPartner.id} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['referralPartners'] })} />
             </div>
           </CollapsibleFieldSection>
 
