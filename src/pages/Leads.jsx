@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, GitMerge, Settings, Inbox } from 'lucide-react';
+import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, GitMerge, Settings, Inbox, Wrench } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
 import PendingReferralsReview from '@/components/referrals/PendingReferralsReview';
@@ -34,40 +35,6 @@ const REFERRAL_POTENTIAL_CONFIG = {
   medium: { label: 'Medium', color: 'bg-amber-100 text-amber-700' },
   high:   { label: 'High',   color: 'bg-green-100 text-green-700' },
 };
-
-const FOLLOW_UP_STAGES = [
-  'Day 1: Initial Outreach',
-  'Day 3: Follow-up #1',
-  'Day 7: Follow-up #2',
-  'Day 14: Follow-up #3',
-  'Day 30: Follow-up #4',
-  'Day 60: Follow-up #5',
-  'Day 90: Final Follow-up',
-  'Connected - Not Ready',
-  'Not Interested',
-];
-
-// Unique colors for each follow-up stage
-const STAGE_COLORS = {
-  '': 'bg-gray-100 text-gray-700 border-gray-200',
-  'Day 1 - LinkedIn Connection': 'bg-blue-50 text-blue-700 border-blue-200',
-  'Day 2 - Send email #1': 'bg-indigo-50 text-indigo-700 border-indigo-200',
-  'Day 3 - Call #1': 'bg-purple-50 text-purple-700 border-purple-200',
-  'Day 3 - Text f/u to call': 'bg-pink-50 text-pink-700 border-pink-200',
-  'Day 5 - Call #2': 'bg-red-50 text-red-700 border-red-200',
-  'Day 5 - LinkedIn f/u message': 'bg-orange-50 text-orange-700 border-orange-200',
-  'Day 7 - Send email #2': 'bg-amber-50 text-amber-700 border-amber-200',
-  'Day 10 - Call #3': 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  'Day 10 - Send email #3': 'bg-lime-50 text-lime-700 border-lime-200',
-  'Day 11 - LinkedIn message #3': 'bg-green-50 text-green-700 border-green-200',
-  'Day 15 - Send email #4': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  'Day 20 - Send email #5': 'bg-teal-50 text-teal-700 border-teal-200',
-  'Referral Partner': 'bg-cyan-50 text-cyan-700 border-cyan-200',
-};
-
-function getStageColor(stage) {
-  return STAGE_COLORS[stage] || 'bg-gray-100 text-gray-700 border-gray-200';
-}
 
 const EMPTY_BROKER_LEAD_FORM = {
   name: '', email: '', email2: '', company: '', title: '', phone: '',
@@ -655,11 +622,6 @@ export default function Leads() {
               >
                 {lead.name}
               </button>
-              {!isActive && lead.follow_up_stage && (
-                <Badge variant="outline" className={`text-xs ${getStageColor(lead.follow_up_stage)}`}>
-                  {lead.follow_up_stage}
-                </Badge>
-              )}
               {isActive && <Badge variant="outline" className={`text-xs ${partnerCfg.color}`}>{partnerCfg.label}</Badge>}
               {referralCfg && (
                 <Badge variant="outline" className={`text-xs ${referralCfg.color} flex items-center gap-1`}>
@@ -809,22 +771,32 @@ export default function Leads() {
           <TabsContent value="broker_leads">
             <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
               <div className="flex gap-2 flex-wrap">
-                <Button variant="outline" onClick={handleSyncBrokerLeads} disabled={syncingBrokers} className="gap-2">
-                  <RefreshCw className={`w-4 h-4 ${syncingBrokers ? 'animate-spin' : ''}`} />
-                  {syncingBrokers ? 'Syncing...' : 'Sync Sheet'}
-                </Button>
-                <Button variant="outline" onClick={handleBackfillToSheet} disabled={backfillingSheet} className="gap-2 text-[#013f7c] border-[#013f7c]/30 hover:bg-[#013f7c]/5" title="Append app-only leads to the Google Sheet">
-                  <RefreshCw className={`w-4 h-4 ${backfillingSheet ? 'animate-spin' : ''}`} />
-                  {backfillingSheet ? 'Backfilling...' : 'Backfill to Sheet'}
-                </Button>
-                <Button variant="outline" onClick={handleEmailSync} disabled={syncingEmail} className="gap-2">
-                  <Mail className={`w-4 h-4 ${syncingEmail ? 'animate-spin' : ''}`} />
-                  {syncingEmail ? 'Syncing...' : 'Sync Emails'}
-                </Button>
-                <Button variant="outline" onClick={handleScanDuplicates} disabled={scanningDuplicates} className="gap-2 text-amber-700 border-amber-300 hover:bg-amber-50" title="Check for duplicate partner records">
-                  <GitMerge className={`w-4 h-4 ${scanningDuplicates ? 'animate-spin' : ''}`} />
-                  {scanningDuplicates ? 'Scanning…' : 'Check Duplicates'}
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Wrench className="w-4 h-4" />
+                      Tools
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem onClick={handleSyncBrokerLeads} disabled={syncingBrokers}>
+                      <RefreshCw className={`w-4 h-4 mr-2 ${syncingBrokers ? 'animate-spin' : ''}`} />
+                      {syncingBrokers ? 'Syncing...' : 'Sync Sheet'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleBackfillToSheet} disabled={backfillingSheet}>
+                      <RefreshCw className={`w-4 h-4 mr-2 ${backfillingSheet ? 'animate-spin' : ''}`} />
+                      {backfillingSheet ? 'Backfilling...' : 'Backfill to Sheet'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleEmailSync} disabled={syncingEmail}>
+                      <Mail className={`w-4 h-4 mr-2 ${syncingEmail ? 'animate-spin' : ''}`} />
+                      {syncingEmail ? 'Syncing...' : 'Sync Emails'}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleScanDuplicates} disabled={scanningDuplicates}>
+                      <GitMerge className={`w-4 h-4 mr-2 ${scanningDuplicates ? 'animate-spin' : ''}`} />
+                      {scanningDuplicates ? 'Scanning…' : 'Check Duplicates'}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <a
                   href="https://docs.google.com/spreadsheets/d/1QyVdp7XWFfUkZyqLMVn6P39X84WgYWOHfqI2US7WKWk/edit"
                   target="_blank"
@@ -1379,18 +1351,6 @@ export default function Leads() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Follow-up Stage</label>
-              <Select value={brokerForm.follow_up_stage || 'none'} onValueChange={v => setBrokerForm({...brokerForm, follow_up_stage: v === 'none' ? '' : v})}>
-                <SelectTrigger><SelectValue placeholder="Select stage" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No Stage</SelectItem>
-                  {FOLLOW_UP_STAGES.filter(s => s).map((stage, i) => (
-                    <SelectItem key={i} value={stage}>{stage}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

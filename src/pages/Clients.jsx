@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
@@ -27,7 +29,7 @@ import { isInRenewalRamp } from '@/lib/renewal';
 import { CLIENT_STAGES } from '@/components/shared/constants';
 import TagFilter from '@/components/ui/TagFilter';
 import TagManager from '@/components/ui/TagManager';
-import { LayoutList, Columns, Settings } from 'lucide-react';
+import { LayoutList, Columns, Settings, MoreVertical } from 'lucide-react';
 
 function SyncEmailsButton() {
   const [syncing, setSyncing] = React.useState(false);
@@ -167,6 +169,7 @@ export default function Clients() {
   const [clientTagFilter, setClientTagFilter] = useState([]);
   const [clientTagMatchAll, setClientTagMatchAll] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState(null);
   
   const queryClient = useQueryClient();
 
@@ -273,6 +276,7 @@ export default function Clients() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       setViewingClient(null);
+      setClientToDelete(null);
     }
   });
 
@@ -816,9 +820,18 @@ export default function Clients() {
                               </Button>
                             </Link>
                           )}
-                          <Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteMutation.mutate(client.id)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="icon" variant="ghost">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem className="text-red-600" onClick={() => setClientToDelete(client)}>
+                                <Trash2 className="w-4 h-4 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     </div>
@@ -829,6 +842,27 @@ export default function Clients() {
           </div>
         ))}
       </div>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!clientToDelete} onOpenChange={(open) => !open && setClientToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {clientToDelete?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes their record, and their portal link will stop working. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
+              onClick={() => deleteMutation.mutate(clientToDelete.id)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
