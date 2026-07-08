@@ -28,42 +28,45 @@ const CAMPAIGN_INCLUDES = [
   },
 ];
 
-export default function QuickBuilderIntro() {
+/** Preventative positioning band — shown at the top of step 1. */
+export function PreventativeBand() {
   return (
-    <div className="space-y-8 mb-10">
-      {/* Positioning band */}
-      <div className="bg-brand-cream rounded-2xl border border-brand-navy/10 p-6 md:p-8">
-        <h2 className="text-2xl md:text-3xl font-bold text-brand-navy mb-3 leading-tight">
-          Preventative mental fitness for your whole team.
-        </h2>
-        <p className="text-gray-700 leading-relaxed max-w-3xl">
-          Think of SkillfulMeans as a preventative intervention — building mental fitness across your entire
-          organization before stress becomes a crisis. Organizations use our campaigns to reduce absenteeism,
-          presenteeism, turnover, and medical claims — while building a culture people want to stay in.
-        </p>
+    <div className="bg-brand-cream rounded-2xl border border-brand-navy/10 p-6 md:p-8 mb-6">
+      <h2 className="text-2xl md:text-3xl font-bold text-brand-navy mb-3 leading-tight">
+        Preventative mental fitness for your whole team.
+      </h2>
+      <p className="text-gray-700 leading-relaxed max-w-3xl">
+        Think of SkillfulMeans as a preventative intervention — building mental fitness across your entire
+        organization before stress becomes a crisis. Organizations use our campaigns to reduce absenteeism,
+        presenteeism, turnover, and medical claims — while building a culture people want to stay in.
+      </p>
 
-        {/* Impact stat chips */}
-        <div className="flex flex-wrap gap-2 mt-4">
-          {IMPACT_STATS.map(label => (
-            <span
-              key={label}
-              className="inline-flex items-center gap-1.5 bg-white rounded-full border border-gray-200 px-3 py-1.5"
-            >
-              <TrendingDown className="w-3.5 h-3.5 text-brand-green" />
-              <span className="text-xs font-semibold text-gray-700">{label}</span>
-            </span>
-          ))}
-        </div>
-
-        {/* ROI calculator link */}
-        <Button asChild variant="outline" className="mt-5 gap-2 border-brand-plum/40 text-brand-plum hover:bg-brand-plum/5">
-          <a href={ROI_CALCULATOR_URL} target="_blank" rel="noopener noreferrer">
-            See projected impact for your organization
-            <ExternalLink className="w-4 h-4" />
-          </a>
-        </Button>
+      <div className="flex flex-wrap gap-2 mt-4">
+        {IMPACT_STATS.map(label => (
+          <span
+            key={label}
+            className="inline-flex items-center gap-1.5 bg-white rounded-full border border-gray-200 px-3 py-1.5"
+          >
+            <TrendingDown className="w-3.5 h-3.5 text-brand-green" />
+            <span className="text-xs font-semibold text-gray-700">{label}</span>
+          </span>
+        ))}
       </div>
 
+      <Button asChild variant="outline" className="mt-5 gap-2 border-brand-plum/40 text-brand-plum hover:bg-brand-plum/5">
+        <a href={ROI_CALCULATOR_URL} target="_blank" rel="noopener noreferrer">
+          See projected impact for your organization
+          <ExternalLink className="w-4 h-4" />
+        </a>
+      </Button>
+    </div>
+  );
+}
+
+/** Education section — shown below the builder steps so education follows action. */
+export function QuickBuilderEducation() {
+  return (
+    <div className="space-y-8 mt-10">
       {/* Why campaigns work */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
         <h2 className="text-xl md:text-2xl font-bold text-brand-navy mb-3">Why campaigns work</h2>
@@ -73,7 +76,6 @@ export default function QuickBuilderIntro() {
           That's why we recommend a campaign of at least a workshop + a 14-day challenge + wellness boxes.
         </p>
 
-        {/* Four-step journey — imagery pillars */}
         <ProgramJourney />
       </div>
 

@@ -52,7 +52,7 @@ function CartItem({ removed, name, price, qty, total, itemKey, note, noteExpande
   );
 }
 
-export default function ReviewStep({ selections, onBack, allServices = [] }) {
+export default function ReviewStep({ selections, onBack, allServices = [], matchedStage = '' }) {
   // Helper: look up a service by ID in allServices, fall back to productCatalog static data
   const getServiceById = (id, catalogCategory) => {
     const fromDb = allServices.find(s => s.id === id);
@@ -646,6 +646,7 @@ export default function ReviewStep({ selections, onBack, allServices = [] }) {
         client_name: clientName,
         client_email: clientEmail,
         company: companyName,
+        matched_stage: matchedStage || undefined,
         total_amount: calculateTotal(),
         narrative_summary: narrative ? `Your team is currently facing challenges around ${narrative.challenges.join(', ')}. This customized mental fitness program addresses these needs through ${narrative.components.join(', ')}, creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.` : null,
         selections: {

@@ -336,7 +336,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
           <div className="flex justify-end gap-2 mt-2 flex-wrap">
             {(lead.lead_type === 'company_inquiry' || (lead.quickbuilder_selections?.length || 0) > 0) && (
               <Button
-                onClick={() => navigate(`/CurriculumDesigner?leadId=${lead.id}`)}
+                onClick={() => navigate(`/CurriculumDesigner?leadId=${lead.id}${lead.matched_stage ? `&stage=${encodeURIComponent(lead.matched_stage)}` : ''}`)}
                 className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-1.5"
                 size="sm"
               >

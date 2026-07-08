@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
+import { findMatchedStage, formatStageLabel } from '@/components/quickbuilder/stagePricing';
 import { markTaskComplete, createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -183,6 +184,17 @@ export default function EditProposal() {
   // Use stored challengePrice from proposal if available, otherwise calculate from company size
   const challengePrice = selections.challengePrice || calculateChallengePrice(selections.assessmentData?.companySize);
 
+  const matchedStageLabel = useMemo(() => {
+    const workshopCount = (selections.workshops || []).length;
+    const challengeCount = (selections.challengePrograms || []).length;
+    const hasLeadership = (selections.leadership || []).length > 0;
+    if (workshopCount === 0 && challengeCount === 0 && !hasLeadership) {
+      return proposal?.matched_stage || '';
+    }
+    const stage = findMatchedStage({ workshopCount, challengeCount, hasLeadership });
+    return formatStageLabel(stage);
+  }, [selections.workshops, selections.challengePrograms, selections.leadership, proposal?.matched_stage]);
+
   const calculateTotal = () => {
     let total = 0;
     selections.workshops.forEach(id => total += getPrice(id));
@@ -278,6 +290,7 @@ export default function EditProposal() {
     saveMutation.mutate({
       ...formData,
       total_amount: calculateTotal(),
+      matched_stage: matchedStageLabel || undefined,
       selections: { ...selections, priceOverrides, customCharges }
     });
   };
@@ -499,6 +512,9 @@ export default function EditProposal() {
             <h1 className="text-2xl font-bold" style={{ color: '#013f7c' }}>
               {isNewProposal ? 'New Proposal' : 'Edit Proposal'}
             </h1>
+            {matchedStageLabel && (
+              <p className="text-sm text-gray-500 mt-0.5">{matchedStageLabel} engagement</p>
+            )}
           </div>
           {!isNewProposal && (
             <Button variant="outline" onClick={generatePDF}><Download className="w-4 h-4 mr-2" /> Download</Button>

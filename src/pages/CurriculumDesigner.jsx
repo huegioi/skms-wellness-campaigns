@@ -31,6 +31,7 @@ export default function CurriculumDesigner() {
   const [clientLoaded, setClientLoaded] = useState(false);
   const [leadLoaded, setLeadLoaded] = useState(false);
   const [pendingQbSelections, setPendingQbSelections] = useState([]);
+  const [matchedStage, setMatchedStage] = useState('');
   const [searchParams] = useSearchParams();
 
   // Pre-load client data from URL param
@@ -85,6 +86,7 @@ export default function CurriculumDesigner() {
       if (lead.quickbuilder_selections?.length) {
         setPendingQbSelections(lead.quickbuilder_selections);
       }
+      setMatchedStage(lead.matched_stage || searchParams.get('stage') || '');
       setLeadLoaded(true);
     }).catch(() => {});
   }, [leadLoaded, searchParams]);
@@ -220,6 +222,7 @@ export default function CurriculumDesigner() {
             selections={selections}
             allServices={allServices}
             onBack={handleBack}
+            matchedStage={matchedStage}
           />
         );
       default:

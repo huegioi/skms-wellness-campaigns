@@ -83,6 +83,16 @@ export default function NewInquiriesCard() {
                       <Gift className="w-2.5 h-2.5" />Boxes: {wantsBoxes ? 'Yes' : 'No'}
                     </span>
                   )}
+                  {lead.matched_stage && (
+                    <span className="text-[10px] bg-[#013f7c]/10 text-[#013f7c] px-1.5 py-0.5 rounded-full font-medium">
+                      {lead.matched_stage}
+                    </span>
+                  )}
+                  {lead.estimated_investment != null && (
+                    <span className="text-[10px] bg-[#264d44]/10 text-[#264d44] px-1.5 py-0.5 rounded-full font-medium">
+                      ~${lead.estimated_investment.toLocaleString()}
+                    </span>
+                  )}
                 </div>
               </div>
               <Link

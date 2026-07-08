@@ -53,6 +53,20 @@ export default function QuickBuilderInquiriesList({ inquiries, onSelectLead }) {
                     <Package className="w-3 h-3" />{selCount} service{selCount !== 1 ? 's' : ''} selected
                   </p>
                 )}
+                {(lead.matched_stage || lead.estimated_investment != null) && (
+                  <div className="flex items-center gap-2 flex-wrap mt-2">
+                    {lead.matched_stage && (
+                      <span className="text-xs bg-[#013f7c]/10 text-[#013f7c] px-2 py-0.5 rounded-full font-medium">
+                        {lead.matched_stage}
+                      </span>
+                    )}
+                    {lead.estimated_investment != null && (
+                      <span className="text-xs bg-[#264d44]/10 text-[#264d44] px-2 py-0.5 rounded-full font-medium">
+                        ~${lead.estimated_investment.toLocaleString()} est.
+                      </span>
+                    )}
+                  </div>
+                )}
                 {lead.notes && <p className="text-xs text-gray-400 mt-2 line-clamp-2">{lead.notes}</p>}
               </div>
               <div className="flex-shrink-0">

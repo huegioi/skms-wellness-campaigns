@@ -56,6 +56,9 @@ export default function ClientProposalView({ proposals: propsList, proposal: sin
               <CardTitle className="text-lg text-brand-green">
                 Program Created: {new Date(p.created_date).toLocaleDateString()}
               </CardTitle>
+              {p.matched_stage && (
+                <p className="text-sm text-gray-500 mt-0.5">{p.matched_stage} engagement</p>
+              )}
               {p.narrative_summary && (
                 <p className="text-gray-700 mt-2 leading-relaxed">{p.narrative_summary}</p>
               )}

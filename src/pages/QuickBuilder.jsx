@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PortalShell } from '@/components/portal/PortalShell';
 import { toast } from 'sonner';
 import { Award, Dumbbell, Activity, Crown, Package, Check, ArrowRight, ArrowLeft, CheckCircle, CalendarPlus, ExternalLink } from 'lucide-react';
-import QuickBuilderIntro from '@/components/quickbuilder/QuickBuilderIntro';
+import { PreventativeBand, QuickBuilderEducation } from '@/components/quickbuilder/QuickBuilderIntro';
+import ReviewEstimateCard from '@/components/quickbuilder/ReviewEstimateCard';
+import { computeEstimate, teamSizeToHeadcount } from '@/components/quickbuilder/stagePricing';
 import QuickBuilderCategoryStep from '@/components/quickbuilder/QuickBuilderCategoryStep';
 import QuickBuilderWellnessBoxStep from '@/components/quickbuilder/QuickBuilderWellnessBoxStep';
 import ServiceImage from '@/components/quickbuilder/ServiceImage';
@@ -99,6 +101,17 @@ export default function QuickBuilder() {
   const hasBox = wantsWellnessBoxes === true;
   const isFullCampaign = hasWorkshop && hasChallenge && hasBox;
 
+  const estimate = useMemo(() => {
+    if (!form.team_size) return null;
+    return computeEstimate({
+      headcount: teamSizeToHeadcount(form.team_size),
+      workshopCount: selectedServices.filter(s => s.category === 'workshop').length,
+      challengeCount: selectedServices.filter(s => s.category === 'challenge').length,
+      hasLeadership: selectedServices.some(s => s.category === 'leadership'),
+      wantsBoxes: wantsWellnessBoxes === true,
+    });
+  }, [form.team_size, selectedServices, wantsWellnessBoxes]);
+
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
@@ -111,6 +124,8 @@ export default function QuickBuilder() {
         selected_service_ids: Array.from(selectedIds),
         wants_wellness_boxes: wantsWellnessBoxes === true,
         ref,
+        estimated_investment: estimate?.estimatedInvestment,
+        matched_stage: estimate?.stageLabel,
       });
       setSubmitted(true);
     } catch (err) {
@@ -164,7 +179,7 @@ export default function QuickBuilder() {
       subtitle="Design your wellness campaign in minutes"
       maxWidth="max-w-4xl"
     >
-      {step === 1 && <QuickBuilderIntro />}
+      {step === 1 && <PreventativeBand />}
 
       {/* Step indicator — mobile */}
       <div className="sm:hidden mb-6 flex items-center justify-between">
@@ -398,6 +413,8 @@ export default function QuickBuilder() {
             )}
           </div>
 
+          {estimate && <ReviewEstimateCard estimate={estimate} />}
+
           <p className="text-sm text-gray-500 text-center">
             We'll send a tailored proposal with pricing within 2 business days.
           </p>
@@ -416,6 +433,8 @@ export default function QuickBuilder() {
           </div>
         </div>
       )}
+
+      <QuickBuilderEducation />
     </PortalShell>
   );
 }

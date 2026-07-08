@@ -191,6 +191,14 @@
         "type": "string"
       },
       "description": "Service IDs selected via the public Quick Builder form (stored on the Lead until reviewed; does not enter the proposal pipeline)"
+    },
+    "estimated_investment": {
+      "type": "number",
+      "description": "Estimated campaign investment computed from Quick Builder selections (rate card estimate)"
+    },
+    "matched_stage": {
+      "type": "string",
+      "description": "Closest campaign stage matched from Quick Builder selections (e.g. 'Stage 2 \u2014 Habit')"
     }
   },
   "required": [
