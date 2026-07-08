@@ -290,31 +290,11 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
 
   // Link an accepted proposal to an existing referral record
   const linkProposalMutation = useMutation({
-    mutationFn: async ({ referralId, proposalId }) => {
-      const proposal = allProposals.find(p => p.id === proposalId);
-      const partner = matchedPartner;
-      const firstYearRevenue = calcAdjustedRevenue(proposal);
-      const ytdRevenue = (partner?.ytd_revenue || 0) + firstYearRevenue;
-      const tiers = partner?.commission_tiers || [];
-      const tier = tiers.filter(t => ytdRevenue >= (t.min_revenue || 0)).sort((a, b) => b.min_revenue - a.min_revenue)[0] || null;
-      const commissionRate = tier?.rate || 0;
-
-      await base44.entities.Referral.update(referralId, {
-        invoice_id: proposalId,
-        status: 'purchased',
-        reviewed_date: new Date().toISOString(),
-        first_year_revenue: firstYearRevenue,
-        commission_rate: commissionRate,
-        commission_amount: firstYearRevenue * commissionRate
-      });
-
-      if (firstYearRevenue > 0 && partner) {
-        await base44.entities.ReferralPartner.update(partner.id, { ytd_revenue: ytdRevenue });
-      }
-
-      // Ensure the Lead is marked as active_partner
-      await base44.entities.Lead.update(lead.id, { partner_status: 'active_partner' });
-    },
+    mutationFn: ({ referralId, proposalId }) =>
+      base44.functions.invoke('recordReferralPurchase', {
+        referral_id: referralId,
+        proposal_id: proposalId,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['allProposals'] });
       queryClient.invalidateQueries({ queryKey: ['referrals'] });

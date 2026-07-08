@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, XCircle, Clock, Building, Mail, User, AlertTriangle, UserPlus } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Building, Mail, User, AlertTriangle, UserPlus, DollarSign } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ConvertReferralToClientDialog from '@/components/referrals/ConvertReferralToClientDialog';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -15,10 +16,23 @@ export default function PendingReferralsReview({ open, onOpenChange }) {
   const [reviewNotes, setReviewNotes] = useState({});
   const [processingId, setProcessingId] = useState(null);
   const [convertingReferral, setConvertingReferral] = useState(null);
+  const [selectedProposals, setSelectedProposals] = useState({});
 
   const { data: referrals = [], isLoading } = useQuery({
     queryKey: ['referrals', 'pending_review'],
     queryFn: () => base44.entities.Referral.filter({ status: 'pending_review' }, '-referral_date'),
+    enabled: open
+  });
+
+  const { data: allProposals = [] } = useQuery({
+    queryKey: ['allProposals'],
+    queryFn: () => base44.entities.Proposal.list('-created_date'),
+    enabled: open
+  });
+
+  const { data: allClients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => base44.entities.Client.list(),
     enabled: open
   });
 
@@ -36,6 +50,35 @@ export default function PendingReferralsReview({ open, onOpenChange }) {
       setProcessingId(null);
     }
   });
+
+  const purchaseMutation = useMutation({
+    mutationFn: ({ referral_id, proposal_id }) =>
+      base44.functions.invoke('recordReferralPurchase', { referral_id, proposal_id }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['referrals'] });
+      queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
+      toast.success('Referral marked as purchased');
+      setSelectedProposals(prev => { const n = { ...prev }; delete n[variables.referral_id]; return n; });
+      setProcessingId(null);
+    },
+    onError: (err) => {
+      toast.error('Failed: ' + (err.message || 'Unknown error'));
+      setProcessingId(null);
+    }
+  });
+
+  const getCandidateProposals = (referral) => {
+    const refCompany = (referral.company_name || '').toLowerCase();
+    return allProposals.filter(p => {
+      if (p.status !== 'accepted') return false;
+      if (referral.referred_client_id && p.client_id === referral.referred_client_id) return true;
+      const client = allClients.find(c => c.id === p.client_id);
+      if (client?.referral_partner_id && referral.referral_partner_id && client.referral_partner_id === referral.referral_partner_id) return true;
+      if (!refCompany) return false;
+      const clientCompany = (client?.company || client?.name || p.client_name || '').toLowerCase();
+      return clientCompany.includes(refCompany) || refCompany.includes(clientCompany);
+    });
+  };
 
   const handleAction = (referral, action) => {
     setProcessingId(referral.id + action);
@@ -120,6 +163,49 @@ export default function PendingReferralsReview({ open, onOpenChange }) {
                     value={reviewNotes[r.id] || ''}
                     onChange={e => setReviewNotes(prev => ({ ...prev, [r.id]: e.target.value }))}
                   />
+                </div>
+
+                <div className="border-t border-amber-200 pt-3">
+                  <label className="text-xs text-gray-500 block mb-1">Link a proposal to mark as purchased</label>
+                  {getCandidateProposals(r).length === 0 ? (
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                      No accepted proposals found for this partner yet. Approve first, then link from the partner detail page.
+                    </p>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Select
+                        value={selectedProposals[r.id] || ''}
+                        onValueChange={(val) => setSelectedProposals(prev => ({ ...prev, [r.id]: val }))}
+                      >
+                        <SelectTrigger className="bg-white text-sm flex-1">
+                          <SelectValue placeholder="Select an accepted proposal..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {getCandidateProposals(r).map(p => {
+                            const c = allClients.find(cl => cl.id === p.client_id);
+                            const companyLabel = c?.company || c?.name || p.client_name || 'Unknown';
+                            return (
+                              <SelectItem key={p.id} value={p.id}>
+                                {companyLabel} — ${p.total_amount?.toLocaleString()} ({new Date(p.created_date).toLocaleDateString()})
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-1.5"
+                        disabled={!!processingId || !selectedProposals[r.id]}
+                        onClick={() => {
+                          setProcessingId(r.id + 'purchase');
+                          purchaseMutation.mutate({ referral_id: r.id, proposal_id: selectedProposals[r.id] });
+                        }}
+                      >
+                        <DollarSign className="w-4 h-4" />
+                        {processingId === r.id + 'purchase' ? '...' : 'Purchase'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2 flex-wrap">
