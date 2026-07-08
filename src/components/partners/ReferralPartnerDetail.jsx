@@ -13,6 +13,7 @@ import { InlineText } from '@/components/shared/inline/InlineText';
 import { PARTNER_STAGES } from '@/components/shared/constants';
 import { REFERRAL_STATUS_COLORS } from '@/lib/statusConfig';
 import InteractionTimeline from '@/components/shared/InteractionTimeline';
+import CommissionPaymentsLedger from '@/components/partners/CommissionPaymentsLedger';
 
 function TierField({ value, onSave, type = 'text', placeholder, step }) {
   const [draft, setDraft] = useState(value != null ? String(value) : '');
@@ -171,6 +172,13 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
                   </div>
                 </div>
               ))}
+            </div>
+          </CollapsibleFieldSection>
+
+          {/* Commission Payments */}
+          <CollapsibleFieldSection title="Commission Payments" icon={DollarSign} defaultOpen>
+            <div className="sm:col-span-2 space-y-3">
+              <CommissionPaymentsLedger partnerId={initialPartner.id} />
             </div>
           </CollapsibleFieldSection>
 

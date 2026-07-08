@@ -18,6 +18,19 @@
       "type": "string",
       "format": "date-time",
       "description": "When the activity occurred"
+    },
+    "activity_type": {
+      "type": "string",
+      "enum": [
+        "note",
+        "commission_payment"
+      ],
+      "default": "note",
+      "description": "Type of activity. 'commission_payment' entries carry an amount and feed the payments ledger."
+    },
+    "amount": {
+      "type": "number",
+      "description": "Payment amount (only set for commission_payment activities)"
     }
   },
   "required": [

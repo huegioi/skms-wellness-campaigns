@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import PartnerPipelineView from '@/components/partners/PartnerPipelineView';
 import ReferralPartnerDetail from '@/components/partners/ReferralPartnerDetail';
+import RecordCommissionPaymentDialog from '@/components/partners/RecordCommissionPaymentDialog';
 import { LEAD_STAGES } from '@/components/shared/constants';
 import { TagSelector } from '@/components/ui/TagSelector';
 import TagFilter from '@/components/ui/TagFilter';
@@ -55,6 +56,7 @@ export default function ReferralPartnerAdmin() {
   const [sendingEmail, setSendingEmail] = useState(null); // partner id currently sending
   const [regenerateConfirm, setRegenerateConfirm] = useState(null);
   const [regenerating, setRegenerating] = useState(null);
+  const [paymentPartner, setPaymentPartner] = useState(null);
 
   const { data: partners = [], isLoading } = useQuery({
     queryKey: ['referralPartners'],
@@ -355,6 +357,16 @@ export default function ReferralPartnerAdmin() {
                         </>
                       )}
 
+                      {partnerReferrals.some(r => r.status === 'purchased' && r.commission_amount > 0) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1 text-green-700 border-green-200 hover:bg-green-50"
+                          onClick={() => setPaymentPartner(partner)}
+                        >
+                          <DollarSign className="w-4 h-4" /> Record Payment
+                        </Button>
+                      )}
                       {partnerReferrals.length > 0 && (
                         <Button variant="ghost" size="sm" onClick={() => setExpandedPartner(expandedPartner === partner.id ? null : partner.id)}>
                           {expandedPartner === partner.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -615,6 +627,15 @@ export default function ReferralPartnerAdmin() {
         <ReferralPartnerDetail
           partner={viewingPartner}
           onClose={() => setViewingPartner(null)}
+        />
+      )}
+
+      {/* Record Commission Payment Dialog */}
+      {paymentPartner && (
+        <RecordCommissionPaymentDialog
+          partner={paymentPartner}
+          open={!!paymentPartner}
+          onOpenChange={(o) => !o && setPaymentPartner(null)}
         />
       )}
     </div>
