@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays, ScanText } from 'lucide-react';
+import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays, ScanText, Sparkles } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', page: 'Home', icon: BarChart3 },
@@ -13,6 +13,7 @@ const navItems = [
   { name: 'Feedback', page: 'FeedbackAnalytics', icon: ClipboardList },
   { name: 'Campaigns', page: 'CampaignCalendar', icon: CalendarDays },
   { name: 'Presenters', page: 'Presenters', icon: Users },
+  { name: 'Quick Builder', page: 'QuickBuilder', icon: Sparkles },
 ];
 
 const LOGO_URL = 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/bb0a43468_SKMSLogoShieldBrown.png';
