@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, DollarSign, ChevronDown, Pencil, Wand2 } from 'lucide-react';
+import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, DollarSign, ChevronDown, Pencil, Wand2, UserPlus } from 'lucide-react';
+import ConvertReferralToClientDialog from '@/components/referrals/ConvertReferralToClientDialog';
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TagSelector } from '@/components/ui/TagSelector';
@@ -63,6 +64,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const [showAddReferral, setShowAddReferral] = useState(false);
   const [referralForm, setReferralForm] = useState(EMPTY_REFERRAL);
   const [showAddProposal, setShowAddProposal] = useState(false);
+  const [convertingReferral, setConvertingReferral] = useState(null);
   const [proposalForm, setProposalForm] = useState(EMPTY_PROPOSAL_FORM);
 
   const queryClient = useQueryClient();
@@ -573,9 +575,14 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                             )}
                             {ref.notes && <p className="text-xs text-gray-400 mt-1 italic">{ref.notes}</p>}
                           </div>
-                          <Button size="icon" variant="ghost" className="text-red-400 hover:text-red-600 flex-shrink-0 h-7 w-7" onClick={() => deleteReferralRecord(ref)}>
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-[#264d44] border-[#264d44] hover:bg-[#264d44] hover:text-white" onClick={() => setConvertingReferral(ref)}>
+                              <UserPlus className="w-3.5 h-3.5" /> Convert
+                            </Button>
+                            <Button size="icon" variant="ghost" className="text-red-400 hover:text-red-600 h-7 w-7" onClick={() => deleteReferralRecord(ref)}>
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
                         </div>
                       );
                     })}
@@ -723,6 +730,19 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
           </Tabs>
         </div>
 
+        {convertingReferral && (
+          <ConvertReferralToClientDialog
+            referral={convertingReferral}
+            open={!!convertingReferral}
+            onOpenChange={(o) => !o && setConvertingReferral(null)}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['referrals'] });
+              queryClient.invalidateQueries({ queryKey: ['clients'] });
+              queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
+              if (onUpdate) onUpdate();
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

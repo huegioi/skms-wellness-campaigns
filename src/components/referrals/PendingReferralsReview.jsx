@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, XCircle, Clock, Building, Mail, User, AlertTriangle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Building, Mail, User, AlertTriangle, UserPlus } from 'lucide-react';
+import ConvertReferralToClientDialog from '@/components/referrals/ConvertReferralToClientDialog';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
@@ -13,6 +14,7 @@ export default function PendingReferralsReview({ open, onOpenChange }) {
   const queryClient = useQueryClient();
   const [reviewNotes, setReviewNotes] = useState({});
   const [processingId, setProcessingId] = useState(null);
+  const [convertingReferral, setConvertingReferral] = useState(null);
 
   const { data: referrals = [], isLoading } = useQuery({
     queryKey: ['referrals', 'pending_review'],
@@ -120,7 +122,15 @@ export default function PendingReferralsReview({ open, onOpenChange }) {
                   />
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    size="sm"
+                    className="bg-[#264d44] hover:bg-[#1a3830] text-white gap-1.5"
+                    onClick={() => setConvertingReferral(r)}
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Convert to Client
+                  </Button>
                   <Button
                     size="sm"
                     className="bg-green-600 hover:bg-green-700 text-white gap-1.5"
@@ -145,6 +155,17 @@ export default function PendingReferralsReview({ open, onOpenChange }) {
             ))}
           </div>
         )}
+      {convertingReferral && (
+        <ConvertReferralToClientDialog
+          referral={convertingReferral}
+          open={!!convertingReferral}
+          onOpenChange={(o) => !o && setConvertingReferral(null)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['referrals'] });
+            queryClient.invalidateQueries({ queryKey: ['clients'] });
+          }}
+        />
+      )}
       </DialogContent>
     </Dialog>
   );

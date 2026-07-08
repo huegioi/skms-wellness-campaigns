@@ -241,19 +241,41 @@ export default function Clients() {
       // Auto-create tasks for new client
       await createDefaultTasksForClient(base44, newClient.id, newClient.name);
 
-      // If a referral partner was assigned, create a Referral record
+      // If a referral partner was assigned, link an existing open referral or create a fresh converted one
       if (newClient.referral_partner_id) {
-        await base44.entities.Referral.create({
-          referral_partner_id: newClient.referral_partner_id,
-          referral_partner_name: newClient.referral_partner_name || '',
-          referred_client_id: newClient.id,
-          contact_name: newClient.name,
-          contact_email: newClient.email,
-          company_name: newClient.company || '',
-          referral_date: new Date().toISOString(),
-          status: 'converted_to_client',
-        });
-        queryClient.invalidateQueries({ queryKey: ['referrals'] });
+        try {
+          const partnerReferrals = await base44.entities.Referral.filter({ referral_partner_id: newClient.referral_partner_id });
+          const clientEmail = (newClient.email || '').toLowerCase().trim();
+          const clientCompany = (newClient.company || '').toLowerCase().trim();
+          const matchingReferral = partnerReferrals.find(r =>
+            ['pending_review', 'submitted', 'contacted'].includes(r.status) &&
+            ((r.contact_email && r.contact_email.toLowerCase().trim() === clientEmail) ||
+             (r.company_name && clientCompany && r.company_name.toLowerCase().trim() === clientCompany))
+          );
+
+          if (matchingReferral) {
+            // Link the existing open referral to this new client via the conversion function
+            await base44.functions.invoke('convertReferralToClient', {
+              referral_id: matchingReferral.id,
+              existing_client_id: newClient.id,
+            });
+          } else {
+            // No matching open referral — create a fresh converted one
+            await base44.entities.Referral.create({
+              referral_partner_id: newClient.referral_partner_id,
+              referral_partner_name: newClient.referral_partner_name || '',
+              referred_client_id: newClient.id,
+              contact_name: newClient.name,
+              contact_email: newClient.email,
+              company_name: newClient.company || '',
+              referral_date: new Date().toISOString(),
+              status: 'converted_to_client',
+            });
+          }
+          queryClient.invalidateQueries({ queryKey: ['referrals'] });
+        } catch (err) {
+          console.error('Referral linking failed:', err.message);
+        }
       }
       
       queryClient.invalidateQueries({ queryKey: ['clients'] });
