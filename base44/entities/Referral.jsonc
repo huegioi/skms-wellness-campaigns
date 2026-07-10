@@ -84,6 +84,11 @@
     "proposal_id": {
       "type": "string",
       "description": "Optional proposal the partner linked when submitting this referral"
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this record is demo/broker-demo sample data. Excluded from all syncs and dashboard/analytics metrics."
     }
   },
   "required": [

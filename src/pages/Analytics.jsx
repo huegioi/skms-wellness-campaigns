@@ -9,10 +9,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 export default function Analytics() {
   const [selectedTags, setSelectedTags] = useState([]);
   
-  const { data: proposals = [], isLoading } = useQuery({
+  const { data: rawProposals = [], isLoading } = useQuery({
     queryKey: ['proposals'],
     queryFn: () => base44.entities.Proposal.list('-created_date')
   });
+  // Exclude demo/broker-demo records from analytics metrics
+  const proposals = rawProposals.filter(p => !p.is_demo);
 
   const { data: notionData } = useQuery({
     queryKey: ['notionOpportunities'],

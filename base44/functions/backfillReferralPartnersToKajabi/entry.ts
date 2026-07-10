@@ -247,8 +247,9 @@ Deno.serve(async (req) => {
     const token = await getAccessToken();
     const tagIds = await resolveTagIds(token, siteId);
 
-    const partners = await base44.asServiceRole.entities.ReferralPartner.list('-created_date', 1000);
-    console.log(`Found ${partners.length} referral partners to sync`);
+    const allPartnersRaw = await base44.asServiceRole.entities.ReferralPartner.list('-created_date', 1000);
+    const partners = allPartnersRaw.filter(p => !p.is_demo);
+    console.log(`Found ${allPartnersRaw.length} referral partners to sync — ${allPartnersRaw.length - partners.length} demo record(s) excluded`);
 
     // Load sheet email→row map once for batch write-back
     const sheetInfo = await loadSheetInfo(base44);

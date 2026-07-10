@@ -133,6 +133,11 @@
     "overall_rating": {
       "type": "number",
       "description": "Legacy: calculated average rating"
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this record is demo/broker-demo sample data. Excluded from all dashboard/analytics metrics and feedback reports."
     }
   },
   "required": [

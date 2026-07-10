@@ -152,6 +152,11 @@
       "type": "boolean",
       "default": false,
       "description": "True if this event was auto-ingested from Google Calendar ingestion (not manually created). Used to distinguish ingestion-created events from manually booked ones."
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this event is demo/broker-demo sample data. Never synced to Google Calendar (no google_event_id) and excluded from dashboards."
     }
   },
   "required": [

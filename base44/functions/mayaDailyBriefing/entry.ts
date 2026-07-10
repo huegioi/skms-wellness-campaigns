@@ -34,13 +34,19 @@ Deno.serve(async (req) => {
     : '_No specific seasonal themes for this month._';
 
   // --- Fetch all data in parallel ---
-  const [allLeads, allClients, allPartners, activeCampaigns, qbInquiryLeads] = await Promise.all([
+  const [allLeadsRaw, allClientsRaw, allPartnersRaw, activeCampaigns, qbInquiryLeadsRaw] = await Promise.all([
     base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' }),
     base44.asServiceRole.entities.Client.list(),
     base44.asServiceRole.entities.ReferralPartner.filter({ is_active: true }),
     base44.asServiceRole.entities.AnnualCampaign.filter({ is_active: true }),
     base44.asServiceRole.entities.Lead.filter({ lead_type: 'company_inquiry' }),
   ]);
+
+  // Exclude demo/broker-demo records from all briefing metrics
+  const allLeads = allLeadsRaw.filter(l => !l.is_demo);
+  const allClients = allClientsRaw.filter(c => !c.is_demo);
+  const allPartners = allPartnersRaw.filter(p => !p.is_demo);
+  const qbInquiryLeads = qbInquiryLeadsRaw.filter(l => !l.is_demo);
 
   // New Quick Builder inquiries: submitted via public Quick Builder, still cold, no interaction yet
   const newInquiries = qbInquiryLeads.filter(l =>

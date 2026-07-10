@@ -215,6 +215,7 @@ Deno.serve(async (req) => {
       );
       const statusLabelByEmail = {};
       for (const lead of allLeads) {
+        if (lead.is_demo) continue;
         if (lead.email) {
           const ns = normalizeStatus(lead.status);
           statusLabelByEmail[lead.email.toLowerCase()] = ENUM_TO_PIPELINE_STAGE_LABEL[ns] || 'New';
@@ -666,6 +667,11 @@ Deno.serve(async (req) => {
       const { name, title, owner, email, company, status, notes, source, phone, industry } = body;
       if (!email) {
         return Response.json({ error: 'email is required for appendLead' }, { status: 400 });
+      }
+
+      // Demo records are never synced to Google Sheets
+      if (body.is_demo) {
+        return Response.json({ success: true, skipped: true, reason: 'demo_record' });
       }
 
       const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');

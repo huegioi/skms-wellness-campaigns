@@ -12,6 +12,11 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const { event, data, old_data } = await req.json();
 
+    // Demo events are never synced to Google Calendar
+    if (data?.is_demo || old_data?.is_demo) {
+      return Response.json({ success: true, message: 'Demo event — skipping Google sync' });
+    }
+
     // Only proceed if event has google_event_id (is synced)
     if (!data?.google_event_id && !old_data?.google_event_id) {
       return Response.json({ success: true, message: 'Event not synced, skipping' });

@@ -199,6 +199,11 @@
     "matched_stage": {
       "type": "string",
       "description": "Closest campaign stage matched from Quick Builder selections (e.g. 'Stage 2 \u2014 Habit')"
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this record is demo/broker-demo sample data. Excluded from all syncs (Sheets, Kajabi), Maya briefings, and dashboard/analytics metrics."
     }
   },
   "required": [

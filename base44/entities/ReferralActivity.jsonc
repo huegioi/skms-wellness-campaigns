@@ -31,6 +31,11 @@
     "amount": {
       "type": "number",
       "description": "Payment amount (only set for commission_payment activities)"
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this record is demo/broker-demo sample data. Excluded from dashboard/analytics metrics."
     }
   },
   "required": [

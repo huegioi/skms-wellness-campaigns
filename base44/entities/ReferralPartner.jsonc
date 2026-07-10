@@ -146,6 +146,11 @@
         "type": "string"
       },
       "description": "Tag labels applied to this partner (shared pool with Lead and Client)"
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this record is demo/broker-demo sample data. Excluded from all syncs (Sheets, Kajabi), Maya briefings, and dashboard/analytics metrics."
     }
   },
   "required": [

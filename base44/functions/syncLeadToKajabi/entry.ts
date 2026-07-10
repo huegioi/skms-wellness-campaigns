@@ -233,6 +233,11 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, skipped: true, reason: 'no_email', lead_name: lead.name });
     }
 
+    // Demo records are never synced to Kajabi
+    if (lead.is_demo) {
+      return Response.json({ success: false, skipped: true, reason: 'demo_record', lead_name: lead.name });
+    }
+
     const leadId = lead.id || lead_id;
     console.log(`Syncing lead: ${lead.name} <${lead.email}> (stored kajabi_contact_id: ${lead.kajabi_contact_id || 'none'})`);
 

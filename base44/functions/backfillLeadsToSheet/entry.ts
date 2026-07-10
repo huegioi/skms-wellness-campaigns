@@ -72,6 +72,7 @@ Deno.serve(async (req) => {
       const normEmail = (lead.email || '').trim().toLowerCase();
       if (!normEmail) { skipped++; continue; }
       if (deletedEmails.has(normEmail)) { skipped++; continue; }
+      if (lead.is_demo) { skipped++; continue; }
       if (lead.sheet_row_id) { skipped++; continue; }
       if (existingEmails.has(normEmail)) { skipped++; continue; }
       eligible.push(lead);

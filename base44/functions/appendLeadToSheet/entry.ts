@@ -28,6 +28,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Lead not found' }, { status: 404 });
     }
 
+    // Demo records are never synced to Google Sheets
+    if (lead.is_demo) {
+      return Response.json({ success: true, skipped: true, reason: 'demo_record' });
+    }
+
     // 2. If it already has a sheet_row_id, return early (already in the sheet)
     if (lead.sheet_row_id) {
       return Response.json({ success: true, already_in_sheet: true, sheet_row_id: lead.sheet_row_id, sheet_origin: lead.sheet_origin });

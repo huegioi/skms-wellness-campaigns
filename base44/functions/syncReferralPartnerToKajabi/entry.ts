@@ -316,6 +316,11 @@ Deno.serve(async (req) => {
       return Response.json({ success: false, skipped: true, reason: 'no_email', partner_name: partner.name });
     }
 
+    // Demo records are never synced to Kajabi
+    if (partner.is_demo) {
+      return Response.json({ success: false, skipped: true, reason: 'demo_record', partner_name: partner.name });
+    }
+
     const partnerId = partner.id || referral_partner_id;
     console.log(`Syncing partner: ${partner.name} <${partner.email}> (stored kajabi_contact_id: ${partner.kajabi_contact_id || 'none'})`);
 

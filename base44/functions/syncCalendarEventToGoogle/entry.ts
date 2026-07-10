@@ -21,6 +21,11 @@ Deno.serve(async (req) => {
 
     const event = events[0];
 
+    // Demo events are never synced to Google Calendar
+    if (event.is_demo) {
+      return Response.json({ success: true, skipped: true, reason: 'demo_record' });
+    }
+
     // Get access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
 

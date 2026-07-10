@@ -184,8 +184,9 @@ Deno.serve(async (req) => {
     // Fetch all broker + broker_lead leads
     const brokerLeads = await base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker' }, '-created_date', 1000);
     const brokerLeadLeads = await base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' }, '-created_date', 1000);
-    const leads = [...brokerLeads, ...brokerLeadLeads];
-    console.log(`Found ${leads.length} broker/broker_lead leads to sync (${brokerLeads.length} broker, ${brokerLeadLeads.length} broker_lead)`);
+    const allLeadsRaw = [...brokerLeads, ...brokerLeadLeads];
+    const leads = allLeadsRaw.filter(l => !l.is_demo);
+    console.log(`Found ${allLeadsRaw.length} broker/broker_lead leads to sync (${brokerLeads.length} broker, ${brokerLeadLeads.length} broker_lead) — ${allLeadsRaw.length - leads.length} demo record(s) excluded`);
 
     // Separate leads: those with stored kajabi_contact_id vs those without
     const leadsToResolve = [];
