@@ -1,122 +1,146 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, ShoppingCart, TrendingUp, Package } from 'lucide-react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Badge } from '@/components/ui/badge';
+import { DollarSign, CheckCircle2, CalendarClock, AlertTriangle } from 'lucide-react';
+import { format } from 'date-fns';
+import { buildServiceMatcher, categoryCountLabel, CATEGORY_LABELS } from '@/lib/serviceMatching';
+import UnmatchedItemsCard from './UnmatchedItemsCard';
+import ServiceDemandChart from './ServiceDemandChart';
 
 export default function ServicesAnalytics() {
   const { data: rawInvoices = [] } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list()
   });
+  const { data: services = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => base44.entities.Service.list()
+  });
+  const { data: rawEvents = [] } = useQuery({
+    queryKey: ['calendarEvents'],
+    queryFn: () => base44.entities.CalendarEvent.list('-start_date', 2000)
+  });
 
-  // Exclude demo/broker-demo records from dashboard metrics
-  const invoices = rawInvoices.filter(i => !i.is_demo);
+  const invoices = useMemo(() => rawInvoices.filter(i => !i.is_demo), [rawInvoices]);
+  const events = useMemo(() => rawEvents.filter(e => !e.is_demo), [rawEvents]);
 
-  const calculateInvoiceAnalytics = () => {
-    const servicePurchases = {};
-    const serviceRevenue = {};
-    const serviceHierarchy = {};
-    let totalRevenue = 0;
-    let totalItems = 0;
+  const serviceMap = useMemo(() => {
+    const m = {};
+    services.forEach(s => { m[s.id] = s; });
+    return m;
+  }, [services]);
 
-    // Process all invoice line items
+  const matchService = useMemo(() => buildServiceMatcher(services), [services]);
+
+  // Process invoice line items — canonically matched to Services
+  const { serviceRevenue, unmatchedItems, totalRevenue } = useMemo(() => {
+    const rev = {};
+    const unmatched = [];
+    let total = 0;
+
     invoices.forEach(invoice => {
-      if (invoice.line_items && Array.isArray(invoice.line_items)) {
-        invoice.line_items.forEach(item => {
-          const serviceName = item.description || 'Other';
-          const quantity = item.quantity || 1;
-          const amount = item.amount || 0;
+      if (!invoice.line_items || !Array.isArray(invoice.line_items)) return;
+      const invoiceNumber = invoice.invoice_number || (invoice.id ? invoice.id.slice(-8) : 'N/A');
+      invoice.line_items.forEach(item => {
+        const quantity = item.quantity || 1;
+        const amount = item.amount || 0;
+        const service = matchService(item);
 
-          // Count purchases
-          servicePurchases[serviceName] = (servicePurchases[serviceName] || 0) + quantity;
-          
-          // Sum revenue
-          serviceRevenue[serviceName] = (serviceRevenue[serviceName] || 0) + amount;
-          
-          // Build hierarchy (track individual line items)
-          if (!serviceHierarchy[serviceName]) {
-            serviceHierarchy[serviceName] = {
-              name: serviceName,
-              totalPurchases: 0,
-              totalRevenue: 0,
-              items: []
-            };
+        if (service) {
+          if (!rev[service.id]) {
+            rev[service.id] = { serviceId: service.id, name: service.name, category: service.category, revenue: 0, count: 0 };
           }
-          
-          serviceHierarchy[serviceName].totalPurchases += quantity;
-          serviceHierarchy[serviceName].totalRevenue += amount;
-          serviceHierarchy[serviceName].items.push({
-            invoiceId: invoice.invoice_number || invoice.id,
-            clientName: invoice.client_name,
+          rev[service.id].revenue += amount;
+          rev[service.id].count += quantity;
+        } else {
+          unmatched.push({
+            description: item.description || '(no description)',
             quantity,
             amount,
-            date: invoice.issue_date
+            invoiceNumber
           });
+        }
+        total += amount;
+      });
+    });
 
-          totalRevenue += amount;
-          totalItems += quantity;
-        });
+    return { serviceRevenue: rev, unmatchedItems: unmatched, totalRevenue: total };
+  }, [invoices, matchService]);
+
+  // Process calendar events: delivered (completed) + booked ahead (upcoming)
+  const { deliveredByService, bookedByService, deliveredCategoryBreakdown } = useMemo(() => {
+    const delivered = {};
+    const booked = {};
+    const catBreakdown = {};
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    events.forEach(e => {
+      if (!e.service_id || !serviceMap[e.service_id]) return;
+
+      if (e.completed) {
+        if (!delivered[e.service_id]) delivered[e.service_id] = { count: 0, lastDate: null };
+        delivered[e.service_id].count++;
+        const dateStr = e.completed_date || e.start_date;
+        if (dateStr) {
+          if (!delivered[e.service_id].lastDate || new Date(dateStr) > new Date(delivered[e.service_id].lastDate)) {
+            delivered[e.service_id].lastDate = dateStr;
+          }
+        }
+        const cat = serviceMap[e.service_id]?.category;
+        if (cat) catBreakdown[cat] = (catBreakdown[cat] || 0) + 1;
+      } else if (e.start_date && new Date(e.start_date) >= startOfToday) {
+        booked[e.service_id] = (booked[e.service_id] || 0) + 1;
       }
     });
 
-    // Top services by purchase count
-    const topServicesByCount = Object.entries(servicePurchases)
-      .map(([name, count]) => ({
-        name,
-        count,
-        revenue: serviceRevenue[name],
-        avgValue: serviceRevenue[name] / count
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 10);
+    return { deliveredByService: delivered, bookedByService: booked, deliveredCategoryBreakdown: catBreakdown };
+  }, [events, serviceMap]);
 
-    // Top services by revenue
-    const topServicesByRevenue = Object.entries(serviceRevenue)
-      .map(([name, revenue]) => ({
-        name,
-        revenue,
-        count: servicePurchases[name],
-        avgValue: revenue / servicePurchases[name]
-      }))
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 10);
+  // Combined per-service table: revenue + delivery side by side
+  const serviceRows = useMemo(() => {
+    const allServiceIds = new Set([
+      ...Object.keys(serviceRevenue),
+      ...Object.keys(deliveredByService),
+      ...Object.keys(bookedByService)
+    ]);
 
-    // Monthly service demand
-    const monthlyDemand = {};
-    invoices.forEach(invoice => {
-      if (invoice.issue_date && invoice.line_items) {
-        const month = new Date(invoice.issue_date).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-        if (!monthlyDemand[month]) monthlyDemand[month] = { month, revenue: 0, items: 0 };
-        
-        invoice.line_items.forEach(item => {
-          monthlyDemand[month].revenue += item.amount || 0;
-          monthlyDemand[month].items += item.quantity || 1;
-        });
-      }
-    });
-    const monthlyTrend = Object.values(monthlyDemand).slice(-12);
+    return Array.from(allServiceIds).map(id => {
+      const service = serviceMap[id];
+      const rev = serviceRevenue[id];
+      const del = deliveredByService[id];
+      const category = service?.category || rev?.category;
+      return {
+        serviceId: id,
+        name: service?.name || rev?.name || 'Unknown Service',
+        category,
+        revenue: rev?.revenue || 0,
+        invoiceCount: rev?.count || 0,
+        deliveredCount: del?.count || 0,
+        lastDeliveredDate: del?.lastDate || null,
+        bookedAhead: bookedByService[id] || 0,
+        hasGap: (rev?.revenue || 0) > 0 && (del?.count || 0) === 0
+      };
+    }).sort((a, b) => b.revenue - a.revenue);
+  }, [serviceRevenue, deliveredByService, bookedByService, serviceMap]);
 
-    // Service hierarchy for display
-    const hierarchyData = Object.values(serviceHierarchy)
-      .sort((a, b) => b.totalPurchases - a.totalPurchases);
+  // KPIs
+  const totalDelivered = Object.values(deliveredByService).reduce((s, d) => s + d.count, 0);
+  const totalBooked = Object.values(bookedByService).reduce((s, c) => s + c, 0);
+  const gapRows = serviceRows.filter(r => r.hasGap);
+  const gapRevenue = gapRows.reduce((s, r) => s + r.revenue, 0);
 
-    return {
-      topServicesByCount,
-      topServicesByRevenue,
-      monthlyTrend,
-      hierarchyData,
-      totalRevenue,
-      totalItems,
-      uniqueServices: Object.keys(servicePurchases).length
-    };
-  };
+  const deliveredBreakdownStr = Object.entries(deliveredCategoryBreakdown)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cat, count]) => categoryCountLabel(cat, count))
+    .join(' · ');
 
-  const analytics = calculateInvoiceAnalytics();
+  const hasData = serviceRows.length > 0 || unmatchedItems.length > 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -126,8 +150,25 @@ export default function ServicesAnalytics() {
                 <DollarSign className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Total Revenue</p>
-                <p className="text-2xl font-bold">${analytics.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                <p className="text-sm text-gray-500">Service Revenue</p>
+                <p className="text-2xl font-bold">${totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-[#264d44]/10">
+                <CheckCircle2 className="w-5 h-5 text-[#264d44]" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500">Delivered</p>
+                <p className="text-2xl font-bold">{totalDelivered}</p>
+                {deliveredBreakdownStr && (
+                  <p className="text-xs text-gray-400 mt-0.5">{deliveredBreakdownStr}</p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -137,168 +178,103 @@ export default function ServicesAnalytics() {
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-blue-100">
-                <ShoppingCart className="w-5 h-5 text-blue-600" />
+                <CalendarClock className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Items Purchased</p>
-                <p className="text-2xl font-bold">{analytics.totalItems}</p>
+                <p className="text-sm text-gray-500">Booked Ahead</p>
+                <p className="text-2xl font-bold">{totalBooked}</p>
+                <p className="text-xs text-gray-400 mt-0.5">upcoming sessions</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100">
-                <Package className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Unique Services</p>
-                <p className="text-2xl font-bold">{analytics.uniqueServices}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
+        <Card className={gapRows.length > 0 ? 'border-amber-200 bg-amber-50/50' : ''}>
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-amber-100">
-                <TrendingUp className="w-5 h-5 text-amber-600" />
+                <AlertTriangle className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-500">Avg. Item Value</p>
-                <p className="text-2xl font-bold">${analytics.totalItems > 0 ? (analytics.totalRevenue / analytics.totalItems).toLocaleString(undefined, { maximumFractionDigits: 0 }) : 0}</p>
+                <p className="text-sm text-gray-500">Invoiced, Not Delivered</p>
+                <p className="text-2xl font-bold text-amber-700">${gapRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{gapRows.length} service{gapRows.length !== 1 ? 's' : ''} with 0 deliveries</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
-        {/* Top Services by Purchase Count */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Most Purchased Services</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            {analytics.topServicesByCount.length > 0 ? (
-              <div className="space-y-3">
-                {analytics.topServicesByCount.map((service, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-sm font-medium truncate">{service.name}</p>
-                        <span className="text-sm font-bold text-blue-600 ml-2">{service.count} units</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-full bg-gray-100 rounded-full h-2">
-                          <div 
-                            className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600" 
-                            style={{ width: `${(service.count / analytics.topServicesByCount[0].count) * 100}%` }} 
-                          />
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">${service.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })} revenue • Avg: ${service.avgValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="h-[250px] flex items-center justify-center text-gray-400">No purchase data yet</div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Top Services by Revenue */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Top Services by Revenue</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6">
-            {analytics.topServicesByRevenue.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={analytics.topServicesByRevenue} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={120} />
-                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                  <Bar dataKey="revenue" fill="#22C55E" radius={[0, 8, 8, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-gray-400">No revenue data yet</div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Service Purchase Hierarchy */}
+      {/* Per-service table: revenue + delivery side by side */}
       <Card>
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Service Purchase Hierarchy</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>
+            Revenue vs Delivery by Service
+          </CardTitle>
+          <p className="text-sm text-gray-500">
+            Invoiced revenue and delivered sessions side by side — gaps flag services sold but never scheduled.
+          </p>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
-          {analytics.hierarchyData.length > 0 ? (
-            <div className="space-y-4 max-h-[500px] overflow-y-auto">
-              {analytics.hierarchyData.map((service, i) => (
-                <div key={i} className="border rounded-lg p-4 bg-gray-50">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-gray-900">{service.name}</h4>
-                    <div className="flex gap-4 text-sm">
-                      <span className="text-blue-600 font-medium">{service.totalPurchases} units</span>
-                      <span className="text-green-600 font-medium">${service.totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    {service.items.slice(0, 5).map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-sm text-gray-600 bg-white p-2 rounded">
-                        <span className="truncate flex-1">{item.clientName}</span>
-                        <div className="flex gap-3 ml-2">
-                          <span>{item.quantity}x</span>
-                          <span className="font-medium">${item.amount.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+          {serviceRows.length === 0 ? (
+            <div className="h-[200px] flex items-center justify-center text-gray-400">No service data yet</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <div className="min-w-[600px]">
+                {/* Column headers */}
+                <div className="grid grid-cols-12 gap-2 px-3 pb-2 text-xs font-medium text-gray-400 uppercase tracking-wide border-b">
+                  <div className="col-span-5">Service</div>
+                  <div className="col-span-3 text-right">Revenue</div>
+                  <div className="col-span-2 text-right">Delivered</div>
+                  <div className="col-span-2 text-right">Booked</div>
+                </div>
+                {/* Rows */}
+                <div className="space-y-1 mt-1">
+                  {serviceRows.map(row => (
+                    <div key={row.serviceId} className="grid grid-cols-12 gap-2 items-center px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors">
+                      <div className="col-span-5 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm truncate">{row.name}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          <span className="text-xs text-gray-400">{CATEGORY_LABELS[row.category] || 'Other'}</span>
+                          {row.hasGap && (
+                            <Badge className="text-[10px] bg-amber-100 text-amber-700 border border-amber-300 px-1.5 py-0">
+                              <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
+                              No deliveries
+                            </Badge>
+                          )}
                         </div>
                       </div>
-                    ))}
-                    {service.items.length > 5 && (
-                      <p className="text-xs text-gray-500 text-center">+ {service.items.length - 5} more purchases</p>
-                    )}
-                  </div>
+                      <div className="col-span-3 text-right">
+                        <p className="font-bold text-green-600 text-sm">
+                          ${row.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {row.invoiceCount > 0 ? categoryCountLabel(row.category, row.invoiceCount) : '—'}
+                        </p>
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <p className="font-bold text-[#264d44] text-sm">{row.deliveredCount || '—'}</p>
+                        <p className="text-xs text-gray-400">
+                          {row.lastDeliveredDate ? format(new Date(row.lastDeliveredDate), 'MMM d, yy') : ''}
+                        </p>
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <p className="font-bold text-blue-600 text-sm">{row.bookedAhead || '—'}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
-          ) : (
-            <div className="h-[250px] flex items-center justify-center text-gray-400">No purchase data yet</div>
           )}
         </CardContent>
       </Card>
 
-      {/* Monthly Service Demand Trends */}
-      <Card>
-        <CardHeader>
-          <CardTitle style={{ color: '#264d44' }}>Monthly Service Demand</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {analytics.monthlyTrend.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={analytics.monthlyTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis yAxisId="left" />
-                <YAxis yAxisId="right" orientation="right" />
-                <Tooltip formatter={(value, name) => name === 'revenue' ? `$${value.toLocaleString()}` : `${value} items`} />
-                <Legend />
-                <Line yAxisId="right" type="monotone" dataKey="items" name="Items Purchased" stroke="#3B82F6" strokeWidth={3} dot={{ fill: '#3B82F6', r: 4 }} />
-                <Line yAxisId="left" type="monotone" dataKey="revenue" name="Revenue" stroke="#22C55E" strokeWidth={3} dot={{ fill: '#22C55E', r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[300px] flex items-center justify-center text-gray-400">No demand data yet</div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Unmatched line items */}
+      <UnmatchedItemsCard items={unmatchedItems} />
+
+      {/* Demand by month (event start dates) */}
+      <ServiceDemandChart events={events} serviceMap={serviceMap} />
     </div>
   );
 }
