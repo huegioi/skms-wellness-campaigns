@@ -37,6 +37,7 @@ import { CLIENT_STAGES } from '@/components/shared/constants';
 import InteractionTimeline from '@/components/shared/InteractionTimeline';
 import { useClientDeliveryStatus } from '@/hooks/useClientDeliveryStatus';
 import ClientDeliveryStrip from '@/components/clients/ClientDeliveryStrip';
+import ReferredByBadge from '@/components/shared/ReferredByBadge';
 
 const statusConfig = {
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
@@ -271,6 +272,11 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
     <div className="space-y-6 overflow-y-auto flex-1 p-6 pt-8">
       {/* Snapshot Header */}
       <RecordSnapshotHeader record={client} entityType="Client" stages={CLIENT_STAGES} onUpdate={onUpdate} />
+
+      {/* Referral partner badge */}
+      {client.referral_partner_name && (
+        <ReferredByBadge partnerId={client.referral_partner_id} partnerName={client.referral_partner_name} />
+      )}
 
       {/* Action Bar */}
       <div className="flex justify-end pr-8">

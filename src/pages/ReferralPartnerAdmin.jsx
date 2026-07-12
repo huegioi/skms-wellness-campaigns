@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,6 +63,20 @@ export default function ReferralPartnerAdmin() {
     queryKey: ['referralPartners'],
     queryFn: () => base44.entities.ReferralPartner.list('-created_date')
   });
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const partnerIdParam = searchParams.get('partnerId');
+
+  useEffect(() => {
+    if (partnerIdParam && partners.length > 0 && !viewingPartner) {
+      const partner = partners.find(p => p.id === partnerIdParam);
+      if (partner) {
+        setViewingPartner(partner);
+        searchParams.delete('partnerId');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [partnerIdParam, partners, viewingPartner, setSearchParams, searchParams]);
 
   const { data: allClients = [] } = useQuery({
     queryKey: ['clients_for_partners'],

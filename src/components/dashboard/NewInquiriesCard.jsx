@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { User, Users, ArrowRight, Sparkles, Package, Gift } from 'lucide-react';
+import { User, Users, ArrowRight, Sparkles, Package, Gift, Handshake } from 'lucide-react';
 import { parseQuickBuilderGoals, parseWellnessBoxesPreference, timeSince, isNewQuickBuilderInquiry } from '@/lib/quickbuilderUtils';
 
 export default function NewInquiriesCard() {
@@ -16,6 +16,24 @@ export default function NewInquiriesCard() {
   const allLeads = rawLeads.filter(l => !l.is_demo);
 
   const newInquiries = allLeads.filter(isNewQuickBuilderInquiry);
+
+  // Fetch recent referrals to resolve partner names for inquiries that came via a partner ref
+  const { data: recentReferrals = [] } = useQuery({
+    queryKey: ['referrals', 'for-inquiries'],
+    queryFn: () => base44.entities.Referral.list('-referral_date', 50),
+    staleTime: 60_000,
+  });
+
+  const leadIdToPartner = useMemo(() => {
+    const map = {};
+    for (const r of recentReferrals) {
+      if (r.is_demo) continue;
+      if (r.referred_lead_id && r.referral_partner_name) {
+        map[r.referred_lead_id] = r.referral_partner_name;
+      }
+    }
+    return map;
+  }, [recentReferrals]);
 
   if (newInquiries.length === 0) return null;
 
@@ -67,6 +85,11 @@ export default function NewInquiriesCard() {
                     </span>
                   )}
                   <span className="text-xs text-gray-400">{timeSince(lead.created_date)}</span>
+                  {leadIdToPartner[lead.id] && (
+                    <span className="text-xs text-[#264d44] font-medium flex items-center gap-0.5">
+                      <Handshake className="w-3 h-3" />via {leadIdToPartner[lead.id]}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1.5 flex-wrap mt-1">
                   {goals.map(g => (

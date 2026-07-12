@@ -12,6 +12,7 @@ import { CLIENT_STAGES } from '@/components/shared/constants';
 import { useClientDeliveryStatus } from '@/hooks/useClientDeliveryStatus';
 import ClientDeliveryStrip from '@/components/clients/ClientDeliveryStrip';
 import RenewalSeasonBanner from '@/components/clients/RenewalSeasonBanner';
+import ReferredByBadge from '@/components/shared/ReferredByBadge';
 import { getActiveCohort, hasRenewalReviewBooked } from '@/lib/renewal';
 
 const SALES_STAGES = CLIENT_STAGES.filter(s => s.group === 'Sales');
@@ -141,6 +142,11 @@ function StageColumn({ stage, clients, onOwnerChange, onStageChange, onTagsChang
                       onDelete={onDelete}
                       alertBadges={
                         <>
+                          {client.referral_partner_name && (
+                            <div className="mb-1">
+                              <ReferredByBadge partnerId={client.referral_partner_id} partnerName={client.referral_partner_name} compact />
+                            </div>
+                          )}
                           <ClientAlertBadges client={client} isSalesStage={isSalesStage} />
                           {!isSalesStage && <ClientDeliveryStrip snapshot={snapshots?.[client.id]} client={client} />}
                         </>
