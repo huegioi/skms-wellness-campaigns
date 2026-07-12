@@ -622,7 +622,7 @@ export default function ReferralPortal() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-500 mb-4">Tiers are based on first-year revenue placed annually. When you reach a new tier, all placements that year are upgraded retroactively.</p>
+                  <p className="text-sm text-gray-500 mb-4">Tiers are based on first-year revenue placed annually. Your current rate applies to each new placement as you reach it.</p>
                   <div className="space-y-2">
                     {tiers.map((tier, i) => {
                       const isActive = commission_summary.current_tier?.min_revenue === tier.min_revenue;

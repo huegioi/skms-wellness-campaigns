@@ -38,7 +38,7 @@ export default function TierProgress({ tiers = [], commissionSummary = {} }) {
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-4 h-4 text-brand-navy" />
             <p className="text-sm font-semibold text-brand-navy">
-              You're at the top tier — {fmtRate(current.rate)}% on every placement
+              You're at the top tier — {fmtRate(current.rate)}% on every new placement
             </p>
           </div>
           <div className="h-3 rounded-full bg-gray-200 overflow-hidden">
