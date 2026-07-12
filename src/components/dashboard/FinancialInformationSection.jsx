@@ -10,69 +10,7 @@ import { CHART_PALETTE, formatCurrency, formatPercent } from '@/lib/dashboardSty
 import DashboardSkeleton from './DashboardSkeleton';
 import DashboardEmptyState from './DashboardEmptyState';
 import ReportsSection from './ReportsSection';
-import CustomerLTVCard from './CustomerLTVCard';
-import ExpenseManager from './ExpenseManager';
-
-function TopIncomeSourcesCard({ incomeData, invoices, timeframe }) {
-  const totalIncome = incomeData.topCustomers.reduce((s, c) => s + c.value, 0);
-  return (
-    <Card className="hover:shadow-lg transition-shadow duration-300">
-      <CardHeader>
-        <CardTitle className="text-base font-semibold text-brand-green">Top Income Sources by Customer</CardTitle>
-        <p className="text-sm text-gray-500 mt-1">
-        {timeframe === 'month' ? 'This Month' : timeframe === 'quarter' ? 'This Quarter' : timeframe === 'year' ? 'This Year' : 'All Time'} &mdash; paid invoices only
-        </p>
-      </CardHeader>
-      <CardContent>
-        {incomeData.topCustomers.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ResponsiveContainer width="100%" height={256}>
-              <BarChart data={incomeData.topCustomers} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
-                <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 12 }} />
-                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                <Bar dataKey="value" name="Revenue" fill={CHART_PALETTE[0]} radius={[0, 6, 6, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-            <div className="space-y-2">
-              {incomeData.topCustomers.map((customer, idx) => {
-                const pct = totalIncome > 0 ? ((customer.value / totalIncome) * 100).toFixed(1) : 0;
-                const customerInvoices = invoices.filter(inv =>
-                  inv.status === 'paid' &&
-                  (inv.client_name === customer.name || inv.company === customer.name)
-                );
-                const invoiceCount = customerInvoices.length;
-                const avgInvoice = invoiceCount > 0 ? customer.value / invoiceCount : 0;
-                return (
-                  <div key={customer.name} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-brand-green text-white text-xs flex items-center justify-center font-bold">{idx + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="font-semibold text-gray-800 truncate text-sm">{customer.name}</p>
-                        <p className="font-bold text-brand-green flex-shrink-0">{formatCurrency(customer.value)}</p>
-                      </div>
-                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                        <span>{invoiceCount} invoice{invoiceCount !== 1 ? 's' : ''}</span>
-                        <span>Avg: ${Math.round(avgInvoice).toLocaleString()}</span>
-                        <span className="ml-auto font-medium text-gray-600">{pct}% of total</span>
-                      </div>
-                      <div className="mt-1.5 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-brand-green rounded-full" style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ) : (
-          <DashboardEmptyState icon={DollarSign} message="No income data for this period" />
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+import TopCustomersCard from './TopCustomersCard';
 
 export default function FinancialInformationSection() {
   const [timeframe, setTimeframe] = useState('year');
@@ -296,7 +234,6 @@ export default function FinancialInformationSection() {
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="reports">Reports</TabsTrigger>
-            <TabsTrigger value="expenses">Manage Expenses</TabsTrigger>
           </TabsList>
           <Button onClick={handleSyncFinancials} disabled={syncing} className="bg-brand-green hover:bg-brand-forest">
             <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
@@ -396,8 +333,8 @@ export default function FinancialInformationSection() {
         </Card>
       </div>
 
-      {/* Top Income Sources - Full Width Detailed */}
-      <TopIncomeSourcesCard
+      {/* Top Customers (merged revenue + LTV) */}
+      <TopCustomersCard
         incomeData={incomeData}
         invoices={invoices}
         timeframe={timeframe}
@@ -485,18 +422,11 @@ export default function FinancialInformationSection() {
         </CardContent>
       </Card>
 
-      {/* Customer Lifetime Value */}
-      <CustomerLTVCard />
         </TabsContent>
 
         {/* Reports Tab */}
         <TabsContent value="reports">
           <ReportsSection />
-        </TabsContent>
-
-        {/* Expense Manager Tab */}
-        <TabsContent value="expenses">
-          <ExpenseManager />
         </TabsContent>
       </Tabs>
     </div>
