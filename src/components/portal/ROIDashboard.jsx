@@ -30,6 +30,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [dateRange, setDateRange] = useState('all');
 
   const { data: roiData, isLoading } = useQuery({
     queryKey: ['roi-data', clientId, clientToken, portalId],
@@ -43,8 +44,25 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
     enabled: !!clientId,
   });
 
-  const allResponses = roiData?.feedback_responses || [];
-  const cohortAssessments = roiData?.cohort_assessments || [];
+  const rawResponses = roiData?.feedback_responses || [];
+  const rawAssessments = roiData?.cohort_assessments || [];
+
+  const cutoffDate = useMemo(() => {
+    if (dateRange !== '90days') return null;
+    const d = new Date();
+    d.setDate(d.getDate() - 90);
+    return d;
+  }, [dateRange]);
+
+  const allResponses = useMemo(() => {
+    if (!cutoffDate) return rawResponses;
+    return rawResponses.filter(r => r.submitted_at && new Date(r.submitted_at) >= cutoffDate);
+  }, [rawResponses, cutoffDate]);
+
+  const cohortAssessments = useMemo(() => {
+    if (!cutoffDate) return rawAssessments;
+    return rawAssessments.filter(r => r.submitted_at && new Date(r.submitted_at) >= cutoffDate);
+  }, [rawAssessments, cutoffDate]);
 
   // Universal Pulse responses only
   const pulseResponses = useMemo(
@@ -151,6 +169,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
     );
   }
 
+  const hasRawData = rawResponses.length > 0 || rawAssessments.length > 0;
   const hasData = pulseResponses.length > 0 || cohortAssessments.length > 0;
 
   return (
@@ -170,19 +189,41 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
           <h3 className="text-lg font-bold text-gray-800">Wellness Impact Dashboard</h3>
           <p className="text-sm text-gray-500">{peopleEngaged} people engaged{clientCompany ? ` · ${clientCompany}` : ''}</p>
         </div>
-        {showReportButton && onGenerateReport && (
-          <Button onClick={onGenerateReport} className="bg-brand-navy text-white text-xs">
-            Generate Client Report
-          </Button>
-        )}
+        <div className="flex items-center gap-3">
+          {hasRawData && (
+            <div className="inline-flex rounded-lg border border-gray-200 bg-white p-0.5">
+              <button
+                onClick={() => setDateRange('all')}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${dateRange === 'all' ? 'bg-brand-navy text-white' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Program to date
+              </button>
+              <button
+                onClick={() => setDateRange('90days')}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${dateRange === '90days' ? 'bg-brand-navy text-white' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                Last 90 days
+              </button>
+            </div>
+          )}
+          {showReportButton && onGenerateReport && (
+            <Button onClick={onGenerateReport} className="bg-brand-navy text-white text-xs">
+              Generate Client Report
+            </Button>
+          )}
+        </div>
       </div>
 
       {!hasData ? (
         <div className="bg-white rounded-xl p-10 text-center text-gray-400 shadow-sm">
           <TrendingUp className="w-12 h-12 mx-auto mb-3 text-gray-200" />
-          <p className="font-medium text-gray-500">No feedback data yet.</p>
+          <p className="font-medium text-gray-500">
+            {dateRange === '90days' && hasRawData ? 'No data in the last 90 days.' : 'No feedback data yet.'}
+          </p>
           <p className="text-sm mt-1">
-            {isAdmin ? 'Share survey links from the admin section below to start collecting data.' : 'Data will appear once sessions are completed and feedback is collected.'}
+            {dateRange === '90days' && hasRawData
+              ? 'Try switching to "Program to date" to see all results.'
+              : (isAdmin ? 'Share survey links from the admin section below to start collecting data.' : 'Data will appear once sessions are completed and feedback is collected.')}
           </p>
         </div>
       ) : (

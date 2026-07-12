@@ -40,6 +40,8 @@ export default function ReferralPortal() {
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const [selectedClientROI, setSelectedClientROI] = useState(null);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [showOlder, setShowOlder] = useState(false);
 
   const { data: services = [] } = useQuery({
     queryKey: ['services'],
@@ -100,6 +102,34 @@ export default function ReferralPortal() {
 
   const { partner, referrals, commission_summary, client_companies = [], partner_proposals = [], commission_ledger = [], activities = [] } = data;
   const tiers = partner.commission_tiers || [];
+
+  const twelveMonthsAgo = new Date();
+  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+
+  const availableStatuses = [...new Set(referrals.map(r => r.status))].filter(Boolean);
+  const filteredReferrals = referrals.filter(r => statusFilter === 'all' || r.status === statusFilter);
+  const recentReferrals = filteredReferrals.filter(r => !r.referral_date || new Date(r.referral_date) >= twelveMonthsAgo);
+  const olderReferrals = filteredReferrals.filter(r => r.referral_date && new Date(r.referral_date) < twelveMonthsAgo);
+
+  const renderReferralRow = (r, i) => (
+    <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-gray-50 border gap-3">
+      <div>
+        <p className="font-semibold text-gray-800">{r.contact_name}</p>
+        {r.company_name && <p className="text-sm text-gray-500">{r.company_name}</p>}
+        {r.contact_email && <p className="text-xs text-gray-400">{r.contact_email}</p>}
+        <p className="text-xs text-gray-400 mt-1">{format(new Date(r.referral_date), 'MMM d, yyyy')}</p>
+      </div>
+      <div className="flex flex-col items-start sm:items-end gap-2">
+        <Badge className={STATUS_COLORS[r.status] || 'bg-gray-100 text-gray-600'}>
+          {STATUS_LABELS[r.status] || r.status}
+        </Badge>
+        {r.commission_amount > 0 && (
+          <span className="text-sm font-semibold text-green-700">${r.commission_amount.toLocaleString()} commission</span>
+        )}
+      </div>
+      <ReferralStepper status={r.status} />
+    </div>
+  );
 
   const exportCommissionCSV = () => {
     const quote = (val) => {
@@ -288,25 +318,59 @@ export default function ReferralPortal() {
                   <p className="text-center text-gray-500 py-8">No referrals submitted yet. Use the button above to submit your first referral!</p>
                 ) : (
                   <div className="space-y-3">
-                    {referrals.map((r, i) => (
-                      <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-gray-50 border gap-3">
-                        <div>
-                          <p className="font-semibold text-gray-800">{r.contact_name}</p>
-                          {r.company_name && <p className="text-sm text-gray-500">{r.company_name}</p>}
-                          {r.contact_email && <p className="text-xs text-gray-400">{r.contact_email}</p>}
-                          <p className="text-xs text-gray-400 mt-1">{format(new Date(r.referral_date), 'MMM d, yyyy')}</p>
-                        </div>
-                        <div className="flex flex-col items-start sm:items-end gap-2">
-                          <Badge className={STATUS_COLORS[r.status] || 'bg-gray-100 text-gray-600'}>
-                            {STATUS_LABELS[r.status] || r.status}
-                          </Badge>
-                          {r.commission_amount > 0 && (
-                            <span className="text-sm font-semibold text-green-700">${r.commission_amount.toLocaleString()} commission</span>
-                          )}
-                        </div>
-                        <ReferralStepper status={r.status} />
+                    {/* Status filter */}
+                    {availableStatuses.length > 1 && (
+                      <div className="flex gap-1.5 flex-wrap">
+                        <button
+                          onClick={() => setStatusFilter('all')}
+                          className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${statusFilter === 'all' ? 'bg-brand-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                        >
+                          All ({referrals.length})
+                        </button>
+                        {availableStatuses.map(status => (
+                          <button
+                            key={status}
+                            onClick={() => setStatusFilter(status)}
+                            className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${statusFilter === status ? 'bg-brand-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                          >
+                            {STATUS_LABELS[status] || status} ({referrals.filter(r => r.status === status).length})
+                          </button>
+                        ))}
                       </div>
-                    ))}
+                    )}
+
+                    {/* Recent referrals */}
+                    {recentReferrals.map((r, i) => renderReferralRow(r, i))}
+
+                    {/* No recent matches */}
+                    {recentReferrals.length === 0 && filteredReferrals.length > 0 && (
+                      <p className="text-center text-gray-400 py-4 text-sm">No referrals match this filter in the last 12 months.</p>
+                    )}
+
+                    {/* Older referrals collapse */}
+                    {olderReferrals.length > 0 && (
+                      <>
+                        {!showOlder ? (
+                          <button
+                            onClick={() => setShowOlder(true)}
+                            className="w-full text-center py-2 text-sm text-gray-500 hover:text-brand-navy border border-dashed border-gray-300 rounded-lg hover:border-brand-navy/30 transition-colors"
+                          >
+                            Show older ({olderReferrals.length})
+                          </button>
+                        ) : (
+                          <>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide pt-2">Older than 12 months</p>
+                            {olderReferrals.map((r, i) => renderReferralRow(r, `older-${i}`))}
+                            <button
+                              onClick={() => setShowOlder(false)}
+                              className="w-full text-center py-2 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                            >
+                              Hide older
+                            </button>
+                          </>
+                        )}
+                      </>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -379,23 +443,6 @@ export default function ReferralPortal() {
                     <h2 className="text-xl font-bold text-brand-navy">Welcome to Your Partner Portal, {partner.name.split(' ')[0]}!</h2>
                     <p className="text-gray-600 text-sm mt-1">Everything you need to track referrals, view client ROI, and grow your partnership with SKMS Wellness — all in one place.</p>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Welcome Video Placeholder */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <PlayCircle className="w-5 h-5 text-brand-green" />
-                  Partner Welcome Video
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="aspect-video bg-brand-navy/5 border-2 border-dashed border-brand-navy/20 rounded-xl flex flex-col items-center justify-center text-center p-8 gap-3">
-                  <PlayCircle className="w-12 h-12 text-brand-navy/30" />
-                  <p className="text-gray-500 text-sm font-medium">Welcome video coming soon</p>
-                  <p className="text-gray-400 text-xs max-w-xs">A short walk-through of your portal, how to submit referrals, and how to read your clients' ROI data.</p>
                 </div>
               </CardContent>
             </Card>

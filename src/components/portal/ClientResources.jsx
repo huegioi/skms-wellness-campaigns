@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FolderOpen, List, LayoutGrid } from 'lucide-react';
+import { FolderOpen, List, LayoutGrid, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import ResourceCard from './ResourceCard';
 
 const typeOrder = ['video', 'audio', 'recording', 'presentation', 'handout', 'guide', 'link', 'other'];
@@ -20,6 +21,8 @@ const typeLabels = {
 
 export default function ClientResources({ client, proposals = [], services = [] }) {
   const [groupBy, setGroupBy] = useState('service');
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
 
   const liveResources = useMemo(() => {
     const acceptedProposals = proposals.filter(p => p.status === 'accepted');
@@ -66,6 +69,28 @@ export default function ClientResources({ client, proposals = [], services = [] 
     return resources;
   }, [proposals, services, client]);
 
+  const categoryForType = (t) => {
+    if (['video', 'recording', 'audio'].includes(t)) return 'video';
+    if (t === 'link') return 'link';
+    return 'document';
+  };
+
+  const filteredResources = useMemo(() => {
+    let result = liveResources;
+    if (typeFilter !== 'all') {
+      result = result.filter(r => categoryForType(r.resource_type) === typeFilter);
+    }
+    if (search.trim()) {
+      const q = search.toLowerCase().trim();
+      result = result.filter(r =>
+        r.title?.toLowerCase().includes(q) ||
+        r.description?.toLowerCase().includes(q) ||
+        r.session_name?.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [liveResources, typeFilter, search]);
+
   if (liveResources.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-lg p-8 text-center">
@@ -76,8 +101,18 @@ export default function ClientResources({ client, proposals = [], services = [] 
     );
   }
 
+  if (filteredResources.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+        <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+        <h3 className="text-lg font-semibold text-gray-700 mb-1">No matching resources</h3>
+        <p className="text-gray-500 text-sm">Try adjusting your search or filter.</p>
+      </div>
+    );
+  }
+
   // Group resources
-  const grouped = liveResources.reduce((acc, r) => {
+  const grouped = filteredResources.reduce((acc, r) => {
     const key = groupBy === 'service'
       ? (r.session_name || 'General Resources')
       : (r.resource_type || 'other');
@@ -125,6 +160,34 @@ export default function ClientResources({ client, proposals = [], services = [] 
               </Button>
             </div>
           </div>
+          {liveResources.length > 6 && (
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search resources..."
+                  className="pl-9"
+                />
+              </div>
+              <div className="flex gap-1.5 flex-wrap">
+                {['all', 'video', 'document', 'link'].map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setTypeFilter(cat)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors capitalize ${
+                      typeFilter === cat
+                        ? 'bg-brand-green text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {cat === 'all' ? 'All' : cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </CardHeader>
       </Card>
 
