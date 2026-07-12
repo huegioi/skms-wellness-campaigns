@@ -12,19 +12,22 @@ const CAMPAIGN_INCLUDES = [
     icon: LayoutDashboard,
     title: 'Client portal',
     desc: 'Your own portal with program timeline, session booking, and resources.',
-    color: '#013f7c',
+    bgClass: 'bg-brand-navy/10',
+    textClass: 'text-brand-navy',
   },
   {
     icon: BarChart3,
     title: 'Survey & ROI data',
     desc: 'Wellbeing and engagement measurement across your campaign, visible in your portal.',
-    color: '#264d44',
+    bgClass: 'bg-brand-green/10',
+    textClass: 'text-brand-green',
   },
   {
     icon: Mail,
     title: 'Turn-key rollout',
     desc: 'Email templates and materials to get your workforce excited.',
-    color: '#770142',
+    bgClass: 'bg-brand-plum/10',
+    textClass: 'text-brand-plum',
   },
 ];
 
@@ -66,7 +69,7 @@ export function PreventativeBand() {
 /** Education section — shown below the builder steps so education follows action. */
 export function QuickBuilderEducation() {
   return (
-    <div className="space-y-8 mt-10">
+    <div className="space-y-8 mt-8">
       {/* Why campaigns work */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
         <h2 className="text-xl md:text-2xl font-bold text-brand-navy mb-3">Why campaigns work</h2>
@@ -87,8 +90,8 @@ export function QuickBuilderEducation() {
             const Icon = item.icon;
             return (
               <div key={item.title} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-2" style={{ backgroundColor: item.color + '15' }}>
-                  <Icon className="w-4 h-4" style={{ color: item.color }} />
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${item.bgClass}`}>
+                  <Icon className={`w-4 h-4 ${item.textClass}`} />
                 </div>
                 <p className="font-semibold text-sm text-gray-800">{item.title}</p>
                 <p className="text-xs text-gray-500 leading-snug mt-0.5">{item.desc}</p>

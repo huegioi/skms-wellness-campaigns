@@ -15,7 +15,7 @@ export default function QuickBuilderCategoryStep({ title, subtitle, services, se
       ) : services.length === 0 ? (
         <div className="text-center py-12 text-gray-400">No services available in this category.</div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {services.map(svc => (
             <QuickBuilderServiceCard
               key={svc.id}
@@ -30,7 +30,7 @@ export default function QuickBuilderCategoryStep({ title, subtitle, services, se
         <Button variant="outline" onClick={onBack} className="gap-2">
           <ArrowLeft className="w-4 h-4" /> Back
         </Button>
-        <Button onClick={onNext} className="bg-brand-navy hover:bg-[#012d5a] gap-2">
+        <Button onClick={onNext} className="bg-brand-navy hover:bg-brand-navy-dark gap-2">
           Continue <ArrowRight className="w-4 h-4" />
         </Button>
       </div>

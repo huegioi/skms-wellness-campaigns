@@ -55,7 +55,7 @@ export default function QuickBuilderWellnessBoxStep({ value, onChange, onBack, o
         <Button variant="outline" onClick={onBack} className="gap-2">
           <ArrowLeft className="w-4 h-4" /> Back
         </Button>
-        <Button onClick={onNext} className="bg-brand-navy hover:bg-[#012d5a] gap-2">
+        <Button onClick={onNext} className="bg-brand-navy hover:bg-brand-navy-dark gap-2">
           Continue <ArrowRight className="w-4 h-4" />
         </Button>
       </div>

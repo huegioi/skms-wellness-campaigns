@@ -15,10 +15,10 @@ export default function ReviewEstimateCard({ estimate }) {
   return (
     <div className="space-y-3">
       {/* Estimated investment */}
-      <div className="bg-gradient-to-br from-[#264d44] to-[#013f7c] rounded-xl p-5 text-white">
+      <div className="bg-gradient-to-br from-brand-green to-brand-navy rounded-xl p-5 text-white">
         <div className="flex items-center gap-2 mb-1">
-          <TrendingUp className="w-4 h-4 text-[#eaf995]" />
-          <span className="text-xs font-bold uppercase tracking-wide text-[#eaf995]">Estimated investment</span>
+          <TrendingUp className="w-4 h-4 text-brand-lime" />
+          <span className="text-xs font-bold uppercase tracking-wide text-brand-lime">Estimated investment</span>
         </div>
         <p className="text-3xl font-bold">${estimatedInvestment.toLocaleString()}</p>
         {breakdown.challengeCount > 0 && (
@@ -30,10 +30,10 @@ export default function ReviewEstimateCard({ estimate }) {
       </div>
 
       {/* Matched stage */}
-      <div className="bg-white border border-[#013f7c]/15 rounded-xl p-5">
+      <div className="bg-white border border-brand-navy/15 rounded-xl p-5">
         <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#013f7c15' }}>
-            <Target className="w-5 h-5 text-[#013f7c]" />
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 bg-brand-navy/10">
+            <Target className="w-5 h-5 text-brand-navy" />
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Closest campaign stage</p>
@@ -50,7 +50,7 @@ export default function ReviewEstimateCard({ estimate }) {
       </p>
 
       {/* ROI button */}
-      <Button asChild variant="outline" className="w-full gap-2 border-[#770142]/40 text-[#770142] hover:bg-[#770142]/5">
+      <Button asChild variant="outline" className="w-full gap-2 border-brand-plum/40 text-brand-plum hover:bg-brand-plum/5">
         <a href={ROI_CALCULATOR_URL} target="_blank" rel="noopener noreferrer">
           See your projected 3-year ROI
           <ExternalLink className="w-4 h-4" />

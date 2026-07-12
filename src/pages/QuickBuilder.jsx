@@ -42,8 +42,6 @@ const CATEGORY_CONFIG = {
   wellness_box: { label: 'Wellness Boxes', icon: Package },
 };
 
-const STEP_LABELS = ['About your team', 'Workshops', '14-Day Challenges', 'Leadership', 'Wellness Boxes', 'Review & submit'];
-
 export default function QuickBuilder() {
   const [searchParams] = useSearchParams();
   const ref = searchParams.get('ref');
@@ -63,6 +61,31 @@ export default function QuickBuilder() {
 
   const publicServices = services.filter(s => s.is_active !== false && s.public_visible !== false);
 
+  const visibleSteps = useMemo(() => {
+    const allSteps = [
+      { num: 1, label: 'About your team' },
+      { num: 2, label: 'Workshops', cat: 'workshop' },
+      { num: 3, label: '14-Day Challenges', cat: 'challenge' },
+      { num: 4, label: 'Leadership', cat: 'leadership' },
+      { num: 5, label: 'Wellness Boxes' },
+      { num: 6, label: 'Review & submit' },
+    ];
+    if (isLoading) return allSteps;
+    return allSteps.filter(s => !s.cat || publicServices.some(svc => svc.category === s.cat));
+  }, [publicServices, isLoading]);
+
+  const currentVisibleIndex = visibleSteps.findIndex(s => s.num === step);
+  const totalVisibleSteps = visibleSteps.length;
+
+  const goNextStep = () => {
+    const next = visibleSteps[currentVisibleIndex + 1];
+    if (next) setStep(next.num);
+  };
+  const goPrevStep = () => {
+    const prev = visibleSteps[currentVisibleIndex - 1];
+    if (prev) setStep(prev.num);
+  };
+
   const toggleGoal = (goal) => {
     setGoals(prev =>
       prev.includes(goal)
@@ -74,7 +97,11 @@ export default function QuickBuilder() {
   const toggleService = (id) => {
     setSelectedIds(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
@@ -149,7 +176,7 @@ export default function QuickBuilder() {
         maxWidth="max-w-2xl"
       >
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-12 text-center">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ backgroundColor: '#264d4415' }}>
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 bg-brand-green/10">
             <CheckCircle className="w-9 h-9 text-brand-green" />
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Thank you!</h2>
@@ -179,22 +206,19 @@ export default function QuickBuilder() {
       subtitle="Design your wellness campaign in minutes"
       maxWidth="max-w-4xl"
     >
-      {step === 1 && <PreventativeBand />}
-
       {/* Step indicator — mobile */}
       <div className="sm:hidden mb-6 flex items-center justify-between">
-        <span className="text-sm font-bold text-brand-navy">Step {step} of 6</span>
-        <span className="text-sm text-gray-500">{STEP_LABELS[step - 1]}</span>
+        <span className="text-sm font-bold text-brand-navy">Step {currentVisibleIndex + 1} of {totalVisibleSteps}</span>
+        <span className="text-sm text-gray-500">{visibleSteps[currentVisibleIndex]?.label}</span>
       </div>
 
       {/* Step indicator — desktop */}
       <div className="hidden sm:flex items-center gap-2 mb-6">
-        {STEP_LABELS.map((label, idx) => {
-          const stepNum = idx + 1;
-          const isActive = step === stepNum;
-          const isComplete = step > stepNum;
+        {visibleSteps.map((s, idx) => {
+          const isActive = step === s.num;
+          const isComplete = currentVisibleIndex > idx;
           return (
-            <React.Fragment key={label}>
+            <React.Fragment key={s.num}>
               <div className="flex items-center gap-2">
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
@@ -203,19 +227,21 @@ export default function QuickBuilder() {
                       : 'bg-gray-200 text-gray-500'
                   }`}
                 >
-                  {isComplete ? <Check className="w-4 h-4" /> : stepNum}
+                  {isComplete ? <Check className="w-4 h-4" /> : idx + 1}
                 </div>
                 <span className={`text-sm font-medium ${isActive ? 'text-brand-navy' : 'text-gray-400'}`}>
-                  {label}
+                  {s.label}
                 </span>
               </div>
-              {idx < STEP_LABELS.length - 1 && (
-                <div className={`flex-1 h-px mx-2 ${step > stepNum ? 'bg-brand-navy' : 'bg-gray-200'}`} />
+              {idx < visibleSteps.length - 1 && (
+                <div className={`flex-1 h-px mx-2 ${currentVisibleIndex > idx ? 'bg-brand-navy' : 'bg-gray-200'}`} />
               )}
             </React.Fragment>
           );
         })}
       </div>
+
+      {step === 1 && <PreventativeBand />}
 
       {/* ── Step 1: About your team ── */}
       {step === 1 && (
@@ -294,8 +320,8 @@ export default function QuickBuilder() {
           <div className="flex justify-end pt-2">
             <Button
               disabled={!step1Valid}
-              onClick={() => setStep(2)}
-              className="bg-brand-navy hover:bg-[#012d5a] gap-2"
+              onClick={goNextStep}
+              className="bg-brand-navy hover:bg-brand-navy-dark gap-2"
             >
               Next <ArrowRight className="w-4 h-4" />
             </Button>
@@ -311,8 +337,8 @@ export default function QuickBuilder() {
           services={publicServices.filter(s => s.category === 'workshop')}
           selectedIds={selectedIds}
           onToggle={toggleService}
-          onBack={() => setStep(1)}
-          onNext={() => setStep(3)}
+          onBack={goPrevStep}
+          onNext={goNextStep}
           isLoading={isLoading}
         />
       )}
@@ -325,8 +351,8 @@ export default function QuickBuilder() {
           services={publicServices.filter(s => s.category === 'challenge')}
           selectedIds={selectedIds}
           onToggle={toggleService}
-          onBack={() => setStep(2)}
-          onNext={() => setStep(4)}
+          onBack={goPrevStep}
+          onNext={goNextStep}
           isLoading={isLoading}
         />
       )}
@@ -339,8 +365,8 @@ export default function QuickBuilder() {
           services={publicServices.filter(s => s.category === 'leadership')}
           selectedIds={selectedIds}
           onToggle={toggleService}
-          onBack={() => setStep(3)}
-          onNext={() => setStep(5)}
+          onBack={goPrevStep}
+          onNext={goNextStep}
           isLoading={isLoading}
         />
       )}
@@ -350,8 +376,8 @@ export default function QuickBuilder() {
         <QuickBuilderWellnessBoxStep
           value={wantsWellnessBoxes}
           onChange={setWantsWellnessBoxes}
-          onBack={() => setStep(4)}
-          onNext={() => setStep(6)}
+          onBack={goPrevStep}
+          onNext={goNextStep}
         />
       )}
 
@@ -420,13 +446,13 @@ export default function QuickBuilder() {
           </p>
 
           <div className="flex justify-between pt-2">
-            <Button variant="outline" onClick={() => setStep(5)} className="gap-2">
+            <Button variant="outline" onClick={goPrevStep} className="gap-2">
               <ArrowLeft className="w-4 h-4" /> Back
             </Button>
             <Button
               disabled={submitting}
               onClick={handleSubmit}
-              className="bg-brand-plum hover:bg-[#5a0132] gap-2"
+              className="bg-brand-plum hover:bg-brand-plum-dark gap-2"
             >
               {submitting ? 'Submitting...' : 'Submit Inquiry'}
             </Button>
