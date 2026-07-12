@@ -18,6 +18,7 @@ import CohortAssessmentPage from './pages/CohortAssessment';
 import Presenters from './pages/Presenters';
 import PresenterPortal from './pages/PresenterPortal';
 import QuickBuilder from './pages/QuickBuilder';
+import Demo from './pages/Demo';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -89,6 +90,7 @@ const AuthenticatedApp = () => {
       <Route path="/Presenters" element={<LayoutWrapper currentPageName="Presenters"><Presenters /></LayoutWrapper>} />
       <Route path="/PresenterPortal" element={<PresenterPortal />} />
       <Route path="/QuickBuilder" element={<QuickBuilder />} />
+      <Route path="/Demo" element={<LayoutWrapper currentPageName="Demo"><Demo /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

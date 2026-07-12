@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays, ScanText, Sparkles } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
+import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays, ScanText, Sparkles, FlaskConical } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', page: 'Home', icon: BarChart3 },
@@ -22,6 +23,22 @@ const PUBLIC_PAGES = ['ViewProposal', 'MyPortal', 'ClientPortal', 'FeedbackForm'
 
 export default function Layout({ children, currentPageName }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [demoActive, setDemoActive] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const user = await base44.auth.me();
+        if (!user || user.role !== 'admin') return;
+        const records = await base44.entities.ReferralPartner.filter({ is_demo: true }, '-created_date', 1);
+        if (!cancelled) setDemoActive(records.length > 0);
+      } catch {
+        if (!cancelled) setDemoActive(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Public pages — no chrome
   if (PUBLIC_PAGES.includes(currentPageName)) {
@@ -41,6 +58,13 @@ export default function Layout({ children, currentPageName }) {
           <img src={LOGO_URL} alt="SkillfulMeans" className="h-8 w-auto shrink-0" />
           <span className="font-bold text-[#013f7c] text-sm leading-tight">SkillfulMeans<br/>Operations</span>
         </Link>
+
+        {demoActive && (
+          <Link to={createPageUrl('Demo')} className="mx-3 mt-3 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-bold hover:bg-red-100 transition-colors">
+            <FlaskConical className="w-3.5 h-3.5 shrink-0" />
+            DEMO DATA ACTIVE
+          </Link>
+        )}
 
         {/* Nav items */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
@@ -118,6 +142,12 @@ export default function Layout({ children, currentPageName }) {
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
+        {demoActive && (
+          <Link to={createPageUrl('Demo')} onClick={() => setMobileOpen(false)} className="mx-3 mt-3 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-bold hover:bg-red-100 transition-colors">
+            <FlaskConical className="w-3.5 h-3.5 shrink-0" />
+            DEMO DATA ACTIVE
+          </Link>
+        )}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           {/* Builder CTA — top of nav */}
           <Link

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Users, DollarSign, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, DollarSign, TrendingUp, ChevronLeft, ChevronRight, FlaskConical } from 'lucide-react';
 import ClientInformationSection from '@/components/dashboard/ClientInformationSection';
 import FinancialSummary from '@/components/dashboard/FinancialSummary';
 import MarketingDashboard from '@/components/dashboard/MarketingDashboard';
@@ -27,7 +28,13 @@ export default function Home() {
       {/* Page Header with tabs (same style as Financials) */}
       <div className="bg-white border-b px-4 md:px-8 pt-6 pb-0 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-4" style={{ color: '#013f7c' }}>Dashboard</h1>
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#013f7c' }}>Dashboard</h1>
+            <Link to="/Demo" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors">
+              <FlaskConical className="w-4 h-4" />
+              Demo Environment
+            </Link>
+          </div>
           {/* Desktop tabs */}
           <div className="hidden md:flex gap-1">
             {sections.map(section => {
