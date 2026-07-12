@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    const { portal_id, event_id, accepted, completed } = await req.json();
+    const { portal_id, event_id, accepted, completed, decline_reason } = await req.json();
 
     if (!portal_id || !event_id) {
       return Response.json({ error: 'portal_id and event_id are required' }, { status: 400 });
@@ -28,7 +28,23 @@ Deno.serve(async (req) => {
     }
 
     const updates = {};
-    if (accepted !== undefined) updates.presenter_accepted = accepted;
+    if (accepted !== undefined) {
+      if (accepted === true) {
+        updates.presenter_accepted = true;
+        updates.presenter_declined_at = null;
+        updates.presenter_decline_reason = null;
+      } else {
+        // Decline: clear presenter assignment, flag for SchedulingHub
+        updates.presenter_accepted = false;
+        updates.presenter_declined_at = new Date().toISOString();
+        if (decline_reason) {
+          updates.presenter_decline_reason = decline_reason;
+        }
+        updates.presenter_id = null;
+        updates.presenter_email = null;
+        updates.presenter = null;
+      }
+    }
     if (completed !== undefined) {
       // Server-side guard: reject completion of challenge events before end_date
       if (completed === true) {

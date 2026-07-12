@@ -12,6 +12,7 @@ import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 import LeadsAttentionSection from '@/components/dashboard/LeadsAttentionSection';
 import UnscheduledServicesSection from '@/components/dashboard/UnscheduledServicesSection';
+import PresenterAttentionSection from '@/components/dashboard/PresenterAttentionSection';
 import RenewalSeasonSection from '@/components/dashboard/RenewalSeasonSection';
 
 const CHANNEL_ICONS = {
@@ -258,9 +259,10 @@ export default function FollowUpQueue() {
     toast.success(`${client.name} removed from follow-up queue`);
   };
 
-  if (isLoading) return null;
+  if (isLoading) return <PresenterAttentionSection />;
   if (queueClients.length === 0) return (
     <>
+    <PresenterAttentionSection />
     <RenewalSeasonSection />
     <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
       <CardHeader>
@@ -278,6 +280,7 @@ export default function FollowUpQueue() {
 
   return (
     <>
+    <PresenterAttentionSection />
     <RenewalSeasonSection />
       <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
         <CardHeader>

@@ -76,6 +76,15 @@
       "type": "boolean",
       "description": "Whether the presenter has accepted this session"
     },
+    "presenter_declined_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the assigned presenter declined this session. When set, presenter_id is cleared and the session needs a new presenter. Cleared when a new presenter accepts."
+    },
+    "presenter_decline_reason": {
+      "type": "string",
+      "description": "Optional reason the presenter gave for declining this session."
+    },
     "presenter_email": {
       "type": "string",
       "format": "email",

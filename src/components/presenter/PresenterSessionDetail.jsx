@@ -7,13 +7,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
+import PresenterAcceptBar from '@/components/presenter/PresenterAcceptBar';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
 import { isChallengeEvent, getChallengeDayProgress } from '@/lib/challengeUtils';
 import { downloadICS } from '@/lib/ics';
 
 export default function PresenterSessionDetail({ event, portalId, onBack, onUpdated }) {
-  const [accepting, setAccepting] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [copiedKey, setCopiedKey] = useState(null);
   const [recordingLink, setRecordingLink] = useState(event.recording_link || '');
@@ -29,15 +29,6 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
-  };
-
-  const handleAccept = async () => {
-    setAccepting(true);
-    await base44.functions.invoke('updatePresenterSession', {
-      portal_id: portalId, event_id: event.id, accepted: true
-    });
-    setAccepting(false);
-    onUpdated();
   };
 
   const handleSaveRecording = async () => {
@@ -106,20 +97,13 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
 
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
 
-        {/* Accept / Complete Actions */}
+        {/* Accept / Decline Actions */}
         {isUpcoming && !event.presenter_accepted && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-4">
             <div className="flex-1">
               <p className="font-semibold text-amber-800 text-sm">Please confirm your availability for this session.</p>
             </div>
-            <Button
-              onClick={handleAccept}
-              disabled={accepting}
-              className="bg-[#264d44] hover:bg-[#1a3830] text-white text-sm"
-            >
-              {accepting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
-              Accept
-            </Button>
+            <PresenterAcceptBar event={event} portalId={portalId} onUpdated={onUpdated} />
           </div>
         )}
         {event.presenter_accepted && isUpcoming && (

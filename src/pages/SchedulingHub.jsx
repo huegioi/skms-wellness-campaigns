@@ -429,7 +429,13 @@ export default function SchedulingHub() {
     sourceBadge: getEventSourceBadge(event),
     lens: getEventLens(event),
   }));
-  const deliveryEvents = enrichedEvents.filter(e => e.lens === 'delivery');
+  const deliveryEvents = enrichedEvents.filter(e => e.lens === 'delivery').sort((a, b) => {
+    // Declined sessions (presenter_declined_at set, no current presenter) sort to top
+    const aDeclined = (!a.presenter_id && a.presenter_declined_at) ? 0 : 1;
+    const bDeclined = (!b.presenter_id && b.presenter_declined_at) ? 0 : 1;
+    if (aDeclined !== bDeclined) return aDeclined - bDeclined;
+    return a.date - b.date;
+  });
   const meetingEvents = enrichedEvents.filter(e => e.lens === 'meetings');
   const lensEvents = eventLens === 'delivery' ? deliveryEvents : meetingEvents;
 

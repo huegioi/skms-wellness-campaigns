@@ -1,10 +1,10 @@
 import React from 'react';
-import { Calendar, Users, MapPin, Plus, CheckCircle2, MoreVertical, ArrowRightLeft } from 'lucide-react';
+import { Calendar, Users, MapPin, Plus, CheckCircle2, MoreVertical, ArrowRightLeft, XCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { format, parseISO } from 'date-fns';
 import SourceBadge from './SourceBadge';
-import PresenterStatusIcon from './PresenterStatusIcon';
+import PresenterStatusIcon, { getPresenterStatus } from './PresenterStatusIcon';
 import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
 import { isChallengeEvent, getChallengeDayProgress } from '@/lib/challengeUtils';
 
@@ -65,7 +65,27 @@ export default function DeliveryEventRow({ event, allServices, getEventAssessmen
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <div className={`font-semibold ${isPast ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{event.title}</div>
             <SourceBadge source={event.sourceBadge} />
-            {isCalendar && <PresenterStatusIcon event={event} />}
+            {isCalendar && (() => {
+              const status = getPresenterStatus(event);
+              if (status === 'accepted') return <PresenterStatusIcon event={event} />;
+              if (status === 'declined') return (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-300 flex items-center gap-1">
+                  <XCircle className="w-3 h-3" />
+                  Needs presenter
+                </span>
+              );
+              if (status === 'assigned') {
+                const daysOut = Math.ceil((parseISO(event.start_date) - new Date()) / (1000 * 60 * 60 * 24));
+                if (daysOut <= 14) return (
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-300 flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Awaiting presenter
+                  </span>
+                );
+                return <PresenterStatusIcon event={event} />;
+              }
+              return <PresenterStatusIcon event={event} />;
+            })()}
             {facilitationLabel && (
               <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                 {facilitationLabel}

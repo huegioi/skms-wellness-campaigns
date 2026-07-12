@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO } from 'date-fns';
 import { Calendar, Clock, Building, ChevronRight, CheckCircle2, Loader2, AlertCircle, DollarSign } from 'lucide-react';
+import PresenterAcceptBar from '@/components/presenter/PresenterAcceptBar';
 import PresenterSessionDetail from '@/components/presenter/PresenterSessionDetail';
 import EarningsDetail from '@/components/presenter/EarningsDetail';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
@@ -230,8 +231,15 @@ function SessionCard({ event, upcoming, portalId, onCompleted, onClick }) {
         <ChevronRight className="w-5 h-5 text-gray-300 flex-shrink-0" />
       </button>
 
-      {/* Mark Complete footer — shown when not yet completed */}
-      {!event.completed && (
+      {/* Accept / Decline footer — shown when not yet accepted */}
+      {upcoming && !event.presenter_accepted && (
+        <div className="px-5 pb-4">
+          <PresenterAcceptBar event={event} portalId={portalId} onUpdated={onCompleted} />
+        </div>
+      )}
+
+      {/* Mark Complete footer — shown when accepted but not yet completed */}
+      {event.presenter_accepted && !event.completed && (
         <div className="px-5 pb-4 flex items-center gap-3">
           <div title={!canComplete ? (isChallenge ? 'Available after the challenge ends' : 'Available after the session') : undefined} className="inline-block">
             <Button
