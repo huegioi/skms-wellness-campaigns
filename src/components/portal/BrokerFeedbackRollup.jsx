@@ -34,41 +34,26 @@ function avgEnpsForRows(cohortRows, pulseRows) {
   return npsScores.length ? npsScores.reduce((s, v) => s + v, 0) / npsScores.length : null;
 }
 
-export default function BrokerFeedbackRollup({ clientCompanies = [], services = [] }) {
+export default function BrokerFeedbackRollup({ clientCompanies = [], services = [], portalId }) {
   const [expandedClient, setExpandedClient] = useState(null);
   const clientIds = clientCompanies.map(c => c.id);
 
-  const { data: allResponses = [], isLoading, error } = useQuery({
-    queryKey: ['broker-feedback-rollup', clientIds.join(',')],
+  const { data: roiData, isLoading: isLoadingAll, error } = useQuery({
+    queryKey: ['broker-roi-rollup', portalId, clientIds.join(',')],
     queryFn: async () => {
-      if (clientIds.length === 0) return [];
-      const results = await Promise.all(
-        clientIds.map(id =>
-          base44.entities.FeedbackResponse.filter({ client_id: id }, '-submitted_at', 200)
-        )
-      );
-      return results.flat();
+      if (clientIds.length === 0 || !portalId) return { feedback_responses: [], cohort_assessments: [] };
+      const res = await base44.functions.invoke('getRoiData', {
+        portal_id: portalId,
+        client_ids: clientIds,
+      });
+      return res.data;
     },
-    enabled: true,
+    enabled: !!portalId && clientIds.length > 0,
     retry: 1,
   });
 
-  const { data: allCohortAssessments = [], isLoading: isLoadingCohort } = useQuery({
-    queryKey: ['broker-cohort-rollup', clientIds.join(',')],
-    queryFn: async () => {
-      if (clientIds.length === 0) return [];
-      const results = await Promise.all(
-        clientIds.map(id =>
-          base44.entities.CohortAssessment.filter({ client_id: id }, '-submitted_at', 500)
-        )
-      );
-      return results.flat();
-    },
-    enabled: true,
-    retry: 1,
-  });
-
-  const isLoadingAll = isLoading || isLoadingCohort;
+  const allResponses = roiData?.feedback_responses || [];
+  const allCohortAssessments = roiData?.cohort_assessments || [];
 
   // ── Hero metrics ────────────────────────────────────────────────────────────
   const activeClientCount = clientCompanies.length;

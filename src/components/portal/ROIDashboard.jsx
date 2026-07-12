@@ -26,22 +26,25 @@ function ConfidenceBar({ value, max = 10 }) {
   );
 }
 
-export default function ROIDashboard({ clientId, clientCompany, services = [], showReportButton = false, onGenerateReport, acceptedProposalId }) {
+export default function ROIDashboard({ clientId, clientCompany, services = [], showReportButton = false, onGenerateReport, acceptedProposalId, clientToken, portalId }) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const [detailsOpen, setDetailsOpen] = useState(false);
 
-  const { data: allResponses = [], isLoading } = useQuery({
-    queryKey: ['roi-responses', clientId],
-    queryFn: () => base44.entities.FeedbackResponse.filter({ client_id: clientId }, '-submitted_at', 200),
-    enabled: !!clientId
-  });
-
-  const { data: cohortAssessments = [] } = useQuery({
-    queryKey: ['cohort-assessments-portal', clientId],
-    queryFn: () => base44.entities.CohortAssessment.filter({ client_id: clientId }, '-submitted_at', 500),
+  const { data: roiData, isLoading } = useQuery({
+    queryKey: ['roi-data', clientId, clientToken, portalId],
+    queryFn: async () => {
+      const payload = { client_id: clientId };
+      if (clientToken) payload.client_token = clientToken;
+      if (portalId) payload.portal_id = portalId;
+      const res = await base44.functions.invoke('getRoiData', payload);
+      return res.data;
+    },
     enabled: !!clientId,
   });
+
+  const allResponses = roiData?.feedback_responses || [];
+  const cohortAssessments = roiData?.cohort_assessments || [];
 
   // Universal Pulse responses only
   const pulseResponses = useMemo(
@@ -243,7 +246,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
               <div className="px-5 pb-5 space-y-6">
                 {/* Per-instrument cards (cohort + challenge breakdowns) */}
                 <Who5ResultsPanel
-                  clientId={clientId}
+                  cohortAssessments={cohortAssessments}
                   acceptedProposalId={acceptedProposalId}
                   services={services}
                 />

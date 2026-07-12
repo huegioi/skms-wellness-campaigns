@@ -1,6 +1,4 @@
 import React, { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
 import { Activity } from 'lucide-react';
 import InstrumentResultCard from '@/components/feedback/InstrumentResultCard';
 import { INSTRUMENT_META, getInstrumentKey, matchPairs, calcStats } from '@/components/feedback/instrumentMeta';
@@ -20,12 +18,8 @@ function buildInstrumentStats(rows, startType, endType) {
   }).filter(s => s.stats);
 }
 
-export default function Who5ResultsPanel({ clientId, acceptedProposalId, services = [] }) {
-  const { data: cohortRows = [], isLoading } = useQuery({
-    queryKey: ['cohort-assessments', clientId],
-    queryFn: () => base44.entities.CohortAssessment.filter({ client_id: clientId }, '-submitted_at', 500),
-    enabled: !!clientId,
-  });
+export default function Who5ResultsPanel({ cohortAssessments = [], acceptedProposalId, services = [] }) {
+  const cohortRows = cohortAssessments;
 
   // ── Section 1: Cohort arc ──────────────────────────────────────────────────
   const cohortRows_ = useMemo(() =>
@@ -49,8 +43,6 @@ export default function Who5ResultsPanel({ clientId, acceptedProposalId, service
     () => buildInstrumentStats(challengeRows, 'challenge_day0', 'challenge_day14'),
     [challengeRows]
   );
-
-  if (isLoading) return null;
 
   return (
     <div className="space-y-4">

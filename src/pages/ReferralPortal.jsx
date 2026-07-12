@@ -155,7 +155,7 @@ export default function ReferralPortal() {
         {activeTab === 'dashboard' && (
           <>
             {/* Portfolio Wellness Impact */}
-            <BrokerFeedbackRollup clientCompanies={client_companies} services={services} />
+            <BrokerFeedbackRollup clientCompanies={client_companies} services={services} portalId={portalId} />
 
             {/* Recent Activity */}
             <RecentActivity activities={activities} />
@@ -334,6 +334,7 @@ export default function ReferralPortal() {
                         clientId={selectedClientROI.id}
                         clientCompany={selectedClientROI.company}
                         services={services}
+                        portalId={portalId}
                         showReportButton={true}
                         onGenerateReport={() => window.open(`${window.location.origin}/ClientReport?client_id=${selectedClientROI.id}&portal_id=${portalId}`, '_blank')}
                       />
