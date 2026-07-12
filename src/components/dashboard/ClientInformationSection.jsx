@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import FollowUpQueue from '@/components/dashboard/FollowUpQueue';
-import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
+import { useDashClients, useDashProposals, useDashInvoices, useDashTasks, useDashLeads, useDashCalendarEvents, useDashReferrals } from './useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ListTodo, AlertCircle, Users, FileText, Send, CheckCircle2, Eye, UserPlus, UserCheck, Calendar, ClipboardCheck, Clock, GitMerge } from 'lucide-react';
@@ -12,40 +11,13 @@ import TaskList from '@/components/tasks/TaskList';
 export default function ClientInformationSection() {
   const [selectedClient, setSelectedClient] = useState(null);
 
-  const { data: rawClients = [] } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => base44.entities.Client.list()
-  });
-
-  const { data: rawProposals = [] } = useQuery({
-    queryKey: ['proposals'],
-    queryFn: () => base44.entities.Proposal.list()
-  });
-
-  const { data: rawInvoices = [] } = useQuery({
-    queryKey: ['invoices'],
-    queryFn: () => base44.entities.Invoice.list()
-  });
-
-  const { data: rawAllTasks = [] } = useQuery({
-    queryKey: ['clientTasks'],
-    queryFn: () => base44.entities.ClientTask.list()
-  });
-
-  const { data: rawLeads = [] } = useQuery({
-    queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list('-created_date', 50)
-  });
-
-  const { data: rawCalendarEvents = [] } = useQuery({
-    queryKey: ['calendarEvents'],
-    queryFn: () => base44.entities.CalendarEvent.list('-updated_date', 50)
-  });
-
-  const { data: rawReferrals = [] } = useQuery({
-    queryKey: ['referrals-feed'],
-    queryFn: () => base44.entities.Referral.list('-created_date', 20)
-  });
+  const { data: rawClients = [] } = useDashClients();
+  const { data: rawProposals = [] } = useDashProposals();
+  const { data: rawInvoices = [] } = useDashInvoices();
+  const { data: rawAllTasks = [] } = useDashTasks();
+  const { data: rawLeads = [] } = useDashLeads();
+  const { data: rawCalendarEvents = [] } = useDashCalendarEvents();
+  const { data: rawReferrals = [] } = useDashReferrals();
 
   // Exclude demo/broker-demo records from all dashboard metrics
   const clients = rawClients.filter(c => !c.is_demo);

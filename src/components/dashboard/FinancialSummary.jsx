@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useDashInvoices, useDashExpenses } from './useDashboardData';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -19,15 +19,8 @@ function parseDateParts(dateStr) {
 }
 
 export default function FinancialSummary() {
-  const { data: rawInvoices = [] } = useQuery({
-    queryKey: ['invoices'],
-    queryFn: () => base44.entities.Invoice.list('-created_date', 10000),
-  });
-
-  const { data: rawExpenses = [] } = useQuery({
-    queryKey: ['quickBooksExpenses'],
-    queryFn: () => base44.entities.QuickBooksExpense.list(),
-  });
+  const { data: rawInvoices = [] } = useDashInvoices();
+  const { data: rawExpenses = [] } = useDashExpenses();
 
   // Exclude demo/broker-demo records from dashboard metrics
   const invoices = rawInvoices.filter(i => !i.is_demo);

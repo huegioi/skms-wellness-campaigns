@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useDashClients, useDashInteractions } from './useDashboardData';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -101,7 +102,7 @@ export default function FollowUpQueue() {
     setSyncing(true);
     try {
       const res = await base44.functions.invoke('scanAdminGmailContacts', {});
-      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['dash-clients'] });
       toast.success(`Email sync complete — ${res.data?.updated || 0} client(s) updated`);
     } catch (e) {
       toast.error('Email sync failed: ' + e.message);
@@ -110,19 +111,13 @@ export default function FollowUpQueue() {
     }
   };
 
-  const { data: rawClients = [], isLoading } = useQuery({
-    queryKey: ['clients'],
-    queryFn: () => base44.entities.Client.list()
-  });
+  const { data: rawClients = [], isLoading } = useDashClients();
 
   // Exclude demo/broker-demo records from dashboard metrics
   const clients = rawClients.filter(c => !c.is_demo);
 
   // Fetch interactions to derive days-since-contact + last touch channel
-  const { data: interactions = [] } = useQuery({
-    queryKey: ['interactions-followup'],
-    queryFn: () => base44.entities.ClientInteraction.list('-date', 500),
-  });
+  const { data: interactions = [] } = useDashInteractions();
 
   // Latest interaction per client_id
   const latestInteractionByClient = useMemo(() => {
@@ -152,7 +147,7 @@ export default function FollowUpQueue() {
     if ([10, 11].includes(currentMonth)) updates.november_checkin_year = currentYear;
 
     await base44.entities.Client.update(client.id, updates);
-    queryClient.invalidateQueries({ queryKey: ['clients'] });
+    queryClient.invalidateQueries({ queryKey: ['dash-clients'] });
     toast.success(`${client.name} marked as contacted`);
   };
 
@@ -163,7 +158,7 @@ export default function FollowUpQueue() {
       follow_up_status: 'snoozed',
       snooze_until: snoozeUntil.toISOString().split('T')[0]
     });
-    queryClient.invalidateQueries({ queryKey: ['clients'] });
+    queryClient.invalidateQueries({ queryKey: ['dash-clients'] });
     toast.success(`${client.name} snoozed for 1 week`);
   };
 
@@ -176,7 +171,7 @@ export default function FollowUpQueue() {
       april_checkin_year: currentYear,
       november_checkin_year: currentYear
     });
-    queryClient.invalidateQueries({ queryKey: ['clients'] });
+    queryClient.invalidateQueries({ queryKey: ['dash-clients'] });
     toast.success(`${client.name} removed from follow-up queue`);
   };
 

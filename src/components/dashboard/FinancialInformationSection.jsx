@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useDashInvoices, useDashExpenses } from './useDashboardData';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -76,15 +76,8 @@ export default function FinancialInformationSection() {
   const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const { data: rawInvoices = [], refetch: refetchInvoices } = useQuery({
-    queryKey: ['invoices'],
-    queryFn: () => base44.entities.Invoice.list(),
-  });
-
-  const { data: rawQuickBooksExpenses = [], refetch: refetchExpenses } = useQuery({
-    queryKey: ['quickBooksExpenses'],
-    queryFn: () => base44.entities.QuickBooksExpense.list(),
-  });
+  const { data: rawInvoices = [], refetch: refetchInvoices } = useDashInvoices();
+  const { data: rawQuickBooksExpenses = [], refetch: refetchExpenses } = useDashExpenses();
 
   // Exclude demo/broker-demo records from dashboard metrics
   const invoices = rawInvoices.filter(i => !i.is_demo);
@@ -485,7 +478,7 @@ export default function FinancialInformationSection() {
       </Card>
 
       {/* Customer Lifetime Value */}
-      <CustomerLTVCard invoices={invoices} />
+      <CustomerLTVCard />
         </TabsContent>
 
         {/* Reports Tab */}

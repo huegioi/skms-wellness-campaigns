@@ -1,8 +1,11 @@
 import React from 'react';
+import { useDashInvoices } from './useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
-export default function CustomerLTVCard({ invoices }) {
+export default function CustomerLTVCard() {
+  const { data: rawInvoices = [] } = useDashInvoices();
+  const invoices = rawInvoices.filter(i => !i.is_demo);
   const calculateLTV = () => {
     // Group paid invoices by customer
     const byCustomer = {};

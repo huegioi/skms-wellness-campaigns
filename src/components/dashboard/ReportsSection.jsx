@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useDashExpenses, useDashIncome } from './useDashboardData';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -19,15 +19,8 @@ export default function ReportsSection() {
   const [selectedAccount, setSelectedAccount] = useState('all');
   const [selectedClient, setSelectedClient] = useState('all');
 
-  const { data: expenses = [] } = useQuery({
-    queryKey: ['qbExpenses'],
-    queryFn: () => base44.entities.QuickBooksExpense.list()
-  });
-
-  const { data: income = [] } = useQuery({
-    queryKey: ['qbIncome'],
-    queryFn: () => base44.entities.QuickBooksIncome.list()
-  });
+  const { data: expenses = [] } = useDashExpenses();
+  const { data: income = [] } = useDashIncome();
 
   // Extract unique values for filters
   const accountTypes = useMemo(() => {

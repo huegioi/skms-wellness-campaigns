@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useDashInvoices, useDashServices, useDashCalendarEvents } from './useDashboardData';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,18 +10,9 @@ import UnmatchedItemsCard from './UnmatchedItemsCard';
 import ServiceDemandChart from './ServiceDemandChart';
 
 export default function ServicesAnalytics() {
-  const { data: rawInvoices = [] } = useQuery({
-    queryKey: ['invoices'],
-    queryFn: () => base44.entities.Invoice.list()
-  });
-  const { data: services = [] } = useQuery({
-    queryKey: ['services'],
-    queryFn: () => base44.entities.Service.list()
-  });
-  const { data: rawEvents = [] } = useQuery({
-    queryKey: ['calendarEvents'],
-    queryFn: () => base44.entities.CalendarEvent.list('-start_date', 2000)
-  });
+  const { data: rawInvoices = [] } = useDashInvoices();
+  const { data: services = [] } = useDashServices();
+  const { data: rawEvents = [] } = useDashCalendarEvents();
 
   const invoices = useMemo(() => rawInvoices.filter(i => !i.is_demo), [rawInvoices]);
   const events = useMemo(() => rawEvents.filter(e => !e.is_demo), [rawEvents]);

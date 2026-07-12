@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useDashReferrals } from './useDashboardData';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -115,7 +116,7 @@ function ProposalVerificationCard({ referral }) {
         reviewed_date: new Date().toISOString(),
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['referrals'] });
+      queryClient.invalidateQueries({ queryKey: ['dash-referrals'] });
       toast.success('Referral marked as verified & purchased');
     },
     onError: () => toast.error('Failed to update referral'),
@@ -129,7 +130,7 @@ function ProposalVerificationCard({ referral }) {
         review_notes: 'Dismissed — client did not come from a direct broker referral. No commission applies.',
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['referrals'] });
+      queryClient.invalidateQueries({ queryKey: ['dash-referrals'] });
       toast.success('Dismissed — no commission will be issued');
     },
     onError: () => toast.error('Failed to dismiss referral'),
@@ -205,25 +206,17 @@ export default function ActionableReviewQueue() {
   const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState(false);
 
-  const { data: rawPending = [], isLoading: loadingPending } = useQuery({
-    queryKey: ['referrals', 'pending_review'],
-    queryFn: () => base44.entities.Referral.filter({ status: 'pending_review' }, '-referral_date'),
-  });
-
-  const { data: rawAll = [], isLoading: loadingAll } = useQuery({
-    queryKey: ['referrals', 'needs_proposal_verification'],
-    queryFn: () => base44.entities.Referral.filter({ status: 'converted_to_client' }, '-referral_date'),
-  });
+  const { data: rawReferrals = [], isLoading: loadingReferrals } = useDashReferrals();
 
   // Exclude demo/broker-demo records from dashboard metrics
-  const pendingReferrals = rawPending.filter(r => !r.is_demo);
-  const allReferrals = rawAll.filter(r => !r.is_demo);
+  const pendingReferrals = rawReferrals.filter(r => !r.is_demo && r.status === 'pending_review');
+  const allReferrals = rawReferrals.filter(r => !r.is_demo && r.status === 'converted_to_client');
 
   const reviewMutation = useMutation({
     mutationFn: ({ referral_id, action, review_notes }) =>
       base44.functions.invoke('reviewReferral', { referral_id, action, review_notes }),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['referrals'] });
+      queryClient.invalidateQueries({ queryKey: ['dash-referrals'] });
       toast.success(variables.action === 'approve' ? 'Referral approved' : 'Referral rejected');
     },
     onError: (err) => toast.error('Failed: ' + (err.message || 'Unknown error')),
@@ -233,7 +226,7 @@ export default function ActionableReviewQueue() {
     reviewMutation.mutateAsync({ referral_id: referral.id, action, review_notes: notes });
 
   const totalItems = pendingReferrals.length + allReferrals.length;
-  const isLoading = loadingPending || loadingAll;
+  const isLoading = loadingReferrals;
 
   if (isLoading || totalItems === 0) return null;
 
