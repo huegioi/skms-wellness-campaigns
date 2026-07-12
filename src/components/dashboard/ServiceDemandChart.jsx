@@ -2,6 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { eventCategory, isDeliveryEvent, CATEGORY_CHIP_LABELS } from '@/lib/serviceMatching';
+import { CHART_PALETTE } from '@/lib/dashboardStyle';
+import DashboardEmptyState from './DashboardEmptyState';
+import { CalendarClock } from 'lucide-react';
 
 const MONTH_LABELS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const CATEGORY_CHIPS = ['all', 'workshop', 'challenge', 'class', 'leadership', 'wellness_box'];
@@ -42,7 +45,7 @@ export default function ServiceDemandChart({ events, serviceMap }) {
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Demand by Month</CardTitle>
+            <CardTitle className="text-base font-semibold text-brand-green">Demand by Month</CardTitle>
             <p className="text-sm text-gray-500 mt-0.5">Delivery events by start date (last 12 months).</p>
           </div>
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -64,19 +67,17 @@ export default function ServiceDemandChart({ events, serviceMap }) {
       </CardHeader>
       <CardContent className="p-4 sm:p-6">
         {hasData ? (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={256}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
               <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7280' }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#6B7280' }} allowDecimals={false} />
               <Tooltip contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb' }} />
-              <Bar dataKey="count" name="Events" fill="#264d44" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="count" name="Events" fill={CHART_PALETTE[0]} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-[300px] flex items-center justify-center text-gray-400">
-            No delivery events in this range
-          </div>
+          <DashboardEmptyState icon={CalendarClock} message="No delivery events in this range" />
         )}
       </CardContent>
     </Card>

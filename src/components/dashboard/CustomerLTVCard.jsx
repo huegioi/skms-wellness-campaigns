@@ -2,9 +2,13 @@ import React from 'react';
 import { useDashInvoices } from './useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { CHART_PALETTE, formatCurrency } from '@/lib/dashboardStyle';
+import DashboardSkeleton from './DashboardSkeleton';
+import DashboardEmptyState from './DashboardEmptyState';
+import { Users } from 'lucide-react';
 
 export default function CustomerLTVCard() {
-  const { data: rawInvoices = [] } = useDashInvoices();
+  const { data: rawInvoices = [], isLoading } = useDashInvoices();
   const invoices = rawInvoices.filter(i => !i.is_demo);
   const calculateLTV = () => {
     // Group paid invoices by customer
@@ -37,14 +41,16 @@ export default function CustomerLTVCard() {
 
   const { avgLTV, data, totalCustomers } = calculateLTV();
 
+  if (isLoading) return <DashboardSkeleton title rows={4} />;
+
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Customer Lifetime Value</CardTitle>
+        <CardTitle className="text-base font-semibold text-brand-green">Customer Lifetime Value</CardTitle>
         <div className="flex flex-wrap gap-6 mt-2">
           <div>
             <p className="text-xs text-gray-500">Avg. LTV</p>
-            <p className="text-2xl font-bold text-[#013f7c]">${avgLTV.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-brand-navy">{formatCurrency(avgLTV)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500">Total Customers</p>
@@ -53,14 +59,14 @@ export default function CustomerLTVCard() {
           <div>
             <p className="text-xs text-gray-500">Total Revenue</p>
             <p className="text-2xl font-bold text-green-600">
-              ${(avgLTV * totalCustomers).toLocaleString()}
+              {formatCurrency(avgLTV * totalCustomers)}
             </p>
           </div>
         </div>
       </CardHeader>
       <CardContent className="p-4 sm:p-6 pt-2">
         {data.length > 0 ? (
-          <ResponsiveContainer width="100%" height={260}>
+          <ResponsiveContainer width="100%" height={256}>
             <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 40 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="name" angle={-35} textAnchor="end" tick={{ fontSize: 11 }} interval={0} />
@@ -70,12 +76,12 @@ export default function CustomerLTVCard() {
                 labelFormatter={(label) => label}
                 contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
               />
-              <ReferenceLine y={avgLTV} stroke="#013f7c" strokeDasharray="4 4" label={{ value: `Avg $${avgLTV.toLocaleString()}`, position: 'insideTopRight', fontSize: 11, fill: '#013f7c' }} />
-              <Bar dataKey="ltv" name="LTV" fill="#264d44" radius={[6, 6, 0, 0]} />
+              <ReferenceLine y={avgLTV} stroke={CHART_PALETTE[1]} strokeDasharray="4 4" label={{ value: `Avg ${formatCurrency(avgLTV)}`, position: 'insideTopRight', fontSize: 11, fill: CHART_PALETTE[1] }} />
+              <Bar dataKey="ltv" name="LTV" fill={CHART_PALETTE[0]} radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-[260px] flex items-center justify-center text-gray-400">No paid invoice data available</div>
+          <DashboardEmptyState icon={Users} message="No paid invoice data available" />
         )}
       </CardContent>
     </Card>

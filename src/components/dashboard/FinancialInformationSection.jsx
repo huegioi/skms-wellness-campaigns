@@ -6,6 +6,9 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { DollarSign, TrendingUp, Clock, CheckCircle2, RefreshCw, TrendingDown, Wallet } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { CHART_PALETTE, formatCurrency, formatPercent } from '@/lib/dashboardStyle';
+import DashboardSkeleton from './DashboardSkeleton';
+import DashboardEmptyState from './DashboardEmptyState';
 import ReportsSection from './ReportsSection';
 import CustomerLTVCard from './CustomerLTVCard';
 import ExpenseManager from './ExpenseManager';
@@ -15,7 +18,7 @@ function TopIncomeSourcesCard({ incomeData, invoices, timeframe }) {
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300">
       <CardHeader>
-        <CardTitle style={{ color: '#264d44' }}>Top Income Sources by Customer</CardTitle>
+        <CardTitle className="text-base font-semibold text-brand-green">Top Income Sources by Customer</CardTitle>
         <p className="text-sm text-gray-500 mt-1">
         {timeframe === 'month' ? 'This Month' : timeframe === 'quarter' ? 'This Quarter' : timeframe === 'year' ? 'This Year' : 'All Time'} &mdash; paid invoices only
         </p>
@@ -23,13 +26,13 @@ function TopIncomeSourcesCard({ incomeData, invoices, timeframe }) {
       <CardContent>
         {incomeData.topCustomers.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={256}>
               <BarChart data={incomeData.topCustomers} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
                 <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 12 }} />
                 <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                <Bar dataKey="value" name="Revenue" fill="#264d44" radius={[0, 6, 6, 0]} />
+                <Bar dataKey="value" name="Revenue" fill={CHART_PALETTE[0]} radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
             <div className="space-y-2">
@@ -43,11 +46,11 @@ function TopIncomeSourcesCard({ incomeData, invoices, timeframe }) {
                 const avgInvoice = invoiceCount > 0 ? customer.value / invoiceCount : 0;
                 return (
                   <div key={customer.name} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#264d44] text-white text-xs flex items-center justify-center font-bold">{idx + 1}</span>
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-brand-green text-white text-xs flex items-center justify-center font-bold">{idx + 1}</span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p className="font-semibold text-gray-800 truncate text-sm">{customer.name}</p>
-                        <p className="font-bold text-[#264d44] flex-shrink-0">${customer.value.toLocaleString()}</p>
+                        <p className="font-bold text-brand-green flex-shrink-0">{formatCurrency(customer.value)}</p>
                       </div>
                       <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                         <span>{invoiceCount} invoice{invoiceCount !== 1 ? 's' : ''}</span>
@@ -55,7 +58,7 @@ function TopIncomeSourcesCard({ incomeData, invoices, timeframe }) {
                         <span className="ml-auto font-medium text-gray-600">{pct}% of total</span>
                       </div>
                       <div className="mt-1.5 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#264d44] rounded-full" style={{ width: `${pct}%` }} />
+                        <div className="h-full bg-brand-green rounded-full" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   </div>
@@ -64,7 +67,7 @@ function TopIncomeSourcesCard({ incomeData, invoices, timeframe }) {
             </div>
           </div>
         ) : (
-          <div className="h-[250px] flex items-center justify-center text-gray-400">No income data for this period</div>
+          <DashboardEmptyState icon={DollarSign} message="No income data for this period" />
         )}
       </CardContent>
     </Card>
@@ -76,12 +79,21 @@ export default function FinancialInformationSection() {
   const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const { data: rawInvoices = [], refetch: refetchInvoices } = useDashInvoices();
-  const { data: rawQuickBooksExpenses = [], refetch: refetchExpenses } = useDashExpenses();
+  const { data: rawInvoices = [], isLoading: loadingInvoices, refetch: refetchInvoices } = useDashInvoices();
+  const { data: rawQuickBooksExpenses = [], isLoading: loadingExpenses, refetch: refetchExpenses } = useDashExpenses();
 
   // Exclude demo/broker-demo records from dashboard metrics
   const invoices = rawInvoices.filter(i => !i.is_demo);
   const quickBooksExpenses = rawQuickBooksExpenses.filter(e => !e.is_demo);
+
+  if (loadingInvoices || loadingExpenses) {
+    return (
+      <div className="space-y-8">
+        <DashboardSkeleton title rows={4} />
+        <DashboardSkeleton rows={4} />
+      </div>
+    );
+  }
 
   const calculateMetrics = () => {
     const now = new Date();
@@ -286,7 +298,7 @@ export default function FinancialInformationSection() {
             <TabsTrigger value="reports">Reports</TabsTrigger>
             <TabsTrigger value="expenses">Manage Expenses</TabsTrigger>
           </TabsList>
-          <Button onClick={handleSyncFinancials} disabled={syncing} className="bg-[#264d44] hover:bg-[#1a3830]">
+          <Button onClick={handleSyncFinancials} disabled={syncing} className="bg-brand-green hover:bg-brand-forest">
             <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Refreshing...' : 'Refresh Data'}
           </Button>
@@ -310,19 +322,19 @@ export default function FinancialInformationSection() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard
           title={`Total Invoiced (${timeframe === 'month' ? 'This Month' : 'This Quarter'})`}
-          value={`$${metrics.totalInvoiced.toLocaleString()}`}
+          value={formatCurrency(metrics.totalInvoiced)}
           icon={DollarSign}
           colorClass={colorMap.blue}
         />
         <StatCard
           title="Total Paid"
-          value={`$${metrics.totalPaid.toLocaleString()}`}
+          value={formatCurrency(metrics.totalPaid)}
           icon={CheckCircle2}
           colorClass={colorMap.green}
         />
         <StatCard
           title="Outstanding"
-          value={`$${metrics.outstanding.toLocaleString()}`}
+          value={formatCurrency(metrics.outstanding)}
           icon={TrendingUp}
           colorClass={colorMap.orange}
         />
@@ -341,7 +353,7 @@ export default function FinancialInformationSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500 mb-1">Total Income</p>
-                <p className="text-3xl font-bold text-green-600">${metrics.totalIncome.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-green-600">{formatCurrency(metrics.totalIncome)}</p>
               </div>
               <div className="p-4 rounded-full bg-green-100 transition-all duration-300 group-hover:scale-110">
                 <TrendingUp className="w-8 h-8 text-green-600" />
@@ -356,7 +368,7 @@ export default function FinancialInformationSection() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-500 mb-1">Total Expenses</p>
-                <p className="text-3xl font-bold text-red-600">${metrics.totalExpenses.toLocaleString()}</p>
+                <p className="text-3xl font-bold text-red-600">{formatCurrency(metrics.totalExpenses)}</p>
               </div>
               <div className="p-4 rounded-full bg-red-100 transition-all duration-300 group-hover:scale-110">
                 <TrendingDown className="w-8 h-8 text-red-600" />
@@ -372,7 +384,7 @@ export default function FinancialInformationSection() {
               <div>
                 <p className="text-sm font-medium text-gray-500 mb-1">Net Profit</p>
                 <p className={`text-3xl font-bold ${metrics.netProfit >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
-                  ${metrics.netProfit.toLocaleString()}
+                  {formatCurrency(metrics.netProfit)}
                 </p>
               </div>
               <div className="p-4 rounded-full bg-purple-100 transition-all duration-300 group-hover:scale-110">
@@ -394,11 +406,11 @@ export default function FinancialInformationSection() {
       {/* Income vs Expenses Chart */}
       <Card className="hover:shadow-lg transition-shadow duration-300">
         <CardHeader className="pb-4">
-          <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Income vs Expenses (Last 6 Months)</CardTitle>
+          <CardTitle className="text-base font-semibold text-brand-green">Income vs Expenses (Last 6 Months)</CardTitle>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
           {monthlyData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={256}>
               <BarChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} />
@@ -408,14 +420,12 @@ export default function FinancialInformationSection() {
                   contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
                 />
                 <Legend />
-                <Bar dataKey="income" name="Income" fill="#4CAF50" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="expenses" name="Expenses" fill="#F44336" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="income" name="Income" fill={CHART_PALETTE[7]} radius={[6, 6, 0, 0]} />
+                <Bar dataKey="expenses" name="Expenses" fill={CHART_PALETTE[9]} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-gray-400">
-              No financial data yet. Click "Refresh Data" to load data.
-            </div>
+            <DashboardEmptyState icon={TrendingUp} message="No financial data yet — click Refresh Data" />
           )}
         </CardContent>
       </Card>
@@ -423,23 +433,21 @@ export default function FinancialInformationSection() {
       {/* Income by Service/Product */}
       <Card className="hover:shadow-lg transition-shadow duration-300">
         <CardHeader>
-          <CardTitle style={{ color: '#264d44' }}>Income by Service/Product</CardTitle>
+          <CardTitle className="text-base font-semibold text-brand-green">Income by Service/Product</CardTitle>
         </CardHeader>
         <CardContent>
           {incomeData.serviceBreakdown.length > 0 ? (
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={256}>
               <BarChart data={incomeData.serviceBreakdown}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                <Bar dataKey="value" name="Amount" fill="#9C27B0" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="value" name="Amount" fill={CHART_PALETTE[10]} radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[300px] flex items-center justify-center text-gray-400">
-              No service data yet
-            </div>
+            <DashboardEmptyState icon={DollarSign} message="No service data yet" />
           )}
         </CardContent>
       </Card>
@@ -447,11 +455,11 @@ export default function FinancialInformationSection() {
       {/* Profit Trend */}
       <Card className="hover:shadow-lg transition-shadow duration-300">
         <CardHeader className="pb-4">
-          <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>Net Profit Trend</CardTitle>
+          <CardTitle className="text-base font-semibold text-brand-green">Net Profit Trend</CardTitle>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
           {monthlyData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={256}>
               <LineChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} />
@@ -464,15 +472,15 @@ export default function FinancialInformationSection() {
                   type="monotone" 
                   dataKey="profit" 
                   name="Net Profit" 
-                  stroke="#9C27B0" 
+                  stroke={CHART_PALETTE[10]} 
                   strokeWidth={3} 
-                  dot={{ r: 4, fill: '#9C27B0', stroke: '#fff', strokeWidth: 2 }} 
-                  activeDot={{ r: 6, fill: '#fff', stroke: '#9C27B0', strokeWidth: 2 }} 
+                  dot={{ r: 4, fill: CHART_PALETTE[10], stroke: '#fff', strokeWidth: 2 }} 
+                  activeDot={{ r: 6, fill: '#fff', stroke: CHART_PALETTE[10], strokeWidth: 2 }} 
                 />
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[250px] flex items-center justify-center text-gray-400">No data available</div>
+            <DashboardEmptyState icon={TrendingUp} message="No data available" />
           )}
         </CardContent>
       </Card>

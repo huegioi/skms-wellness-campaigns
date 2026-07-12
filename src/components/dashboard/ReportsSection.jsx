@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Download, Filter } from 'lucide-react';
+import { Download, Filter, BarChart3, DollarSign } from 'lucide-react';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-
-const COLORS = ['#264d44', '#22C55E', '#EF4444', '#3B82F6', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#6366F1'];
+import { CHART_PALETTE, formatCurrency, formatPercent } from '@/lib/dashboardStyle';
+import DashboardSkeleton from './DashboardSkeleton';
+import DashboardEmptyState from './DashboardEmptyState';
 
 export default function ReportsSection() {
   const [reportType, setReportType] = useState('pl');
@@ -19,8 +20,8 @@ export default function ReportsSection() {
   const [selectedAccount, setSelectedAccount] = useState('all');
   const [selectedClient, setSelectedClient] = useState('all');
 
-  const { data: expenses = [] } = useDashExpenses();
-  const { data: income = [] } = useDashIncome();
+  const { data: expenses = [], isLoading: loadingExpenses } = useDashExpenses();
+  const { data: income = [], isLoading: loadingIncome } = useDashIncome();
 
   // Extract unique values for filters
   const accountTypes = useMemo(() => {
@@ -88,7 +89,7 @@ export default function ReportsSection() {
       expensesBySubCategory,
       totalExpenses,
       netIncome,
-      netMargin: totalRevenue > 0 ? ((netIncome / totalRevenue) * 100).toFixed(2) : 0
+      netMargin: totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0
     };
   }, [filteredIncome, filteredExpenses]);
 
@@ -177,6 +178,10 @@ export default function ReportsSection() {
     console.log('Exporting report:', reportType);
   };
 
+  if (loadingExpenses || loadingIncome) {
+    return <DashboardSkeleton title rows={5} />;
+  }
+
   return (
     <div className="space-y-6">
       {/* Filters */}
@@ -255,7 +260,7 @@ export default function ReportsSection() {
         <TabsContent value="pl" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle style={{ color: '#264d44' }}>Profit & Loss Statement</CardTitle>
+              <CardTitle className="text-base font-semibold text-brand-green">Profit & Loss Statement</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -263,7 +268,7 @@ export default function ReportsSection() {
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-lg">Total Revenue</span>
                     <span className="font-bold text-lg text-green-600">
-                      ${profitLossData.revenue.toLocaleString()}
+                      {formatCurrency(profitLossData.revenue)}
                     </span>
                   </div>
                 </div>
@@ -274,7 +279,7 @@ export default function ReportsSection() {
                     <div key={category}>
                       <div className="flex justify-between py-2 pl-4">
                         <span className="text-gray-700 font-medium">{category}</span>
-                        <span className="text-gray-900">${amount.toLocaleString()}</span>
+                        <span className="text-gray-900">{formatCurrency(amount)}</span>
                       </div>
                       {/* Show sub-categories under each main category */}
                       {Object.entries(profitLossData.expensesBySubCategory)
@@ -284,7 +289,7 @@ export default function ReportsSection() {
                           return (
                             <div key={key} className="flex justify-between py-1 pl-8">
                               <span className="text-gray-500 text-sm">• {subCat}</span>
-                              <span className="text-gray-600 text-sm">${subAmount.toLocaleString()}</span>
+                              <span className="text-gray-600 text-sm">{formatCurrency(subAmount)}</span>
                             </div>
                           );
                         })
@@ -293,7 +298,7 @@ export default function ReportsSection() {
                   ))}
                   <div className="flex justify-between pt-2 pl-4 font-semibold">
                     <span>Total Expenses</span>
-                    <span className="text-red-600">${profitLossData.totalExpenses.toLocaleString()}</span>
+                    <span className="text-red-600">{formatCurrency(profitLossData.totalExpenses)}</span>
                   </div>
                 </div>
 
@@ -301,12 +306,12 @@ export default function ReportsSection() {
                   <div className="flex justify-between items-center mb-2">
                     <span className="font-bold text-xl">Net Income</span>
                     <span className={`font-bold text-xl ${profitLossData.netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ${profitLossData.netIncome.toLocaleString()}
+                      {formatCurrency(profitLossData.netIncome)}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm text-gray-600">
                     <span>Net Margin</span>
-                    <span>{profitLossData.netMargin}%</span>
+                    <span>{formatPercent(profitLossData.netMargin)}</span>
                   </div>
                 </div>
               </div>
@@ -330,19 +335,17 @@ export default function ReportsSection() {
                         cx="50%"
                         cy="50%"
                         outerRadius={100}
-                        label={(entry) => `${entry.name}: $${entry.value.toLocaleString()}`}
+                        label={(entry) => `${entry.name}: ${formatCurrency(entry.value)}`}
                       >
                         {expenseChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          <Cell key={`cell-${index}`} fill={CHART_PALETTE[index % CHART_PALETTE.length]} />
                         ))}
                       </Pie>
                       <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-[300px] flex items-center justify-center text-gray-400">
-                    No expense data available
-                  </div>
+                  <DashboardEmptyState icon={Filter} message="No expense data available" />
                 )}
               </CardContent>
             </Card>
@@ -353,7 +356,7 @@ export default function ReportsSection() {
               </CardHeader>
               <CardContent>
                 {incomeChartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={250}>
+                  <ResponsiveContainer width="100%" height={256}>
                     <BarChart data={incomeChartData} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis type="number" />
@@ -363,9 +366,7 @@ export default function ReportsSection() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-[300px] flex items-center justify-center text-gray-400">
-                    No income data available
-                  </div>
+                  <DashboardEmptyState icon={DollarSign} message="No income data available" />
                 )}
               </CardContent>
             </Card>
@@ -376,7 +377,7 @@ export default function ReportsSection() {
         <TabsContent value="balance" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle style={{ color: '#264d44' }}>Balance Sheet</CardTitle>
+              <CardTitle className="text-base font-semibold text-brand-green">Balance Sheet</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -387,12 +388,12 @@ export default function ReportsSection() {
                     .map(([account, balance]) => (
                       <div key={account} className="flex justify-between py-2 pl-4">
                         <span className="text-gray-700">{account}</span>
-                        <span className="text-gray-900">${balance.toLocaleString()}</span>
+                        <span className="text-gray-900">{formatCurrency(balance)}</span>
                       </div>
                     ))}
                   <div className="flex justify-between pt-2 pl-4 font-semibold">
                     <span>Total Assets</span>
-                    <span className="text-green-600">${balanceSheetData.totalAssets.toLocaleString()}</span>
+                    <span className="text-green-600">{formatCurrency(balanceSheetData.totalAssets)}</span>
                   </div>
                 </div>
 
@@ -403,12 +404,12 @@ export default function ReportsSection() {
                     .map(([account, balance]) => (
                       <div key={account} className="flex justify-between py-2 pl-4">
                         <span className="text-gray-700">{account}</span>
-                        <span className="text-gray-900">${Math.abs(balance).toLocaleString()}</span>
+                        <span className="text-gray-900">{formatCurrency(Math.abs(balance))}</span>
                       </div>
                     ))}
                   <div className="flex justify-between pt-2 pl-4 font-semibold">
                     <span>Total Liabilities</span>
-                    <span className="text-red-600">${balanceSheetData.totalLiabilities.toLocaleString()}</span>
+                    <span className="text-red-600">{formatCurrency(balanceSheetData.totalLiabilities)}</span>
                   </div>
                 </div>
 
@@ -416,7 +417,7 @@ export default function ReportsSection() {
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-xl">Owner's Equity</span>
                     <span className={`font-bold text-xl ${balanceSheetData.equity >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ${balanceSheetData.equity.toLocaleString()}
+                      {formatCurrency(balanceSheetData.equity)}
                     </span>
                   </div>
                 </div>
@@ -429,7 +430,7 @@ export default function ReportsSection() {
         <TabsContent value="cashflow" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle style={{ color: '#264d44' }}>Cash Flow Statement</CardTitle>
+              <CardTitle className="text-base font-semibold text-brand-green">Cash Flow Statement</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -437,7 +438,7 @@ export default function ReportsSection() {
                   <div className="flex justify-between items-center">
                     <span className="font-bold text-xl">Operating Cash Flow</span>
                     <span className={`font-bold text-xl ${cashFlowData.operatingCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ${cashFlowData.operatingCashFlow.toLocaleString()}
+                      {formatCurrency(cashFlowData.operatingCashFlow)}
                     </span>
                   </div>
                 </div>
@@ -451,7 +452,7 @@ export default function ReportsSection() {
             </CardHeader>
             <CardContent>
               {cashFlowData.monthlyFlow.length > 0 ? (
-                <ResponsiveContainer width="100%" height={280}>
+                <ResponsiveContainer width="100%" height={256}>
                   <BarChart data={cashFlowData.monthlyFlow}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
@@ -464,9 +465,7 @@ export default function ReportsSection() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-[350px] flex items-center justify-center text-gray-400">
-                  No cash flow data available
-                </div>
+                <DashboardEmptyState icon={BarChart3} message="No cash flow data available" />
               )}
             </CardContent>
           </Card>

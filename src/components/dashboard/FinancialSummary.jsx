@@ -6,8 +6,10 @@ import { createPageUrl } from '@/utils';
 import { DollarSign, TrendingUp, TrendingDown, Clock, CheckCircle2, AlertCircle, ArrowRight, Wallet } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { INVOICE_STATUS_CONFIG as STATUS_CONFIG, INVOICE_STATUSES as STATUSES } from '@/lib/statusConfig';
+import { formatCurrency, formatPercent } from '@/lib/dashboardStyle';
+import DashboardSkeleton from './DashboardSkeleton';
+import DashboardEmptyState from './DashboardEmptyState';
 
-const BRAND = { blue: '#013f7c', green: '#264d44', orange: '#e87040' };
 const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 // Safe parse of YYYY-MM-DD without timezone drift
@@ -19,8 +21,8 @@ function parseDateParts(dateStr) {
 }
 
 export default function FinancialSummary() {
-  const { data: rawInvoices = [] } = useDashInvoices();
-  const { data: rawExpenses = [] } = useDashExpenses();
+  const { data: rawInvoices = [], isLoading: loadingInvoices } = useDashInvoices();
+  const { data: rawExpenses = [], isLoading: loadingExpenses } = useDashExpenses();
 
   // Exclude demo/broker-demo records from dashboard metrics
   const invoices = rawInvoices.filter(i => !i.is_demo);
@@ -82,15 +84,23 @@ export default function FinancialSummary() {
   const statusCounts = {};
   invoices.forEach(i => { statusCounts[i.status] = (statusCounts[i.status] || 0) + 1; });
 
+  if (loadingInvoices || loadingExpenses) {
+    return (
+      <div className="space-y-6">
+        <h2 className="text-base font-semibold text-brand-green">Financial Overview</h2>
+        <DashboardSkeleton rows={4} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Link to Financials */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold" style={{ color: BRAND.blue }}>Financial Overview</h2>
+        <h2 className="text-base font-semibold text-brand-green">Financial Overview</h2>
         <Link
           to={createPageUrl('Financials')}
-          className="flex items-center gap-1 text-sm font-semibold hover:underline"
-          style={{ color: BRAND.green }}
+          className="flex items-center gap-1 text-sm font-semibold text-brand-green hover:underline"
         >
           View Full Financials <ArrowRight className="w-4 h-4" />
         </Link>
@@ -98,29 +108,29 @@ export default function FinancialSummary() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={CheckCircle2} label="Total Revenue (Paid)" value={`$${totalPaid.toLocaleString()}`} color="green" />
-        <KpiCard icon={TrendingDown} label="Total Expenses" value={`$${totalExpenses.toLocaleString()}`} color="red" />
-        <KpiCard icon={Wallet} label="Net Profit" value={`$${netProfit.toLocaleString()}`} color={netProfit >= 0 ? 'purple' : 'red'} />
-        <KpiCard icon={AlertCircle} label="Overdue" value={`$${overdue.toLocaleString()}`} color="orange" />
+        <KpiCard icon={CheckCircle2} label="Total Revenue (Paid)" value={formatCurrency(totalPaid)} color="green" />
+        <KpiCard icon={TrendingDown} label="Total Expenses" value={formatCurrency(totalExpenses)} color="red" />
+        <KpiCard icon={Wallet} label="Net Profit" value={formatCurrency(netProfit)} color={netProfit >= 0 ? 'purple' : 'red'} />
+        <KpiCard icon={AlertCircle} label="Overdue" value={formatCurrency(overdue)} color="orange" />
       </div>
 
       {/* This Month */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">This Month — Income</p>
-          <p className="text-2xl font-bold text-green-600">${thisMonthPaid.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-green-600">{formatCurrency(thisMonthPaid)}</p>
         </div>
         <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
           <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">This Month — Expenses</p>
-          <p className="text-2xl font-bold text-red-500">${thisMonthExpenses.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-red-500">{formatCurrency(thisMonthExpenses)}</p>
         </div>
       </div>
 
       {/* Income vs Expenses Chart — stacked by status */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-        <h3 className="text-sm font-bold mb-4" style={{ color: BRAND.blue }}>Invoice Revenue by Status — Last 6 Months</h3>
+        <h3 className="text-sm font-bold mb-4 text-brand-navy">Invoice Revenue by Status — Last 6 Months</h3>
         {chartData.some(d => STATUSES.some(s => d[s] > 0)) ? (
-          <ResponsiveContainer width="100%" height={240}>
+          <ResponsiveContainer width="100%" height={256}>
             <BarChart data={chartData} barCategoryGap="35%">
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
               <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#4a5568' }} axisLine={false} tickLine={false} />
@@ -142,7 +152,7 @@ export default function FinancialSummary() {
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-[240px] flex items-center justify-center text-gray-300 text-sm">No data yet</div>
+          <DashboardEmptyState icon={TrendingUp} message="No invoice data yet" />
         )}
       </div>
 
@@ -150,13 +160,12 @@ export default function FinancialSummary() {
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <p className="text-sm text-gray-500 font-medium">Outstanding Invoices</p>
-          <p className="text-2xl font-bold text-amber-600">${outstanding.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-amber-600">{formatCurrency(outstanding)}</p>
           <p className="text-xs text-gray-400 mt-0.5">{invoices.filter(i => ['sent','overdue'].includes(i.status)).length} invoice(s) pending payment</p>
         </div>
         <Link
           to={createPageUrl('Financials')}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-          style={{ backgroundColor: BRAND.green }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-brand-green"
         >
           Manage Invoices <ArrowRight className="w-4 h-4" />
         </Link>

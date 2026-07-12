@@ -3,16 +3,19 @@ import { useDashInvoices, useDashServices, useDashCalendarEvents } from './useDa
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { DollarSign, CheckCircle2, CalendarClock, AlertTriangle } from 'lucide-react';
+import { DollarSign, CheckCircle2, CalendarClock, AlertTriangle, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { buildServiceMatcher, categoryCountLabel, CATEGORY_LABELS } from '@/lib/serviceMatching';
+import { CHART_PALETTE, formatCurrency } from '@/lib/dashboardStyle';
+import DashboardSkeleton from './DashboardSkeleton';
+import DashboardEmptyState from './DashboardEmptyState';
 import UnmatchedItemsCard from './UnmatchedItemsCard';
 import ServiceDemandChart from './ServiceDemandChart';
 
 export default function ServicesAnalytics() {
-  const { data: rawInvoices = [] } = useDashInvoices();
-  const { data: services = [] } = useDashServices();
-  const { data: rawEvents = [] } = useDashCalendarEvents();
+  const { data: rawInvoices = [], isLoading: loadingInvoices } = useDashInvoices();
+  const { data: services = [], isLoading: loadingServices } = useDashServices();
+  const { data: rawEvents = [], isLoading: loadingEvents } = useDashCalendarEvents();
 
   const invoices = useMemo(() => rawInvoices.filter(i => !i.is_demo), [rawInvoices]);
   const events = useMemo(() => rawEvents.filter(e => !e.is_demo), [rawEvents]);
@@ -130,6 +133,15 @@ export default function ServicesAnalytics() {
 
   const hasData = serviceRows.length > 0 || unmatchedItems.length > 0;
 
+  if (loadingInvoices || loadingServices || loadingEvents) {
+    return (
+      <div className="space-y-6">
+        <DashboardSkeleton title rows={4} />
+        <DashboardSkeleton rows={4} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* KPIs */}
@@ -142,7 +154,7 @@ export default function ServicesAnalytics() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Service Revenue</p>
-                <p className="text-2xl font-bold">${totalRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                <p className="text-2xl font-bold">{formatCurrency(totalRevenue)}</p>
               </div>
             </div>
           </CardContent>
@@ -151,8 +163,8 @@ export default function ServicesAnalytics() {
         <Card>
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[#264d44]/10">
-                <CheckCircle2 className="w-5 h-5 text-[#264d44]" />
+              <div className="p-2 rounded-lg bg-brand-green/10">
+                <CheckCircle2 className="w-5 h-5 text-brand-green" />
               </div>
               <div>
                 <p className="text-sm text-gray-500">Delivered</p>
@@ -188,7 +200,7 @@ export default function ServicesAnalytics() {
               </div>
               <div>
                 <p className="text-sm text-gray-500">Invoiced, Not Delivered</p>
-                <p className="text-2xl font-bold text-amber-700">${gapRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                <p className="text-2xl font-bold text-amber-700">{formatCurrency(gapRevenue)}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{gapRows.length} service{gapRows.length !== 1 ? 's' : ''} with 0 deliveries</p>
               </div>
             </div>
@@ -199,7 +211,7 @@ export default function ServicesAnalytics() {
       {/* Per-service table: revenue + delivery side by side */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base sm:text-lg" style={{ color: '#264d44' }}>
+          <CardTitle className="text-base font-semibold text-brand-green">
             Revenue vs Delivery by Service
           </CardTitle>
           <p className="text-sm text-gray-500">
@@ -208,7 +220,7 @@ export default function ServicesAnalytics() {
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
           {serviceRows.length === 0 ? (
-            <div className="h-[200px] flex items-center justify-center text-gray-400">No service data yet</div>
+            <DashboardEmptyState icon={Package} message="No service data yet" />
           ) : (
             <div className="overflow-x-auto">
               <div className="min-w-[600px]">
@@ -237,14 +249,14 @@ export default function ServicesAnalytics() {
                       </div>
                       <div className="col-span-3 text-right">
                         <p className="font-bold text-green-600 text-sm">
-                          ${row.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                          {formatCurrency(row.revenue)}
                         </p>
                         <p className="text-xs text-gray-400">
                           {row.invoiceCount > 0 ? categoryCountLabel(row.category, row.invoiceCount) : '—'}
                         </p>
                       </div>
                       <div className="col-span-2 text-right">
-                        <p className="font-bold text-[#264d44] text-sm">{row.deliveredCount || '—'}</p>
+                        <p className="font-bold text-brand-green text-sm">{row.deliveredCount || '—'}</p>
                         <p className="text-xs text-gray-400">
                           {row.lastDeliveredDate ? format(new Date(row.lastDeliveredDate), 'MMM d, yy') : ''}
                         </p>

@@ -4,6 +4,9 @@ import { useDashClients, useDashProposals, useDashInvoices, useDashTasks, useDas
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ListTodo, AlertCircle, Users, FileText, Send, CheckCircle2, Eye, UserPlus, UserCheck, Calendar, ClipboardCheck, Clock, GitMerge } from 'lucide-react';
+import { formatCurrency } from '@/lib/dashboardStyle';
+import DashboardSkeleton from './DashboardSkeleton';
+import DashboardEmptyState from './DashboardEmptyState';
 import { format, isPast, addDays } from 'date-fns';
 import ClientTaskCard from '@/components/tasks/ClientTaskCard';
 import TaskList from '@/components/tasks/TaskList';
@@ -11,7 +14,7 @@ import TaskList from '@/components/tasks/TaskList';
 export default function ClientInformationSection() {
   const [selectedClient, setSelectedClient] = useState(null);
 
-  const { data: rawClients = [] } = useDashClients();
+  const { data: rawClients = [], isLoading: loadingClients } = useDashClients();
   const { data: rawProposals = [] } = useDashProposals();
   const { data: rawInvoices = [] } = useDashInvoices();
   const { data: rawAllTasks = [] } = useDashTasks();
@@ -56,7 +59,7 @@ export default function ClientInformationSection() {
           color: 'text-purple-600',
           bgColor: 'bg-purple-50',
           title: 'Invoice Sent',
-          description: `${invoice.client_name} - $${invoice.total_amount?.toLocaleString()}`,
+          description: `${invoice.client_name} - ${formatCurrency(invoice.total_amount)}`,
           date: new Date(invoice.created_date)
         });
       } else if (invoice.status === 'paid') {
@@ -66,7 +69,7 @@ export default function ClientInformationSection() {
           color: 'text-green-600',
           bgColor: 'bg-green-50',
           title: 'Invoice Paid',
-          description: `${invoice.client_name} - $${invoice.total_amount?.toLocaleString()}`,
+          description: `${invoice.client_name} - ${formatCurrency(invoice.total_amount)}`,
           date: invoice.paid_date ? new Date(invoice.paid_date) : new Date(invoice.created_date)
         });
       }
@@ -80,7 +83,7 @@ export default function ClientInformationSection() {
           color: 'text-indigo-600',
           bgColor: 'bg-indigo-50',
           title: 'Proposal Sent',
-          description: `${proposal.client_name} - $${proposal.total_amount?.toLocaleString()}`,
+          description: `${proposal.client_name} - ${formatCurrency(proposal.total_amount)}`,
           date: proposal.sent_date ? new Date(proposal.sent_date) : new Date(proposal.created_date)
         });
       } else if (proposal.status === 'accepted') {
@@ -90,7 +93,7 @@ export default function ClientInformationSection() {
           color: 'text-green-600',
           bgColor: 'bg-green-50',
           title: 'Proposal Accepted',
-          description: `${proposal.client_name} - $${proposal.total_amount?.toLocaleString()}`,
+          description: `${proposal.client_name} - ${formatCurrency(proposal.total_amount)}`,
           date: new Date(proposal.created_date)
         });
       }
@@ -143,7 +146,7 @@ export default function ClientInformationSection() {
         color: 'text-yellow-600',
         bgColor: 'bg-yellow-50',
         title: 'Proposal Viewed',
-        description: `${proposal.client_name} - $${proposal.total_amount?.toLocaleString()}`,
+        description: `${proposal.client_name} - ${formatCurrency(proposal.total_amount)}`,
         date: new Date(proposal.viewed_date)
       });
     });
@@ -211,14 +214,23 @@ export default function ClientInformationSection() {
 
   const activityFeed = generateActivityFeed();
 
+  if (loadingClients) {
+    return (
+      <div className="space-y-8">
+        <DashboardSkeleton title rows={4} />
+        <DashboardSkeleton rows={4} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Open Clients Section */}
       {clientsWithPendingTasks.length > 0 && (
         <Card className="bg-gradient-to-br from-blue-50 to-indigo-50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <ListTodo className="w-6 h-6 text-blue-600" />
+            <CardTitle className="flex items-center gap-2 text-base font-semibold text-brand-green">
+              <ListTodo className="w-5 h-5" />
               Open Clients
             </CardTitle>
           </CardHeader>
@@ -262,14 +274,14 @@ export default function ClientInformationSection() {
       {/* Recent Activity */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-base font-semibold text-brand-green">
             <AlertCircle className="w-5 h-5" />
             Recent Activity
           </CardTitle>
         </CardHeader>
         <CardContent>
           {activityFeed.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">No recent activity</p>
+            <DashboardEmptyState icon={AlertCircle} message="No recent activity" />
           ) : (
             <div className="space-y-4">
               {activityFeed.map((activity, idx) => {

@@ -29,7 +29,7 @@ export default function UnmatchedItemsCard({ items }) {
   return (
     <Card className="border-amber-200">
       <CardHeader className="pb-3 cursor-pointer" onClick={() => setExpanded(!expanded)}>
-        <CardTitle className="flex items-center justify-between text-lg text-amber-800">
+        <CardTitle className="flex items-center justify-between text-base font-semibold text-brand-green">
           <div className="flex items-center gap-2">
             {expanded ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
             <AlertCircle className="w-5 h-5" />

@@ -182,8 +182,8 @@ export default function FollowUpQueue() {
     <RenewalSeasonSection />
     <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl text-green-800">
-          <Bell className="w-6 h-6" />
+        <CardTitle className="flex items-center gap-2 text-base font-semibold text-brand-green">
+          <Bell className="w-5 h-5" />
           Follow-Up Queue
         </CardTitle>
       </CardHeader>
@@ -201,8 +201,8 @@ export default function FollowUpQueue() {
       <Card className="bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-xl text-amber-800">
-              <Bell className="w-6 h-6" />
+            <div className="flex items-center gap-2 text-base font-semibold text-brand-green">
+              <Bell className="w-5 h-5" />
               Follow-Up Queue
             </div>
             <div className="flex items-center gap-2">
@@ -259,14 +259,14 @@ export default function FollowUpQueue() {
                   </div>
                   <div className="flex gap-2 flex-shrink-0 flex-wrap">
                     <Link to={createPageUrl('Clients') + `?clientId=${client.id}`}>
-                      <Button size="sm" variant="outline" className="text-[#013f7c] border-[#013f7c]">
+                      <Button size="sm" variant="outline"                       className="text-brand-navy border-brand-navy">
                         <ExternalLink className="w-4 h-4 mr-1" />
                         View
                       </Button>
                     </Link>
                     <Button
                       size="sm"
-                      className="bg-[#264d44] hover:bg-[#1a3830] text-white"
+                      className="bg-brand-green hover:bg-brand-forest text-white"
                       onClick={() => setBookingClient(client)}
                     >
                       <CalendarPlus className="w-4 h-4 mr-1" />
