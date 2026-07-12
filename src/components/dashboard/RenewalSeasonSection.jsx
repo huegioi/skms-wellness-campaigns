@@ -14,15 +14,19 @@ import { getActiveCohort, hasRenewalReviewBooked, daysUntilRenewal } from '@/lib
  * review booked, sorted by days remaining. Rendered inside FollowUpQueue.
  */
 export default function RenewalSeasonSection() {
-  const { data: clients = [] } = useQuery({
+  const { data: rawClients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list(),
   });
 
-  const { data: events = [] } = useQuery({
+  const { data: rawEvents = [] } = useQuery({
     queryKey: ['delivery-events'],
     queryFn: () => base44.entities.CalendarEvent.list('-start_date', 500),
   });
+
+  // Exclude demo/broker-demo records from dashboard metrics
+  const clients = rawClients.filter(c => !c.is_demo);
+  const events = rawEvents.filter(e => !e.is_demo);
 
   const activeCohort = useMemo(() => getActiveCohort(), []);
 

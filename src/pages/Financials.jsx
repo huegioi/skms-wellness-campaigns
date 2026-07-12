@@ -85,15 +85,19 @@ function InvoicesPanel() {
 
   const queryClient = useQueryClient();
 
-  const { data: invoices = [], isLoading } = useQuery({
+  const { data: rawInvoices = [], isLoading } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list('-created_date')
   });
 
-  const { data: clients = [] } = useQuery({
+  const { data: rawClients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list()
   });
+
+  // Exclude demo/broker-demo records from dashboard metrics
+  const invoices = rawInvoices.filter(i => !i.is_demo);
+  const clients = rawClients.filter(c => !c.is_demo);
 
   const syncToQBMutation = useMutation({
     mutationFn: async (invoiceId) => {

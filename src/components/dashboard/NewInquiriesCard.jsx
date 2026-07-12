@@ -6,11 +6,14 @@ import { User, Users, ArrowRight, Sparkles, Package, Gift } from 'lucide-react';
 import { parseQuickBuilderGoals, parseWellnessBoxesPreference, timeSince, isNewQuickBuilderInquiry } from '@/lib/quickbuilderUtils';
 
 export default function NewInquiriesCard() {
-  const { data: allLeads = [] } = useQuery({
+  const { data: rawLeads = [] } = useQuery({
     queryKey: ['leads', 'company_inquiry'],
     queryFn: () => base44.entities.Lead.filter({ lead_type: 'company_inquiry' }, '-created_date'),
     staleTime: 60_000,
   });
+
+  // Exclude demo/broker-demo records from dashboard metrics
+  const allLeads = rawLeads.filter(l => !l.is_demo);
 
   const newInquiries = allLeads.filter(isNewQuickBuilderInquiry);
 

@@ -63,10 +63,13 @@ export default function RevenueChart() {
   const [toMonth, setToMonth] = useState(defaultTo.getMonth());
   const [toYear, setToYear] = useState(defaultTo.getFullYear());
 
-  const { data: invoices = [], isLoading } = useQuery({
+  const { data: rawInvoices = [], isLoading } = useQuery({
     queryKey: ['invoices-chart'],
     queryFn: () => base44.entities.Invoice.list('-created_date', 10000),
   });
+
+  // Exclude demo/broker-demo records from dashboard metrics
+  const invoices = rawInvoices.filter(i => !i.is_demo);
 
   const { chartData, totalRevenue, invoiceCount } = useMemo(() => {
     const fromDate = new Date(fromYear, fromMonth, 1);

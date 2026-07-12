@@ -188,10 +188,13 @@ export default function FollowUpQueue() {
     }
   };
 
-  const { data: clients = [], isLoading } = useQuery({
+  const { data: rawClients = [], isLoading } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list()
   });
+
+  // Exclude demo/broker-demo records from dashboard metrics
+  const clients = rawClients.filter(c => !c.is_demo);
 
   // Fetch interactions to derive days-since-contact + last touch channel
   const { data: interactions = [] } = useQuery({

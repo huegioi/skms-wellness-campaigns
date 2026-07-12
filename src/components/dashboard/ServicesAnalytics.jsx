@@ -6,10 +6,13 @@ import { DollarSign, ShoppingCart, TrendingUp, Package } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
 export default function ServicesAnalytics() {
-  const { data: invoices = [] } = useQuery({
+  const { data: rawInvoices = [] } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list()
   });
+
+  // Exclude demo/broker-demo records from dashboard metrics
+  const invoices = rawInvoices.filter(i => !i.is_demo);
 
   const calculateInvoiceAnalytics = () => {
     const servicePurchases = {};

@@ -41,7 +41,7 @@ export default function LeadsAttentionSection() {
   const [logTouchLead, setLogTouchLead] = useState(null);
   const [bookCallLead, setBookCallLead] = useState(null);
 
-  const { data: leads = [] } = useQuery({
+  const { data: rawLeads = [] } = useQuery({
     queryKey: ['leads'],
     queryFn: () => base44.entities.Lead.list('-created_date', 500)
   });
@@ -51,10 +51,14 @@ export default function LeadsAttentionSection() {
     queryFn: () => base44.entities.ClientInteraction.list('-date', 500)
   });
 
-  const { data: calendarEvents = [] } = useQuery({
+  const { data: rawCalendarEvents = [] } = useQuery({
     queryKey: ['calendar-events-lead-attention'],
     queryFn: () => base44.entities.CalendarEvent.list('start_date', 200)
   });
+
+  // Exclude demo/broker-demo records from dashboard metrics
+  const leads = rawLeads.filter(l => !l.is_demo);
+  const calendarEvents = rawCalendarEvents.filter(e => !e.is_demo);
 
   // Latest interaction per lead_id
   const latestInteractionByLead = useMemo(() => {

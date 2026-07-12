@@ -205,15 +205,19 @@ export default function ActionableReviewQueue() {
   const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState(false);
 
-  const { data: pendingReferrals = [], isLoading: loadingPending } = useQuery({
+  const { data: rawPending = [], isLoading: loadingPending } = useQuery({
     queryKey: ['referrals', 'pending_review'],
     queryFn: () => base44.entities.Referral.filter({ status: 'pending_review' }, '-referral_date'),
   });
 
-  const { data: allReferrals = [], isLoading: loadingAll } = useQuery({
+  const { data: rawAll = [], isLoading: loadingAll } = useQuery({
     queryKey: ['referrals', 'needs_proposal_verification'],
     queryFn: () => base44.entities.Referral.filter({ status: 'converted_to_client' }, '-referral_date'),
   });
+
+  // Exclude demo/broker-demo records from dashboard metrics
+  const pendingReferrals = rawPending.filter(r => !r.is_demo);
+  const allReferrals = rawAll.filter(r => !r.is_demo);
 
   const reviewMutation = useMutation({
     mutationFn: ({ referral_id, action, review_notes }) =>

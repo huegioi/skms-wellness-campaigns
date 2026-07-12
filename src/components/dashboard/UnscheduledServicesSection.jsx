@@ -8,10 +8,13 @@ import { Link } from 'react-router-dom';
 import { useClientDeliveryStatus } from '@/hooks/useClientDeliveryStatus';
 
 export default function UnscheduledServicesSection() {
-  const { data: clients = [] } = useQuery({
+  const { data: rawClients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list()
   });
+
+  // Exclude demo/broker-demo records from dashboard metrics
+  const clients = rawClients.filter(c => !c.is_demo);
 
   const snapshots = useClientDeliveryStatus(clients);
 

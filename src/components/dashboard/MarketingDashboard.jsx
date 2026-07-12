@@ -52,10 +52,13 @@ export default function MarketingDashboard() {
     initialData: { opportunities: [], total: 0 }
   });
 
-  const { data: invoices = [] } = useQuery({
+  const { data: rawInvoices = [] } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list()
   });
+
+  // Exclude demo/broker-demo records from dashboard metrics
+  const invoices = rawInvoices.filter(i => !i.is_demo);
 
   const { data: kajabiStats, isLoading: kajabiLoading, refetch: refetchKajabi } = useQuery({
     queryKey: ['kajabiStats'],

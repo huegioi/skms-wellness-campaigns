@@ -76,15 +76,19 @@ export default function FinancialInformationSection() {
   const [syncing, setSyncing] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
-  const { data: invoices = [], refetch: refetchInvoices } = useQuery({
+  const { data: rawInvoices = [], refetch: refetchInvoices } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list(),
   });
 
-  const { data: quickBooksExpenses = [], refetch: refetchExpenses } = useQuery({
+  const { data: rawQuickBooksExpenses = [], refetch: refetchExpenses } = useQuery({
     queryKey: ['quickBooksExpenses'],
     queryFn: () => base44.entities.QuickBooksExpense.list(),
   });
+
+  // Exclude demo/broker-demo records from dashboard metrics
+  const invoices = rawInvoices.filter(i => !i.is_demo);
+  const quickBooksExpenses = rawQuickBooksExpenses.filter(e => !e.is_demo);
 
   const calculateMetrics = () => {
     const now = new Date();

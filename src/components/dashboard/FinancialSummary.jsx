@@ -27,15 +27,19 @@ function parseDateParts(dateStr) {
 }
 
 export default function FinancialSummary() {
-  const { data: invoices = [] } = useQuery({
+  const { data: rawInvoices = [] } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list('-created_date', 10000),
   });
 
-  const { data: expenses = [] } = useQuery({
+  const { data: rawExpenses = [] } = useQuery({
     queryKey: ['quickBooksExpenses'],
     queryFn: () => base44.entities.QuickBooksExpense.list(),
   });
+
+  // Exclude demo/broker-demo records from dashboard metrics
+  const invoices = rawInvoices.filter(i => !i.is_demo);
+  const expenses = rawExpenses.filter(e => !e.is_demo);
 
   // All-time KPIs
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + (i.total_amount || 0), 0);

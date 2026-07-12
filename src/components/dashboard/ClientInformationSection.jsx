@@ -12,40 +12,49 @@ import TaskList from '@/components/tasks/TaskList';
 export default function ClientInformationSection() {
   const [selectedClient, setSelectedClient] = useState(null);
 
-  const { data: clients = [] } = useQuery({
+  const { data: rawClients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list()
   });
 
-  const { data: proposals = [] } = useQuery({
+  const { data: rawProposals = [] } = useQuery({
     queryKey: ['proposals'],
     queryFn: () => base44.entities.Proposal.list()
   });
 
-  const { data: invoices = [] } = useQuery({
+  const { data: rawInvoices = [] } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list()
   });
 
-  const { data: allTasks = [] } = useQuery({
+  const { data: rawAllTasks = [] } = useQuery({
     queryKey: ['clientTasks'],
     queryFn: () => base44.entities.ClientTask.list()
   });
 
-  const { data: leads = [] } = useQuery({
+  const { data: rawLeads = [] } = useQuery({
     queryKey: ['leads'],
     queryFn: () => base44.entities.Lead.list('-created_date', 50)
   });
 
-  const { data: calendarEvents = [] } = useQuery({
+  const { data: rawCalendarEvents = [] } = useQuery({
     queryKey: ['calendarEvents'],
     queryFn: () => base44.entities.CalendarEvent.list('-updated_date', 50)
   });
 
-  const { data: referrals = [] } = useQuery({
+  const { data: rawReferrals = [] } = useQuery({
     queryKey: ['referrals-feed'],
     queryFn: () => base44.entities.Referral.list('-created_date', 20)
   });
+
+  // Exclude demo/broker-demo records from all dashboard metrics
+  const clients = rawClients.filter(c => !c.is_demo);
+  const proposals = rawProposals.filter(p => !p.is_demo);
+  const invoices = rawInvoices.filter(i => !i.is_demo);
+  const allTasks = rawAllTasks.filter(t => !t.is_demo);
+  const leads = rawLeads.filter(l => !l.is_demo);
+  const calendarEvents = rawCalendarEvents.filter(e => !e.is_demo);
+  const referrals = rawReferrals.filter(r => !r.is_demo);
 
   const clientsWithPendingTasks = clients.filter(client => {
     const clientTasks = allTasks.filter(t => t.client_id === client.id && t.status === 'pending');
