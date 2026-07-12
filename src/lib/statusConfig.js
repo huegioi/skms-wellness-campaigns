@@ -2,7 +2,7 @@
  * Canonical status configuration maps for leads, partners, referrals, and proposals.
  * Import these instead of declaring local copies.
  */
-import { Clock, Send, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { Clock, Send, Eye, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 // ── Lead outreach status (Lead.status) ────────────────────────────────────────
 export const LEAD_STATUS_CONFIG = {
@@ -62,3 +62,14 @@ export const PROPOSAL_STATUS_CONFIG = {
   accepted: { label: 'Accepted', color: 'bg-green-100 text-green-700',   icon: CheckCircle },
   declined: { label: 'Declined', color: 'bg-red-100 text-red-700',         icon: XCircle },
 };
+
+// ── Invoice status (Invoice.status) ───────────────────────────────────────────
+export const INVOICE_STATUS_CONFIG = {
+  paid:      { label: 'Paid',      color: 'bg-green-100 text-green-700', icon: CheckCircle,  chart: '#264d44' },
+  sent:      { label: 'Sent',      color: 'bg-blue-100 text-blue-700',   icon: Send,         chart: '#013f7c' },
+  overdue:   { label: 'Overdue',   color: 'bg-red-100 text-red-700',     icon: AlertCircle,  chart: '#ef4444' },
+  draft:     { label: 'Draft',     color: 'bg-gray-100 text-gray-700',   icon: Clock,        chart: '#a0aec0' },
+  cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-500',   icon: XCircle,      chart: '#cbd5e1' },
+};
+
+export const INVOICE_STATUSES = Object.keys(INVOICE_STATUS_CONFIG);

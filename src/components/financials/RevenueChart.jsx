@@ -6,6 +6,7 @@ import {
 } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TrendingUp, DollarSign, FileCheck, CalendarRange } from 'lucide-react';
+import { INVOICE_STATUS_CONFIG as STATUS_CONFIG, INVOICE_STATUSES as STATUSES } from '@/lib/statusConfig';
 
 const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTH_NAMES_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -18,15 +19,6 @@ const BRAND = {
   orange: '#e87040',
   grey: '#4a5568',
 };
-
-const STATUS_CONFIG = {
-  paid:    { color: '#264d44', label: 'Paid' },
-  sent:    { color: '#013f7c', label: 'Sent' },
-  overdue: { color: '#e87040', label: 'Overdue' },
-  draft:   { color: '#a0aec0', label: 'Draft' },
-  cancelled: { color: '#e53e3e', label: 'Cancelled' },
-};
-const STATUSES = Object.keys(STATUS_CONFIG);
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload || !payload.length) return null;
@@ -263,7 +255,7 @@ export default function RevenueChart() {
                   key={status}
                   dataKey={status}
                   stackId="a"
-                  fill={STATUS_CONFIG[status].color}
+                  fill={STATUS_CONFIG[status].chart}
                   radius={i === STATUSES.length - 1 ? [8, 8, 0, 0] : [0, 0, 0, 0]}
                 />
               ))}

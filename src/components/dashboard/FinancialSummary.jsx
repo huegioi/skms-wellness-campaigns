@@ -5,18 +5,10 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { DollarSign, TrendingUp, TrendingDown, Clock, CheckCircle2, AlertCircle, ArrowRight, Wallet } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { INVOICE_STATUS_CONFIG as STATUS_CONFIG, INVOICE_STATUSES as STATUSES } from '@/lib/statusConfig';
 
 const BRAND = { blue: '#013f7c', green: '#264d44', orange: '#e87040' };
 const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-const STATUS_CONFIG = {
-  paid:      { color: '#264d44', label: 'Paid' },
-  sent:      { color: '#013f7c', label: 'Sent' },
-  overdue:   { color: '#e87040', label: 'Overdue' },
-  draft:     { color: '#a0aec0', label: 'Draft' },
-  cancelled: { color: '#e53e3e', label: 'Cancelled' },
-};
-const STATUSES = Object.keys(STATUS_CONFIG);
 
 // Safe parse of YYYY-MM-DD without timezone drift
 function parseDateParts(dateStr) {
@@ -150,7 +142,7 @@ export default function FinancialSummary() {
                   key={status}
                   dataKey={status}
                   stackId="a"
-                  fill={STATUS_CONFIG[status].color}
+                  fill={STATUS_CONFIG[status].chart}
                   radius={i === STATUSES.length - 1 ? [6, 6, 0, 0] : [0, 0, 0, 0]}
                 />
               ))}

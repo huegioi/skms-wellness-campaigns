@@ -7,18 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  FileText, DollarSign, Calendar, CheckCircle, Clock, XCircle, AlertCircle,
+  FileText, DollarSign, Calendar, CheckCircle,
   RefreshCw, Eye, Pencil, Send, Loader2, Trash2, Users
 } from 'lucide-react';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
-
-const statusConfig = {
-  draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
-  sent: { label: 'Sent', color: 'bg-blue-100 text-blue-700', icon: Send },
-  paid: { label: 'Paid', color: 'bg-green-100 text-green-700', icon: CheckCircle },
-  overdue: { label: 'Overdue', color: 'bg-red-100 text-red-700', icon: AlertCircle },
-  cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-500', icon: XCircle }
-};
+import { INVOICE_STATUS_CONFIG as statusConfig } from '@/lib/statusConfig';
 
 export default function Invoices() {
   const [filterStatus, setFilterStatus] = useState('all');
