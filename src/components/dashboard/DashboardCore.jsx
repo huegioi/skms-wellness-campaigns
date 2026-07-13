@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, Users, DollarSign, TrendingUp, Package, ChevronLeft, ChevronRight, FlaskConical } from 'lucide-react';
+import { LayoutDashboard, Users, DollarSign, TrendingUp, Package, ChevronLeft, ChevronRight, FlaskConical, BookOpen } from 'lucide-react';
 import NewInquiriesCard from '@/components/dashboard/NewInquiriesCard';
 import ActionableReviewQueue from '@/components/dashboard/ActionableReviewQueue';
 import FollowUpSummary from '@/components/dashboard/FollowUpSummary';
@@ -33,10 +33,16 @@ export default function DashboardCore() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl sm:text-3xl font-bold text-brand-navy">Dashboard</h1>
-            <Link to="/Demo" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors">
-              <FlaskConical className="w-4 h-4" />
-              Demo Environment
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link to="/MayaKnowledge" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-brand-green bg-green-50 hover:bg-green-100 transition-colors">
+                <BookOpen className="w-4 h-4" />
+                Maya Knowledge
+              </Link>
+              <Link to="/Demo" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors">
+                <FlaskConical className="w-4 h-4" />
+                Demo Environment
+              </Link>
+            </div>
           </div>
           {/* Desktop tabs */}
           <div className="hidden md:flex gap-1">

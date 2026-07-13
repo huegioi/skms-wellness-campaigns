@@ -1,0 +1,62 @@
+{
+  "name": "MayaKnowledge",
+  "type": "object",
+  "properties": {
+    "slug": {
+      "type": "string",
+      "description": "URL-safe unique identifier for this knowledge entry (e.g. 'sales-process-overview')"
+    },
+    "title": {
+      "type": "string",
+      "description": "Display title"
+    },
+    "content": {
+      "type": "string",
+      "description": "Markdown content of the knowledge entry \u2014 pasted and maintained by William"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "sales_process",
+        "products",
+        "delivery",
+        "platform_help",
+        "positioning"
+      ],
+      "description": "Knowledge category for filtering which entries Maya receives in each context"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this entry is active and included in Maya's context blocks"
+    }
+  },
+  "required": [
+    "slug",
+    "title",
+    "content",
+    "category"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

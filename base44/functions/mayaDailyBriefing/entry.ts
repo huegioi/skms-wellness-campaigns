@@ -34,6 +34,10 @@ Deno.serve(async (req) => {
 
   const { clients, leads, partners, newInquiries } = data;
 
+  // ── Fetch Maya knowledge base (sales_process + delivery) ──
+  const knowledgeResponse = await base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'delivery'] });
+  const knowledgeText = knowledgeResponse.data.contextText || '';
+
   // ── Fetch active campaigns separately (specific to daily briefing) ──
   let activeCampaigns = [];
   try {
@@ -187,7 +191,10 @@ Active clients total: ${activeClientCount}
 New Quick Builder inquiries (awaiting first contact): ${newInquiries.slice(0,5).map(l => (l.company || l.name) + ' (team: ' + (l.company_size || '?') + ', ' + (l.quickbuilder_selections?.length || 0) + ' services selected, submitted: ' + (l.created_date ? new Date(l.created_date).toLocaleDateString() : 'recently') + ')').join('; ') || 'none'}
 
 GLOBAL CONTEXT (service catalog, pipeline counts, renewal season):
-${globalContext}`;
+${globalContext}
+
+KNOWLEDGE BASE (sales process + delivery):
+${knowledgeText}`;
 
   let briefing;
   try {

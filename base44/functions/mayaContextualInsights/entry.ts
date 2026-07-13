@@ -27,6 +27,11 @@ Deno.serve(async (req) => {
     const ctxResponse = await base44.functions.invoke('mayaContext', { action: 'record', record_type, record_id });
     const { contextText } = ctxResponse.data;
 
+    // ── Fetch Maya knowledge base (sales_process + products + positioning) ──
+    const knowledgeResponse = await base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'products', 'positioning'] });
+    const knowledgeText = knowledgeResponse.data.contextText || '';
+    const fullContext = knowledgeText + '\n\n---\n\n' + contextText;
+
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!apiKey) {
       console.error('ANTHROPIC_API_KEY is not set');
@@ -210,7 +215,7 @@ CRITICAL FORMATTING: Output your response entirely in Markdown bullet points for
         max_tokens: 1024,
         system: systemPrompt,
         messages: [
-          { role: 'user', content: contextText }
+          { role: 'user', content: fullContext }
         ],
       }),
     });

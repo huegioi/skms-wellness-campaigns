@@ -630,6 +630,34 @@ ${renewalClients.slice(0, 10).map(c => `- ${c.company || c.name} (owner: ${c.own
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// GET KNOWLEDGE — fetch active MayaKnowledge entries by category
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function getKnowledge(base44, categories) {
+  const gaps = [];
+  const sections = [];
+
+  const entries = await safeFilter(base44, 'MayaKnowledge', { is_active: true }, '-updated_date', 100);
+  const filtered = entries.filter(e => categories.includes(e.category));
+
+  if (filtered.length > 0) {
+    for (const entry of filtered) {
+      sections.push(`## ${entry.title}\nCategory: ${entry.category} | Slug: ${entry.slug}\n\n${entry.content || '(no content)'}`);
+    }
+  } else {
+    gaps.push(`No knowledge entries found for categories: ${categories.join(', ')}`);
+  }
+
+  const gapHeader = gaps.length > 0
+    ? `⚠ DATA GAPS (do not fabricate around these):\n${gaps.map(g => `- ${g}`).join('\n')}\n\n`
+    : '';
+
+  return {
+    contextText: gapHeader + sections.join('\n\n---\n\n'),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -667,7 +695,16 @@ Deno.serve(async (req) => {
       return Response.json(result);
     }
 
-    return Response.json({ error: `Unknown action: ${action}. Use 'record' or 'global'.` }, { status: 400 });
+    if (action === 'knowledge') {
+      const { categories } = body;
+      if (!categories || !Array.isArray(categories)) {
+        return Response.json({ error: 'Missing categories array' }, { status: 400 });
+      }
+      const result = await getKnowledge(base44, categories);
+      return Response.json(result);
+    }
+
+    return Response.json({ error: `Unknown action: ${action}. Use 'record', 'global', or 'knowledge'.` }, { status: 400 });
   } catch (error) {
     console.error('Unhandled error in mayaContext:', error.message, error.stack);
     return Response.json({ error: error.message }, { status: 500 });

@@ -19,6 +19,7 @@ import Presenters from './pages/Presenters';
 import PresenterPortal from './pages/PresenterPortal';
 import QuickBuilder from './pages/QuickBuilder';
 import Demo from './pages/Demo';
+import MayaKnowledge from './pages/MayaKnowledge';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -91,6 +92,7 @@ const AuthenticatedApp = () => {
       <Route path="/PresenterPortal" element={<PresenterPortal />} />
       <Route path="/QuickBuilder" element={<QuickBuilder />} />
       <Route path="/Demo" element={<LayoutWrapper currentPageName="Demo"><Demo /></LayoutWrapper>} />
+      <Route path="/MayaKnowledge" element={<LayoutWrapper currentPageName="MayaKnowledge"><MayaKnowledge /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

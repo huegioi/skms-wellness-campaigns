@@ -26,6 +26,11 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No recipient email on record' }, { status: 400 });
     }
 
+    // ── Fetch Maya knowledge base (sales_process + products + positioning) ──
+    const knowledgeResponse = await base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'products', 'positioning'] });
+    const knowledgeText = knowledgeResponse.data.contextText || '';
+    const fullContext = knowledgeText + '\n\n---\n\n' + contextText;
+
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!apiKey) return Response.json({ error: 'Anthropic API key not configured' }, { status: 500 });
 
@@ -66,7 +71,7 @@ RULES AND GUARDRAILS
 Never fabricate data. Always factor in the current date and season. Prioritize revenue-generating activities. Respect ownership — direct actions to the correct owner.`;
 
     const userMessage = `RECORD CONTEXT (includes email history, interactions, proposals, and delivery data):
-${contextText}
+${fullContext}
 
 STRATEGIC OBJECTIVE (Maya's Layer 2 advice already generated):
 ${strategic_insights}
