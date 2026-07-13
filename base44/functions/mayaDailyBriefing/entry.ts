@@ -2,7 +2,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
-// ── Seasonal Themes by Month ──────────────────────────────────────────────────
 const SEASONAL_THEMES = {
   January:   ['New Year Wellness Reset', 'Dry January / Mindful Drinking', 'Goal-Setting & Habit Formation'],
   February:  ['Heart Health Month', 'Stress & Emotional Wellbeing (Valentine\'s Week)', 'Financial Wellness Month'],
@@ -18,7 +17,6 @@ const SEASONAL_THEMES = {
   December:  ['Holiday Stress & Burnout Prevention', 'Year-End Reflection & Goal Planning', 'Giving & Volunteer Wellness'],
 };
 
-// Returns days between two dates (a - b)
 function daysDiff(a, b) {
   return (a - b) / (1000 * 60 * 60 * 24);
 }
@@ -29,46 +27,32 @@ Deno.serve(async (req) => {
   const todayStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const currentMonthName = MONTH_NAMES[now.getMonth()];
   const currentThemes = SEASONAL_THEMES[currentMonthName] || [];
-  const themesLine = currentThemes.length > 0
-    ? currentThemes.map(t => `• ${t}`).join('\n')
-    : '_No specific seasonal themes for this month._';
 
-  // --- Fetch all data in parallel ---
-  const [allLeadsRaw, allClientsRaw, allPartnersRaw, activeCampaigns, qbInquiryLeadsRaw] = await Promise.all([
-    base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' }),
-    base44.asServiceRole.entities.Client.list(),
-    base44.asServiceRole.entities.ReferralPartner.filter({ is_active: true }),
-    base44.asServiceRole.entities.AnnualCampaign.filter({ is_active: true }),
-    base44.asServiceRole.entities.Lead.filter({ lead_type: 'company_inquiry' }),
-  ]);
+  // ── Use shared global context builder (invoked as backend function) ──
+  const ctxResponse = await base44.functions.invoke('mayaContext', { action: 'global' });
+  const { contextText: globalContext, data } = ctxResponse.data;
 
-  // Exclude demo/broker-demo records from all briefing metrics
-  const allLeads = allLeadsRaw.filter(l => !l.is_demo);
-  const allClients = allClientsRaw.filter(c => !c.is_demo);
-  const allPartners = allPartnersRaw.filter(p => !p.is_demo);
-  const qbInquiryLeads = qbInquiryLeadsRaw.filter(l => !l.is_demo);
+  const { clients, leads, partners, newInquiries } = data;
 
-  // New Quick Builder inquiries: submitted via public Quick Builder, still cold, no interaction yet
-  const newInquiries = qbInquiryLeads.filter(l =>
-    (l.source || '').startsWith('Quick Builder') &&
-    (l.status || 'cold') === 'cold' &&
-    !l.last_contacted_date
-  );
+  // ── Fetch active campaigns separately (specific to daily briefing) ──
+  let activeCampaigns = [];
+  try {
+    activeCampaigns = await base44.asServiceRole.entities.AnnualCampaign.filter({ is_active: true });
+  } catch (e) {
+    console.log('[mayaDailyBriefing] Failed to fetch campaigns:', e.message);
+  }
 
   // =========================================================
   // SECTION A: MASS CAMPAIGN ACTIONS
-  // Active window: from (target-month-start − prep_trigger_days) through end of target month.
-  // If that full window has passed this year, look ahead to next year.
   // =========================================================
   const triggeredCampaigns = activeCampaigns.map(campaign => {
     const monthIndex = MONTH_NAMES.indexOf(campaign.target_month);
     if (monthIndex === -1) return null;
     const prepDays = campaign.prep_trigger_days ?? 45;
 
-    // Try this year first, then next year
     for (const year of [now.getFullYear(), now.getFullYear() + 1]) {
       const monthStart  = new Date(year, monthIndex, 1);
-      const monthEnd    = new Date(year, monthIndex + 1, 0); // last day of target month
+      const monthEnd    = new Date(year, monthIndex + 1, 0);
       const windowStart = new Date(monthStart);
       windowStart.setDate(windowStart.getDate() - prepDays);
 
@@ -84,26 +68,21 @@ Deno.serve(async (req) => {
     return null;
   }).filter(Boolean);
 
-  const activeClientCount = allClients.filter(c => c.client_stage && c.client_stage !== 'churned').length;
-  const activePartnerCount = allPartners.filter(p => p.partner_status === 'Active Partner').length;
-
-  const campaignSummaries = triggeredCampaigns.map(({ campaign, label }) =>
-    `📣 **${campaign.name}** (${label}) | Target: ${campaign.target_month} | You have **${activeClientCount} Active Clients** and **${activePartnerCount} Referral Partners** to engage. _(Queue Draft Emails)_`
-  );
+  const activeClientCount = clients.filter(c => c.client_stage && c.client_stage !== 'churned').length;
+  const activePartnerCount = partners.filter(p => p.partner_status === 'Active Partner').length;
 
   // =========================================================
   // SECTION B: INDIVIDUAL HIGH-TOUCH ACTIONS
   // =========================================================
 
-  // --- Renewals: 90 days before Jan 1 or July 1 ---
-  // Oct 3 triggers Jan 1 cohort; Apr 3 triggers July 1 cohort
+  // Renewals: 90 days before Jan 1 or July 1
   const renewalAlerts = [];
   const jan1ThisYear = new Date(now.getFullYear(), 0, 1);
   const jan1NextYear = new Date(now.getFullYear() + 1, 0, 1);
   const jul1ThisYear = new Date(now.getFullYear(), 6, 1);
   const jul1NextYear = new Date(now.getFullYear() + 1, 6, 1);
 
-  allClients.forEach(c => {
+  clients.forEach(c => {
     if (!c.renewal_cohort) return;
     let cohortDate = null;
     if (c.renewal_cohort === 'Jan 1') {
@@ -118,26 +97,20 @@ Deno.serve(async (req) => {
     }
   });
 
-  // --- Stalled Tier 1 Partners: no touchpoint in 60+ days ---
-  const stalledPartners = allPartners.filter(p => {
+  // Stalled Tier 1 Partners: no touchpoint in 60+ days
+  const stalledPartners = partners.filter(p => {
     if (p.tier !== 'Tier 1') return false;
     const touchDate = p.last_touchpoint_date || p.last_contacted_date;
-    if (!touchDate) return true; // Never contacted = stalled
+    if (!touchDate) return true;
     return daysDiff(now, new Date(touchDate)) > 60;
   });
 
-  const stalledPartnerAlerts = stalledPartners.map(p => {
-    const touchDate = p.last_touchpoint_date || p.last_contacted_date;
-    const daysAgo = touchDate ? Math.round(daysDiff(now, new Date(touchDate))) : null;
-    return `⚠️ **Stalled Partner:** No touchpoint with **${p.name}** (${p.company || 'no company'}) in ${daysAgo ? `${daysAgo} days` : 'an unknown time'}. Action: Send check-in.`;
-  });
-
-  // --- Legacy data for the existing briefing context ---
-  const overduePartners = allLeads.filter(l =>
+  // Legacy data for briefing context
+  const overduePartners = leads.filter(l =>
     l.follow_up_due_date && new Date(l.follow_up_due_date) < now
   );
-  const activeLeadPartners = allLeads.filter(l => l.partner_status === 'active_partner');
-  const silentClients = allClients.filter(c => {
+  const activeLeadPartners = leads.filter(l => l.partner_status === 'active_partner');
+  const silentClients = clients.filter(c => {
     if (!c.last_contacted_date) return true;
     return daysDiff(now, new Date(c.last_contacted_date)) > 60;
   });
@@ -147,13 +120,13 @@ Deno.serve(async (req) => {
     silent_clients: silentClients.length,
     renewal_clients: renewalAlerts.length,
     active_partners: activeLeadPartners.length,
-    triggered_campaigns: triggeredCampaigns.length, // array of {campaign, label}
+    triggered_campaigns: triggeredCampaigns.length,
     stalled_tier1_partners: stalledPartners.length,
     new_inquiries: newInquiries.length,
   };
 
   // =========================================================
-  // Build prompt with both sections
+  // Build prompt using shared global context + computed action items
   // =========================================================
   const prompt = `You are Maya, the operations AI at SkillfulMeans — a mental fitness company selling workshops, challenges, leadership programs, and wellness boxes. You report to William and Heather. Your voice is warm, direct, and specific.
 
@@ -193,7 +166,7 @@ ${currentMonthName} themes: ${currentThemes.slice(0,2).join(', ')}
 
 Active campaigns: ${triggeredCampaigns.length > 0 ? triggeredCampaigns.map(t => `${t.campaign.name} (${t.label})`).join('; ') : 'none'}
 
-Clients in 90-day renewal window: ${allClients.filter(c => {
+Clients in 90-day renewal window: ${clients.filter(c => {
   const jan1Next = new Date(now.getFullYear() + 1, 0, 1);
   const jul1This = new Date(now.getFullYear(), 6, 1);
   const jul1Next = new Date(now.getFullYear() + 1, 6, 1);
@@ -208,10 +181,13 @@ Overdue partner follow-ups: ${overduePartners.slice(0,5).map(l => `${l.name} / $
 
 Stalled Tier 1 partners (60+ days no touchpoint): ${stalledPartners.slice(0,4).map(p => `${p.name} (${p.company || ''}, last touch: ${p.last_touchpoint_date || p.last_contacted_date || 'never'})`).join(', ') || 'none'}
 
-Active partners total: ${allPartners.filter(p => p.partner_status === 'Active Partner').length}
-Active clients total: ${allClients.filter(c => c.client_stage && c.client_stage !== 'churned').length}
+Active partners total: ${activePartnerCount}
+Active clients total: ${activeClientCount}
 
-New Quick Builder inquiries (awaiting first contact): ${newInquiries.slice(0,5).map(l => (l.company || l.name) + ' (team: ' + (l.company_size || '?') + ', ' + (l.quickbuilder_selections?.length || 0) + ' services selected, submitted: ' + (l.created_date ? new Date(l.created_date).toLocaleDateString() : 'recently') + ')').join('; ') || 'none'}`;
+New Quick Builder inquiries (awaiting first contact): ${newInquiries.slice(0,5).map(l => (l.company || l.name) + ' (team: ' + (l.company_size || '?') + ', ' + (l.quickbuilder_selections?.length || 0) + ' services selected, submitted: ' + (l.created_date ? new Date(l.created_date).toLocaleDateString() : 'recently') + ')').join('; ') || 'none'}
+
+GLOBAL CONTEXT (service catalog, pipeline counts, renewal season):
+${globalContext}`;
 
   let briefing;
   try {

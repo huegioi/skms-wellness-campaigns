@@ -18,119 +18,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const daysSince = (d) => d ? Math.round((Date.now() - new Date(d)) / 86400000) : null;
+    // ── Use shared context builder (invoked as backend function) ──
+    const ctxResponse = await base44.functions.invoke('mayaContext', { action: 'record', record_type, record_id });
+    const { contextText, recipientEmail, recipientName, owner } = ctxResponse.data;
 
-    let contextText = '';
-    let recipientEmail = '';
-    let recipientName = '';
-    let owner = '';
-
-    if (record_type === 'partner') {
-      let lead;
-      try {
-        const leads = await base44.asServiceRole.entities.Lead.filter({ id: record_id });
-        lead = leads[0];
-      } catch (e) { /* not found */ }
-      if (!lead) return Response.json({ error: 'Partner not found' }, { status: 404 });
-
-      const partners = await base44.asServiceRole.entities.ReferralPartner.list();
-      const matchedPartner = partners.find(p =>
-        p.email?.toLowerCase() === lead.email?.toLowerCase() ||
-        p.name?.toLowerCase() === lead.name?.toLowerCase()
-      );
-
-      const referrals = matchedPartner
-        ? await base44.asServiceRole.entities.Referral.filter({ referral_partner_id: matchedPartner.id })
-        : [];
-
-      recipientEmail = lead.email;
-      recipientName = lead.name;
-      owner = lead.owner || matchedPartner?.owner || 'William';
-
-      contextText = `PARTNER RECORD:
-Name: ${lead.name}
-Company: ${lead.company || 'Unknown'}
-Tier: ${matchedPartner?.tier || lead.referral_potential || 'Unknown'}
-Partner Status: ${lead.partner_status || 'Unknown'}
-Pipeline Stage: ${lead.follow_up_stage || 'No stage set'}
-Last Contacted: ${lead.last_contacted_date ? `${new Date(lead.last_contacted_date).toLocaleDateString()} (${daysSince(lead.last_contacted_date)} days ago)` : 'Never'}
-Last Referral: ${lead.last_referral_date ? `${new Date(lead.last_referral_date).toLocaleDateString()} (${daysSince(lead.last_referral_date)} days ago)` : 'None'}
-Total Referrals: ${lead.referral_count || 0}
-YTD Revenue from Partner: $${(matchedPartner?.ytd_revenue || 0).toLocaleString()}
-Renewal Cohort: ${matchedPartner?.renewal_cohort || 'Unknown'}
-
-RECENT REFERRALS (${referrals.length} total):
-${referrals.slice(0, 5).map(r => `- ${r.company_name || r.contact_name} | Status: ${r.status} | Revenue: $${(r.first_year_revenue || 0).toLocaleString()} | Date: ${r.referral_date ? new Date(r.referral_date).toLocaleDateString() : 'Unknown'}`).join('\n') || 'No referrals yet'}
-
-INTERNAL NOTES: ${lead.notes || 'None'}`;
-
-    } else if (record_type === 'client') {
-      let client;
-      try {
-        const clients = await base44.asServiceRole.entities.Client.filter({ id: record_id });
-        client = clients[0];
-      } catch (e) { /* not found */ }
-      if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
-
-      const [proposals, interactions] = await Promise.all([
-        base44.asServiceRole.entities.Proposal.list('-created_date'),
-        base44.asServiceRole.entities.ClientInteraction.filter({ client_id: client.id }, '-date'),
-      ]);
-
-      const clientProposals = proposals.filter(p => p.client_id === client.id);
-      const acceptedValue = clientProposals.filter(p => p.status === 'accepted').reduce((s, p) => s + (p.total_amount || 0), 0);
-
-      recipientEmail = client.email;
-      recipientName = client.name;
-      owner = client.owner || 'William';
-
-      contextText = `CLIENT RECORD:
-Name: ${client.company || client.name}
-Primary Contact: ${client.name}${client.title ? ` (${client.title})` : ''}
-Industry: ${client.industry || 'Unknown'}
-Company Size: ${client.company_size || 'Unknown'}
-Client Stage: ${client.client_stage || 'Unknown'}
-Tier: ${client.tier || 'Not set'}
-Renewal Cohort: ${client.renewal_cohort || 'Not set'}
-Plan Year Start: ${client.plan_year_start || 'Not set'}
-Last Contacted: ${client.last_contacted_date ? `${new Date(client.last_contacted_date).toLocaleDateString()} (${daysSince(client.last_contacted_date)} days ago)` : 'Unknown'}
-Last Service Date: ${client.last_service_date || 'Not set'}
-Wellness Budget: ${client.wellness_budget ? `$${client.wellness_budget.toLocaleString()}` : 'Unknown'}
-Referral Partner: ${client.referral_partner_name || 'None'}
-Owner: ${client.owner || 'Unassigned'}
-
-PROPOSAL SUMMARY:
-Accepted Value: $${acceptedValue.toLocaleString()}
-Total QB Invoice Value: $${(client.total_invoice_value || 0).toLocaleString()}
-Latest Proposal Status: ${clientProposals[0]?.status || 'None'}
-
-RECENT ACTIVITY (last 5 interactions):
-${interactions.slice(0, 5).map(i => `- ${i.interaction_type} on ${new Date(i.date).toLocaleDateString()}: ${i.subject || ''} ${i.notes ? `| ${i.notes.slice(0, 80)}` : ''}`).join('\n') || 'No logged interactions'}
-
-INTERNAL NOTES: ${client.notes || 'None'}`;
-
-    } else {
-      return Response.json({ error: 'Invalid record_type' }, { status: 400 });
+    if (!recipientEmail) {
+      return Response.json({ error: 'No recipient email on record' }, { status: 400 });
     }
-
-    // Fetch recent email history
-    let emailLogs = [];
-    try {
-      if (recipientEmail) {
-        const logs = await base44.asServiceRole.entities.EmailLog.filter({ to_email: recipientEmail }, '-date', 5);
-        const sentLogs = await base44.asServiceRole.entities.EmailLog.filter({ from_email: recipientEmail }, '-date', 5);
-        const combined = [...logs, ...sentLogs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-        emailLogs = combined;
-      }
-    } catch (e) {
-      console.log('Could not fetch email logs:', e.message);
-    }
-
-    const emailHistory = emailLogs.length > 0
-      ? emailLogs.map(e => `[${e.direction === 'outbound' ? 'WE SENT' : 'THEY SENT'} - ${new Date(e.date).toLocaleDateString()}]
-Subject: ${e.subject || '(no subject)'}
-${e.body_preview || e.snippet || '(no preview available)'}`).join('\n\n---\n\n')
-      : 'No previous email history found.';
 
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!apiKey) return Response.json({ error: 'Anthropic API key not configured' }, { status: 500 });
@@ -171,24 +65,19 @@ THE BENEFITS CALENDAR: The entire employee benefits industry runs on an annual c
 RULES AND GUARDRAILS
 Never fabricate data. Always factor in the current date and season. Prioritize revenue-generating activities. Respect ownership — direct actions to the correct owner.`;
 
-    const userMessage = `CLIENT/PARTNER DATA:
+    const userMessage = `RECORD CONTEXT (includes email history, interactions, proposals, and delivery data):
 ${contextText}
-
-RECENT EMAIL CONVERSATION HISTORY:
-${emailHistory}
 
 STRATEGIC OBJECTIVE (Maya's Layer 2 advice already generated):
 ${strategic_insights}
 
-TASK: Write a highly personalized, natural, and persuasive email to ${recipientName} executing this exact strategic objective. Use our previous email history and our internal notes as context so you do not repeat yourself and you reference relevant details. Write in Maya's voice (warm, professional, direct).
+TASK: Write a highly personalized, natural, and persuasive email to ${recipientName} executing this exact strategic objective. Use the email history and internal notes in the context above so you do not repeat yourself and you reference relevant details. Write in Maya's voice (warm, professional, direct).
 
 CRITICAL EMAIL RULES:
 1. Short & Punchy: Keep the email under 120 words.
 2. No Hyphens/Bullets: Do NOT use bullet points, numbered lists, or excessive hyphens. Write normal paragraphs (1-3 sentences max per paragraph).
 3. Singular CTA: End with ONE clear, low-friction question or call to action.
 4. Formatting: Output strictly as a JSON object with two keys: "subject" and "body". Do not include any markdown.`;
-
-    console.log('Calling Anthropic API for email draft...');
 
     const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -217,7 +106,6 @@ CRITICAL EMAIL RULES:
     let subject = '';
     let emailBody = '';
     try {
-      // Strip markdown code fences if present
       const cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const parsed = JSON.parse(cleaned);
       subject = parsed.subject || '';
@@ -234,7 +122,6 @@ CRITICAL EMAIL RULES:
     const isHeather = senderKey.includes('heather');
     const fromEmail = isHeather ? 'heather@skillfulmeans.life' : 'william@skillfulmeans.life';
 
-    // Pick the correct Gmail connector based on sender
     const HEATHER_GMAIL_CONNECTOR_ID = 'PASTE_HEATHER_CONNECTOR_ID_HERE';
     const connectorName = isHeather ? HEATHER_GMAIL_CONNECTOR_ID : 'gmail';
     let accessToken;
@@ -249,7 +136,6 @@ CRITICAL EMAIL RULES:
       );
     }
 
-    // Build RFC 2822 MIME message
     const mimeLines = [
       `From: ${fromEmail}`,
       `To: ${recipientEmail}`,
@@ -261,15 +147,11 @@ CRITICAL EMAIL RULES:
     ];
     const rawMime = mimeLines.join('\r\n');
 
-    // Base64url encode (Gmail API requirement)
     const encoder = new TextEncoder();
     const bytes = encoder.encode(rawMime);
     let base64 = btoa(String.fromCharCode(...bytes));
-    // Convert to base64url
     base64 = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-    // Push draft to Gmail API
-    console.log('Creating Gmail draft via API...');
     const gmailRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {
       method: 'POST',
       headers: {
@@ -288,9 +170,7 @@ CRITICAL EMAIL RULES:
     const gmailDraft = await gmailRes.json();
     const gmailDraftId = gmailDraft.id;
     const gmailMessageId = gmailDraft.message?.id;
-    console.log('Gmail draft created:', gmailDraftId, 'message id:', gmailMessageId);
 
-    // Save to EmailLog with the real Gmail IDs
     const emailLogRecord = await base44.asServiceRole.entities.EmailLog.create({
       is_draft: true,
       gmail_message_id: gmailDraftId,
@@ -304,8 +184,6 @@ CRITICAL EMAIL RULES:
       gmail_account: isHeather ? 'heather' : 'william',
       ...(record_type === 'client' ? { matched_client_id: record_id } : { matched_lead_id: record_id }),
     });
-
-    console.log('Email draft saved to EmailLog:', emailLogRecord.id);
 
     return Response.json({
       success: true,
