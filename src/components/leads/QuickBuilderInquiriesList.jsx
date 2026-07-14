@@ -2,6 +2,7 @@ import React from 'react';
 import { User, Mail, Users, ArrowRight, Sparkles, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { parseQuickBuilderGoals, timeSince } from '@/lib/quickbuilderUtils';
+import ResolveInquiryMenu from './ResolveInquiryMenu';
 
 export default function QuickBuilderInquiriesList({ inquiries, onSelectLead }) {
   if (inquiries.length === 0) {
@@ -69,13 +70,14 @@ export default function QuickBuilderInquiriesList({ inquiries, onSelectLead }) {
                 )}
                 {lead.notes && <p className="text-xs text-gray-400 mt-2 line-clamp-2">{lead.notes}</p>}
               </div>
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex items-center gap-1">
                 <button
                   onClick={() => onSelectLead(lead)}
                   className="text-sm font-semibold text-[#770142] hover:underline flex items-center gap-1"
                 >
                   Review <ArrowRight className="w-3.5 h-3.5" />
                 </button>
+                <ResolveInquiryMenu lead={lead} />
               </div>
             </div>
           </div>
