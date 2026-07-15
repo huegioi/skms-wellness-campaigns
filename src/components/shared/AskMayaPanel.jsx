@@ -14,11 +14,12 @@ import ReactMarkdown from 'react-markdown';
  * Global "Ask Maya" slide-over — session-only chat history (no persistence).
  * Calls askMaya with no record context (global business questions).
  */
-export default function AskMayaPanel({ open, onOpenChange }) {
+export default function AskMayaPanel({ open, onOpenChange, pendingQuestion, onThinkingChange, onQuestionConsumed }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef(null);
+  const pendingRef = useRef(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -26,16 +27,36 @@ export default function AskMayaPanel({ open, onOpenChange }) {
     }
   }, [messages, loading]);
 
-  const ask = async (e) => {
-    e?.preventDefault();
-    const q = input.trim();
+  // Notify parent (orb) when thinking state changes — quickens the breathing.
+  useEffect(() => {
+    onThinkingChange?.(loading);
+  }, [loading, onThinkingChange]);
+
+  // Auto-submit a pending question (from orb greeting / context bubble) when the panel opens.
+  useEffect(() => {
+    if (open && pendingQuestion && !pendingRef.current) {
+      pendingRef.current = pendingQuestion;
+      onQuestionConsumed?.();
+      submitQuestion(pendingQuestion.question, pendingQuestion.recordType, pendingQuestion.recordId);
+    }
+    if (!open) {
+      pendingRef.current = null;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, pendingQuestion]);
+
+  const submitQuestion = async (q, recordType, recordId) => {
     if (!q || loading) return;
-    setInput('');
     const next = [...messages, { role: 'user', content: q }];
     setMessages(next);
     setLoading(true);
     try {
-      const res = await base44.functions.invoke('askMaya', { question: q });
+      const payload = { question: q };
+      if (recordType && recordId) {
+        payload.record_type = recordType;
+        payload.record_id = recordId;
+      }
+      const res = await base44.functions.invoke('askMaya', payload);
       setMessages([...next, { role: 'assistant', content: res.data?.answer || 'No answer.' }]);
     } catch (err) {
       setMessages([
@@ -45,6 +66,14 @@ export default function AskMayaPanel({ open, onOpenChange }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const ask = (e) => {
+    e?.preventDefault();
+    const q = input.trim();
+    if (!q || loading) return;
+    setInput('');
+    submitQuestion(q);
   };
 
   return (

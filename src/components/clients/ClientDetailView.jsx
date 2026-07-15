@@ -38,6 +38,7 @@ import InteractionTimeline from '@/components/shared/InteractionTimeline';
 import { useClientDeliveryStatus } from '@/hooks/useClientDeliveryStatus';
 import ClientDeliveryStrip from '@/components/clients/ClientDeliveryStrip';
 import ReferredByBadge from '@/components/shared/ReferredByBadge';
+import { setMayaRecordContext, clearMayaRecordContext } from '@/lib/mayaOrbStore';
 
 const statusConfig = {
   draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
@@ -92,6 +93,13 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   });
 
   const client = freshClient;
+
+  useEffect(() => {
+    if (client?.id && client?.name) {
+      setMayaRecordContext({ recordType: 'client', recordId: client.id, recordName: client.name });
+    }
+    return () => clearMayaRecordContext();
+  }, [client?.id, client?.name]);
 
   const deliverySnapshots = useClientDeliveryStatus(client ? [client] : []);
   const deliverySnapshot = client ? deliverySnapshots[client.id] : null;

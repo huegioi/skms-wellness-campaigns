@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -22,6 +22,7 @@ import { InlineSelect } from '@/components/shared/inline/InlineSelect';
 import { LEAD_STAGES } from '@/components/shared/constants';
 import { LEAD_STATUS_CONFIG as STATUS_CONFIG, PARTNER_STATUS_CONFIG, REFERRAL_STATUS_COLORS, PROPOSAL_STATUS_CONFIG } from '@/lib/statusConfig';
 import InteractionTimeline from '@/components/shared/InteractionTimeline';
+import { setMayaRecordContext, clearMayaRecordContext } from '@/lib/mayaOrbStore';
 
 const EMPTY_REFERRAL = { date: '', company_name: '', contact_name: '', notes: '', client_id: '', proposal_id: '', partner_id: '' };
 const EMPTY_PROPOSAL_FORM = { referralId: '', proposalId: '' };
@@ -66,6 +67,13 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const [showAddProposal, setShowAddProposal] = useState(false);
   const [convertingReferral, setConvertingReferral] = useState(null);
   const [proposalForm, setProposalForm] = useState(EMPTY_PROPOSAL_FORM);
+
+  useEffect(() => {
+    if (lead?.id && lead?.name) {
+      setMayaRecordContext({ recordType: 'lead', recordId: lead.id, recordName: lead.name });
+    }
+    return () => clearMayaRecordContext();
+  }, [lead?.id, lead?.name]);
 
   const queryClient = useQueryClient();
 

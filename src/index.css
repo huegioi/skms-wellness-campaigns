@@ -10,6 +10,18 @@
   display: none;
 }
 
+/* Maya Orb breathing animation — calm inhale/exhale loop */
+@keyframes maya-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+.maya-orb-breathe { animation: maya-breathe 5s ease-in-out infinite; }
+.maya-orb-breathe--active { animation: maya-breathe 2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .maya-orb-breathe,
+  .maya-orb-breathe--active { animation: none !important; }
+}
+
 
 /* :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;

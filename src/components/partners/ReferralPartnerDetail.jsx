@@ -14,6 +14,7 @@ import { PARTNER_STAGES } from '@/components/shared/constants';
 import { REFERRAL_STATUS_COLORS } from '@/lib/statusConfig';
 import InteractionTimeline from '@/components/shared/InteractionTimeline';
 import CommissionPaymentsLedger from '@/components/partners/CommissionPaymentsLedger';
+import { setMayaRecordContext, clearMayaRecordContext } from '@/lib/mayaOrbStore';
 
 function TierField({ value, onSave, type = 'text', placeholder, step }) {
   const [draft, setDraft] = useState(value != null ? String(value) : '');
@@ -38,6 +39,13 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
   const queryClient = useQueryClient();
   const [partner, setPartner] = useState(initialPartner);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (initialPartner?.id && initialPartner?.name) {
+      setMayaRecordContext({ recordType: 'partner', recordId: initialPartner.id, recordName: initialPartner.name });
+    }
+    return () => clearMayaRecordContext();
+  }, [initialPartner?.id, initialPartner?.name]);
 
   const handleUpdate = async (updates) => {
     setPartner(prev => ({ ...prev, ...updates }));
