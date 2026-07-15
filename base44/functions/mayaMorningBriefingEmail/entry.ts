@@ -113,11 +113,20 @@ function buildEmail(briefingText, stats, dateStr) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    let user;
+    try {
+      user = await base44.auth.me();
+    } catch (e) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     const now = new Date();
     const dateStr = formatDate(now);
 
-    // Delegate to the shared briefing function — keeps dashboard + email in sync
-    const briefingResponse = await base44.asServiceRole.functions.invoke('mayaDailyBriefing', {});
+    // Delegate to the shared briefing function — keeps dashboard + email in sync.
+    // Use user-context invoke (not asServiceRole) so the caller's session forwards
+    // through mayaDailyBriefing's auth guard.
+    const briefingResponse = await base44.functions.invoke('mayaDailyBriefing', {});
     const briefingData = briefingResponse.data || briefingResponse;
     const briefing = briefingData?.briefing || 'Briefing unavailable this morning.';
     const stats = briefingData?.stats || {};

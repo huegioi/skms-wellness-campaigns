@@ -23,6 +23,13 @@ function daysDiff(a, b) {
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
+  let user;
+  try {
+    user = await base44.auth.me();
+  } catch (e) {
+    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
   const now = new Date();
   const todayStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const currentMonthName = MONTH_NAMES[now.getMonth()];

@@ -673,7 +673,7 @@ Deno.serve(async (req) => {
     try {
       user = await base44.auth.me();
     } catch (e) {
-      user = true;
+      return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
