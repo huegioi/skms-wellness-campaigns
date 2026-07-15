@@ -196,8 +196,8 @@ export default function MayaOrb() {
           </div>
         )}
 
-        {/* Orb */}
-        <div className="relative pointer-events-auto">
+        {/* Orb — Soft Gradient Horizon glass-morphism */}
+        <div className="relative pointer-events-auto" style={{ width: 52, height: 52 }}>
           {/* Tooltip */}
           {hovered && !open && (
             <div className="absolute bottom-full right-0 mb-2.5 pointer-events-none whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[11px] font-medium text-white shadow-lg">
@@ -205,11 +205,21 @@ export default function MayaOrb() {
             </div>
           )}
 
+          {/* Soft outer glow halo */}
+          <div
+            className="absolute inset-0 rounded-full maya-orb-glow pointer-events-none"
+            style={{
+              background:
+                'radial-gradient(circle, rgba(178,243,242,0.45) 0%, rgba(252,212,225,0.25) 55%, transparent 75%)',
+              filter: 'blur(6px)',
+            }}
+          />
+
           {/* Hover glow ring */}
           <div
             className="absolute inset-0 rounded-full transition-opacity duration-300 pointer-events-none"
             style={{
-              boxShadow: '0 0 0 6px rgba(119, 1, 66, 0.18)',
+              boxShadow: '0 0 0 5px rgba(178, 243, 242, 0.22)',
               opacity: hovered ? 1 : 0,
             }}
           />
@@ -218,19 +228,41 @@ export default function MayaOrb() {
             onClick={handleOrbClick}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
-            className={`relative flex items-center justify-center rounded-full bg-[#770142] shadow-lg ${breatheClass}`}
-            style={{ width: 52, height: 52 }}
+            className={`relative w-full h-full rounded-full overflow-hidden flex items-center justify-center ${breatheClass}`}
+            style={{
+              background:
+                'radial-gradient(circle at 30% 30%, #B2F3F2 0%, #C8EDE8 35%, #E8D4E0 70%, #FCD4E1 100%)',
+              boxShadow:
+                '0 4px 18px rgba(178,243,242,0.3), 0 2px 8px rgba(252,212,225,0.3), inset 0 1px 4px rgba(255,255,255,0.65), inset 0 -1px 3px rgba(180,200,210,0.2)',
+            }}
             aria-label="Ask Maya"
           >
-            <img
-              src={LOGO_URL}
-              alt=""
-              className="w-7 h-7 object-contain pointer-events-none"
+            {/* Spinning conic gradient — creates living color-shift effect */}
+            <div
+              className="absolute inset-0 rounded-full maya-orb-spin maya-orb-colors"
+              style={{
+                background:
+                  'conic-gradient(from 0deg, rgba(178,243,242,0.45), rgba(252,212,225,0.4), rgba(178,223,226,0.45), rgba(232,212,224,0.4), rgba(178,243,242,0.45))',
+              }}
             />
+
+            {/* Glass gloss highlight (top-left) */}
+            <div
+              className="absolute inset-0 rounded-full pointer-events-none"
+              style={{
+                background:
+                  'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.55) 0%, transparent 45%)',
+              }}
+            />
+
+            {/* Center label */}
+            <span className="relative z-10 text-[10px] font-semibold text-gray-500/80 tracking-wide pointer-events-none select-none">
+              Maya
+            </span>
 
             {/* Amber attention dot */}
             {showAttentionDot && (
-              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-amber-400 border-2 border-white" />
+              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-amber-400 border-2 border-white z-20" />
             )}
           </button>
         </div>

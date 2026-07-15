@@ -10,16 +10,40 @@
   display: none;
 }
 
-/* Maya Orb breathing animation — calm inhale/exhale loop */
+/* Maya Orb — Soft Gradient Horizon (breathe + spin + color cycle) */
 @keyframes maya-breathe {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.06); }
 }
 .maya-orb-breathe { animation: maya-breathe 5s ease-in-out infinite; }
 .maya-orb-breathe--active { animation: maya-breathe 2s ease-in-out infinite; }
+
+@keyframes maya-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.maya-orb-spin { animation: maya-spin 8s linear infinite; }
+
+@keyframes maya-color-cycle {
+  0%   { filter: hue-rotate(0deg); }
+  33%  { filter: hue-rotate(45deg); }
+  66%  { filter: hue-rotate(-30deg); }
+  100% { filter: hue-rotate(0deg); }
+}
+.maya-orb-colors { animation: maya-color-cycle 14s ease-in-out infinite; }
+
+@keyframes maya-glow-pulse {
+  0%, 100% { opacity: 0.45; transform: scale(1.25); }
+  50%      { opacity: 0.75; transform: scale(1.4); }
+}
+.maya-orb-glow { animation: maya-glow-pulse 5s ease-in-out infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   .maya-orb-breathe,
-  .maya-orb-breathe--active { animation: none !important; }
+  .maya-orb-breathe--active,
+  .maya-orb-spin,
+  .maya-orb-colors,
+  .maya-orb-glow { animation: none !important; }
 }
 
 
