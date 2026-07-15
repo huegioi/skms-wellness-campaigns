@@ -43,12 +43,29 @@ Deno.serve(async (req) => {
     base44.functions.invoke('mayaContext', { action: 'persona', internal_key: _ik }),
     base44.functions.invoke('mayaContext', { action: 'delivery', internal_key: _ik }),
   ]);
-  const { contextText: globalContext, data } = ctxResponse.data;
-
-  const { clients, leads, partners, newInquiries } = data;
-  const knowledgeText = knowledgeResponse.data.contextText || '';
-  const MAYA_PERSONA = personaResponse.data.persona || '';
+  const globalContext = ctxResponse.data?.contextText || '';
+  const data = ctxResponse.data?.data || {};
+  const clients = data.clients || [];
+  const leads = data.leads || [];
+  const partners = data.partners || [];
+  const newInquiries = data.newInquiries || [];
+  const knowledgeText = knowledgeResponse.data?.contextText || '';
+  const MAYA_PERSONA = personaResponse.data?.persona || '';
   const delivery = deliveryResponse.data || {};
+
+  const contextWarnings = [];
+  if (!globalContext || ctxResponse.data?.error || ctxResponse.status !== 200) {
+    contextWarnings.push(`⚠ I couldn't load the global context (context service returned ${ctxResponse.status})`);
+  }
+  if (!knowledgeText || knowledgeResponse.data?.error) {
+    contextWarnings.push(`⚠ I couldn't load the knowledge base (context service returned ${knowledgeResponse.status})`);
+  }
+  if (!MAYA_PERSONA || personaResponse.data?.error) {
+    contextWarnings.push(`⚠ I couldn't load the persona (context service returned ${personaResponse.status})`);
+  }
+  if (!delivery || deliveryResponse.data?.error) {
+    contextWarnings.push(`⚠ I couldn't load the delivery context (context service returned ${deliveryResponse.status})`);
+  }
 
   // ── Fetch active campaigns separately (specific to daily briefing) ──
   let activeCampaigns = [];
@@ -246,8 +263,10 @@ ${delivery.activeCohort ? `Renewal ramp active: ${delivery.activeCohort.label} c
     briefing = `Today is ${todayStr}. ${stats.silent_clients} clients need re-engagement and ${stats.overdue_partners} partner follow-ups are overdue. Start with your most at-risk client relationship.\n\n**Client To-Dos**\n${clientItems}\n\n**Partner To-Dos**\n${partnerItems}\n\n**Campaign To-Do**\n${campaignItem}\n\n**Other**\n${stats.renewal_clients} client(s) are in their 90-day renewal window.${deliveryFallback}${renewalFallback}\n\n_Maya hit an upstream error (${err.message || 'timeout'}) — refresh to regenerate._`;
   }
 
+  const warningPrefix = contextWarnings.length > 0 ? contextWarnings.join('\n') + '\n\n' : '';
+
   return Response.json({
-    briefing,
+    briefing: warningPrefix + briefing,
     generated_at: now.toISOString(),
     stats,
   });

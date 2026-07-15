@@ -61,6 +61,20 @@ Deno.serve(async (req) => {
     }
     const responses = await Promise.all(fetches);
 
+    const contextWarnings = [];
+    if (!responses[0].data?.contextText || responses[0].data?.error || responses[0].status !== 200) {
+      contextWarnings.push(`⚠ I couldn't load the global context (context service returned ${responses[0].status})`);
+    }
+    if (!responses[1].data?.contextText || responses[1].data?.error) {
+      contextWarnings.push(`⚠ I couldn't load the knowledge base (context service returned ${responses[1].status})`);
+    }
+    if (!responses[2].data?.persona || responses[2].data?.error) {
+      contextWarnings.push(`⚠ I couldn't load the persona (context service returned ${responses[2].status})`);
+    }
+    if (hasRecord && (!responses[3].data?.contextText || responses[3].data?.error || responses[3].status !== 200)) {
+      contextWarnings.push(`⚠ I couldn't load the record data (context service returned ${responses[3].status})`);
+    }
+
     const globalText = responses[0].data?.contextText || '';
     const knowledgeText = responses[1].data?.contextText || '';
     const MAYA_PERSONA = responses[2].data?.persona || '';
@@ -93,8 +107,9 @@ You are answering a direct question from William or Heather. Ground every answer
     }
 
     const answer = (typeof llmResult === 'string' ? llmResult : '') + FOOTER;
+    const warningPrefix = contextWarnings.length > 0 ? contextWarnings.join('\n') + '\n\n' : '';
 
-    return Response.json({ answer, help_mode: helpMode });
+    return Response.json({ answer: warningPrefix + answer, help_mode: helpMode });
   } catch (error) {
     console.error('Unhandled error in askMaya:', error.message, error.stack);
     return Response.json({ error: error.message }, { status: 500 });

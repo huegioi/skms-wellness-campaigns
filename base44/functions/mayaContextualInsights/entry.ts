@@ -30,9 +30,21 @@ Deno.serve(async (req) => {
       base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'products', 'positioning'], internal_key: _ik }),
       base44.functions.invoke('mayaContext', { action: 'persona', internal_key: _ik }),
     ]);
-    const { contextText } = ctxResponse.data;
-    const knowledgeText = knowledgeResponse.data.contextText || '';
-    const MAYA_PERSONA = personaResponse.data.persona || '';
+
+    const contextWarnings = [];
+    if (!ctxResponse.data?.contextText || ctxResponse.data?.error || ctxResponse.status !== 200) {
+      contextWarnings.push(`⚠ I couldn't load the record data (context service returned ${ctxResponse.status}${ctxResponse.data?.error ? ': ' + ctxResponse.data.error : ''})`);
+    }
+    if (!knowledgeResponse.data?.contextText || knowledgeResponse.data?.error) {
+      contextWarnings.push(`⚠ I couldn't load the knowledge base (context service returned ${knowledgeResponse.status})`);
+    }
+    if (!personaResponse.data?.persona || personaResponse.data?.error) {
+      contextWarnings.push(`⚠ I couldn't load the persona (context service returned ${personaResponse.status})`);
+    }
+
+    const contextText = ctxResponse.data?.contextText || '';
+    const knowledgeText = knowledgeResponse.data?.contextText || '';
+    const MAYA_PERSONA = personaResponse.data?.persona || '';
     const fullContext = knowledgeText + '\n\n---\n\n' + contextText;
 
     const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -58,8 +70,9 @@ CRITICAL FORMATTING: Output your response entirely in Markdown bullet points for
     }
 
     const insights = (typeof llmResult === 'string' ? llmResult : '') || 'No insights generated.';
+    const warningPrefix = contextWarnings.length > 0 ? contextWarnings.join('\n') + '\n\n' : '';
 
-    return Response.json({ insights });
+    return Response.json({ insights: warningPrefix + insights });
 
   } catch (error) {
     console.error('Unhandled error in mayaContextualInsights:', error.message, error.stack);

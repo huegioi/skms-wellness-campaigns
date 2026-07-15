@@ -26,10 +26,18 @@ Deno.serve(async (req) => {
     // ── Use shared context builder (invoked as backend function) ──
     const _ik = Deno.env.get('MAYA_INTERNAL_KEY');
     const ctxResponse = await base44.functions.invoke('mayaContext', { action: 'record', record_type, record_id, internal_key: _ik });
-    const { contextText, recipientEmail, recipientName, owner } = ctxResponse.data;
+    const contextText = ctxResponse.data?.contextText || '';
+    const recipientEmail = ctxResponse.data?.recipientEmail || '';
+    const recipientName = ctxResponse.data?.recipientName || '';
+    const owner = ctxResponse.data?.owner || '';
+
+    const contextWarnings = [];
+    if (!contextText || ctxResponse.data?.error || ctxResponse.status !== 200) {
+      contextWarnings.push(`⚠ I couldn't load the record data (context service returned ${ctxResponse.status}${ctxResponse.data?.error ? ': ' + ctxResponse.data.error : ''})`);
+    }
 
     if (!recipientEmail) {
-      return Response.json({ error: 'No recipient email on record' }, { status: 400 });
+      return Response.json({ error: 'No recipient email on record' + (contextWarnings.length ? ' (' + contextWarnings.join('; ') + ')' : '') }, { status: 400 });
     }
 
     // ── Fetch Maya knowledge base + persona in parallel ──
@@ -37,8 +45,14 @@ Deno.serve(async (req) => {
       base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'products', 'positioning'], internal_key: _ik }),
       base44.functions.invoke('mayaContext', { action: 'persona', internal_key: _ik }),
     ]);
-    const knowledgeText = knowledgeResponse.data.contextText || '';
-    const MAYA_PERSONA = personaResponse.data.persona || '';
+    const knowledgeText = knowledgeResponse.data?.contextText || '';
+    const MAYA_PERSONA = personaResponse.data?.persona || '';
+    if (!knowledgeText || knowledgeResponse.data?.error) {
+      contextWarnings.push(`⚠ I couldn't load the knowledge base (context service returned ${knowledgeResponse.status})`);
+    }
+    if (!MAYA_PERSONA || personaResponse.data?.error) {
+      contextWarnings.push(`⚠ I couldn't load the persona (context service returned ${personaResponse.status})`);
+    }
     const fullContext = knowledgeText + '\n\n---\n\n' + contextText;
 
     const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -83,6 +97,10 @@ CRITICAL EMAIL RULES:
     } catch (e) {
       console.error('Failed to parse JSON from LLM:', rawText);
       return Response.json({ error: 'Maya returned invalid JSON. Please try again.' }, { status: 500 });
+    }
+
+    if (contextWarnings.length > 0) {
+      emailBody = contextWarnings.join('\n') + '\n\n' + emailBody;
     }
 
     // Determine sender: explicit override takes priority, then falls back to record owner
