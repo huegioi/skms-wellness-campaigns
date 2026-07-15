@@ -205,12 +205,12 @@ export default function MayaOrb() {
             </div>
           )}
 
-          {/* Soft outer glow halo */}
+          {/* Soft outer glow halo — recolored to plum to match the ensō */}
           <div
             className="absolute inset-0 rounded-full maya-orb-glow pointer-events-none"
             style={{
               background:
-                'radial-gradient(circle, rgba(178,243,242,0.45) 0%, rgba(252,212,225,0.25) 55%, transparent 75%)',
+                'radial-gradient(circle, rgba(119,1,66,0.15) 0%, rgba(252,211,77,0.08) 60%, transparent 75%)',
               filter: 'blur(6px)',
             }}
           />
@@ -219,7 +219,7 @@ export default function MayaOrb() {
           <div
             className="absolute inset-0 rounded-full transition-opacity duration-300 pointer-events-none"
             style={{
-              boxShadow: '0 0 0 5px rgba(178, 243, 242, 0.22)',
+              boxShadow: '0 0 0 5px rgba(119, 1, 66, 0.12)',
               opacity: hovered ? 1 : 0,
             }}
           />
@@ -228,41 +228,32 @@ export default function MayaOrb() {
             onClick={handleOrbClick}
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
-            className={`relative w-full h-full rounded-full overflow-hidden flex items-center justify-center ${breatheClass}`}
-            style={{
-              background:
-                'radial-gradient(circle at 30% 30%, #B2F3F2 0%, #C8EDE8 35%, #E8D4E0 70%, #FCD4E1 100%)',
-              boxShadow:
-                '0 4px 18px rgba(178,243,242,0.3), 0 2px 8px rgba(252,212,225,0.3), inset 0 1px 4px rgba(255,255,255,0.65), inset 0 -1px 3px rgba(180,200,210,0.2)',
-            }}
+            className={`relative w-full h-full rounded-full flex items-center justify-center ${breatheClass}`}
+            style={{ background: 'transparent' }}
             aria-label="Ask Maya"
           >
-            {/* Spinning conic gradient — creates living color-shift effect */}
-            <div
-              className="absolute inset-0 rounded-full maya-orb-spin maya-orb-colors"
-              style={{
-                background:
-                  'conic-gradient(from 0deg, rgba(178,243,242,0.45), rgba(252,212,225,0.4), rgba(178,223,226,0.45), rgba(232,212,224,0.4), rgba(178,243,242,0.45))',
-              }}
-            />
+            {/* Ensō — Zen brush-stroke circle in brand plum.
+                A single filled path: thick at the start (bottom-right),
+                tapering toward the open gap at ~1–2 o'clock. The inner
+                radius grows along the stroke, creating the taper. */}
+            <svg
+              viewBox="0 0 100 100"
+              className="w-full h-full"
+              aria-hidden="true"
+            >
+              <path
+                d="M 83 27 A 40 40 0 1 1 70 16 Q 60 10 49 13 Q 22 22 15 51 Q 22 76 51 81 Q 76 76 78 50 Q 82 43 71 36 Z"
+                fill="#770142"
+              />
+            </svg>
 
-            {/* Glass gloss highlight (top-left) */}
-            <div
-              className="absolute inset-0 rounded-full pointer-events-none"
-              style={{
-                background:
-                  'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.55) 0%, transparent 45%)',
-              }}
-            />
-
-            {/* Center label */}
-            <span className="relative z-10 text-[10px] font-semibold text-gray-500/80 tracking-wide pointer-events-none select-none">
-              Maya
-            </span>
-
-            {/* Amber attention dot */}
+            {/* Amber attention dot — placed in the ensō's open gap
+                (the dot completes the circle) */}
             {showAttentionDot && (
-              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-amber-400 border-2 border-white z-20" />
+              <span
+                className="absolute w-3 h-3 rounded-full bg-amber-400 border-2 border-white z-20"
+                style={{ top: '5px', right: '7px' }}
+              />
             )}
           </button>
         </div>
