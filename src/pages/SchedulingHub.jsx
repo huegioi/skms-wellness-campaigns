@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
@@ -125,6 +125,23 @@ export default function SchedulingHub() {
     queryFn: () => base44.entities.CalendarEvent.list('-start_date')
   });
 
+  // Mirror sheet rows into CalendarEvent records (auto-runs on mount + every 5 min)
+  const { data: mirrorResult } = useQuery({
+    queryKey: ['mirrorSheetEvents'],
+    queryFn: async () => {
+      const response = await base44.functions.invoke('mirrorSheetEvents', { window_days: 30 });
+      return response.data;
+    },
+    refetchInterval: 300000,
+    refetchOnWindowFocus: false,
+  });
+
+  useEffect(() => {
+    if (mirrorResult?.success) {
+      queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
+    }
+  }, [mirrorResult, queryClient]);
+
   const { data: cohortAssessments = [] } = useQuery({
     queryKey: ['cohort-assessments-challenge'],
     queryFn: async () => {
@@ -204,7 +221,10 @@ export default function SchedulingHub() {
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
-    await refetch();
+    await Promise.all([
+      refetch(),
+      queryClient.invalidateQueries({ queryKey: ['mirrorSheetEvents'] }),
+    ]);
     setTimeout(() => setIsRefreshing(false), 500);
   };
 
@@ -269,98 +289,8 @@ export default function SchedulingHub() {
   const sheets = data?.sheets || [];
   const spreadsheetTitle = data?.title || 'Scheduling Hub';
 
-  // Parse all sheet events for upcoming section
-  const parseSheetEvents = () => {
-    const events = [];
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
-    sheets.forEach(sheet => {
-      sheet.data.forEach(row => {
-        // Look for date columns - be more flexible
-        let dateValue = null;
-        let dateKey = null;
-        
-        for (const [key, value] of Object.entries(row)) {
-          const keyLower = key.toLowerCase();
-          if ((keyLower.includes('date') || keyLower.includes('day') || keyLower === 'when') && value && value.trim() !== '') {
-            dateValue = value;
-            dateKey = key;
-            break;
-          }
-        }
-        
-        if (!dateValue || dateValue.trim() === '') return;
-
-        // Parse date - handle various formats
-        let eventDate;
-        try {
-          // Try parsing as-is
-          eventDate = new Date(dateValue);
-          
-          // If invalid, try common formats
-          if (isNaN(eventDate.getTime())) {
-            // Try MM/DD/YYYY or M/D/YYYY
-            const parts = dateValue.split('/');
-            if (parts.length === 3) {
-              eventDate = new Date(parts[2], parts[0] - 1, parts[1]);
-            }
-          }
-          
-          if (isNaN(eventDate.getTime())) return;
-        } catch {
-          return;
-        }
-
-        // Check if within last 7 days or next 30 days
-        if (eventDate >= startOfToday && eventDate <= thirtyDaysFromNow) {
-          // Find event/service name
-          let title = 'Untitled Event';
-          for (const [key, value] of Object.entries(row)) {
-            if ((key.toLowerCase().includes('event') || 
-                 key.toLowerCase().includes('service') || 
-                 key.toLowerCase().includes('title') ||
-                 key.toLowerCase().includes('name')) && value) {
-              title = value;
-              break;
-            }
-          }
-          
-          // Case-insensitive lookup helper
-          const findVal = (row, ...keywords) => {
-            for (const [key, value] of Object.entries(row)) {
-              const keyLower = key.toLowerCase().trim();
-              if (keywords.some(kw => keyLower === kw || keyLower.includes(kw)) && value && value.trim() !== '') {
-                return value;
-              }
-            }
-            return '';
-          };
-
-          events.push({
-            date: eventDate,
-            title,
-            client: findVal(row, 'client', 'payee', 'company'),
-            location: findVal(row, 'location', 'venue', 'place', 'address'),
-            time: findVal(row, 'time'),
-            presenter: findVal(row, 'presenter', 'facilitator', 'speaker'),
-            linkToHost: findVal(row, 'link to host', 'host video', 'host link'),
-            recording: findVal(row, 'recording', 'need recording'),
-            translation: findVal(row, 'translation', 'need translation'),
-            sheet: sheet.name,
-            rawRow: row,
-            source: 'sheet'
-          });
-        }
-      });
-    });
-
-    return events;
-  };
-
-  const sheetEvents = parseSheetEvents();
+  // Sheet events are now mirrored into CalendarEvent records by the mirrorSheetEvents backend function.
+  // The Coming Up list shows CalendarEvent records only — no more raw parsed sheet rows.
 
   // Get upcoming CalendarEvent entities (next 30 days)
   const now = new Date();
@@ -390,38 +320,15 @@ export default function SchedulingHub() {
     })
     .sort((a, b) => parseISO(a.start_date) - parseISO(b.start_date));
 
-  // Combine sheet events with calendar events (including recent past)
-  const combinedUpcomingEvents = (() => {
-    const combined = [];
-    const addedKeys = new Set();
-
-    // Add calendar events first
-    upcomingCalendarEvents.forEach(event => {
-      const key = `${event.title?.toLowerCase().trim()}|${parseISO(event.start_date).toLocaleDateString()}`;
-      addedKeys.add(key);
-      combined.push({
-        ...event,
-        source: 'calendar',
-        date: parseISO(event.start_date),
-        isPast: parseISO(event.start_date) < now
-      });
-    });
-
-    // Add sheet events that aren't already in calendar (match by title only to handle slight name variations)
-    sheetEvents.forEach(sheetEvent => {
-      const key = `${sheetEvent.title?.toLowerCase().trim()}|${sheetEvent.date.toLocaleDateString()}`;
-      if (!addedKeys.has(key)) {
-        combined.push({
-          ...sheetEvent,
-          source: 'sheet',
-          client_name: sheetEvent.client,
-          isPast: sheetEvent.date < now
-        });
-      }
-    });
-
-    return combined.sort((a, b) => a.date - b.date);
-  })();
+  // All upcoming events are CalendarEvent records (sheet-mirrored events have source_calendar='sheet')
+  const combinedUpcomingEvents = upcomingCalendarEvents
+    .map(event => ({
+      ...event,
+      source: 'calendar',
+      date: parseISO(event.start_date),
+      isPast: parseISO(event.start_date) < now
+    }))
+    .sort((a, b) => a.date - b.date);
 
   // Split into Delivery and Meetings lenses
   const enrichedEvents = combinedUpcomingEvents.map(event => ({

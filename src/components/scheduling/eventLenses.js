@@ -7,7 +7,7 @@ const DELIVERY_KEYWORDS = ['workshop', 'challenge', 'class', 'training', 'presen
 
 /** Returns 'Sheet' | 'App' | 'Google' for the source badge. */
 export function getEventSourceBadge(event) {
-  if (event.source === 'sheet') return 'Sheet';
+  if (event.source === 'sheet' || event.source_calendar === 'sheet') return 'Sheet';
   if (event.ingested === true) return 'Google';
   return 'App';
 }
@@ -15,7 +15,7 @@ export function getEventSourceBadge(event) {
 /** Returns 'delivery' | 'meetings' — which lens the event belongs to. */
 export function getEventLens(event) {
   // Schedule sheet events are always delivery
-  if (event.source === 'sheet') return 'delivery';
+  if (event.source === 'sheet' || event.source_calendar === 'sheet') return 'delivery';
   // Rule 1: classify by event_type first (workshops, challenges, etc.)
   if (event.event_type && DELIVERY_TYPES.includes(event.event_type)) return 'delivery';
   // Service / proposal linkage → delivery

@@ -163,7 +163,11 @@
     },
     "source_calendar": {
       "type": "string",
-      "description": "Which watched Google calendar this event was ingested from (e.g. 'primary', 'heather@skillfulmeans.life', 'admin@skillfulmeans.life'). Used to attribute touches to William vs Heather."
+      "description": "Which watched Google calendar this event was ingested from (e.g. 'primary', 'heather@skillfulmeans.life', 'admin@skillfulmeans.life'), or 'sheet' for events auto-mirrored from the scheduling sheet."
+    },
+    "sheet_key": {
+      "type": "string",
+      "description": "Stable hash of sheet tab + title + date for deduping sheet-mirrored events. Set when source_calendar is 'sheet'."
     },
     "ingested": {
       "type": "boolean",
