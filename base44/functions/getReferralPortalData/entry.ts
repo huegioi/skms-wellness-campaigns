@@ -154,7 +154,9 @@ Deno.serve(async (req) => {
   // Pending / Unpaid = earned minus what's already been paid
   commissionPending = Math.max(0, totalCommissionEarned - totalCommissionPaid);
 
-  return Response.json({
+  const commissionsEnabled = partner.commissions_enabled !== false;
+
+  const response = {
     partner: {
       id: partner.id,
       name: partner.name,
@@ -162,24 +164,35 @@ Deno.serve(async (req) => {
       company: partner.company,
       agreement_file_url: partner.agreement_file_url,
       agreement_signed_date: partner.agreement_signed_date,
-      commission_tiers: tiers,
-      is_active: partner.is_active
+      commission_tiers: commissionsEnabled ? tiers : [],
+      is_active: partner.is_active,
+      commissions_enabled: commissionsEnabled,
     },
-    referrals,
+    referrals: commissionsEnabled
+      ? referrals
+      : referrals.map(r => {
+          const { commission_amount, commission_rate, ...rest } = r;
+          return rest;
+        }),
     client_companies: uniqueClientCompanies,
     partner_proposals: partnerProposals,
-    commission_summary: {
+    activities: activities.map(a => ({
+      id: a.id,
+      message: a.message,
+      activity_date: a.activity_date
+    })),
+  };
+
+  if (commissionsEnabled) {
+    response.commission_summary = {
       ytd_revenue: ytdRevenue,
       current_tier: currentTier,
       total_earned: totalCommissionEarned,
       total_paid: totalCommissionPaid,
       pending: commissionPending
-    },
-    commission_ledger: commissionLedger,
-    activities: activities.map(a => ({
-      id: a.id,
-      message: a.message,
-      activity_date: a.activity_date
-    }))
-  });
+    };
+    response.commission_ledger = commissionLedger;
+  }
+
+  return Response.json(response);
 });

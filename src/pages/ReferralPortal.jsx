@@ -104,8 +104,10 @@ export default function ReferralPortal() {
     );
   }
 
-  const { partner, referrals, commission_summary, client_companies = [], partner_proposals = [], commission_ledger = [], activities = [] } = data;
+  const { partner, referrals, commission_summary = {}, client_companies = [], partner_proposals = [], commission_ledger = [], activities = [] } = data;
   const tiers = partner.commission_tiers || [];
+  const commissionsEnabled = partner.commissions_enabled !== false;
+  const visibleTabs = commissionsEnabled ? TABS : TABS.filter(t => t.key !== 'commissions');
 
   const twelveMonthsAgo = new Date();
   twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
@@ -127,11 +129,11 @@ export default function ReferralPortal() {
         <Badge className={STATUS_COLORS[r.status] || 'bg-gray-100 text-gray-600'}>
           {STATUS_LABELS[r.status] || r.status}
         </Badge>
-        {r.commission_amount > 0 && (
+        {commissionsEnabled && r.commission_amount > 0 && (
           <span className="text-sm font-semibold text-green-700">${r.commission_amount.toLocaleString()} commission</span>
         )}
       </div>
-      <ReferralStepper status={r.status} />
+      <ReferralStepper status={r.status} commissionsEnabled={commissionsEnabled} />
     </div>
   );
 
@@ -179,7 +181,7 @@ export default function ReferralPortal() {
       headerPadding="py-6 px-4"
       subtitleClass="text-blue-200"
       headerExtra={!partner.is_active ? <Badge className="mt-2 bg-red-500 text-white">Inactive Partnership</Badge> : null}
-      tabs={TABS}
+      tabs={visibleTabs}
       activeTab={activeTab}
       onTabChange={setActiveTab}
       contentClass="px-4 py-8 space-y-6"
@@ -462,11 +464,11 @@ export default function ReferralPortal() {
               <CardContent>
                 <div className="space-y-4">
                   {[
-                    { step: '1', title: 'Track Your Referrals', desc: 'On the Dashboard tab, see every referral you\'ve submitted and its current status — from initial contact all the way to commission paid.' },
+                    { step: '1', title: 'Track Your Referrals', desc: commissionsEnabled ? 'On the Dashboard tab, see every referral you\'ve submitted and its current status — from initial contact all the way to commission paid.' : 'On the Dashboard tab, see every referral you\'ve submitted and its current status — from initial contact to purchased.' },
                     { step: '2', title: 'View Client ROI Data', desc: 'In the "Book of Business" section, click any of your active clients to see NPS scores, stress reduction metrics, and session feedback from their employees.' },
                     { step: '3', title: 'Generate Client Reports', desc: 'Inside each client\'s ROI view, hit "Generate Report" to open a print-ready report you can share directly with the client\'s HR team.' },
                     { step: '4', title: 'Submit New Referrals', desc: 'Use the "Submit a Referral" section on the dashboard. A first name and company is enough to get started — we take it from there.' },
-                    { step: '5', title: 'Review Your Commission Earnings', desc: 'Your live commission totals, YTD revenue placed, and pending balance are always visible on the Commissions tab.' },
+                    ...(commissionsEnabled ? [{ step: '5', title: 'Review Your Commission Earnings', desc: 'Your live commission totals, YTD revenue placed, and pending balance are always visible on the Commissions tab.' }] : []),
                   ].map(({ step, title, desc }) => (
                     <div key={step} className="flex gap-4">
                       <div className="w-8 h-8 rounded-full text-white text-sm font-bold flex items-center justify-center flex-shrink-0 bg-brand-navy">
@@ -491,13 +493,15 @@ export default function ReferralPortal() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
-                <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                <div className={`grid grid-cols-1 gap-3 ${commissionsEnabled ? 'sm:grid-cols-5' : 'sm:grid-cols-4'}`}>
                   {[
                     { num: '01', text: 'You flag a client opportunity — a quick email is fine' },
                     { num: '02', text: 'We confirm pipeline status within 5 business days' },
                     { num: '03', text: 'You introduce — we handle discovery, proposal, delivery' },
-                    { num: '04', text: 'Commission paid within 30 days of client invoice' },
-                    { num: '05', text: 'Quarterly partner statement with all placements' },
+                    ...(commissionsEnabled
+                      ? [{ num: '04', text: 'Commission paid within 30 days of client invoice' }, { num: '05', text: 'Quarterly partner statement with all placements' }]
+                      : [{ num: '04', text: 'Quarterly partner statement with all placements' }]
+                    ),
                   ].map(s => (
                     <div key={s.num} className="bg-brand-cream rounded-lg p-3 text-center">
                       <p className="text-2xl font-bold text-brand-navy mb-1">{s.num}</p>

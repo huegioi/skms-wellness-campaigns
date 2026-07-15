@@ -30,7 +30,7 @@ const DEFAULT_TIERS = [
 const EMPTY_FORM = {
   name: '', email: '', email2: '', company: '', phone: '', address: '', notes: '',
   agreement_file_url: '', agreement_signed_date: '',
-  commission_tiers: DEFAULT_TIERS, is_active: true,
+  commission_tiers: DEFAULT_TIERS, is_active: true, commissions_enabled: true,
   follow_up_stage: '', linked_client_ids: [], tags: []
 };
 
@@ -622,6 +622,11 @@ export default function ReferralPartnerAdmin() {
             <div className="flex items-center gap-2">
               <input type="checkbox" id="is_active" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} className="rounded" />
               <label htmlFor="is_active" className="text-sm text-gray-700">Active Partner</label>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="commissions_enabled" checked={form.commissions_enabled !== false} onChange={e => setForm(f => ({ ...f, commissions_enabled: e.target.checked }))} className="rounded" />
+              <label htmlFor="commissions_enabled" className="text-sm text-gray-700">Show commissions in portal</label>
             </div>
 
             <div className="flex gap-3 pt-2">

@@ -100,6 +100,11 @@
       "default": true,
       "description": "Whether the partnership is currently active"
     },
+    "commissions_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether commission features (Commissions tab, commission amounts, tier progress) are shown in this partner's portal"
+    },
     "notes": {
       "type": "string",
       "description": "Internal notes about this partner"
