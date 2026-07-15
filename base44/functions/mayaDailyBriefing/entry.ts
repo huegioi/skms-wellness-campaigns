@@ -36,11 +36,12 @@ Deno.serve(async (req) => {
   const currentThemes = SEASONAL_THEMES[currentMonthName] || [];
 
   // ── Fetch shared global context, knowledge base, and persona in parallel ──
+  const _ik = Deno.env.get('MAYA_INTERNAL_KEY');
   const [ctxResponse, knowledgeResponse, personaResponse, deliveryResponse] = await Promise.all([
-    base44.functions.invoke('mayaContext', { action: 'global' }),
-    base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'delivery'] }),
-    base44.functions.invoke('mayaContext', { action: 'persona' }),
-    base44.functions.invoke('mayaContext', { action: 'delivery' }),
+    base44.functions.invoke('mayaContext', { action: 'global', internal_key: _ik }),
+    base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'delivery'], internal_key: _ik }),
+    base44.functions.invoke('mayaContext', { action: 'persona', internal_key: _ik }),
+    base44.functions.invoke('mayaContext', { action: 'delivery', internal_key: _ik }),
   ]);
   const { contextText: globalContext, data } = ctxResponse.data;
 

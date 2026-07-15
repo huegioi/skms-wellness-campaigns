@@ -790,19 +790,27 @@ async function buildDeliveryContext(base44) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
-    let user;
-    try {
-      user = await base44.auth.me();
-    } catch (e) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     let body;
     try {
       body = await req.json();
     } catch (e) {
       return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+
+    // Accept if EITHER a valid user session exists OR the internal key matches
+    // (lets already-authenticated Maya functions call mayaContext server-side).
+    const INTERNAL_KEY = Deno.env.get('MAYA_INTERNAL_KEY');
+    const hasInternalKey = !!(INTERNAL_KEY && body.internal_key && body.internal_key === INTERNAL_KEY);
+
+    let user = null;
+    if (!hasInternalKey) {
+      try {
+        user = await base44.auth.me();
+      } catch (e) {
+        return Response.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+      if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { action } = body;

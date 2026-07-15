@@ -24,10 +24,11 @@ Deno.serve(async (req) => {
     }
 
     // ── Fetch shared context, knowledge base, and persona in parallel ──
+    const _ik = Deno.env.get('MAYA_INTERNAL_KEY');
     const [ctxResponse, knowledgeResponse, personaResponse] = await Promise.all([
-      base44.functions.invoke('mayaContext', { action: 'record', record_type, record_id }),
-      base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'products', 'positioning'] }),
-      base44.functions.invoke('mayaContext', { action: 'persona' }),
+      base44.functions.invoke('mayaContext', { action: 'record', record_type, record_id, internal_key: _ik }),
+      base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'products', 'positioning'], internal_key: _ik }),
+      base44.functions.invoke('mayaContext', { action: 'persona', internal_key: _ik }),
     ]);
     const { contextText } = ctxResponse.data;
     const knowledgeText = knowledgeResponse.data.contextText || '';

@@ -24,7 +24,8 @@ Deno.serve(async (req) => {
     }
 
     // ── Use shared context builder (invoked as backend function) ──
-    const ctxResponse = await base44.functions.invoke('mayaContext', { action: 'record', record_type, record_id });
+    const _ik = Deno.env.get('MAYA_INTERNAL_KEY');
+    const ctxResponse = await base44.functions.invoke('mayaContext', { action: 'record', record_type, record_id, internal_key: _ik });
     const { contextText, recipientEmail, recipientName, owner } = ctxResponse.data;
 
     if (!recipientEmail) {
@@ -33,8 +34,8 @@ Deno.serve(async (req) => {
 
     // ── Fetch Maya knowledge base + persona in parallel ──
     const [knowledgeResponse, personaResponse] = await Promise.all([
-      base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'products', 'positioning'] }),
-      base44.functions.invoke('mayaContext', { action: 'persona' }),
+      base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'products', 'positioning'], internal_key: _ik }),
+      base44.functions.invoke('mayaContext', { action: 'persona', internal_key: _ik }),
     ]);
     const knowledgeText = knowledgeResponse.data.contextText || '';
     const MAYA_PERSONA = personaResponse.data.persona || '';

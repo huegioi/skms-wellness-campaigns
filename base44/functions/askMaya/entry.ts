@@ -50,13 +50,14 @@ Deno.serve(async (req) => {
     const hasRecord = !!(record_type && record_id);
 
     // ── Fetch global + record (when ids) + knowledge + persona in parallel ──
+    const _ik = Deno.env.get('MAYA_INTERNAL_KEY');
     const fetches = [
-      base44.functions.invoke('mayaContext', { action: 'global' }),
-      base44.functions.invoke('mayaContext', { action: 'knowledge', categories: knowledgeCategories }),
-      base44.functions.invoke('mayaContext', { action: 'persona' }),
+      base44.functions.invoke('mayaContext', { action: 'global', internal_key: _ik }),
+      base44.functions.invoke('mayaContext', { action: 'knowledge', categories: knowledgeCategories, internal_key: _ik }),
+      base44.functions.invoke('mayaContext', { action: 'persona', internal_key: _ik }),
     ];
     if (hasRecord) {
-      fetches.push(base44.functions.invoke('mayaContext', { action: 'record', record_type, record_id }));
+      fetches.push(base44.functions.invoke('mayaContext', { action: 'record', record_type, record_id, internal_key: _ik }));
     }
     const responses = await Promise.all(fetches);
 
