@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Mail, Loader2 } from 'lucide-react';
+import { RefreshCw, Mail, Loader2, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useToast } from '@/components/ui/use-toast';
 
@@ -15,6 +15,8 @@ function resolveSender(owner) {
   return owner.toLowerCase().includes('heather') ? 'heather' : 'william';
 }
 
+const RECORD_NOUNS = { Lead: 'lead', Client: 'client', ReferralPartner: 'partner' };
+
 export default function MayaInsightsWidget({ recordType, recordId, owner }) {
   const [insights, setInsights] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -22,7 +24,13 @@ export default function MayaInsightsWidget({ recordType, recordId, owner }) {
   const [draftingEmail, setDraftingEmail] = useState(false);
   const [showSenderPicker, setShowSenderPicker] = useState(false);
   const [selectedSender, setSelectedSender] = useState(() => resolveSender(owner));
+  const [question, setQuestion] = useState('');
+  const [askLoading, setAskLoading] = useState(false);
+  const [askAnswer, setAskAnswer] = useState(null);
+  const [askError, setAskError] = useState(null);
   const { toast } = useToast();
+
+  const recordNoun = RECORD_NOUNS[recordType] || 'record';
 
   // Update default sender if owner prop changes
   useEffect(() => {
@@ -86,6 +94,27 @@ export default function MayaInsightsWidget({ recordType, recordId, owner }) {
       });
     } finally {
       setDraftingEmail(false);
+    }
+  };
+
+  const handleAsk = async (e) => {
+    e.preventDefault();
+    const q = question.trim();
+    if (!q || askLoading) return;
+    setAskLoading(true);
+    setAskError(null);
+    setAskAnswer(null);
+    try {
+      const res = await base44.functions.invoke('askMaya', {
+        question: q,
+        record_type: recordType,
+        record_id: recordId,
+      });
+      setAskAnswer(res.data?.answer || 'No answer.');
+    } catch (err) {
+      setAskError('Maya could not answer. Please try again.');
+    } finally {
+      setAskLoading(false);
     }
   };
 
@@ -206,6 +235,38 @@ export default function MayaInsightsWidget({ recordType, recordId, owner }) {
           </div>
         </>
       )}
+
+      {/* Ask Maya a question about this record */}
+      <div className="mt-3 pt-3 border-t border-indigo-200">
+        <form onSubmit={handleAsk} className="flex gap-2">
+          <input
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder={`Ask Maya about this ${recordNoun}…`}
+            disabled={askLoading}
+            className="flex-1 min-w-0 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 disabled:opacity-60"
+          />
+          <Button
+            type="submit"
+            size="sm"
+            disabled={askLoading || !question.trim()}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white h-9 w-9 p-0 shrink-0"
+          >
+            {askLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          </Button>
+        </form>
+        {askAnswer && (
+          <div className="mt-2 prose prose-sm max-w-none text-indigo-950
+            [&_ul]:mt-1 [&_ul]:space-y-1 [&_ul]:list-disc [&_ul]:pl-4
+            [&_li]:text-sm [&_li]:leading-snug [&_li]:marker:text-indigo-400
+            [&_strong]:text-indigo-900 [&_strong]:font-semibold
+            [&_p]:text-sm [&_p]:leading-relaxed
+            [&_em]:text-indigo-400 [&_em]:text-xs">
+            <ReactMarkdown>{askAnswer}</ReactMarkdown>
+          </div>
+        )}
+        {askError && <p className="mt-2 text-xs text-red-500">{askError}</p>}
+      </div>
 
     </div>
   );

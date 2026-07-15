@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays, ScanText, Sparkles, FlaskConical } from 'lucide-react';
+import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays, ScanText, Sparkles, FlaskConical, MessageCircle } from 'lucide-react';
+import AskMayaPanel from '@/components/shared/AskMayaPanel';
 
 const navItems = [
   { name: 'Dashboard', page: 'Home', icon: BarChart3 },
@@ -24,6 +25,7 @@ const PUBLIC_PAGES = ['ViewProposal', 'MyPortal', 'ClientPortal', 'FeedbackForm'
 export default function Layout({ children, currentPageName }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [demoActive, setDemoActive] = useState(false);
+  const [askMayaOpen, setAskMayaOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +70,15 @@ export default function Layout({ children, currentPageName }) {
 
         {/* Nav items */}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+          {/* Ask Maya — top of nav */}
+          <button
+            onClick={() => setAskMayaOpen(true)}
+            className="w-full mb-2 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-white border-2 border-transparent transition-colors bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+          >
+            <MessageCircle className="w-4 h-4 shrink-0" />
+            Ask Maya
+          </button>
+
           {/* Builder CTA — top of nav */}
           <Link
             to={createPageUrl('CurriculumDesigner')}
@@ -149,6 +160,15 @@ export default function Layout({ children, currentPageName }) {
           </Link>
         )}
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+          {/* Ask Maya — top of nav */}
+          <button
+            onClick={() => { setAskMayaOpen(true); setMobileOpen(false); }}
+            className="w-full mb-2 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold text-white border-2 border-transparent transition-colors bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+          >
+            <MessageCircle className="w-4 h-4 shrink-0" />
+            Ask Maya
+          </button>
+
           {/* Builder CTA — top of nav */}
           <Link
             to={createPageUrl('CurriculumDesigner')}
@@ -225,6 +245,8 @@ export default function Layout({ children, currentPageName }) {
           <Menu className="w-5 h-5" />
         </button>
       </div>
+
+      <AskMayaPanel open={askMayaOpen} onOpenChange={setAskMayaOpen} />
 
     </div>
   );
