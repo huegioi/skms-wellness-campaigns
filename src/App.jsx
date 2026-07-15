@@ -10,7 +10,7 @@ import PageNotFound from './lib/PageNotFound';
 import AddLead from './pages/AddLead';
 import SpeakerPortalRedirect from './components/portal/SpeakerPortalRedirect';
 import ReferralPortal from './pages/ReferralPortal';
-import ReferralPartnerAdmin from './pages/ReferralPartnerAdmin';
+import { Navigate } from 'react-router-dom';
 import CampaignCalendar from './pages/CampaignCalendar';
 import AttendeeForm from './pages/AttendeeForm';
 import ClientReport from './pages/ClientReport';
@@ -96,7 +96,7 @@ const AuthenticatedApp = () => {
       ))}
       <Route path="/AddLead" element={<LayoutWrapper currentPageName="AddLead"><AddLead /></LayoutWrapper>} />
       <Route path="/ReferralPortal" element={<ReferralPortal />} />
-      <Route path="/ReferralPartnerAdmin" element={<LayoutWrapper currentPageName="ReferralPartnerAdmin"><ReferralPartnerAdmin /></LayoutWrapper>} />
+      <Route path="/ReferralPartnerAdmin" element={<Navigate to="/Leads" replace />} />
       <Route path="/CampaignCalendar" element={<LayoutWrapper currentPageName="CampaignCalendar"><CampaignCalendar /></LayoutWrapper>} />
       <Route path="/AttendeeForm" element={<AttendeeForm />} />
       <Route path="/ClientReport" element={<ClientReport />} />

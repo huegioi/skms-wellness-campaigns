@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, ChevronRight, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, GitMerge, Settings, Inbox, Wrench } from 'lucide-react';
+import { Search, Plus, Building, Building2, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, ChevronRight, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, GitMerge, Settings, Inbox, Wrench, MoreVertical } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
@@ -20,6 +20,10 @@ import PipelineView from '@/components/leads/PipelineView';
 import { ActivityStrip, getLeadStaleThreshold } from '@/components/shared/ActivityStrip';
 import { buildLatestTouchMap } from '@/lib/lastTouch';
 import MergePartnerDuplicatesPanel from '@/components/leads/MergePartnerDuplicatesPanel';
+import BrokeragesView from '@/components/partners/BrokeragesView';
+import PartnerAdminMenu from '@/components/partners/PartnerAdminMenu';
+import ReferralPartnerDetail from '@/components/partners/ReferralPartnerDetail';
+import { Switch } from '@/components/ui/switch';
 import TagFilter from '@/components/ui/TagFilter';
 import TagManager from '@/components/ui/TagManager';
 import { toast } from 'sonner';
@@ -206,7 +210,8 @@ const DEFAULT_TIERS = [
 const EMPTY_PARTNER_FORM = {
   name: '', email: '', company: '', phone: '', notes: '',
   agreement_file_url: '', agreement_signed_date: '',
-  commission_tiers: DEFAULT_TIERS, is_active: true
+  commission_tiers: DEFAULT_TIERS, is_active: true,
+  brokerage_id: null, commissions_enabled: true,
 };
 
 function generatePortalId() {
@@ -235,7 +240,7 @@ export default function Leads() {
   const [backfillingSheet, setBackfillingSheet] = useState(false);
   const [viewingBrokerLead, setViewingBrokerLead] = useState(null);
   const [showActivePartnersModal, setShowActivePartnersModal] = useState(false);
-  const [brokerViewMode, setBrokerViewMode] = useState('list'); // 'list' | 'pipeline'
+  const [brokerViewMode, setBrokerViewMode] = useState(urlParams.get('view') === 'brokerages' ? 'brokerages' : 'list'); // 'list' | 'pipeline' | 'brokerages'
   const [brokerFilterOwner, setBrokerFilterOwner] = useState('all');
   const [brokerTagFilter, setBrokerTagFilter] = useState([]);
   const [brokerTagMatchAll, setBrokerTagMatchAll] = useState(false);
@@ -268,6 +273,12 @@ export default function Leads() {
   const [expandedPartner, setExpandedPartner] = useState(null);
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const [showPendingReview, setShowPendingReview] = useState(false);
+  const [viewingPartner, setViewingPartner] = useState(null);
+  const [sendEmailConfirm, setSendEmailConfirm] = useState(null);
+  const [sendingEmail, setSendingEmail] = useState(null);
+  const [regenerateConfirm, setRegenerateConfirm] = useState(null);
+  const [regenerating, setRegenerating] = useState(null);
+  const [brokerageSettings, setBrokerageSettings] = useState(null);
 
   const { data: allLeads = [], isLoading } = useQuery({
     queryKey: ['leads'],
@@ -290,6 +301,11 @@ export default function Leads() {
   const { data: referrals = [] } = useQuery({
     queryKey: ['referrals'],
     queryFn: () => base44.entities.Referral.list('-created_date')
+  });
+
+  const { data: brokerages = [] } = useQuery({
+    queryKey: ['brokerages'],
+    queryFn: () => base44.entities.Brokerage.list('-created_date')
   });
 
   const { data: listInteractions = [] } = useQuery({
@@ -339,13 +355,26 @@ export default function Leads() {
 
   const savePartnerMutation = useMutation({
     mutationFn: async (data) => {
-      if (editingPartner) return base44.entities.ReferralPartner.update(editingPartner.id, data);
-      return base44.entities.ReferralPartner.create({ ...data, unique_portal_id: generatePortalId() });
+      let savedPartner;
+      if (editingPartner) {
+        savedPartner = await base44.entities.ReferralPartner.update(editingPartner.id, data);
+      } else {
+        savedPartner = await base44.entities.ReferralPartner.create({ ...data, unique_portal_id: generatePortalId() });
+      }
+      if (data.brokerage_id && brokerageSettings) {
+        const brokerage = brokerages.find(b => b.id === data.brokerage_id);
+        if (brokerage) {
+          await base44.entities.Brokerage.update(brokerage.id, brokerageSettings);
+        }
+      }
+      return savedPartner;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
+      queryClient.invalidateQueries({ queryKey: ['brokerages'] });
       setShowPartnerDialog(false);
       setEditingPartner(null);
+      setBrokerageSettings(null);
       shadToast({ title: editingPartner ? 'Partner updated' : 'Partner created' });
     }
   });
@@ -390,8 +419,22 @@ export default function Leads() {
       agreement_file_url: partner.agreement_file_url || '',
       agreement_signed_date: partner.agreement_signed_date || '',
       commission_tiers: partner.commission_tiers?.length ? partner.commission_tiers : DEFAULT_TIERS,
-      is_active: partner.is_active !== false
+      is_active: partner.is_active !== false,
+      brokerage_id: partner.brokerage_id || null,
+      commissions_enabled: partner.commissions_enabled !== false,
     });
+    if (partner.brokerage_id) {
+      const b = brokerages.find(br => br.id === partner.brokerage_id);
+      if (b) {
+        setBrokerageSettings({
+          brokerage_commission_enabled: b.brokerage_commission_enabled !== false,
+          broker_commission_enabled: b.broker_commission_enabled !== false,
+          broker_split: b.broker_split ?? 0.5,
+        });
+      }
+    } else {
+      setBrokerageSettings(null);
+    }
     setShowAddReferral(false);
     setNewReferralForm({ contact_name: '', contact_email: '', company_name: '', notes: '' });
     setShowPartnerDialog(true);
@@ -400,6 +443,41 @@ export default function Leads() {
     navigator.clipboard.writeText(`${window.location.origin}/ReferralPortal?id=${partner.unique_portal_id}`);
     setCopiedId(partner.id);
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const sendPortalEmail = async (partner) => {
+    setSendingEmail(partner.id);
+    setSendEmailConfirm(null);
+    try {
+      await base44.functions.invoke('provisionPartnerPortalOnActivation', {
+        event: { type: 'manual' },
+        data: { ...partner, unique_portal_id: partner.unique_portal_id },
+        send_email: true,
+      });
+      shadToast({ title: 'Portal email sent!', description: `Sent to ${partner.email}` });
+    } catch (e) {
+      shadToast({ title: 'Failed to send email', description: e.message, variant: 'destructive' });
+    } finally {
+      setSendingEmail(null);
+    }
+  };
+
+  const regeneratePortalLink = async (partner) => {
+    setRegenerating(partner.id);
+    setRegenerateConfirm(null);
+    try {
+      const res = await base44.functions.invoke('regeneratePartnerPortalId', { partner_id: partner.id });
+      const newUrl = `${window.location.origin}/ReferralPortal?id=${res.data.portal_id}`;
+      navigator.clipboard.writeText(newUrl);
+      setCopiedId(partner.id);
+      setTimeout(() => setCopiedId(null), 3000);
+      queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
+      shadToast({ title: 'Portal link regenerated', description: 'New link copied to clipboard.' });
+    } catch (e) {
+      shadToast({ title: 'Failed to regenerate link', description: e.message, variant: 'destructive' });
+    } finally {
+      setRegenerating(null);
+    }
   };
   const updateTier = (i, field, value) => {
     const tiers = [...partnerForm.commission_tiers];
@@ -769,6 +847,8 @@ export default function Leads() {
 
           {/* ── Referral Partners Tab ─────────────────────────────────────── */}
           <TabsContent value="broker_leads">
+            {brokerViewMode !== 'brokerages' && (
+            <>
             <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
               <div className="flex gap-2 flex-wrap">
                 <DropdownMenu>
@@ -808,9 +888,6 @@ export default function Leads() {
                 </a>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" className="gap-2" onClick={() => navigate('/ReferralPartnerAdmin')}>
-                  Partner Admin <ChevronRight className="w-4 h-4" />
-                </Button>
                 <Button className="bg-[#013f7c] hover:bg-[#012d5a] gap-2" onClick={() => { setBrokerForm(EMPTY_BROKER_LEAD_FORM); setEditingBrokerLead(null); setIsAddBrokerOpen(true); }}>
                   <Plus className="w-4 h-4" /> Add Partner
                 </Button>
@@ -826,6 +903,8 @@ export default function Leads() {
                 queryClient.invalidateQueries({ queryKey: ['leads', 'referralPartners'] });
               }}
             />
+            </>
+            )}
 
             {/* View toggle + filters */}
             <div className="flex gap-2 flex-wrap mb-4 items-center">
@@ -843,8 +922,16 @@ export default function Leads() {
                 >
                   <Kanban className="w-4 h-4" /> Pipeline
                 </button>
+                <button
+                  onClick={() => setBrokerViewMode('brokerages')}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${brokerViewMode === 'brokerages' ? 'bg-[#013f7c] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                >
+                  <Building2 className="w-4 h-4" /> Brokerages
+                </button>
               </div>
 
+              {brokerViewMode !== 'brokerages' && (
+              <>
               <div className="relative flex-1 min-w-[180px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input placeholder="Search by name, email, company..." className="pl-10 bg-white" value={brokerSearch} onChange={e => setBrokerSearch(e.target.value)} />
@@ -882,9 +969,11 @@ export default function Leads() {
               <Button variant="outline" size="sm" className="gap-2 h-9" onClick={() => setShowTagManager(true)}>
                 <Settings className="w-4 h-4" /> Manage Tags
               </Button>
+              </>
+              )}
             </div>
 
-            {(brokerTagFilter.length > 0 || brokerTagMatchAll) && (
+            {brokerViewMode !== 'brokerages' && (brokerTagFilter.length > 0 || brokerTagMatchAll) && (
               <div className="mb-3 text-sm text-gray-500">
                 Tag filter: {brokerTagFilter.length > 0
                   ? `${brokerTagFilter.join(brokerTagMatchAll ? ' AND ' : ' OR ')}`
@@ -892,7 +981,9 @@ export default function Leads() {
               </div>
             )}
 
-            {brokerViewMode === 'pipeline' ? (
+            {brokerViewMode === 'brokerages' ? (
+              <BrokeragesView partners={referralPartners} />
+            ) : brokerViewMode === 'pipeline' ? (
               <PipelineView
                 leads={filteredBrokerLeads}
                 onSelectLead={(lead) => setViewingBrokerLead(lead)}
@@ -972,7 +1063,9 @@ export default function Leads() {
                         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
-                              <h3 className="font-semibold text-gray-800 text-lg">{partner.name}</h3>
+                              <button onClick={() => setViewingPartner(partner)} className="font-semibold text-gray-800 text-lg hover:text-[#013f7c] hover:underline transition-colors">
+                                {partner.name}
+                              </button>
                               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${partner.is_active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                                 {partner.is_active !== false ? 'Active' : 'Inactive'}
                               </span>
@@ -1016,6 +1109,15 @@ export default function Leads() {
                               <Button variant="outline" size="sm" className="gap-1"><ExternalLink className="w-4 h-4" /> Portal</Button>
                             </a>
                             <Button variant="outline" size="sm" onClick={() => openEditPartner(partner)} className="gap-1"><Edit className="w-4 h-4" /> Edit</Button>
+                            <PartnerAdminMenu
+                              partner={partner}
+                              copiedId={copiedId}
+                              onCopyLink={copyPortalLink}
+                              onRegenerate={setRegenerateConfirm}
+                              onSendEmail={setSendEmailConfirm}
+                              regenerating={regenerating}
+                              sendingEmail={sendingEmail}
+                            />
                             {partnerReferrals.length > 0 && (
                               <Button variant="ghost" size="sm" onClick={() => setExpandedPartner(expandedPartner === partner.id ? null : partner.id)}>
                                 {expandedPartner === partner.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -1117,6 +1219,127 @@ export default function Leads() {
                 <Input type="date" value={partnerForm.agreement_signed_date} onChange={e => setPartnerForm(f => ({ ...f, agreement_signed_date: e.target.value }))} />
               </div>
             </div>
+
+            {/* Brokerage Picker */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Brokerage</label>
+              <Select
+                value={partnerForm.brokerage_id || '__none__'}
+                onValueChange={(val) => {
+                  const newId = val === '__none__' ? null : val;
+                  setPartnerForm(f => ({ ...f, brokerage_id: newId }));
+                  if (newId) {
+                    const b = brokerages.find(br => br.id === newId);
+                    if (b) {
+                      setBrokerageSettings({
+                        brokerage_commission_enabled: b.brokerage_commission_enabled !== false,
+                        broker_commission_enabled: b.broker_commission_enabled !== false,
+                        broker_split: b.broker_split ?? 0.5,
+                      });
+                    }
+                  } else {
+                    setBrokerageSettings(null);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full bg-gray-50">
+                  <SelectValue placeholder="None (solo partner)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">
+                    <span className="text-gray-400 italic">— None (solo partner) —</span>
+                  </SelectItem>
+                  {brokerages.map(b => (
+                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-400 mt-1">When assigned, commission tiers come from the brokerage and are computed on aggregate revenue.</p>
+            </div>
+
+            {/* Brokerage Commission Settings — only when a brokerage is assigned */}
+            {partnerForm.brokerage_id && brokerageSettings && (() => {
+              const selectedBrokerage = brokerages.find(b => b.id === partnerForm.brokerage_id);
+              const bothEnabled = brokerageSettings.brokerage_commission_enabled && brokerageSettings.broker_commission_enabled;
+              const brokeragePct = Math.round((1 - brokerageSettings.broker_split) * 100);
+              const brokerPct = Math.round(brokerageSettings.broker_split * 100);
+              return (
+                <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Brokerage Commission Settings</p>
+                  <p className="text-xs text-gray-400 -mt-2">Applies to all brokers at {selectedBrokerage?.name || 'this brokerage'}</p>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Brokerage commission</label>
+                      <p className="text-xs text-gray-400">The brokerage (house) earns commission on placements</p>
+                    </div>
+                    <Switch
+                      checked={brokerageSettings.brokerage_commission_enabled}
+                      onCheckedChange={(checked) => setBrokerageSettings(s => ({ ...s, brokerage_commission_enabled: checked }))}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">Broker commission</label>
+                      <p className="text-xs text-gray-400">Individual brokers earn commission. When off, broker portals hide commission features.</p>
+                    </div>
+                    <Switch
+                      checked={brokerageSettings.broker_commission_enabled}
+                      onCheckedChange={(checked) => setBrokerageSettings(s => ({ ...s, broker_commission_enabled: checked }))}
+                    />
+                  </div>
+
+                  {bothEnabled && (
+                    <div className="pt-3 border-t border-gray-200">
+                      <label className="text-sm font-medium text-gray-700 block mb-2">Commission Split</label>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <label className="text-xs text-gray-500 block mb-1">Brokerage share</label>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number" min="0" max="100"
+                              value={brokeragePct}
+                              onChange={e => {
+                                const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                                setBrokerageSettings(s => ({ ...s, broker_split: (100 - val) / 100 }));
+                              }}
+                              className="text-sm"
+                            />
+                            <span className="text-gray-500 text-sm">%</span>
+                          </div>
+                        </div>
+                        <div className="text-gray-300 pt-5">/</div>
+                        <div className="flex-1">
+                          <label className="text-xs text-gray-500 block mb-1">Broker share</label>
+                          <div className="flex items-center gap-1">
+                            <Input
+                              type="number" min="0" max="100"
+                              value={brokerPct}
+                              onChange={e => {
+                                const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                                setBrokerageSettings(s => ({ ...s, broker_split: val / 100 }));
+                              }}
+                              className="text-sm"
+                            />
+                            <span className="text-gray-500 text-sm">%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!bothEnabled && (brokerageSettings.brokerage_commission_enabled || brokerageSettings.broker_commission_enabled) && (
+                    <p className="text-xs text-gray-500 pt-2 border-t border-gray-200">
+                      {brokerageSettings.brokerage_commission_enabled
+                        ? 'Brokerage receives 100% of commission.'
+                        : 'Brokers receive 100% of commission.'}
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
+
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-2">Commission Tiers</label>
               <div className="space-y-2">
@@ -1140,6 +1363,10 @@ export default function Leads() {
             <div className="flex items-center gap-2">
               <input type="checkbox" id="is_active_partner" checked={partnerForm.is_active} onChange={e => setPartnerForm(f => ({ ...f, is_active: e.target.checked }))} className="rounded" />
               <label htmlFor="is_active_partner" className="text-sm text-gray-700">Active Partner</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" id="commissions_enabled_partner" checked={partnerForm.commissions_enabled !== false} onChange={e => setPartnerForm(f => ({ ...f, commissions_enabled: e.target.checked }))} className="rounded" />
+              <label htmlFor="commissions_enabled_partner" className="text-sm text-gray-700">Show commissions in portal</label>
             </div>
             <div className="flex gap-3 pt-2">
               <Button type="submit" disabled={savePartnerMutation.isPending} className="bg-[#013f7c] hover:bg-[#012d5a] text-white">
@@ -1286,6 +1513,46 @@ export default function Leads() {
 
       {/* Pending Referral Review Dialog */}
       <PendingReferralsReview open={showPendingReview} onOpenChange={setShowPendingReview} />
+
+      {/* Send Email Confirmation Dialog */}
+      <Dialog open={!!sendEmailConfirm} onOpenChange={v => { if (!v) setSendEmailConfirm(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Send Portal Access Email?</DialogTitle></DialogHeader>
+          <p className="text-sm text-gray-600 mt-2">
+            This will send a portal access email to <strong>{sendEmailConfirm?.name}</strong> at <strong>{sendEmailConfirm?.email}</strong> with their private portal link.
+          </p>
+          <div className="flex gap-3 mt-4">
+            <Button onClick={() => sendPortalEmail(sendEmailConfirm)} className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2">
+              <Mail className="w-4 h-4" /> Yes, Send Email
+            </Button>
+            <Button variant="outline" onClick={() => setSendEmailConfirm(null)}>Cancel</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Regenerate Portal Link Confirmation Dialog */}
+      <Dialog open={!!regenerateConfirm} onOpenChange={v => { if (!v) setRegenerateConfirm(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Regenerate Portal Link?</DialogTitle></DialogHeader>
+          <p className="text-sm text-gray-600 mt-2">
+            This will invalidate the partner's current portal link. Continue?
+          </p>
+          <div className="flex gap-3 mt-4">
+            <Button onClick={() => regeneratePortalLink(regenerateConfirm)} className="bg-orange-600 hover:bg-orange-700 text-white gap-2">
+              <RefreshCw className="w-4 h-4" /> Yes, Regenerate
+            </Button>
+            <Button variant="outline" onClick={() => setRegenerateConfirm(null)}>Cancel</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Partner Detail Dialog */}
+      {viewingPartner && (
+        <ReferralPartnerDetail
+          partner={viewingPartner}
+          onClose={() => setViewingPartner(null)}
+        />
+      )}
 
       {/* Partner Lead Detail Modal */}
       {viewingBrokerLead && (

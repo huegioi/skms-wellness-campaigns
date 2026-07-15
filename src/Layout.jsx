@@ -7,7 +7,7 @@ import MayaOrb from '@/components/shared/MayaOrb';
 
 const navItems = [
   { name: 'Dashboard', page: 'Home', icon: BarChart3 },
-  { name: 'Partners', page: 'Leads', icon: Mail, altPages: ['ReferralPartnerAdmin'] },
+  { name: 'Partners', page: 'Leads', icon: Mail },
   { name: 'Clients', page: 'Clients', icon: Users, altPages: ['ManageClientPortals', 'Proposals', 'EditProposal', 'EmailTemplateManager'] },
   { name: 'Services', page: 'ServiceCatalog', icon: Package },
   { name: 'Schedule', page: 'SchedulingHub', icon: Calendar },

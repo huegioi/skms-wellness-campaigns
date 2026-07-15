@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Copy, ExternalLink, Check, User, DollarSign, Users, FileText, StickyNote } from 'lucide-react';
+import { Copy, ExternalLink, Check, User, DollarSign, Users, FileText, StickyNote, RefreshCw, Mail } from 'lucide-react';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import RecordSnapshotHeader from '@/components/shared/RecordSnapshotHeader';
 import CollapsibleFieldSection from '@/components/shared/CollapsibleFieldSection';
@@ -39,6 +40,45 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
   const queryClient = useQueryClient();
   const [partner, setPartner] = useState(initialPartner);
   const [copied, setCopied] = useState(false);
+  const [sendEmailConfirm, setSendEmailConfirm] = useState(null);
+  const [sendingEmail, setSendingEmail] = useState(null);
+  const [regenerateConfirm, setRegenerateConfirm] = useState(null);
+  const [regenerating, setRegenerating] = useState(null);
+
+  const sendPortalEmail = async (partner) => {
+    setSendingEmail(partner.id);
+    setSendEmailConfirm(null);
+    try {
+      await base44.functions.invoke('provisionPartnerPortalOnActivation', {
+        event: { type: 'manual' },
+        data: { ...partner, unique_portal_id: partner.unique_portal_id },
+        send_email: true,
+      });
+      toast.success('Portal email sent!', { description: `Sent to ${partner.email}` });
+    } catch (e) {
+      toast.error('Failed to send email', { description: e.message });
+    } finally {
+      setSendingEmail(null);
+    }
+  };
+
+  const regeneratePortalLink = async (partner) => {
+    setRegenerating(partner.id);
+    setRegenerateConfirm(null);
+    try {
+      const res = await base44.functions.invoke('regeneratePartnerPortalId', { partner_id: partner.id });
+      const newUrl = `${window.location.origin}/ReferralPortal?id=${res.data.portal_id}`;
+      navigator.clipboard.writeText(newUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+      queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
+      toast.success('Portal link regenerated', { description: 'New link copied to clipboard.' });
+    } catch (e) {
+      toast.error('Failed to regenerate link', { description: e.message });
+    } finally {
+      setRegenerating(null);
+    }
+  };
 
   useEffect(() => {
     if (initialPartner?.id && initialPartner?.name) {
@@ -101,6 +141,7 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
   const totalCommission = referrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
 
   return (
+    <>
     <Dialog open={true} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -126,6 +167,30 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
                 <ExternalLink className="w-4 h-4" /> Open Portal
               </Button>
             </a>
+            {partner.unique_portal_id && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-orange-700 border-orange-200 hover:bg-orange-50"
+                  onClick={() => setRegenerateConfirm(partner)}
+                  disabled={regenerating === partner.id}
+                >
+                  <RefreshCw className={`w-4 h-4 ${regenerating === partner.id ? 'animate-spin' : ''}`} />
+                  {regenerating === partner.id ? 'Regenerating…' : 'Regenerate Link'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-blue-700 border-blue-200 hover:bg-blue-50"
+                  onClick={() => setSendEmailConfirm(partner)}
+                  disabled={sendingEmail === partner.id}
+                >
+                  <Mail className="w-4 h-4" />
+                  {sendingEmail === partner.id ? 'Sending…' : 'Send Portal Email'}
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Quick Stats */}
@@ -284,5 +349,38 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Send Email Confirmation */}
+    <Dialog open={!!sendEmailConfirm} onOpenChange={v => { if (!v) setSendEmailConfirm(null); }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Send Portal Access Email?</DialogTitle></DialogHeader>
+        <p className="text-sm text-gray-600 mt-2">
+          This will send a portal access email to <strong>{sendEmailConfirm?.name}</strong> at <strong>{sendEmailConfirm?.email}</strong> with their private portal link.
+        </p>
+        <div className="flex gap-3 mt-4">
+          <Button onClick={() => sendPortalEmail(sendEmailConfirm)} className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2">
+            <Mail className="w-4 h-4" /> Yes, Send Email
+          </Button>
+          <Button variant="outline" onClick={() => setSendEmailConfirm(null)}>Cancel</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    {/* Regenerate Confirmation */}
+    <Dialog open={!!regenerateConfirm} onOpenChange={v => { if (!v) setRegenerateConfirm(null); }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader><DialogTitle>Regenerate Portal Link?</DialogTitle></DialogHeader>
+        <p className="text-sm text-gray-600 mt-2">
+          This will invalidate the partner's current portal link. Continue?
+        </p>
+        <div className="flex gap-3 mt-4">
+          <Button onClick={() => regeneratePortalLink(regenerateConfirm)} className="bg-orange-600 hover:bg-orange-700 text-white gap-2">
+            <RefreshCw className="w-4 h-4" /> Yes, Regenerate
+          </Button>
+          <Button variant="outline" onClick={() => setRegenerateConfirm(null)}>Cancel</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
