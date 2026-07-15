@@ -72,12 +72,6 @@ Deno.serve(async (req) => {
     sections.push(globalText);
     const fullContext = sections.filter(Boolean).join('\n\n---\n\n');
 
-    const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!apiKey) {
-      console.error('ANTHROPIC_API_KEY is not set');
-      return Response.json({ error: 'Anthropic API key not configured' }, { status: 500 });
-    }
-
     const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     const systemPrompt = `[SYSTEM NOTE: Today's date is ${currentDate}.]
@@ -87,31 +81,18 @@ ${MAYA_PERSONA}
 ANSWER MODE
 You are answering a direct question from William or Heather. Ground every answer in the provided context and name the evidence ('proposal viewed twice, no touch in 9 days'). If the question is about how to do something in the platform or where something is, use the platform_help knowledge to give concrete, accurate steps. If the needed context is missing, say what you'd need rather than guessing. Never invent services, prices, contacts, or history. Be concise and specific — a tight bullet list or 2–4 short paragraphs. Never imply you sent or did anything yourself.`;
 
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: [
-          { role: 'user', content: fullContext + '\n\n---\n\nQUESTION:\n' + question },
-        ],
-      }),
-    });
-
-    if (!anthropicResponse.ok) {
-      const errText = await anthropicResponse.text();
-      console.error('Anthropic API error:', anthropicResponse.status, errText);
-      return Response.json({ error: `Anthropic API error ${anthropicResponse.status}: ${errText}` }, { status: 500 });
+    let llmResult;
+    try {
+      llmResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt: `${systemPrompt}\n\n${fullContext}\n\n---\n\nQUESTION:\n${question}`,
+        model: 'claude_sonnet_4_6',
+      });
+    } catch (llmErr) {
+      console.error('[askMaya] LLM call failed:', llmErr.message, llmErr.stack);
+      return Response.json({ answer: 'Maya hit an upstream error — please try again in a moment.' + FOOTER, help_mode: helpMode });
     }
 
-    const data = await anthropicResponse.json();
-    const answer = (data.content?.[0]?.text || 'No answer generated.') + FOOTER;
+    const answer = (typeof llmResult === 'string' ? llmResult : '') + FOOTER;
 
     return Response.json({ answer, help_mode: helpMode });
   } catch (error) {

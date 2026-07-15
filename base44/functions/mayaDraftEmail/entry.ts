@@ -41,9 +41,6 @@ Deno.serve(async (req) => {
     const MAYA_PERSONA = personaResponse.data.persona || '';
     const fullContext = knowledgeText + '\n\n---\n\n' + contextText;
 
-    const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!apiKey) return Response.json({ error: 'Anthropic API key not configured' }, { status: 500 });
-
     const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     const systemPrompt = `[SYSTEM NOTE: Today's date is ${currentDate}.]
@@ -64,29 +61,17 @@ CRITICAL EMAIL RULES:
 3. Singular CTA: End with ONE clear, low-friction question or call to action.
 4. Formatting: Output strictly as a JSON object with two keys: "subject" and "body". Do not include any markdown.`;
 
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userMessage }],
-      }),
-    });
-
-    if (!anthropicResponse.ok) {
-      const errText = await anthropicResponse.text();
-      console.error('Anthropic API error:', anthropicResponse.status, errText);
-      return Response.json({ error: `Anthropic API error ${anthropicResponse.status}: ${errText}` }, { status: 500 });
+    let rawText;
+    try {
+      const llmResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt: `${systemPrompt}\n\n${userMessage}`,
+        model: 'claude_sonnet_4_6',
+      });
+      rawText = typeof llmResult === 'string' ? llmResult : '';
+    } catch (llmErr) {
+      console.error('[mayaDraftEmail] LLM call failed:', llmErr.message, llmErr.stack);
+      return Response.json({ error: 'Maya hit an upstream error while drafting — please try again.' }, { status: 500 });
     }
-
-    const data = await anthropicResponse.json();
-    const rawText = data.content?.[0]?.text || '';
 
     let subject = '';
     let emailBody = '';
@@ -96,8 +81,8 @@ CRITICAL EMAIL RULES:
       subject = parsed.subject || '';
       emailBody = parsed.body || '';
     } catch (e) {
-      console.error('Failed to parse JSON from Claude:', rawText);
-      return Response.json({ error: 'Claude returned invalid JSON. Please try again.' }, { status: 500 });
+      console.error('Failed to parse JSON from LLM:', rawText);
+      return Response.json({ error: 'Maya returned invalid JSON. Please try again.' }, { status: 500 });
     }
 
     // Determine sender: explicit override takes priority, then falls back to record owner

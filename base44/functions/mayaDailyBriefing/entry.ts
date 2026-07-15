@@ -233,6 +233,7 @@ ${delivery.activeCohort ? `Renewal ramp active: ${delivery.activeCohort.label} c
       model: 'claude_sonnet_4_6',
     });
   } catch (err) {
+    console.error('[mayaDailyBriefing] LLM call failed:', err.message, err.stack);
     const clientItems = silentClients.slice(0,3).map((c,i) => `${i+1}. ${c.company || c.name} — Re-engage, last contact ${c.last_contacted_date || 'unknown'}`).join('\n') || '1. Review client pipeline';
     const partnerItems = overduePartners.slice(0,3).map((l,i) => `${i+1}. ${l.name} — Follow up (overdue ${l.follow_up_due_date})`).join('\n') || '1. Review partner pipeline';
     const campaignItem = triggeredCampaigns.length > 0 ? `• ${triggeredCampaigns[0].campaign.name} — ${triggeredCampaigns[0].label}` : `• Review ${currentMonthName} seasonal themes`;
@@ -242,7 +243,7 @@ ${delivery.activeCohort ? `Renewal ramp active: ${delivery.activeCohort.label} c
     const renewalFallback = delivery.activeCohort && delivery.renewalReviewGaps?.length
       ? `\n\n**Renewal**\n${delivery.renewalReviewGaps.slice(0,3).map(g => `${g.client} (${g.daysRemaining}d)`).join('; ')} — no booked review.`
       : '';
-    briefing = `Today is ${todayStr}. ${stats.silent_clients} clients need re-engagement and ${stats.overdue_partners} partner follow-ups are overdue. Start with your most at-risk client relationship.\n\n**Client To-Dos**\n${clientItems}\n\n**Partner To-Dos**\n${partnerItems}\n\n**Campaign To-Do**\n${campaignItem}\n\n**Other**\n${stats.renewal_clients} client(s) are in their 90-day renewal window.${deliveryFallback}${renewalFallback}\n\n_Maya timed out — refresh to regenerate._`;
+    briefing = `Today is ${todayStr}. ${stats.silent_clients} clients need re-engagement and ${stats.overdue_partners} partner follow-ups are overdue. Start with your most at-risk client relationship.\n\n**Client To-Dos**\n${clientItems}\n\n**Partner To-Dos**\n${partnerItems}\n\n**Campaign To-Do**\n${campaignItem}\n\n**Other**\n${stats.renewal_clients} client(s) are in their 90-day renewal window.${deliveryFallback}${renewalFallback}\n\n_Maya hit an upstream error (${err.message || 'timeout'}) — refresh to regenerate._`;
   }
 
   return Response.json({

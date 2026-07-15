@@ -35,12 +35,6 @@ Deno.serve(async (req) => {
     const MAYA_PERSONA = personaResponse.data.persona || '';
     const fullContext = knowledgeText + '\n\n---\n\n' + contextText;
 
-    const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!apiKey) {
-      console.error('ANTHROPIC_API_KEY is not set');
-      return Response.json({ error: 'Anthropic API key not configured' }, { status: 500 });
-    }
-
     const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     const systemPrompt = `[SYSTEM NOTE: Today's date is ${currentDate}.]
@@ -52,31 +46,18 @@ When invoked with data about a specific partner or client, provide a 3-5 sentenc
 
 CRITICAL FORMATTING: Output your response entirely in Markdown bullet points for easy scanning. Do not use conversational filler (e.g., "Here is my advice:" or "Based on the data provided:") before the bullets. Just output the raw Markdown bullets immediately.`;
 
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: [
-          { role: 'user', content: fullContext }
-        ],
-      }),
-    });
-
-    if (!anthropicResponse.ok) {
-      const errText = await anthropicResponse.text();
-      console.error('Anthropic API error:', anthropicResponse.status, errText);
-      return Response.json({ error: `Anthropic API error ${anthropicResponse.status}: ${errText}` }, { status: 500 });
+    let llmResult;
+    try {
+      llmResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        prompt: `${systemPrompt}\n\n${fullContext}`,
+        model: 'claude_sonnet_4_6',
+      });
+    } catch (llmErr) {
+      console.error('[mayaContextualInsights] LLM call failed:', llmErr.message, llmErr.stack);
+      return Response.json({ insights: 'Maya hit an upstream error — please try again in a moment.' });
     }
 
-    const data = await anthropicResponse.json();
-    const insights = data.content?.[0]?.text || 'No insights generated.';
+    const insights = (typeof llmResult === 'string' ? llmResult : '') || 'No insights generated.';
 
     return Response.json({ insights });
 
