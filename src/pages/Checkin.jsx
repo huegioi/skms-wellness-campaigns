@@ -148,8 +148,8 @@ export default function Checkin() {
           {eventInfo?.start_date && (
             <p className="text-sm text-gray-500">{fmtDate(eventInfo.start_date)}</p>
           )}
-          {eventInfo?.client_name && (
-            <p className="text-sm text-gray-400 mt-1">Hosted for {eventInfo.client_name}</p>
+          {eventInfo?.client_company && (
+            <p className="text-sm text-gray-400 mt-1">Hosted for {eventInfo.client_company}</p>
           )}
         </div>
 
