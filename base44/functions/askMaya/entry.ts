@@ -19,6 +19,90 @@ function isHelpQuestion(question, mode) {
   return HELP_REGEX.test(question);
 }
 
+// ── Name resolution: find record references in the question ────────────────
+
+const NAME_STOP_WORDS = new Set([
+  'The', 'What', 'How', 'When', 'Where', 'Who', 'Why', 'Can', 'Did', 'Does',
+  'Is', 'Are', 'Was', 'Were', 'Will', 'Would', 'Should', 'Could', 'Maya',
+  'She', 'He', 'They', 'This', 'That', 'These', 'Those', 'Today', 'Yesterday',
+  'Tomorrow', 'William', 'Heather', 'Also', 'Then', 'Next', 'Last', 'First',
+  'Some', 'Any', 'All', 'Both', 'Each', 'Every', 'Few', 'More', 'Most',
+  'Other', 'Such', 'Only', 'Same', 'Than', 'Too', 'Very', 'Just', 'But',
+  'For', 'And', 'Or', 'If', 'While', 'About', 'After', 'Before', 'Between',
+  'Into', 'Through', 'During', 'Above', 'Below', 'From', 'Over', 'Under',
+  'Again', 'Once', 'Tell', 'Give', 'Show', 'Let', 'Want', 'Need', 'Know',
+  'Think', 'Look', 'Take', 'Make', 'Check', 'Review', 'Send', 'Draft', 'Write',
+]);
+
+function extractNameCandidates(question) {
+  const candidates = [];
+  const seen = new Set();
+
+  // Multi-word capitalized phrases (e.g. "Silver Hill", "Jeff Coleman")
+  const multiRegex = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b/g;
+  let m;
+  while ((m = multiRegex.exec(question)) !== null) {
+    const phrase = m[1];
+    if (!seen.has(phrase.toLowerCase())) {
+      seen.add(phrase.toLowerCase());
+      candidates.push({ phrase, isMultiWord: true });
+    }
+  }
+
+  // Single capitalized words (≥4 chars, excluding stop words and words already part of a multi-word phrase)
+  const singleRegex = /\b([A-Z][a-z]{3,})\b/g;
+  while ((m = singleRegex.exec(question)) !== null) {
+    const word = m[1];
+    if (NAME_STOP_WORDS.has(word) || seen.has(word.toLowerCase())) continue;
+    const isPartOfMultiWord = candidates.some(c => c.isMultiWord && c.phrase.toLowerCase().includes(word.toLowerCase()));
+    if (isPartOfMultiWord) continue;
+    seen.add(word.toLowerCase());
+    candidates.push({ phrase: word, isMultiWord: false });
+  }
+
+  return candidates;
+}
+
+function findMatchingRecords(candidates, clients, leads, partners) {
+  const allRecords = [
+    ...clients.map(c => ({ id: c.id, type: 'client', displayName: c.company || c.name, name: c.name, company: c.company })),
+    ...leads.map(l => ({ id: l.id, type: 'lead', displayName: l.company || l.name, name: l.name, company: l.company })),
+    ...partners.map(p => ({ id: p.id, type: 'partner', displayName: p.company || p.name, name: p.name, company: p.company })),
+  ];
+
+  const matches = [];
+  const matchedRecordIds = new Set();
+  const unmatchedPhrases = [];
+
+  for (const { phrase, isMultiWord } of candidates) {
+    const pl = phrase.toLowerCase();
+    let found = null;
+
+    for (const rec of allRecords) {
+      if (matchedRecordIds.has(rec.id)) continue;
+      const nl = (rec.name || '').toLowerCase();
+      const cl = (rec.company || '').toLowerCase();
+
+      const nameMatch = nl.length >= 3 && (nl.includes(pl) || pl.includes(nl));
+      const companyMatch = cl.length >= 3 && (cl.includes(pl) || pl.includes(cl));
+
+      if (nameMatch || companyMatch) {
+        found = rec;
+        break;
+      }
+    }
+
+    if (found) {
+      matches.push({ type: found.type, id: found.id, displayName: found.displayName, phrase });
+      matchedRecordIds.add(found.id);
+    } else if (isMultiWord) {
+      unmatchedPhrases.push(phrase);
+    }
+  }
+
+  return { matches: matches.slice(0, 2), unmatchedPhrases };
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -76,15 +160,59 @@ Deno.serve(async (req) => {
     }
 
     const globalText = responses[0].data?.contextText || '';
+    const globalData = responses[0].data?.data || {};
     const knowledgeText = responses[1].data?.contextText || '';
     const MAYA_PERSONA = responses[2].data?.persona || '';
     const recordText = hasRecord ? (responses[3].data?.contextText || '') : '';
 
+    // ── Name resolution: find record references in the question ──
+    let groundedNames = [];
+    let unmatchedNames = [];
+    let matchedRecordBlocks = [];
+
+    if (!hasRecord) {
+      const allClients = globalData.clients || [];
+      const allLeads = globalData.leads || [];
+      const allPartners = globalData.partners || [];
+
+      const candidates = extractNameCandidates(question);
+      const { matches, unmatchedPhrases } = findMatchingRecords(candidates, allClients, allLeads, allPartners);
+      unmatchedNames = unmatchedPhrases;
+
+      if (matches.length > 0) {
+        const recordFetches = matches.map(m =>
+          base44.functions.invoke('mayaContext', { action: 'record', record_type: m.type, record_id: m.id, internal_key: _ik })
+        );
+        const recordResponses = await Promise.all(recordFetches);
+
+        matchedRecordBlocks = matches.map((m, i) => {
+          const ctx = recordResponses[i].data?.contextText || '';
+          if (!ctx || recordResponses[i].data?.error || recordResponses[i].status !== 200) {
+            contextWarnings.push(`⚠ I couldn't load the record data for ${m.displayName} (context service returned ${recordResponses[i].status})`);
+            return null;
+          }
+          return { displayName: m.displayName, type: m.type, contextText: ctx };
+        }).filter(Boolean);
+
+        groundedNames = matchedRecordBlocks.map(b => b.displayName);
+      }
+    }
+
     const sections = [];
     if (recordText) sections.push(recordText);
+    if (matchedRecordBlocks.length > 0) {
+      sections.push(`MATCHED RECORDS (resolved from your question):\n${matchedRecordBlocks.map((b, i) => `${i+1}. ${b.displayName} (${b.type})`).join('\n')}`);
+      for (const b of matchedRecordBlocks) {
+        sections.push(`RECORD: ${b.displayName} (${b.type})\n${b.contextText}`);
+      }
+    }
     sections.push(knowledgeText);
     sections.push(globalText);
     const fullContext = sections.filter(Boolean).join('\n\n---\n\n');
+
+    const unmatchedNote = unmatchedNames.length > 0
+      ? `\n\nNOTE: The following name-like phrases in the question did not match any Client, Lead, or Referral Partner record: ${unmatchedNames.map(n => `"${n}"`).join(', ')}. Tell the user you couldn't find a record for these names rather than answering generically.`
+      : '';
 
     const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -98,7 +226,7 @@ You are answering a direct question from William or Heather. Ground every answer
     let llmResult;
     try {
       llmResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
-        prompt: `${systemPrompt}\n\n${fullContext}\n\n---\n\nQUESTION:\n${question}`,
+        prompt: `${systemPrompt}\n\n${fullContext}${unmatchedNote}\n\n---\n\nQUESTION:\n${question}`,
         model: 'claude_sonnet_4_6',
       });
     } catch (llmErr) {
@@ -106,7 +234,8 @@ You are answering a direct question from William or Heather. Ground every answer
       return Response.json({ answer: 'Maya hit an upstream error — please try again in a moment.' + FOOTER, help_mode: helpMode });
     }
 
-    const answer = (typeof llmResult === 'string' ? llmResult : '') + FOOTER;
+    const groundedFooter = groundedNames.length > 0 ? `\n\n_Grounded on: ${groundedNames.join(', ')}_` : '';
+    const answer = (typeof llmResult === 'string' ? llmResult : '') + FOOTER + groundedFooter;
     const warningPrefix = contextWarnings.length > 0 ? contextWarnings.join('\n') + '\n\n' : '';
 
     return Response.json({ answer: warningPrefix + answer, help_mode: helpMode });
