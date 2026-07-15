@@ -18,8 +18,8 @@ import { PortalShell, PortalLoading, PortalError } from '@/components/portal/Por
 import { REFERRAL_STATUS_COLORS as STATUS_COLORS, REFERRAL_STATUS_LABELS as STATUS_LABELS } from '@/lib/statusConfig';
 
 const TABS = [
-  { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },
   { key: 'start_here', label: 'Start Here', icon: BookOpen },
+  { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },
   { key: 'commissions', label: 'Commissions', icon: DollarSign },
 ];
 
@@ -60,6 +60,10 @@ export default function ReferralPortal() {
       const res = await base44.functions.invoke('getReferralPortalData', { portal_id: portalId });
       if (res.data && res.data.partner) {
         setData(res.data);
+        // New partners (zero referrals) land on Start Here; returning partners go straight to Dashboard.
+        if (!res.data.referrals || res.data.referrals.length === 0) {
+          setActiveTab('start_here');
+        }
       } else {
         setError('Portal not found.');
       }
