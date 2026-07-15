@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, ChevronUp, LayoutGrid, List, Mail, Settings, RefreshCw, Building2 } from 'lucide-react';
+import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, ChevronUp, LayoutGrid, List, Mail, Settings, RefreshCw, Building2, ArrowLeft } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import PartnerPipelineView from '@/components/partners/PartnerPipelineView';
@@ -263,6 +263,9 @@ export default function ReferralPartnerAdmin() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800">{viewMode === 'brokerages' ? 'Brokerages' : 'Referral Partners'}</h1>
           <p className="text-gray-500 text-sm mt-1">{viewMode === 'brokerages' ? 'Manage brokerage groups and two-level commission structure' : 'Manage broker referral partners and their portal access'}</p>
+          <Link to="/Leads" className="inline-flex items-center gap-1 text-sm text-[#013f7c] hover:underline mt-2">
+            <ArrowLeft className="w-3.5 h-3.5" /> Partner Pipeline
+          </Link>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex rounded-lg border border-gray-200 overflow-hidden">
