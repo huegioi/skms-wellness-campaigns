@@ -238,7 +238,7 @@ export default function MayaOrb() {
                 radius grows along the stroke, creating the taper. */}
             <svg
               viewBox="0 0 100 100"
-              className="w-full h-full"
+              className="w-full h-full maya-orb-spin maya-orb-colors"
               aria-hidden="true"
             >
               <path
