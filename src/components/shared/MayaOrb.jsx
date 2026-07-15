@@ -238,13 +238,20 @@ export default function MayaOrb() {
                 radius grows along the stroke, creating the taper. */}
             <svg
               viewBox="0 0 100 100"
-              className="w-full h-full maya-orb-spin maya-orb-colors"
+              className="w-full h-full maya-orb-spin"
               aria-hidden="true"
             >
               <path
                 d="M 83 27 A 40 40 0 1 1 70 16 Q 60 10 49 13 Q 22 22 15 51 Q 22 76 51 81 Q 76 76 78 50 Q 82 43 71 36 Z"
                 fill="#770142"
-              />
+              >
+                <animate
+                  attributeName="fill"
+                  values="#770142;#013f7c;#264d44;#ff9878;#770142"
+                  dur="12s"
+                  repeatCount="indefinite"
+                />
+              </path>
             </svg>
 
             {/* Amber attention dot — placed in the ensō's open gap
