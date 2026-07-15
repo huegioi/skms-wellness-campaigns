@@ -70,12 +70,22 @@
     },
     "commission_rate": {
       "type": "number",
-      "description": "Commission rate applied to this referral (as decimal)"
+      "description": "Commission rate applied to this referral (as decimal). For brokerage partners, this is the brokerage tier rate."
     },
     "commission_amount": {
       "type": "number",
       "default": 0,
-      "description": "Calculated commission amount for this referral"
+      "description": "Total calculated commission for this referral (brokerage + broker combined)"
+    },
+    "brokerage_commission": {
+      "type": "number",
+      "default": 0,
+      "description": "Brokerage (house) commission share for this referral"
+    },
+    "broker_commission": {
+      "type": "number",
+      "default": 0,
+      "description": "Broker's commission share for this referral"
     },
     "invoice_id": {
       "type": "string",

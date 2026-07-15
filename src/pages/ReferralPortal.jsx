@@ -104,7 +104,7 @@ export default function ReferralPortal() {
     );
   }
 
-  const { partner, referrals, commission_summary = {}, client_companies = [], partner_proposals = [], commission_ledger = [], activities = [] } = data;
+  const { partner, referrals, commission_summary = {}, client_companies = [], partner_proposals = [], commission_ledger = [], activities = [], brokerage = null } = data;
   const tiers = partner.commission_tiers || [];
   const commissionsEnabled = partner.commissions_enabled !== false;
   const visibleTabs = commissionsEnabled ? TABS : TABS.filter(t => t.key !== 'commissions');
@@ -583,7 +583,7 @@ export default function ReferralPortal() {
             </div>
 
             {/* Tier Progress */}
-            <TierProgress tiers={tiers} commissionSummary={commission_summary} />
+            <TierProgress tiers={tiers} commissionSummary={commission_summary} brokerageName={brokerage?.name} />
 
             {/* Per-Client Commission Ledger */}
             <Card>

@@ -61,12 +61,62 @@ Deno.serve(async (req) => {
       catch { partner = null; }
     }
 
-    const ytdRevenue = (partner?.ytd_revenue || 0) + firstYearRevenue;
-    const tiers = partner?.commission_tiers || [];
+    // Update partner YTD first (needed for brokerage aggregate computation)
+    const partnerYtdRevenue = (partner?.ytd_revenue || 0) + firstYearRevenue;
+    if (firstYearRevenue > 0 && partner) {
+      await base44.asServiceRole.entities.ReferralPartner.update(partner.id, { ytd_revenue: partnerYtdRevenue });
+    }
+
+    // ─── Brokerage context ───
+    let brokerage = null;
+    let brokeragePartners = [];
+    if (partner?.brokerage_id) {
+      try {
+        brokerage = await base44.asServiceRole.entities.Brokerage.get(partner.brokerage_id);
+        if (brokerage) {
+          brokeragePartners = await base44.asServiceRole.entities.ReferralPartner.filter(
+            { brokerage_id: partner.brokerage_id, is_demo: false }, '-created_date', 500
+          );
+        }
+      } catch { brokerage = null; }
+    }
+
+    // Determine commission tiers and aggregate YTD
+    let tiers, aggregateYtd;
+    if (brokerage && brokeragePartners.length > 0) {
+      tiers = brokerage.commission_tiers || [];
+      aggregateYtd = brokeragePartners.reduce((sum, p) =>
+        sum + (p.id === partner.id ? partnerYtdRevenue : (p.ytd_revenue || 0)), 0
+      );
+    } else {
+      tiers = partner?.commission_tiers || [];
+      aggregateYtd = partnerYtdRevenue;
+    }
+
     const tier = tiers
-      .filter(t => ytdRevenue >= (t.min_revenue || 0))
+      .filter(t => aggregateYtd >= (t.min_revenue || 0))
       .sort((a, b) => (b.min_revenue || 0) - (a.min_revenue || 0))[0] || null;
     const commissionRate = tier?.rate || 0;
+    const totalCommission = firstYearRevenue * commissionRate;
+
+    // Allocate commission per brokerage toggles/split
+    let brokerageCommission = 0;
+    let brokerCommission = 0;
+    if (brokerage) {
+      const brokerageEnabled = brokerage.brokerage_commission_enabled !== false;
+      const brokerEnabled = brokerage.broker_commission_enabled !== false;
+      if (brokerageEnabled && brokerEnabled) {
+        const brokerSplit = brokerage.broker_split ?? 0.5;
+        brokerCommission = totalCommission * brokerSplit;
+        brokerageCommission = totalCommission * (1 - brokerSplit);
+      } else if (brokerageEnabled) {
+        brokerageCommission = totalCommission;
+      } else if (brokerEnabled) {
+        brokerCommission = totalCommission;
+      }
+    } else {
+      brokerCommission = totalCommission;
+    }
 
     // Update referral
     await base44.asServiceRole.entities.Referral.update(referral_id, {
@@ -75,13 +125,10 @@ Deno.serve(async (req) => {
       reviewed_date: new Date().toISOString(),
       first_year_revenue: firstYearRevenue,
       commission_rate: commissionRate,
-      commission_amount: firstYearRevenue * commissionRate,
+      commission_amount: totalCommission,
+      brokerage_commission: brokerageCommission,
+      broker_commission: brokerCommission,
     });
-
-    // Update partner YTD
-    if (firstYearRevenue > 0 && partner) {
-      await base44.asServiceRole.entities.ReferralPartner.update(partner.id, { ytd_revenue: ytdRevenue });
-    }
 
     // Activity entry
     if (partner) {
@@ -112,8 +159,10 @@ Deno.serve(async (req) => {
       proposal_id,
       first_year_revenue: firstYearRevenue,
       commission_rate: commissionRate,
-      commission_amount: firstYearRevenue * commissionRate,
-      ytd_revenue: ytdRevenue,
+      commission_amount: totalCommission,
+      brokerage_commission: brokerageCommission,
+      broker_commission: brokerCommission,
+      ytd_revenue: aggregateYtd,
     });
   } catch (error) {
     console.error('recordReferralPurchase error:', error.message);

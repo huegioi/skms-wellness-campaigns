@@ -22,19 +22,12 @@ Deno.serve(async (req) => {
   const activities = await base44.asServiceRole.entities.ReferralActivity.filter({ referral_partner_id: partner.id }, '-activity_date', 15);
 
   // ─── DATA PRIVACY: Only return clients explicitly referred by this partner ───
-  // Clients are linked via referral_partner_id on the Client record.
   const ownedClients = await base44.asServiceRole.entities.Client.filter({ referral_partner_id: partner.id }, '-created_date', 500);
 
-  // Build a set of owned client IDs for all sub-queries
-  const ownedClientIdSet = new Set(ownedClients.map(c => c.id));
-
-  // Show ALL linked clients regardless of whether they have feedback yet
-  // Use company name if available, fall back to client name
   const clientCompanies = ownedClients
     .filter(c => c.company || c.name)
     .map(c => ({ id: c.id, company: c.company || c.name, name: c.name, email: c.email }));
 
-  // Deduplicate by company name, keeping first match
   const seen = new Set();
   const uniqueClientCompanies = clientCompanies.filter(c => {
     if (seen.has(c.company)) return false;
@@ -42,50 +35,87 @@ Deno.serve(async (req) => {
     return true;
   }).sort((a, b) => a.company.localeCompare(b.company));
 
-  // Get proposals ONLY for this partner's owned clients — server-side filtered per client
+  // Get proposals ONLY for this partner's owned clients
   const proposalResults = await Promise.all(
     ownedClients.map(c => base44.asServiceRole.entities.Proposal.filter({ client_id: c.id }, '-created_date'))
   );
   const partnerProposals = proposalResults.flat();
 
-  // Build proposal revenue map: client_id → ACCEPTED proposals only
   const proposalRevenueByClient = {};
   partnerProposals.forEach(p => {
     if (!p.client_id) return;
-    if (p.status !== 'accepted') return; // strictly accepted/signed proposals only
+    if (p.status !== 'accepted') return;
     if (!proposalRevenueByClient[p.client_id]) proposalRevenueByClient[p.client_id] = 0;
     proposalRevenueByClient[p.client_id] += p.total_amount || 0;
   });
 
-  // Calculate commission summary
+  // ─── Brokerage context ───
+  let brokerage = null;
+  let brokerageAggregateYtd = 0;
+  if (partner.brokerage_id) {
+    try {
+      brokerage = await base44.asServiceRole.entities.Brokerage.get(partner.brokerage_id);
+      if (brokerage) {
+        const brokeragePartners = await base44.asServiceRole.entities.ReferralPartner.filter(
+          { brokerage_id: partner.brokerage_id, is_demo: false },
+          '-created_date', 500
+        );
+        brokerageAggregateYtd = brokeragePartners.reduce((sum, p) => sum + (p.ytd_revenue || 0), 0);
+      }
+    } catch { brokerage = null; }
+  }
+
+  // Determine commission tiers — brokerage tiers if partner belongs to one
+  const tiers = brokerage
+    ? (brokerage.commission_tiers || [])
+    : (partner.commission_tiers || []);
+
   const currentYear = new Date().getFullYear();
-  const tiers = partner.commission_tiers || [];
 
   // Sort referrals by date
   referrals.sort((a, b) => new Date(b.referral_date) - new Date(a.referral_date));
 
-  // Compute ytd revenue from referrals
-  const ytdReferrals = referrals.filter(r => new Date(r.referral_date).getFullYear() === currentYear);
-  const ytdRevenue = ytdReferrals.reduce((sum, r) => sum + (r.first_year_revenue || 0), 0);
+  // Compute YTD revenue — brokerage aggregate or partner's own
+  const ytdRevenue = brokerage
+    ? brokerageAggregateYtd
+    : referrals
+        .filter(r => new Date(r.referral_date).getFullYear() === currentYear)
+        .reduce((sum, r) => sum + (r.first_year_revenue || 0), 0);
 
   // Determine current commission tier
   const currentTier = tiers
-    .filter(t => ytdRevenue >= t.min_revenue)
-    .sort((a, b) => b.min_revenue - a.min_revenue)[0] || null;
+    .filter(t => ytdRevenue >= (t.min_revenue || 0))
+    .sort((a, b) => (b.min_revenue || 0) - (a.min_revenue || 0))[0] || null;
 
-  // Base commission from referral records (admin-confirmed)
-  const referralCommission = referrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
+  // ─── Broker commission fraction ───
+  // Determines what share of total commission the broker sees in their portal.
+  let brokerFraction = 1; // solo partner gets 100%
+  if (brokerage) {
+    const brokerageEnabled = brokerage.brokerage_commission_enabled !== false;
+    const brokerEnabled = brokerage.broker_commission_enabled !== false;
+    if (brokerageEnabled && brokerEnabled) {
+      brokerFraction = brokerage.broker_split ?? 0.5;
+    } else if (brokerEnabled) {
+      brokerFraction = 1;
+    } else {
+      brokerFraction = 0; // brokerage-only or neither
+    }
+  }
+
+  // Base commission from referral records — use stored broker_commission if available,
+  // else compute from commission_amount × brokerFraction
+  const referralCommission = referrals.reduce((sum, r) => {
+    if (r.broker_commission != null) return sum + r.broker_commission;
+    return sum + (r.commission_amount || 0) * brokerFraction;
+  }, 0);
   const totalCommissionPaid = partner.total_commissions_paid || 0;
-  // Will be recalculated after ledger is built to include proposal-based entries
   let totalCommissionEarned = referralCommission;
   let commissionPending = totalCommissionEarned - totalCommissionPaid;
 
   // ─── Per-client commission ledger ───
-  // Build a map from client_id → client record for enrichment
   const clientById = {};
   ownedClients.forEach(c => { clientById[c.id] = c; });
 
-  // Group referrals by referred_client_id (or company_name as fallback)
   const ledgerMap = {};
   referrals.forEach(r => {
     const key = r.referred_client_id || r.company_name || r.contact_name;
@@ -104,38 +134,37 @@ Deno.serve(async (req) => {
       };
     }
     ledgerMap[key].first_year_revenue += r.first_year_revenue || 0;
-    ledgerMap[key].commission_earned += r.commission_amount || 0;
-    // Use most recent status
+    const brokerComm = r.broker_commission != null
+      ? r.broker_commission
+      : (r.commission_amount || 0) * brokerFraction;
+    ledgerMap[key].commission_earned += brokerComm;
     if (r.referral_date > ledgerMap[key].referral_date) {
       ledgerMap[key].status = r.status;
       ledgerMap[key].referral_date = r.referral_date;
     }
   });
 
-  // Also include ALL linked clients, using proposal revenue or QB invoices as revenue source
+  // Also include ALL linked clients
   ownedClients.forEach(c => {
     const alreadyInLedger = Object.values(ledgerMap).some(l => l.client_id === c.id);
     const rate = currentTier ? currentTier.rate : (tiers[0]?.rate || 0.10);
-    // Revenue priority: QB invoices > proposals > 0
     const revenue = (c.total_invoice_value > 0)
       ? c.total_invoice_value
       : (proposalRevenueByClient[c.id] || 0);
 
     if (alreadyInLedger) {
-      // Enrich existing ledger row with proposal revenue if first_year_revenue is 0
       const key = Object.keys(ledgerMap).find(k => ledgerMap[k].client_id === c.id);
       if (key && ledgerMap[key].first_year_revenue === 0 && revenue > 0) {
         ledgerMap[key].first_year_revenue = revenue;
-        ledgerMap[key].commission_earned = revenue * (ledgerMap[key].commission_rate || rate);
+        ledgerMap[key].commission_earned = revenue * (ledgerMap[key].commission_rate || rate) * brokerFraction;
         ledgerMap[key].commission_rate = ledgerMap[key].commission_rate || rate;
       }
     } else {
-      // Always add all linked clients to the ledger, even if revenue is 0
       ledgerMap[c.id] = {
         client_id: c.id,
         company: c.company || c.name,
         first_year_revenue: revenue,
-        commission_earned: revenue * rate,
+        commission_earned: revenue * rate * brokerFraction,
         commission_rate: rate,
         status: 'converted_to_client',
         referral_date: c.created_date,
@@ -147,14 +176,13 @@ Deno.serve(async (req) => {
   const commissionLedger = Object.values(ledgerMap)
     .sort((a, b) => (b.commission_earned - a.commission_earned));
 
-  // Recalculate totals from the full ledger (includes proposal-enriched rows)
+  // Recalculate totals from the full ledger
   totalCommissionEarned = commissionLedger.reduce((s, r) => s + (r.commission_earned || 0), 0);
-  // Pending = earned but NOT yet paid out (admin marks paid via total_commissions_paid on the partner record)
-  // Total Earned = all-time commissions accrued (paid + unpaid)
-  // Pending / Unpaid = earned minus what's already been paid
   commissionPending = Math.max(0, totalCommissionEarned - totalCommissionPaid);
 
-  const commissionsEnabled = partner.commissions_enabled !== false;
+  // Commission visibility: PP2 toggle + broker_commission_enabled (if brokerage)
+  const commissionsEnabled = partner.commissions_enabled !== false &&
+    (!brokerage || brokerage.broker_commission_enabled !== false);
 
   const response = {
     partner: {
@@ -167,11 +195,12 @@ Deno.serve(async (req) => {
       commission_tiers: commissionsEnabled ? tiers : [],
       is_active: partner.is_active,
       commissions_enabled: commissionsEnabled,
+      brokerage_id: partner.brokerage_id || null,
     },
     referrals: commissionsEnabled
       ? referrals
       : referrals.map(r => {
-          const { commission_amount, commission_rate, ...rest } = r;
+          const { commission_amount, commission_rate, brokerage_commission, broker_commission, ...rest } = r;
           return rest;
         }),
     client_companies: uniqueClientCompanies,
@@ -182,6 +211,17 @@ Deno.serve(async (req) => {
       activity_date: a.activity_date
     })),
   };
+
+  if (brokerage) {
+    response.brokerage = {
+      name: brokerage.name,
+      company: brokerage.company,
+      aggregate_ytd_revenue: brokerageAggregateYtd,
+      brokerage_commission_enabled: brokerage.brokerage_commission_enabled !== false,
+      broker_commission_enabled: brokerage.broker_commission_enabled !== false,
+      broker_split: brokerage.broker_split ?? 0.5,
+    };
+  }
 
   if (commissionsEnabled) {
     response.commission_summary = {

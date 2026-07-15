@@ -1,0 +1,84 @@
+{
+  "name": "Brokerage",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Brokerage display name"
+    },
+    "company": {
+      "type": "string",
+      "description": "Legal company name"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes about this brokerage"
+    },
+    "commission_tiers": {
+      "type": "array",
+      "description": "Tiered commission rates based on the brokerage's aggregate annual first-year revenue across all its brokers",
+      "items": {
+        "type": "object",
+        "properties": {
+          "min_revenue": {
+            "type": "number"
+          },
+          "max_revenue": {
+            "type": "number"
+          },
+          "rate": {
+            "type": "number"
+          },
+          "label": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "brokerage_commission_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the brokerage (house) earns commission on placements by its brokers"
+    },
+    "broker_commission_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether individual brokers earn commission. When false, broker portals hide commission features exactly like PP2-off."
+    },
+    "broker_split": {
+      "type": "number",
+      "default": 0.5,
+      "description": "The broker's fraction of total commission when both brokerage and broker commission are enabled (0\u20131)"
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this record is demo/broker-demo sample data."
+    }
+  },
+  "required": [
+    "name"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

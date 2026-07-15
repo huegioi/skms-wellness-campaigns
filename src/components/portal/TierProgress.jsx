@@ -4,7 +4,7 @@ import { TrendingUp } from 'lucide-react';
 
 const fmtRate = (r) => (r * 100 % 1 === 0 ? (r * 100).toFixed(0) : (r * 100).toFixed(1));
 
-export default function TierProgress({ tiers = [], commissionSummary = {} }) {
+export default function TierProgress({ tiers = [], commissionSummary = {}, brokerageName = null }) {
   if (!tiers.length) return null;
 
   const sorted = [...tiers].sort((a, b) => a.min_revenue - b.min_revenue);
@@ -41,6 +41,9 @@ export default function TierProgress({ tiers = [], commissionSummary = {} }) {
               You're at the top tier — {fmtRate(current.rate)}% on every new placement
             </p>
           </div>
+          {brokerageName && (
+            <p className="text-xs text-gray-500 mb-3">{brokerageName} — ${ytd.toLocaleString()} placed this year</p>
+          )}
           <div className="h-3 rounded-full bg-gray-200 overflow-hidden">
             <div className="h-full rounded-full bg-brand-navy" style={{ width: '100%' }} />
           </div>
@@ -60,6 +63,9 @@ export default function TierProgress({ tiers = [], commissionSummary = {} }) {
   return (
     <Card className="border-[#e6e1d8] bg-[#f9f8f5]">
       <CardContent className="pt-5 pb-4">
+        {brokerageName && (
+          <p className="text-xs text-gray-500 mb-2">{brokerageName} — ${ytd.toLocaleString()} placed this year</p>
+        )}
         <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
           <p className="text-sm font-semibold text-brand-navy">
             You're <span className="font-bold">${remaining.toLocaleString()}</span> away from the {fmtRate(next.rate)}% tier

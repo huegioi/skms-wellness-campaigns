@@ -9,12 +9,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, ChevronUp, LayoutGrid, List, Mail, Settings, RefreshCw } from 'lucide-react';
+import { Plus, Copy, ExternalLink, Users, DollarSign, Check, ChevronDown, ChevronUp, LayoutGrid, List, Mail, Settings, RefreshCw, Building2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/components/ui/use-toast';
 import PartnerPipelineView from '@/components/partners/PartnerPipelineView';
 import ReferralPartnerDetail from '@/components/partners/ReferralPartnerDetail';
 import RecordCommissionPaymentDialog from '@/components/partners/RecordCommissionPaymentDialog';
+import BrokerageDialog from '@/components/partners/BrokerageDialog';
+import BrokerageRollup from '@/components/partners/BrokerageRollup';
 import { LEAD_STAGES } from '@/components/shared/constants';
 import { TagSelector } from '@/components/ui/TagSelector';
 import TagFilter from '@/components/ui/TagFilter';
@@ -30,7 +32,7 @@ const DEFAULT_TIERS = [
 const EMPTY_FORM = {
   name: '', email: '', email2: '', company: '', phone: '', address: '', notes: '',
   agreement_file_url: '', agreement_signed_date: '',
-  commission_tiers: DEFAULT_TIERS, is_active: true, commissions_enabled: true,
+  commission_tiers: DEFAULT_TIERS, is_active: true, commissions_enabled: true, brokerage_id: null,
   follow_up_stage: '', linked_client_ids: [], tags: []
 };
 
@@ -58,6 +60,9 @@ export default function ReferralPartnerAdmin() {
   const [regenerateConfirm, setRegenerateConfirm] = useState(null);
   const [regenerating, setRegenerating] = useState(null);
   const [paymentPartner, setPaymentPartner] = useState(null);
+  const [showBrokerageDialog, setShowBrokerageDialog] = useState(false);
+  const [editingBrokerage, setEditingBrokerage] = useState(null);
+  const [expandedBrokerage, setExpandedBrokerage] = useState(null);
 
   const { data: partners = [], isLoading } = useQuery({
     queryKey: ['referralPartners'],
@@ -93,6 +98,11 @@ export default function ReferralPartnerAdmin() {
     return partnerTagMatchAll
       ? partnerTagFilter.every(t => p.tags?.includes(t))
       : partnerTagFilter.some(t => p.tags?.includes(t));
+  });
+
+  const { data: brokerages = [] } = useQuery({
+    queryKey: ['brokerages'],
+    queryFn: () => base44.entities.Brokerage.list('-created_date')
   });
 
   const { data: referrals = [] } = useQuery({
@@ -189,6 +199,16 @@ export default function ReferralPartnerAdmin() {
     setShowDialog(true);
   };
 
+  const openNewBrokerage = () => {
+    setEditingBrokerage(null);
+    setShowBrokerageDialog(true);
+  };
+
+  const openEditBrokerage = (brokerage) => {
+    setEditingBrokerage(brokerage);
+    setShowBrokerageDialog(true);
+  };
+
   const sendPortalEmail = async (partner) => {
     setSendingEmail(partner.id);
     setSendEmailConfirm(null);
@@ -241,8 +261,8 @@ export default function ReferralPartnerAdmin() {
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Referral Partners</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage broker referral partners and their portal access</p>
+          <h1 className="text-2xl font-bold text-gray-800">{viewMode === 'brokerages' ? 'Brokerages' : 'Referral Partners'}</h1>
+          <p className="text-gray-500 text-sm mt-1">{viewMode === 'brokerages' ? 'Manage brokerage groups and two-level commission structure' : 'Manage broker referral partners and their portal access'}</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex rounded-lg border border-gray-200 overflow-hidden">
@@ -258,6 +278,12 @@ export default function ReferralPartnerAdmin() {
             >
               <LayoutGrid className="w-4 h-4" /> Pipeline
             </button>
+            <button
+              onClick={() => setViewMode('brokerages')}
+              className={`px-3 py-1.5 text-sm flex items-center gap-1.5 transition-colors ${viewMode === 'brokerages' ? 'bg-[#013f7c] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+            >
+              <Building2 className="w-4 h-4" /> Brokerages
+            </button>
           </div>
           <TagFilter
             selected={partnerTagFilter}
@@ -268,11 +294,68 @@ export default function ReferralPartnerAdmin() {
           <Button variant="outline" size="sm" className="gap-2 h-9" onClick={() => setShowTagManager(true)}>
             <Settings className="w-4 h-4" /> Manage Tags
           </Button>
-          <Button onClick={openNew} className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2">
-            <Plus className="w-4 h-4" /> Add Partner
-          </Button>
+          {viewMode === 'brokerages' ? (
+            <Button onClick={openNewBrokerage} className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2">
+              <Plus className="w-4 h-4" /> Add Brokerage
+            </Button>
+          ) : (
+            <Button onClick={openNew} className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-2">
+              <Plus className="w-4 h-4" /> Add Partner
+            </Button>
+          )}
         </div>
       </div>
+
+      {viewMode === 'brokerages' && (
+        <div className="space-y-4">
+          {brokerages.length === 0 && (
+            <Card>
+              <CardContent className="text-center py-16">
+                <Building2 className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">No brokerages yet. Add your first brokerage to manage a two-level commission structure.</p>
+              </CardContent>
+            </Card>
+          )}
+          {brokerages.map(b => {
+            const brokerCount = partners.filter(p => p.brokerage_id === b.id && !p.is_demo).length;
+            return (
+              <Card key={b.id}>
+                <CardContent className="pt-5">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <button
+                          onClick={() => setExpandedBrokerage(expandedBrokerage === b.id ? null : b.id)}
+                          className="font-semibold text-gray-800 text-lg hover:text-[#013f7c] hover:underline transition-colors"
+                        >
+                          {b.name}
+                        </button>
+                        <Badge className={b.brokerage_commission_enabled !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}>
+                          House: {b.brokerage_commission_enabled !== false ? 'On' : 'Off'}
+                        </Badge>
+                        <Badge className={b.broker_commission_enabled !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}>
+                          Broker: {b.broker_commission_enabled !== false ? 'On' : 'Off'}
+                        </Badge>
+                      </div>
+                      {b.company && <p className="text-gray-500 text-sm">{b.company}</p>}
+                      <p className="text-gray-400 text-sm">{brokerCount} broker{brokerCount !== 1 ? 's' : ''}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setExpandedBrokerage(expandedBrokerage === b.id ? null : b.id)}>
+                        {expandedBrokerage === b.id ? 'Hide' : 'View'} Details
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => openEditBrokerage(b)}>
+                        Edit
+                      </Button>
+                    </div>
+                  </div>
+                  {expandedBrokerage === b.id && <BrokerageRollup brokerage={b} />}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {viewMode === 'pipeline' && !isLoading && (
         <PartnerPipelineView partners={filteredPartners} referrals={referrals} onSelectPartner={setViewingPartner} />
@@ -524,6 +607,26 @@ export default function ReferralPartnerAdmin() {
                 <label className="text-sm font-medium text-gray-700 block mb-1">Address</label>
                 <Input value={form.address || ''} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="123 Main St, City, State ZIP" />
               </div>
+              <div className="sm:col-span-2">
+                <label className="text-sm font-medium text-gray-700 block mb-1">Brokerage</label>
+                <Select
+                  value={form.brokerage_id || '__none__'}
+                  onValueChange={(val) => setForm(f => ({ ...f, brokerage_id: val === '__none__' ? null : val }))}
+                >
+                  <SelectTrigger className="w-full bg-gray-50">
+                    <SelectValue placeholder="None (solo partner)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">
+                      <span className="text-gray-400 italic">— None (solo partner) —</span>
+                    </SelectItem>
+                    {brokerages.map(b => (
+                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-gray-400 mt-1">When assigned, commission tiers come from the brokerage and are computed on aggregate revenue.</p>
+              </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Agreement File URL</label>
                 <Input value={form.agreement_file_url} onChange={e => setForm(f => ({ ...f, agreement_file_url: e.target.value }))} placeholder="https://..." />
@@ -649,6 +752,13 @@ export default function ReferralPartnerAdmin() {
           onClose={() => setViewingPartner(null)}
         />
       )}
+
+      {/* Brokerage Dialog */}
+      <BrokerageDialog
+        open={showBrokerageDialog}
+        onOpenChange={setShowBrokerageDialog}
+        editing={editingBrokerage}
+      />
 
       {/* Record Commission Payment Dialog */}
       {paymentPartner && (
