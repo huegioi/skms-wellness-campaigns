@@ -247,6 +247,7 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     setSaving(true);
     const eventData = {
       ...formData,
+      checkin_token: crypto.randomUUID(),
       color: formData.color || eventTypeConfig[formData.event_type]?.color
     };
     
@@ -284,6 +285,7 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     setSaving(true);
     const eventData = {
       ...formData,
+      checkin_token: crypto.randomUUID(),
       color: formData.color || eventTypeConfig[formData.event_type]?.color
     };
     

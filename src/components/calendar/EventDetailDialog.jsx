@@ -508,6 +508,25 @@ END:VCALENDAR`;
             </div>
           )}
 
+          {event.checkin_token && (
+            <div className="flex items-start gap-3">
+              <ClipboardCheck className="w-5 h-5 text-gray-400 mt-0.5" />
+              <div>
+                <p className="text-sm text-gray-500">Attendee Check-in</p>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/Checkin?t=${event.checkin_token}`);
+                    toast.success('Check-in link copied!');
+                  }}
+                  className="text-sm text-[#013f7c] hover:underline font-medium"
+                >
+                  Copy check-in link
+                </button>
+                <p className="text-xs text-gray-400 mt-0.5">Share this in the calendar invite instead of the raw video link.</p>
+              </div>
+            </div>
+          )}
+
           {event.client_name && (
             <div className="flex items-start gap-3">
               <User className="w-5 h-5 text-gray-400 mt-0.5" />

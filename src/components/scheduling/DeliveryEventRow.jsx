@@ -1,5 +1,7 @@
 import React from 'react';
-import { Calendar, Users, MapPin, Plus, CheckCircle2, MoreVertical, ArrowRightLeft, XCircle, Clock } from 'lucide-react';
+import { Calendar, Users, MapPin, Plus, CheckCircle2, MoreVertical, ArrowRightLeft, XCircle, Clock, UserCheck, Copy } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { format, parseISO } from 'date-fns';
@@ -17,6 +19,15 @@ export default function DeliveryEventRow({ event, allServices, getEventAssessmen
   const isSheet = event.source === 'sheet';
   const isCalendar = event.source === 'calendar';
   const isPast = event.isPast;
+
+  const { data: checkinCount = 0 } = useQuery({
+    queryKey: ['event-checkins', event.id],
+    queryFn: async () => {
+      const checkins = await base44.entities.EventCheckin.filter({ event_id: event.id });
+      return checkins.length;
+    },
+    enabled: isCalendar && !!event.id,
+  });
 
   const serviceCategory = isCalendar ? allServices.find(s => s.id === event.service_id)?.category : null;
   const isChallenge = isChallengeEvent(event, serviceCategory);
@@ -92,6 +103,12 @@ export default function DeliveryEventRow({ event, allServices, getEventAssessmen
               </span>
             )}
             {isPast && <span className="text-xs px-2 py-0.5 rounded bg-gray-200 text-gray-500">Past</span>}
+            {checkinCount > 0 && (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center gap-1">
+                <UserCheck className="w-3 h-3" />
+                {checkinCount} checked in
+              </span>
+            )}
             {isCalendar && !isPast && event.google_event_id && !event.ingested && (
               <CheckCircle2 className="w-4 h-4 text-green-600" title="Synced to Google Calendar" />
             )}
@@ -154,6 +171,12 @@ export default function DeliveryEventRow({ event, allServices, getEventAssessmen
                   <ArrowRightLeft className="w-4 h-4 mr-2" />
                   Move to Meetings
                 </DropdownMenuItem>
+                {event.checkin_token && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/Checkin?t=${event.checkin_token}`); }}>
+                    <Copy className="w-4 h-4 mr-2" />
+                    Copy check-in link
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}

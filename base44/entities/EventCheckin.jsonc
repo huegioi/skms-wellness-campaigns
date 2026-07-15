@@ -1,0 +1,52 @@
+{
+  "name": "EventCheckin",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "ID of the CalendarEvent this check-in belongs to"
+    },
+    "name": {
+      "type": "string",
+      "description": "Attendee's display name"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Attendee's work email (lowercased for dedup)"
+    },
+    "checked_in_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the attendee checked in"
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this record is demo/broker-demo sample data."
+    }
+  },
+  "required": [
+    "event_id",
+    "email",
+    "checked_in_at"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

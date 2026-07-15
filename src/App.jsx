@@ -18,6 +18,7 @@ import CohortAssessmentPage from './pages/CohortAssessment';
 import Presenters from './pages/Presenters';
 import PresenterPortal from './pages/PresenterPortal';
 import QuickBuilder from './pages/QuickBuilder';
+import Checkin from './pages/Checkin';
 import Demo from './pages/Demo';
 import MayaKnowledge from './pages/MayaKnowledge';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
@@ -104,6 +105,7 @@ const AuthenticatedApp = () => {
       <Route path="/Presenters" element={<LayoutWrapper currentPageName="Presenters"><Presenters /></LayoutWrapper>} />
       <Route path="/PresenterPortal" element={<PresenterPortal />} />
       <Route path="/QuickBuilder" element={<QuickBuilder />} />
+      <Route path="/Checkin" element={<Checkin />} />
       <Route path="/Demo" element={<LayoutWrapper currentPageName="Demo"><Demo /></LayoutWrapper>} />
       <Route path="/MayaKnowledge" element={<LayoutWrapper currentPageName="MayaKnowledge"><MayaKnowledge /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />

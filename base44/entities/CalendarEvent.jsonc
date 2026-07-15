@@ -64,6 +64,14 @@
       "type": "string",
       "description": "Event location or meeting link"
     },
+    "checkin_token": {
+      "type": "string",
+      "description": "Unique token for the public attendee check-in page (crypto.randomUUID()). Share the /Checkin?t= link in calendar invites instead of the raw video link."
+    },
+    "meeting_link": {
+      "type": "string",
+      "description": "Direct video call link (Zoom, Meet, Teams). Falls back to location if it's a URL."
+    },
     "presenter": {
       "type": "string",
       "description": "Free-text presenter name (legacy \u2014 kept for backward compatibility)"

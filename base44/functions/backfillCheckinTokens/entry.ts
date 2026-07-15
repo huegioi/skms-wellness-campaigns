@@ -1,0 +1,38 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+
+Deno.serve(async (req) => {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    if (user.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 });
+
+    // Fetch events sorted by start_date descending (future events first)
+    const events = await base44.asServiceRole.entities.CalendarEvent.list('-start_date', 500);
+
+    // Filter: upcoming, no token, not demo
+    const now = new Date();
+    const needsToken = events.filter(e =>
+      !e.is_demo &&
+      !e.checkin_token &&
+      e.start_date &&
+      new Date(e.start_date) >= now
+    );
+
+    let updated = 0;
+    for (const event of needsToken) {
+      const token = crypto.randomUUID();
+      await base44.asServiceRole.entities.CalendarEvent.update(event.id, { checkin_token: token });
+      updated++;
+    }
+
+    return Response.json({
+      success: true,
+      updated,
+      scanned: events.length,
+      eligible: needsToken.length,
+    });
+  } catch (error) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+});

@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
+import { useQuery } from '@tanstack/react-query';
 import PresenterAcceptBar from '@/components/presenter/PresenterAcceptBar';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
@@ -20,6 +21,14 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
   const [savingRecording, setSavingRecording] = useState(false);
   const [showDay14Reminder, setShowDay14Reminder] = useState(false);
   const { toast } = useToast();
+
+  const { data: checkinCount = 0 } = useQuery({
+    queryKey: ['event-checkins', event.id],
+    queryFn: async () => {
+      const checkins = await base44.entities.EventCheckin.filter({ event_id: event.id });
+      return checkins.length;
+    },
+  });
 
   const start = parseISO(event.start_date);
   const end = event.end_date ? parseISO(event.end_date) : null;
@@ -261,6 +270,15 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
                   ) : (
                     <p className="font-semibold text-gray-800 text-sm">{event.location}</p>
                   )}
+                </div>
+              </div>
+            )}
+            {checkinCount > 0 && (
+              <div className="flex items-center gap-3">
+                <Users className="w-5 h-5 text-[#013f7c] flex-shrink-0" />
+                <div>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">Checked In</p>
+                  <p className="font-semibold text-gray-800">{checkinCount} attendee{checkinCount !== 1 ? 's' : ''}</p>
                 </div>
               </div>
             )}

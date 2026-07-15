@@ -11,6 +11,7 @@ export const PUBLIC_PATHS = [
   '/CohortAssessment',
   '/QuickBuilder',
   '/MyPortal',
+  '/Checkin',
 ];
 
 export function isPublicPath(pathname) {
