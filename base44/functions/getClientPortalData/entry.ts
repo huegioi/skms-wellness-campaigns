@@ -46,15 +46,6 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.CohortAssessment.filter({ client_id: client.id }, '-submitted_at', 500),
     ]);
 
-    // People engaged: distinct participant emails across pulse feedback + cohort assessments
-    const pulseEmails = new Set(
-      feedbackResponses.map(r => (r.attendee_email || r.email_address || '').toLowerCase().trim()).filter(Boolean)
-    );
-    const cohortEmails = new Set(
-      cohortAssessments.map(r => (r.participant_email || '').toLowerCase().trim()).filter(Boolean)
-    );
-    const peopleEngaged = new Set([...pulseEmails, ...cohortEmails]).size;
-
     // Build service name lookup
     const serviceNameMap = {};
     for (const s of services) {
@@ -84,6 +75,28 @@ Deno.serve(async (req) => {
 
       return false;
     });
+
+    // ── Fetch check-ins for this client's events ───────────────────────
+    const matchedEventIds = matchedEvents.filter(e => !e.is_demo).map(e => e.id);
+    const checkins = matchedEventIds.length > 0
+      ? await base44.asServiceRole.entities.EventCheckin.filter(
+          { event_id: { $in: matchedEventIds }, is_demo: { $ne: true } },
+          '-checked_in_at',
+          2000
+        )
+      : [];
+
+    // People engaged: distinct participant emails across pulse feedback + cohort assessments + check-ins
+    const pulseEmails = new Set(
+      feedbackResponses.map(r => (r.attendee_email || r.email_address || '').toLowerCase().trim()).filter(Boolean)
+    );
+    const cohortEmails = new Set(
+      cohortAssessments.map(r => (r.participant_email || '').toLowerCase().trim()).filter(Boolean)
+    );
+    const checkinEmails = new Set(
+      checkins.map(c => (c.email || '').toLowerCase().trim()).filter(Boolean)
+    );
+    const peopleEngaged = new Set([...pulseEmails, ...cohortEmails, ...checkinEmails]).size;
 
     // ── Project events to only portal-rendered fields ───────────────────
     const portalEvents = matchedEvents.map(e => ({

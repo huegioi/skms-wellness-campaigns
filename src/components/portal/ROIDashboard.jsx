@@ -46,6 +46,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
 
   const rawResponses = roiData?.feedback_responses || [];
   const rawAssessments = roiData?.cohort_assessments || [];
+  const checkins = roiData?.checkins || [];
 
   const cutoffDate = useMemo(() => {
     if (dateRange !== '90days') return null;
@@ -71,12 +72,14 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
   );
 
   // ── Hero metric: People engaged ─────────────────────────────────────────────
+  const totalCheckins = checkins.length;
   const peopleEngaged = useMemo(() => {
     const pulseEmails = new Set(pulseResponses.map(r => (r.attendee_email || r.email_address || '').toLowerCase().trim()).filter(Boolean));
     const cohortEmails = new Set(cohortAssessments.map(r => (r.participant_email || '').toLowerCase().trim()).filter(Boolean));
-    const allEmails = new Set([...pulseEmails, ...cohortEmails]);
+    const checkinEmails = new Set(checkins.map(c => (c.email || '').toLowerCase().trim()).filter(Boolean));
+    const allEmails = new Set([...pulseEmails, ...cohortEmails, ...checkinEmails]);
     return allEmails.size > 0 ? allEmails.size : pulseResponses.length;
-  }, [pulseResponses, cohortAssessments]);
+  }, [pulseResponses, cohortAssessments, checkins]);
 
   // ── Hero metric: Wellbeing change (WHO-5 delta) ────────────────────────────
   const who5Delta = useMemo(() => {
@@ -169,8 +172,8 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
     );
   }
 
-  const hasRawData = rawResponses.length > 0 || rawAssessments.length > 0;
-  const hasData = pulseResponses.length > 0 || cohortAssessments.length > 0;
+  const hasRawData = rawResponses.length > 0 || rawAssessments.length > 0 || checkins.length > 0;
+  const hasData = pulseResponses.length > 0 || cohortAssessments.length > 0 || checkins.length > 0;
 
   return (
     <div className="space-y-6">
@@ -187,7 +190,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-bold text-gray-800">Wellness Impact Dashboard</h3>
-          <p className="text-sm text-gray-500">{peopleEngaged} people engaged{clientCompany ? ` · ${clientCompany}` : ''}</p>
+          <p className="text-sm text-gray-500">{peopleEngaged} people engaged{totalCheckins > 0 ? ` · ${totalCheckins} session check-ins` : ''}{clientCompany ? ` · ${clientCompany}` : ''}</p>
         </div>
         <div className="flex items-center gap-3">
           {hasRawData && (
@@ -233,7 +236,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
             <HeroMetricCard
               label="People Engaged"
               value={peopleEngaged}
-              caption="Distinct participants across all programs."
+              caption={totalCheckins > 0 ? `${totalCheckins} session check-ins · Distinct participants across all programs.` : "Distinct participants across all programs."}
               evidenceTier="Engagement"
               color="#013f7c"
             />

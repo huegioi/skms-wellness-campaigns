@@ -54,6 +54,7 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
 
   const allResponses = roiData?.feedback_responses || [];
   const allCohortAssessments = roiData?.cohort_assessments || [];
+  const allCheckins = roiData?.checkins || [];
 
   // ── Hero metrics ────────────────────────────────────────────────────────────
   const activeClientCount = clientCompanies.length;
@@ -61,9 +62,10 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
   const employeesReached = useMemo(() => {
     const pulseEmails = new Set(allResponses.map(r => (r.attendee_email || r.email_address || '').toLowerCase().trim()).filter(Boolean));
     const cohortEmails = new Set(allCohortAssessments.map(r => (r.participant_email || '').toLowerCase().trim()).filter(Boolean));
-    const allEmails = new Set([...pulseEmails, ...cohortEmails]);
+    const checkinEmails = new Set(allCheckins.map(c => (c.email || '').toLowerCase().trim()).filter(Boolean));
+    const allEmails = new Set([...pulseEmails, ...cohortEmails, ...checkinEmails]);
     return allEmails.size > 0 ? allEmails.size : allResponses.length;
-  }, [allResponses, allCohortAssessments]);
+  }, [allResponses, allCohortAssessments, allCheckins]);
 
   const aggregateWho5Delta = useMemo(
     () => who5DeltaForRows(allCohortAssessments),

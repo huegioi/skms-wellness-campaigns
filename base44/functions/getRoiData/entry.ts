@@ -40,6 +40,32 @@ function projectRow(row, fields) {
   return out;
 }
 
+/**
+ * Fetches check-in rows for the given client IDs' CalendarEvents.
+ * Excludes demo events and demo check-ins.
+ * Returns projected rows: { event_id, email, checked_in_at }
+ */
+async function fetchCheckinsForClients(base44, clientIds) {
+  if (!clientIds || clientIds.length === 0) return [];
+  const events = await base44.asServiceRole.entities.CalendarEvent.filter(
+    { client_id: { $in: clientIds }, is_demo: { $ne: true } },
+    '-start_date',
+    1000
+  );
+  const eventIds = events.map(e => e.id);
+  if (eventIds.length === 0) return [];
+  const checkins = await base44.asServiceRole.entities.EventCheckin.filter(
+    { event_id: { $in: eventIds }, is_demo: { $ne: true } },
+    '-checked_in_at',
+    2000
+  );
+  return checkins.map(c => ({
+    event_id: c.event_id,
+    email: c.email,
+    checked_in_at: c.checked_in_at,
+  }));
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -74,7 +100,8 @@ Deno.serve(async (req) => {
 
       const feedback = feedbackResults.flat().map(r => projectRow(r, PORTAL_FEEDBACK_FIELDS));
       const cohorts = cohortResults.flat().map(r => projectRow(r, PORTAL_COHORT_FIELDS));
-      return Response.json({ allowed: true, feedback_responses: feedback, cohort_assessments: cohorts });
+      const checkins = await fetchCheckinsForClients(base44, validIds);
+      return Response.json({ allowed: true, feedback_responses: feedback, cohort_assessments: cohorts, checkins });
     }
 
     // ── Single-client mode ────────────────────────────────────────────────────
@@ -124,10 +151,13 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.CohortAssessment.filter({ client_id }, '-submitted_at', 500),
     ]);
 
+    const checkins = await fetchCheckinsForClients(base44, [client_id]);
+
     return Response.json({
       allowed: true,
       feedback_responses: feedback.map(r => projectRow(r, PORTAL_FEEDBACK_FIELDS)),
       cohort_assessments: cohorts.map(r => projectRow(r, PORTAL_COHORT_FIELDS)),
+      checkins,
     });
   } catch (error) {
     return Response.json({ allowed: false, error: error.message }, { status: 500 });

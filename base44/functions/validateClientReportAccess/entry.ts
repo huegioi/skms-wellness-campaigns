@@ -58,11 +58,22 @@ Deno.serve(async (req) => {
     }
 
     // ── Fetch client + feedback data (service role, filtered to this client) ──
-    const [clients, responses, services] = await Promise.all([
+    const [clients, responses, services, events] = await Promise.all([
       base44.asServiceRole.entities.Client.filter({ id: client_id }),
       base44.asServiceRole.entities.FeedbackResponse.filter({ client_id }, '-submitted_at', 500),
       base44.asServiceRole.entities.Service.list('sort_order'),
+      base44.asServiceRole.entities.CalendarEvent.filter({ client_id, is_demo: { $ne: true } }, '-start_date', 500),
     ]);
+
+    // Fetch check-ins for this client's events
+    const eventIds = events.map(e => e.id);
+    const checkins = eventIds.length > 0
+      ? await base44.asServiceRole.entities.EventCheckin.filter(
+          { event_id: { $in: eventIds }, is_demo: { $ne: true } },
+          '-checked_in_at',
+          2000
+        )
+      : [];
 
     const PORTAL_CLIENT_FIELDS = [
       'id', 'name', 'email', 'email2', 'company', 'phone', 'title',
@@ -85,6 +96,8 @@ Deno.serve(async (req) => {
       client: projectedClient,
       responses,
       services,
+      events: events.map(e => ({ id: e.id, title: e.title, start_date: e.start_date, completed: e.completed })),
+      checkins: checkins.map(c => ({ event_id: c.event_id, email: c.email, checked_in_at: c.checked_in_at })),
     });
   } catch (error) {
     return Response.json({ allowed: false, error: error.message }, { status: 500 });

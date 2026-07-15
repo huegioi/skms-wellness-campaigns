@@ -47,8 +47,30 @@ export default function ClientReport() {
   const client = accessResult?.client || null;
   const responses = accessResult?.responses || [];
   const services = accessResult?.services || [];
+  const checkins = accessResult?.checkins || [];
+  const clientEvents = accessResult?.events || [];
 
   const serviceMap = Object.fromEntries(services.map(s => [s.id, s]));
+
+  // Attendance by event
+  const attendanceByEvent = {};
+  checkins.forEach(c => {
+    attendanceByEvent[c.event_id] = (attendanceByEvent[c.event_id] || 0) + 1;
+  });
+
+  // People engaged: distinct emails across feedback + check-ins
+  const feedbackEmails = new Set(responses.map(r => (r.attendee_email || r.email_address || '').toLowerCase().trim()).filter(Boolean));
+  const checkinEmails = new Set(checkins.map(c => (c.email || '').toLowerCase().trim()).filter(Boolean));
+  const peopleEngaged = new Set([...feedbackEmails, ...checkinEmails]).size;
+
+  // Delivered sessions with attendance
+  const sessionsWithAttendance = clientEvents
+    .filter(e => e.completed)
+    .map(e => ({
+      ...e,
+      attended: attendanceByEvent[e.id] || 0,
+    }))
+    .sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
 
   const promoters = responses.filter(r => r.nps_score >= 9).length;
   const detractors = responses.filter(r => r.nps_score <= 6).length;
@@ -126,13 +148,13 @@ export default function ClientReport() {
             </h1>
             <p className="text-gray-500 text-sm mt-1">
               Generated {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-              {' · '}{responses.length} total responses
+              {' · '}{responses.length} responses{peopleEngaged > 0 ? ` · ${peopleEngaged} people engaged` : ''}
             </p>
           </div>
         </div>
 
-        {responses.length === 0 ? (
-          <div className="text-center text-gray-400 py-12">No feedback responses collected yet for this client.</div>
+        {responses.length === 0 && sessionsWithAttendance.length === 0 ? (
+          <div className="text-center text-gray-400 py-12">No feedback or attendance data collected yet for this client.</div>
         ) : (
           <>
             {/* KPI Summary */}
@@ -206,6 +228,24 @@ export default function ClientReport() {
                 })}
               </div>
             </div>
+
+            {/* Session Attendance */}
+            {sessionsWithAttendance.length > 0 && (
+              <div>
+                <h2 className="text-base font-bold text-gray-700 uppercase tracking-wide mb-3">Session Attendance</h2>
+                <div className="space-y-2">
+                  {sessionsWithAttendance.map(s => (
+                    <div key={s.id} className="flex items-center justify-between border rounded-lg px-4 py-2.5">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{s.title}</p>
+                        <p className="text-xs text-gray-400">{new Date(s.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                      </div>
+                      <p className="text-sm font-bold text-[#013f7c]">{s.attended} attended</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Takeaway quotes */}
             {takeaways.length > 0 && (
