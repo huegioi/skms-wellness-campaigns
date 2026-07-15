@@ -28,15 +28,17 @@ Deno.serve(async (req) => {
   const currentMonthName = MONTH_NAMES[now.getMonth()];
   const currentThemes = SEASONAL_THEMES[currentMonthName] || [];
 
-  // ── Use shared global context builder (invoked as backend function) ──
-  const ctxResponse = await base44.functions.invoke('mayaContext', { action: 'global' });
+  // ── Fetch shared global context, knowledge base, and persona in parallel ──
+  const [ctxResponse, knowledgeResponse, personaResponse] = await Promise.all([
+    base44.functions.invoke('mayaContext', { action: 'global' }),
+    base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'delivery'] }),
+    base44.functions.invoke('mayaContext', { action: 'persona' }),
+  ]);
   const { contextText: globalContext, data } = ctxResponse.data;
 
   const { clients, leads, partners, newInquiries } = data;
-
-  // ── Fetch Maya knowledge base (sales_process + delivery) ──
-  const knowledgeResponse = await base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'delivery'] });
   const knowledgeText = knowledgeResponse.data.contextText || '';
+  const MAYA_PERSONA = personaResponse.data.persona || '';
 
   // ── Fetch active campaigns separately (specific to daily briefing) ──
   let activeCampaigns = [];
@@ -132,7 +134,7 @@ Deno.serve(async (req) => {
   // =========================================================
   // Build prompt using shared global context + computed action items
   // =========================================================
-  const prompt = `You are Maya, the operations AI at SkillfulMeans — a mental fitness company selling workshops, challenges, leadership programs, and wellness boxes. You report to William and Heather. Your voice is warm, direct, and specific.
+  const prompt = `${MAYA_PERSONA}
 
 Write today's briefing using EXACTLY this format — no extra sections, no paragraphs, no deviation:
 
