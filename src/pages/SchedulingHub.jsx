@@ -489,9 +489,19 @@ export default function SchedulingHub() {
     const items = [];
     const addItems = (dataKey, fallbackKey, label) => {
       if (sel[dataKey]?.length > 0) {
-        sel[dataKey].forEach(svc => items.push({ name: svc.name, price: svc.price || 0, category: label, description: svc.description || '' }));
+        sel[dataKey].forEach(svc => items.push({ name: svc.name, price: svc.price || 0, category: label, description: svc.description || '', service_id: svc.service_id || '' }));
       } else if (sel[fallbackKey]?.length > 0) {
-        sel[fallbackKey].forEach(id => items.push({ name: id, price: 0, category: label, description: '' }));
+        sel[fallbackKey].forEach(id => {
+          const matched = allServices.find(s => s.id === id);
+          items.push({
+            name: matched?.name || 'Unknown service',
+            rawId: matched ? null : id,
+            price: matched?.price || 0,
+            category: label,
+            description: matched?.description || '',
+            service_id: id
+          });
+        });
       }
     };
     addItems('workshopsData', 'workshops', 'Workshop');
@@ -507,9 +517,12 @@ export default function SchedulingHub() {
     const matchedService = allServices.find(s =>
       (s.name || '').toLowerCase() === itemName.toLowerCase()
     );
+    const serviceName = matchedService?.name || itemName;
+    const client = bookingForm.client_id ? allClients.find(c => c.id === bookingForm.client_id) : null;
+    const company = client?.company || bookingForm.client_name || '';
     setBookingForm(prev => ({
       ...prev,
-      title: itemName,
+      title: company ? `${serviceName} — ${company}` : serviceName,
       service_id: lineItem.service_id || matchedService?.id || '',
       description: lineItem.description ? `Service from invoice\n\nQuantity: ${lineItem.quantity || 1}\nRate: $${lineItem.rate || 0}` : ''
     }));
@@ -520,9 +533,12 @@ export default function SchedulingHub() {
     const matchedService = allServices.find(s =>
       (s.name || '').toLowerCase() === (svc.name || '').toLowerCase()
     );
+    const serviceName = svc.service_id ? (allServices.find(s => s.id === svc.service_id)?.name || svc.name) : (matchedService?.name || svc.name);
+    const client = bookingForm.client_id ? allClients.find(c => c.id === bookingForm.client_id) : null;
+    const company = client?.company || bookingForm.client_name || '';
     setBookingForm(prev => ({
       ...prev,
-      title: svc.name || '',
+      title: company ? `${serviceName} — ${company}` : serviceName,
       service_id: svc.service_id || matchedService?.id || '',
       description: svc.description || ''
     }));
@@ -1094,7 +1110,10 @@ export default function SchedulingHub() {
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <div className="font-semibold text-gray-800">{svc.name}</div>
+                            <div className="font-semibold text-gray-800">
+                              {svc.name}
+                              {svc.rawId && <span className="text-xs text-gray-400 ml-1.5 font-normal">{svc.rawId}</span>}
+                            </div>
                             <div className="text-xs text-gray-500 mt-0.5">{svc.category}</div>
                           </div>
                           {svc.price > 0 && (
@@ -1166,13 +1185,16 @@ export default function SchedulingHub() {
                       <Select
                         value={bookingForm.service_id || 'none'}
                         onValueChange={(v) => {
-                          const s = allServices.find(x => x.id === v);
-                          setBookingForm(prev => ({
-                            ...prev,
-                            service_id: v === 'none' ? '' : v,
-                            title: prev.title || s?.name || '',
-                          }));
-                        }}
+                           const s = allServices.find(x => x.id === v);
+                           const serviceName = s?.name || '';
+                           const client = bookingForm.client_id ? allClients.find(c => c.id === bookingForm.client_id) : null;
+                           const company = client?.company || bookingForm.client_name || '';
+                           setBookingForm(prev => ({
+                             ...prev,
+                             service_id: v === 'none' ? '' : v,
+                             title: serviceName ? (company ? `${serviceName} — ${company}` : serviceName) : prev.title,
+                           }));
+                         }}
                       >
                         <SelectTrigger className="mt-1 bg-white">
                           <SelectValue placeholder="Select service..." />
@@ -1257,39 +1279,30 @@ export default function SchedulingHub() {
                   <div className="border-t border-gray-200 pt-4">
                     <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Presenter</Label>
                     <div className="mt-1">
-                      {activePresenters.length > 0 ? (
-                        <Select
-                          value={bookingForm.presenter_id || 'none'}
-                          onValueChange={(v) => {
-                            const p = activePresenters.find(x => x.id === v);
-                            setBookingForm(prev => ({
-                              ...prev,
-                              presenter_id: v === 'none' ? '' : v,
-                              presenter: p?.name || '',
-                              presenter_email: p?.email || ''
-                            }));
-                          }}
-                        >
-                          <SelectTrigger className="bg-white">
-                            <SelectValue placeholder="Select a presenter..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">No presenter</SelectItem>
-                            {activePresenters.map(p => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.name}{p.email ? ` — ${p.email}` : ''}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <Input
-                          value={bookingForm.presenter}
-                          onChange={(e) => setBookingForm(prev => ({ ...prev, presenter: e.target.value }))}
-                          placeholder="Presenter name"
-                          className="bg-white"
-                        />
-                      )}
+                      <Select
+                        value={bookingForm.presenter_id || 'none'}
+                        onValueChange={(v) => {
+                          const p = activePresenters.find(x => x.id === v);
+                          setBookingForm(prev => ({
+                            ...prev,
+                            presenter_id: v === 'none' ? '' : v,
+                            presenter: p?.name || '',
+                            presenter_email: p?.email || ''
+                          }));
+                        }}
+                      >
+                        <SelectTrigger className="bg-white">
+                          <SelectValue placeholder="Select a presenter..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No presenter</SelectItem>
+                          {activePresenters.map(p => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name}{p.email ? ` — ${p.email}` : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
