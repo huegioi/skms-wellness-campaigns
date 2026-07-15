@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query';
 import PresenterAcceptBar from '@/components/presenter/PresenterAcceptBar';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
+import CheckinQrDialog from '@/components/shared/CheckinQrDialog';
 import { isChallengeEvent, getChallengeDayProgress } from '@/lib/challengeUtils';
 import { downloadICS } from '@/lib/ics';
 
@@ -20,6 +21,7 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
   const [recordingLink, setRecordingLink] = useState(event.recording_link || '');
   const [savingRecording, setSavingRecording] = useState(false);
   const [showDay14Reminder, setShowDay14Reminder] = useState(false);
+  const [showQr, setShowQr] = useState(false);
   const { toast } = useToast();
 
   const { data: checkinCount = 0 } = useQuery({
@@ -282,6 +284,31 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
                 </div>
               </div>
             )}
+            {event.checkin_token && (
+              <div className="pt-2 border-t border-gray-100">
+                <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Attendee Check-in</p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopy(`${origin}/Checkin?t=${event.checkin_token}`, 'checkin')}
+                    className="gap-1.5 text-sm"
+                  >
+                    {copiedKey === 'checkin' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {copiedKey === 'checkin' ? 'Copied!' : 'Copy link'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setShowQr(true)}
+                    className="gap-1.5 text-sm bg-[#264d44] hover:bg-[#1a3830]"
+                  >
+                    <QrCode className="w-4 h-4" />
+                    Show QR code
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1.5">Throw the QR on the room screen so attendees can check in.</p>
+              </div>
+            )}
             <div className="pt-2">
               <Button variant="outline" size="sm" onClick={handleAddToCalendar} className="gap-2 text-sm">
                 <Download className="w-4 h-4" />
@@ -512,6 +539,15 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
         )}
 
       </div>
+      {event.checkin_token && (
+        <CheckinQrDialog
+          open={showQr}
+          onOpenChange={setShowQr}
+          checkinUrl={`${origin}/Checkin?t=${event.checkin_token}`}
+          eventTitle={event.title}
+          eventDate={event.start_date}
+        />
+      )}
     </div>
   );
 }

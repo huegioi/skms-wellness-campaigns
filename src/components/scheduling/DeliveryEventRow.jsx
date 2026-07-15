@@ -1,5 +1,5 @@
-import React from 'react';
-import { Calendar, Users, MapPin, Plus, CheckCircle2, MoreVertical, ArrowRightLeft, XCircle, Clock, UserCheck, Copy } from 'lucide-react';
+import React, { useState } from 'react';
+import { Calendar, Users, MapPin, Plus, CheckCircle2, MoreVertical, ArrowRightLeft, XCircle, Clock, UserCheck, Copy, QrCode } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import SourceBadge from './SourceBadge';
 import PresenterStatusIcon, { getPresenterStatus } from './PresenterStatusIcon';
 import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
 import { isChallengeEvent, getChallengeDayProgress } from '@/lib/challengeUtils';
+import CheckinQrDialog from '@/components/shared/CheckinQrDialog';
 
 /**
  * A row in the Delivery lens: sheet-parsed events + CalendarEvents with
@@ -19,6 +20,7 @@ export default function DeliveryEventRow({ event, allServices, getEventAssessmen
   const isSheet = event.source === 'sheet';
   const isCalendar = event.source === 'calendar';
   const isPast = event.isPast;
+  const [showQr, setShowQr] = useState(false);
 
   const { data: checkinCount = 0 } = useQuery({
     queryKey: ['event-checkins', event.id],
@@ -172,16 +174,31 @@ export default function DeliveryEventRow({ event, allServices, getEventAssessmen
                   Move to Meetings
                 </DropdownMenuItem>
                 {event.checkin_token && (
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/Checkin?t=${event.checkin_token}`); }}>
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy check-in link
-                  </DropdownMenuItem>
+                  <>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/Checkin?t=${event.checkin_token}`); }}>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy check-in link
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShowQr(true); }}>
+                      <QrCode className="w-4 h-4 mr-2" />
+                      Show QR code
+                    </DropdownMenuItem>
+                  </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
         </div>
       </div>
+      {isCalendar && event.checkin_token && (
+        <CheckinQrDialog
+          open={showQr}
+          onOpenChange={setShowQr}
+          checkinUrl={`${window.location.origin}/Checkin?t=${event.checkin_token}`}
+          eventTitle={event.title}
+          eventDate={event.start_date}
+        />
+      )}
     </div>
   );
 }

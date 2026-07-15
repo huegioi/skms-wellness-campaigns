@@ -14,11 +14,13 @@ import { createPageUrl } from '@/utils';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
+import CheckinQrDialog from '@/components/shared/CheckinQrDialog';
 import { isChallengeEvent } from '@/lib/challengeUtils';
 
 export default function EventDetailDialog({ event, open, onOpenChange, eventTypeConfig, onUpdated }) {
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [showQr, setShowQr] = useState(false);
 
   const { data: activePresenters = [] } = useQuery({
     queryKey: ['presenters-active'],
@@ -513,15 +515,24 @@ END:VCALENDAR`;
               <ClipboardCheck className="w-5 h-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-500">Attendee Check-in</p>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(`${window.location.origin}/Checkin?t=${event.checkin_token}`);
-                    toast.success('Check-in link copied!');
-                  }}
-                  className="text-sm text-[#013f7c] hover:underline font-medium"
-                >
-                  Copy check-in link
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/Checkin?t=${event.checkin_token}`);
+                      toast.success('Check-in link copied!');
+                    }}
+                    className="text-sm text-[#013f7c] hover:underline font-medium"
+                  >
+                    Copy check-in link
+                  </button>
+                  <span className="text-gray-300">·</span>
+                  <button
+                    onClick={() => setShowQr(true)}
+                    className="text-sm text-[#013f7c] hover:underline font-medium"
+                  >
+                    Show QR code
+                  </button>
+                </div>
                 <p className="text-xs text-gray-400 mt-0.5">Share this in the calendar invite instead of the raw video link.</p>
               </div>
             </div>
@@ -679,6 +690,15 @@ END:VCALENDAR`;
           </div>
         )}
       </DialogContent>
+      {event.checkin_token && (
+        <CheckinQrDialog
+          open={showQr}
+          onOpenChange={setShowQr}
+          checkinUrl={`${window.location.origin}/Checkin?t=${event.checkin_token}`}
+          eventTitle={event.title}
+          eventDate={event.start_date}
+        />
+      )}
     </Dialog>
   );
 }
