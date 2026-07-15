@@ -183,6 +183,10 @@ export default function DeliveryEventRow({ event, allServices, getEventAssessmen
                       <QrCode className="w-4 h-4 mr-2" />
                       Show QR code
                     </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(`${window.location.origin}/Checkin?t=${event.checkin_token}&kiosk=1`); }}>
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy kiosk link <span className="text-xs text-gray-400 ml-1">— for a tablet at the door</span>
+                    </DropdownMenuItem>
                   </>
                 )}
               </DropdownMenuContent>

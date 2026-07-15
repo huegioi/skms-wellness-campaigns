@@ -17,6 +17,8 @@ export default function Checkin() {
   const [submitError, setSubmitError] = useState('');
   const [checkedIn, setCheckedIn] = useState(false);
   const [meetingLink, setMeetingLink] = useState(null);
+  const [kiosk, setKiosk] = useState(false);
+  const [kioskSuccess, setKioskSuccess] = useState(false);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -27,6 +29,7 @@ export default function Checkin() {
       return;
     }
     setToken(t);
+    setKiosk(urlParams.get('kiosk') === '1');
     base44.functions.invoke('getCheckinEvent', { token: t })
       .then(res => {
         setEventInfo(res.data);
@@ -45,7 +48,13 @@ export default function Checkin() {
     setSubmitError('');
     try {
       const res = await base44.functions.invoke('submitCheckin', { token, name, email });
-      if (res.data.meeting_link) {
+      if (kiosk) {
+        setKioskSuccess(true);
+        setName('');
+        setEmail('');
+        setSubmitError('');
+        setTimeout(() => setKioskSuccess(false), 2500);
+      } else if (res.data.meeting_link) {
         setMeetingLink(res.data.meeting_link);
         setTimeout(() => { window.location.href = res.data.meeting_link; }, 1000);
       } else {
@@ -80,6 +89,18 @@ export default function Checkin() {
           <img src={LOGO_URL} alt="SkillfulMeans" className="h-12 w-auto mx-auto mb-6" />
           <p className="text-gray-600">{error}</p>
           <p className="text-sm text-gray-400 mt-2">Please contact your session host for the correct link.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (kioskSuccess) {
+    return (
+      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+          <img src={LOGO_URL} alt="SkillfulMeans" className="h-12 w-auto mx-auto mb-6" />
+          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-gray-800">✓ You're checked in — welcome!</h1>
         </div>
       </div>
     );

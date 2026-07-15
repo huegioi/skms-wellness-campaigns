@@ -532,8 +532,18 @@ END:VCALENDAR`;
                   >
                     Show QR code
                   </button>
+                  <span className="text-gray-300">·</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/Checkin?t=${event.checkin_token}&kiosk=1`);
+                      toast.success('Kiosk link copied!');
+                    }}
+                    className="text-sm text-[#013f7c] hover:underline font-medium"
+                  >
+                    Copy kiosk link
+                  </button>
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5">Share this in the calendar invite instead of the raw video link.</p>
+                <p className="text-xs text-gray-400 mt-0.5">Share this in the calendar invite instead of the raw video link. Kiosk link is for a tablet at the door.</p>
               </div>
             </div>
           )}

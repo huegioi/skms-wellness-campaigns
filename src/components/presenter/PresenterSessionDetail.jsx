@@ -305,8 +305,17 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
                     <QrCode className="w-4 h-4" />
                     Show QR code
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopy(`${origin}/Checkin?t=${event.checkin_token}&kiosk=1`, 'kiosk')}
+                    className="gap-1.5 text-sm"
+                  >
+                    {copiedKey === 'kiosk' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    {copiedKey === 'kiosk' ? 'Copied!' : 'Copy kiosk link'}
+                  </Button>
                 </div>
-                <p className="text-xs text-gray-400 mt-1.5">Throw the QR on the room screen so attendees can check in.</p>
+                <p className="text-xs text-gray-400 mt-1.5">Throw the QR on the room screen so attendees can check in. Kiosk link is for a tablet at the door.</p>
               </div>
             )}
             <div className="pt-2">
