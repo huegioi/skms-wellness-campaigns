@@ -663,6 +663,127 @@ async function getKnowledge(base44, categories) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// BUILD DELIVERY CONTEXT — today/tomorrow sessions, presenter gaps,
+// challenge assessment gaps, unscheduled services, renewal review gaps.
+// Invoked by mayaDailyBriefing (action='delivery').
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function buildDeliveryContext(base44) {
+  const now = new Date();
+  const startToday = startOfDay(now);
+  const endTomorrow = new Date(startToday);
+  endTomorrow.setDate(endTomorrow.getDate() + 2);
+
+  const [services, allClients, events, proposals, cohortAssessments] = await Promise.all([
+    safeList(base44, 'Service', 'sort_order', 200),
+    safeList(base44, 'Client'),
+    safeFilter(base44, 'CalendarEvent', {}, '-start_date', 500),
+    safeFilter(base44, 'Proposal', { status: 'accepted' }, '-created_date', 200),
+    safeFilter(base44, 'CohortAssessment', {}, '-submitted_at', 500),
+  ]);
+
+  const clients = allClients.filter(c => !c.is_demo);
+  const cleanServices = services.filter(s => !s.is_demo);
+  const cleanEvents = events.filter(e => !e.is_demo);
+
+  // ── Today/tomorrow sessions with presenter-acceptance gaps ──
+  const todayTomorrow = cleanEvents
+    .filter(e => {
+      const d = new Date(e.start_date);
+      return d >= startToday && d < endTomorrow;
+    })
+    .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+  const presenterGaps = todayTomorrow.filter(e =>
+    !e.completed && e.presenter_accepted !== true
+  );
+
+  // ── Challenges missing day-0 / day-14 assessments ──
+  const clientChallengeMap = {};
+  for (const p of proposals) {
+    const sel = p.selections || {};
+    const chIds = (sel.challengePrograms || []);
+    if (chIds.length === 0) continue;
+    if (!clientChallengeMap[p.client_id]) clientChallengeMap[p.client_id] = new Set();
+    chIds.forEach(id => clientChallengeMap[p.client_id].add(id));
+  }
+
+  const challengeGaps = [];
+  for (const [clientId, svcIds] of Object.entries(clientChallengeMap)) {
+    const client = clients.find(c => c.id === clientId);
+    if (!client) continue;
+    let d0 = false, d14 = false;
+    for (const a of cohortAssessments) {
+      if (a.client_id !== clientId) continue;
+      if (!svcIds.has(a.service_id)) continue;
+      if (a.survey_type === 'challenge_day0') d0 = true;
+      if (a.survey_type === 'challenge_day14') d14 = true;
+    }
+    if (!d0 || !d14) {
+      challengeGaps.push({
+        client: client.company || client.name,
+        missing: [!d0 && 'Day 0', !d14 && 'Day 14'].filter(Boolean).join(' + '),
+      });
+    }
+  }
+
+  // ── Unscheduled services count (aggregate across active clients) ──
+  let unscheduledTotal = 0;
+  let clientsWithDelivery = 0;
+  for (const client of clients) {
+    const snap = computeDeliverySnapshot(client, proposals, cleanEvents, cleanServices, cohortAssessments, []);
+    if (snap.hasAcceptedProposals || snap.totalServices > 0) {
+      unscheduledTotal += snap.unscheduledCount;
+      clientsWithDelivery++;
+    }
+  }
+
+  // ── Renewal review gaps (only during an active cohort ramp) ──
+  const cohort = getActiveCohort(now);
+  let renewalReviewGaps = [];
+  if (cohort) {
+    const cohortClients = clients.filter(c => c.renewal_cohort === cohort.label);
+    const upcomingReviews = cleanEvents.filter(e => {
+      if (new Date(e.start_date) < startToday) return false;
+      return e.event_type === 'meeting' || /review|strategic|renewal/i.test(e.title || '');
+    });
+    const reviewedClientIds = new Set(upcomingReviews.map(e => e.client_id).filter(Boolean));
+    renewalReviewGaps = cohortClients
+      .filter(c => !reviewedClientIds.has(c.id))
+      .map(c => ({
+        client: c.company || c.name,
+        daysRemaining: daysUntilRenewal(c, now),
+        owner: c.owner || 'unassigned',
+      }))
+      .filter(g => g.daysRemaining !== null)
+      .sort((a, b) => a.daysRemaining - b.daysRemaining);
+  }
+
+  return {
+    todayTomorrowCount: todayTomorrow.length,
+    presenterGapCount: presenterGaps.length,
+    presenterGapSessions: presenterGaps.map(e => ({
+      title: e.title,
+      start: fmtDateTime(e.start_date),
+      client: e.client_name || '',
+      status: e.presenter_declined_at ? 'declined' : (e.presenter_id ? 'assigned-not-accepted' : 'unassigned'),
+    })),
+    todayTomorrowSessions: todayTomorrow.map(e => ({
+      title: e.title,
+      start: fmtDateTime(e.start_date),
+      client: e.client_name || '',
+      completed: !!e.completed,
+      presenterAccepted: e.presenter_accepted === true,
+    })),
+    challengeAssessmentGaps: challengeGaps,
+    unscheduledServicesTotal: unscheduledTotal,
+    clientsWithDelivery,
+    activeCohort: cohort,
+    renewalReviewGaps,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -697,6 +818,11 @@ Deno.serve(async (req) => {
 
     if (action === 'global') {
       const result = await buildGlobalContext(base44);
+      return Response.json(result);
+    }
+
+    if (action === 'delivery') {
+      const result = await buildDeliveryContext(base44);
       return Response.json(result);
     }
 

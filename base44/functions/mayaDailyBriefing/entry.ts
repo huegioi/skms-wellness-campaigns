@@ -36,16 +36,18 @@ Deno.serve(async (req) => {
   const currentThemes = SEASONAL_THEMES[currentMonthName] || [];
 
   // ── Fetch shared global context, knowledge base, and persona in parallel ──
-  const [ctxResponse, knowledgeResponse, personaResponse] = await Promise.all([
+  const [ctxResponse, knowledgeResponse, personaResponse, deliveryResponse] = await Promise.all([
     base44.functions.invoke('mayaContext', { action: 'global' }),
     base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'delivery'] }),
     base44.functions.invoke('mayaContext', { action: 'persona' }),
+    base44.functions.invoke('mayaContext', { action: 'delivery' }),
   ]);
   const { contextText: globalContext, data } = ctxResponse.data;
 
   const { clients, leads, partners, newInquiries } = data;
   const knowledgeText = knowledgeResponse.data.contextText || '';
   const MAYA_PERSONA = personaResponse.data.persona || '';
+  const delivery = deliveryResponse.data || {};
 
   // ── Fetch active campaigns separately (specific to daily briefing) ──
   let activeCampaigns = [];
@@ -136,6 +138,11 @@ Deno.serve(async (req) => {
     triggered_campaigns: triggeredCampaigns.length,
     stalled_tier1_partners: stalledPartners.length,
     new_inquiries: newInquiries.length,
+    delivery_sessions_today_tomorrow: delivery.todayTomorrowCount || 0,
+    delivery_presenter_gaps: delivery.presenterGapCount || 0,
+    delivery_challenge_gaps: (delivery.challengeAssessmentGaps || []).length,
+    delivery_unscheduled_services: delivery.unscheduledServicesTotal || 0,
+    renewal_review_gaps: (delivery.renewalReviewGaps || []).length,
   };
 
   // =========================================================
@@ -163,14 +170,20 @@ Write today's briefing using EXACTLY this format — no extra sections, no parag
 • [The single most relevant seasonal or campaign action for right now — one line]
 
 **Other**
-[1–2 sentences flagging anything else worth noting — stale data, upcoming deadline, a quick win, or new Quick Builder inquiries awaiting review.]
+[1–2 sentences flagging anything else worth noting — stale data, upcoming deadline, a quick win, or new Quick Builder inquiries awaiting review (by name).]
 
----
+**Delivery**
+[Today/tomorrow sessions: N scheduled, flag any with presenter-acceptance gaps by name. Challenges missing day-0/day-14 assessments: name the clients. Unscheduled services: N across M clients. One line per item, no sub-bullets.]
+
+${delivery.activeCohort ? `**Renewal**
+[List clients in the ${delivery.activeCohort.label} cohort without a booked strategic review, sorted by days remaining — name each with days out. Omit if none.]
+
+` : ''}---
 
 RULES:
 - Each to-do is ONE line: name + action only. No sub-bullets, no explanations.
 - If a section has fewer than 3 real items, write as many as the data supports — do not invent names.
-- Total output should be under 200 words.
+- Total output should be under 250 words.
 
 DATA (use this — do not repeat it verbatim):
 
@@ -197,13 +210,20 @@ Stalled Tier 1 partners (60+ days no touchpoint): ${stalledPartners.slice(0,4).m
 Active partners total: ${activePartnerCount}
 Active clients total: ${activeClientCount}
 
-New Quick Builder inquiries (awaiting first contact): ${newInquiries.slice(0,5).map(l => (l.company || l.name) + ' (team: ' + (l.company_size || '?') + ', ' + (l.quickbuilder_selections?.length || 0) + ' services selected, submitted: ' + (l.created_date ? new Date(l.created_date).toLocaleDateString() : 'recently') + ')').join('; ') || 'none'}
+New Quick Builder inquiries (awaiting first contact): ${newInquiries.slice(0,5).map(l => l.name + (l.company ? ' at ' + l.company : '') + ' (team: ' + (l.company_size || '?') + ', ' + (l.quickbuilder_selections?.length || 0) + ' services selected, submitted: ' + (l.created_date ? new Date(l.created_date).toLocaleDateString() : 'recently') + ')').join('; ') || 'none'}
 
 GLOBAL CONTEXT (service catalog, pipeline counts, renewal season):
 ${globalContext}
 
 KNOWLEDGE BASE (sales process + delivery):
-${knowledgeText}`;
+${knowledgeText}
+
+DELIVERY INTELLIGENCE:
+Today/tomorrow sessions (${delivery.todayTomorrowCount || 0}): ${delivery.todayTomorrowSessions?.map(s => `${s.title} — ${s.start} (${s.client || 'no client'}${s.completed ? ', ✓done' : ''}${s.presenterAccepted ? '' : ', presenter NOT accepted'})`).join('; ') || 'none'}
+Presenter-acceptance gaps (${delivery.presenterGapCount || 0}): ${delivery.presenterGapSessions?.map(s => `${s.title} (${s.client || 'no client'}, ${s.status})`).join('; ') || 'none'}
+Challenges missing assessments: ${delivery.challengeAssessmentGaps?.map(g => `${g.client} (missing ${g.missing})`).join('; ') || 'none'}
+Unscheduled services: ${delivery.unscheduledServicesTotal || 0} across ${delivery.clientsWithDelivery || 0} client(s)
+${delivery.activeCohort ? `Renewal ramp active: ${delivery.activeCohort.label} cohort, ${delivery.activeCohort.daysRemaining} days remaining. Clients without booked reviews: ${delivery.renewalReviewGaps?.slice(0,8).map(g => `${g.client} (${g.daysRemaining}d, owner: ${g.owner})`).join('; ') || 'none'}` : 'No active renewal ramp.'}`;
 
   let briefing;
   try {
@@ -215,7 +235,13 @@ ${knowledgeText}`;
     const clientItems = silentClients.slice(0,3).map((c,i) => `${i+1}. ${c.company || c.name} — Re-engage, last contact ${c.last_contacted_date || 'unknown'}`).join('\n') || '1. Review client pipeline';
     const partnerItems = overduePartners.slice(0,3).map((l,i) => `${i+1}. ${l.name} — Follow up (overdue ${l.follow_up_due_date})`).join('\n') || '1. Review partner pipeline';
     const campaignItem = triggeredCampaigns.length > 0 ? `• ${triggeredCampaigns[0].campaign.name} — ${triggeredCampaigns[0].label}` : `• Review ${currentMonthName} seasonal themes`;
-    briefing = `Today is ${todayStr}. ${stats.silent_clients} clients need re-engagement and ${stats.overdue_partners} partner follow-ups are overdue. Start with your most at-risk client relationship.\n\n**Client To-Dos**\n${clientItems}\n\n**Partner To-Dos**\n${partnerItems}\n\n**Campaign To-Do**\n${campaignItem}\n\n**Other**\n${stats.renewal_clients} client(s) are in their 90-day renewal window.\n\n_Maya timed out — refresh to regenerate._`;
+    const deliveryFallback = delivery.todayTomorrowCount
+      ? `\n\n**Delivery**\n${delivery.todayTomorrowCount} session(s) today/tomorrow${delivery.presenterGapCount ? `, ${delivery.presenterGapCount} with presenter gaps` : ''}. ${delivery.challengeAssessmentGaps?.length || 0} challenge(s) missing assessments. ${delivery.unscheduledServicesTotal || 0} unscheduled service(s) across ${delivery.clientsWithDelivery || 0} client(s).`
+      : `\n\n**Delivery**\nNo sessions today/tomorrow. ${delivery.unscheduledServicesTotal || 0} unscheduled service(s) across ${delivery.clientsWithDelivery || 0} client(s).`;
+    const renewalFallback = delivery.activeCohort && delivery.renewalReviewGaps?.length
+      ? `\n\n**Renewal**\n${delivery.renewalReviewGaps.slice(0,3).map(g => `${g.client} (${g.daysRemaining}d)`).join('; ')} — no booked review.`
+      : '';
+    briefing = `Today is ${todayStr}. ${stats.silent_clients} clients need re-engagement and ${stats.overdue_partners} partner follow-ups are overdue. Start with your most at-risk client relationship.\n\n**Client To-Dos**\n${clientItems}\n\n**Partner To-Dos**\n${partnerItems}\n\n**Campaign To-Do**\n${campaignItem}\n\n**Other**\n${stats.renewal_clients} client(s) are in their 90-day renewal window.${deliveryFallback}${renewalFallback}\n\n_Maya timed out — refresh to regenerate._`;
   }
 
   return Response.json({
