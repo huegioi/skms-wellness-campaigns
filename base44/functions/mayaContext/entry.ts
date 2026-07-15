@@ -17,6 +17,10 @@ const MAYA_PERSONA = `You are Maya, SkillfulMeans' operations and sales intellig
 
 Rules: ground every suggestion in the provided context and name the evidence ('proposal viewed twice, no touch in 9 days'). If context is missing, say what you'd need rather than guessing. Never invent services, prices, or history. Draft communications for humans to send — never imply you sent anything. Keep suggestions to the 2–3 highest-leverage actions.`;
 
+// ── Pricing rules (appended to the global service catalog) ──────────────────
+const PRICING_RULES = `PRICING RULES:
+Challenge pricing is volume-tiered: ≤150 employees ≈ 40 slots @ $27 ≈ $1,080 per challenge; ~300 employees ≈ 60 @ $24; larger orgs get lower per-person rates. Wellness boxes: physical ~$100/box, digital $30 + gift-card value. These are estimate rates — final pricing is always set in William's proposal; quote as 'typically' or 'from', never as binding.`;
+
 // ── Renewal logic (ported from src/lib/renewal.js — keep in sync) ──────────
 
 const RAMP_DAYS = 90;
@@ -550,7 +554,7 @@ async function buildGlobalContext(base44) {
     const lines = services.map(s =>
       `- ${s.name} [${s.category}] — ${s.short_description || (s.description ? s.description.slice(0, 80) : 'No description')}${s.price ? ` | ${fmtMoney(s.price)}` : ''}`
     ).join('\n');
-    sections.push(`SERVICE CATALOG (${services.length} services):\n${lines}`);
+    sections.push(`SERVICE CATALOG (${services.length} services):\n${lines}\n\n${PRICING_RULES}`);
   } else {
     gaps.push('No services in catalog');
   }
