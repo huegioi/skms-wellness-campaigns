@@ -21,7 +21,10 @@ import QuickBuilder from './pages/QuickBuilder';
 import Demo from './pages/Demo';
 import MayaKnowledge from './pages/MayaKnowledge';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { isPublicPath } from '@/lib/publicPaths';
+import { useGlobalAuthErrorHandler } from '@/lib/useGlobalAuthErrorHandler';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import SessionExpiredScreen from '@/components/SessionExpiredScreen';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -33,6 +36,7 @@ const LayoutWrapper = ({ children, currentPageName }) => Layout ?
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, isAuthenticated, navigateToLogin } = useAuth();
+  const sessionExpired = useGlobalAuthErrorHandler();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -43,22 +47,31 @@ const AuthenticatedApp = () => {
     );
   }
 
-  // Handle authentication errors
-  if (authError) {
-    // Allow public pages to render even without auth
-    const publicPaths = ['/ReferralPortal', '/ViewProposal', '/FeedbackForm', '/ClientPortal', '/AttendeeForm', '/ClientReport', '/PresenterPortal', '/CohortAssessment', '/QuickBuilder'];
-    const isPublicPage = publicPaths.some(p => window.location.pathname === p || window.location.pathname.startsWith(p));
+  const isPublicPage = isPublicPath();
 
+  // Handle authentication errors (expired token, app-level rejects)
+  if (authError) {
     if (authError.type === 'user_not_registered') {
       return <UserNotRegisteredError />;
-    } else if (authError.type === 'auth_required') {
-      if (isPublicPage) {
-        // Render routes without forcing login for public pages
-      } else {
-        navigateToLogin();
-        return null;
-      }
     }
+    if (authError.type === 'auth_required' && !isPublicPage) {
+      navigateToLogin();
+      return null;
+    }
+    // For public pages with an auth error, fall through to render routes
+  }
+
+  // No active session and not a public page → redirect to login immediately.
+  // Never render the admin layout unauthenticated (fresh domain / no token).
+  if (!isAuthenticated && !isPublicPage) {
+    navigateToLogin();
+    return null;
+  }
+
+  // Token expired mid-session — entity reads are 401ing. Show a clear
+  // "Session expired" screen instead of silently empty-state UI.
+  if (sessionExpired && !isPublicPage) {
+    return <SessionExpiredScreen />;
   }
 
   // Render the main app
