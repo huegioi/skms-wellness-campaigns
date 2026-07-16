@@ -89,7 +89,7 @@ function PartnerAlertBadges({ partner, referrals, assist, onLogTouch }) {
   );
 }
 
-function StageColumn({ stage, partners, referrals, latestTouchByPartner, nextEventByPartner, renewalAssistByPartner, onLogTouch, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onCopyLink, copiedId, onSelectPartner, onDelete }) {
+function StageColumn({ stage, partners, referrals, latestTouchByPartner, nextEventByPartner, renewalAssistByPartner, onLogTouch, onLogLinkedinTouch, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onCopyLink, copiedId, onSelectPartner, onDelete }) {
   return (
     <div className="w-56 flex-shrink-0">
       <div className={`rounded-t-lg border px-3 py-2 mb-2 ${stage.headerClass}`}>
@@ -149,6 +149,8 @@ function StageColumn({ stage, partners, referrals, latestTouchByPartner, nextEve
                         />
                       }
                       accentColor="#013f7c"
+                      linkedinUrl={partner.linkedin_url}
+                      onLogLinkedinTouch={(note) => onLogLinkedinTouch(partner.id, note)}
                       extraActions={
                         <>
                           <button
@@ -249,6 +251,12 @@ export default function PartnerPipelineView({ partners, referrals, onSelectPartn
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
 
+  const handleLogLinkedinTouch = async (partnerId, note) => {
+    await base44.functions.invoke('logLinkedinTouch', { entityType: 'partner', entityId: partnerId, note });
+    queryClient.invalidateQueries({ queryKey: ['interactions-partner-pipeline'] });
+    queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
+  };
+
   const handleOwnerChange = async (partnerId, owner) => {
     await base44.entities.ReferralPartner.update(partnerId, { owner });
     refresh();
@@ -322,6 +330,7 @@ export default function PartnerPipelineView({ partners, referrals, onSelectPartn
     onTagsChange: handleTagsChange,
     onFollowUpDateChange: handleFollowUpDateChange,
     onLogNote: handleLogNote,
+    onLogLinkedinTouch: handleLogLinkedinTouch,
     onCopyLink: handleCopyLink,
     copiedId,
     onSelectPartner,

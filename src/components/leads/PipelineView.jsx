@@ -121,6 +121,8 @@ function StatusColumn({ col, leads, handlers, latestTouchByLead, nextEventByLead
                     onDelete={handlers.onDelete}
                     alertBadges={<LeadAlertBadges lead={lead} />}
                     accentColor={accent}
+                    linkedinUrl={lead.linkedin_url}
+                    onLogLinkedinTouch={(note) => handlers.onLogLinkedinTouch(lead.id, note)}
                     activityStrip={
                       <ActivityStrip
                         touchDate={latestTouchByLead[lead.id]?.date || lead.last_contacted_date}
@@ -336,6 +338,12 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
     }
   };
 
+  const handleLogLinkedinTouch = async (leadId, note) => {
+    await base44.functions.invoke('logLinkedinTouch', { entityType: 'lead', entityId: leadId, note });
+    queryClient.invalidateQueries({ queryKey: ['interactions-pipeline'] });
+    queryClient.invalidateQueries({ queryKey: ['leads'] });
+  };
+
   const handlers = {
     onStatusChange: handleStatusChange,
     onStageChange: handleStageChange,
@@ -345,6 +353,7 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
     onLogNote: handleLogNote,
     onOpenDetail: onSelectLead,
     onDelete: handleDelete,
+    onLogLinkedinTouch: handleLogLinkedinTouch,
   };
 
   // Split leads: engagement vs status pipeline

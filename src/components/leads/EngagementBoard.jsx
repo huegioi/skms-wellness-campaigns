@@ -218,6 +218,8 @@ function EngagementColumn({ stage, leads, handlers }) {
                     onDelete={handlers.onDelete}
                     alertBadges={<LeadAlertBadges lead={lead} />}
                     accentColor={accentColor}
+                    linkedinUrl={lead.linkedin_url}
+                    onLogLinkedinTouch={(note) => handlers.onLogLinkedinTouch(lead.id, note)}
                   />
                 )}
               </Draggable>

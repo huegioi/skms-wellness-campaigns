@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, Phone, MessageSquare, Users, Clock, Calendar, AlertTriangle } from 'lucide-react';
+import { Mail, Phone, MessageSquare, Users, Clock, Calendar, AlertTriangle, Linkedin } from 'lucide-react';
 import { format, parseISO, differenceInDays, isValid } from 'date-fns';
 import { OwnerChip } from '@/components/shared/inline/OwnerChip';
 import { FollowUpDatePill } from '@/components/shared/inline/FollowUpDatePill';
@@ -9,7 +9,7 @@ const CHANNEL_META = {
   call:     { icon: Phone,           label: 'called' },
   phone:    { icon: Phone,           label: 'called' },
   text:     { icon: MessageSquare,   label: 'texted' },
-  linkedin: { icon: MessageSquare,   label: 'LinkedIn' },
+  linkedin: { icon: Linkedin,        label: 'LinkedIn' },
   meeting:  { icon: Users,           label: 'met' },
   referral: { icon: Users,           label: 'referred' },
   event:    { icon: Calendar,        label: 'event' },

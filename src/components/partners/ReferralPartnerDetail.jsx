@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Copy, ExternalLink, Check, User, DollarSign, Users, FileText, StickyNote, RefreshCw, Mail } from 'lucide-react';
+import { Copy, ExternalLink, Check, User, DollarSign, Users, FileText, StickyNote, RefreshCw, Mail, Linkedin } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import RecordSnapshotHeader from '@/components/shared/RecordSnapshotHeader';
@@ -218,6 +218,16 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
               <InlineText label="Secondary Email" value={partner.email2} onSave={v => handleUpdate({ email2: v })} placeholder="Add secondary email" />
             </div>
             <InlineText label="Phone" value={partner.phone} onSave={v => handleUpdate({ phone: v })} />
+            <div className="sm:col-span-2">
+              <InlineText label="LinkedIn URL" value={partner.linkedin_url} onSave={v => handleUpdate({ linkedin_url: v })} placeholder="https://linkedin.com/in/..." />
+            </div>
+            {partner.linkedin_url && (
+              <div className="sm:col-span-2">
+                <a href={partner.linkedin_url.startsWith('http') ? partner.linkedin_url : `https://${partner.linkedin_url}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#0a66c2] hover:underline">
+                  <Linkedin className="w-4 h-4" />Open LinkedIn Profile
+                </a>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <InlineText label="Address" value={partner.address} onSave={v => handleUpdate({ address: v })} />
             </div>

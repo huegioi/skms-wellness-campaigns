@@ -24,6 +24,10 @@
       "type": "string",
       "description": "Phone number"
     },
+    "linkedin_url": {
+      "type": "string",
+      "description": "LinkedIn profile URL"
+    },
     "title": {
       "type": "string",
       "description": "Job title"

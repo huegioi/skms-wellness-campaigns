@@ -24,6 +24,10 @@
       "type": "string",
       "description": "Partner's phone number"
     },
+    "linkedin_url": {
+      "type": "string",
+      "description": "LinkedIn profile URL"
+    },
     "address": {
       "type": "string",
       "description": "Partner's mailing or office address"

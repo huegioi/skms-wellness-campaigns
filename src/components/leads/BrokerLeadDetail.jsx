@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, DollarSign, ChevronDown, Pencil, Wand2, UserPlus } from 'lucide-react';
+import { Building, Mail, Phone, User, Star, ExternalLink, FileText, Plus, Trash2, CheckCircle, Clock, DollarSign, ChevronDown, Pencil, Wand2, UserPlus, Linkedin } from 'lucide-react';
 import ConvertReferralToClientDialog from '@/components/referrals/ConvertReferralToClientDialog';
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -134,7 +134,7 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
   const partnerCfg = PARTNER_STATUS_CONFIG[lead.partner_status || 'new'] || PARTNER_STATUS_CONFIG.new;
   const isActive = lead.partner_status === 'active_partner';
   const sourceParts = (lead.source || '').split(' | ');
-  const linkedinUrl = sourceParts[1] || '';
+  const linkedinUrl = lead.linkedin_url || sourceParts[1] || '';
 
   const daysSince = (dateStr) => {
     if (!dateStr) return null;
@@ -403,10 +403,13 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
                 <InlineText label="Email" value={lead.email} onSave={v => handleFieldUpdate({ email: v })} />
                 <InlineText label="Phone" value={lead.phone} onSave={v => handleFieldUpdate({ phone: v })} />
                 <InlineText label="Industry" value={lead.industry} onSave={v => handleFieldUpdate({ industry: v })} />
+                <div className="sm:col-span-2">
+                  <InlineText label="LinkedIn URL" value={lead.linkedin_url} onSave={v => handleFieldUpdate({ linkedin_url: v })} placeholder="https://linkedin.com/in/..." />
+                </div>
                 {linkedinUrl && (
                   <div className="sm:col-span-2">
-                    <a href={linkedinUrl.startsWith('http') ? linkedinUrl : `https://${linkedinUrl}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-blue-500 hover:underline">
-                      <ExternalLink className="w-4 h-4" />LinkedIn
+                    <a href={linkedinUrl.startsWith('http') ? linkedinUrl : `https://${linkedinUrl}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#0a66c2] hover:underline">
+                      <Linkedin className="w-4 h-4" />LinkedIn
                     </a>
                   </div>
                 )}

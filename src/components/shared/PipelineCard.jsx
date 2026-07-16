@@ -1,6 +1,9 @@
-import React from 'react';
-import { MoreVertical, StickyNote, ExternalLink, BookOpen, Trash2, GripVertical } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MoreVertical, StickyNote, ExternalLink, BookOpen, Trash2, GripVertical, Linkedin, Check, Loader2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { OwnerChip } from '@/components/shared/inline/OwnerChip';
 import { FollowUpDatePill } from '@/components/shared/inline/FollowUpDatePill';
 import { StageControl } from '@/components/shared/inline/StageControl';
@@ -26,10 +29,60 @@ export function PipelineCard({
   activityStrip,
   extraActions,
   accentColor = '#264d44',
+  linkedinUrl,
+  onLogLinkedinTouch,
 }) {
   const isDragging = snapshot?.isDragging;
 
+  // ── LinkedIn touch state ──
+  const [liLogged, setLiLogged] = useState(false);
+  const [liLogging, setLiLogging] = useState(false);
+  const [showLiConfirm, setShowLiConfirm] = useState(false);
+  const [showLiNote, setShowLiNote] = useState(false);
+  const [liNoteText, setLiNoteText] = useState('');
+
+  // 60-second auto-dismiss for the open-and-confirm banner
+  useEffect(() => {
+    if (!showLiConfirm) return;
+    const t = setTimeout(() => setShowLiConfirm(false), 60000);
+    return () => clearTimeout(t);
+  }, [showLiConfirm]);
+
+  const doLogLi = async (note) => {
+    setLiLogging(true);
+    try {
+      await onLogLinkedinTouch?.(note);
+      setLiLogged(true);
+      setTimeout(() => setLiLogged(false), 2000);
+    } finally {
+      setLiLogging(false);
+    }
+  };
+
+  const handleProfileClick = (e) => {
+    e.stopPropagation();
+    setShowLiConfirm(true);
+  };
+
+  const handleConfirmYes = (e) => {
+    e.stopPropagation();
+    setShowLiConfirm(false);
+    doLogLi();
+  };
+
+  const handleConfirmNo = (e) => {
+    e.stopPropagation();
+    setShowLiConfirm(false);
+  };
+
+  const handleLiNoteSave = () => {
+    setShowLiNote(false);
+    doLogLi(liNoteText.trim() || undefined);
+    setLiNoteText('');
+  };
+
   return (
+    <>
     <div
       ref={provided?.innerRef}
       {...provided?.draggableProps}
@@ -48,6 +101,28 @@ export function PipelineCard({
         </div>
         <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0 flex items-center gap-0.5">
           {extraActions}
+          {onLogLinkedinTouch && (
+            <button
+              onClick={(e) => { e.stopPropagation(); doLogLi(); }}
+              disabled={liLogging}
+              className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-[#0a66c2] transition-colors disabled:opacity-50"
+              title="Log LinkedIn touch"
+            >
+              {liLogged ? <Check className="w-3.5 h-3.5 text-green-600" /> : liLogging ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Linkedin className="w-3.5 h-3.5" />}
+            </button>
+          )}
+          {linkedinUrl && (
+            <a
+              href={linkedinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleProfileClick}
+              className="p-0.5 rounded hover:bg-gray-100 text-[#0a66c2] transition-colors"
+              title="Open LinkedIn profile"
+            >
+              <Linkedin className="w-3.5 h-3.5" />
+            </a>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
@@ -58,6 +133,11 @@ export function PipelineCard({
               <DropdownMenuItem className="gap-2" onClick={() => onLogNote(record)}>
                 <StickyNote className="w-4 h-4" /> Log Note
               </DropdownMenuItem>
+              {onLogLinkedinTouch && (
+                <DropdownMenuItem className="gap-2" onClick={() => setShowLiNote(true)}>
+                  <Linkedin className="w-4 h-4" /> LinkedIn message + note
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem className="gap-2" onClick={() => onOpenDetail(record)}>
                 <ExternalLink className="w-4 h-4" /> Open Detail
               </DropdownMenuItem>
@@ -81,6 +161,28 @@ export function PipelineCard({
           </DropdownMenu>
         </div>
       </div>
+
+      {/* LinkedIn open-and-confirm banner (60s auto-dismiss) */}
+      {showLiConfirm && (
+        <div className="mb-1.5 rounded-md bg-[#0a66c2]/5 border border-[#0a66c2]/20 px-2.5 py-1.5" onClick={(e) => e.stopPropagation()}>
+          <p className="text-[11px] text-gray-600 mb-1">Did you message them?</p>
+          <div className="flex gap-1.5">
+            <button
+              onClick={handleConfirmYes}
+              disabled={liLogging}
+              className="text-[11px] font-semibold px-2 py-0.5 rounded bg-[#0a66c2] text-white hover:bg-[#005182] disabled:opacity-50"
+            >
+              {liLogging ? '...' : 'Yes, log it'}
+            </button>
+            <button
+              onClick={handleConfirmNo}
+              className="text-[11px] font-medium px-2 py-0.5 rounded text-gray-500 hover:bg-gray-100"
+            >
+              No
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Line 2: Owner + Follow-up date (or activity strip when provided) */}
       {activityStrip ? (
@@ -117,6 +219,34 @@ export function PipelineCard({
         </div>
       )}
     </div>
+
+    {/* LinkedIn message + note dialog */}
+    <Dialog open={showLiNote} onOpenChange={(v) => !v && setShowLiNote(false)}>
+      <DialogContent className="max-w-sm w-[95vw]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Linkedin className="w-4 h-4 text-[#0a66c2]" /> LinkedIn message + note
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 mt-2">
+          <Textarea
+            placeholder="What did you say? (optional)"
+            rows={3}
+            value={liNoteText}
+            onChange={(e) => setLiNoteText(e.target.value)}
+            autoFocus
+          />
+          <div className="flex gap-2">
+            <Button className="flex-1 bg-[#0a66c2] hover:bg-[#005182]" onClick={handleLiNoteSave} disabled={liLogging}>
+              {liLogging ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Log Touch
+            </Button>
+            <Button variant="outline" onClick={() => setShowLiNote(false)}>Cancel</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

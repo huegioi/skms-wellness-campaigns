@@ -12,7 +12,7 @@ import {
   User, Building, Mail, Phone, Globe, MapPin, DollarSign, Users, Calendar,
   Plus, Pencil, Trash2, FileText, MessageSquare, PhoneCall, Video, StickyNote,
   ChevronRight, Clock, CheckCircle, XCircle, Eye, Send, Package, Award, ListTodo,
-  Upload, ExternalLink, X, RefreshCw, FolderOpen, Link as LinkIcon
+  Upload, ExternalLink, X, RefreshCw, FolderOpen, Link as LinkIcon, Linkedin
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -367,6 +367,16 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             </div>
             <InlineText label="Phone" value={client.phone} onSave={v => onUpdate({ phone: v })} />
             <InlineText label="Title" value={client.title} onSave={v => onUpdate({ title: v })} />
+            <div className="sm:col-span-2">
+              <InlineText label="LinkedIn URL" value={client.linkedin_url} onSave={v => onUpdate({ linkedin_url: v })} placeholder="https://linkedin.com/in/..." />
+            </div>
+            {client.linkedin_url && (
+              <div className="sm:col-span-2">
+                <a href={client.linkedin_url.startsWith('http') ? client.linkedin_url : `https://${client.linkedin_url}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-[#0a66c2] hover:underline">
+                  <Linkedin className="w-4 h-4" />Open LinkedIn Profile
+                </a>
+              </div>
+            )}
           </CollapsibleFieldSection>
 
           <CollapsibleFieldSection title="Company Details" icon={Building} defaultOpen>
