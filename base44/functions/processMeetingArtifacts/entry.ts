@@ -7,14 +7,42 @@ Deno.serve(async (req) => {
     // Works headless (scheduled) — all operations use service role.
     try { await base44.auth.me(); } catch { /* headless — ok */ }
 
+    // Parse optional payload for backfill mode.
+    let backfillDays = null;
+    try {
+      const body = await req.json();
+      if (body && typeof body.backfill_days === 'number') {
+        backfillDays = body.backfill_days;
+      }
+    } catch { /* no body or not JSON — normal scheduled run */ }
+
     const now = Date.now();
-    const fortyEightHoursAgo = new Date(now - 48 * 60 * 60 * 1000).toISOString();
+    const lookbackMs = backfillDays
+      ? backfillDays * 24 * 60 * 60 * 1000
+      : 48 * 60 * 60 * 1000;
+    const cutoff = new Date(now - lookbackMs).toISOString();
 
-    // Fetch recent CalendarEvents (sorted by start_date desc, limit 200)
-    const events = await base44.asServiceRole.entities.CalendarEvent.list('-start_date', 200);
+    // Fetch CalendarEvents in the lookback window. For backfill mode (large
+    // windows), paginate via start_date cursor since a single page is capped.
+    const events = [];
+    const pageSize = 200;
+    let cursor = null; // start_date upper bound for the next page
+    const maxPages = backfillDays ? 20 : 1; // up to 4000 events for backfill
 
-    // Filter candidates: ended within last 48h, has google_event_id, from a watched
-    // calendar (not 'sheet'), linked to a contact, not demo.
+    for (let page = 0; page < maxPages; page++) {
+      const query = { start_date: { $gte: cutoff } };
+      if (cursor) query.start_date.$lt = cursor;
+      const batch = await base44.asServiceRole.entities.CalendarEvent.filter(
+        query, '-start_date', pageSize
+      );
+      if (!batch || batch.length === 0) break;
+      events.push(...batch);
+      if (batch.length < pageSize) break; // no more pages
+      cursor = batch[batch.length - 1].start_date; // oldest in this batch
+    }
+
+    // Filter candidates: ended within lookback window, has google_event_id,
+    // from a watched calendar (not 'sheet'), linked to a contact, not demo.
     const candidates = events.filter(e => {
       if (e.is_demo) return false;
       if (!e.google_event_id) return false;
@@ -22,13 +50,13 @@ Deno.serve(async (req) => {
       if (!e.lead_id && !e.client_id && !e.referral_partner_id) return false;
       const endRef = e.end_date ? new Date(e.end_date) : new Date(e.start_date);
       if (isNaN(endRef.getTime())) return false;
-      if (endRef < new Date(fortyEightHoursAgo)) return false;
+      if (endRef < new Date(cutoff)) return false;
       if (endRef > new Date(now)) return false; // hasn't ended yet
       return true;
     });
 
     if (candidates.length === 0) {
-      return Response.json({ status: 'ok', message: 'No candidate events', processed: 0, inaccessible: 0, skipped: 0, inaccessibleDocs: [] });
+      return Response.json({ status: 'ok', mode: backfillDays ? `backfill_${backfillDays}d` : 'scheduled', message: 'No candidate events', processed: 0, inaccessible: 0, skipped: 0, inaccessibleDocs: [] });
     }
 
     // Get connector access tokens
@@ -209,6 +237,8 @@ Deno.serve(async (req) => {
 
     return Response.json({
       status: 'ok',
+      mode: backfillDays ? `backfill_${backfillDays}d` : 'scheduled',
+      eventsScanned: events.length,
       candidates: candidates.length,
       processed,
       inaccessible,
