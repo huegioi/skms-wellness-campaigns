@@ -344,8 +344,8 @@ Deno.serve(async (req) => {
     let isScheduled = false;
     try {
       const user = await base44.auth.me();
-      if (user && user.role !== 'admin') {
-        return Response.json({ error: 'Admin only' }, { status: 403 });
+      if (user && !isTeamMember(user)) {
+        return Response.json({ error: 'Team only' }, { status: 403 });
       }
     } catch {
       // No user session — assume scheduled/service call

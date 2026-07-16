@@ -4,7 +4,7 @@
   "properties": {
     "email": {
       "type": "string",
-      "description": "Email address of the deleted contact \u2014 used to block re-import from syncs"
+      "description": "Email address of the deleted contact — used to block re-import from syncs"
     },
     "name": {
       "type": "string",
@@ -35,5 +35,27 @@
   "required": [
     "email",
     "contact_type"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

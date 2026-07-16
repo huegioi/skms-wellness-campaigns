@@ -339,7 +339,7 @@
     "stage_entered_date": {
       "type": "string",
       "format": "date",
-      "description": "Date the client entered the current stage \u2014 used for stall detection"
+      "description": "Date the client entered the current stage — used for stall detection"
     },
     "follow_up_due_date": {
       "type": "string",
@@ -363,22 +363,42 @@
   "rls": {
     "create": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "read": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "update": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "delete": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     }
   }

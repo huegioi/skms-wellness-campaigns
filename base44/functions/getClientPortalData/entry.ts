@@ -7,6 +7,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  * client_id: caller must be an admin; non-admins get 403.
  * Returns: client, proposals, events (projected), email_templates, services.
  */
+
+const TEAM_EMAILS = (Deno.env.get("TEAM_EMAILS") || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
+const isTeamMember = (user) => user && (user.role === 'admin' || TEAM_EMAILS.includes((user.email || "").toLowerCase()));
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -25,7 +28,7 @@ Deno.serve(async (req) => {
     } else if (client_id) {
       // Admin preview — must be authenticated admin
       const user = await base44.auth.me();
-      if (user?.role !== 'admin') {
+      if (!user || !isTeamMember(user)) {
         return Response.json({ error: 'Forbidden' }, { status: 403 });
       }
       const byId = await base44.asServiceRole.entities.Client.filter({ id: client_id });

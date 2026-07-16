@@ -41,6 +41,9 @@ function mergeLeads(a, b) {
   return { winner, loser, mergedData: merged };
 }
 
+
+const TEAM_EMAILS = (Deno.env.get("TEAM_EMAILS") || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
+const isTeamMember = (user) => user && (user.role === 'admin' || TEAM_EMAILS.includes((user.email || "").toLowerCase()));
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
 
@@ -53,7 +56,7 @@ Deno.serve(async (req) => {
 
   if (!isScheduled) {
     const user = await base44.auth.me();
-    if (!user || user.role !== 'admin') {
+    if (!user || !isTeamMember(user)) {
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     }
   }

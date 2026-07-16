@@ -16,7 +16,7 @@
     },
     "participant_email": {
       "type": "string",
-      "description": "Participant email (lowercased + trimmed) \u2014 used as the person key for pairing"
+      "description": "Participant email (lowercased + trimmed) — used as the person key for pairing"
     },
     "participant_phone": {
       "type": "string",
@@ -121,17 +121,32 @@
     "create": true,
     "read": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "update": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "delete": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     }
   }

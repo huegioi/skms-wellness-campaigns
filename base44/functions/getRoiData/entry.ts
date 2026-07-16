@@ -66,6 +66,9 @@ async function fetchCheckinsForClients(base44, clientIds) {
   }));
 }
 
+
+const TEAM_EMAILS = (Deno.env.get("TEAM_EMAILS") || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
+const isTeamMember = (user) => user && (user.role === 'admin' || TEAM_EMAILS.includes((user.email || "").toLowerCase()));
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -135,7 +138,7 @@ Deno.serve(async (req) => {
     if (!allowed) {
       try {
         const user = await base44.auth.me();
-        if (user?.role === 'admin') {
+        if (isTeamMember(user)) {
           allowed = true;
         }
       } catch { /* not authenticated — fall through to denied */ }

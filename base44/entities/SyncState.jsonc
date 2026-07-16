@@ -8,10 +8,32 @@
     },
     "page_token": {
       "type": "string",
-      "description": "Google Drive Changes API page token \u2014 persisted between webhook invocations"
+      "description": "Google Drive Changes API page token — persisted between webhook invocations"
     }
   },
   "required": [
     "page_token"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
 }

@@ -35,17 +35,32 @@
     "create": true,
     "read": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "update": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "delete": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     }
   }

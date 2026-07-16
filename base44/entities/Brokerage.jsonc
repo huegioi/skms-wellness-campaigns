@@ -48,7 +48,7 @@
     "broker_split": {
       "type": "number",
       "default": 0.5,
-      "description": "The broker's fraction of total commission when both brokerage and broker commission are enabled (0\u20131)"
+      "description": "The broker's fraction of total commission when both brokerage and broker commission are enabled (0–1)"
     },
     "is_demo": {
       "type": "boolean",
@@ -62,22 +62,42 @@
   "rls": {
     "create": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "read": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "update": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "delete": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     }
   }

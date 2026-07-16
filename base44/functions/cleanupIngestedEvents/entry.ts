@@ -7,6 +7,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user || user.role !== 'admin') {
+      return Response.json({ error: 'Admin only' }, { status: 403 });
+    }
 
     // Fetch all CalendarEvents (sorted newest-first so today's ingested events are on top)
     const allEvents = await base44.asServiceRole.entities.CalendarEvent.list('-created_date', 500);

@@ -4,12 +4,15 @@ const SPREADSHEET_ID = '1QyVdp7XWFfUkZyqLMVn6P39X84WgYWOHfqI2US7WKWk';
 const DEFAULT_TAB_NAME = 'Referral Partners';
 const CHUNK_SIZE = 50;
 
+
+const TEAM_EMAILS = (Deno.env.get("TEAM_EMAILS") || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
+const isTeamMember = (user) => user && (user.role === 'admin' || TEAM_EMAILS.includes((user.email || "").toLowerCase()));
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
-    if (!user || user.role !== 'admin') {
-      return Response.json({ error: 'Unauthorized — admin only' }, { status: 403 });
+    if (!user || !isTeamMember(user)) {
+      return Response.json({ error: 'Unauthorized — team only' }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));

@@ -33,12 +33,15 @@ function calcAdjustedRevenue(proposal) {
   return adjusted > 0 ? adjusted : proposal.total_amount || 0;
 }
 
+
+const TEAM_EMAILS = (Deno.env.get("TEAM_EMAILS") || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
+const isTeamMember = (user) => user && (user.role === 'admin' || TEAM_EMAILS.includes((user.email || "").toLowerCase()));
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    if (user.role !== 'admin') return Response.json({ error: 'Admin only' }, { status: 403 });
+    if (!isTeamMember(user)) return Response.json({ error: 'Team only' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
     const { referral_id, proposal_id } = body;

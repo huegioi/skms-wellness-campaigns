@@ -24,7 +24,7 @@
     },
     "doc_id": {
       "type": "string",
-      "description": "Google Drive file ID \u2014 used for dedup (never process the same doc twice)"
+      "description": "Google Drive file ID — used for dedup (never process the same doc twice)"
     },
     "doc_title": {
       "type": "string",
@@ -83,22 +83,42 @@
   "rls": {
     "create": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "read": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "update": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "delete": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     }
   }

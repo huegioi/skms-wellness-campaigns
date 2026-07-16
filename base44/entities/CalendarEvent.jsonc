@@ -74,7 +74,7 @@
     },
     "presenter": {
       "type": "string",
-      "description": "Free-text presenter name (legacy \u2014 kept for backward compatibility)"
+      "description": "Free-text presenter name (legacy — kept for backward compatibility)"
     },
     "presenter_id": {
       "type": "string",
@@ -96,7 +96,7 @@
     "presenter_email": {
       "type": "string",
       "format": "email",
-      "description": "Speaker/presenter email \u2014 used to filter their portal view"
+      "description": "Speaker/presenter email — used to filter their portal view"
     },
     "presenter_fee": {
       "type": "number",
@@ -114,7 +114,7 @@
     },
     "service_id": {
       "type": "string",
-      "description": "Associated Service ID \u2014 used to generate the feedback link for the speaker"
+      "description": "Associated Service ID — used to generate the feedback link for the speaker"
     },
     "recording_link": {
       "type": "string",
@@ -184,5 +184,47 @@
     "title",
     "start_date",
     "event_type"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
+      }
+    }
+  }
 }

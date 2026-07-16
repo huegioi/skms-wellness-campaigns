@@ -75,7 +75,7 @@
     },
     "behavior_intent": {
       "type": "string",
-      "description": "Q1: One specific micro-action the respondent plans to take (\u2264140 chars)"
+      "description": "Q1: One specific micro-action the respondent plans to take (≤140 chars)"
     },
     "fit_confidence": {
       "type": "number",
@@ -147,17 +147,32 @@
     "create": true,
     "read": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "update": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     },
     "delete": {
       "user_condition": {
-        "role": "admin"
+        "role": {
+          "$in": [
+            "admin",
+            "user"
+          ]
+        }
       }
     }
   }

@@ -3,12 +3,15 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 const SPREADSHEET_ID = '1dHRcIu37VBo60y8r2huwWTZcPdaS9mmLBdtTYC-dGKo';
 const SHEET_NAME = 'All contacts 02202026';
 
+
+const TEAM_EMAILS = (Deno.env.get("TEAM_EMAILS") || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
+const isTeamMember = (user) => user && (user.role === 'admin' || TEAM_EMAILS.includes((user.email || "").toLowerCase()));
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const user = await base44.auth.me();
 
-    if (!user || user.role !== 'admin') {
+    if (!user || !isTeamMember(user)) {
       return Response.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
