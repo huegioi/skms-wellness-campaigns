@@ -229,6 +229,7 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
               );
             }
             const Icon = CHANNEL_ICONS[item.channel] || StickyNote;
+            const isMeetingNotes = item.channel === 'meeting' && item.outcome && item.outcome.startsWith('http');
             return (
               <div key={item.id} className="flex gap-3 bg-white border rounded-lg p-3">
                 <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
@@ -239,8 +240,20 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
                     <p className="text-sm font-medium text-gray-800 truncate">{item.subject || item.interaction_type}</p>
                     <span className="text-xs text-gray-400 flex-shrink-0">{relDate(item.date)}</span>
                   </div>
-                  {item.notes && <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{item.notes}</p>}
-                  {item.outcome && <p className="text-xs text-green-600 mt-1">→ {item.outcome}</p>}
+                  {item.notes && (
+                    isMeetingNotes ? (
+                      <p className="text-xs text-gray-600 mt-0.5 whitespace-pre-line">{item.notes}</p>
+                    ) : (
+                      <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{item.notes}</p>
+                    )
+                  )}
+                  {isMeetingNotes ? (
+                    <a href={item.outcome} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline mt-1 inline-flex items-center gap-0.5">
+                      Open full notes →
+                    </a>
+                  ) : item.outcome ? (
+                    <p className="text-xs text-green-600 mt-1">→ {item.outcome}</p>
+                  ) : null}
                 </div>
               </div>
             );

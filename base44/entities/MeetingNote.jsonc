@@ -1,0 +1,105 @@
+{
+  "name": "MeetingNote",
+  "type": "object",
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "CalendarEvent ID this note belongs to"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Associated lead ID (copied from the CalendarEvent)"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Associated client ID (copied from the CalendarEvent)"
+    },
+    "referral_partner_id": {
+      "type": "string",
+      "description": "Associated referral partner ID (copied from the CalendarEvent)"
+    },
+    "doc_url": {
+      "type": "string",
+      "description": "Google Doc URL for the 'Open full notes' link"
+    },
+    "doc_id": {
+      "type": "string",
+      "description": "Google Drive file ID \u2014 used for dedup (never process the same doc twice)"
+    },
+    "doc_title": {
+      "type": "string",
+      "description": "Title of the notes doc from the calendar attachment"
+    },
+    "full_text": {
+      "type": "string",
+      "description": "Plain-text export of the notes doc (truncated to ~30k chars)"
+    },
+    "summary": {
+      "type": "string",
+      "description": "5-8 bullet LLM summary covering key points, concerns, commitments, next steps"
+    },
+    "organizer_email": {
+      "type": "string",
+      "description": "Meeting organizer email (used for inaccessible-doc hints)"
+    },
+    "access_status": {
+      "type": "string",
+      "enum": [
+        "captured",
+        "inaccessible"
+      ],
+      "default": "captured",
+      "description": "Whether the doc content was successfully exported or is inaccessible"
+    },
+    "meeting_title": {
+      "type": "string",
+      "description": "Calendar event title (denormalized for display)"
+    },
+    "meeting_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Calendar event start date (denormalized for display)"
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this MeetingNote was created"
+    },
+    "interaction_id": {
+      "type": "string",
+      "description": "ID of the ClientInteraction created from this note"
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this record is demo/broker-demo sample data."
+    }
+  },
+  "required": [
+    "event_id",
+    "doc_id",
+    "captured_at"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -325,6 +325,17 @@ async function buildRecordContext(base44, record_type, record_id) {
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 15);
 
+  // Fetch 2 most recent meeting-note summaries for this record
+  let meetingNoteQuery = {};
+  if (record_type === 'client') {
+    meetingNoteQuery = { client_id: record.id, access_status: 'captured' };
+  } else if (partner) {
+    meetingNoteQuery = { referral_partner_id: partner.id, access_status: 'captured' };
+  } else {
+    meetingNoteQuery = { lead_id: record.id, access_status: 'captured' };
+  }
+  const meetingNotes = await safeFilter(base44, 'MeetingNote', meetingNoteQuery, '-captured_at', 2);
+
   const allEvents = eventArrays.flat()
     .filter((v, i, a) => a.findIndex(x => x.id === v.id) === i)
     .sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
@@ -493,6 +504,15 @@ Last 3 Past:
 ${pastLines || 'None'}`);
   } else {
     gaps.push('No calendar events linked');
+  }
+
+  // ══ SECTION 6.5: RECENT MEETING NOTES (2 most recent) ══
+
+  if (meetingNotes.length > 0) {
+    const lines = meetingNotes.map(n =>
+      `Meeting: ${n.meeting_title || 'Untitled'} (${n.meeting_date ? fmtDate(n.meeting_date) : 'recent'})\n${n.summary || '(no summary)'}`
+    ).join('\n\n');
+    sections.push(`RECENT MEETING NOTE SUMMARIES (what was actually discussed on calls):\n${lines}`);
   }
 
   // ══ SECTION 7: PARTNER REFERRALS (partners only) ══

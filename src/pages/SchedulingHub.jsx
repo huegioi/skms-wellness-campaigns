@@ -20,6 +20,7 @@ import DeliveryEventRow from '@/components/scheduling/DeliveryEventRow';
 import MeetingsEventRow from '@/components/scheduling/MeetingsEventRow';
 import { getEventSourceBadge, getEventLens } from '@/components/scheduling/eventLenses';
 import { isChallengeEvent, getChallengeDayProgress } from '@/lib/challengeUtils';
+import MeetingNotesReviewCard from '@/components/scheduling/MeetingNotesReviewCard';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 
@@ -586,6 +587,8 @@ export default function SchedulingHub() {
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-3 sm:p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
+        <MeetingNotesReviewCard />
+
         {/* Header */}
         <div className="flex flex-col gap-4 mb-8">
           <div>
