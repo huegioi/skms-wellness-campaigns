@@ -9,7 +9,7 @@ import { Copy, ExternalLink, Check, Users, DollarSign, AlertTriangle } from 'luc
 import { PipelineCard } from '@/components/shared/PipelineCard';
 import { PARTNER_STAGES } from '@/components/shared/constants';
 import { ActivityStrip } from '@/components/shared/ActivityStrip';
-import { buildLatestTouchMap } from '@/lib/lastTouch';
+import { buildLatestTouchMap, buildChannelSummaryMap } from '@/lib/lastTouch';
 import { getActiveCohort } from '@/lib/renewal';
 import LogTouchDialog from '@/components/dashboard/LogTouchDialog';
 
@@ -89,7 +89,7 @@ function PartnerAlertBadges({ partner, referrals, assist, onLogTouch }) {
   );
 }
 
-function StageColumn({ stage, partners, referrals, latestTouchByPartner, nextEventByPartner, renewalAssistByPartner, onLogTouch, onLogLinkedinTouch, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onCopyLink, copiedId, onSelectPartner, onDelete }) {
+function StageColumn({ stage, partners, referrals, latestTouchByPartner, nextEventByPartner, renewalAssistByPartner, channelSummaryByPartner, onLogTouch, onLogLinkedinTouch, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onCopyLink, copiedId, onSelectPartner, onDelete }) {
   return (
     <div className="w-56 flex-shrink-0">
       <div className={`rounded-t-lg border px-3 py-2 mb-2 ${stage.headerClass}`}>
@@ -151,6 +151,7 @@ function StageColumn({ stage, partners, referrals, latestTouchByPartner, nextEve
                       accentColor="#013f7c"
                       linkedinUrl={partner.linkedin_url}
                       onLogLinkedinTouch={(note) => onLogLinkedinTouch(partner.id, note)}
+                      channelSummary={channelSummaryByPartner[partner.id]}
                       extraActions={
                         <>
                           <button
@@ -228,6 +229,11 @@ export default function PartnerPipelineView({ partners, referrals, onSelectPartn
   const latestTouchByPartner = useMemo(() => {
     return buildLatestTouchMap(interactions, emailLogs, 'referral_partner_id', []);
   }, [interactions, emailLogs]);
+
+  // Per-partner channel summary for channel indicators
+  const channelSummaryByPartner = useMemo(() => {
+    return buildChannelSummaryMap(interactions, emailLogs, 'referral_partner_id', [], calendarEvents, 'referral_partner_id');
+  }, [interactions, emailLogs, calendarEvents]);
 
   // Fetch calendar events for partner quarterly reviews / next meetings
   const { data: calendarEvents = [] } = useQuery({
@@ -351,6 +357,7 @@ export default function PartnerPipelineView({ partners, referrals, onSelectPartn
                 latestTouchByPartner={latestTouchByPartner}
                 nextEventByPartner={nextEventByPartner}
                 renewalAssistByPartner={renewalAssistByPartner}
+                channelSummaryByPartner={channelSummaryByPartner}
                 onLogTouch={setLogTouchPartner}
                 {...columnProps}
               />

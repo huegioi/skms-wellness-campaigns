@@ -159,7 +159,7 @@ function ActionStepsPopup({ stage, onClose }) {
 
 // ── Engagement Column ─────────────────────────────────────────────────────────
 
-function EngagementColumn({ stage, leads, handlers }) {
+function EngagementColumn({ stage, leads, handlers, channelSummaryByLead }) {
   const [showPopup, setShowPopup] = useState(false);
   const hasActionSteps = !!ACTION_STEPS[stage];
   const accentColor = '#264d44';
@@ -220,6 +220,7 @@ function EngagementColumn({ stage, leads, handlers }) {
                     accentColor={accentColor}
                     linkedinUrl={lead.linkedin_url}
                     onLogLinkedinTouch={(note) => handlers.onLogLinkedinTouch(lead.id, note)}
+                    channelSummary={channelSummaryByLead?.[lead.id]}
                   />
                 )}
               </Draggable>
@@ -240,7 +241,7 @@ function EngagementColumn({ stage, leads, handlers }) {
 
 // ── Main EngagementBoard ─────────────────────────────────────────────────────
 
-export default function EngagementBoard({ leads, handlers }) {
+export default function EngagementBoard({ leads, handlers, channelSummaryByLead }) {
   const engagementSet = new Set(ENGAGEMENT_STAGES);
   const engagementLeads = leads.filter(l => engagementSet.has(l.follow_up_stage));
 
@@ -270,7 +271,7 @@ export default function EngagementBoard({ leads, handlers }) {
       <div className="overflow-x-auto pb-4">
         <div className="flex gap-5 min-w-max">
           {stages.map(stage => (
-            <EngagementColumn key={stage} stage={stage} leads={map[stage]} handlers={handlers} />
+            <EngagementColumn key={stage} stage={stage} leads={map[stage]} handlers={handlers} channelSummaryByLead={channelSummaryByLead} />
           ))}
         </div>
       </div>

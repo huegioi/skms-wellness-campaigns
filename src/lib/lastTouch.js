@@ -41,3 +41,57 @@ export function buildLatestTouchMap(interactions, emailLogs, interactionIdField,
 
   return map;
 }
+
+/**
+ * Build a map of contactId -> { [channel]: { date } } for channel indicators.
+ * Channels: linkedin, email, phone, text, meeting.
+ * Interactions contribute via `channel`/`interaction_type`; matched EmailLogs
+ * contribute 'email'; calendar events (optional) contribute 'meeting'.
+ */
+export function buildChannelSummaryMap(interactions, emailLogs, interactionIdField, emailIdFields = [], calendarEvents = null, calendarIdField = null) {
+  const map = {};
+  const now = Date.now();
+
+  const record = (id, channel, date) => {
+    if (!id || !date || !channel) return;
+    if (!map[id]) map[id] = {};
+    const existing = map[id][channel];
+    if (!existing || new Date(date) > new Date(existing.date)) {
+      map[id][channel] = { date };
+    }
+  };
+
+  const channelAlias = (raw) => {
+    if (!raw) return null;
+    const c = raw.toLowerCase();
+    if (c === 'linkedin') return 'linkedin';
+    if (c === 'email') return 'email';
+    if (c === 'call' || c === 'phone') return 'phone';
+    if (c === 'text') return 'text';
+    if (c === 'meeting') return 'meeting';
+    return null;
+  };
+
+  for (const i of interactions || []) {
+    const channel = channelAlias(i.channel || i.interaction_type);
+    if (!channel) continue;
+    record(i[interactionIdField], channel, i.date);
+  }
+
+  for (const e of emailLogs || []) {
+    const emailTime = new Date(e.date).getTime();
+    if (isNaN(emailTime) || (now - emailTime) > NINETY_DAYS_MS) continue;
+    for (const field of emailIdFields) {
+      if (e[field]) record(e[field], 'email', e.date);
+    }
+  }
+
+  if (calendarEvents && calendarIdField) {
+    for (const ev of calendarEvents) {
+      if (!ev[calendarIdField] || !ev.start_date) continue;
+      record(ev[calendarIdField], 'meeting', ev.start_date);
+    }
+  }
+
+  return map;
+}

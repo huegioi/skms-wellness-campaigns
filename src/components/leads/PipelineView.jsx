@@ -6,7 +6,7 @@ import { PipelineCard } from '@/components/shared/PipelineCard';
 import { LEAD_STATUS_STAGES } from '@/components/shared/constants';
 import { normalizeLeadStatus } from '@/lib/statusConfig';
 import { ActivityStrip } from '@/components/shared/ActivityStrip';
-import { buildLatestTouchMap } from '@/lib/lastTouch';
+import { buildLatestTouchMap, buildChannelSummaryMap } from '@/lib/lastTouch';
 import LeadPlaybookDialog from '@/components/leads/LeadPlaybookDialog';
 import EngagementBoard from '@/components/leads/EngagementBoard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -68,7 +68,7 @@ function LeadAlertBadges({ lead }) {
 
 // ── Status Column ────────────────────────────────────────────────────────────
 
-function StatusColumn({ col, leads, handlers, latestTouchByLead, nextEventByLead, onPlaybook }) {
+function StatusColumn({ col, leads, handlers, latestTouchByLead, nextEventByLead, channelSummaryByLead, onPlaybook }) {
   const accent = col.accent;
 
   return (
@@ -123,6 +123,7 @@ function StatusColumn({ col, leads, handlers, latestTouchByLead, nextEventByLead
                     accentColor={accent}
                     linkedinUrl={lead.linkedin_url}
                     onLogLinkedinTouch={(note) => handlers.onLogLinkedinTouch(lead.id, note)}
+                    channelSummary={channelSummaryByLead[lead.id]}
                     activityStrip={
                       <ActivityStrip
                         touchDate={latestTouchByLead[lead.id]?.date || lead.last_contacted_date}
@@ -199,6 +200,11 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
   const latestTouchByLead = useMemo(() => {
     return buildLatestTouchMap(interactions, emailLogs, 'lead_id', ['matched_lead_id']);
   }, [interactions, emailLogs]);
+
+  // Per-lead channel summary for channel indicators
+  const channelSummaryByLead = useMemo(() => {
+    return buildChannelSummaryMap(interactions, emailLogs, 'lead_id', ['matched_lead_id'], calendarEvents, 'lead_id');
+  }, [interactions, emailLogs, calendarEvents]);
 
   // Next upcoming calendar event per lead_id
   const nextEventByLead = useMemo(() => {
@@ -406,6 +412,7 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
                       handlers={handlers}
                       latestTouchByLead={latestTouchByLead}
                       nextEventByLead={nextEventByLead}
+                      channelSummaryByLead={channelSummaryByLead}
                       onPlaybook={setPlaybookStatus}
                     />
                   ))}
@@ -427,6 +434,7 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
                             handlers={handlers}
                             latestTouchByLead={latestTouchByLead}
                             nextEventByLead={nextEventByLead}
+                            channelSummaryByLead={channelSummaryByLead}
                             onPlaybook={setPlaybookStatus}
                           />
                         );
@@ -439,7 +447,7 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
           )}
 
           {/* ── Engagement Board (untouched) ── */}
-          <EngagementBoard leads={engagementLeads} handlers={handlers} />
+          <EngagementBoard leads={engagementLeads} handlers={handlers} channelSummaryByLead={channelSummaryByLead} />
 
         </div>
       </DragDropContext>

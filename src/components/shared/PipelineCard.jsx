@@ -8,6 +8,7 @@ import { OwnerChip } from '@/components/shared/inline/OwnerChip';
 import { FollowUpDatePill } from '@/components/shared/inline/FollowUpDatePill';
 import { StageControl } from '@/components/shared/inline/StageControl';
 import { InlineTagEditor } from '@/components/shared/InlineTagEditor';
+import { ChannelIndicators } from '@/components/shared/ChannelIndicators';
 
 export function PipelineCard({
   record,
@@ -31,6 +32,7 @@ export function PipelineCard({
   accentColor = '#264d44',
   linkedinUrl,
   onLogLinkedinTouch,
+  channelSummary,
 }) {
   const isDragging = snapshot?.isDragging;
 
@@ -193,6 +195,13 @@ export function PipelineCard({
         <div className="flex flex-wrap items-center gap-1.5 mb-1" onClick={(e) => e.stopPropagation()}>
           <OwnerChip value={record.owner} onSave={(v) => onOwnerChange(record.id, v)} />
           <FollowUpDatePill value={record.follow_up_due_date} onSave={(v) => onFollowUpDateChange(record.id, v)} />
+        </div>
+      )}
+
+      {/* Channel indicators */}
+      {channelSummary && (
+        <div className="mb-1" onClick={(e) => e.stopPropagation()}>
+          <ChannelIndicators summary={channelSummary} />
         </div>
       )}
 

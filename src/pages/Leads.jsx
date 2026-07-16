@@ -18,7 +18,8 @@ import QuickBuilderInquiriesBanner from '@/components/leads/QuickBuilderInquirie
 import QuickBuilderInquiriesList from '@/components/leads/QuickBuilderInquiriesList';
 import PipelineView from '@/components/leads/PipelineView';
 import { ActivityStrip, getLeadStaleThreshold } from '@/components/shared/ActivityStrip';
-import { buildLatestTouchMap } from '@/lib/lastTouch';
+import { ChannelIndicators } from '@/components/shared/ChannelIndicators';
+import { buildLatestTouchMap, buildChannelSummaryMap } from '@/lib/lastTouch';
 import MergePartnerDuplicatesPanel from '@/components/leads/MergePartnerDuplicatesPanel';
 import BrokeragesView from '@/components/partners/BrokeragesView';
 import PartnerAdminMenu from '@/components/partners/PartnerAdminMenu';
@@ -341,6 +342,10 @@ export default function Leads() {
     return map;
   }, [listEvents]);
 
+  const channelSummaryByLead = React.useMemo(() => {
+    return buildChannelSummaryMap(listInteractions, listEmailLogs, 'lead_id', ['matched_lead_id'], listEvents, 'lead_id');
+  }, [listInteractions, listEmailLogs, listEvents]);
+
   const pendingReferrals = referrals.filter(r => r.status === 'pending_review');
 
   React.useEffect(() => {
@@ -651,7 +656,7 @@ export default function Leads() {
     return matchSearch && matchStatus && matchOwner && matchTags;
   });
 
-  const BrokerLeadCard = ({ lead, latestTouch, nextEvent }) => {
+  const BrokerLeadCard = ({ lead, latestTouch, nextEvent, channelSummary }) => {
     const [showEmails, setShowEmails] = useState(false);
     const statusCfg = STATUS_CONFIG[lead.status || 'cold'] || STATUS_CONFIG.cold;
     const partnerCfg = PARTNER_STATUS_CONFIG[lead.partner_status || 'new'] || PARTNER_STATUS_CONFIG.new;
@@ -739,6 +744,11 @@ export default function Leads() {
                 nextEvent={nextEvent}
                 followUpDate={lead.follow_up_due_date || lead.next_followup_date}
               />
+            </div>
+
+            {/* Channel indicators */}
+            <div className="mt-1.5">
+              <ChannelIndicators summary={channelSummary} />
             </div>
 
             {/* Active partner: last 3 referrals */}
@@ -1002,7 +1012,7 @@ export default function Leads() {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredBrokerLeads.map(lead => <BrokerLeadCard key={lead.id} lead={lead} latestTouch={latestTouchByLead[lead.id]} nextEvent={nextEventByLead[lead.id]} />)}
+                {filteredBrokerLeads.map(lead => <BrokerLeadCard key={lead.id} lead={lead} latestTouch={latestTouchByLead[lead.id]} nextEvent={nextEventByLead[lead.id]} channelSummary={channelSummaryByLead[lead.id]} />)}
               </div>
             )}
           </TabsContent>
