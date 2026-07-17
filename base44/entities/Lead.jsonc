@@ -174,7 +174,7 @@
     },
     "follow_up_stage": {
       "type": "string",
-      "description": "Current follow-up stage in the outreach sequence (legacy — pipeline board now uses 'status'). Data preserved for reference and tagging."
+      "description": "Current follow-up stage in the outreach sequence (legacy \u2014 pipeline board now uses 'status'). Data preserved for reference and tagging."
     },
     "follow_up_due_date": {
       "type": "string",
@@ -202,7 +202,7 @@
     },
     "matched_stage": {
       "type": "string",
-      "description": "Closest campaign stage matched from Quick Builder selections (e.g. 'Stage 2 — Habit')"
+      "description": "Closest campaign stage matched from Quick Builder selections (e.g. 'Stage 2 \u2014 Habit')"
     },
     "is_demo": {
       "type": "boolean",

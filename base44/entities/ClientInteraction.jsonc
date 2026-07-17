@@ -4,7 +4,7 @@
   "properties": {
     "client_id": {
       "type": "string",
-      "description": "Associated client ID (optional — at least one of client_id / lead_id / referral_partner_id is required, enforced in code)"
+      "description": "Associated client ID (optional \u2014 at least one of client_id / lead_id / referral_partner_id is required, enforced in code)"
     },
     "lead_id": {
       "type": "string",

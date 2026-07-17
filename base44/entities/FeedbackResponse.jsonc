@@ -75,7 +75,7 @@
     },
     "behavior_intent": {
       "type": "string",
-      "description": "Q1: One specific micro-action the respondent plans to take (≤140 chars)"
+      "description": "Q1: One specific micro-action the respondent plans to take (\u2264140 chars)"
     },
     "fit_confidence": {
       "type": "number",
@@ -86,7 +86,7 @@
       "items": {
         "type": "string"
       },
-      "description": "Q3: Impact areas selected (multi-select). Options: Personal well-being and stress levels, Daily focus and productivity, Communication and teamwork, Resilience and workplace challenges, Overall job satisfaction"
+      "description": "Q3: Impact areas selected (multi-select)."
     },
     "pre_stress_impact": {
       "type": "number",

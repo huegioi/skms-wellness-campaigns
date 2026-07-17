@@ -16,7 +16,7 @@
     },
     "participant_email": {
       "type": "string",
-      "description": "Participant email (lowercased + trimmed) — used as the person key for pairing"
+      "description": "Participant email (lowercased + trimmed) \u2014 used as the person key for pairing"
     },
     "participant_phone": {
       "type": "string",

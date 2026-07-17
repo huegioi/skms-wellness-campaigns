@@ -39,7 +39,7 @@
     },
     "matched_stage": {
       "type": "string",
-      "description": "Closest campaign stage from the Quick Builder / Curriculum Designer (e.g. 'Stage 2 — Habit'). Recomputed when selections change in the proposal wizard."
+      "description": "Closest campaign stage from the Quick Builder / Curriculum Designer (e.g. 'Stage 2 \u2014 Habit'). Recomputed when selections change in the proposal wizard."
     },
     "status": {
       "type": "string",
