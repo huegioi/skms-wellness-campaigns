@@ -33,7 +33,7 @@
     },
     "gmail_message_id": {
       "type": "string",
-      "description": "Unique Gmail message ID — used to prevent duplicates. Null for Maya-generated drafts not yet synced to Gmail."
+      "description": "Unique Gmail message ID \u2014 used to prevent duplicates. Null for Maya-generated drafts not yet synced to Gmail."
     },
     "gmail_account": {
       "type": "string",
