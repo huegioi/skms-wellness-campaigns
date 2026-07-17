@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
       if (old_data?.google_event_id) {
         for (const calId of candidateCals) {
           const res = await fetch(
-            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events/${old_data.google_event_id}`,
+            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events/${old_data.google_event_id}?sendUpdates=none`,
             { method: 'DELETE', headers: authHeaders }
           );
           if (res.ok) break;          // deleted successfully on this calendar
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       let updated = false;
       for (const calId of candidateCals) {
         const res = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events/${data.google_event_id}`,
+          `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events/${data.google_event_id}?sendUpdates=none`,
           { method: 'PUT', headers: jsonHeaders, body: JSON.stringify(eventData) }
         );
         if (res.ok) { updated = true; break; }

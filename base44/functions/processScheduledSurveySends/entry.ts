@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
 
-const APP_URL = 'https://skms-wellness-campaigns.app.base44.com';
+const APP_URL = Deno.env.get('APP_URL') || 'https://app.skillfulmeans.life';
 const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY');
 const FROM_EMAIL = 'admin@skillfulmeans.life';
 const FROM_NAME = 'SKMS Wellness';
