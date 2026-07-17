@@ -44,14 +44,18 @@
       }
     },
     "read": {
-      "user_condition": {
-        "role": {
-          "$in": [
-            "admin",
-            "user"
-          ]
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
         }
-      }
+      ]
     },
     "update": {
       "user_condition": {
