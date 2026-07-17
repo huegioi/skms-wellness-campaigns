@@ -57,13 +57,28 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
     queryKey: ['event-assessment-counts', event.id],
     queryFn: async () => {
       if (!event.client_id || !event.service_id) return null;
-      const [day0, day14] = await Promise.all([
+      const [day0, day14, cStart, cEnd] = await Promise.all([
         base44.entities.CohortAssessment.filter({ client_id: event.client_id, service_id: event.service_id, survey_type: 'challenge_day0' }, '-submitted_at', 500),
         base44.entities.CohortAssessment.filter({ client_id: event.client_id, service_id: event.service_id, survey_type: 'challenge_day14' }, '-submitted_at', 500),
+        base44.entities.CohortAssessment.filter({ client_id: event.client_id, service_id: event.service_id, survey_type: 'cohort_start' }, '-submitted_at', 500),
+        base44.entities.CohortAssessment.filter({ client_id: event.client_id, service_id: event.service_id, survey_type: 'cohort_end' }, '-submitted_at', 500),
       ]);
-      return { day0: day0.length, day14: day14.length };
+      return {
+        day0: day0.length, day14: day14.length,
+        baseline: isChallenge ? day0.length : cStart.length,
+        endpoint: isChallenge ? day14.length : cEnd.length,
+      };
     },
-    enabled: isChallenge && !!event.client_id && !!event.service_id,
+    enabled: !!event.client_id && !!event.service_id,
+  });
+
+  const { data: checkinCount = 0 } = useQuery({
+    queryKey: ['event-checkins-detail', event.id],
+    queryFn: async () => {
+      const checkins = await base44.entities.EventCheckin.filter({ event_id: event.id });
+      return checkins.length;
+    },
+    enabled: !!event.id,
   });
 
   const handleDelete = async () => {
@@ -589,6 +604,22 @@ END:VCALENDAR`;
               <FacilitationChecklist
                 day0Count={assessmentCounts?.day0 ?? 0}
                 day14Count={assessmentCounts?.day14 ?? 0}
+                checkinCount={checkinCount}
+                hasRecording={!!event.recording_link}
+                compact
+              />
+            </div>
+          )}
+          {/* Facilitation checklist (non-challenge events with assessment_timing) */}
+          {!isChallenge && event.assessment_timing && event.assessment_timing !== 'none' && (
+            <div className="pt-3 border-t">
+              <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <ClipboardCheck className="w-4 h-4" /> Assessment Progress
+              </p>
+              <FacilitationChecklist
+                baselineCount={assessmentCounts?.baseline ?? 0}
+                endpointCount={assessmentCounts?.endpoint ?? 0}
+                checkinCount={checkinCount}
                 hasRecording={!!event.recording_link}
                 compact
               />

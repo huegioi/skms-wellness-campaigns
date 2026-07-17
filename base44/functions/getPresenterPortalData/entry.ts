@@ -71,10 +71,12 @@ Deno.serve(async (req) => {
     const serviceMap = {};
     serviceResults.forEach(s => { if (s) serviceMap[s.id] = s; });
 
-    // Fetch challenge assessment responses (day-0 / day-14) for facilitation checklist
-    const [day0Assessments, day14Assessments] = await Promise.all([
+    // Fetch assessment responses for facilitation checklist (all 4 survey types)
+    const [day0Assessments, day14Assessments, cohortStartAssessments, cohortEndAssessments] = await Promise.all([
       base44.asServiceRole.entities.CohortAssessment.filter({ survey_type: 'challenge_day0' }, '-submitted_at', 500),
       base44.asServiceRole.entities.CohortAssessment.filter({ survey_type: 'challenge_day14' }, '-submitted_at', 500),
+      base44.asServiceRole.entities.CohortAssessment.filter({ survey_type: 'cohort_start' }, '-submitted_at', 500),
+      base44.asServiceRole.entities.CohortAssessment.filter({ survey_type: 'cohort_end' }, '-submitted_at', 500),
     ]);
     const day0Counts = new Map();
     for (const a of day0Assessments) {
@@ -85,6 +87,28 @@ Deno.serve(async (req) => {
     for (const a of day14Assessments) {
       const k = `${a.client_id}|${a.service_id}`;
       day14Counts.set(k, (day14Counts.get(k) || 0) + 1);
+    }
+    const cohortStartCounts = new Map();
+    for (const a of cohortStartAssessments) {
+      const k = `${a.client_id}|${a.service_id}`;
+      cohortStartCounts.set(k, (cohortStartCounts.get(k) || 0) + 1);
+    }
+    const cohortEndCounts = new Map();
+    for (const a of cohortEndAssessments) {
+      const k = `${a.client_id}|${a.service_id}`;
+      cohortEndCounts.set(k, (cohortEndCounts.get(k) || 0) + 1);
+    }
+
+    // Fetch check-in counts per event
+    const eventIds = allEvents.map(e => e.id).filter(Boolean);
+    const checkinCountMap = new Map();
+    if (eventIds.length > 0) {
+      const allCheckins = await base44.asServiceRole.entities.EventCheckin.filter({}, '-checked_in_at', 500);
+      for (const c of allCheckins) {
+        if (c.event_id) {
+          checkinCountMap.set(c.event_id, (checkinCountMap.get(c.event_id) || 0) + 1);
+        }
+      }
     }
 
     const getSessionFee = (event) => {
@@ -124,10 +148,18 @@ Deno.serve(async (req) => {
         service_name: service?.name || null,
         service_category: service?.category || null,
         service_included_assessments: service?.included_assessments || [],
-        assessment_counts: (event.event_type === 'challenge' || service?.category === 'challenge') && event.client_id && event.service_id ? {
+        assessment_timing: event.assessment_timing || 'none',
+        assessment_counts: event.client_id && event.service_id ? {
           day0: day0Counts.get(`${event.client_id}|${event.service_id}`) || 0,
           day14: day14Counts.get(`${event.client_id}|${event.service_id}`) || 0,
+          baseline: (event.event_type === 'challenge' || service?.category === 'challenge')
+            ? (day0Counts.get(`${event.client_id}|${event.service_id}`) || 0)
+            : (cohortStartCounts.get(`${event.client_id}|${event.service_id}`) || 0),
+          endpoint: (event.event_type === 'challenge' || service?.category === 'challenge')
+            ? (day14Counts.get(`${event.client_id}|${event.service_id}`) || 0)
+            : (cohortEndCounts.get(`${event.client_id}|${event.service_id}`) || 0),
         } : null,
+        checkin_count: checkinCountMap.get(event.id) || 0,
         client_id: event.client_id,
         client_name: event.client_name,
         client_context: client ? {

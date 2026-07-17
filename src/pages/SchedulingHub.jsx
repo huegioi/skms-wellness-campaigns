@@ -21,6 +21,7 @@ import MeetingsEventRow from '@/components/scheduling/MeetingsEventRow';
 import { getEventSourceBadge, getEventLens } from '@/components/scheduling/eventLenses';
 import { isChallengeEvent, getChallengeDayProgress } from '@/lib/challengeUtils';
 import MeetingNotesReviewCard from '@/components/scheduling/MeetingNotesReviewCard';
+import { computeSmartAssessmentTiming } from '@/lib/checkinAssessmentUtils';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 
@@ -50,7 +51,8 @@ export default function SchedulingHub() {
     presenter_id: '',
     presenter_email: '',
     source: '',
-    all_day: false
+    all_day: false,
+    assessment_timing: 'none'
   });
 
   const { data: activePresenters = [] } = useQuery({
@@ -144,13 +146,15 @@ export default function SchedulingHub() {
   }, [mirrorResult, queryClient]);
 
   const { data: cohortAssessments = [] } = useQuery({
-    queryKey: ['cohort-assessments-challenge'],
+    queryKey: ['cohort-assessments-all'],
     queryFn: async () => {
-      const [day0, day14] = await Promise.all([
+      const [day0, day14, cStart, cEnd] = await Promise.all([
         base44.entities.CohortAssessment.filter({ survey_type: 'challenge_day0' }, '-submitted_at', 500),
         base44.entities.CohortAssessment.filter({ survey_type: 'challenge_day14' }, '-submitted_at', 500),
+        base44.entities.CohortAssessment.filter({ survey_type: 'cohort_start' }, '-submitted_at', 500),
+        base44.entities.CohortAssessment.filter({ survey_type: 'cohort_end' }, '-submitted_at', 500),
       ]);
-      return [...day0, ...day14];
+      return [...day0, ...day14, ...cStart, ...cEnd];
     },
   });
 
@@ -161,10 +165,16 @@ export default function SchedulingHub() {
     assessmentCountMap[key] = (assessmentCountMap[key] || 0) + 1;
   }
   const getEventAssessmentCounts = (event) => {
-    if (!event.client_id || !event.service_id) return { day0: 0, day14: 0 };
+    if (!event.client_id || !event.service_id) return { day0: 0, day14: 0, baseline: 0, endpoint: 0 };
+    const svc = allServices.find(s => s.id === event.service_id);
+    const isChallenge = event.event_type === 'challenge' || svc?.category === 'challenge';
+    const baselineType = isChallenge ? 'challenge_day0' : 'cohort_start';
+    const endpointType = isChallenge ? 'challenge_day14' : 'cohort_end';
     return {
       day0: assessmentCountMap[`${event.client_id}|${event.service_id}|challenge_day0`] || 0,
       day14: assessmentCountMap[`${event.client_id}|${event.service_id}|challenge_day14`] || 0,
+      baseline: assessmentCountMap[`${event.client_id}|${event.service_id}|${baselineType}`] || 0,
+      endpoint: assessmentCountMap[`${event.client_id}|${event.service_id}|${endpointType}`] || 0,
     };
   };
 
@@ -204,6 +214,7 @@ export default function SchedulingHub() {
         presenter_id: eventData.presenter_id || null,
         presenter_email: eventData.presenter_email || '',
         proposal_id: eventData.proposal_id || '',
+        assessment_timing: eventData.assessment_timing || 'none',
         color: '#264d44'
       });
 
@@ -565,7 +576,8 @@ export default function SchedulingHub() {
       presenter_id: '',
       presenter_email: '',
       source: '',
-      all_day: false
+      all_day: false,
+      assessment_timing: 'none'
     });
   };
 
@@ -1215,6 +1227,40 @@ export default function SchedulingHub() {
                         <p className="text-xs text-amber-600 mt-1">⚠ No service linked — survey links and materials won't appear.</p>
                       )}
                     </div>
+
+                    {bookingForm.service_id && (() => {
+                      const svc = allServices.find(s => s.id === bookingForm.service_id);
+                      const hasAssessments = svc?.included_assessments?.length > 0;
+                      if (!hasAssessments) return null;
+                      const calendarEventsList = calendarEvents || [];
+                      const smartTiming = computeSmartAssessmentTiming({
+                        clientId: bookingForm.client_id,
+                        serviceId: bookingForm.service_id,
+                        events: calendarEventsList,
+                        selectedDate: bookingForm.start_date,
+                      });
+                      return (
+                        <div className="sm:col-span-2">
+                          <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Assessment at check-in</Label>
+                          <Select
+                            value={bookingForm.assessment_timing || smartTiming}
+                            onValueChange={(v) => setBookingForm(prev => ({ ...prev, assessment_timing: v }))}
+                          >
+                            <SelectTrigger className="mt-1 bg-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">No assessment</SelectItem>
+                              <SelectItem value="baseline">Baseline (first session)</SelectItem>
+                              <SelectItem value="endpoint">Endpoint (last session)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-gray-400 mt-1">
+                            Attendees will be asked {svc.included_assessments.length} quick survey{svc.included_assessments.length !== 1 ? 's' : ''} at check-in. Suggested: {smartTiming}.
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <div className="border-t border-gray-200 pt-4">

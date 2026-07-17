@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, CheckCircle2, Video, Calendar } from 'lucide-react';
+import CheckinAssessmentSurvey from '@/components/checkin/CheckinAssessmentSurvey';
 
 const LOGO_URL = 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/bb0a43468_SKMSLogoShieldBrown.png';
 
@@ -15,10 +16,11 @@ export default function Checkin() {
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-  const [checkedIn, setCheckedIn] = useState(false);
   const [meetingLink, setMeetingLink] = useState(null);
+  const [checkedInNoLink, setCheckedInNoLink] = useState(false);
   const [kiosk, setKiosk] = useState(false);
   const [kioskSuccess, setKioskSuccess] = useState(false);
+  const [surveyData, setSurveyData] = useState(null);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -41,6 +43,42 @@ export default function Checkin() {
       });
   }, []);
 
+  const redirectToCall = (link) => {
+    if (!link) {
+      setMeetingLink(null);
+      return;
+    }
+    setMeetingLink(link);
+    setTimeout(() => { window.location.href = link; }, 1000);
+  };
+
+  const resetForKiosk = () => {
+    setName('');
+    setEmail('');
+    setSubmitError('');
+    setSurveyData(null);
+    setKioskSuccess(true);
+    setTimeout(() => setKioskSuccess(false), 2500);
+  };
+
+  const handleSurveyDone = (link) => {
+    setSurveyData(null);
+    if (kiosk) {
+      resetForKiosk();
+    } else {
+      redirectToCall(link);
+    }
+  };
+
+  const handleSurveySkip = (link) => {
+    setSurveyData(null);
+    if (kiosk) {
+      resetForKiosk();
+    } else {
+      redirectToCall(link);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!name.trim() || !email.trim()) return;
@@ -48,17 +86,34 @@ export default function Checkin() {
     setSubmitError('');
     try {
       const res = await base44.functions.invoke('submitCheckin', { token, name, email });
+      const link = res.data?.meeting_link || null;
+
+      // Check if assessment survey is needed
+      const timing = eventInfo?.assessment_timing || 'none';
+      const hasInstruments = eventInfo?.service?.included_assessments?.length > 0;
+
+      if (timing !== 'none' && hasInstruments) {
+        // Check via backend if this email already has an assessment for this timing
+        try {
+          const checkRes = await base44.functions.invoke('checkCheckinAssessment', { token, email });
+          if (checkRes.data?.needs_survey) {
+            setSurveyData(checkRes.data);
+            setSubmitting(false);
+            return; // Show survey — don't redirect yet
+          }
+        } catch {
+          // If check fails, fail open to the call
+        }
+      }
+
+      // No survey needed — proceed to call
       if (kiosk) {
-        setKioskSuccess(true);
-        setName('');
-        setEmail('');
-        setSubmitError('');
-        setTimeout(() => setKioskSuccess(false), 2500);
-      } else if (res.data.meeting_link) {
-        setMeetingLink(res.data.meeting_link);
-        setTimeout(() => { window.location.href = res.data.meeting_link; }, 1000);
+        resetForKiosk();
+      } else if (link) {
+        redirectToCall(link);
       } else {
-        setCheckedIn(true);
+        // No meeting link — show "checked in, host will share link" state
+        setCheckedInNoLink(true);
       }
     } catch (err) {
       setSubmitError(err.response?.data?.error || 'Something went wrong. Please try again.');
@@ -94,6 +149,20 @@ export default function Checkin() {
     );
   }
 
+  // Survey step — shown after check-in when assessment is needed
+  if (surveyData) {
+    return (
+      <CheckinAssessmentSurvey
+        token={token}
+        name={name}
+        email={email}
+        surveyData={surveyData}
+        onDone={handleSurveyDone}
+        onSkip={handleSurveySkip}
+      />
+    );
+  }
+
   if (kioskSuccess) {
     return (
       <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
@@ -101,19 +170,6 @@ export default function Checkin() {
           <img src={LOGO_URL} alt="SkillfulMeans" className="h-12 w-auto mx-auto mb-6" />
           <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-gray-800">✓ You're checked in — welcome!</h1>
-        </div>
-      </div>
-    );
-  }
-
-  if (checkedIn) {
-    return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
-          <img src={LOGO_URL} alt="SkillfulMeans" className="h-12 w-auto mx-auto mb-6" />
-          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-gray-800 mb-2">You're checked in!</h1>
-          <p className="text-gray-500">Your host will share the video link shortly.</p>
         </div>
       </div>
     );
@@ -130,6 +186,19 @@ export default function Checkin() {
           <a href={meetingLink} className="inline-flex items-center gap-2 text-[#013f7c] hover:underline">
             <Video className="w-4 h-4" /> Click here if not redirected
           </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (checkedInNoLink) {
+    return (
+      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+          <img src={LOGO_URL} alt="SkillfulMeans" className="h-12 w-auto mx-auto mb-6" />
+          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h1 className="text-xl font-bold text-gray-800 mb-2">You're checked in!</h1>
+          <p className="text-gray-500">Your host will share the video link shortly.</p>
         </div>
       </div>
     );

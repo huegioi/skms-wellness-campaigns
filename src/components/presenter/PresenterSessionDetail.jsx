@@ -210,11 +210,21 @@ export default function PresenterSessionDetail({ event, portalId, onBack, onUpda
             </p>
           </div>
         )}
-        {/* Facilitation checklist (challenge events only) */}
+        {/* Facilitation checklist (challenge events) */}
         {isChallenge && event.assessment_counts && (
           <FacilitationChecklist
             day0Count={event.assessment_counts.day0}
             day14Count={event.assessment_counts.day14}
+            checkinCount={event.checkin_count || checkinCount}
+            hasRecording={!!event.recording_link}
+          />
+        )}
+        {/* Facilitation checklist (non-challenge events with assessment_timing) */}
+        {!isChallenge && event.assessment_timing && event.assessment_timing !== 'none' && event.assessment_counts && (
+          <FacilitationChecklist
+            baselineCount={event.assessment_counts.baseline}
+            endpointCount={event.assessment_counts.endpoint}
+            checkinCount={event.checkin_count || checkinCount}
             hasRecording={!!event.recording_link}
           />
         )}

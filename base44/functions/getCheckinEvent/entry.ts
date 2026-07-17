@@ -34,12 +34,34 @@ Deno.serve(async (req) => {
       } catch { clientCompany = null; }
     }
 
+    // Fetch service for assessment info
+    let serviceInfo = null;
+    if (event.service_id) {
+      try {
+        const svcResults = await base44.asServiceRole.entities.Service.filter({ id: event.service_id });
+        const svc = svcResults[0] || null;
+        if (svc) {
+          serviceInfo = {
+            id: svc.id,
+            name: svc.name,
+            category: svc.category,
+            included_assessments: svc.included_assessments || [],
+          };
+        }
+      } catch { serviceInfo = null; }
+    }
+
     return Response.json({
       event_id: event.id,
       title: event.title,
       start_date: event.start_date,
       client_company: clientCompany,
       has_meeting_link: !!meetingLink,
+      meeting_link: meetingLink,
+      client_id: event.client_id || null,
+      service_id: event.service_id || null,
+      assessment_timing: event.assessment_timing || 'none',
+      service: serviceInfo,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });

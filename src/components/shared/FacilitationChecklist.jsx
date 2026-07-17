@@ -2,32 +2,72 @@ import React from 'react';
 import { Check, Circle, ClipboardCheck } from 'lucide-react';
 
 /**
- * Renders the three facilitation checklist marks for a challenge event:
- *   1. Day-0 assessment collected (CohortAssessment count >= 1)
- *   2. Day-14 assessment collected (CohortAssessment count >= 1)
- *   3. Recording/materials uploaded (recording_link present)
+ * Renders facilitation checklist marks for an event.
  *
- * compact=true  → inline row of check/circle icons (for event rows / cards)
- * compact=false → full titled card with descriptions (for detail views)
+ * Props:
+ *   day0Count       — challenge Day-0 assessment count (includes check-in baseline for challenges)
+ *   day14Count      — challenge Day-14 assessment count (includes check-in endpoint for challenges)
+ *   baselineCount   — baseline assessment count (cohort_start for non-challenges)
+ *   endpointCount   — endpoint assessment count (cohort_end for non-challenges)
+ *   checkinCount    — total checked-in attendees (for "N of M" display)
+ *   hasRecording    — whether a recording link exists
+ *   compact         — inline row vs full card
  */
-export default function FacilitationChecklist({ day0Count = 0, day14Count = 0, hasRecording = false, compact = false }) {
-  const marks = [
-    {
+export default function FacilitationChecklist({
+  day0Count = 0,
+  day14Count = 0,
+  baselineCount,
+  endpointCount,
+  checkinCount = 0,
+  hasRecording = false,
+  compact = false,
+}) {
+  const marks = [];
+
+  // Challenge marks (day0 / day14) — shown when day0Count or day14Count is explicitly provided
+  if (day0Count > 0 || day14Count > 0 || (baselineCount === undefined && endpointCount === undefined)) {
+    marks.push({
       label: 'Day-0 assessment',
       done: day0Count >= 1,
-      sub: day0Count > 0 ? `${day0Count} response${day0Count !== 1 ? 's' : ''}` : 'No responses yet',
-    },
-    {
+      sub: checkinCount > 0
+        ? `${day0Count} of ${checkinCount} checked-in gave baseline`
+        : day0Count > 0 ? `${day0Count} response${day0Count !== 1 ? 's' : ''}` : 'No responses yet',
+    });
+    marks.push({
       label: 'Day-14 assessment',
       done: day14Count >= 1,
-      sub: day14Count > 0 ? `${day14Count} response${day14Count !== 1 ? 's' : ''}` : 'No responses yet',
-    },
-    {
-      label: 'Recording uploaded',
-      done: hasRecording,
-      sub: hasRecording ? 'Linked' : 'Not yet uploaded',
-    },
-  ];
+      sub: checkinCount > 0
+        ? `${day14Count} of ${checkinCount} checked-in gave endpoint`
+        : day14Count > 0 ? `${day14Count} response${day14Count !== 1 ? 's' : ''}` : 'No responses yet',
+    });
+  }
+
+  // Non-challenge baseline/endpoint marks — shown when baselineCount or endpointCount is provided
+  if (baselineCount !== undefined) {
+    marks.push({
+      label: 'Baseline assessment',
+      done: baselineCount >= 1,
+      sub: checkinCount > 0
+        ? `${baselineCount} of ${checkinCount} checked-in gave baseline`
+        : baselineCount > 0 ? `${baselineCount} response${baselineCount !== 1 ? 's' : ''}` : 'No responses yet',
+    });
+  }
+  if (endpointCount !== undefined) {
+    marks.push({
+      label: 'Endpoint assessment',
+      done: endpointCount >= 1,
+      sub: checkinCount > 0
+        ? `${endpointCount} of ${checkinCount} checked-in gave endpoint`
+        : endpointCount > 0 ? `${endpointCount} response${endpointCount !== 1 ? 's' : ''}` : 'No responses yet',
+    });
+  }
+
+  // Recording mark
+  marks.push({
+    label: 'Recording uploaded',
+    done: hasRecording,
+    sub: hasRecording ? 'Linked' : 'Not yet uploaded',
+  });
 
   if (compact) {
     return (
