@@ -12,7 +12,7 @@
     },
     "content": {
       "type": "string",
-      "description": "Markdown content of the knowledge entry — pasted and maintained by William"
+      "description": "Markdown content of the knowledge entry \u2014 pasted and maintained by William"
     },
     "category": {
       "type": "string",
