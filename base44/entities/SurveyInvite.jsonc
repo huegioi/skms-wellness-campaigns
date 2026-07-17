@@ -1,0 +1,90 @@
+{
+  "name": "SurveyInvite",
+  "type": "object",
+  "properties": {
+    "token": {
+      "type": "string",
+      "description": "Unique per-recipient token (crypto.randomUUID()) used in the survey link"
+    },
+    "email": {
+      "type": "string",
+      "description": "Recipient email (lowercased + trimmed)"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Client ID this invite is scoped to"
+    },
+    "service_id": {
+      "type": "string",
+      "description": "Service ID this invite is scoped to"
+    },
+    "survey_type": {
+      "type": "string",
+      "enum": [
+        "enps_post_session",
+        "cohort_end",
+        "cohort_1mo"
+      ],
+      "description": "Which survey timing this invite is for"
+    },
+    "instruments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Instrument set locked for this invite (e.g. ['enps'] for post-session, ['who5','enps'] for endpoint)"
+    },
+    "scheduled_send_id": {
+      "type": "string",
+      "description": "ID of the ScheduledSurveySend that created this invite"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this invite was created"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the recipient submitted the survey (null if not yet submitted)"
+    }
+  },
+  "required": [
+    "token",
+    "email",
+    "survey_type",
+    "created_at"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": true,
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    }
+  }
+}

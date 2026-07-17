@@ -1,53 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CheckCircle2, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { CheckCircle2, ChevronLeft, ChevronRight, Loader2, Lock } from 'lucide-react';
 import { getOrderedInstruments, FULL_BATTERY } from '@/components/assessments/instrumentDefs';
 import InstrumentStep from '@/components/assessments/InstrumentStep';
 
 const TIMING_MAP = {
-  day0:         { survey_type: 'challenge_day0',  label: 'Day 0 Baseline' },
-  day14:        { survey_type: 'challenge_day14', label: 'Day 14 Check-In' },
-  cohort_start: { survey_type: 'cohort_start',    label: 'Cohort Start Census' },
-  cohort_end:   { survey_type: 'cohort_end',      label: 'Cohort End Census' },
+  day0:              { survey_type: 'challenge_day0',      label: 'Day 0 Baseline' },
+  day14:             { survey_type: 'challenge_day14',     label: 'Day 14 Check-In' },
+  cohort_start:      { survey_type: 'cohort_start',         label: 'Cohort Start Census' },
+  cohort_end:        { survey_type: 'cohort_end',           label: 'Cohort End Census' },
+  cohort_1mo:        { survey_type: 'cohort_1mo',           label: '30-Day Follow-Up' },
+  enps_post_session: { survey_type: 'enps_post_session',    label: 'Post-Session Feedback' },
 };
 
 export default function CohortAssessmentPage() {
   const [searchParams] = useSearchParams();
+  const token = searchParams.get('t');
   const service_id = searchParams.get('service_id') || '';
   const client_id = searchParams.get('client_id') || '';
   const proposal_id = searchParams.get('proposal_id') || '';
   const timing = searchParams.get('timing') || 'day0';
-  const { survey_type, label: timingLabel } = TIMING_MAP[timing] || TIMING_MAP['day0'];
-  const isCensus = timing === 'cohort_start' || timing === 'cohort_end';
 
-  // Fetch service to read included_assessments (challenge only)
-  const { data: service, isLoading: serviceLoading } = useQuery({
-    queryKey: ['cohort-service', service_id],
+  // ── Token resolution ──
+  const { data: tokenData, isLoading: tokenLoading, error: tokenError } = useQuery({
+    queryKey: ['survey-token', token],
     queryFn: async () => {
-      if (!service_id) return null;
-      const res = await base44.entities.Service.filter({ id: service_id });
-      return res[0] || null;
+      if (!token) return null;
+      const res = await base44.functions.invoke('resolveSurveyToken', { token });
+      return res.data;
     },
-    enabled: !!service_id,
+    enabled: !!token,
   });
 
-  // Census always uses the full battery; challenge reads the service config
-  const instrumentKeys = isCensus
-    ? FULL_BATTERY
-    : (service?.included_assessments?.length ? service.included_assessments : ['who5']);
+  // Derive effective params from token or query string
+  const effectiveServiceId = tokenData?.service_id || service_id;
+  const effectiveClientId = tokenData?.client_id || client_id;
+  const effectiveSurveyType = tokenData?.survey_type || TIMING_MAP[timing]?.survey_type || 'challenge_day0';
+  const timingLabel = tokenData
+    ? (TIMING_MAP[tokenData.survey_type]?.label || 'Survey')
+    : (TIMING_MAP[timing]?.label || 'Survey');
+
+  // Fetch service (for display name + challenge instruments)
+  const { data: service, isLoading: serviceLoading } = useQuery({
+    queryKey: ['cohort-service', effectiveServiceId],
+    queryFn: async () => {
+      if (!effectiveServiceId) return null;
+      const res = await base44.entities.Service.filter({ id: effectiveServiceId });
+      return res[0] || null;
+    },
+    enabled: !!effectiveServiceId,
+  });
+
+  // Determine instruments
+  let instrumentKeys;
+  if (tokenData) {
+    instrumentKeys = tokenData.instruments?.length ? tokenData.instruments : ['enps'];
+  } else {
+    const isCensus = timing === 'cohort_start' || timing === 'cohort_end';
+    instrumentKeys = isCensus
+      ? FULL_BATTERY
+      : (service?.included_assessments?.length ? service.included_assessments : ['who5']);
+  }
   const instruments = getOrderedInstruments(instrumentKeys);
 
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [stepIndex, setStepIndex] = useState(0); // 0 = contact, 1..N = instruments
+  const [stepIndex, setStepIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+
+  // Prefill email from token
+  useEffect(() => {
+    if (tokenData?.email) setEmail(tokenData.email);
+  }, [tokenData]);
 
   const currentInstrument = stepIndex > 0 ? instruments[stepIndex - 1] : null;
   const instrumentAnswers = currentInstrument ? (answers[currentInstrument.key] || {}) : {};
@@ -72,12 +103,12 @@ export default function CohortAssessmentPage() {
       const results = await Promise.all(
         instruments.map(inst =>
           base44.functions.invoke('submitCohortAssessment', {
-            client_id,
-            service_id,
+            client_id: effectiveClientId,
+            service_id: effectiveServiceId,
             proposal_id,
             participant_email: email.trim(),
             participant_phone: phone.trim() || undefined,
-            survey_type,
+            survey_type: effectiveSurveyType,
             instrument: inst.key,
             item_responses: answers[inst.key],
           })
@@ -85,6 +116,12 @@ export default function CohortAssessmentPage() {
       );
       if (results.every(r => r?.data?.success)) {
         setSubmitted(true);
+        // Mark SurveyInvite as submitted if token was used
+        if (token) {
+          try {
+            await base44.functions.invoke('resolveSurveyToken', { token, mark_submitted: true });
+          } catch { /* non-critical */ }
+        }
       } else {
         const firstError = results.find(r => r?.data?.error);
         setError(firstError?.data?.error || 'Some submissions failed. Please try again.');
@@ -95,11 +132,35 @@ export default function CohortAssessmentPage() {
     setSubmitting(false);
   };
 
-  // Loading gate for challenge (need service data before rendering)
-  if (!isCensus && serviceLoading) {
+  // Loading gate
+  if ((token && tokenLoading) || (!tokenData && !effectiveServiceId && serviceLoading)) {
     return (
       <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-[#264d44] animate-spin" />
+      </div>
+    );
+  }
+
+  // Token error
+  if (token && tokenError) {
+    return (
+      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+          <p className="text-gray-600">This survey link is invalid or has expired.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Already submitted
+  if (tokenData?.already_submitted) {
+    return (
+      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+          <CheckCircle2 className="w-16 h-16 text-[#264d44] mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">Already submitted</h2>
+          <p className="text-gray-600">You've already completed this survey. Thank you!</p>
+        </div>
       </div>
     );
   }
@@ -131,7 +192,6 @@ export default function CohortAssessmentPage() {
 
   return (
     <div className="min-h-screen bg-[#f4f0e9]">
-      {/* Header */}
       <div className="bg-[#013f7c] text-white px-4 py-6 text-center">
         <img
           src="https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/1272f92b7_SKMSLogoShieldWhite.png"
@@ -139,10 +199,11 @@ export default function CohortAssessmentPage() {
           className="h-10 mx-auto mb-3"
         />
         <h1 className="text-xl font-bold">{timingLabel}</h1>
-        {service && <p className="text-blue-200 text-sm mt-2 font-medium">{service.name}</p>}
+        {(service || tokenData?.service_name) && (
+          <p className="text-blue-200 text-sm mt-2 font-medium">{service?.name || tokenData?.service_name}</p>
+        )}
       </div>
 
-      {/* Progress bar */}
       <div className="max-w-xl mx-auto px-4 pt-4">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-xs font-medium text-gray-500">
@@ -153,17 +214,13 @@ export default function CohortAssessmentPage() {
           )}
         </div>
         <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-[#013f7c] rounded-full transition-all duration-300"
-            style={{ width: `${progress}%` }}
-          />
+          <div className="h-full bg-[#013f7c] rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
         </div>
       </div>
 
       <div className="max-w-xl mx-auto px-4 py-6">
         <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8">
           {stepIndex === 0 ? (
-            /* ── Contact step ── */
             <div className="space-y-4">
               <div>
                 <h2 className="text-lg font-bold text-gray-800 mb-1">Let's get started</h2>
@@ -176,13 +233,19 @@ export default function CohortAssessmentPage() {
                 <label className="text-sm font-medium text-gray-700 block mb-1">
                   Email Address <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full"
-                />
+                <div className="relative">
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full"
+                    disabled={!!tokenData}
+                  />
+                  {tokenData && (
+                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  )}
+                </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">
@@ -205,7 +268,6 @@ export default function CohortAssessmentPage() {
               </Button>
             </div>
           ) : (
-            /* ── Instrument step ── */
             <div className="space-y-6">
               <div>
                 <p className="text-xs font-semibold text-[#013f7c] uppercase tracking-wide">
@@ -221,11 +283,7 @@ export default function CohortAssessmentPage() {
                 <p className="text-sm text-red-600 bg-red-50 rounded-lg px-4 py-3">{error}</p>
               )}
               <div className="flex gap-3">
-                <Button
-                  onClick={() => setStepIndex(stepIndex - 1)}
-                  variant="outline"
-                  className="px-4 py-3 rounded-xl"
-                >
+                <Button onClick={() => setStepIndex(stepIndex - 1)} variant="outline" className="px-4 py-3 rounded-xl">
                   <ChevronLeft className="w-5 h-5" />
                 </Button>
                 {isLastStep ? (

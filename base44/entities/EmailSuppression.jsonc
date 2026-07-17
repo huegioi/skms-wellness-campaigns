@@ -1,0 +1,68 @@
+{
+  "name": "EmailSuppression",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "Suppressed email address (lowercased + trimmed) \u2014 excluded from all future survey sends"
+    },
+    "suppressed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the email was suppressed"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Why the email was suppressed (e.g. 'unsubscribe', 'bounce')"
+    }
+  },
+  "required": [
+    "email",
+    "suppressed_at"
+  ],
+  "rls": {
+    "create": true,
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    }
+  }
+}

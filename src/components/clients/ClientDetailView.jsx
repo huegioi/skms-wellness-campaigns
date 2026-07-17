@@ -31,6 +31,7 @@ import { toast } from 'sonner';
 import MayaInsightsWidget from '@/components/shared/MayaInsightsWidget';
 import RecordSnapshotHeader from '@/components/shared/RecordSnapshotHeader';
 import CollapsibleFieldSection from '@/components/shared/CollapsibleFieldSection';
+import { Switch } from '@/components/ui/switch';
 import { InlineText } from '@/components/shared/inline/InlineText';
 import { InlineSelect } from '@/components/shared/inline/InlineSelect';
 import { CLIENT_STAGES } from '@/components/shared/constants';
@@ -1058,6 +1059,19 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
               </div>
             </CardContent>
           </Card>
+          </CollapsibleFieldSection>
+
+          <CollapsibleFieldSection title="Survey Email Settings" icon={Mail}>
+            <div className="flex items-center justify-between py-2">
+              <div className="pr-4">
+                <p className="text-sm font-medium text-gray-700">Automated Attendee Emails</p>
+                <p className="text-xs text-gray-500 mt-1">When on, survey emails are automatically sent to attendees after sessions and at program milestones. When off, all sends are visibly skipped — never silent.</p>
+              </div>
+              <Switch
+                checked={client.attendee_emails_allowed !== false}
+                onCheckedChange={(checked) => onUpdate({ attendee_emails_allowed: checked })}
+              />
+            </div>
           </CollapsibleFieldSection>
 
           <CollapsibleFieldSection title="Follow-Up Settings" icon={Clock}>

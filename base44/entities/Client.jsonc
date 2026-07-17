@@ -50,7 +50,7 @@
     },
     "employee_count": {
       "type": "number",
-      "description": "Actual employee headcount (precise number, preserved across saves)"
+      "description": "Actual employee headcount"
     },
     "company_address": {
       "type": "string",
@@ -71,7 +71,7 @@
     },
     "wellness_fund_size": {
       "type": "number",
-      "description": "Per-employee wellness fund size (dollar amount)"
+      "description": "Per-employee wellness fund size"
     },
     "renewal_date": {
       "type": "string",
@@ -80,14 +80,14 @@
     },
     "owner": {
       "type": "string",
-      "description": "Team member responsible for this client (e.g. William, Heather)"
+      "description": "Team member responsible for this client"
     },
     "tags": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Tag labels applied to this client (shared pool with Lead and ReferralPartner)"
+      "description": "Tag labels"
     },
     "client_stage": {
       "type": "string",
@@ -107,7 +107,7 @@
         "re_engage",
         "churned"
       ],
-      "description": "Current lifecycle/sales stage of the client relationship"
+      "description": "Current lifecycle stage"
     },
     "tier": {
       "type": "string",
@@ -116,7 +116,7 @@
         "Tier 2",
         "Tier 3"
       ],
-      "description": "Client tier for prioritization"
+      "description": "Client tier"
     },
     "renewal_cohort": {
       "type": "string",
@@ -125,16 +125,16 @@
         "July 1",
         "Off-Cycle"
       ],
-      "description": "Which renewal cohort this client belongs to"
+      "description": "Renewal cohort"
     },
     "last_touchpoint_date": {
       "type": "string",
       "format": "date",
-      "description": "Date of last meaningful touchpoint with this client"
+      "description": "Last meaningful touchpoint"
     },
     "brokers": {
       "type": "array",
-      "description": "List of brokers associated with this client",
+      "description": "Brokers",
       "items": {
         "type": "object",
         "properties": {
@@ -158,11 +158,11 @@
     },
     "broker_name": {
       "type": "string",
-      "description": "Legacy: single broker name (use brokers array instead)"
+      "description": "Legacy: single broker name"
     },
     "broker_email": {
       "type": "string",
-      "description": "Legacy: single broker email (use brokers array instead)"
+      "description": "Legacy: single broker email"
     },
     "wellness_consultant_name": {
       "type": "string",
@@ -171,20 +171,20 @@
     "wellness_consultant_email": {
       "type": "string",
       "format": "email",
-      "description": "Wellness consultant email address"
+      "description": "Wellness consultant email"
     },
     "referral_partner_id": {
       "type": "string",
-      "description": "ID of the ReferralPartner who referred this client"
+      "description": "Referral partner ID"
     },
     "referral_partner_name": {
       "type": "string",
-      "description": "Display name of the referring partner"
+      "description": "Referring partner display name"
     },
     "last_contacted": {
       "type": "string",
       "format": "date-time",
-      "description": "Date of last contact"
+      "description": "Last contact date"
     },
     "related_contacts": {
       "type": "array",
@@ -208,23 +208,23 @@
           }
         }
       },
-      "description": "Additional contacts at this company"
+      "description": "Additional contacts"
     },
     "purchased_services": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "List of previously purchased service IDs"
+      "description": "Purchased service IDs"
     },
     "total_invoice_value": {
       "type": "number",
-      "description": "Total value of all invoices from QuickBooks",
+      "description": "Total invoice value",
       "default": 0
     },
     "invoice_count": {
       "type": "number",
-      "description": "Number of invoices from QuickBooks",
+      "description": "Invoice count",
       "default": 0
     },
     "invoice_ids": {
@@ -232,14 +232,14 @@
       "items": {
         "type": "string"
       },
-      "description": "List of invoice IDs associated with this client"
+      "description": "Invoice IDs"
     },
     "portal_template_ids": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Manually selected email template IDs for client portal"
+      "description": "Portal email template IDs"
     },
     "portal_documents": {
       "type": "array",
@@ -261,7 +261,7 @@
           }
         }
       },
-      "description": "Custom documents uploaded for this client's portal"
+      "description": "Portal documents"
     },
     "session_resources": {
       "type": "array",
@@ -292,26 +292,26 @@
           }
         }
       },
-      "description": "Links to session recordings, PPT files, and handout files for the client portal"
+      "description": "Session resources"
     },
     "notes": {
       "type": "string",
-      "description": "Additional notes about the client"
+      "description": "Notes"
     },
     "last_service_date": {
       "type": "string",
       "format": "date",
-      "description": "Date of last service delivered to this client"
+      "description": "Last service date"
     },
     "follow_up_window_days": {
       "type": "number",
       "default": 90,
-      "description": "Number of days after last service before a follow-up is needed"
+      "description": "Days after service before follow-up"
     },
     "last_contacted_date": {
       "type": "string",
       "format": "date",
-      "description": "Date client was last contacted for follow-up purposes"
+      "description": "Last contacted date"
     },
     "follow_up_status": {
       "type": "string",
@@ -321,39 +321,44 @@
         "booked",
         "snoozed"
       ],
-      "description": "Current follow-up status for this client"
+      "description": "Follow-up status"
     },
     "snooze_until": {
       "type": "string",
       "format": "date",
-      "description": "Hide from follow-up queue until this date"
+      "description": "Hide from follow-up queue until"
     },
     "april_checkin_year": {
       "type": "number",
-      "description": "Year the April check-in was last completed"
+      "description": "April check-in year"
     },
     "november_checkin_year": {
       "type": "number",
-      "description": "Year the November check-in was last completed"
+      "description": "November check-in year"
     },
     "stage_entered_date": {
       "type": "string",
       "format": "date",
-      "description": "Date the client entered the current stage \u2014 used for stall detection"
+      "description": "Stage entered date"
     },
     "follow_up_due_date": {
       "type": "string",
       "format": "date",
-      "description": "Manual follow-up due date (does not replace the window-based follow-up model)"
+      "description": "Manual follow-up due date"
     },
     "portal_token": {
       "type": "string",
-      "description": "Secret token for the client's no-login portal link"
+      "description": "Portal token"
+    },
+    "attendee_emails_allowed": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether automated attendee survey emails are allowed. When false, all survey sends are visibly skipped (never silently)."
     },
     "is_demo": {
       "type": "boolean",
       "default": false,
-      "description": "True if this record is demo/broker-demo sample data. Excluded from all syncs (Sheets, Kajabi, Google Calendar), Maya briefings, and dashboard/analytics metrics."
+      "description": "Demo data flag."
     }
   },
   "required": [

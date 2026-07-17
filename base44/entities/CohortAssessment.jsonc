@@ -8,11 +8,11 @@
     },
     "service_id": {
       "type": "string",
-      "description": "The specific challenge/service ID (for challenge_day0 / challenge_day14 types)"
+      "description": "The specific challenge/service ID"
     },
     "proposal_id": {
       "type": "string",
-      "description": "The accepted proposal ID (for cohort_start / cohort_end types)"
+      "description": "The accepted proposal ID (for cohort_start / cohort_end / cohort_1mo types)"
     },
     "participant_email": {
       "type": "string",
@@ -28,7 +28,9 @@
         "challenge_day0",
         "challenge_day14",
         "cohort_start",
-        "cohort_end"
+        "cohort_end",
+        "cohort_1mo",
+        "enps_post_session"
       ],
       "description": "Which assessment point this row represents"
     },
@@ -50,47 +52,41 @@
     },
     "instrument_subscores": {
       "type": "object",
-      "description": "Optional named sub-scale scores (e.g. CBI personal/work/client burnout)"
+      "description": "Optional named sub-scale scores"
     },
     "item_responses": {
       "type": "object",
-      "description": "Raw per-item answers keyed by item id (e.g. {\"q1\": 3, \"q2\": 4})"
+      "description": "Raw per-item answers keyed by item id"
     },
     "who5_cheerful": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 5,
-      "description": "WHO-5 Q1: Felt cheerful and in good spirits (0-5)"
+      "maximum": 5
     },
     "who5_calm": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 5,
-      "description": "WHO-5 Q2: Felt calm and relaxed (0-5)"
+      "maximum": 5
     },
     "who5_active": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 5,
-      "description": "WHO-5 Q3: Felt active and vigorous (0-5)"
+      "maximum": 5
     },
     "who5_rested": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 5,
-      "description": "WHO-5 Q4: Woke up feeling fresh and rested (0-5)"
+      "maximum": 5
     },
     "who5_interested": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 5,
-      "description": "WHO-5 Q5: Daily life filled with interesting things (0-5)"
+      "maximum": 5
     },
     "who5_total": {
       "type": "integer",
       "minimum": 0,
-      "maximum": 100,
-      "description": "WHO-5 total score = sum of 5 items * 4 (0-100)"
+      "maximum": 100
     },
     "cohort_year": {
       "type": "integer",
@@ -109,7 +105,7 @@
     "is_demo": {
       "type": "boolean",
       "default": false,
-      "description": "True if this record is demo/broker-demo sample data. Excluded from all dashboard/analytics metrics and wellbeing reports."
+      "description": "True if this record is demo/broker-demo sample data."
     }
   },
   "required": [

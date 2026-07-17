@@ -1,0 +1,137 @@
+{
+  "name": "ScheduledSurveySend",
+  "type": "object",
+  "properties": {
+    "send_type": {
+      "type": "string",
+      "enum": [
+        "enps_post_session",
+        "cohort_end",
+        "cohort_1mo"
+      ],
+      "description": "Type of survey send"
+    },
+    "event_id": {
+      "type": "string",
+      "description": "CalendarEvent ID that triggered this send (for enps_post_session and cohort_end)"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Associated client ID"
+    },
+    "service_id": {
+      "type": "string",
+      "description": "Associated service ID"
+    },
+    "proposal_id": {
+      "type": "string",
+      "description": "Associated proposal ID (for cohort_end / cohort_1mo)"
+    },
+    "send_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this send is scheduled to fire"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "sent",
+        "skipped"
+      ],
+      "default": "pending",
+      "description": "Current status of this send"
+    },
+    "recipient_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of recipients who received the email (set at send time)"
+    },
+    "skip_reason": {
+      "type": "string",
+      "description": "Why this send was skipped (e.g. 'attendee_emails_allowed is off', 'no recipients', 'all already submitted')"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the email was actually sent"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error details if the send failed"
+    },
+    "reminder_sent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the single allowed reminder (cohort_end only, 3 days later) has been sent"
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this record is demo/broker-demo sample data."
+    }
+  },
+  "required": [
+    "send_type",
+    "send_at",
+    "status"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    }
+  }
+}
