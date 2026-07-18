@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { CheckCircle, Copy, Users, ArrowRight, Brain, AlertTriangle } from 'lucide-react';
+import MfsProcessInfo from '@/components/mfs/MfsProcessInfo';
 
 const TEAM_SIZES = [
   { value: '1-50', label: '1–50' },
@@ -272,6 +273,8 @@ export default function MentalFitnessScore() {
           </Button>
         </div>
       </div>
+
+      <MfsProcessInfo />
     </PortalShell>
   );
 }
