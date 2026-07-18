@@ -23,28 +23,30 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Missing record_type or record_id' }, { status: 400 });
     }
 
-    // ── Fetch shared context, knowledge base, and persona in parallel ──
+    // ── Single bundle call: record + knowledge + persona ──
     const _ik = Deno.env.get('MAYA_INTERNAL_KEY');
-    const [ctxResponse, knowledgeResponse, personaResponse] = await Promise.all([
-      base44.functions.invoke('mayaContext', { action: 'record', record_type, record_id, internal_key: _ik }),
-      base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'products', 'positioning'], internal_key: _ik }),
-      base44.functions.invoke('mayaContext', { action: 'persona', internal_key: _ik }),
-    ]);
+    const bundleRes = await base44.functions.invoke('mayaContext', {
+      action: 'bundle',
+      record_type, record_id,
+      categories: ['sales_process', 'products', 'positioning'],
+      internal_key: _ik,
+    });
+    const bd = bundleRes.data || {};
 
     const contextWarnings = [];
-    if (!ctxResponse.data?.contextText || ctxResponse.data?.error || ctxResponse.status !== 200) {
-      contextWarnings.push(`⚠ I couldn't load the record data (context service returned ${ctxResponse.status}${ctxResponse.data?.error ? ': ' + ctxResponse.data.error : ''})`);
+    if (!bd.recordText || bundleRes.status !== 200) {
+      contextWarnings.push(`⚠ I couldn't load the record data (context service returned ${bundleRes.status}${bd.error ? ': ' + bd.error : ''})`);
     }
-    if (!knowledgeResponse.data?.contextText || knowledgeResponse.data?.error) {
-      contextWarnings.push(`⚠ I couldn't load the knowledge base (context service returned ${knowledgeResponse.status})`);
+    if (!bd.knowledgeText) {
+      contextWarnings.push(`⚠ I couldn't load the knowledge base`);
     }
-    if (!personaResponse.data?.persona || personaResponse.data?.error) {
-      contextWarnings.push(`⚠ I couldn't load the persona (context service returned ${personaResponse.status})`);
+    if (!bd.persona) {
+      contextWarnings.push(`⚠ I couldn't load the persona`);
     }
 
-    const contextText = ctxResponse.data?.contextText || '';
-    const knowledgeText = knowledgeResponse.data?.contextText || '';
-    const MAYA_PERSONA = personaResponse.data?.persona || '';
+    const contextText = bd.recordText || '';
+    const knowledgeText = bd.knowledgeText || '';
+    const MAYA_PERSONA = bd.persona || '';
     const fullContext = knowledgeText + '\n\n---\n\n' + contextText;
 
     const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });

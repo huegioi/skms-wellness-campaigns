@@ -35,33 +35,37 @@ Deno.serve(async (req) => {
   const currentMonthName = MONTH_NAMES[now.getMonth()];
   const currentThemes = SEASONAL_THEMES[currentMonthName] || [];
 
-  // ── Fetch shared global context, knowledge base, and persona in parallel ──
+  // ── Single bundle call (global + knowledge + persona) + delivery in parallel ──
   const _ik = Deno.env.get('MAYA_INTERNAL_KEY');
-  const [ctxResponse, knowledgeResponse, personaResponse, deliveryResponse] = await Promise.all([
-    base44.functions.invoke('mayaContext', { action: 'global', internal_key: _ik }),
-    base44.functions.invoke('mayaContext', { action: 'knowledge', categories: ['sales_process', 'delivery'], internal_key: _ik }),
-    base44.functions.invoke('mayaContext', { action: 'persona', internal_key: _ik }),
+  const [bundleRes, deliveryResponse] = await Promise.all([
+    base44.functions.invoke('mayaContext', {
+      action: 'bundle',
+      include_global: true,
+      categories: ['sales_process', 'delivery'],
+      internal_key: _ik,
+    }),
     base44.functions.invoke('mayaContext', { action: 'delivery', internal_key: _ik }),
   ]);
-  const globalContext = ctxResponse.data?.contextText || '';
-  const data = ctxResponse.data?.data || {};
+  const bd = bundleRes.data || {};
+  const globalContext = bd.globalText || '';
+  const data = bd.globalData || {};
   const clients = data.clients || [];
   const leads = data.leads || [];
   const partners = data.partners || [];
   const newInquiries = data.newInquiries || [];
-  const knowledgeText = knowledgeResponse.data?.contextText || '';
-  const MAYA_PERSONA = personaResponse.data?.persona || '';
+  const knowledgeText = bd.knowledgeText || '';
+  const MAYA_PERSONA = bd.persona || '';
   const delivery = deliveryResponse.data || {};
 
   const contextWarnings = [];
-  if (!globalContext || ctxResponse.data?.error || ctxResponse.status !== 200) {
-    contextWarnings.push(`⚠ I couldn't load the global context (context service returned ${ctxResponse.status})`);
+  if (!globalContext || bundleRes.status !== 200) {
+    contextWarnings.push(`⚠ I couldn't load the global context (context service returned ${bundleRes.status})`);
   }
-  if (!knowledgeText || knowledgeResponse.data?.error) {
-    contextWarnings.push(`⚠ I couldn't load the knowledge base (context service returned ${knowledgeResponse.status})`);
+  if (!knowledgeText) {
+    contextWarnings.push(`⚠ I couldn't load the knowledge base`);
   }
-  if (!MAYA_PERSONA || personaResponse.data?.error) {
-    contextWarnings.push(`⚠ I couldn't load the persona (context service returned ${personaResponse.status})`);
+  if (!MAYA_PERSONA) {
+    contextWarnings.push(`⚠ I couldn't load the persona`);
   }
   if (!delivery || deliveryResponse.data?.error) {
     contextWarnings.push(`⚠ I couldn't load the delivery context (context service returned ${deliveryResponse.status})`);

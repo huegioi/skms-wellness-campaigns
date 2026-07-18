@@ -18,6 +18,7 @@ export default function AskMayaPanel({ open, onOpenChange, pendingQuestion, onTh
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState(0);
   const scrollRef = useRef(null);
   const pendingRef = useRef(null);
 
@@ -50,6 +51,8 @@ export default function AskMayaPanel({ open, onOpenChange, pendingQuestion, onTh
     const next = [...messages, { role: 'user', content: q }];
     setMessages(next);
     setLoading(true);
+    setLoadingStage(0);
+    const stageTimer = setInterval(() => setLoadingStage(s => Math.min(s + 1, 2)), 1500);
     try {
       const payload = { question: q };
       if (recordType && recordId) {
@@ -64,6 +67,8 @@ export default function AskMayaPanel({ open, onOpenChange, pendingQuestion, onTh
         { role: 'assistant', content: '_Sorry — I could not answer that. Please try again._' },
       ]);
     } finally {
+      clearInterval(stageTimer);
+      setLoadingStage(0);
       setLoading(false);
     }
   };
@@ -122,7 +127,7 @@ export default function AskMayaPanel({ open, onOpenChange, pendingQuestion, onTh
           {loading && (
             <div className="flex items-center gap-2 text-sm text-gray-400 pl-1">
               <Loader2 className="w-4 h-4 animate-spin" />
-              Maya is thinking…
+              {loadingStage === 0 ? 'Reading the record…' : loadingStage === 1 ? 'Analyzing context…' : 'Thinking…'}
             </div>
           )}
         </div>

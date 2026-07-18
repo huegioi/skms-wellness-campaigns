@@ -133,37 +133,38 @@ Deno.serve(async (req) => {
 
     const hasRecord = !!(record_type && record_id);
 
-    // ── Fetch global + record (when ids) + knowledge + persona in parallel ──
+    // ── Single bundle call: global + knowledge + persona + record (if any) ──
     const _ik = Deno.env.get('MAYA_INTERNAL_KEY');
-    const fetches = [
-      base44.functions.invoke('mayaContext', { action: 'global', internal_key: _ik }),
-      base44.functions.invoke('mayaContext', { action: 'knowledge', categories: knowledgeCategories, internal_key: _ik }),
-      base44.functions.invoke('mayaContext', { action: 'persona', internal_key: _ik }),
-    ];
-    if (hasRecord) {
-      fetches.push(base44.functions.invoke('mayaContext', { action: 'record', record_type, record_id, internal_key: _ik }));
-    }
-    const responses = await Promise.all(fetches);
+    const bundleRes = await base44.functions.invoke('mayaContext', {
+      action: 'bundle',
+      include_global: true,
+      record_type: hasRecord ? record_type : undefined,
+      record_id: hasRecord ? record_id : undefined,
+      categories: knowledgeCategories,
+      question,
+      internal_key: _ik,
+    });
+    const bd = bundleRes.data || {};
 
     const contextWarnings = [];
-    if (!responses[0].data?.contextText || responses[0].data?.error || responses[0].status !== 200) {
-      contextWarnings.push(`⚠ I couldn't load the global context (context service returned ${responses[0].status})`);
+    if (!bd.globalText || bundleRes.status !== 200) {
+      contextWarnings.push(`⚠ I couldn't load the global context (context service returned ${bundleRes.status})`);
     }
-    if (!responses[1].data?.contextText || responses[1].data?.error) {
-      contextWarnings.push(`⚠ I couldn't load the knowledge base (context service returned ${responses[1].status})`);
+    if (!bd.knowledgeText) {
+      contextWarnings.push(`⚠ I couldn't load the knowledge base`);
     }
-    if (!responses[2].data?.persona || responses[2].data?.error) {
-      contextWarnings.push(`⚠ I couldn't load the persona (context service returned ${responses[2].status})`);
+    if (!bd.persona) {
+      contextWarnings.push(`⚠ I couldn't load the persona`);
     }
-    if (hasRecord && (!responses[3].data?.contextText || responses[3].data?.error || responses[3].status !== 200)) {
-      contextWarnings.push(`⚠ I couldn't load the record data (context service returned ${responses[3].status})`);
+    if (hasRecord && !bd.recordText) {
+      contextWarnings.push(`⚠ I couldn't load the record data`);
     }
 
-    const globalText = responses[0].data?.contextText || '';
-    const globalData = responses[0].data?.data || {};
-    const knowledgeText = responses[1].data?.contextText || '';
-    const MAYA_PERSONA = responses[2].data?.persona || '';
-    const recordText = hasRecord ? (responses[3].data?.contextText || '') : '';
+    const globalText = bd.globalText || '';
+    const globalData = bd.globalData || {};
+    const knowledgeText = bd.knowledgeText || '';
+    const MAYA_PERSONA = bd.persona || '';
+    const recordText = hasRecord ? (bd.recordText || '') : '';
 
     // ── Name resolution: find record references in the question ──
     let groundedNames = [];
@@ -227,7 +228,7 @@ You are answering a direct question from William or Heather. Ground every answer
     try {
       llmResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
         prompt: `${systemPrompt}\n\n${fullContext}${unmatchedNote}\n\n---\n\nQUESTION:\n${question}`,
-        model: 'claude_sonnet_4_6',
+        model: 'gpt_5_mini',
       });
     } catch (llmErr) {
       console.error('[askMaya] LLM call failed:', llmErr.message, llmErr.stack);

@@ -659,18 +659,66 @@ ${renewalClients.slice(0, 10).map(c => `- ${c.company || c.name} (owner: ${c.own
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// GET KNOWLEDGE — fetch active MayaKnowledge entries by category
+// KNOWLEDGE CACHE — 5-minute in-memory TTL (entries change rarely)
 // ═══════════════════════════════════════════════════════════════════════════
 
-async function getKnowledge(base44, categories) {
+const KNOWLEDGE_TTL = 5 * 60 * 1000; // 5 minutes
+let _knowledgeCache = null; // { entries, fetchedAt }
+
+async function getKnowledgeEntries(base44) {
+  const now = Date.now();
+  if (_knowledgeCache && (now - _knowledgeCache.fetchedAt) < KNOWLEDGE_TTL) {
+    return _knowledgeCache.entries;
+  }
+  const entries = await safeFilter(base44, 'MayaKnowledge', { is_active: true }, '-updated_date', 100);
+  _knowledgeCache = { entries, fetchedAt: now };
+  return entries;
+}
+
+// ── Select 2–3 most relevant entries via keyword matching on question + title/slug ──
+
+function selectRelevantKnowledge(entries, question) {
+  if (entries.length <= 3) return entries;
+  if (!question || typeof question !== 'string') return entries.slice(0, 3);
+
+  const questionLower = question.toLowerCase();
+  const questionWords = [...new Set(questionLower.split(/\W+/).filter(w => w.length > 2))];
+  if (questionWords.length === 0) return entries.slice(0, 3);
+
+  const scored = entries.map(entry => {
+    const titleLower = (entry.title || '').toLowerCase();
+    const slugLower = (entry.slug || '').toLowerCase();
+    const contentLower = (entry.content || '').toLowerCase();
+    let score = 0;
+    for (const word of questionWords) {
+      if (titleLower.includes(word)) score += 3;
+      if (slugLower.includes(word)) score += 2;
+      if (contentLower.includes(word)) score += 1;
+    }
+    return { entry, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  if (scored[0].score > 0) {
+    return scored.filter(s => s.score > 0).slice(0, 3).map(s => s.entry);
+  }
+  return entries.slice(0, 3);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GET KNOWLEDGE — cached fetch + keyword-trimmed selection (2–3 entries max)
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function getKnowledge(base44, categories, question) {
   const gaps = [];
   const sections = [];
 
-  const entries = await safeFilter(base44, 'MayaKnowledge', { is_active: true }, '-updated_date', 100);
+  const entries = await getKnowledgeEntries(base44); // cached
   const filtered = entries.filter(e => categories.includes(e.category));
+  const selected = selectRelevantKnowledge(filtered, question);
 
-  if (filtered.length > 0) {
-    for (const entry of filtered) {
+  if (selected.length > 0) {
+    for (const entry of selected) {
       sections.push(`## ${entry.title}\nCategory: ${entry.category} | Slug: ${entry.slug}\n\n${entry.content || '(no content)'}`);
     }
   } else {
@@ -863,15 +911,50 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'knowledge') {
-      const { categories } = body;
+      const { categories, question } = body;
       if (!categories || !Array.isArray(categories)) {
         return Response.json({ error: 'Missing categories array' }, { status: 400 });
       }
-      const result = await getKnowledge(base44, categories);
+      const result = await getKnowledge(base44, categories, question);
       return Response.json(result);
     }
 
-    return Response.json({ error: `Unknown action: ${action}. Use 'record', 'global', or 'knowledge'.` }, { status: 400 });
+    // ── BUNDLE: record + knowledge + persona (+ optional global) in ONE call ──
+    // Eliminates 3–4 separate invokes from each caller.
+    // Knowledge uses 5-min cache + keyword trimming on `question`.
+    if (action === 'bundle') {
+      const { record_type, record_id, include_global, question, categories } = body;
+      const cats = categories || ['sales_process', 'products', 'positioning', 'delivery'];
+
+      const tasks = [
+        getKnowledge(base44, cats, question),
+      ];
+      if (include_global) tasks.push(buildGlobalContext(base44));
+      if (record_type && record_id) tasks.push(buildRecordContext(base44, record_type, record_id));
+
+      const results = await Promise.all(tasks);
+
+      const response = { persona: MAYA_PERSONA };
+      response.knowledgeText = results[0].contextText;
+
+      let idx = 1;
+      if (include_global) {
+        response.globalText = results[idx].contextText;
+        response.globalData = results[idx].data;
+        response.globalStats = results[idx].stats;
+        idx++;
+      }
+      if (record_type && record_id) {
+        response.recordText = results[idx].contextText;
+        response.recipientEmail = results[idx].recipientEmail;
+        response.recipientName = results[idx].recipientName;
+        response.owner = results[idx].owner;
+      }
+
+      return Response.json(response);
+    }
+
+    return Response.json({ error: `Unknown action: ${action}. Use 'record', 'global', 'delivery', 'knowledge', 'persona', or 'bundle'.` }, { status: 400 });
   } catch (error) {
     console.error('Unhandled error in mayaContext:', error.message, error.stack);
     return Response.json({ error: error.message }, { status: 500 });
