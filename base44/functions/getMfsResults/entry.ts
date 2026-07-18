@@ -20,19 +20,55 @@ Deno.serve(async (req) => {
       500
     );
 
-    const who5Rows = cohortAssessments.filter(a => a.instrument === 'who5' && a.who5_total != null);
-    const pss4Rows = cohortAssessments.filter(a => a.instrument === 'pss4' && a.instrument_total != null);
+    // Group by submission ID (stored in instrument_subscores._sid)
+    const bySubmission = {};
+    for (const row of cohortAssessments) {
+      const sid = row.instrument_subscores?._sid || '';
+      if (!sid) continue;
+      if (!bySubmission[sid]) bySubmission[sid] = {};
+      bySubmission[sid][row.instrument] = row;
+    }
 
-    const who5Avg = who5Rows.length > 0
-      ? Math.round(who5Rows.reduce((s, a) => s + a.who5_total, 0) / who5Rows.length)
-      : null;
-    const pss4Avg = pss4Rows.length > 0
-      ? Math.round((pss4Rows.reduce((s, a) => s + a.instrument_total, 0) / pss4Rows.length) * 10) / 10
+    const responseCount = Object.keys(bySubmission).length;
+    const MIN_RESPONSES = 5;
+
+    // Per-instrument averages (normalized 0–100)
+    const instrumentAverages = {};
+    const instrumentCounts = {};
+    for (const key of ['who5', 'pss4', 'uwes3', 'ucla3']) {
+      const scores = [];
+      for (const sid of Object.keys(bySubmission)) {
+        const row = bySubmission[sid][key];
+        if (!row) continue;
+        const norm = normalizeInstrument(key, row.item_responses);
+        if (norm != null) scores.push(norm);
+      }
+      instrumentAverages[key] = scores.length > 0
+        ? scores.reduce((a, b) => a + b, 0) / scores.length
+        : null;
+      instrumentCounts[key] = scores.length;
+    }
+
+    // Composite = mean of per-respondent composites
+    const perRespondentComposites = [];
+    for (const sid of Object.keys(bySubmission)) {
+      const respondentScores = [];
+      for (const key of ['who5', 'pss4', 'uwes3', 'ucla3']) {
+        const row = bySubmission[sid][key];
+        if (!row) continue;
+        const norm = normalizeInstrument(key, row.item_responses);
+        if (norm != null) respondentScores.push(norm);
+      }
+      if (respondentScores.length > 0) {
+        perRespondentComposites.push(respondentScores.reduce((a, b) => a + b, 0) / respondentScores.length);
+      }
+    }
+    const composite = perRespondentComposites.length > 0
+      ? perRespondentComposites.reduce((a, b) => a + b, 0) / perRespondentComposites.length
       : null;
 
-    // Distinct respondents (by submissionId shared across WHO-5 + PSS-4)
-    const respondentEmails = new Set(cohortAssessments.map(a => a.participant_email));
-    const responseCount = respondentEmails.size;
+    // 5-response privacy gate
+    const locked = responseCount < MIN_RESPONSES;
 
     return Response.json({
       assessment: {
@@ -43,20 +79,41 @@ Deno.serve(async (req) => {
         goals: assessment.goals || [],
         status: assessment.status,
         created_date: assessment.created_date,
+        token: assessment.token,
       },
       response_count: responseCount,
-      who5: {
-        average: who5Avg,
-        count: who5Rows.length,
-        scores: who5Rows.map(r => r.who5_total),
-      },
-      pss4: {
-        average: pss4Avg,
-        count: pss4Rows.length,
-        scores: pss4Rows.map(r => r.instrument_total),
+      min_responses: MIN_RESPONSES,
+      locked,
+      composite: locked ? null : composite,
+      instruments: locked ? null : {
+        who5:  { average: instrumentAverages.who5,  count: instrumentCounts.who5 },
+        pss4:  { average: instrumentAverages.pss4,  count: instrumentCounts.pss4 },
+        uwes3: { average: instrumentAverages.uwes3, count: instrumentCounts.uwes3 },
+        ucla3: { average: instrumentAverages.ucla3, count: instrumentCounts.ucla3 },
       },
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
 });
+
+function normalizeInstrument(instrumentKey, responses) {
+  if (!responses) return null;
+  const q1 = responses.q1 || 0;
+  const q2 = responses.q2 || 0;
+  const q3 = responses.q3 || 0;
+  const q4 = responses.q4 || 0;
+  const q5 = responses.q5 || 0;
+  switch (instrumentKey) {
+    case 'who5':
+      return (q1 + q2 + q3 + q4 + q5) * 4;
+    case 'pss4':
+      return ((16 - (q1 + q2 + q3 + q4)) / 16) * 100;
+    case 'uwes3':
+      return (((q1 + q2 + q3) / 3) / 6) * 100;
+    case 'ucla3':
+      return ((9 - (q1 + q2 + q3)) / 6) * 100;
+    default:
+      return null;
+  }
+}

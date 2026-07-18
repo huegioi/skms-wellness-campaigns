@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 import { Button } from '@/components/ui/button';
-import { Users, Brain, TrendingUp, Copy, RefreshCw } from 'lucide-react';
+import { Users, Copy, RefreshCw, CalendarCheck, TrendingUp, Lock } from 'lucide-react';
 import { toast } from 'sonner';
-import { normalizeScore } from '@/components/feedback/instrumentMeta';
+import MfsScoreDial from '@/components/mfs/MfsScoreDial';
+import MfsScoreBars from '@/components/mfs/MfsScoreBars';
+
+const AUTOREFRESH_MS = 60000;
+const CALENDLY_URL = 'https://calendly.com/skillfulmeans/strategy-session';
 
 export default function MfsResults() {
   const [searchParams] = useSearchParams();
@@ -14,8 +18,7 @@ export default function MfsResults() {
   const [error, setError] = useState(false);
   const [data, setData] = useState(null);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = useCallback(async () => {
     try {
       const res = await base44.functions.invoke('getMfsResults', { token });
       setData(res.data);
@@ -24,31 +27,29 @@ export default function MfsResults() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (token) fetchData();
     else { setError(true); setLoading(false); }
-  }, [token]);
+  }, [token, fetchData]);
+
+  // 60-second auto-refresh
+  useEffect(() => {
+    if (!token || error) return;
+    const interval = setInterval(fetchData, AUTOREFRESH_MS);
+    return () => clearInterval(interval);
+  }, [token, error, fetchData]);
 
   if (loading) return <PortalLoading accentColor="#013f7c" label="Loading results..." />;
   if (error || !data) return <PortalError heading="Dashboard not found" message="This results link is invalid or has expired." />;
 
-  const { assessment, response_count, who5, pss4 } = data;
-  const who5Norm = who5?.average != null ? normalizeScore(who5.average, 'who5') : null;
-  const pss4Norm = pss4?.average != null ? normalizeScore(pss4.average, 'pss4') : null;
+  const { assessment, response_count, min_responses, locked, composite, instruments } = data;
 
   const copyEmployeeLink = () => {
     navigator.clipboard.writeText(`${window.location.origin}/MfsSurvey?t=${token}`);
     toast.success('Employee survey link copied!');
   };
-
-  const who5Interpretation = who5?.average != null
-    ? who5.average < 50 ? 'Low wellbeing — signs of risk. Consider preventative action.'
-    : who5.average < 65 ? 'Moderate wellbeing — room for improvement.'
-    : who5.average < 80 ? 'Good wellbeing — a solid foundation.'
-    : 'Excellent wellbeing — a thriving team.'
-    : 'Not enough data yet.';
 
   return (
     <PortalShell
@@ -66,14 +67,12 @@ export default function MfsResults() {
       {assessment.goals?.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
           {assessment.goals.map(g => (
-            <span key={g} className="text-xs bg-[#013f7c]/10 text-[#013f7c] px-2.5 py-1 rounded-full font-medium">
-              {g}
-            </span>
+            <span key={g} className="text-xs bg-[#013f7c]/10 text-[#013f7c] px-2.5 py-1 rounded-full font-medium">{g}</span>
           ))}
         </div>
       )}
 
-      {/* Response count */}
+      {/* Response count + copy link */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
@@ -89,87 +88,57 @@ export default function MfsResults() {
         </Button>
       </div>
 
-      {response_count === 0 ? (
+      {/* 5-response privacy gate */}
+      {locked ? (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-          <Brain className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <h3 className="font-semibold text-gray-700 mb-1">No responses yet</h3>
-          <p className="text-sm text-gray-400 mb-4">Share the survey link with your team to start collecting responses.</p>
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 bg-amber-50">
+            <Lock className="w-7 h-7 text-amber-500" />
+          </div>
+          <h3 className="font-semibold text-gray-700 mb-1">Results unlock at {min_responses} responses</h3>
+          <p className="text-sm text-gray-400 mb-5">{response_count} of {min_responses} so far — keep sharing the survey link to protect anonymity.</p>
           <Button onClick={copyEmployeeLink} className="bg-[#013f7c] hover:bg-[#012d5a] gap-2">
             <Copy className="w-4 h-4" /> Copy employee survey link
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* WHO-5 Score */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <Brain className="w-4 h-4 text-[#013f7c]" />
-              <span className="text-sm font-semibold text-gray-700">Mental Fitness Score</span>
-            </div>
-            <p className="text-xs text-gray-400 mb-2">WHO-5 Wellbeing Index</p>
-            <div className="flex items-end gap-2 mb-3">
-              <span className="text-4xl font-bold text-[#013f7c]">{who5?.average ?? '—'}</span>
-              <span className="text-sm text-gray-400 mb-1">/ 100</span>
-            </div>
-            <p className="text-xs text-gray-500">{who5Interpretation}</p>
-            <p className="text-[10px] text-gray-400 mt-2">{who5?.count} response{who5?.count !== 1 ? 's' : ''}</p>
+        <>
+          {/* Composite Score Dial */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4 flex flex-col items-center">
+            <p className="text-sm font-semibold text-gray-700 mb-4">Mental Fitness Score</p>
+            <MfsScoreDial score={composite} />
+            <p className="text-xs text-gray-400 mt-3">Composite of {response_count} anonymized response{response_count !== 1 ? 's' : ''}</p>
           </div>
 
-          {/* PSS-4 Score */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-4 h-4 text-[#770142]" />
-              <span className="text-sm font-semibold text-gray-700">Stress Level</span>
-            </div>
-            <p className="text-xs text-gray-400 mb-2">PSS-4 Perceived Stress Scale</p>
-            <div className="flex items-end gap-2 mb-3">
-              <span className="text-4xl font-bold text-[#770142]">{pss4?.average ?? '—'}</span>
-              <span className="text-sm text-gray-400 mb-1">/ 16</span>
-            </div>
-            <p className="text-xs text-gray-500">
-              {pss4?.average != null
-                ? pss4.average >= 8 ? 'Elevated stress — consider stress-reduction programs.'
-                : 'Stress levels within a manageable range.'
-                : 'Not enough data yet.'}
-            </p>
-            <p className="text-[10px] text-gray-400 mt-2">{pss4?.count} response{pss4?.count !== 1 ? 's' : ''}</p>
+          {/* Four sub-score bars */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+            <p className="text-sm font-semibold text-gray-700 mb-1">Score Breakdown</p>
+            <p className="text-xs text-gray-400 mb-4">All scores 0–100 (higher = better). Shaded band = typical range.</p>
+            <MfsScoreBars instruments={instruments} />
           </div>
-        </div>
+        </>
       )}
 
-      {/* Wellbeing Profile bars */}
-      {response_count > 0 && (who5Norm != null || pss4Norm != null) && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mt-4">
-          <p className="text-sm font-semibold text-gray-700 mb-1">Wellbeing Profile</p>
-          <p className="text-xs text-gray-400 mb-4">
-            All scores normalized to 0–100 (higher = better). Stress is inverted so "up" always reads as better.
-          </p>
-          <div className="space-y-3">
-            {who5Norm != null && (
-              <div>
-                <div className="flex justify-between text-xs text-gray-600 mb-1">
-                  <span>Wellbeing</span>
-                  <span className="font-semibold">{who5Norm.toFixed(0)}</span>
-                </div>
-                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full bg-[#013f7c]" style={{ width: `${who5Norm}%` }} />
-                </div>
-              </div>
-            )}
-            {pss4Norm != null && (
-              <div>
-                <div className="flex justify-between text-xs text-gray-600 mb-1">
-                  <span>Stress (inverted)</span>
-                  <span className="font-semibold">{pss4Norm.toFixed(0)}</span>
-                </div>
-                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full bg-[#770142]" style={{ width: `${pss4Norm}%` }} />
-                </div>
-              </div>
-            )}
+      {/* CTA links */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
+          <div className="bg-[#013f7c] rounded-xl p-4 flex items-center gap-3 hover:bg-[#012d5a] transition-colors cursor-pointer">
+            <CalendarCheck className="w-5 h-5 text-white shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-white">Book your free strategy session</p>
+              <p className="text-xs text-blue-200">30-min consultation with our team</p>
+            </div>
           </div>
-        </div>
-      )}
+        </a>
+        <Link to="/QuickBuilder">
+          <div className="bg-[#264d44] rounded-xl p-4 flex items-center gap-3 hover:bg-[#223d32] transition-colors cursor-pointer">
+            <TrendingUp className="w-5 h-5 text-white shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-white">ROI Engine</p>
+              <p className="text-xs text-green-200">Estimate your campaign impact</p>
+            </div>
+          </div>
+        </Link>
+      </div>
     </PortalShell>
   );
 }

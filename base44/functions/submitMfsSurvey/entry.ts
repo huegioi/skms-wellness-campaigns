@@ -4,7 +4,7 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { token, who5, pss4 } = body;
+    const { token, who5, pss4, uwes3, ucla3 } = body;
 
     if (!token) return Response.json({ error: 'Missing token' }, { status: 400 });
 
@@ -16,45 +16,41 @@ Deno.serve(async (req) => {
     const now = new Date().toISOString();
     const year = new Date().getFullYear();
 
-    // One anonymous ID per submission — shared across WHO-5 + PSS-4 so response
+    // One anonymous ID per submission — shared across all instruments so response
     // count = distinct participants, not distinct records.
+    // Stored in instrument_subscores._sid (NOT participant_email — that stays empty for anonymity).
     const submissionId = `mfs-${crypto.randomUUID()}`;
 
-    // ── Create WHO-5 CohortAssessment ──
-    if (who5) {
-      const sum = (who5.q1 || 0) + (who5.q2 || 0) + (who5.q3 || 0) + (who5.q4 || 0) + (who5.q5 || 0);
-      const who5Total = sum * 4; // 0–100
-      await base44.asServiceRole.entities.CohortAssessment.create({
-        client_id: assessment.client_id,
-        survey_type: 'mfs',
-        instrument: 'who5',
-        participant_email: submissionId,
-        instrument_total: who5Total,
-        item_responses: who5,
-        who5_cheerful: who5.q1,
-        who5_calm: who5.q2,
-        who5_active: who5.q3,
-        who5_rested: who5.q4,
-        who5_interested: who5.q5,
-        who5_total: who5Total,
-        cohort_year: year,
-        submitted_at: now,
-      });
-    }
+    const instruments = [
+      { key: 'who5',  responses: who5 },
+      { key: 'pss4',  responses: pss4 },
+      { key: 'uwes3', responses: uwes3 },
+      { key: 'ucla3', responses: ucla3 },
+    ];
 
-    // ── Create PSS-4 CohortAssessment ──
-    if (pss4) {
-      const pss4Total = (pss4.q1 || 0) + (pss4.q2 || 0) + (pss4.q3 || 0) + (pss4.q4 || 0);
-      await base44.asServiceRole.entities.CohortAssessment.create({
+    for (const inst of instruments) {
+      if (!inst.responses) continue;
+      const raw = Object.values(inst.responses).reduce((s, v) => s + (v || 0), 0);
+      const record = {
         client_id: assessment.client_id,
         survey_type: 'mfs',
-        instrument: 'pss4',
-        participant_email: submissionId,
-        instrument_total: pss4Total,
-        item_responses: pss4,
+        instrument: inst.key,
+        participant_email: '',
+        instrument_subscores: { _sid: submissionId },
+        instrument_total: raw,
+        item_responses: inst.responses,
         cohort_year: year,
         submitted_at: now,
-      });
+      };
+      if (inst.key === 'who5') {
+        record.who5_cheerful = inst.responses.q1;
+        record.who5_calm = inst.responses.q2;
+        record.who5_active = inst.responses.q3;
+        record.who5_rested = inst.responses.q4;
+        record.who5_interested = inst.responses.q5;
+        record.who5_total = raw * 4;
+      }
+      await base44.asServiceRole.entities.CohortAssessment.create(record);
     }
 
     return Response.json({ success: true });
