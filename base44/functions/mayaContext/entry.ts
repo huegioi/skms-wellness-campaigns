@@ -225,6 +225,23 @@ function fmtMoney(n) {
   return `$${(n || 0).toLocaleString()}`;
 }
 
+// ── MFS instrument normalization (0–100, higher = better) ──────────────────
+function normalizeInstrumentScore(instrumentKey, responses) {
+  if (!responses) return null;
+  const q1 = responses.q1 || 0;
+  const q2 = responses.q2 || 0;
+  const q3 = responses.q3 || 0;
+  const q4 = responses.q4 || 0;
+  const q5 = responses.q5 || 0;
+  switch (instrumentKey) {
+    case 'who5':  return (q1 + q2 + q3 + q4 + q5) * 4;
+    case 'pss4':  return ((16 - (q1 + q2 + q3 + q4)) / 16) * 100;
+    case 'uwes3': return (((q1 + q2 + q3) / 3) / 6) * 100;
+    case 'ucla3': return ((9 - (q1 + q2 + q3)) / 6) * 100;
+    default: return null;
+  }
+}
+
 // ── Safe fetch helpers (never throw — return [] on failure) ────────────────
 
 async function safeFilter(base44, entityName, query, sort, limit) {
@@ -482,6 +499,69 @@ Challenge Assessments: ${challengeStr}
 Feedback Responses: ${snap.feedbackCount}`);
     } else {
       gaps.push('No accepted proposals or services selected');
+    }
+  }
+
+  // ══ SECTION 5.5: MFS SCORES (assessment leads only) ══
+
+  if (record_type === 'client' && record.is_assessment_lead) {
+    const mfsRows = cohortAssessments.filter(a => a.survey_type === 'mfs');
+    if (mfsRows.length > 0) {
+      // Group by submission ID
+      const bySid = {};
+      for (const row of mfsRows) {
+        const sid = row.instrument_subscores?._sid || '';
+        if (!sid) continue;
+        if (!bySid[sid]) bySid[sid] = {};
+        bySid[sid][row.instrument] = row;
+      }
+      const responseCount = Object.keys(bySid).length;
+      const MIN_RESPONSES = 5;
+      const locked = responseCount < MIN_RESPONSES;
+
+      // Per-instrument averages
+      const instrumentAvgs = {};
+      for (const key of ['who5', 'pss4', 'uwes3', 'ucla3']) {
+        const scores = [];
+        for (const sid of Object.keys(bySid)) {
+          const row = bySid[sid][key];
+          if (!row) continue;
+          const norm = normalizeInstrumentScore(key, row.item_responses);
+          if (norm != null) scores.push(norm);
+        }
+        instrumentAvgs[key] = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+      }
+
+      // Composite = mean of per-respondent composites
+      const perRespondent = [];
+      for (const sid of Object.keys(bySid)) {
+        const respondentScores = [];
+        for (const key of ['who5', 'pss4', 'uwes3', 'ucla3']) {
+          const row = bySid[sid][key];
+          if (!row) continue;
+          const norm = normalizeInstrumentScore(key, row.item_responses);
+          if (norm != null) respondentScores.push(norm);
+        }
+        if (respondentScores.length > 0) {
+          perRespondent.push(respondentScores.reduce((a, b) => a + b, 0) / respondentScores.length);
+        }
+      }
+      const composite = perRespondent.length > 0
+        ? Math.round(perRespondent.reduce((a, b) => a + b, 0) / perRespondent.length)
+        : null;
+
+      const instrumentLabels = { who5: 'Wellbeing', pss4: 'Stress', uwes3: 'Engagement', ucla3: 'Connection' };
+      const scoreLines = Object.entries(instrumentLabels)
+        .map(([k, label]) => `- ${label}: ${instrumentAvgs[k] != null ? instrumentAvgs[k] + '/100' : 'N/A'}`)
+        .join('\n');
+
+      sections.push(`MENTAL FITNESS SCORE (assessment lead):
+Response Count: ${responseCount} (${locked ? 'locked — fewer than 5 responses, scores hidden' : 'unlocked'})
+${locked ? '' : `Composite: ${composite != null ? composite + '/100' : 'N/A'}\nSub-Scores:\n${scoreLines}`}
+
+This client came in through the Mental Fitness Score assessment. The scores above reveal where the team is struggling — use them to tailor the proposal to the weakest areas. When the proposal is accepted, the client will convert from assessment lead to a normal active client.`);
+    } else {
+      gaps.push('No MFS survey responses yet (assessment lead)');
     }
   }
 

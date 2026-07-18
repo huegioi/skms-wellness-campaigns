@@ -184,6 +184,21 @@ Deno.serve(async (req) => {
   const commissionsEnabled = partner.commissions_enabled !== false &&
     (!brokerage || brokerage.broker_commission_enabled !== false);
 
+  // ── Detect MFS-sourced referrals (lead source starts with "Mental Fitness Score") ──
+  const mfsLeadIds = referrals.filter(r => r.referred_lead_id).map(r => r.referred_lead_id);
+  const mfsLeadResults = await Promise.all(
+    mfsLeadIds.map(id =>
+      base44.asServiceRole.entities.Lead.filter({ id }).then(r => r[0]).catch(() => null)
+    )
+  );
+  const mfsLeadIdSet = new Set(
+    mfsLeadResults.filter(l => l && (l.source || '').startsWith('Mental Fitness Score')).map(l => l.id)
+  );
+  const referralsWithMfs = referrals.map(r => ({
+    ...r,
+    is_mfs: !!(r.referred_lead_id && mfsLeadIdSet.has(r.referred_lead_id)),
+  }));
+
   const response = {
     partner: {
       id: partner.id,
@@ -196,10 +211,11 @@ Deno.serve(async (req) => {
       is_active: partner.is_active,
       commissions_enabled: commissionsEnabled,
       brokerage_id: partner.brokerage_id || null,
+      unique_portal_id: partner.unique_portal_id,
     },
     referrals: commissionsEnabled
-      ? referrals
-      : referrals.map(r => {
+      ? referralsWithMfs
+      : referralsWithMfs.map(r => {
           const { commission_amount, commission_rate, brokerage_commission, broker_commission, ...rest } = r;
           return rest;
         }),

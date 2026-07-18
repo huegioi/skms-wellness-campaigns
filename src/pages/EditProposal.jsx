@@ -128,6 +128,10 @@ export default function EditProposal() {
               });
             }
           } catch { /* non-fatal */ }
+          // Unlock assessment lead → normal queues/metrics/renewal + log partner activity
+          try {
+            await base44.functions.invoke('unlockAssessmentLead', { client_id: proposal.client_id });
+          } catch { /* non-fatal */ }
         }
       }
       setIsDirty(false);

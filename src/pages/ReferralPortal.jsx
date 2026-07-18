@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown, BarChart3, ArrowLeft, BookOpen, ChevronRight, PlayCircle, Star, Download } from 'lucide-react';
+import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown, BarChart3, ArrowLeft, BookOpen, ChevronRight, PlayCircle, Star, Download, Brain } from 'lucide-react';
 import ROIDashboard from '@/components/portal/ROIDashboard';
 import BrokerFeedbackRollup from '@/components/portal/BrokerFeedbackRollup';
 import TierProgress from '@/components/portal/TierProgress';
 import ReferralStepper from '@/components/portal/ReferralStepper';
 import RecentActivity from '@/components/portal/RecentActivity';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
+import MfsPromoCard from '@/components/portal/MfsPromoCard';
 import { REFERRAL_STATUS_COLORS as STATUS_COLORS, REFERRAL_STATUS_LABELS as STATUS_LABELS } from '@/lib/statusConfig';
 
 const TABS = [
@@ -126,9 +127,17 @@ export default function ReferralPortal() {
         <p className="text-xs text-gray-400 mt-1">{format(new Date(r.referral_date), 'MMM d, yyyy')}</p>
       </div>
       <div className="flex flex-col items-start sm:items-end gap-2">
-        <Badge className={STATUS_COLORS[r.status] || 'bg-gray-100 text-gray-600'}>
-          {STATUS_LABELS[r.status] || r.status}
-        </Badge>
+        <div className="flex items-center gap-1.5">
+          {r.is_mfs && (
+            <Badge className="bg-[#770142]/10 text-[#770142] gap-1">
+              <Brain className="w-3 h-3" />
+              Assessment
+            </Badge>
+          )}
+          <Badge className={STATUS_COLORS[r.status] || 'bg-gray-100 text-gray-600'}>
+            {STATUS_LABELS[r.status] || r.status}
+          </Badge>
+        </div>
         {commissionsEnabled && r.commission_amount > 0 && (
           <span className="text-sm font-semibold text-green-700">${r.commission_amount.toLocaleString()} commission</span>
         )}
@@ -190,6 +199,9 @@ export default function ReferralPortal() {
         {/* ─── DASHBOARD TAB ─── */}
         {activeTab === 'dashboard' && (
           <>
+            {/* MFS Promo Card */}
+            <MfsPromoCard uniquePortalId={partner.unique_portal_id} partnerName={partner.name} compact />
+
             {/* Portfolio Wellness Impact */}
             <BrokerFeedbackRollup clientCompanies={client_companies} services={services} portalId={portalId} />
 
@@ -452,6 +464,9 @@ export default function ReferralPortal() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* MFS Promo Card */}
+            <MfsPromoCard uniquePortalId={partner.unique_portal_id} partnerName={partner.name} />
 
             {/* How to Use This Portal */}
             <Card className="border-[#e6e1d8] bg-[#f9f8f5] border-l-4 border-l-brand-navy">

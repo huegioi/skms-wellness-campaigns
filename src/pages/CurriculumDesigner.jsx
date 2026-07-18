@@ -10,6 +10,8 @@ import WellnessBoxStep from '../components/curriculum/WellnessBoxStep';
 import MovementStep from '../components/curriculum/MovementStep';
 import LeadershipStep from '../components/curriculum/LeadershipStep';
 import ReviewStep from '../components/curriculum/ReviewStep';
+import { suggestServicesFromMfs } from '@/lib/mfsServiceMapping';
+import { Sparkles, X } from 'lucide-react';
 
 const enumToApproxCount = (size) => ({
   '1-50': 25, '51-200': 125, '201-500': 350,
@@ -32,6 +34,7 @@ export default function CurriculumDesigner() {
   const [leadLoaded, setLeadLoaded] = useState(false);
   const [pendingQbSelections, setPendingQbSelections] = useState([]);
   const [matchedStage, setMatchedStage] = useState('');
+  const [mfsLabels, setMfsLabels] = useState([]);
   const [searchParams] = useSearchParams();
 
   // Pre-load client data from URL param
@@ -114,6 +117,32 @@ export default function CurriculumDesigner() {
     }));
     setPendingQbSelections([]);
   }, [pendingQbSelections, allServices]);
+
+  // Pre-fill from MFS assessment data for assessment leads
+  React.useEffect(() => {
+    const clientId = searchParams.get('clientId');
+    if (!clientId || !clientLoaded || allServices.length === 0) return;
+
+    (async () => {
+      try {
+        const assessments = await base44.entities.MfsAssessment.filter({ client_id: clientId }, '-created_date', 1);
+        if (!assessments || assessments.length === 0) return;
+        const res = await base44.functions.invoke('getMfsResults', { token: assessments[0].token });
+        if (!res.data || res.data.locked || !res.data.instruments) return;
+
+        const suggested = suggestServicesFromMfs(res.data.instruments, allServices);
+        if (suggested.labels.length === 0) return;
+        setMfsLabels(suggested.labels);
+        setSelections(prev => ({
+          ...prev,
+          workshops: [...new Set([...(prev.workshops || []), ...suggested.workshops])],
+          challengePrograms: [...new Set([...(prev.challengePrograms || []), ...suggested.challengePrograms])],
+          leadership: [...new Set([...(prev.leadership || []), ...suggested.leadership])],
+          movementClasses: [...new Set([...(prev.movementClasses || []), ...suggested.movementClasses])],
+        }));
+      } catch { /* non-fatal */ }
+    })();
+  }, [clientLoaded, allServices, searchParams]);
 
   const workshopServices = allServices.filter(s => s.category === 'workshop' && s.is_active !== false);
   const challengeServices = allServices.filter(s => s.category === 'challenge' && s.is_active !== false);
@@ -249,6 +278,21 @@ export default function CurriculumDesigner() {
         </div>
 
         <StepIndicator steps={steps} currentStep={currentStep} onStepClick={handleStepClick} />
+
+        {mfsLabels.length > 0 && (
+          <div className="mb-6 rounded-xl border-l-4 border-l-[#770142] bg-gradient-to-r from-[#f9f8f5] to-[#f0ebe0] p-4 flex items-start gap-3">
+            <Sparkles className="w-5 h-5 text-[#770142] shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-semibold text-[#770142] text-sm">MFS-Informed Suggestions</p>
+              <p className="text-xs text-gray-600 mt-0.5">
+                Based on this team's Mental Fitness Score ({mfsLabels.join(' · ')}), we've pre-selected services that target the weakest areas. Review and adjust as needed.
+              </p>
+            </div>
+            <button onClick={() => setMfsLabels([])} className="text-gray-400 hover:text-gray-600 shrink-0">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
 
         {renderStep()}
       </div>
