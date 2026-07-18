@@ -12,6 +12,9 @@ export const PUBLIC_PATHS = [
   '/QuickBuilder',
   '/MyPortal',
   '/Checkin',
+  '/MentalFitnessScore',
+  '/MfsSurvey',
+  '/MfsResults',
 ];
 
 export function isPublicPath(pathname) {

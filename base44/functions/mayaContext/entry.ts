@@ -569,7 +569,7 @@ async function buildGlobalContext(base44) {
     safeFilter(base44, 'Lead', { lead_type: 'company_inquiry' }),
   ]);
 
-  const clients = allClients.filter(c => !c.is_demo);
+  const clients = allClients.filter(c => !c.is_demo && !c.is_assessment_lead);
   const leads = allLeads.filter(l => !l.is_demo);
   const partners = allPartners.filter(p => !p.is_demo);
   const qbInquiries = qbInquiryLeads.filter(l => !l.is_demo);
@@ -760,7 +760,7 @@ async function buildDeliveryContext(base44) {
     safeFilter(base44, 'CohortAssessment', {}, '-submitted_at', 500),
   ]);
 
-  const clients = allClients.filter(c => !c.is_demo);
+  const clients = allClients.filter(c => !c.is_demo && !c.is_assessment_lead);
   const cleanServices = services.filter(s => !s.is_demo);
   const cleanEvents = events.filter(e => !e.is_demo);
 

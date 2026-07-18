@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { User, Users, ArrowRight, Sparkles, Package, Gift, Handshake } from 'lucide-react';
+import { User, Users, ArrowRight, Sparkles, Package, Gift, Handshake, ClipboardCheck } from 'lucide-react';
 import { parseQuickBuilderGoals, parseWellnessBoxesPreference, timeSince, isNewQuickBuilderInquiry } from '@/lib/quickbuilderUtils';
 
 export default function NewInquiriesCard() {
@@ -15,7 +15,42 @@ export default function NewInquiriesCard() {
   // Exclude demo/broker-demo records from dashboard metrics
   const allLeads = rawLeads.filter(l => !l.is_demo);
 
-  const newInquiries = allLeads.filter(isNewQuickBuilderInquiry);
+  // Include both Quick Builder and Mental Fitness Score inquiries
+  const newInquiries = allLeads.filter(l => {
+    if (isNewQuickBuilderInquiry(l)) return true;
+    return (l.source || '').startsWith('Mental Fitness Score') &&
+           (l.status || 'cold') === 'cold' &&
+           !l.last_contacted_date;
+  });
+
+  // Fetch MFS assessments + response counts for the "Assessment" badge
+  const { data: mfsAssessments = [] } = useQuery({
+    queryKey: ['mfs-assessments'],
+    queryFn: () => base44.entities.MfsAssessment.list('-created_date', 100),
+    staleTime: 60_000,
+  });
+
+  const { data: mfsResponses = [] } = useQuery({
+    queryKey: ['mfs-responses', 'counts'],
+    queryFn: () => base44.entities.CohortAssessment.filter({ survey_type: 'mfs' }, '-submitted_at', 500),
+    staleTime: 60_000,
+  });
+
+  const leadToAssessment = useMemo(() => {
+    const map = {};
+    for (const a of mfsAssessments) {
+      if (a.lead_id) map[a.lead_id] = a;
+    }
+    return map;
+  }, [mfsAssessments]);
+
+  const responseCountByClient = useMemo(() => {
+    const map = {};
+    for (const r of mfsResponses) {
+      if (r.client_id) map[r.client_id] = (map[r.client_id] || 0) + 1;
+    }
+    return map;
+  }, [mfsResponses]);
 
   // Fetch recent referrals to resolve partner names for inquiries that came via a partner ref
   const { data: recentReferrals = [] } = useQuery({
@@ -47,7 +82,7 @@ export default function NewInquiriesCard() {
             <Sparkles className="w-4 h-4 text-[#013f7c]" />
           </div>
           <div>
-            <h2 className="font-bold text-gray-800 text-base leading-tight">New Quick Builder Inquiries</h2>
+            <h2 className="font-bold text-gray-800 text-base leading-tight">New Inquiries</h2>
             <p className="text-xs text-gray-400">
               {newInquiries.length} new inquiry{newInquiries.length !== 1 ? 's' : ''} awaiting review
             </p>
@@ -66,6 +101,9 @@ export default function NewInquiriesCard() {
           const goals = parseQuickBuilderGoals(lead.notes);
           const wantsBoxes = parseWellnessBoxesPreference(lead.notes);
           const selCount = lead.quickbuilder_selections?.length || 0;
+          const isMfs = (lead.source || '').startsWith('Mental Fitness Score');
+          const assessment = leadToAssessment[lead.id];
+          const responseCount = assessment ? (responseCountByClient[assessment.client_id] || 0) : 0;
           return (
             <div
               key={lead.id}
@@ -117,6 +155,11 @@ export default function NewInquiriesCard() {
                   {lead.estimated_investment != null && (
                     <span className="text-[10px] bg-[#264d44]/10 text-[#264d44] px-1.5 py-0.5 rounded-full font-medium">
                       ~${lead.estimated_investment.toLocaleString()}
+                    </span>
+                  )}
+                  {isMfs && (
+                    <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
+                      <ClipboardCheck className="w-2.5 h-2.5" />Assessment · {responseCount} response{responseCount !== 1 ? 's' : ''}
                     </span>
                   )}
                 </div>

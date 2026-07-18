@@ -20,7 +20,7 @@ export default function FollowUpSummary({ onViewAll }) {
     queryFn: () => base44.entities.Client.list()
   });
 
-  const clients = rawClients.filter(c => !c.is_demo);
+  const clients = rawClients.filter(c => !c.is_demo && !c.is_assessment_lead);
   const allQueueClients = clients.filter(needsFollowUp);
   const queueClients = allQueueClients.slice(0, 5);
   const totalCount = allQueueClients.length;

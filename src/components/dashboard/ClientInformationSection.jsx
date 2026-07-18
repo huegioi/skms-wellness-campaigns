@@ -23,7 +23,7 @@ export default function ClientInformationSection() {
   const { data: rawReferrals = [] } = useDashReferrals();
 
   // Exclude demo/broker-demo records from all dashboard metrics
-  const clients = rawClients.filter(c => !c.is_demo);
+  const clients = rawClients.filter(c => !c.is_demo && !c.is_assessment_lead);
   const proposals = rawProposals.filter(p => !p.is_demo);
   const invoices = rawInvoices.filter(i => !i.is_demo);
   const allTasks = rawAllTasks.filter(t => !t.is_demo);

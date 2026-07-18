@@ -25,7 +25,7 @@ export default function RenewalSeasonSection() {
   });
 
   // Exclude demo/broker-demo records from dashboard metrics
-  const clients = rawClients.filter(c => !c.is_demo);
+  const clients = rawClients.filter(c => !c.is_demo && !c.is_assessment_lead);
   const events = rawEvents.filter(e => !e.is_demo);
 
   const activeCohort = useMemo(() => getActiveCohort(), []);

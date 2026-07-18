@@ -355,6 +355,11 @@
       "default": true,
       "description": "Whether automated attendee survey emails are allowed. When false, all survey sends are visibly skipped (never silently)."
     },
+    "is_assessment_lead": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this client was created from a Mental Fitness Score assessment intake. Excluded from follow-up queue, renewal logic, revenue/dashboard metrics, and Maya's briefing counts until converted."
+    },
     "is_demo": {
       "type": "boolean",
       "default": false,

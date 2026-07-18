@@ -19,6 +19,9 @@ import Presenters from './pages/Presenters';
 import PresenterPortal from './pages/PresenterPortal';
 import QuickBuilder from './pages/QuickBuilder';
 import Checkin from './pages/Checkin';
+import MentalFitnessScore from './pages/MentalFitnessScore';
+import MfsSurvey from './pages/MfsSurvey';
+import MfsResults from './pages/MfsResults';
 import Unsubscribe from './pages/Unsubscribe';
 import Demo from './pages/Demo';
 import MayaKnowledge from './pages/MayaKnowledge';
@@ -107,6 +110,9 @@ const AuthenticatedApp = () => {
       <Route path="/PresenterPortal" element={<PresenterPortal />} />
       <Route path="/QuickBuilder" element={<QuickBuilder />} />
       <Route path="/Checkin" element={<Checkin />} />
+      <Route path="/MentalFitnessScore" element={<MentalFitnessScore />} />
+      <Route path="/MfsSurvey" element={<MfsSurvey />} />
+      <Route path="/MfsResults" element={<MfsResults />} />
       <Route path="/Unsubscribe" element={<Unsubscribe />} />
       <Route path="/Demo" element={<LayoutWrapper currentPageName="Demo"><Demo /></LayoutWrapper>} />
       <Route path="/MayaKnowledge" element={<LayoutWrapper currentPageName="MayaKnowledge"><MayaKnowledge /></LayoutWrapper>} />

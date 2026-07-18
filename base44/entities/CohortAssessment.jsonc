@@ -30,7 +30,8 @@
         "cohort_start",
         "cohort_end",
         "cohort_1mo",
-        "enps_post_session"
+        "enps_post_session",
+        "mfs"
       ],
       "description": "Which assessment point this row represents"
     },

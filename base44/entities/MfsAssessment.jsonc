@@ -1,0 +1,126 @@
+{
+  "name": "MfsAssessment",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "Associated Client ID (is_assessment_lead=true)"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Associated Lead ID (lead_type=company_inquiry)"
+    },
+    "token": {
+      "type": "string",
+      "description": "Unique survey access token (crypto.randomUUID) \u2014 the employee survey link credential"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "collecting",
+        "ready"
+      ],
+      "default": "collecting",
+      "description": "Whether the assessment is still collecting responses or ready for review"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Company name (denormalized from intake form for display)"
+    },
+    "contact_name": {
+      "type": "string",
+      "description": "HR/contact name (denormalized from intake form)"
+    },
+    "contact_email": {
+      "type": "string",
+      "format": "email",
+      "description": "Contact email (denormalized, lowercased for dedup)"
+    },
+    "employee_count": {
+      "type": "string",
+      "description": "Employee count bracket from intake form"
+    },
+    "industry": {
+      "type": "string",
+      "description": "Industry from intake form"
+    },
+    "goals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Up to 3 goal chips selected at intake"
+    },
+    "ref": {
+      "type": "string",
+      "description": "Partner attribution code from ?ref= URL param"
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this record is demo/broker-demo sample data."
+    }
+  },
+  "required": [
+    "token",
+    "status"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    }
+  }
+}

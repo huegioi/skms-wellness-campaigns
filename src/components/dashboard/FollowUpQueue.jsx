@@ -114,7 +114,8 @@ export default function FollowUpQueue() {
   const { data: rawClients = [], isLoading } = useDashClients();
 
   // Exclude demo/broker-demo records from dashboard metrics
-  const clients = rawClients.filter(c => !c.is_demo);
+  // Exclude demo + assessment-lead clients (MFS leads don't enter follow-up queue)
+  const clients = rawClients.filter(c => !c.is_demo && !c.is_assessment_lead);
 
   // Fetch interactions to derive days-since-contact + last touch channel
   const { data: interactions = [] } = useDashInteractions();

@@ -14,6 +14,7 @@ import ClientDeliveryStrip from '@/components/clients/ClientDeliveryStrip';
 import RenewalSeasonBanner from '@/components/clients/RenewalSeasonBanner';
 import ReferredByBadge from '@/components/shared/ReferredByBadge';
 import { getActiveCohort, hasRenewalReviewBooked } from '@/lib/renewal';
+import { ClipboardCheck } from 'lucide-react';
 
 const SALES_STAGES = CLIENT_STAGES.filter(s => s.group === 'Sales');
 const LIFECYCLE_STAGES = CLIENT_STAGES.filter(s => s.group === 'Lifecycle');
@@ -90,7 +91,7 @@ function ClientAlertBadges({ client, isSalesStage }) {
   );
 }
 
-function StageColumn({ stage, clients, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onDelete, onClientClick, onHeaderClick, isSalesStage, snapshots }) {
+function StageColumn({ stage, clients, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onDelete, onClientClick, onHeaderClick, isSalesStage, snapshots, responseCountByClient }) {
   return (
     <div className="w-56 flex-shrink-0">
       <div
@@ -142,6 +143,14 @@ function StageColumn({ stage, clients, onOwnerChange, onStageChange, onTagsChang
                       onDelete={onDelete}
                       alertBadges={
                         <>
+                          {client.is_assessment_lead && (
+                            <div className="mb-1">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-full px-2 py-0.5">
+                                <ClipboardCheck className="w-2.5 h-2.5" />
+                                MFS · {responseCountByClient[client.id] || 0} responses
+                              </span>
+                            </div>
+                          )}
                           {client.referral_partner_name && (
                             <div className="mb-1">
                               <ReferredByBadge partnerId={client.referral_partner_id} partnerName={client.referral_partner_name} compact />
@@ -173,6 +182,19 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
   const [cohortFilter, setCohortFilter] = useState(null);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['clients'] });
+
+  // MFS response counts for assessment-lead chips on the board
+  const { data: mfsResponses = [] } = useQuery({
+    queryKey: ['mfs-responses', 'pipeline'],
+    queryFn: () => base44.entities.CohortAssessment.filter({ survey_type: 'mfs' }, '-submitted_at', 500),
+  });
+  const responseCountByClient = useMemo(() => {
+    const map = {};
+    for (const r of mfsResponses) {
+      if (r.client_id) map[r.client_id] = (map[r.client_id] || 0) + 1;
+    }
+    return map;
+  }, [mfsResponses]);
 
   // Reuse the delivery hook's events cache for "renewal review booked" checks
   const { data: renewalEvents = [] } = useQuery({
@@ -268,6 +290,7 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
     onDelete: handleDelete,
     onClientClick,
     onHeaderClick: setPlaybookStage,
+    responseCountByClient,
   };
 
   return (
