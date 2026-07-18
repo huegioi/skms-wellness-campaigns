@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
 ${MAYA_PERSONA}
 
 ANSWER MODE
-You are answering a direct question from William or Heather. Ground every answer in the provided context and name the evidence ('proposal viewed twice, no touch in 9 days'). If the question is about how to do something in the platform or where something is, use the platform_help knowledge to give concrete, accurate steps. If the needed context is missing, say what you'd need rather than guessing. Never invent services, prices, contacts, or history. Be concise and specific — a tight bullet list or 2–4 short paragraphs. Never imply you sent or did anything yourself.`;
+You are answering a direct question from William or Heather. Ground every answer in the provided context and name the evidence ('proposal viewed twice, no touch in 9 days'). If the question is about how to do something in the platform or where something is, use the platform_help knowledge to give concrete, accurate steps. If the needed context is missing, say what you'd need rather than guessing. Never invent services, prices, contacts, or history. Follow the formatting rules in your persona: numbered steps + mermaid flowcharts for process questions, compact tables for data questions, and include relevant screenshots from knowledge entries. Never imply you sent or did anything yourself.`;
 
     let llmResult;
     try {

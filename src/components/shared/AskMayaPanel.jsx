@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Send, Loader2, Sparkles } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import MayaMarkdown from '@/components/shared/MayaMarkdown';
 
 /**
  * Global "Ask Maya" slide-over — session-only chat history (no persistence).
@@ -118,7 +118,7 @@ export default function AskMayaPanel({ open, onOpenChange, pendingQuestion, onTh
                   [&_li]:my-0.5
                   [&_strong]:text-gray-900
                   [&_em]:text-gray-400 [&_em]:text-xs">
-                  <ReactMarkdown>{m.content}</ReactMarkdown>
+                  <MayaMarkdown>{m.content}</MayaMarkdown>
                 </div>
               )}
             </div>
