@@ -36,7 +36,7 @@ export default function MfsSurvey() {
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Thank you!</h2>
           <p className="text-gray-500 leading-relaxed max-w-md mx-auto">
-            Your responses have been recorded. Your privacy is protected — responses are completely anonymous and aggregated. No email or name was collected.
+            Your responses have been recorded. Your privacy is fully protected — no name or email was collected, and your answers are combined with your colleagues' into group averages only. No one at your company can see what you answered.
           </p>
         </div>
       </PortalShell>
@@ -53,7 +53,7 @@ export default function MfsSurvey() {
           </div>
           <h2 className="text-xl font-bold text-gray-800 mb-3">Your responses are 100% anonymous</h2>
           <p className="text-sm text-gray-500 leading-relaxed mb-6">
-            This 4-part survey measures wellbeing, stress, engagement, and connection. No name or email is collected — responses are pooled with your colleagues' and shown only as group averages. It takes about 3 minutes.
+            This 4-part survey measures how your team is doing across wellbeing, stress, engagement, and connection. No name, no email, no account — your answers are pooled with your colleagues' and shown only as group averages. No one at your company can see individual responses. It takes about 3 minutes.
           </p>
           <Button onClick={() => setStep(0)} className="w-full bg-[#013f7c] hover:bg-[#012d5a] gap-2">
             Begin Survey <ArrowRight className="w-4 h-4" />
@@ -92,6 +92,9 @@ export default function MfsSurvey() {
   return (
     <PortalShell accentColor="#013f7c" title="Mental Fitness Score" subtitle="Anonymous team survey — 3 minutes" maxWidth="max-w-2xl">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+      <div className="flex items-center gap-1.5 mb-4 text-xs text-gray-400 justify-center">
+        <ShieldCheck className="w-3 h-3" /> 100% anonymous — no name or email collected
+      </div>
         {/* Progress dots */}
         <div className="flex items-center justify-center gap-2 mb-6">
           {SURVEY_STEPS.map((s, i) => (

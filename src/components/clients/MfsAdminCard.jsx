@@ -3,14 +3,18 @@ import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Copy, Wand2, RefreshCw } from 'lucide-react';
+import { Users, Copy, Wand2, RefreshCw, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import MfsScoreDial from '@/components/mfs/MfsScoreDial';
 import MfsScoreBars from '@/components/mfs/MfsScoreBars';
+import CheckinQrDialog from '@/components/shared/CheckinQrDialog';
+
+const BOOTH_URL = 'https://app.skillfulmeans.life/MentalFitnessScore';
 
 export default function MfsAdminCard({ client }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [boothQrOpen, setBoothQrOpen] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -82,12 +86,23 @@ export default function MfsAdminCard({ client }) {
           <Button size="sm" variant="outline" onClick={() => copyLink('/MfsResults', 'Results dashboard link')} className="gap-1.5">
             <Copy className="w-3.5 h-3.5" /> Results link
           </Button>
+          <Button size="sm" variant="outline" onClick={() => setBoothQrOpen(true)} className="gap-1.5">
+            <QrCode className="w-3.5 h-3.5" /> Booth QR
+          </Button>
           <Link to="/CurriculumDesigner">
             <Button size="sm" className="bg-[#013f7c] hover:bg-[#012d5a] gap-1.5">
               <Wand2 className="w-3.5 h-3.5" /> Open in Curriculum Designer
             </Button>
           </Link>
         </div>
+
+      <CheckinQrDialog
+        open={boothQrOpen}
+        onOpenChange={setBoothQrOpen}
+        checkinUrl={BOOTH_URL}
+        eventTitle="The Mental Fitness Score"
+        subtitle="Scan to start a free team assessment"
+      />
       </CardContent>
     </Card>
   );

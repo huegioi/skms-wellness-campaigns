@@ -23,7 +23,7 @@ function wrapText(ctx, text, maxWidth) {
   return lines;
 }
 
-export default function CheckinQrDialog({ open, onOpenChange, checkinUrl, eventTitle, eventDate }) {
+export default function CheckinQrDialog({ open, onOpenChange, checkinUrl, eventTitle, eventDate, subtitle }) {
   const [downloading, setDownloading] = useState(false);
 
   const dateLabel = eventDate
@@ -134,7 +134,7 @@ export default function CheckinQrDialog({ open, onOpenChange, checkinUrl, eventT
           <div className="bg-gray-50 rounded-2xl p-4 border border-gray-200">
             <img src={qrImgUrl} alt="Check-in QR code" className="w-56 h-56 rounded-lg" />
           </div>
-          <p className="text-xs text-gray-400 text-center">Scan to check in to this session</p>
+          <p className="text-xs text-gray-400 text-center">{subtitle || 'Scan to check in to this session'}</p>
         </div>
         <DialogFooter className="gap-2 sm:gap-2">
           <Button variant="outline" onClick={handlePrint} className="flex-1">

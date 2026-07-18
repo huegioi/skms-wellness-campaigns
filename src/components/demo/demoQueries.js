@@ -1,7 +1,7 @@
 import { base44 } from '@/api/base44Client';
 
 export async function fetchDemoCounts() {
-  const [clients, partners, referrals, proposals, events, feedback, cohorts, tasks, activities] = await Promise.all([
+  const [clients, partners, referrals, proposals, events, feedback, cohorts, tasks, activities, mfsAssessments] = await Promise.all([
     base44.entities.Client.filter({ is_demo: true }, '-created_date', 1000),
     base44.entities.ReferralPartner.filter({ is_demo: true }, '-created_date', 1000),
     base44.entities.Referral.filter({ is_demo: true }, '-created_date', 1000),
@@ -11,8 +11,10 @@ export async function fetchDemoCounts() {
     base44.entities.CohortAssessment.filter({ is_demo: true }, '-created_date', 1000),
     base44.entities.ClientTask.filter({ is_demo: true }, '-created_date', 1000),
     base44.entities.ReferralActivity.filter({ is_demo: true }, '-created_date', 1000),
+    base44.entities.MfsAssessment.filter({ is_demo: true }, '-created_date', 1000),
   ]);
 
+  const mfsResponses = cohorts.filter(c => c.survey_type === 'mfs').length;
   const counts = {
     clients: clients.length,
     referralPartners: partners.length,
@@ -25,6 +27,8 @@ export async function fetchDemoCounts() {
     cohortDay14: cohorts.filter(c => c.survey_type === 'challenge_day14').length,
     cohortStart: cohorts.filter(c => c.survey_type === 'cohort_start').length,
     cohortEnd: cohorts.filter(c => c.survey_type === 'cohort_end').length,
+    mfsAssessments: mfsAssessments.length,
+    mfsResponses,
     clientTasks: tasks.length,
     referralActivities: activities.length,
   };
@@ -32,7 +36,7 @@ export async function fetchDemoCounts() {
     counts.clients + counts.referralPartners + counts.referrals + counts.proposals +
     counts.calendarEventsDelivered + counts.calendarEventsUpcoming + counts.feedbackResponses +
     counts.cohortDay0 + counts.cohortDay14 + counts.cohortStart + counts.cohortEnd +
-    counts.clientTasks + counts.referralActivities;
+    counts.clientTasks + counts.referralActivities + counts.mfsAssessments + counts.mfsResponses;
   return counts;
 }
 
@@ -63,5 +67,15 @@ export async function fetchPortalLinks() {
     description: CLIENT_DESCRIPTIONS[c.company] || 'Demo client portal with program details and resources.',
     type: 'client',
   }));
-  return { brokerLink, clientLinks };
+
+  // MFS assessment links
+  const mfsAssessments = await base44.entities.MfsAssessment.filter({ is_demo: true }, '-created_date', 10);
+  const mfsLinks = mfsAssessments.map(a => ({
+    name: a.contact_name || 'HR Contact',
+    company: a.company_name || 'MFS Company',
+    surveyUrl: `${origin}/MfsSurvey?t=${a.token}`,
+    resultsUrl: `${origin}/MfsResults?t=${a.token}`,
+    description: 'Mental Fitness Score assessment with demo responses — fully populated dashboard.',
+  }));
+  return { brokerLink, clientLinks, mfsLinks };
 }

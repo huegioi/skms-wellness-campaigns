@@ -3,13 +3,15 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 import { Button } from '@/components/ui/button';
-import { Users, Copy, RefreshCw, CalendarCheck, TrendingUp, Lock } from 'lucide-react';
+import { Users, Copy, RefreshCw, CalendarCheck, TrendingUp, Lock, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import MfsScoreDial from '@/components/mfs/MfsScoreDial';
 import MfsScoreBars from '@/components/mfs/MfsScoreBars';
+import MfsReportButton from '@/components/mfs/MfsReportButton';
 
 const AUTOREFRESH_MS = 60000;
 const CALENDLY_URL = 'https://calendly.com/skillfulmeans/strategy-session';
+const ANONYMITY_NOTE = 'All scores are aggregated and anonymous — no individual responses are shown.';
 
 export default function MfsResults() {
   const [searchParams] = useSearchParams();
@@ -58,9 +60,12 @@ export default function MfsResults() {
       subtitle={assessment.company_name ? `${assessment.company_name} — live results` : 'Live results'}
       maxWidth="max-w-3xl"
       headerRight={
-        <Button size="sm" variant="outline" onClick={fetchData} className="bg-white/10 text-white border-white/30 hover:bg-white/20">
-          <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          {!locked && <MfsReportButton data={data} token={token} />}
+          <Button size="sm" variant="outline" onClick={fetchData} className="bg-white/10 text-white border-white/30 hover:bg-white/20">
+            <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
+          </Button>
+        </div>
       }
     >
       {/* Goals */}
@@ -95,7 +100,7 @@ export default function MfsResults() {
             <Lock className="w-7 h-7 text-amber-500" />
           </div>
           <h3 className="font-semibold text-gray-700 mb-1">Results unlock at {min_responses} responses</h3>
-          <p className="text-sm text-gray-400 mb-5">{response_count} of {min_responses} so far — keep sharing the survey link to protect anonymity.</p>
+          <p className="text-sm text-gray-400 mb-5">{response_count} of {min_responses} so far — keep sharing the survey link to protect anonymity. Individual responses are never shown — only group averages.</p>
           <Button onClick={copyEmployeeLink} className="bg-[#013f7c] hover:bg-[#012d5a] gap-2">
             <Copy className="w-4 h-4" /> Copy employee survey link
           </Button>
@@ -107,6 +112,9 @@ export default function MfsResults() {
             <p className="text-sm font-semibold text-gray-700 mb-4">Mental Fitness Score</p>
             <MfsScoreDial score={composite} />
             <p className="text-xs text-gray-400 mt-3">Composite of {response_count} anonymized response{response_count !== 1 ? 's' : ''}</p>
+            <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-400">
+              <ShieldCheck className="w-3 h-3" /> {ANONYMITY_NOTE}
+            </div>
           </div>
 
           {/* Four sub-score bars */}

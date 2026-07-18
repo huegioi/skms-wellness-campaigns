@@ -38,6 +38,11 @@ export default function DemoInventoryTable({ counts }) {
           />
           <Row label="Client Tasks" value={counts.clientTasks} />
           <Row label="Referral Activities" value={counts.referralActivities} />
+          <Row
+            label="MFS Assessments"
+            value={counts.mfsAssessments || 0}
+            sub={counts.mfsResponses ? `${counts.mfsResponses} responses` : undefined}
+          />
         </tbody>
       </table>
     </div>

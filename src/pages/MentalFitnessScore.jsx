@@ -173,7 +173,9 @@ export default function MentalFitnessScore() {
         <div className="bg-blue-50 rounded-xl p-4">
           <p className="text-sm text-blue-700">
             <strong>How it works:</strong> Share a 3-minute survey with your team. You'll see aggregated
-            wellbeing scores, stress levels, and benchmark comparisons — all anonymous, all free.
+            wellbeing, stress, engagement, and connection scores — with benchmark comparisons. The survey is
+            completely anonymous: no names, no emails, no accounts. Results are shown as group averages only,
+            and they unlock once 5 people have responded to protect everyone's privacy. It's free.
           </p>
         </div>
 

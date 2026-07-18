@@ -2,13 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { FlaskConical, Sprout, Trash2, Link2, ClipboardList, Lock, Loader2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { FlaskConical, Sprout, Trash2, Link2, ClipboardList, Lock, Loader2, QrCode, Brain, Copy, ExternalLink } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import DemoStatusBanner from '@/components/demo/DemoStatusBanner';
 import DemoInventoryTable from '@/components/demo/DemoInventoryTable';
 import DemoLinkCard from '@/components/demo/DemoLinkCard';
 import PurgeConfirmDialog from '@/components/demo/PurgeConfirmDialog';
 import { fetchDemoCounts, fetchPortalLinks } from '@/components/demo/demoQueries';
+import CheckinQrDialog from '@/components/shared/CheckinQrDialog';
+
+const BOOTH_URL = 'https://app.skillfulmeans.life/MentalFitnessScore';
 
 export default function Demo() {
   const queryClient = useQueryClient();
@@ -19,6 +23,7 @@ export default function Demo() {
   const [lastResult, setLastResult] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [boothQrOpen, setBoothQrOpen] = useState(false);
 
   useEffect(() => {
     base44.auth.me()
@@ -47,7 +52,7 @@ export default function Demo() {
       const data = res.data;
       toast({
         title: 'Demo data seeded',
-        description: `${data.counts.clients} clients, ${data.counts.referral_partners} partner, ${data.counts.calendar_events} events, ${data.counts.feedback_responses} feedback responses.`,
+        description: `${data.counts.clients} clients, ${data.counts.referral_partners} partner, ${data.counts.calendar_events} events, ${data.counts.feedback_responses} feedback, ${data.counts.mfs_assessments || 0} MFS assessment${data.counts.mfs_assessments === 1 ? '' : 's'}.`,
       });
       setLastResult({ type: 'seed', counts: data.counts });
       queryClient.invalidateQueries({ queryKey: ['demoCounts'] });
@@ -155,11 +160,76 @@ export default function Demo() {
                 </div>
               </div>
             )}
+
+            {portalLinks && portalLinks.mfsLinks && portalLinks.mfsLinks.length > 0 && (
+              <div>
+                <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: '#264d44' }}>
+                  <Brain className="w-5 h-5" /> Mental Fitness Score Links
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {portalLinks.mfsLinks.map((mfs, i) => (
+                    <Card key={i}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3 mb-2">
+                          <div className="p-2 rounded-lg bg-purple-50">
+                            <Brain className="w-4 h-4 text-purple-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-800 truncate">{mfs.company}</p>
+                            <p className="text-sm text-gray-500 truncate">{mfs.name}</p>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-3">{mfs.description}</p>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-16 shrink-0">Survey</span>
+                            <input readOnly value={mfs.surveyUrl} className="flex-1 bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 font-mono truncate" />
+                            <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(mfs.surveyUrl); toast({ title: 'Copied' }); }}><Copy className="w-3 h-3" /></Button>
+                            <Button size="sm" asChild><a href={mfs.surveyUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-3 h-3" /></a></Button>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-gray-400 w-16 shrink-0">Results</span>
+                            <input readOnly value={mfs.resultsUrl} className="flex-1 bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 font-mono truncate" />
+                            <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(mfs.resultsUrl); toast({ title: 'Copied' }); }}><Copy className="w-3 h-3" /></Button>
+                            <Button size="sm" asChild><a href={mfs.resultsUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-3 h-3" /></a></Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: '#264d44' }}>
+                <QrCode className="w-5 h-5" /> Booth QR
+              </h2>
+              <Card>
+                <CardContent className="p-4 flex items-center justify-between gap-4">
+                  <div>
+                    <p className="font-semibold text-gray-800 text-sm">Mental Fitness Score — Booth QR</p>
+                    <p className="text-sm text-gray-500">Print a large QR for conference booths. Scans to the public assessment intake page.</p>
+                  </div>
+                  <Button variant="outline" onClick={() => setBoothQrOpen(true)} className="gap-1.5 shrink-0">
+                    <QrCode className="w-4 h-4" /> Generate QR
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           </>
         )}
       </div>
 
       <PurgeConfirmDialog open={purgeOpen} onOpenChange={setPurgeOpen} onConfirm={handlePurge} isPurging={isPurging} />
+
+      <CheckinQrDialog
+        open={boothQrOpen}
+        onOpenChange={setBoothQrOpen}
+        checkinUrl={BOOTH_URL}
+        eventTitle="The Mental Fitness Score"
+        subtitle="Scan to start a free team assessment"
+      />
     </div>
   );
 }

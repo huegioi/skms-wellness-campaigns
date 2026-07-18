@@ -306,6 +306,56 @@ Deno.serve(async (req) => {
 
     if (cohortRecords.length) await base44.asServiceRole.entities.CohortAssessment.bulkCreate(cohortRecords);
 
+    // 11. Demo MFS company — Harborview Logistics (is_demo, ~25 responses, composite ~61, connection notably low)
+    const mfsToken = makeToken('mfs');
+    const harborviewClient = await base44.asServiceRole.entities.Client.create({
+      name: 'Jordan Reeves', email: 'jordan.reeves@harborview-demo.com', company: 'Harborview Logistics',
+      phone: '(555) 600-7000', title: 'VP of People', industry: 'Logistics', company_size: '201-500', employee_count: 340,
+      company_address: '2200 Harbor Blvd, Long Beach, CA', client_stage: 'event_follow_up',
+      is_assessment_lead: true, owner: 'William', tags: [DEMO_TAG], is_demo: true,
+    });
+    const harborviewAssessment = await base44.asServiceRole.entities.MfsAssessment.create({
+      token: mfsToken, status: 'ready', client_id: harborviewClient.id,
+      company_name: 'Harborview Logistics', contact_name: 'Jordan Reeves',
+      contact_email: 'jordan.reeves@harborview-demo.com', employee_count: '201-500', industry: 'Logistics',
+      goals: ['Burnout & stress', 'Team connection', 'Retention'], is_demo: true,
+    });
+
+    // Generate 25 MFS responses — centers tuned for composite ~61, UCLA-3 (connection) notably low
+    // WHO-5 center 3.3/item → raw ~16.5 → norm ~66
+    // PSS-4 center 1.5/item → raw ~6.0 → norm ~62
+    // UWES-3 center 4.2/item → raw ~12.6 → norm ~70
+    // UCLA-3 center 2.13/item → raw ~6.4 → norm ~43 (notably below typical range 48-60)
+    // Per-respondent composite ≈ (66+62+70+43)/4 ≈ 60.5, with visible variance from ±1 noise
+    function noiseItem(center, min, max) {
+      let v = Math.round(center + (Math.random() * 2 - 1));
+      return Math.min(max, Math.max(min, v));
+    }
+    const mfsCohortRecords = [];
+    for (let i = 0; i < 25; i++) {
+      const sid = `mfs-demo-${crypto.randomUUID()}`;
+      const submittedAt = isoDaysAgo(randInt(1, 14), randInt(8, 17));
+      const who5Resp = { q1: noiseItem(3.3, 0, 5), q2: noiseItem(3.3, 0, 5), q3: noiseItem(3.3, 0, 5), q4: noiseItem(3.3, 0, 5), q5: noiseItem(3.3, 0, 5) };
+      const pss4Resp = { q1: noiseItem(1.5, 0, 4), q2: noiseItem(1.5, 0, 4), q3: noiseItem(1.5, 0, 4), q4: noiseItem(1.5, 0, 4) };
+      const uwes3Resp = { q1: noiseItem(4.2, 0, 6), q2: noiseItem(4.2, 0, 6), q3: noiseItem(4.2, 0, 6) };
+      const ucla3Resp = { q1: noiseItem(2.13, 0, 3), q2: noiseItem(2.13, 0, 3), q3: noiseItem(2.13, 0, 3) };
+      for (const [key, resp] of [['who5', who5Resp], ['pss4', pss4Resp], ['uwes3', uwes3Resp], ['ucla3', ucla3Resp]]) {
+        const raw = Object.values(resp).reduce((s, v) => s + (v || 0), 0);
+        const record = {
+          client_id: harborviewClient.id, survey_type: 'mfs', instrument: key,
+          participant_email: '', instrument_subscores: { _sid: sid },
+          instrument_total: raw, item_responses: resp,
+          cohort_year: new Date(submittedAt).getFullYear(), submitted_at: submittedAt, is_demo: true,
+        };
+        if (key === 'who5') {
+          record.who5_cheerful = resp.q1; record.who5_calm = resp.q2; record.who5_active = resp.q3;
+          record.who5_rested = resp.q4; record.who5_interested = resp.q5; record.who5_total = raw * 4;
+        }
+        mfsCohortRecords.push(record);
+      }
+    }
+    if (mfsCohortRecords.length) await base44.asServiceRole.entities.CohortAssessment.bulkCreate(mfsCohortRecords);
+
     return Response.json({
       success: true,
       broker_portal_link: origin + '/ReferralPortal?id=' + brokerToken,
@@ -314,10 +364,15 @@ Deno.serve(async (req) => {
         { company: 'Brightpath Credit Union', link: origin + '/ClientPortal?token=' + brightpathToken },
         { company: 'Meridian Health Group', link: origin + '/ClientPortal?token=' + meridianToken },
       ],
+      mfs_links: [
+        { company: 'Harborview Logistics', survey_link: origin + '/MfsSurvey?t=' + mfsToken, results_link: origin + '/MfsResults?t=' + mfsToken },
+      ],
       counts: {
         referral_partners: 1, clients: 3, leads: 1, proposals: 3, calendar_events: createdEvents.length,
         referrals: 4, referral_activities: activities.length, feedback_responses: feedbackRecords.length,
         cohort_assessments: cohortRecords.length,
+        mfs_assessments: 1,
+        mfs_responses: 25,
       },
     });
   } catch (error) {
