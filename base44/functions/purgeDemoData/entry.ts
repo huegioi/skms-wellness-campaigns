@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const DEMO_TAG = 'Demo';
-const BATCH = 20;
+const BATCH = 5;
 
 // Delete every record flagged is_demo, plus any tasks belonging to demo clients
 // (automation-created tasks may carry is_demo=false but reference a demo client_id).

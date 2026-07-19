@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
       phone: '(555) 200-1000', tier: 'Tier 1', renewal_cohort: 'Jan 1', unique_portal_id: brokerToken,
       agreement_signed_date: lastSept, commission_tiers: STANDARD_COMMISSION_TIERS,
       ytd_revenue: 48500, total_commissions_paid: 2450, is_active: true, partner_status: 'Active Partner',
-      referral_count: 6, last_touchpoint_date: dateDaysAgo(8), last_contacted_date: dateDaysAgo(8),
+      referral_count: 7, last_touchpoint_date: dateDaysAgo(8), last_contacted_date: dateDaysAgo(8),
       owner: 'Heather', tags: [DEMO_TAG], notes: 'Demo broker partner for the broker-demo environment.', is_demo: true,
     });
 
@@ -338,7 +338,7 @@ Deno.serve(async (req) => {
       return records;
     }
 
-    // ── Harborview Logistics — complete journey: 25 responses, composite ~61, Connection lowest ──
+    // ── Harborview Logistics — complete journey: 45 responses, composite ~61, Connection lowest ──
     const mfsToken = makeToken('mfs');
     const harborviewClient = await base44.asServiceRole.entities.Client.create({
       name: 'Jordan Reeves', email: 'jordan.reeves@harborview-demo.com', company: 'Harborview Logistics',
@@ -360,14 +360,14 @@ Deno.serve(async (req) => {
       goals: ['Burnout & stress', 'Team connection'], ref: brokerToken, is_demo: true,
     });
     // WHO-5 3.3→~66, PSS-4 1.5→~62, UWES-3 4.2→~70, UCLA-3 2.13→~43 (Connection notably lowest)
-    const harborviewMfsRecords = generateMfsResponses(harborviewClient.id, 25, { who5: 3.3, pss4: 1.5, uwes3: 4.2, ucla3: 2.13 }, 14);
+    const harborviewMfsRecords = generateMfsResponses(harborviewClient.id, 45, { who5: 3.3, pss4: 1.5, uwes3: 4.2, ucla3: 2.13 }, 14);
     if (harborviewMfsRecords.length) await base44.asServiceRole.entities.CohortAssessment.bulkCreate(harborviewMfsRecords);
     const harborviewMfsReferral = await base44.asServiceRole.entities.Referral.create({
       referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan', contact_name: 'Jordan Reeves',
       contact_email: 'jordan.reeves@harborview-demo.com', company_name: 'Harborview Logistics',
       referred_lead_id: harborviewLead.id, referred_client_id: harborviewClient.id,
       referral_date: isoDaysAgo(15), status: 'pending_review', first_year_revenue: 0,
-      commission_rate: 0.10, commission_amount: 0, notes: 'MFS assessment lead — 25 responses, dashboard ready.', is_demo: true,
+      commission_rate: 0.10, commission_amount: 0, notes: 'MFS assessment lead — 45 responses, dashboard ready.', is_demo: true,
     });
 
     // ── Brightwater Dental Group — early journey: 3 responses, privacy gate active ──
@@ -401,12 +401,46 @@ Deno.serve(async (req) => {
       commission_rate: 0.10, commission_amount: 0, notes: 'MFS assessment lead — 3 responses, privacy gate active.', is_demo: true,
     });
 
+    // ── Cedar & Vine Hospitality — healthier team: 28 responses, composite ~68, Engagement strongest ──
+    const cedarToken = makeToken('mfs');
+    const cedarClient = await base44.asServiceRole.entities.Client.create({
+      name: 'Maria Santos', email: 'maria.santos@cedarvine-demo.com', company: 'Cedar & Vine Hospitality',
+      phone: '(555) 600-9000', title: 'Director of People & Culture', industry: 'Hospitality', company_size: '51-200', employee_count: 85,
+      company_address: '1200 Vineyard Rd, Napa, CA', client_stage: 'event_follow_up',
+      is_assessment_lead: true, referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan',
+      owner: 'Heather', tags: [DEMO_TAG], is_demo: true,
+    });
+    const cedarLead = await base44.asServiceRole.entities.Lead.create({
+      name: 'Maria Santos', email: 'maria.santos@cedarvine-demo.com', company: 'Cedar & Vine Hospitality',
+      industry: 'Hospitality', company_size: '51-200', lead_type: 'company_inquiry', status: 'cold',
+      source: `Mental Fitness Score (${brokerToken})`, converted_client_id: cedarClient.id,
+      owner: 'Heather', tags: [DEMO_TAG], is_demo: true,
+    });
+    const cedarAssessment = await base44.asServiceRole.entities.MfsAssessment.create({
+      token: cedarToken, status: 'ready', client_id: cedarClient.id, lead_id: cedarLead.id,
+      company_name: 'Cedar & Vine Hospitality', contact_name: 'Maria Santos',
+      contact_email: 'maria.santos@cedarvine-demo.com', employee_count: '51-200', industry: 'Hospitality',
+      goals: ['Retention', 'Engagement'], ref: brokerToken, is_demo: true,
+    });
+    // WHO-5 3.3→~66 (mid-range), PSS-4 1.5→~62, UWES-3 4.5→~75 (strongest), UCLA-3 1.6→~70 — composite ~68
+    const cedarMfsRecords = generateMfsResponses(cedarClient.id, 28, { who5: 3.3, pss4: 1.5, uwes3: 4.5, ucla3: 1.6 }, 10);
+    if (cedarMfsRecords.length) await base44.asServiceRole.entities.CohortAssessment.bulkCreate(cedarMfsRecords);
+    const cedarMfsReferral = await base44.asServiceRole.entities.Referral.create({
+      referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan', contact_name: 'Maria Santos',
+      contact_email: 'maria.santos@cedarvine-demo.com', company_name: 'Cedar & Vine Hospitality',
+      referred_lead_id: cedarLead.id, referred_client_id: cedarClient.id,
+      referral_date: isoDaysAgo(10), status: 'pending_review', first_year_revenue: 0,
+      commission_rate: 0.10, commission_amount: 0, notes: 'MFS assessment lead — 28 responses, dashboard ready.', is_demo: true,
+    });
+
     // MFS referral activities
     const mfsActivities = [
       { referral_id: harborviewMfsReferral.id, message: 'Alex Morgan shared the Mental Fitness Score link. Harborview Logistics submitted an intake (140 employees, logistics).', activity_date: isoDaysAgo(15) },
-      { referral_id: harborviewMfsReferral.id, message: 'Harborview Logistics MFS dashboard is ready — 25 employee responses collected. Composite score: ~61 (Connection notably lowest).', activity_date: isoDaysAgo(3) },
+      { referral_id: harborviewMfsReferral.id, message: 'Harborview Logistics MFS dashboard is ready — 45 employee responses collected. Composite score: ~61 (Connection notably lowest).', activity_date: isoDaysAgo(3) },
       { referral_id: brightwaterMfsReferral.id, message: 'Alex Morgan shared the Mental Fitness Score link. Brightwater Dental Group submitted an intake (35 employees, healthcare).', activity_date: isoDaysAgo(5) },
       { referral_id: brightwaterMfsReferral.id, message: 'Brightwater Dental Group is collecting responses — 3 of 5 so far (privacy gate active).', activity_date: isoDaysAgo(1) },
+      { referral_id: cedarMfsReferral.id, message: 'Alex Morgan shared the Mental Fitness Score link. Cedar & Vine Hospitality submitted an intake (85 employees, hospitality).', activity_date: isoDaysAgo(10) },
+      { referral_id: cedarMfsReferral.id, message: 'Cedar & Vine Hospitality MFS dashboard is ready — 28 employee responses collected. Composite score: ~68 (Engagement strongest, a healthier team).', activity_date: isoDaysAgo(2) },
     ].map(a => Object.assign({ activity_type: 'note' }, a, { referral_partner_id: broker.id, is_demo: true }));
     await base44.asServiceRole.entities.ReferralActivity.bulkCreate(mfsActivities);
 
@@ -420,14 +454,15 @@ Deno.serve(async (req) => {
       ],
       mfs_links: [
         { company: 'Harborview Logistics', survey_link: origin + '/MfsSurvey?t=' + mfsToken, results_link: origin + '/MfsResults?t=' + mfsToken },
+        { company: 'Cedar & Vine Hospitality', survey_link: origin + '/MfsSurvey?t=' + cedarToken, results_link: origin + '/MfsResults?t=' + cedarToken },
         { company: 'Brightwater Dental Group', survey_link: origin + '/MfsSurvey?t=' + brightwaterMfsToken, results_link: origin + '/MfsResults?t=' + brightwaterMfsToken },
       ],
       counts: {
-        referral_partners: 1, clients: 5, leads: 3, proposals: 3, calendar_events: createdEvents.length,
-        referrals: 6, referral_activities: activities.length + mfsActivities.length, feedback_responses: feedbackRecords.length,
-        cohort_assessments: cohortRecords.length + harborviewMfsRecords.length + brightwaterMfsRecords.length,
-        mfs_assessments: 2,
-        mfs_responses: 28,
+        referral_partners: 1, clients: 6, leads: 4, proposals: 3, calendar_events: createdEvents.length,
+        referrals: 7, referral_activities: activities.length + mfsActivities.length, feedback_responses: feedbackRecords.length,
+        cohort_assessments: cohortRecords.length + harborviewMfsRecords.length + brightwaterMfsRecords.length + cedarMfsRecords.length,
+        mfs_assessments: 3,
+        mfs_responses: 76,
       },
     });
   } catch (error) {
