@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import { MFS_INSTRUMENTS, TYPICAL_BANDS } from '@/lib/mfsScore';
 import { getInstrumentInterpretation, getCompositeInterpretation } from '@/lib/mfsInterpretation';
+import { MFS_EVIDENCE_BLOCKS, MFS_DISCLAIMER, getFirstSentence } from '@/lib/mfsScoreContent';
 
 const LOGO_URL = 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/bb0a43468_SKMSLogoShieldBrown.png';
 const CALENDLY_URL = 'https://calendly.com/skillfulmeans/strategy-session';
@@ -40,6 +41,15 @@ export default function MfsReportButton({ data, token }) {
       const [bandMin, bandMax] = band?.typicalRange || [0, 0];
       const interp = getInstrumentInterpretation(inst.key, score);
       const scoreRounded = score != null ? Math.round(score) : '—';
+      const evBlock = MFS_EVIDENCE_BLOCKS[inst.key];
+      const evBody = evBlock ? getFirstSentence(evBlock.body) : '';
+      let evBandLine = '';
+      let evBandColor = '';
+      if (evBlock && score != null) {
+        if (score < bandMin) { evBandLine = evBlock.low; evBandColor = '#b45309'; }
+        else if (score > bandMax) { evBandLine = evBlock.strong; evBandColor = '#15803d'; }
+      }
+      const evCta = evBlock?.cta || '';
       return `
         <div class="instrument">
           <div class="inst-row">
@@ -52,6 +62,7 @@ export default function MfsReportButton({ data, token }) {
           </div>
           <div class="inst-meta">Typical range: ${bandMin}–${bandMax} · ${instData?.count || 0} responses</div>
           <p class="inst-interp">${interp}</p>
+          ${evBody ? `<div class="inst-evidence"><p class="ev-body">${evBody}</p>${evBandLine ? `<p class="ev-band" style="color:${evBandColor}">${evBandLine}</p>` : ''}${evCta ? `<p class="ev-cta">${evCta}</p>` : ''}</div>` : ''}
         </div>
       `;
     }).join('');
@@ -89,6 +100,12 @@ export default function MfsReportButton({ data, token }) {
         .bar-fill { position: relative; height: 100%; border-radius: 4px; }
         .inst-meta { font-size: 10px; color: #9ca3af; margin-top: 3px; font-family: Arial, sans-serif; }
         .inst-interp { font-size: 12px; line-height: 1.5; color: #4b5563; margin-top: 5px; }
+        .inst-evidence { margin-top: 6px; padding: 8px 10px; background: #f9fafb; border-radius: 6px; }
+        .ev-body { font-size: 11px; line-height: 1.5; color: #4b5563; }
+        .ev-band { font-size: 11px; font-weight: bold; margin-top: 4px; }
+        .ev-cta { font-size: 11px; color: #6b7280; font-style: italic; margin-top: 4px; }
+        .disclaimer { font-size: 11px; color: #6b7280; margin-top: 16px; padding: 10px 14px; background: #f9fafb; border-radius: 6px; line-height: 1.5; }
+        .disclaimer a { color: #013f7c; }
         .cta { display: flex; align-items: center; gap: 16px; background: #013f7c; border-radius: 10px; padding: 18px 24px; margin-top: 24px; color: white; }
         .cta-qr { width: 80px; height: 80px; border-radius: 6px; flex-shrink: 0; }
         .cta-text h3 { font-size: 15px; margin-bottom: 4px; font-family: Arial, sans-serif; }
@@ -127,6 +144,8 @@ export default function MfsReportButton({ data, token }) {
 
         <div class="instruments-title">Score Breakdown</div>
         ${barsHtml}
+
+        <div class="disclaimer">${MFS_DISCLAIMER.prefix} <a href="${MFS_DISCLAIMER.calendlyUrl}">${MFS_DISCLAIMER.linkText}</a>.</div>
 
         <div class="cta">
           <img class="cta-qr" src="${qrUrl}" alt="Strategy session QR" />
