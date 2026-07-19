@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { PortalShell } from '@/components/portal/PortalShell';
@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { CheckCircle, Copy, Users, ArrowRight, Brain, AlertTriangle } from 'lucide-react';
+import { CheckCircle, Copy, Users, ArrowRight, Brain, AlertTriangle, ShieldCheck } from 'lucide-react';
 import MfsProcessInfo from '@/components/mfs/MfsProcessInfo';
+import MfsProcessStrip from '@/components/mfs/MfsProcessStrip';
 
 const TEAM_SIZES = [
   { value: '1-50', label: '1–50' },
@@ -34,6 +35,11 @@ export default function MentalFitnessScore() {
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [emailError, setEmailError] = useState('');
+  const formRef = useRef(null);
+
+  const scrollToForm = () => {
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const toggleGoal = (goal) => {
     setGoals(prev =>
@@ -170,15 +176,18 @@ export default function MentalFitnessScore() {
       subtitle="A free read on your team's mental fitness, in 3 minutes per employee."
       maxWidth="max-w-2xl"
     >
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-5">
-        <div className="bg-blue-50 rounded-xl p-4">
-          <p className="text-sm text-blue-700">
-            <strong>How it works:</strong> Share a 3-minute survey with your team. You'll see aggregated
-            wellbeing, stress, engagement, and connection scores — with benchmark comparisons. The survey is
-            completely anonymous: no names, no emails, no accounts. Results are shown as group averages only,
-            and they unlock once 5 people have responded to protect everyone's privacy. It's free.
-          </p>
-        </div>
+      <MfsProcessStrip />
+
+      <div className="text-center mb-2">
+        <button
+          onClick={scrollToForm}
+          className="inline-flex items-center gap-2 bg-[#013f7c] hover:bg-[#012d5a] text-white font-semibold text-sm px-6 py-3 rounded-full shadow-sm transition-colors"
+        >
+          Get your Score — start here ↓
+        </button>
+      </div>
+
+      <div ref={formRef} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-5 scroll-mt-4">
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -260,6 +269,11 @@ export default function MentalFitnessScore() {
               );
             })}
           </div>
+        </div>
+
+        <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 pt-2 text-center flex-wrap">
+          <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+          <span>Anonymous responses · your company sees team-level results only · no marketing emails · questions? <a href="mailto:info@skillfulmeans.life" className="text-[#013f7c] font-medium underline">info@skillfulmeans.life</a></span>
         </div>
 
         <div className="flex justify-end pt-2">
