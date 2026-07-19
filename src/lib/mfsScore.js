@@ -59,25 +59,78 @@ export const MFS_INSTRUMENTS = [
   { key: 'ucla3', label: 'Connection', color: '#b8860b' },
 ];
 
-// ── Typical-range bands ──
-// PENDING WILLIAM'S APPROVAL — rendered only as "typical range" labels.
-// Sources cited in comments.
-export const TYPICAL_BANDS = {
+// ── Score zones (Low / Typical / High) ──
+// PENDING WILLIAM'S APPROVAL — three-zone cut-points anchored to published norms.
+// Each zone has a max boundary (exclusive) on the 0–100 display scale.
+// Colors are subtle tints for background segments.
+
+export const SCORE_ZONES = {
   who5: {
-    // WHO-5: Topp et al. (2015). <50 suggests screening for depression.
-    // General population mean ≈ 68 (raw ≈ 17).
-    typicalRange: [50, 68],
+    // WHO-5: Topp et al. (2015). Raw ≤13 (displayed ≤52) suggests screening
+    // for depression — the established <50 threshold marks the Low zone.
+    // Population mean ≈ 68 (raw ≈ 17) sits in Typical. High ≥75 (raw ≥19).
+    zones: [
+      { label: 'Low', max: 50, color: '#fecaca' },
+      { label: 'Typical', max: 75, color: '#e5e7eb' },
+      { label: 'High', max: 100, color: '#bbf7d0' },
+    ],
   },
   pss4: {
-    // PSS-4: Cohen et al. (1983). Normative mean ≈ 4.5–5.5 raw → 66–72 inverted.
-    typicalRange: [60, 72],
+    // PSS-4: Cohen et al. (1983). Norm mean ≈ 6–7 raw.
+    // Display inverted: high score = low stress.
+    // Low zone: raw >8 (displayed <50) = elevated stress.
+    // Typical: raw 4–8 (displayed 50–75). High: raw <4 (displayed >75).
+    zones: [
+      { label: 'Low', max: 50, color: '#fecaca' },
+      { label: 'Typical', max: 75, color: '#e5e7eb' },
+      { label: 'High', max: 100, color: '#bbf7d0' },
+    ],
   },
   uwes3: {
-    // UWES-3: Schaufeli et al. (2006). Normative mean ≈ 4.0 → 67 normalized.
-    typicalRange: [55, 75],
+    // UWES-3: Schaufeli et al. (2006). Norm database bands:
+    // Low engagement <3.0 mean (displayed <50).
+    // Average 3.0–5.0 (displayed 50–83). High >5.0 (displayed >83).
+    zones: [
+      { label: 'Low', max: 50, color: '#fecaca' },
+      { label: 'Typical', max: 83, color: '#e5e7eb' },
+      { label: 'High', max: 100, color: '#bbf7d0' },
+    ],
   },
   ucla3: {
-    // UCLA-3: Hughes et al. (2004). Population mean ≈ 5.6 raw → 57 inverted.
-    typicalRange: [48, 60],
+    // UCLA-3: Hughes et al. (2004). Raw ≥6 = loneliness classification.
+    // (9−6)/6 × 100 = 50 → displayed ≤50 = Low (lonely).
+    // Typical: raw 4–5 (displayed 50–83). High: raw 3 (displayed >83).
+    zones: [
+      { label: 'Low', max: 50, color: '#fecaca' },
+      { label: 'Typical', max: 83, color: '#e5e7eb' },
+      { label: 'High', max: 100, color: '#bbf7d0' },
+    ],
+  },
+  composite: {
+    // Composite: average of the four instruments' Typical-zone upper bounds.
+    // (75 + 75 + 83 + 83) / 4 ≈ 79.
+    zones: [
+      { label: 'Low', max: 50, color: '#fecaca' },
+      { label: 'Typical', max: 79, color: '#e5e7eb' },
+      { label: 'High', max: 100, color: '#bbf7d0' },
+    ],
   },
 };
+
+// Backward-compatible typical ranges derived from zone boundaries.
+export const TYPICAL_BANDS = Object.fromEntries(
+  Object.entries(SCORE_ZONES).map(([key, def]) => [
+    key,
+    { typicalRange: [def.zones[0].max, def.zones[1].max] },
+  ])
+);
+
+// Returns 'Low' | 'Typical' | 'High' for a given instrument key (or 'composite').
+export function getZone(key, score) {
+  if (score == null) return null;
+  const zones = SCORE_ZONES[key]?.zones || SCORE_ZONES.composite.zones;
+  for (const z of zones) {
+    if (score < z.max) return z.label;
+  }
+  return zones[zones.length - 1].label;
+}

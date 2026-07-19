@@ -120,7 +120,7 @@ export default function MfsResults() {
           {/* Four sub-score bars */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
             <p className="text-sm font-semibold text-gray-700 mb-1">Score Breakdown</p>
-            <p className="text-xs text-gray-400 mb-4">All scores 0–100 (higher = better). Shaded band = typical range.</p>
+            <p className="text-xs text-gray-400 mb-4">All scores 0–100 (higher = better).</p>
             <MfsScoreBars instruments={instruments} />
           </div>
         </>

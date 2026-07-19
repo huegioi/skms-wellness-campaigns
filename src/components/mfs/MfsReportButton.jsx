@@ -1,9 +1,9 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
-import { MFS_INSTRUMENTS, TYPICAL_BANDS } from '@/lib/mfsScore';
+import { MFS_INSTRUMENTS, SCORE_ZONES, getZone } from '@/lib/mfsScore';
 import { getInstrumentInterpretation, getCompositeInterpretation } from '@/lib/mfsInterpretation';
-import { MFS_EVIDENCE_BLOCKS, MFS_DISCLAIMER, getFirstSentence } from '@/lib/mfsScoreContent';
+import { MFS_EVIDENCE_BLOCKS, MFS_DISCLAIMER, getZoneContextSentence } from '@/lib/mfsScoreContent';
 
 const LOGO_URL = 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/bb0a43468_SKMSLogoShieldBrown.png';
 const CALENDLY_URL = 'https://calendly.com/skillfulmeans/strategy-session';
@@ -25,9 +25,18 @@ export default function MfsReportButton({ data, token }) {
     const offset = circumference - (clamped / 100) * circumference;
     const dialColor = clamped >= 70 ? '#264d44' : clamped >= 50 ? '#013f7c' : '#770142';
 
+    const dialZones = SCORE_ZONES.composite.zones;
+    let _cum = 0;
+    const dialZoneArcs = dialZones.map(z => {
+      const segStart = _cum;
+      const segLen = ((z.max - _cum) / 100) * circumference;
+      _cum = z.max;
+      return `<circle cx="${dialSize / 2}" cy="${dialSize / 2}" r="${radius}" fill="none" stroke="${z.color}" stroke-width="10" stroke-dasharray="${Math.max(0, segLen - 1.5)} ${circumference - Math.max(0, segLen - 1.5)}" stroke-dashoffset="${-(segStart / 100) * circumference}"/>`;
+    }).join('');
+
     const dialSvg = `
       <svg width="${dialSize}" height="${dialSize}" style="transform: rotate(-90deg)">
-        <circle cx="${dialSize / 2}" cy="${dialSize / 2}" r="${radius}" fill="none" stroke="#e5e7eb" stroke-width="10"/>
+        ${dialZoneArcs}
         <circle cx="${dialSize / 2}" cy="${dialSize / 2}" r="${radius}" fill="none" stroke="${dialColor}" stroke-width="10"
           stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" stroke-linecap="round"/>
       </svg>
@@ -37,32 +46,38 @@ export default function MfsReportButton({ data, token }) {
     const barsHtml = MFS_INSTRUMENTS.map((inst) => {
       const instData = instruments?.[inst.key];
       const score = instData?.average;
-      const band = TYPICAL_BANDS[inst.key];
-      const [bandMin, bandMax] = band?.typicalRange || [0, 0];
+      const zoneDef = SCORE_ZONES[inst.key];
+      const zones = zoneDef?.zones || [];
+      const zoneLabel = getZone(inst.key, score);
       const interp = getInstrumentInterpretation(inst.key, score);
       const scoreRounded = score != null ? Math.round(score) : '—';
       const evBlock = MFS_EVIDENCE_BLOCKS[inst.key];
-      const evBody = evBlock ? getFirstSentence(evBlock.body) : '';
+      const evBody = evBlock && score != null ? getZoneContextSentence(inst.key, score, zoneLabel) : '';
       let evBandLine = '';
-      let evBandColor = '';
-      if (evBlock && score != null) {
-        if (score < bandMin) { evBandLine = evBlock.low; evBandColor = '#b45309'; }
-        else if (score > bandMax) { evBandLine = evBlock.strong; evBandColor = '#15803d'; }
-      }
+      let evCalloutStyle = '';
+      if (evBlock && zoneLabel === 'Low') { evBandLine = evBlock.low; evCalloutStyle = 'background:#fffbeb;border-left:3px solid #f59e0b;'; }
+      else if (evBlock && zoneLabel === 'High') { evBandLine = evBlock.strong; evCalloutStyle = 'background:#f0fdf4;border-left:3px solid #15803d;'; }
       const evCta = evBlock?.cta || '';
+      const zoneBarsHtml = zones.map((z, i) => {
+        const left = i > 0 ? zones[i - 1].max : 0;
+        const width = z.max - left;
+        return `<div class="bar-zone" style="left:${left}%;width:${width}%;background:${z.color}"></div>`;
+      }).join('');
       return `
         <div class="instrument">
           <div class="inst-row">
             <span class="inst-label">${inst.label}</span>
-            <span class="inst-score" style="color:${inst.color}">${scoreRounded}</span>
+            <span class="inst-score" style="color:${inst.color}">${scoreRounded}${zoneLabel ? ` <span style="font-size:11px;color:#9ca3af;font-weight:normal">· ${zoneLabel}</span>` : ''}</span>
           </div>
-          <div class="bar-track">
-            <div class="bar-band" style="left:${bandMin}%;width:${bandMax - bandMin}%"></div>
-            <div class="bar-fill" style="width:${score ?? 0}%;background-color:${inst.color}"></div>
+          <div class="bar-wrap">
+            <div class="bar-track">
+              ${zoneBarsHtml}
+            </div>
+            <div class="bar-marker" style="left:${Math.max(0, Math.min(100, score ?? 0))}%;border-color:${inst.color}"></div>
           </div>
-          <div class="inst-meta">Typical range: ${bandMin}–${bandMax} · ${instData?.count || 0} responses</div>
+          <div class="inst-meta">${instData?.count || 0} responses · Zone: ${zoneLabel || '—'}</div>
           <p class="inst-interp">${interp}</p>
-          ${evBody ? `<div class="inst-evidence"><p class="ev-body">${evBody}</p>${evBandLine ? `<p class="ev-band" style="color:${evBandColor}">${evBandLine}</p>` : ''}${evCta ? `<p class="ev-cta">${evCta}</p>` : ''}</div>` : ''}
+          ${evBody ? `<div class="inst-evidence"><p class="ev-body">${evBody}</p>${evBandLine ? `<div class="ev-callout" style="${evCalloutStyle}">${evBandLine}</div>` : ''}${evCta ? `<p class="ev-cta">${evCta}</p>` : ''}</div>` : ''}
         </div>
       `;
     }).join('');
@@ -95,17 +110,19 @@ export default function MfsReportButton({ data, token }) {
         .inst-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
         .inst-label { font-size: 13px; font-weight: bold; color: #374151; font-family: Arial, sans-serif; }
         .inst-score { font-size: 16px; font-weight: bold; font-family: Arial, sans-serif; }
-        .bar-track { position: relative; height: 8px; background: #f3f4f6; border-radius: 4px; overflow: hidden; }
-        .bar-band { position: absolute; height: 100%; background: rgba(156,163,175,0.35); }
-        .bar-fill { position: relative; height: 100%; border-radius: 4px; }
+        .bar-wrap { position: relative; height: 10px; }
+        .bar-track { position: absolute; top: 0; left: 0; width: 100%; height: 10px; background: #f3f4f6; border-radius: 5px; overflow: hidden; }
+        .bar-zone { position: absolute; height: 100%; }
+        .bar-marker { position: absolute; top: -2px; height: 14px; width: 3px; border-radius: 2px; background: white; border: 2px solid #374151; transform: translateX(-50%); }
         .inst-meta { font-size: 10px; color: #9ca3af; margin-top: 3px; font-family: Arial, sans-serif; }
         .inst-interp { font-size: 12px; line-height: 1.5; color: #4b5563; margin-top: 5px; }
         .inst-evidence { margin-top: 6px; padding: 8px 10px; background: #f9fafb; border-radius: 6px; }
         .ev-body { font-size: 11px; line-height: 1.5; color: #4b5563; }
-        .ev-band { font-size: 11px; font-weight: bold; margin-top: 4px; }
+        .ev-callout { font-size: 11px; font-weight: bold; margin-top: 6px; padding: 8px 10px; border-radius: 0 4px 4px 0; line-height: 1.5; }
         .ev-cta { font-size: 11px; color: #6b7280; font-style: italic; margin-top: 4px; }
         .disclaimer { font-size: 11px; color: #6b7280; margin-top: 16px; padding: 10px 14px; background: #f9fafb; border-radius: 6px; line-height: 1.5; }
         .disclaimer a { color: #013f7c; }
+        .zones-footnote { font-size: 10px; color: #9ca3af; margin-top: 14px; padding-top: 10px; border-top: 1px solid #e5e7eb; line-height: 1.5; }
         .cta { display: flex; align-items: center; gap: 16px; background: #013f7c; border-radius: 10px; padding: 18px 24px; margin-top: 24px; color: white; }
         .cta-qr { width: 80px; height: 80px; border-radius: 6px; flex-shrink: 0; }
         .cta-text h3 { font-size: 15px; margin-bottom: 4px; font-family: Arial, sans-serif; }
@@ -135,6 +152,7 @@ export default function MfsReportButton({ data, token }) {
             <div class="dial-num">
               <span class="big">${composite != null ? Math.round(composite) : '—'}</span>
               <span class="small">out of 100</span>
+              ${getZone('composite', composite) ? `<span class="small" style="margin-top:2px">${getZone('composite', composite)} zone</span>` : ''}
             </div>
           </div>
           <div class="dial-label">Composite Mental Fitness Score</div>
@@ -146,6 +164,12 @@ export default function MfsReportButton({ data, token }) {
         ${barsHtml}
 
         <div class="disclaimer">${MFS_DISCLAIMER.prefix} <a href="${MFS_DISCLAIMER.calendlyUrl}">${MFS_DISCLAIMER.linkText}</a>.</div>
+
+        <div class="zones-footnote">
+          <strong>About the zones:</strong> Low, Typical, and High zones follow published research norms for each instrument.
+          WHO-5 (Topp et al., 2015) · PSS-4 (Cohen et al., 1983) · UWES-3 (Schaufeli et al., 2006) · UCLA-3 (Hughes et al., 2004).
+          Composite zones are the average of the four instruments' boundaries.
+        </div>
 
         <div class="cta">
           <img class="cta-qr" src="${qrUrl}" alt="Strategy session QR" />

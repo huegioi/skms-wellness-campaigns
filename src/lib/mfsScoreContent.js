@@ -58,3 +58,10 @@ export function getFirstSentence(text) {
   const match = text.match(/[^.!?]+[.!?]+/);
   return match ? match[0].trim() : text;
 }
+
+export function getZoneContextSentence(instrumentKey, score, zoneLabel) {
+  const block = MFS_EVIDENCE_BLOCKS[instrumentKey];
+  if (!block || score == null || !zoneLabel) return '';
+  const firstSentence = getFirstSentence(block.body);
+  return `Your team scored ${Math.round(score)} — in the ${zoneLabel} zone. ${firstSentence}`;
+}

@@ -1,15 +1,12 @@
 import React, { useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { MFS_EVIDENCE_BLOCKS, getFirstSentence } from '@/lib/mfsScoreContent';
-import { TYPICAL_BANDS, MFS_INSTRUMENTS } from '@/lib/mfsScore';
+import { getZone, MFS_INSTRUMENTS } from '@/lib/mfsScore';
 
 function getScoreBand(instrumentKey, score) {
-  if (score == null) return null;
-  const range = TYPICAL_BANDS[instrumentKey]?.typicalRange;
-  if (!range) return null;
-  const [min, max] = range;
-  if (score < min) return 'low';
-  if (score > max) return 'strong';
+  const zone = getZone(instrumentKey, score);
+  if (zone === 'Low') return 'low';
+  if (zone === 'High') return 'strong';
   return null;
 }
 
