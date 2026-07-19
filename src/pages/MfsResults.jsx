@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 import { Button } from '@/components/ui/button';
-import { Users, Copy, RefreshCw, CalendarCheck, TrendingUp, Lock, ShieldCheck } from 'lucide-react';
+import { Users, Copy, RefreshCw, Lock, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import MfsScoreDial from '@/components/mfs/MfsScoreDial';
 import MfsScoreBars from '@/components/mfs/MfsScoreBars';
 import MfsReportButton from '@/components/mfs/MfsReportButton';
+import MfsCtaPair from '@/components/mfs/MfsCtaPair';
 
 const AUTOREFRESH_MS = 60000;
-const CALENDLY_URL = 'https://calendly.com/skillfulmeans/strategy-session';
 const ANONYMITY_NOTE = 'All scores are aggregated and anonymous — no individual responses are shown.';
 
 export default function MfsResults() {
@@ -112,12 +112,10 @@ export default function MfsResults() {
             <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-400">
               <ShieldCheck className="w-3 h-3" /> {ANONYMITY_NOTE}
             </div>
-            {/* Primary CTA — Book session */}
-            <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer" className="w-full mt-4">
-              <div className="w-full bg-[#770142] hover:bg-[#5a0132] text-white rounded-xl py-3 px-4 flex items-center justify-center gap-2 font-semibold text-sm transition-colors">
-                <CalendarCheck className="w-5 h-5" /> Book your free strategy session
-              </div>
-            </a>
+            {/* Paired CTAs */}
+            <div className="w-full mt-4">
+              <MfsCtaPair employeeCount={assessment.employee_count} />
+            </div>
           </div>
 
           {/* Four sub-score bars */}
@@ -132,23 +130,10 @@ export default function MfsResults() {
         </>
       )}
 
-      {/* Primary CTA — bottom */}
-      <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer" className="block mb-4">
-        <div className="w-full bg-[#770142] hover:bg-[#5a0132] text-white rounded-xl py-3.5 px-4 flex items-center justify-center gap-2 font-semibold text-base transition-colors">
-          <CalendarCheck className="w-5 h-5" /> Book your free strategy session
-        </div>
-      </a>
-
-      {/* Secondary — ROI Engine */}
-      <Link to="/QuickBuilder">
-        <div className="bg-[#264d44] rounded-xl p-4 flex items-center gap-3 hover:bg-[#223d32] transition-colors cursor-pointer">
-          <TrendingUp className="w-5 h-5 text-white shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-white">ROI Engine</p>
-            <p className="text-xs text-green-200">Estimate your campaign impact</p>
-          </div>
-        </div>
-      </Link>
+      {/* Paired CTAs — bottom */}
+      <div className="mb-4">
+        <MfsCtaPair employeeCount={assessment.employee_count} size="large" />
+      </div>
     </PortalShell>
   );
 }

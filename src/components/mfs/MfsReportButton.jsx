@@ -12,6 +12,8 @@ export default function MfsReportButton({ data, token }) {
   if (!data || data.locked) return null;
 
   const { assessment, response_count, composite, instruments } = data;
+  const employeeCount = assessment?.employee_count || '';
+  const roiUrl = 'https://skillfulmeans-roi-production.up.railway.app/' + (employeeCount ? `?headcount=${encodeURIComponent(employeeCount)}` : '');
 
   const handlePrint = () => {
     const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -124,10 +126,15 @@ export default function MfsReportButton({ data, token }) {
         .disclaimer { font-size: 11px; color: #6b7280; margin-top: 16px; padding: 10px 14px; background: #f9fafb; border-radius: 6px; line-height: 1.5; }
         .disclaimer a { color: #013f7c; }
         .zones-footnote { font-size: 10px; color: #9ca3af; margin-top: 14px; padding-top: 10px; border-top: 1px solid #e5e7eb; line-height: 1.5; }
-        .cta { display: flex; align-items: center; gap: 16px; background: #013f7c; border-radius: 10px; padding: 18px 24px; margin-top: 24px; color: white; }
+        .cta-block { margin-top: 24px; display: flex; flex-direction: column; gap: 12px; }
+        .cta { display: flex; align-items: center; gap: 16px; border-radius: 10px; padding: 18px 24px; color: white; }
+        .cta-primary { background: #770142; }
+        .cta-secondary { background: #f8f5f0; border: 2px solid #770142; color: #770142; }
         .cta-qr { width: 80px; height: 80px; border-radius: 6px; flex-shrink: 0; }
         .cta-text h3 { font-size: 15px; margin-bottom: 4px; font-family: Arial, sans-serif; }
         .cta-text p { font-size: 12px; color: #bfdbfe; line-height: 1.4; font-family: Arial, sans-serif; }
+        .cta-secondary .cta-text h3 { color: #770142; }
+        .cta-secondary .cta-text p { color: #6b7280; }
         .footer { margin-top: 28px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; }
         .footer-brand { font-size: 13px; color: #6b7280; }
         .footer-brand strong { color: #013f7c; }
@@ -172,11 +179,19 @@ export default function MfsReportButton({ data, token }) {
           Composite zones are the average of the four instruments' boundaries.
         </div>
 
-        <div class="cta">
-          <img class="cta-qr" src="${qrUrl}" alt="Strategy session QR" />
-          <div class="cta-text">
-            <h3>Book your free strategy session</h3>
-            <p>A 30-minute consultation to walk through these results and design a targeted plan for your team. Scan the QR code or visit calendly.com/skillfulmeans/strategy-session.</p>
+        <div class="cta-block">
+          <div class="cta cta-primary">
+            <img class="cta-qr" src="${qrUrl}" alt="Strategy session QR" />
+            <div class="cta-text">
+              <h3>Book your free strategy session</h3>
+              <p>A 30-minute consultation to walk through these results and design a targeted plan for your team. Scan the QR code or visit calendly.com/skillfulmeans/strategy-session.</p>
+            </div>
+          </div>
+          <div class="cta cta-secondary">
+            <div class="cta-text">
+              <h3>Estimate the impact of a campaign with SkillfulMeans</h3>
+              <p>Visit skillfulmeans-roi-production.up.railway.app${employeeCount ? '/?headcount=' + employeeCount : ''} to model your team's ROI.</p>
+            </div>
           </div>
         </div>
 
