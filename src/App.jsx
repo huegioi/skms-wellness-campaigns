@@ -8,6 +8,7 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import AddLead from './pages/AddLead';
+import Assessments from './pages/Assessments';
 import SpeakerPortalRedirect from './components/portal/SpeakerPortalRedirect';
 import ReferralPortal from './pages/ReferralPortal';
 import { Navigate } from 'react-router-dom';
@@ -99,6 +100,7 @@ const AuthenticatedApp = () => {
         />
       ))}
       <Route path="/AddLead" element={<LayoutWrapper currentPageName="AddLead"><AddLead /></LayoutWrapper>} />
+      <Route path="/Assessments" element={<LayoutWrapper currentPageName="Assessments"><Assessments /></LayoutWrapper>} />
       <Route path="/ReferralPortal" element={<ReferralPortal />} />
       <Route path="/ReferralPartnerAdmin" element={<Navigate to="/Leads" replace />} />
       <Route path="/CampaignCalendar" element={<LayoutWrapper currentPageName="CampaignCalendar"><CampaignCalendar /></LayoutWrapper>} />

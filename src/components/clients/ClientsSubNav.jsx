@@ -1,10 +1,13 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Users, FolderOpen, Mail, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Users, FolderOpen, Mail, Eye, ChevronLeft, ChevronRight, Brain } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 
 const TABS = [
   { id: 'clients', label: 'Clients', icon: Users, page: 'Clients' },
+  { id: 'assessments', label: 'Assessments', icon: Brain, page: 'Assessments', badge: true },
   { id: 'proposals', label: 'Proposals', icon: FolderOpen, page: 'Proposals' },
   { id: 'templates', label: 'Templates', icon: Mail, page: 'EmailTemplateManager' },
   { id: 'portals', label: 'Client Portals', icon: Eye, page: 'ManageClientPortals' },
@@ -14,6 +17,13 @@ export default function ClientsSubNav({ activePage }) {
   const navigate = useNavigate();
   const currentIndex = TABS.findIndex(t => t.page === activePage);
   const safeIndex = currentIndex === -1 ? 0 : currentIndex;
+
+  const { data: mfsAssessments = [] } = useQuery({
+    queryKey: ['mfs-assessments-count'],
+    queryFn: () => base44.entities.MfsAssessment.list('-created_date', 200),
+    staleTime: 60_000,
+  });
+  const mfsCount = mfsAssessments.length;
 
   const goLeft = () => {
     if (safeIndex > 0) navigate(createPageUrl(TABS[safeIndex - 1].page));
@@ -44,6 +54,11 @@ export default function ClientsSubNav({ activePage }) {
               >
                 <Icon className="w-4 h-4" />
                 {tab.label}
+                {tab.badge && (
+                  <span className="ml-0.5 text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-bold">
+                    {mfsCount}
+                  </span>
+                )}
               </Link>
             );
           })}
@@ -65,6 +80,11 @@ export default function ClientsSubNav({ activePage }) {
                 <span className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-[#264d44] text-white">
                   <Icon className="w-3.5 h-3.5" />
                   {TABS[safeIndex].label}
+                  {TABS[safeIndex].badge && (
+                    <span className="ml-0.5 text-[10px] bg-purple-200 text-purple-800 px-1.5 py-0.5 rounded-full font-bold">
+                      {mfsCount}
+                    </span>
+                  )}
                 </span>
               );
             })()}
