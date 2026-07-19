@@ -68,14 +68,27 @@ export async function fetchPortalLinks() {
     type: 'client',
   }));
 
-  // MFS assessment links
+  // MFS assessment links with intake details and response counts
   const mfsAssessments = await base44.entities.MfsAssessment.filter({ is_demo: true }, '-created_date', 10);
+  const mfsCohortRecords = await base44.entities.CohortAssessment.filter({ survey_type: 'mfs', is_demo: true }, '-submitted_at', 500);
+  const sidSetByClient = {};
+  for (const r of mfsCohortRecords) {
+    if (!r.client_id) continue;
+    const sid = r.instrument_subscores?._sid;
+    if (!sid) continue;
+    if (!sidSetByClient[r.client_id]) sidSetByClient[r.client_id] = new Set();
+    sidSetByClient[r.client_id].add(sid);
+  }
   const mfsLinks = mfsAssessments.map(a => ({
     name: a.contact_name || 'HR Contact',
     company: a.company_name || 'MFS Company',
+    employeeCount: a.employee_count || '',
+    industry: a.industry || '',
+    goals: a.goals || [],
+    status: a.status || 'collecting',
+    responseCount: sidSetByClient[a.client_id]?.size || 0,
     surveyUrl: `${origin}/MfsSurvey?t=${a.token}`,
     resultsUrl: `${origin}/MfsResults?t=${a.token}`,
-    description: 'Mental Fitness Score assessment with demo responses — fully populated dashboard.',
   }));
   return { brokerLink, clientLinks, mfsLinks };
 }

@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { FlaskConical, Sprout, Trash2, Link2, ClipboardList, Lock, Loader2, QrCode, Brain, Copy, ExternalLink } from 'lucide-react';
+import { FlaskConical, Sprout, Trash2, Link2, ClipboardList, Lock, Loader2, QrCode, Brain, Copy, ExternalLink, Users } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import DemoStatusBanner from '@/components/demo/DemoStatusBanner';
 import DemoInventoryTable from '@/components/demo/DemoInventoryTable';
@@ -164,22 +164,35 @@ export default function Demo() {
             {portalLinks && portalLinks.mfsLinks && portalLinks.mfsLinks.length > 0 && (
               <div>
                 <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: '#264d44' }}>
-                  <Brain className="w-5 h-5" /> Mental Fitness Score Links
+                  <Brain className="w-5 h-5" /> MFS Journey
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {portalLinks.mfsLinks.map((mfs, i) => (
                     <Card key={i}>
                       <CardContent className="p-4">
-                        <div className="flex items-start gap-3 mb-2">
-                          <div className="p-2 rounded-lg bg-purple-50">
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="p-2 rounded-lg bg-purple-50 shrink-0">
                             <Brain className="w-4 h-4 text-purple-600" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-gray-800 truncate">{mfs.company}</p>
                             <p className="text-sm text-gray-500 truncate">{mfs.name}</p>
                           </div>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${mfs.status === 'ready' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                            {mfs.responseCount} {mfs.responseCount === 1 ? 'response' : 'responses'}
+                          </span>
                         </div>
-                        <p className="text-sm text-gray-600 mb-3">{mfs.description}</p>
+                        <div className="flex items-center gap-3 flex-wrap mb-3 text-xs text-gray-500">
+                          {mfs.employeeCount && <span className="flex items-center gap-1"><Users className="w-3 h-3" />{mfs.employeeCount} employees</span>}
+                          {mfs.industry && <span>{mfs.industry}</span>}
+                        </div>
+                        {mfs.goals && mfs.goals.length > 0 && (
+                          <div className="flex items-center gap-1.5 flex-wrap mb-3">
+                            {mfs.goals.map(g => (
+                              <span key={g} className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded-full font-medium">{g}</span>
+                            ))}
+                          </div>
+                        )}
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-gray-400 w-16 shrink-0">Survey</span>
@@ -198,6 +211,9 @@ export default function Demo() {
                     </Card>
                   ))}
                 </div>
+                <p className="text-sm text-gray-600 mt-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  💡 Submit the survey yourself on Brightwater to watch it count toward the privacy gate (unlocks at 5 responses).
+                </p>
               </div>
             )}
 

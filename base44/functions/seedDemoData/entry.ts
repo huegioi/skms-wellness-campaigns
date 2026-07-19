@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
       phone: '(555) 200-1000', tier: 'Tier 1', renewal_cohort: 'Jan 1', unique_portal_id: brokerToken,
       agreement_signed_date: lastSept, commission_tiers: STANDARD_COMMISSION_TIERS,
       ytd_revenue: 48500, total_commissions_paid: 2450, is_active: true, partner_status: 'Active Partner',
-      referral_count: 4, last_touchpoint_date: dateDaysAgo(8), last_contacted_date: dateDaysAgo(8),
+      referral_count: 6, last_touchpoint_date: dateDaysAgo(8), last_contacted_date: dateDaysAgo(8),
       owner: 'Heather', tags: [DEMO_TAG], notes: 'Demo broker partner for the broker-demo environment.', is_demo: true,
     });
 
@@ -306,55 +306,109 @@ Deno.serve(async (req) => {
 
     if (cohortRecords.length) await base44.asServiceRole.entities.CohortAssessment.bulkCreate(cohortRecords);
 
-    // 11. Demo MFS company — Harborview Logistics (is_demo, ~25 responses, composite ~61, connection notably low)
-    const mfsToken = makeToken('mfs');
-    const harborviewClient = await base44.asServiceRole.entities.Client.create({
-      name: 'Jordan Reeves', email: 'jordan.reeves@harborview-demo.com', company: 'Harborview Logistics',
-      phone: '(555) 600-7000', title: 'VP of People', industry: 'Logistics', company_size: '201-500', employee_count: 340,
-      company_address: '2200 Harbor Blvd, Long Beach, CA', client_stage: 'event_follow_up',
-      is_assessment_lead: true, owner: 'William', tags: [DEMO_TAG], is_demo: true,
-    });
-    const harborviewAssessment = await base44.asServiceRole.entities.MfsAssessment.create({
-      token: mfsToken, status: 'ready', client_id: harborviewClient.id,
-      company_name: 'Harborview Logistics', contact_name: 'Jordan Reeves',
-      contact_email: 'jordan.reeves@harborview-demo.com', employee_count: '201-500', industry: 'Logistics',
-      goals: ['Burnout & stress', 'Team connection', 'Retention'], is_demo: true,
-    });
-
-    // Generate 25 MFS responses — centers tuned for composite ~61, UCLA-3 (connection) notably low
-    // WHO-5 center 3.3/item → raw ~16.5 → norm ~66
-    // PSS-4 center 1.5/item → raw ~6.0 → norm ~62
-    // UWES-3 center 4.2/item → raw ~12.6 → norm ~70
-    // UCLA-3 center 2.13/item → raw ~6.4 → norm ~43 (notably below typical range 48-60)
-    // Per-respondent composite ≈ (66+62+70+43)/4 ≈ 60.5, with visible variance from ±1 noise
+    // 11. Demo MFS companies — both credited to Alex Morgan via ref
     function noiseItem(center, min, max) {
       let v = Math.round(center + (Math.random() * 2 - 1));
       return Math.min(max, Math.max(min, v));
     }
-    const mfsCohortRecords = [];
-    for (let i = 0; i < 25; i++) {
-      const sid = `mfs-demo-${crypto.randomUUID()}`;
-      const submittedAt = isoDaysAgo(randInt(1, 14), randInt(8, 17));
-      const who5Resp = { q1: noiseItem(3.3, 0, 5), q2: noiseItem(3.3, 0, 5), q3: noiseItem(3.3, 0, 5), q4: noiseItem(3.3, 0, 5), q5: noiseItem(3.3, 0, 5) };
-      const pss4Resp = { q1: noiseItem(1.5, 0, 4), q2: noiseItem(1.5, 0, 4), q3: noiseItem(1.5, 0, 4), q4: noiseItem(1.5, 0, 4) };
-      const uwes3Resp = { q1: noiseItem(4.2, 0, 6), q2: noiseItem(4.2, 0, 6), q3: noiseItem(4.2, 0, 6) };
-      const ucla3Resp = { q1: noiseItem(2.13, 0, 3), q2: noiseItem(2.13, 0, 3), q3: noiseItem(2.13, 0, 3) };
-      for (const [key, resp] of [['who5', who5Resp], ['pss4', pss4Resp], ['uwes3', uwes3Resp], ['ucla3', ucla3Resp]]) {
-        const raw = Object.values(resp).reduce((s, v) => s + (v || 0), 0);
-        const record = {
-          client_id: harborviewClient.id, survey_type: 'mfs', instrument: key,
-          participant_email: '', instrument_subscores: { _sid: sid },
-          instrument_total: raw, item_responses: resp,
-          cohort_year: new Date(submittedAt).getFullYear(), submitted_at: submittedAt, is_demo: true,
-        };
-        if (key === 'who5') {
-          record.who5_cheerful = resp.q1; record.who5_calm = resp.q2; record.who5_active = resp.q3;
-          record.who5_rested = resp.q4; record.who5_interested = resp.q5; record.who5_total = raw * 4;
+    function generateMfsResponses(clientId, count, centers, daysBack) {
+      const records = [];
+      for (let i = 0; i < count; i++) {
+        const sid = `mfs-demo-${crypto.randomUUID()}`;
+        const submittedAt = isoDaysAgo(randInt(1, daysBack), randInt(8, 17));
+        const who5Resp = { q1: noiseItem(centers.who5, 0, 5), q2: noiseItem(centers.who5, 0, 5), q3: noiseItem(centers.who5, 0, 5), q4: noiseItem(centers.who5, 0, 5), q5: noiseItem(centers.who5, 0, 5) };
+        const pss4Resp = { q1: noiseItem(centers.pss4, 0, 4), q2: noiseItem(centers.pss4, 0, 4), q3: noiseItem(centers.pss4, 0, 4), q4: noiseItem(centers.pss4, 0, 4) };
+        const uwes3Resp = { q1: noiseItem(centers.uwes3, 0, 6), q2: noiseItem(centers.uwes3, 0, 6), q3: noiseItem(centers.uwes3, 0, 6) };
+        const ucla3Resp = { q1: noiseItem(centers.ucla3, 0, 3), q2: noiseItem(centers.ucla3, 0, 3), q3: noiseItem(centers.ucla3, 0, 3) };
+        for (const [key, resp] of [['who5', who5Resp], ['pss4', pss4Resp], ['uwes3', uwes3Resp], ['ucla3', ucla3Resp]]) {
+          const raw = Object.values(resp).reduce((s, v) => s + (v || 0), 0);
+          const record = {
+            client_id: clientId, survey_type: 'mfs', instrument: key,
+            participant_email: '', instrument_subscores: { _sid: sid },
+            instrument_total: raw, item_responses: resp,
+            cohort_year: new Date(submittedAt).getFullYear(), submitted_at: submittedAt, is_demo: true,
+          };
+          if (key === 'who5') {
+            record.who5_cheerful = resp.q1; record.who5_calm = resp.q2; record.who5_active = resp.q3;
+            record.who5_rested = resp.q4; record.who5_interested = resp.q5; record.who5_total = raw * 4;
+          }
+          records.push(record);
         }
-        mfsCohortRecords.push(record);
       }
+      return records;
     }
-    if (mfsCohortRecords.length) await base44.asServiceRole.entities.CohortAssessment.bulkCreate(mfsCohortRecords);
+
+    // ── Harborview Logistics — complete journey: 25 responses, composite ~61, Connection lowest ──
+    const mfsToken = makeToken('mfs');
+    const harborviewClient = await base44.asServiceRole.entities.Client.create({
+      name: 'Jordan Reeves', email: 'jordan.reeves@harborview-demo.com', company: 'Harborview Logistics',
+      phone: '(555) 600-7000', title: 'VP of People', industry: 'Logistics', company_size: '51-200', employee_count: 140,
+      company_address: '2200 Harbor Blvd, Long Beach, CA', client_stage: 'event_follow_up',
+      is_assessment_lead: true, referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan',
+      owner: 'William', tags: [DEMO_TAG], is_demo: true,
+    });
+    const harborviewLead = await base44.asServiceRole.entities.Lead.create({
+      name: 'Jordan Reeves', email: 'jordan.reeves@harborview-demo.com', company: 'Harborview Logistics',
+      industry: 'Logistics', company_size: '51-200', lead_type: 'company_inquiry', status: 'cold',
+      source: `Mental Fitness Score (${brokerToken})`, converted_client_id: harborviewClient.id,
+      owner: 'William', tags: [DEMO_TAG], is_demo: true,
+    });
+    const harborviewAssessment = await base44.asServiceRole.entities.MfsAssessment.create({
+      token: mfsToken, status: 'ready', client_id: harborviewClient.id, lead_id: harborviewLead.id,
+      company_name: 'Harborview Logistics', contact_name: 'Jordan Reeves',
+      contact_email: 'jordan.reeves@harborview-demo.com', employee_count: '51-200', industry: 'Logistics',
+      goals: ['Burnout & stress', 'Team connection'], ref: brokerToken, is_demo: true,
+    });
+    // WHO-5 3.3→~66, PSS-4 1.5→~62, UWES-3 4.2→~70, UCLA-3 2.13→~43 (Connection notably lowest)
+    const harborviewMfsRecords = generateMfsResponses(harborviewClient.id, 25, { who5: 3.3, pss4: 1.5, uwes3: 4.2, ucla3: 2.13 }, 14);
+    if (harborviewMfsRecords.length) await base44.asServiceRole.entities.CohortAssessment.bulkCreate(harborviewMfsRecords);
+    const harborviewMfsReferral = await base44.asServiceRole.entities.Referral.create({
+      referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan', contact_name: 'Jordan Reeves',
+      contact_email: 'jordan.reeves@harborview-demo.com', company_name: 'Harborview Logistics',
+      referred_lead_id: harborviewLead.id, referred_client_id: harborviewClient.id,
+      referral_date: isoDaysAgo(15), status: 'pending_review', first_year_revenue: 0,
+      commission_rate: 0.10, commission_amount: 0, notes: 'MFS assessment lead — 25 responses, dashboard ready.', is_demo: true,
+    });
+
+    // ── Brightwater Dental Group — early journey: 3 responses, privacy gate active ──
+    const brightwaterMfsToken = makeToken('mfs');
+    const brightwaterMfsClient = await base44.asServiceRole.entities.Client.create({
+      name: 'Dr. Emily Chen', email: 'emily.chen@brightwater-demo.com', company: 'Brightwater Dental Group',
+      phone: '(555) 600-8000', title: 'Practice Owner', industry: 'Healthcare', company_size: '1-50', employee_count: 35,
+      company_address: '450 Smiles Ave, Sacramento, CA', client_stage: 'event_follow_up',
+      is_assessment_lead: true, referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan',
+      owner: 'Heather', tags: [DEMO_TAG], is_demo: true,
+    });
+    const brightwaterMfsLead = await base44.asServiceRole.entities.Lead.create({
+      name: 'Dr. Emily Chen', email: 'emily.chen@brightwater-demo.com', company: 'Brightwater Dental Group',
+      industry: 'Healthcare', company_size: '1-50', lead_type: 'company_inquiry', status: 'cold',
+      source: `Mental Fitness Score (${brokerToken})`, converted_client_id: brightwaterMfsClient.id,
+      owner: 'Heather', tags: [DEMO_TAG], is_demo: true,
+    });
+    const brightwaterAssessment = await base44.asServiceRole.entities.MfsAssessment.create({
+      token: brightwaterMfsToken, status: 'collecting', client_id: brightwaterMfsClient.id, lead_id: brightwaterMfsLead.id,
+      company_name: 'Brightwater Dental Group', contact_name: 'Dr. Emily Chen',
+      contact_email: 'emily.chen@brightwater-demo.com', employee_count: '1-50', industry: 'Healthcare',
+      goals: ['Burnout & stress', 'Team connection'], ref: brokerToken, is_demo: true,
+    });
+    const brightwaterMfsRecords = generateMfsResponses(brightwaterMfsClient.id, 3, { who5: 3.0, pss4: 1.8, uwes3: 4.0, ucla3: 2.0 }, 5);
+    if (brightwaterMfsRecords.length) await base44.asServiceRole.entities.CohortAssessment.bulkCreate(brightwaterMfsRecords);
+    const brightwaterMfsReferral = await base44.asServiceRole.entities.Referral.create({
+      referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan', contact_name: 'Dr. Emily Chen',
+      contact_email: 'emily.chen@brightwater-demo.com', company_name: 'Brightwater Dental Group',
+      referred_lead_id: brightwaterMfsLead.id, referred_client_id: brightwaterMfsClient.id,
+      referral_date: isoDaysAgo(5), status: 'pending_review', first_year_revenue: 0,
+      commission_rate: 0.10, commission_amount: 0, notes: 'MFS assessment lead — 3 responses, privacy gate active.', is_demo: true,
+    });
+
+    // MFS referral activities
+    const mfsActivities = [
+      { referral_id: harborviewMfsReferral.id, message: 'Alex Morgan shared the Mental Fitness Score link. Harborview Logistics submitted an intake (140 employees, logistics).', activity_date: isoDaysAgo(15) },
+      { referral_id: harborviewMfsReferral.id, message: 'Harborview Logistics MFS dashboard is ready — 25 employee responses collected. Composite score: ~61 (Connection notably lowest).', activity_date: isoDaysAgo(3) },
+      { referral_id: brightwaterMfsReferral.id, message: 'Alex Morgan shared the Mental Fitness Score link. Brightwater Dental Group submitted an intake (35 employees, healthcare).', activity_date: isoDaysAgo(5) },
+      { referral_id: brightwaterMfsReferral.id, message: 'Brightwater Dental Group is collecting responses — 3 of 5 so far (privacy gate active).', activity_date: isoDaysAgo(1) },
+    ].map(a => Object.assign({ activity_type: 'note' }, a, { referral_partner_id: broker.id, is_demo: true }));
+    await base44.asServiceRole.entities.ReferralActivity.bulkCreate(mfsActivities);
 
     return Response.json({
       success: true,
@@ -366,13 +420,14 @@ Deno.serve(async (req) => {
       ],
       mfs_links: [
         { company: 'Harborview Logistics', survey_link: origin + '/MfsSurvey?t=' + mfsToken, results_link: origin + '/MfsResults?t=' + mfsToken },
+        { company: 'Brightwater Dental Group', survey_link: origin + '/MfsSurvey?t=' + brightwaterMfsToken, results_link: origin + '/MfsResults?t=' + brightwaterMfsToken },
       ],
       counts: {
-        referral_partners: 1, clients: 3, leads: 1, proposals: 3, calendar_events: createdEvents.length,
-        referrals: 4, referral_activities: activities.length, feedback_responses: feedbackRecords.length,
-        cohort_assessments: cohortRecords.length,
-        mfs_assessments: 1,
-        mfs_responses: 25,
+        referral_partners: 1, clients: 5, leads: 3, proposals: 3, calendar_events: createdEvents.length,
+        referrals: 6, referral_activities: activities.length + mfsActivities.length, feedback_responses: feedbackRecords.length,
+        cohort_assessments: cohortRecords.length + harborviewMfsRecords.length + brightwaterMfsRecords.length,
+        mfs_assessments: 2,
+        mfs_responses: 28,
       },
     });
   } catch (error) {
