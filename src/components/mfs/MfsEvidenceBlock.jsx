@@ -40,17 +40,21 @@ export default function MfsEvidenceBlock({ instrumentKey, score }) {
 
       {/* Score-band line, sources, CTA — hidden on mobile unless expanded */}
       <div className={expanded ? 'block' : 'hidden sm:block'}>
-        {band && (
-          <div
-            className="text-xs font-medium mt-2 px-2.5 py-1.5 rounded-md"
-            style={{
-              color: band === 'low' ? '#b45309' : '#15803d',
-              backgroundColor: band === 'low' ? '#fffbeb' : '#f0fdf4',
-            }}
-          >
-            {band === 'low' ? block.low : block.strong}
-          </div>
-        )}
+        {/* What-works callout — band line prepended, tinted bg + left accent border */}
+        <div
+          className="mt-2 px-3 py-2.5 rounded-r-md text-sm leading-relaxed"
+          style={{
+            backgroundColor: band === 'low' ? '#fffbeb' : band === 'strong' ? '#f0fdf4' : '#f8fafc',
+            borderLeft: `3px solid ${band === 'low' ? '#f59e0b' : band === 'strong' ? '#15803d' : '#013f7c'}`,
+          }}
+        >
+          {band && (
+            <p className="font-semibold mb-1" style={{ color: band === 'low' ? '#b45309' : '#15803d' }}>
+              {band === 'low' ? block.low : block.strong}
+            </p>
+          )}
+          <p className="text-gray-600">{block.cta}</p>
+        </div>
 
         <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1.5">
           {block.sources.map((src, i) => (
@@ -66,8 +70,6 @@ export default function MfsEvidenceBlock({ instrumentKey, score }) {
             </a>
           ))}
         </div>
-
-        <p className="text-xs text-gray-400 italic mt-1.5">{block.cta}</p>
       </div>
     </div>
   );

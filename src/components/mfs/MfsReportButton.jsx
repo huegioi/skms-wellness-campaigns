@@ -77,7 +77,7 @@ export default function MfsReportButton({ data, token }) {
           </div>
           <div class="inst-meta">${instData?.count || 0} responses · Zone: ${zoneLabel || '—'}</div>
           <p class="inst-interp">${interp}</p>
-          ${evBody ? `<div class="inst-evidence"><p class="ev-body">${evBody}</p>${evBandLine ? `<div class="ev-callout" style="${evCalloutStyle}">${evBandLine}</div>` : ''}${evCta ? `<p class="ev-cta">${evCta}</p>` : ''}</div>` : ''}
+          ${evBody ? `<div class="inst-evidence"><p class="ev-body">${evBody}</p>${(evBandLine || evCta) ? `<div class="ev-callout" style="${evCalloutStyle}">${evBandLine ? `<div class="ev-callout-band">${evBandLine}</div>` : ''}${evCta ? `<div class="ev-callout-body">${evCta}</div>` : ''}</div>` : ''}</div>` : ''}
         </div>
       `;
     }).join('');
@@ -118,8 +118,9 @@ export default function MfsReportButton({ data, token }) {
         .inst-interp { font-size: 12px; line-height: 1.5; color: #4b5563; margin-top: 5px; }
         .inst-evidence { margin-top: 6px; padding: 8px 10px; background: #f9fafb; border-radius: 6px; }
         .ev-body { font-size: 11px; line-height: 1.5; color: #4b5563; }
-        .ev-callout { font-size: 11px; font-weight: bold; margin-top: 6px; padding: 8px 10px; border-radius: 0 4px 4px 0; line-height: 1.5; }
-        .ev-cta { font-size: 11px; color: #6b7280; font-style: italic; margin-top: 4px; }
+        .ev-callout { font-size: 12px; margin-top: 6px; padding: 10px 12px; border-radius: 0 4px 4px 0; line-height: 1.5; }
+        .ev-callout-band { font-weight: bold; margin-bottom: 4px; }
+        .ev-callout-body { color: #4b5563; font-weight: normal; }
         .disclaimer { font-size: 11px; color: #6b7280; margin-top: 16px; padding: 10px 14px; background: #f9fafb; border-radius: 6px; line-height: 1.5; }
         .disclaimer a { color: #013f7c; }
         .zones-footnote { font-size: 10px; color: #9ca3af; margin-top: 14px; padding-top: 10px; border-top: 1px solid #e5e7eb; line-height: 1.5; }
@@ -190,8 +191,14 @@ export default function MfsReportButton({ data, token }) {
   };
 
   return (
-    <Button size="sm" variant="outline" onClick={handlePrint} className="gap-1.5">
-      <Download className="w-3.5 h-3.5" /> Download report
-    </Button>
+    <div className="bg-[#f8f5f0] rounded-2xl border border-[#e8e0d5] p-5 mb-4 flex items-center justify-between gap-4">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-gray-800">Download your full report</p>
+        <p className="text-xs text-gray-500 mt-0.5">Printable PDF with score breakdown, zone analysis, and evidence.</p>
+      </div>
+      <Button onClick={handlePrint} className="bg-[#770142] hover:bg-[#5a0132] text-white gap-2 shrink-0">
+        <Download className="w-4 h-4" /> Download
+      </Button>
+    </div>
   );
 }

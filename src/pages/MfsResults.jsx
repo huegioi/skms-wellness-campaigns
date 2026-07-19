@@ -60,12 +60,9 @@ export default function MfsResults() {
       subtitle={assessment.company_name ? `${assessment.company_name} — live results` : 'Live results'}
       maxWidth="max-w-3xl"
       headerRight={
-        <div className="flex items-center gap-2">
-          {!locked && <MfsReportButton data={data} token={token} />}
-          <Button size="sm" variant="outline" onClick={fetchData} className="bg-white/10 text-white border-white/30 hover:bg-white/20">
-            <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
-          </Button>
-        </div>
+        <Button size="sm" variant="outline" onClick={fetchData} className="bg-white/10 text-white border-white/30 hover:bg-white/20">
+          <RefreshCw className="w-3.5 h-3.5 mr-1" /> Refresh
+        </Button>
       }
     >
       {/* Goals */}
@@ -115,6 +112,12 @@ export default function MfsResults() {
             <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-400">
               <ShieldCheck className="w-3 h-3" /> {ANONYMITY_NOTE}
             </div>
+            {/* Primary CTA — Book session */}
+            <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer" className="w-full mt-4">
+              <div className="w-full bg-[#770142] hover:bg-[#5a0132] text-white rounded-xl py-3 px-4 flex items-center justify-center gap-2 font-semibold text-sm transition-colors">
+                <CalendarCheck className="w-5 h-5" /> Book your free strategy session
+              </div>
+            </a>
           </div>
 
           {/* Four sub-score bars */}
@@ -123,30 +126,29 @@ export default function MfsResults() {
             <p className="text-xs text-gray-400 mb-4">All scores 0–100 (higher = better).</p>
             <MfsScoreBars instruments={instruments} />
           </div>
+
+          {/* Download report card */}
+          <MfsReportButton data={data} token={token} />
         </>
       )}
 
-      {/* CTA links */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
-          <div className="bg-[#013f7c] rounded-xl p-4 flex items-center gap-3 hover:bg-[#012d5a] transition-colors cursor-pointer">
-            <CalendarCheck className="w-5 h-5 text-white shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-white">Book your free strategy session</p>
-              <p className="text-xs text-blue-200">30-min consultation with our team</p>
-            </div>
+      {/* Primary CTA — bottom */}
+      <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer" className="block mb-4">
+        <div className="w-full bg-[#770142] hover:bg-[#5a0132] text-white rounded-xl py-3.5 px-4 flex items-center justify-center gap-2 font-semibold text-base transition-colors">
+          <CalendarCheck className="w-5 h-5" /> Book your free strategy session
+        </div>
+      </a>
+
+      {/* Secondary — ROI Engine */}
+      <Link to="/QuickBuilder">
+        <div className="bg-[#264d44] rounded-xl p-4 flex items-center gap-3 hover:bg-[#223d32] transition-colors cursor-pointer">
+          <TrendingUp className="w-5 h-5 text-white shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-white">ROI Engine</p>
+            <p className="text-xs text-green-200">Estimate your campaign impact</p>
           </div>
-        </a>
-        <Link to="/QuickBuilder">
-          <div className="bg-[#264d44] rounded-xl p-4 flex items-center gap-3 hover:bg-[#223d32] transition-colors cursor-pointer">
-            <TrendingUp className="w-5 h-5 text-white shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-white">ROI Engine</p>
-              <p className="text-xs text-green-200">Estimate your campaign impact</p>
-            </div>
-          </div>
-        </Link>
-      </div>
+        </div>
+      </Link>
     </PortalShell>
   );
 }
