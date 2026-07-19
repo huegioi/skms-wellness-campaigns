@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LayoutDashboard, Users, DollarSign, TrendingUp, Package, ChevronLeft, ChevronRight, FlaskConical, BookOpen } from 'lucide-react';
 import NewInquiriesCard from '@/components/dashboard/NewInquiriesCard';
+import MfsQuickShareCard from '@/components/mfs/MfsQuickShareCard';
 import ActionableReviewQueue from '@/components/dashboard/ActionableReviewQueue';
 import FollowUpSummary from '@/components/dashboard/FollowUpSummary';
 import MayaBriefingCard from '@/components/dashboard/MayaBriefingCard';
@@ -98,6 +99,7 @@ export default function DashboardCore() {
         {activeSection === 'overview' && (
           <>
             <NewInquiriesCard />
+            <MfsQuickShareCard />
             <ActionableReviewQueue />
             <FollowUpSummary onViewAll={() => setActiveSection('clients')} />
             <MayaBriefingCard />
