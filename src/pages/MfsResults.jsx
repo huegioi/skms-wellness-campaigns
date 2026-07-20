@@ -65,6 +65,17 @@ export default function MfsResults() {
         </Button>
       }
     >
+      {/* Opening header block */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+        <h1 className="text-xl font-bold text-[#013f7c] mb-2">Your Team's Mental Fitness Score</h1>
+        <p className="text-sm text-gray-600 leading-relaxed mb-3">
+          This is a live, anonymous snapshot of your team's mental fitness across four research-validated measures: wellbeing, stress, engagement, and connection. Scores update as more employees respond — individual answers are never shown.
+        </p>
+        <p className="text-xs text-gray-400 font-medium">
+          {assessment.company_name || 'Your team'}{assessment.employee_count ? ` · ${assessment.employee_count} employees` : ''} · {response_count} response{response_count !== 1 ? 's' : ''}
+        </p>
+      </div>
+
       {/* Goals */}
       {assessment.goals?.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
@@ -106,7 +117,7 @@ export default function MfsResults() {
         <>
           {/* Composite Score Dial */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4 flex flex-col items-center">
-            <p className="text-sm font-semibold text-gray-700 mb-4">Mental Fitness Score</p>
+            <p className="text-xl font-bold text-gray-800 mb-4">Mental Fitness Score</p>
             <MfsScoreDial score={composite} />
             <p className="text-xs text-gray-400 mt-3">Composite of {response_count} anonymized response{response_count !== 1 ? 's' : ''}</p>
             <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-400">
@@ -131,8 +142,15 @@ export default function MfsResults() {
       )}
 
       {/* Paired CTAs — bottom */}
-      <div className="mb-4">
+      <div className="mb-3">
         <MfsCtaPair employeeCount={assessment.employee_count} size="large" />
+      </div>
+
+      {/* Session expectations */}
+      <div className="mb-4 text-center">
+        <p className="text-xs text-gray-500 leading-relaxed max-w-2xl mx-auto">
+          A 30-minute conversation with our team — we'll walk through your results together, what they suggest about your organization, and what a realistic path forward could look like. No obligation, no prepared pitch. Prefer to go through your benefits broker? They're welcome to reach out on your behalf — either way, <a href="mailto:admin@skillfulmeans.life" className="text-[#013f7c] font-medium underline">admin@skillfulmeans.life</a> reaches us directly.
+        </p>
       </div>
     </PortalShell>
   );

@@ -273,7 +273,7 @@ export default function MentalFitnessScore() {
 
         <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 pt-2 text-center flex-wrap">
           <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-          <span>Anonymous responses · your company sees team-level results only · no marketing emails · questions? <a href="mailto:info@skillfulmeans.life" className="text-[#013f7c] font-medium underline">info@skillfulmeans.life</a></span>
+          <span>Anonymous responses · your company sees team-level results only · no marketing emails · questions? <a href="mailto:admin@skillfulmeans.life" className="text-[#013f7c] font-medium underline">admin@skillfulmeans.life</a></span>
         </div>
 
         <div className="flex justify-end pt-2">

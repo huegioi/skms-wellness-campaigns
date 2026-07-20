@@ -78,8 +78,9 @@ export default function MfsReportButton({ data, token }) {
             <div class="bar-marker" style="left:${Math.max(0, Math.min(100, score ?? 0))}%;border-color:${inst.color}"></div>
           </div>
           <div class="inst-meta">${instData?.count || 0} responses · Zone: ${zoneLabel || '—'}</div>
+          <p class="inst-subhead">What this measures — and why it matters</p>
           <p class="inst-interp">${interp}</p>
-          ${evBody ? `<div class="inst-evidence"><p class="ev-body">${evBody}</p>${(evBandLine || evCta) ? `<div class="ev-callout" style="${evCalloutStyle}">${evBandLine ? `<div class="ev-callout-band">${evBandLine}</div>` : ''}${evCta ? `<div class="ev-callout-body">${evCta}</div>` : ''}</div>` : ''}</div>` : ''}
+          ${evBody ? `<div class="inst-evidence"><p class="ev-body">${evBody}</p>${(evBandLine || evCta) ? `<p class="inst-subhead">What moves this score</p><div class="ev-callout" style="${evCalloutStyle}">${evBandLine ? `<div class="ev-callout-band">${evBandLine}</div>` : ''}${evCta ? `<div class="ev-callout-body">${evCta}</div>` : ''}</div>` : ''}</div>` : ''}
         </div>
       `;
     }).join('');
@@ -100,12 +101,13 @@ export default function MfsReportButton({ data, token }) {
         .header-date { font-size: 12px; color: #6b7280; text-align: right; }
         h1 { font-size: 22px; color: #013f7c; margin-bottom: 2px; }
         .subtitle { font-size: 13px; color: #6b7280; margin-bottom: 20px; }
+        .intro-text { font-size: 13px; color: #4b5563; line-height: 1.6; margin-bottom: 8px; }
         .dial-section { text-align: center; margin-bottom: 20px; }
         .dial-wrap { position: relative; display: inline-block; width: ${dialSize}px; height: ${dialSize}px; }
         .dial-num { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .dial-num .big { font-size: 34px; font-weight: bold; color: #1f2937; font-family: Arial, sans-serif; }
         .dial-num .small { font-size: 10px; color: #9ca3af; font-family: Arial, sans-serif; }
-        .dial-label { font-size: 12px; color: #6b7280; margin-top: 6px; }
+        .dial-label { font-size: 20px; font-weight: bold; color: #013f7c; margin-top: 10px; }
         .composite-interp { font-size: 13px; line-height: 1.6; color: #374151; background: #f9fafb; border-left: 3px solid #013f7c; padding: 12px 16px; border-radius: 0 6px 6px 0; margin-bottom: 22px; }
         .instruments-title { font-size: 14px; font-weight: bold; color: #013f7c; margin-bottom: 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
         .instrument { margin-bottom: 14px; }
@@ -117,6 +119,7 @@ export default function MfsReportButton({ data, token }) {
         .bar-zone { position: absolute; height: 100%; }
         .bar-marker { position: absolute; top: -2px; height: 14px; width: 3px; border-radius: 2px; background: white; border: 2px solid #374151; transform: translateX(-50%); }
         .inst-meta { font-size: 10px; color: #9ca3af; margin-top: 3px; font-family: Arial, sans-serif; }
+        .inst-subhead { font-size: 11px; font-weight: bold; color: #374151; margin-top: 8px; margin-bottom: 3px; font-family: Arial, sans-serif; }
         .inst-interp { font-size: 12px; line-height: 1.5; color: #4b5563; margin-top: 5px; }
         .inst-evidence { margin-top: 6px; padding: 8px 10px; background: #f9fafb; border-radius: 6px; }
         .ev-body { font-size: 11px; line-height: 1.5; color: #4b5563; }
@@ -150,9 +153,9 @@ export default function MfsReportButton({ data, token }) {
           <div class="header-date">${dateStr}</div>
         </div>
 
-        <h1>Mental Fitness Score Report</h1>
-        <div class="subtitle">${assessment.company_name || 'Team'} — Confidential team snapshot</div>
-        <div class="meta-line">${response_count} anonymized responses · All scores 0–100 (higher = better)</div>
+        <h1>Your Team's Mental Fitness Score</h1>
+        <div class="intro-text">This is a live, anonymous snapshot of your team's mental fitness across four research-validated measures: wellbeing, stress, engagement, and connection. Scores update as more employees respond — individual answers are never shown.</div>
+        <div class="meta-line">${assessment.company_name || 'Team'}${employeeCount ? ' · ' + employeeCount + ' employees' : ''} · ${response_count} response${response_count !== 1 ? 's' : ''} · All scores 0–100 (higher = better)</div>
 
         <div class="dial-section">
           <div class="dial-wrap">
@@ -184,7 +187,7 @@ export default function MfsReportButton({ data, token }) {
             <img class="cta-qr" src="${qrUrl}" alt="Strategy session QR" />
             <div class="cta-text">
               <h3>Book your free strategy session</h3>
-              <p>A 30-minute consultation to walk through these results and design a targeted plan for your team. Scan the QR code or visit calendly.com/skillfulmeans/strategy-session.</p>
+              <p>A 30-minute conversation with our team — we'll walk through your results together, what they suggest about your organization, and what a realistic path forward could look like. No obligation, no prepared pitch. Prefer to go through your benefits broker? They're welcome to reach out on your behalf — either way, admin@skillfulmeans.life reaches us directly. Scan the QR code or visit calendly.com/skillfulmeans/strategy-session.</p>
             </div>
           </div>
           <div class="cta cta-secondary">

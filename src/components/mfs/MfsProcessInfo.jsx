@@ -10,9 +10,7 @@ const PROCESS_STEPS = [
 ];
 
 const DATA_POINTS = [
-  { icon: Lock, title: 'Employee responses are anonymous', desc: 'We never collect names, email addresses, or any identifiers from employees taking the survey. Responses are grouped and shown only as team averages.' },
-  { icon: ShieldCheck, title: 'A 5-response privacy threshold', desc: 'Scores remain locked until at least five people have responded. This prevents any individual\'s answers from being inferred from small numbers.' },
-  { icon: Eye, title: 'No individual scores are ever shown', desc: 'The dashboard displays group-level averages only. There is no way to view or identify any single person\'s responses.' },
+  { icon: ShieldCheck, title: 'How employee responses are stored', desc: 'Survey responses are stored without names, email addresses, or any identifiers. They are retained as aggregated group scores and are not linked to any individual.' },
   { icon: Mail, title: 'Your contact information', desc: 'The name, email, and company you provide on this form are used to set up your assessment, share your results links, and follow up about findings and relevant services. You can request deletion at any time.' },
 ];
 
@@ -74,9 +72,8 @@ export default function MfsProcessInfo() {
         <InfoItem id="how-it-works" icon={ClipboardList} title="How the assessment works" open={!!openItems['how-it-works']} onToggle={() => toggle('how-it-works')}>
           <p className="text-sm text-gray-600 leading-relaxed mb-4">
             <strong>How it works:</strong> Share a 3-minute survey with your team. You'll see aggregated
-            wellbeing, stress, engagement, and connection scores — with benchmark comparisons. The survey is
-            completely anonymous: no names, no emails, no accounts. Results are shown as group averages only,
-            and they unlock once 5 people have responded to protect everyone's privacy. It's free.
+            wellbeing, stress, engagement, and connection scores — with benchmark comparisons. Results unlock
+            once 5 people have responded. It's free. Responses are anonymous — see 'Who sees what' below.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {PROCESS_STEPS.map((step, i) => (
@@ -97,12 +94,17 @@ export default function MfsProcessInfo() {
               responses are stored without identifying information. The contact information you provide on this
               form is kept confidential and used only for the purposes described above. You may request access
               to or deletion of your data at any time by emailing{' '}
-              <a href="mailto:info@skillfulmeans.life" className="text-[#013f7c] font-medium underline">info@skillfulmeans.life</a>.
+              <a href="mailto:admin@skillfulmeans.life" className="text-[#013f7c] font-medium underline">admin@skillfulmeans.life</a>.
             </p>
           </div>
         </InfoItem>
 
         <InfoItem id="who-sees-what" icon={Eye} title="Who sees what" open={!!openItems['who-sees-what']} onToggle={() => toggle('who-sees-what')}>
+          <p className="text-sm text-gray-600 leading-relaxed mb-4">
+            Employee responses are anonymous — no names, emails, or accounts are collected. A 5-response
+            privacy threshold prevents any individual's answers from being inferred, and the dashboard shows
+            group-level averages only.
+          </p>
           <div className="space-y-3">
             {VISIBILITY.map((row, i) => (
               <div key={i} className="flex gap-3">
@@ -119,8 +121,8 @@ export default function MfsProcessInfo() {
           <p className="text-xs text-gray-500 leading-relaxed">
             If you encounter any difficulty with the assessment — whether setting it up, sharing the survey
             link, or viewing your results — we're here to help. Email us at{' '}
-            <a href="mailto:info@skillfulmeans.life" className="text-[#013f7c] font-medium underline">
-              info@skillfulmeans.life
+            <a href="mailto:admin@skillfulmeans.life" className="text-[#013f7c] font-medium underline">
+              admin@skillfulmeans.life
             </a>{' '}
             and we'll respond within one business day. Employees who have trouble accessing the survey should
             contact their HR representative first, or reach out to us directly.

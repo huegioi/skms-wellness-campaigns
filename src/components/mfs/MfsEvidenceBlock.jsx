@@ -24,6 +24,8 @@ export default function MfsEvidenceBlock({ instrumentKey, score }) {
 
   return (
     <div className="mt-2 pl-0.5">
+      {/* Sub-header: what this measures */}
+      <p className="text-xs font-bold text-gray-700 mb-1">What this measures — and why it matters</p>
       {/* Body — first sentence always visible; rest hidden on mobile unless expanded */}
       <p className="text-xs text-gray-500 leading-relaxed">
         <span>{firstSentence}</span>
@@ -40,6 +42,8 @@ export default function MfsEvidenceBlock({ instrumentKey, score }) {
 
       {/* Score-band line, sources, CTA — hidden on mobile unless expanded */}
       <div className={expanded ? 'block' : 'hidden sm:block'}>
+        {/* Sub-header: what moves this score */}
+        <p className="text-xs font-bold text-gray-700 mb-1 mt-2">What moves this score</p>
         {/* What-works callout — band line prepended, tinted bg + left accent border */}
         <div
           className="mt-2 px-3 py-2.5 rounded-r-md text-sm leading-relaxed"
