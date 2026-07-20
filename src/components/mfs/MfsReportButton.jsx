@@ -78,9 +78,10 @@ export default function MfsReportButton({ data, token }) {
             <div class="bar-marker" style="left:${Math.max(0, Math.min(100, score ?? 0))}%;border-color:${inst.color}"></div>
           </div>
           <div class="inst-meta">${instData?.count || 0} responses · Zone: ${zoneLabel || '—'}</div>
+          ${evBody ? `<p class="ev-body" style="margin-top:6px;margin-bottom:8px;">${evBody}</p>` : ''}
           <p class="inst-subhead">What this measures — and why it matters</p>
           <p class="inst-interp">${interp}</p>
-          ${evBody ? `<div class="inst-evidence"><p class="ev-body">${evBody}</p>${(evBandLine || evCta) ? `<p class="inst-subhead">What moves this score</p><div class="ev-callout" style="${evCalloutStyle}">${evBandLine ? `<div class="ev-callout-band">${evBandLine}</div>` : ''}${evCta ? `<div class="ev-callout-body">${evCta}</div>` : ''}</div>` : ''}</div>` : ''}
+          ${(evBandLine || evCta) ? `<div class="inst-evidence"><p class="inst-subhead">What moves this score</p><div class="ev-callout" style="${evCalloutStyle}">${evBandLine ? `<div class="ev-callout-band">${evBandLine}</div>` : ''}${evCta ? `<div class="ev-callout-body">${evCta}</div>` : ''}</div></div>` : ''}
         </div>
       `;
     }).join('');

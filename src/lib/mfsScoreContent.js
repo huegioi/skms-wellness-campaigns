@@ -11,8 +11,10 @@ export const MFS_EVIDENCE_BLOCKS = {
     strong: "Your team's wellbeing is above typical — programming now is about protecting it.",
     cta: "Wellbeing scores respond best to layered support: skills are introduced, then practiced daily until they become habit — behavior research shows roughly two weeks of repetition is what makes a new skill stick (Lally, 2010). One-off events rarely move this number; consistent practice does.",
     sources: [
-      { label: 'WHO-5 Validation Studies', url: ROI_ENGINE_BASE + '#studies' },
-      { label: 'Healthcare Utilization Data', url: ROI_ENGINE_BASE + '#clinical-data' },
+      { label: 'WHO-5 Validation (Topp et al., 2015)', url: 'https://pubmed.ncbi.nlm.nih.gov/25831962/' },
+      { label: 'MGH 3RP Study (Stahl et al., 2015)', url: 'https://doi.org/10.1371/journal.pone.0140212' },
+      { label: 'Deloitte Mental Health ROI (2024)', url: 'https://www.deloitte.com/ca/en/services/consulting/analysis/mental-health-roi.html' },
+      { label: 'Lally, Habit Formation (2010)', url: 'https://doi.org/10.1002/ejsp.674' },
     ],
   },
   pss4: {
@@ -21,8 +23,11 @@ export const MFS_EVIDENCE_BLOCKS = {
     strong: "Stress is well-managed — worth reinforcing before busy seasons test it.",
     cta: "The strongest evidence for reducing workplace stress comes from structured, mindfulness-based group training — the same clinical approach that cut healthcare utilization by 43% at Mass General. Skills first, then daily practice in real work conditions.",
     sources: [
-      { label: 'Stress & Productivity Studies', url: ROI_ENGINE_BASE + '#studies' },
-      { label: 'MBSR Clinical Data', url: ROI_ENGINE_BASE + '#clinical-data' },
+      { label: 'PSS-4 (Cohen et al., 1983)', url: 'https://www.cmu.edu/dietrich/psychology/stress-immunity-disease-lab/publications/scalesmeasurements/pdfs/globalmeas83.pdf' },
+      { label: 'Stewart et al., JAMA (2003)', url: 'https://jamanetwork.com/journals/jama/fullarticle/196767' },
+      { label: 'McCubbin et al., Kaiser Permanente (2014)', url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC4206164/' },
+      { label: 'Aetna Mindfulness (Forbes, 2015)', url: 'https://www.forbes.com/sites/jeannemeister/2015/04/27/future-of-work-mindfulness-as-a-leadership-practice/' },
+      { label: 'MGH 3RP (Stahl et al., 2015)', url: 'https://doi.org/10.1371/journal.pone.0140212' },
     ],
   },
   uwes3: {
@@ -31,8 +36,9 @@ export const MFS_EVIDENCE_BLOCKS = {
     strong: "Engagement is a strength — leadership EQ programming multiplies it through managers.",
     cta: "Engagement grows when people gain emotional-intelligence skills and see their leaders model them — leadership behavior explains much of the variance in team effectiveness (Goleman; Harter/Gallup). Training the team without equipping its leaders leaves the gain on the table.",
     sources: [
-      { label: 'Engagement & Retention Studies', url: ROI_ENGINE_BASE + '#studies' },
-      { label: 'Leadership EQ Data', url: ROI_ENGINE_BASE + '#clinical-data' },
+      { label: 'UWES-3 (Schaufeli et al., 2019)', url: 'https://doi.org/10.1027/1015-5759/a000430' },
+      { label: 'Gallup Q12 Meta-Analysis (Harter)', url: 'https://www.gallup.com/workplace/321725/gallup-q12-meta-analysis-report.aspx' },
+      { label: 'Goleman, "What Makes a Leader" (HBR)', url: 'https://hbr.org/2004/01/what-makes-a-leader' },
     ],
   },
   ucla3: {
@@ -41,8 +47,8 @@ export const MFS_EVIDENCE_BLOCKS = {
     strong: "Strong connection — a real cultural asset worth naming and protecting.",
     cta: "Connection is built through structured shared experience — teams that practice together, especially across remote and hybrid distance, rebuild belonging measurably. It's the most trainable of the four scores, and gains compound.",
     sources: [
-      { label: 'Workplace Loneliness Studies', url: ROI_ENGINE_BASE + '#studies' },
-      { label: 'Connection & Retention Data', url: ROI_ENGINE_BASE + '#clinical-data' },
+      { label: 'UCLA-3 Loneliness Scale (Hughes et al., 2004)', url: 'https://doi.org/10.1177/0164027504268574' },
+      { label: 'Workplace Loneliness Research', url: ROI_ENGINE_BASE + '#studies' },
     ],
   },
 };

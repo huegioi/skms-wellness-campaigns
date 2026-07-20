@@ -43,7 +43,7 @@ export default function MfsEvidenceBlock({ instrumentKey, score }) {
       {/* Score-band line, sources, CTA — hidden on mobile unless expanded */}
       <div className={expanded ? 'block' : 'hidden sm:block'}>
         {/* Sub-header: what moves this score */}
-        <p className="text-xs font-bold text-gray-700 mb-1 mt-2">What moves this score</p>
+        <p className="text-xs font-bold text-gray-700 mb-1 mt-5">What moves this score</p>
         {/* What-works callout — band line prepended, tinted bg + left accent border */}
         <div
           className="mt-2 px-3 py-2.5 rounded-r-md text-sm leading-relaxed"

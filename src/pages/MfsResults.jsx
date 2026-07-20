@@ -9,6 +9,7 @@ import MfsScoreDial from '@/components/mfs/MfsScoreDial';
 import MfsScoreBars from '@/components/mfs/MfsScoreBars';
 import MfsReportButton from '@/components/mfs/MfsReportButton';
 import MfsCtaPair from '@/components/mfs/MfsCtaPair';
+import MfsBottomCta from '@/components/mfs/MfsBottomCta';
 
 const AUTOREFRESH_MS = 60000;
 const ANONYMITY_NOTE = 'All scores are aggregated and anonymous — no individual responses are shown.';
@@ -141,16 +142,9 @@ export default function MfsResults() {
         </>
       )}
 
-      {/* Paired CTAs — bottom */}
-      <div className="mb-3">
-        <MfsCtaPair employeeCount={assessment.employee_count} size="large" />
-      </div>
-
-      {/* Session expectations */}
-      <div className="mb-4 text-center">
-        <p className="text-xs text-gray-500 leading-relaxed max-w-2xl mx-auto">
-          A 30-minute conversation with our team — we'll walk through your results together, what they suggest about your organization, and what a realistic path forward could look like. No obligation, no prepared pitch. Prefer to go through your benefits broker? They're welcome to reach out on your behalf — either way, <a href="mailto:admin@skillfulmeans.life" className="text-[#013f7c] font-medium underline">admin@skillfulmeans.life</a> reaches us directly.
-        </p>
+      {/* Bottom CTA — matches PDF report treatment */}
+      <div className="mb-4">
+        <MfsBottomCta employeeCount={assessment.employee_count} />
       </div>
     </PortalShell>
   );
