@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Sparkles, RefreshCw, AlertCircle, ChevronDown, ChevronUp, CheckCircle2, Circle } from 'lucide-react';
+import { Sparkles, RefreshCw, AlertCircle, ChevronDown, ChevronUp, CheckCircle2, Circle, Building2, Handshake, Megaphone, Info, CalendarCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import ReactMarkdown from 'react-markdown';
 import { base44 } from '@/api/base44Client';
+import { renderInline } from '@/lib/renderInline';
+import FollowUpsSection from '@/components/dashboard/FollowUpsSection';
 
 function isToday(dateStr) {
   if (!dateStr) return false;
@@ -79,7 +80,7 @@ function CheckableItem({ item, checked, onToggle }) {
 
   if (item.prose) {
     return (
-      <p className="text-sm text-gray-600 leading-relaxed">{item.text}</p>
+      <p className="text-sm text-gray-600 leading-relaxed">{renderInline(item.text)}</p>
     );
   }
 
@@ -97,7 +98,7 @@ function CheckableItem({ item, checked, onToggle }) {
         }
       </div>
       <span className={`text-sm leading-snug ${isChecked ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-        {item.text}
+        {renderInline(item.text)}
         {isChecked && checked.name && (
           <span className="ml-2 text-xs text-green-600 no-underline not-italic font-medium">
             ✓ {checked.name}
@@ -113,13 +114,32 @@ const SECTION_COLORS = {
   Partners: 'text-[#264d44]',
   Campaign: 'text-[#770142]',
   Other:    'text-gray-500',
+  Delivery: 'text-[#264d44]',
+  Renewal:  'text-[#770142]',
+};
+
+const SECTION_ICONS = {
+  Clients: Building2,
+  Partners: Handshake,
+  Campaign: Megaphone,
+  Other: Info,
+  Delivery: CalendarCheck,
+  Renewal: RefreshCw,
 };
 
 function BriefingSection({ section, checkedItems, onToggle }) {
   const color = SECTION_COLORS[section.label] || 'text-gray-700';
+  const Icon = SECTION_ICONS[section.label];
+  const checkableCount = section.items.filter(i => !i.prose).length;
   return (
     <div className="pt-3">
-      <h3 className={`text-xs font-bold uppercase tracking-widest mb-2 ${color}`}>{section.label}</h3>
+      <div className="flex items-center gap-2 mb-2">
+        {Icon && <Icon className={`w-3.5 h-3.5 ${color}`} />}
+        <h3 className={`text-xs font-bold uppercase tracking-widest ${color}`}>{section.label}</h3>
+        {checkableCount > 0 && (
+          <span className="rounded-full bg-gray-100 text-gray-500 text-[10px] px-1.5 py-0.5 font-medium">{checkableCount}</span>
+        )}
+      </div>
       <div className="space-y-0.5">
         {section.items.map(item => (
           <CheckableItem
@@ -204,6 +224,9 @@ export default function MayaBriefingCard() {
   const sections = parseBriefing(record?.briefing_text || '');
   const opening = sections.find(s => s.type === 'opening');
   const contentSections = sections.filter(s => s.type === 'section');
+  const deliveryIdx = contentSections.findIndex(s => s.label === 'Delivery');
+  const preDeliverySections = deliveryIdx >= 0 ? contentSections.slice(0, deliveryIdx) : contentSections;
+  const postDeliverySections = deliveryIdx >= 0 ? contentSections.slice(deliveryIdx) : [];
 
   // Count checkable items
   const allCheckable = contentSections.flatMap(s => s.items.filter(i => !i.prose));
@@ -268,16 +291,27 @@ export default function MayaBriefingCard() {
 
         {!collapsed && record && !loading && !generating && (
           <>
-            {/* Opening paragraph */}
+            {/* Opening paragraph — highlighted callout */}
             {opening && (
-              <p className="text-sm text-gray-700 leading-relaxed mb-2">
-                {opening.lines.join(' ')}
-              </p>
+              <div className="bg-slate-50 rounded-xl px-4 py-3 mb-2 border-l-2 border-[#013f7c]">
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  {renderInline(opening.lines.join(' '))}
+                </p>
+              </div>
             )}
 
-            {/* Sections */}
+            {/* Sections (Follow-Ups injected before Delivery) */}
             <div className="divide-y divide-gray-100">
-              {contentSections.map(section => (
+              {preDeliverySections.map(section => (
+                <BriefingSection
+                  key={section.label}
+                  section={section}
+                  checkedItems={record.checked_items || {}}
+                  onToggle={handleToggle}
+                />
+              ))}
+              <FollowUpsSection currentUser={currentUser} refreshKey={record?.generated_at} />
+              {postDeliverySections.map(section => (
                 <BriefingSection
                   key={section.label}
                   section={section}
@@ -316,6 +350,18 @@ export default function MayaBriefingCard() {
                   <span className="flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-[#770142] inline-block" />
                     <strong className="text-gray-700">{record.stats.new_inquiries}</strong> new inquiries
+                  </span>
+                )}
+                {record.stats.overdue_follow_ups > 0 && (
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
+                    <strong className="text-gray-700">{record.stats.overdue_follow_ups}</strong> overdue follow-ups
+                  </span>
+                )}
+                {record.stats.open_follow_ups > 0 && (
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
+                    <strong className="text-gray-700">{record.stats.open_follow_ups}</strong> open follow-ups
                   </span>
                 )}
               </div>
