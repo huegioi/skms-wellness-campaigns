@@ -6,7 +6,7 @@ import RoiProjection from '@/components/fitnessroi/RoiProjection';
 import AssumptionsPanel from '@/components/fitnessroi/AssumptionsPanel';
 import PrimaryCta from '@/components/fitnessroi/PrimaryCta';
 
-export default function ResultsView({ data }) {
+export default function ResultsView({ data, hideCta }) {
   const { quick_scores, roi_snapshot, magic_key } = data;
   const [roiInputs, setRoiInputs] = useState(roi_snapshot.inputs);
   const roiResult = useMemo(() => runRoi(roiInputs), [roiInputs]);
@@ -25,7 +25,7 @@ export default function ResultsView({ data }) {
       <RoiProjection roiResult={roiResult} stageNum={roiInputs.stageNum}
         onStageChange={(stageNum) => setRoiInputs(prev => ({ ...prev, stageNum }))} />
       <AssumptionsPanel inputs={roiInputs} onChange={setRoiInputs} headcount={roi_snapshot.inputs.employees} />
-      <PrimaryCta magicKey={magic_key} />
+      {!hideCta && <PrimaryCta magicKey={magic_key} />}
     </div>
   );
 }

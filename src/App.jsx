@@ -25,6 +25,8 @@ import MfsSurvey from './pages/MfsSurvey';
 import MfsResults from './pages/MfsResults';
 import FitnessRoi from './pages/FitnessRoi';
 import FitnessRoiLaunch from './pages/FitnessRoiLaunch';
+import MfsJourneySurvey from './pages/MfsJourneySurvey';
+import FitnessRoiDashboard from './pages/FitnessRoiDashboard';
 import Unsubscribe from './pages/Unsubscribe';
 import Demo from './pages/Demo';
 import MayaKnowledge from './pages/MayaKnowledge';
@@ -119,6 +121,8 @@ const AuthenticatedApp = () => {
       <Route path="/MfsResults" element={<MfsResults />} />
       <Route path="/FitnessRoi" element={<FitnessRoi />} />
       <Route path="/FitnessRoi/launch" element={<FitnessRoiLaunch />} />
+      <Route path="/FitnessRoi/dashboard" element={<FitnessRoiDashboard />} />
+      <Route path="/MfsJourneySurvey" element={<MfsJourneySurvey />} />
       <Route path="/Unsubscribe" element={<Unsubscribe />} />
       <Route path="/Demo" element={<LayoutWrapper currentPageName="Demo"><Demo /></LayoutWrapper>} />
       <Route path="/MayaKnowledge" element={<LayoutWrapper currentPageName="MayaKnowledge"><MayaKnowledge /></LayoutWrapper>} />
