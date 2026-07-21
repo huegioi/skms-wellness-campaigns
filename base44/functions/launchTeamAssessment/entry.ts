@@ -46,9 +46,11 @@ Deno.serve(async (req) => {
       .filter(e => e && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e));
     const uniqueEmails = [...new Set(rawEmails)].slice(0, 500);
 
-    // Copy-link mode: no emails, just set status
+    // Copy-link mode: no emails, just set status (only if still quick_done)
     if (uniqueEmails.length === 0) {
-      await base44.asServiceRole.entities.MfsJourney.update(journey.id, { status: 'team_launched' });
+      if (journey.status === 'quick_done') {
+        await base44.asServiceRole.entities.MfsJourney.update(journey.id, { status: 'team_launched' });
+      }
       return Response.json({ success: true, mode: 'copy_link', survey_url: surveyUrl });
     }
 
@@ -93,7 +95,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    await base44.asServiceRole.entities.MfsJourney.update(journey.id, { status: 'team_launched' });
+    if (journey.status === 'quick_done') {
+      await base44.asServiceRole.entities.MfsJourney.update(journey.id, { status: 'team_launched' });
+    }
 
     return Response.json({
       success: true,
