@@ -225,8 +225,10 @@ export default function MayaBriefingCard() {
   const opening = sections.find(s => s.type === 'opening');
   const contentSections = sections.filter(s => s.type === 'section');
   const deliveryIdx = contentSections.findIndex(s => s.label === 'Delivery');
-  const preDeliverySections = deliveryIdx >= 0 ? contentSections.slice(0, deliveryIdx) : contentSections;
-  const postDeliverySections = deliveryIdx >= 0 ? contentSections.slice(deliveryIdx) : [];
+  const deliverySection = deliveryIdx >= 0 ? contentSections[deliveryIdx] : null;
+  const otherSections = deliveryIdx >= 0
+    ? [...contentSections.slice(0, deliveryIdx), ...contentSections.slice(deliveryIdx + 1)]
+    : contentSections;
 
   // Count checkable items
   const allCheckable = contentSections.flatMap(s => s.items.filter(i => !i.prose));
@@ -302,16 +304,15 @@ export default function MayaBriefingCard() {
 
             {/* Sections (Follow-Ups injected before Delivery) */}
             <div className="divide-y divide-gray-100">
-              {preDeliverySections.map(section => (
+              <FollowUpsSection currentUser={currentUser} refreshKey={record?.generated_at} />
+              {deliverySection && (
                 <BriefingSection
-                  key={section.label}
-                  section={section}
+                  section={deliverySection}
                   checkedItems={record.checked_items || {}}
                   onToggle={handleToggle}
                 />
-              ))}
-              <FollowUpsSection currentUser={currentUser} refreshKey={record?.generated_at} />
-              {postDeliverySections.map(section => (
+              )}
+              {otherSections.map(section => (
                 <BriefingSection
                   key={section.label}
                   section={section}
