@@ -32,8 +32,8 @@ export default function PairedDomainBars({ leaderScores, teamScores }) {
                         style={{ width: `${z.max - (zones[i - 1]?.max || 0)}%`, backgroundColor: z.color }} />
                     ))}
                     {row.val != null && (
-                      <div className="absolute top-0 left-0 h-full rounded-full transition-all duration-700"
-                        style={{ width: `${Math.min(100, Math.max(0, row.val))}%`, backgroundColor: row.color, opacity: 0.8 }} />
+                      <div className="absolute top-0 h-full rounded-full transition-all duration-700"
+                        style={{ left: `calc(${Math.min(100, Math.max(0, row.val))}% - 2px)`, width: '4px', backgroundColor: row.color }} />
                     )}
                   </div>
                   <span className="text-xs font-semibold text-stone-600 w-8 text-right">{row.val != null ? Math.round(row.val) : '—'}</span>

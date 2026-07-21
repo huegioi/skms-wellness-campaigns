@@ -1,12 +1,12 @@
 import React from 'react';
 import { SCORE_ZONES, getZone } from '@/lib/mfsScore';
 
-export default function JourneyScoreDial({ score, size = 180 }) {
+export default function JourneyScoreDial({ score, size = 180, ringColor }) {
   const radius = (size - 20) / 2;
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.max(0, Math.min(100, score ?? 0));
   const offset = circumference - (clamped / 100) * circumference;
-  const color = clamped >= 70 ? '#0f766e' : clamped >= 50 ? '#4a2040' : '#b8860b';
+  const color = ringColor || (clamped >= 70 ? '#0f766e' : clamped >= 50 ? '#4a2040' : '#b8860b');
   const zones = SCORE_ZONES.composite.zones;
   const zoneLabel = getZone('composite', score);
   let cumulative = 0;

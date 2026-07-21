@@ -11,6 +11,7 @@ import PairedDomainBars from '@/components/fitnessroi/dashboard/PairedDomainBars
 import RoiComparison from '@/components/fitnessroi/dashboard/RoiComparison';
 import DomainOpportunityCards from '@/components/fitnessroi/dashboard/DomainOpportunityCards';
 import BookCallCta from '@/components/fitnessroi/dashboard/BookCallCta';
+import ComparisonLegend from '@/components/fitnessroi/dashboard/ComparisonLegend';
 import MethodologyNote from '@/components/fitnessroi/dashboard/MethodologyNote';
 
 export default function FitnessRoiDashboard() {
@@ -85,6 +86,8 @@ export default function FitnessRoiDashboard() {
             <p className="text-xs text-stone-500 mb-5 leading-relaxed">
               Each domain is scored 0–100 (higher is better) with Low, Typical, and High bands from published research norms. The paired markers show where you placed your team next to where they placed themselves — gaps between the two are the most valuable signal on this page.
             </p>
+            <ComparisonLegend />
+            <p className="text-xs text-stone-400 italic mb-5">Where the two markers sit far apart, your read and your team's experience differ — those gaps are worth a conversation.</p>
             <p className="text-sm font-bold text-[#4a2040] text-center mb-1">
               You estimated {leaderComposite != null ? Math.round(leaderComposite) : '—'}. Your team says {teamComposite != null ? Math.round(teamComposite) : '—'}.
             </p>
