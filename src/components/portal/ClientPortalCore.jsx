@@ -15,6 +15,8 @@ import ClientResources from '@/components/portal/ClientResources';
 import BookSession from '@/components/portal/BookSession';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 import ClientHomeTab from '@/components/portal/ClientHomeTab';
+import { copyToClipboard } from '@/lib/copyToClipboard';
+import PortalLinkDialog from '@/components/shared/PortalLinkDialog';
 
 /**
  * Shared client portal UI driven by mode.
@@ -26,6 +28,7 @@ export default function ClientPortalCore({ mode, token, clientId }) {
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [portalError, setPortalError] = useState(null); // null | 'not_found' | 'server_error'
+  const [linkDialog, setLinkDialog] = useState(null);
   const queryClient = useQueryClient();
 
   const credential = mode === 'client' ? token : clientId;
@@ -35,12 +38,16 @@ export default function ClientPortalCore({ mode, token, clientId }) {
     try {
       const res = await base44.functions.invoke('generateClientPortalToken', { client_id: client.id });
       const portalUrl = `${window.location.origin}/ClientPortal?token=${res.data.portal_token}`;
-      await navigator.clipboard.writeText(portalUrl);
-      setCopied(true);
-      toast.success('Portal link copied', {
-        description: `Anyone with this link can view ${client.company || client.name}'s portal.`
-      });
-      setTimeout(() => setCopied(false), 2000);
+      const ok = await copyToClipboard(portalUrl);
+      if (ok) {
+        setCopied(true);
+        toast.success('Portal link copied', {
+          description: `Anyone with this link can view ${client.company || client.name}'s portal.`
+        });
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        setLinkDialog({ url: portalUrl, clientName: client.company || client.name });
+      }
     } catch (e) {
       toast.error('Could not generate portal link', {
         description: 'Please try again or contact support.'
@@ -246,6 +253,12 @@ export default function ClientPortalCore({ mode, token, clientId }) {
             <PortalFeedback client={client} proposals={proposals} />
           </TabsContent>
         </Tabs>
+      <PortalLinkDialog
+        url={linkDialog?.url}
+        clientName={linkDialog?.clientName}
+        open={!!linkDialog}
+        onClose={() => setLinkDialog(null)}
+      />
       </PortalShell>
     );
   }

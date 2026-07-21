@@ -882,7 +882,7 @@ async function buildDeliveryContext(base44) {
     if (!d0 || !d14) {
       challengeGaps.push({
         client: client.company || client.name,
-        missing: [!d0 && 'Day 0', !d14 && 'Day 14'].filter(Boolean).join(' + ') + ' of cohort assessment',
+        missing: [!d0 && 'Day 0', !d14 && 'Day 14'].filter(Boolean).join(' + '),
       });
     }
   }

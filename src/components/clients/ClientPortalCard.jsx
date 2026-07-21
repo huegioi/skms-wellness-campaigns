@@ -6,11 +6,14 @@ import { ExternalLink, Building2, Mail, Phone, Copy, Check, Link2 } from 'lucide
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { useToast } from '@/components/ui/use-toast';
+import { copyToClipboard } from '@/lib/copyToClipboard';
+import PortalLinkDialog from '@/components/shared/PortalLinkDialog';
 
 export default function ClientPortalCard({ client, stats }) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [loadingToken, setLoadingToken] = useState(false);
+  const [linkDialog, setLinkDialog] = useState(null);
 
   const hasAcceptedProposal = stats?.hasAcceptedProposal;
   const upcomingCount = stats?.upcomingCount || 0;
@@ -23,10 +26,14 @@ export default function ClientPortalCard({ client, stats }) {
       const token = res.data?.portal_token;
       if (!token) throw new Error('No token returned');
       const url = `${window.location.origin}/ClientPortal?token=${token}`;
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      toast({ title: `Portal link copied for ${client.company || client.name}` });
+      const ok = await copyToClipboard(url);
+      if (ok) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        toast({ title: `Portal link copied for ${client.company || client.name}` });
+      } else {
+        setLinkDialog({ url, clientName: client.company || client.name });
+      }
     } catch (e) {
       toast({ title: 'Failed to copy link', description: e.message, variant: 'destructive' });
     } finally {
@@ -114,6 +121,12 @@ export default function ClientPortalCard({ client, stats }) {
           </Button>
         </div>
       </CardContent>
+      <PortalLinkDialog
+        url={linkDialog?.url}
+        clientName={linkDialog?.clientName}
+        open={!!linkDialog}
+        onClose={() => setLinkDialog(null)}
+      />
     </Card>
   );
 }
