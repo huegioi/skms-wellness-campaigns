@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Calendar, Mail, Building, Clock, Settings, Share2, ClipboardList, FolderOpen, CalendarPlus, LayoutDashboard } from 'lucide-react';
+import { FileText, Calendar, Mail, Building, Clock, Settings, Share2, ClipboardList, FolderOpen, CalendarPlus, LayoutDashboard, ArrowLeft, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import ClientProposalView from '@/components/portal/ClientProposalView';
 import ClientTimeline from '@/components/portal/ClientTimeline';
@@ -24,6 +25,7 @@ export default function ClientPortalCore({ mode, token, clientId }) {
   const [activeTab, setActiveTab] = useState('home');
   const [copied, setCopied] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [portalError, setPortalError] = useState(null); // null | 'not_found' | 'server_error'
   const queryClient = useQueryClient();
 
   const credential = mode === 'client' ? token : clientId;
@@ -56,8 +58,13 @@ export default function ClientPortalCore({ mode, token, clientId }) {
         const res = await base44.functions.invoke('getClientPortalData', payload);
         return res.data;
       } catch (e) {
-        if (e?.response?.status === 404 || e?.response?.status === 403) return null;
-        throw e;
+        const status = e?.response?.status;
+        if (status === 404 || status === 403) {
+          setPortalError('not_found');
+          return null;
+        }
+        setPortalError('server_error');
+        return null;
       }
     },
     enabled: !!credential
@@ -76,6 +83,47 @@ export default function ClientPortalCore({ mode, token, clientId }) {
   }
 
   if (!client) {
+    // Admin preview mode — never strand the admin without a way back
+    if (mode === 'admin') {
+      return (
+        <PortalError
+          icon={Building}
+          iconClass="w-16 h-16 text-gray-300"
+          heading="Portal Unavailable"
+          message="This portal could not be loaded — the client record may have been merged, deleted, or the link is outdated."
+          action={
+            <Link to="/ManageClientPortals">
+              <Button variant="outline">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Client Portals
+              </Button>
+            </Link>
+          }
+        />
+      );
+    }
+    // Client-facing (token) visits — distinguish error types
+    if (portalError === 'not_found') {
+      return (
+        <PortalError
+          icon={Building}
+          iconClass="w-16 h-16 text-gray-300"
+          heading="Link Not Found"
+          message="Portal link not found or expired."
+        />
+      );
+    }
+    if (portalError === 'server_error') {
+      return (
+        <PortalError
+          icon={AlertCircle}
+          iconClass="w-16 h-16 text-red-400"
+          heading="Temporary Error"
+          message="Temporary error loading the portal — please refresh."
+        />
+      );
+    }
+    // No error, just no data yet — keep the friendly "being set up" message
     return (
       <PortalError
         icon={Building}

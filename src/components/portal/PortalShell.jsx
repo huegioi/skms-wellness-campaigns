@@ -104,6 +104,7 @@ export function PortalError({
   iconClass = 'w-12 h-12 text-red-400',
   heading,
   message,
+  action,
 }) {
   return (
     <div className="min-h-screen bg-brand-cream flex items-center justify-center p-6">
@@ -111,6 +112,7 @@ export function PortalError({
         <Icon className={`${iconClass} mx-auto mb-4`} />
         <h2 className="text-xl font-bold text-gray-800 mb-2">{heading}</h2>
         <p className="text-gray-500">{message}</p>
+        {action && <div className="mt-4">{action}</div>}
       </div>
     </div>
   );
