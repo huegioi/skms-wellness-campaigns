@@ -1,0 +1,160 @@
+{
+  "name": "MfsJourney",
+  "type": "object",
+  "properties": {
+    "contact_name": {
+      "type": "string",
+      "description": "HR/contact name"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "Contact email (lowercased \u2014 identity key)"
+    },
+    "company_name": {
+      "type": "string",
+      "description": "Company name"
+    },
+    "industry": {
+      "type": "string",
+      "description": "Industry sector"
+    },
+    "headcount": {
+      "type": "number",
+      "description": "Number of employees"
+    },
+    "avg_salary": {
+      "type": "number",
+      "description": "Average annual salary"
+    },
+    "turnover_rate": {
+      "type": "number",
+      "description": "Annual turnover rate (decimal, e.g. 0.18)"
+    },
+    "quick_answers": {
+      "type": "object",
+      "description": "Raw perception answer indices 0\u20134: {wellbeing, stress, engagement, connection}"
+    },
+    "quick_scores": {
+      "type": "object",
+      "description": "Normalized 0\u2013100 scores: {who5, pss4, uwes3, ucla3, composite}"
+    },
+    "roi_snapshot": {
+      "type": "object",
+      "description": "Full inputs + outputs of the ROI run at unlock time"
+    },
+    "stage_selected": {
+      "type": "number",
+      "default": 2,
+      "description": "Selected campaign stage 1\u20136"
+    },
+    "survey_token": {
+      "type": "string",
+      "description": "Employee survey credential (crypto.randomUUID)"
+    },
+    "magic_key": {
+      "type": "string",
+      "description": "HR dashboard credential (crypto.randomUUID)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "quick_done",
+        "team_launched",
+        "collecting",
+        "ready"
+      ],
+      "default": "quick_done",
+      "description": "Journey status"
+    },
+    "reminder_sent_at": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "description": "When reminders were sent"
+    },
+    "ref": {
+      "type": "string",
+      "description": "Partner attribution code from ?ref= URL param"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Associated Client ID"
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Associated Lead ID"
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this record is demo/broker-demo sample data."
+    }
+  },
+  "required": [
+    "email",
+    "survey_token",
+    "magic_key",
+    "status"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    }
+  }
+}

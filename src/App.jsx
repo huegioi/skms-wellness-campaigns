@@ -23,6 +23,7 @@ import Checkin from './pages/Checkin';
 import MentalFitnessScore from './pages/MentalFitnessScore';
 import MfsSurvey from './pages/MfsSurvey';
 import MfsResults from './pages/MfsResults';
+import FitnessRoi from './pages/FitnessRoi';
 import Unsubscribe from './pages/Unsubscribe';
 import Demo from './pages/Demo';
 import MayaKnowledge from './pages/MayaKnowledge';
@@ -115,6 +116,7 @@ const AuthenticatedApp = () => {
       <Route path="/MentalFitnessScore" element={<MentalFitnessScore />} />
       <Route path="/MfsSurvey" element={<MfsSurvey />} />
       <Route path="/MfsResults" element={<MfsResults />} />
+      <Route path="/FitnessRoi" element={<FitnessRoi />} />
       <Route path="/Unsubscribe" element={<Unsubscribe />} />
       <Route path="/Demo" element={<LayoutWrapper currentPageName="Demo"><Demo /></LayoutWrapper>} />
       <Route path="/MayaKnowledge" element={<LayoutWrapper currentPageName="MayaKnowledge"><MayaKnowledge /></LayoutWrapper>} />
