@@ -112,21 +112,25 @@ function computeDomainOpportunity(teamScores, teamDrivers) {
 }
 
 // ── Mailgun ──
-async function sendMailgun(apiKey, domain, to, subject, html) {
-  const formData = new FormData();
-  formData.append('from', `SkillfulMeans Wellness <mailgun@${domain}>`);
-  formData.append('to', to);
-  formData.append('subject', subject);
-  formData.append('html', html);
-  let response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
-    method: 'POST', headers: { 'Authorization': `Basic ${btoa(`api:${apiKey}`)}` }, body: formData
+async function sendSendGrid(to, subject, html) {
+  const apiKey = Deno.env.get('SENDGRID_API_KEY');
+  if (!apiKey) { console.error('SENDGRID_API_KEY not set'); return false; }
+  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: 'admin@skillfulmeans.life', name: 'SkillfulMeans' },
+      subject,
+      content: [{ type: 'text/html', value: html }]
+    })
   });
-  if (response.status === 401 || response.status === 404) {
-    response = await fetch(`https://api.eu.mailgun.net/v3/${domain}/messages`, {
-      method: 'POST', headers: { 'Authorization': `Basic ${btoa(`api:${apiKey}`)}` }, body: formData
-    });
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`SendGrid error (${response.status}): ${errorText}`);
+    return false;
   }
-  return response.ok;
+  return true;
 }
 
 Deno.serve(async (req) => {
@@ -208,15 +212,13 @@ Deno.serve(async (req) => {
     // First-time alert
     if (!j.ready_alert_sent_at) {
       const teamEmails = (Deno.env.get('TEAM_EMAILS') || '').split(',').map(e => e.trim()).filter(Boolean);
-      const mailgunKey = Deno.env.get('MAILGUN_API_KEY');
-      const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN');
       const companyName = j.company_name || 'Unknown';
       const compositeScore = teamScores.composite != null ? Math.round(teamScores.composite) : '—';
       const topDomain = domainOpportunity[0]?.label || '—';
       const annualSavings = Math.round(teamRoi.annualSavings);
       const now = new Date().toISOString();
 
-      if (teamEmails.length > 0 && mailgunKey && mailgunDomain) {
+      if (teamEmails.length > 0) {
         const subject = `${companyName} team dashboard is live — composite ${compositeScore}, top domain ${topDomain}, projected annual savings $${annualSavings.toLocaleString()}`;
         const dashboardUrl = `${new URL(req.url).origin}/FitnessRoi/dashboard?k=${j.magic_key}`;
         const html = `<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px;">
@@ -230,16 +232,20 @@ Deno.serve(async (req) => {
 </ul>
 <a href="${dashboardUrl}" style="display:inline-block;background:#0f766e;color:white;padding:12px 28px;border-radius:9999px;text-decoration:none;font-weight:600;margin:12px 0;font-size:14px;">View dashboard</a>
 </body></html>`;
+        let alertSent = false;
         for (const email of teamEmails) {
           try {
-            await sendMailgun(mailgunKey, mailgunDomain, email, subject, html);
+            const sent = await sendSendGrid(email, subject, html);
+            if (sent) alertSent = true;
           } catch (e) { console.error(`Alert failed for ${email}:`, e.message); }
         }
+        if (alertSent) {
         await base44.asServiceRole.entities.EmailLog.create({
-          from_email: `mailgun@${mailgunDomain}`, to_email: teamEmails.join(', '),
+          from_email: 'admin@skillfulmeans.life', to_email: teamEmails.join(', '),
           subject, body_preview: `${companyName} dashboard live. Composite ${compositeScore}, top domain ${topDomain}, savings $${annualSavings}.`,
           date: now, direction: 'outbound', matched_client_id: j.client_id, matched_lead_id: j.lead_id,
         });
+        }
       }
       await base44.asServiceRole.entities.MfsJourney.update(j.id, { ready_alert_sent_at: now });
     }

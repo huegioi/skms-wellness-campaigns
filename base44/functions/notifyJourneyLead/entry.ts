@@ -1,20 +1,24 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
-async function sendMailgun(apiKey, domain, to, subject, html) {
-  const formData = new FormData();
-  formData.append('from', `SkillfulMeans Wellness <mailgun@${domain}>`);
-  formData.append('to', to);
-  formData.append('subject', subject);
-  formData.append('html', html);
-  let response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
-    method: 'POST', headers: { 'Authorization': `Basic ${btoa(`api:${apiKey}`)}` }, body: formData
+async function sendSendGrid(to, subject, html) {
+  const apiKey = Deno.env.get('SENDGRID_API_KEY');
+  if (!apiKey) { console.error('SENDGRID_API_KEY not set'); return false; }
+  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: 'admin@skillfulmeans.life', name: 'SkillfulMeans' },
+      subject,
+      content: [{ type: 'text/html', value: html }]
+    })
   });
-  if (response.status === 401 || response.status === 404) {
-    response = await fetch(`https://api.eu.mailgun.net/v3/${domain}/messages`, {
-      method: 'POST', headers: { 'Authorization': `Basic ${btoa(`api:${apiKey}`)}` }, body: formData
-    });
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`SendGrid error (${response.status}): ${errorText}`);
+    return false;
   }
-  return response.ok;
+  return true;
 }
 
 Deno.serve(async (req) => {
@@ -54,10 +58,8 @@ Deno.serve(async (req) => {
 
     // Send internal alert email
     const teamEmails = (Deno.env.get('TEAM_EMAILS') || '').split(',').map(e => e.trim()).filter(Boolean);
-    const mailgunKey = Deno.env.get('MAILGUN_API_KEY');
-    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN');
 
-    if (teamEmails.length > 0 && mailgunKey && mailgunDomain) {
+    if (teamEmails.length > 0) {
       const subject = `${companyName} clicked book-a-call from their team dashboard — composite ${compositeScore}, top domain ${topDomain}`;
       const html = `<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px;">
 <h2 style="color:#0f766e;">${companyName} clicked book-a-call</h2>
@@ -68,16 +70,20 @@ Deno.serve(async (req) => {
 </ul>
 <p style="color:#888;font-size:12px;margin-top:16px;">Contact: ${j.email || 'N/A'}</p>
 </body></html>`;
+      let alertSent = false;
       for (const email of teamEmails) {
         try {
-          await sendMailgun(mailgunKey, mailgunDomain, email, subject, html);
+          const sent = await sendSendGrid(email, subject, html);
+          if (sent) alertSent = true;
         } catch (e) { console.error(`Alert failed for ${email}:`, e.message); }
       }
-      await base44.asServiceRole.entities.EmailLog.create({
-        from_email: `mailgun@${mailgunDomain}`, to_email: teamEmails.join(', '),
-        subject, body_preview: `${companyName} clicked book-a-call. Composite ${compositeScore}, top domain ${topDomain}.`,
-        date: now, direction: 'outbound', matched_client_id: j.client_id, matched_lead_id: j.lead_id,
-      });
+      if (alertSent) {
+        await base44.asServiceRole.entities.EmailLog.create({
+          from_email: 'admin@skillfulmeans.life', to_email: teamEmails.join(', '),
+          subject, body_preview: `${companyName} clicked book-a-call. Composite ${compositeScore}, top domain ${topDomain}.`,
+          date: now, direction: 'outbound', matched_client_id: j.client_id, matched_lead_id: j.lead_id,
+        });
+      }
     }
 
     // Create ClientInteraction

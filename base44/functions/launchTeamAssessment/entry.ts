@@ -1,20 +1,24 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
-async function sendMailgun(apiKey, domain, to, subject, html) {
-  const formData = new FormData();
-  formData.append('from', `SkillfulMeans Wellness <mailgun@${domain}>`);
-  formData.append('to', to);
-  formData.append('subject', subject);
-  formData.append('html', html);
-  let response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
-    method: 'POST', headers: { 'Authorization': `Basic ${btoa(`api:${apiKey}`)}` }, body: formData
+async function sendSendGrid(to, subject, html) {
+  const apiKey = Deno.env.get('SENDGRID_API_KEY');
+  if (!apiKey) { console.error('SENDGRID_API_KEY not set'); return false; }
+  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: 'admin@skillfulmeans.life', name: 'SkillfulMeans' },
+      subject,
+      content: [{ type: 'text/html', value: html }]
+    })
   });
-  if (response.status === 401 || response.status === 404) {
-    response = await fetch(`https://api.eu.mailgun.net/v3/${domain}/messages`, {
-      method: 'POST', headers: { 'Authorization': `Basic ${btoa(`api:${apiKey}`)}` }, body: formData
-    });
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`SendGrid error (${response.status}): ${errorText}`);
+    return false;
   }
-  return response.ok;
+  return true;
 }
 
 Deno.serve(async (req) => {
@@ -63,24 +67,22 @@ Deno.serve(async (req) => {
 <p style="color:#888;font-size:12px;margin-top:20px;">Your participation is voluntary. Questions? <a href="mailto:admin@skillfulmeans.life" style="color:#0f766e;">admin@skillfulmeans.life</a></p>
 </body></html>`;
 
-    const mailgunKey = Deno.env.get('MAILGUN_API_KEY');
-    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN');
     const now = new Date().toISOString();
     let sentCount = 0;
     let suppressedCount = 0;
 
-    if (mailgunKey && mailgunDomain) {
-      for (const email of uniqueEmails) {
-        const suppressed = await base44.asServiceRole.entities.EmailSuppression.filter({ email });
-        if (suppressed && suppressed.length > 0) {
-          suppressedCount++;
-          continue;
-        }
-        try {
-          await sendMailgun(mailgunKey, mailgunDomain, email, subject, html);
+    for (const email of uniqueEmails) {
+      const suppressed = await base44.asServiceRole.entities.EmailSuppression.filter({ email });
+      if (suppressed && suppressed.length > 0) {
+        suppressedCount++;
+        continue;
+      }
+      try {
+        const sent = await sendSendGrid(email, subject, html);
+        if (sent) {
           sentCount++;
           await base44.asServiceRole.entities.EmailLog.create({
-            from_email: `mailgun@${mailgunDomain}`,
+            from_email: 'admin@skillfulmeans.life',
             to_email: email,
             subject,
             body_preview: `Anonymous team wellbeing survey invite. Survey link: ${surveyUrl}`,
@@ -89,9 +91,9 @@ Deno.serve(async (req) => {
             matched_client_id: journey.client_id,
             matched_lead_id: journey.lead_id,
           });
-        } catch (e) {
-          console.error(`Failed to send to ${email}:`, e.message);
         }
+      } catch (e) {
+        console.error(`Failed to send to ${email}:`, e.message);
       }
     }
 

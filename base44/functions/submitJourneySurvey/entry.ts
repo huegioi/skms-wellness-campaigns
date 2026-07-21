@@ -23,21 +23,25 @@ function normalizeInstrument(key, responses) {
   }
 }
 
-async function sendMailgun(apiKey, domain, to, subject, html) {
-  const formData = new FormData();
-  formData.append('from', `SkillfulMeans Wellness <mailgun@${domain}>`);
-  formData.append('to', to);
-  formData.append('subject', subject);
-  formData.append('html', html);
-  let response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
-    method: 'POST', headers: { 'Authorization': `Basic ${btoa(`api:${apiKey}`)}` }, body: formData
+async function sendSendGrid(to, subject, html) {
+  const apiKey = Deno.env.get('SENDGRID_API_KEY');
+  if (!apiKey) { console.error('SENDGRID_API_KEY not set'); return false; }
+  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: 'admin@skillfulmeans.life', name: 'SkillfulMeans' },
+      subject,
+      content: [{ type: 'text/html', value: html }]
+    })
   });
-  if (response.status === 401 || response.status === 404) {
-    response = await fetch(`https://api.eu.mailgun.net/v3/${domain}/messages`, {
-      method: 'POST', headers: { 'Authorization': `Basic ${btoa(`api:${apiKey}`)}` }, body: formData
-    });
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`SendGrid error (${response.status}): ${errorText}`);
+    return false;
   }
-  return response.ok;
+  return true;
 }
 
 Deno.serve(async (req) => {
@@ -108,9 +112,6 @@ Deno.serve(async (req) => {
       // Send HR "dashboard ready" email
       const suppressed = await base44.asServiceRole.entities.EmailSuppression.filter({ email: journey.email });
       if (!suppressed || suppressed.length === 0) {
-        const mailgunKey = Deno.env.get('MAILGUN_API_KEY');
-        const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN');
-        if (mailgunKey && mailgunDomain) {
           const appUrl = new URL(req.url).origin;
           const dashboardUrl = `${appUrl}/FitnessRoi/dashboard?k=${journey.magic_key}`;
           const subject = 'Your team dashboard is ready';
@@ -121,15 +122,16 @@ Deno.serve(async (req) => {
 <p style="color:#888;font-size:12px;margin-top:20px;">This link is private to you. Keep it safe to return any time.</p>
 </body></html>`;
           try {
-            await sendMailgun(mailgunKey, mailgunDomain, journey.email, subject, html);
-            await base44.asServiceRole.entities.EmailLog.create({
-              from_email: `mailgun@${mailgunDomain}`, to_email: journey.email,
-              subject, body_preview: `Your team dashboard is ready. ${participantCount} responses received. Dashboard: ${dashboardUrl}`,
-              date: now, direction: 'outbound',
-              matched_client_id: journey.client_id, matched_lead_id: journey.lead_id,
-            });
+            const sent = await sendSendGrid(journey.email, subject, html);
+            if (sent) {
+              await base44.asServiceRole.entities.EmailLog.create({
+                from_email: 'admin@skillfulmeans.life', to_email: journey.email,
+                subject, body_preview: `Your team dashboard is ready. ${participantCount} responses received. Dashboard: ${dashboardUrl}`,
+                date: now, direction: 'outbound',
+                matched_client_id: journey.client_id, matched_lead_id: journey.lead_id,
+              });
+            }
           } catch (e) { console.error('HR email failed:', e.message); }
-        }
       }
     } else if (participantCount >= 1 && (journey.status === 'quick_done' || journey.status === 'team_launched')) {
       await base44.asServiceRole.entities.MfsJourney.update(journey.id, { status: 'collecting' });

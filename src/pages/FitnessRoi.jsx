@@ -35,6 +35,11 @@ export default function FitnessRoi() {
             <JourneyProgressBar step={step} total={5} />
             <p className="text-xs uppercase tracking-widest text-stone-400 mt-2 mb-6">about 3 minutes</p>
             <h1 className="text-2xl font-bold text-[#4a2040] mb-4">{PART_HEADERS[step]}</h1>
+            {step === 0 && (
+              <p className="text-sm text-stone-500 mb-6 leading-relaxed">
+                This is step one: a 3-minute snapshot of your team's mental fitness as you see it, plus a projection of what improving it is worth — then, if you want the real picture, a free anonymous assessment for your whole team.
+              </p>
+            )}
           </>
         )}
         {step < 4 ? (
@@ -47,9 +52,16 @@ export default function FitnessRoi() {
             onSubmit={(data) => { setResultsData(data); setStep(6); }} />
         ) : resultsData ? (
           <>
-            <div className="bg-[#fce7f3] rounded-xl p-3 mb-4 text-center">
-              <p className="text-xs text-[#4a2040] font-medium">We've emailed you a private link so you can return any time.</p>
-            </div>
+            {resultsData.email_sent ? (
+              <div className="bg-[#fce7f3] rounded-xl p-3 mb-4 text-center">
+                <p className="text-xs text-[#4a2040] font-medium">We've emailed you a private link so you can return any time.</p>
+              </div>
+            ) : (
+              <div className="bg-amber-50 rounded-xl p-3 mb-4 text-center">
+                <p className="text-xs text-stone-600 font-medium">Save this page's link to return any time:</p>
+                <p className="text-xs text-[#0f766e] font-mono mt-1 break-all">{window.location.origin}/FitnessRoi/dashboard?k={resultsData.magic_key}</p>
+              </div>
+            )}
             <ResultsView data={resultsData} />
           </>
         ) : null}

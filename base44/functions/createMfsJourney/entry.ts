@@ -128,21 +128,25 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-async function sendMailgun(apiKey, domain, to, subject, html) {
-  const formData = new FormData();
-  formData.append('from', `SkillfulMeans Wellness <mailgun@${domain}>`);
-  formData.append('to', to);
-  formData.append('subject', subject);
-  formData.append('html', html);
-  let response = await fetch(`https://api.mailgun.net/v3/${domain}/messages`, {
-    method: 'POST', headers: { 'Authorization': `Basic ${btoa(`api:${apiKey}`)}` }, body: formData
+async function sendSendGrid(to, subject, html) {
+  const apiKey = Deno.env.get('SENDGRID_API_KEY');
+  if (!apiKey) { console.error('SENDGRID_API_KEY not set'); return false; }
+  const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: to }] }],
+      from: { email: 'admin@skillfulmeans.life', name: 'SkillfulMeans' },
+      subject,
+      content: [{ type: 'text/html', value: html }]
+    })
   });
-  if (response.status === 401 || response.status === 404) {
-    response = await fetch(`https://api.eu.mailgun.net/v3/${domain}/messages`, {
-      method: 'POST', headers: { 'Authorization': `Basic ${btoa(`api:${apiKey}`)}` }, body: formData
-    });
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`SendGrid error (${response.status}): ${errorText}`);
+    return false;
   }
-  return response.ok;
+  return true;
 }
 
 // ── Main handler ──
@@ -284,13 +288,12 @@ Deno.serve(async (req) => {
     // ── Emails ──
     const suppressed = await base44.asServiceRole.entities.EmailSuppression.filter({ email: normalizedEmail });
     const isSuppressed = suppressed && suppressed.length > 0;
-    const mailgunKey = Deno.env.get('MAILGUN_API_KEY');
-    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN');
     const teamEmails = Deno.env.get('TEAM_EMAILS');
     const now = new Date().toISOString();
+    let emailSent = false;
 
     // a) Prospect magic-link email
-    if (!isSuppressed && mailgunKey && mailgunDomain) {
+    if (!isSuppressed) {
       const dashboardUrl = `${appUrl}/FitnessRoi/dashboard?k=${magicKey}`;
       const prospectHtml = `<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px;">
 <h2 style="color:#4a2040;">Your Mental Fitness Score + ROI projection</h2>
@@ -299,18 +302,20 @@ Deno.serve(async (req) => {
 <p style="color:#888;font-size:12px;margin-top:20px;">This link is private to you. Keep it safe to return any time.</p>
 </body></html>`;
       try {
-        await sendMailgun(mailgunKey, mailgunDomain, normalizedEmail, 'Your Mental Fitness Score + ROI projection', prospectHtml);
-        await base44.asServiceRole.entities.EmailLog.create({
-          from_email: `mailgun@${mailgunDomain}`, to_email: normalizedEmail,
-          subject: 'Your Mental Fitness Score + ROI projection',
-          body_preview: `Your private dashboard link: ${dashboardUrl}`,
-          date: now, direction: 'outbound', matched_client_id: clientId, matched_lead_id: leadId,
-        });
+        emailSent = await sendSendGrid(normalizedEmail, 'Your Mental Fitness Score + ROI projection', prospectHtml);
+        if (emailSent) {
+          await base44.asServiceRole.entities.EmailLog.create({
+            from_email: 'admin@skillfulmeans.life', to_email: normalizedEmail,
+            subject: 'Your Mental Fitness Score + ROI projection',
+            body_preview: `Your private dashboard link: ${dashboardUrl}`,
+            date: now, direction: 'outbound', matched_client_id: clientId, matched_lead_id: leadId,
+          });
+        }
       } catch (e) { console.error('Prospect email failed:', e.message); }
     }
 
     // b) Internal team alert
-    if (teamEmails && mailgunKey && mailgunDomain) {
+    if (teamEmails) {
       const alertHtml = `<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px;">
 <h2 style="color:#4a2040;">New MFS ROI Journey</h2>
 <table style="font-size:14px;color:#444;border-collapse:collapse;">
@@ -324,20 +329,24 @@ Deno.serve(async (req) => {
 </table>
 </body></html>`;
       const emailList = teamEmails.split(',').map(e => e.trim()).filter(Boolean);
+      let alertSent = false;
       for (const teamEmail of emailList) {
         try {
-          await sendMailgun(mailgunKey, mailgunDomain, teamEmail, `New MFS ROI Journey: ${company_name || contact_name}`, alertHtml);
+          const sent = await sendSendGrid(teamEmail, `New MFS ROI Journey: ${company_name || contact_name}`, alertHtml);
+          if (sent) alertSent = true;
         } catch (e) { console.error('Team alert email failed:', e.message); }
       }
-      await base44.asServiceRole.entities.EmailLog.create({
-        from_email: `mailgun@${mailgunDomain}`, to_email: teamEmails,
-        subject: `New MFS ROI Journey: ${company_name || contact_name}`,
-        body_preview: `${contact_name} at ${company_name || '—'} — ${headcountNum} employees, ${industry || '—'}. Composite: ${Math.round(quick_scores.composite)}/100. Projected annual savings: $${Math.round(roiResult.annualSavings).toLocaleString()}.`,
-        date: now, direction: 'outbound', matched_client_id: clientId, matched_lead_id: leadId,
-      });
+      if (alertSent) {
+        await base44.asServiceRole.entities.EmailLog.create({
+          from_email: 'admin@skillfulmeans.life', to_email: teamEmails,
+          subject: `New MFS ROI Journey: ${company_name || contact_name}`,
+          body_preview: `${contact_name} at ${company_name || '—'} — ${headcountNum} employees, ${industry || '—'}. Composite: ${Math.round(quick_scores.composite)}/100. Projected annual savings: $${Math.round(roiResult.annualSavings).toLocaleString()}.`,
+          date: now, direction: 'outbound', matched_client_id: clientId, matched_lead_id: leadId,
+        });
+      }
     }
 
-    return Response.json({ success: true, quick_scores, roi_snapshot, magic_key: magicKey });
+    return Response.json({ success: true, quick_scores, roi_snapshot, magic_key: magicKey, email_sent: emailSent });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

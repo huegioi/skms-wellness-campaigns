@@ -9,6 +9,9 @@ export default function PrimaryCta({ magicKey }) {
         <h2 className="text-lg font-bold text-white mb-2 leading-snug">
           This score reflects your view. Get the real picture from your team — free.
         </h2>
+        <p className="text-sm text-white/70 mb-4 leading-relaxed">
+          So far this is one person's perspective. The next step is a free, fully anonymous 3-minute survey for your team — when at least 5 people respond, your dashboard unlocks with your team's real scores and your ROI re-run on measured data.
+        </p>
         <Link to={`/FitnessRoi/launch?k=${magicKey}`}
           className="inline-flex items-center gap-2 bg-[#0f766e] text-white rounded-full px-6 py-3 font-semibold hover:bg-[#0d6560] transition-colors mt-2">
           <Rocket className="w-4 h-4" /> Launch your free team assessment
