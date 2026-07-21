@@ -18,6 +18,10 @@
     "checked_items": {
       "type": "object",
       "description": "Map of action item key -> { name, timestamp } for completed items"
+    },
+    "delivery_snapshot": {
+      "type": "object",
+      "description": "Structured delivery snapshot rendered separately from the LLM briefing text: todayTomorrowSessions, presenterGapSessions, challengeAssessmentGaps, unscheduledServicesTotal, clientsWithDelivery, activeCohort, renewalReviewGaps"
     }
   },
   "required": [

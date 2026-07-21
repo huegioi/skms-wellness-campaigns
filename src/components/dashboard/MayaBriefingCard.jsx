@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
 import { renderInline } from '@/lib/renderInline';
 import FollowUpsSection from '@/components/dashboard/FollowUpsSection';
+import DeliverySection from '@/components/dashboard/DeliverySection';
 
 function isToday(dateStr) {
   if (!dateStr) return false;
@@ -189,15 +190,16 @@ export default function MayaBriefingCard() {
       const fallback = await base44.entities.MayaBriefing.list('-generated_at', 1).catch(() => []);
       if (fallback[0]) setRecord(fallback[0]);
     } else {
-      const { briefing, stats, generated_at } = res.data;
+      const { briefing, stats, generated_at, delivery_snapshot } = res.data;
       const newRecord = await base44.entities.MayaBriefing.create({
         briefing_text: briefing,
         stats: stats || {},
         generated_at: generated_at || new Date().toISOString(),
         checked_items: {},
+        delivery_snapshot: delivery_snapshot || null,
       }).catch(() => null);
 
-      setRecord(newRecord || { briefing_text: briefing, stats, generated_at: generated_at || new Date().toISOString(), checked_items: {} });
+      setRecord(newRecord || { briefing_text: briefing, stats, generated_at: generated_at || new Date().toISOString(), checked_items: {}, delivery_snapshot: delivery_snapshot || null });
     }
     setLoading(false);
   }, []);
@@ -224,14 +226,10 @@ export default function MayaBriefingCard() {
   const sections = parseBriefing(record?.briefing_text || '');
   const opening = sections.find(s => s.type === 'opening');
   const contentSections = sections.filter(s => s.type === 'section');
-  const deliveryIdx = contentSections.findIndex(s => s.label === 'Delivery');
-  const deliverySection = deliveryIdx >= 0 ? contentSections[deliveryIdx] : null;
-  const otherSections = deliveryIdx >= 0
-    ? [...contentSections.slice(0, deliveryIdx), ...contentSections.slice(deliveryIdx + 1)]
-    : contentSections;
+  const otherSections = contentSections.filter(s => s.label !== 'Delivery' && s.label !== 'Renewal');
 
   // Count checkable items
-  const allCheckable = contentSections.flatMap(s => s.items.filter(i => !i.prose));
+  const allCheckable = otherSections.flatMap(s => s.items.filter(i => !i.prose));
   const checkedCount = allCheckable.filter(i => !!(record?.checked_items || {})[i.id]).length;
 
   const isStale = record?.generated_at && !isToday(record.generated_at);
@@ -305,13 +303,7 @@ export default function MayaBriefingCard() {
             {/* Sections (Follow-Ups injected before Delivery) */}
             <div className="divide-y divide-gray-100">
               <FollowUpsSection currentUser={currentUser} refreshKey={record?.generated_at} />
-              {deliverySection && (
-                <BriefingSection
-                  section={deliverySection}
-                  checkedItems={record.checked_items || {}}
-                  onToggle={handleToggle}
-                />
-              )}
+              <DeliverySection snapshot={record.delivery_snapshot} />
               {otherSections.map(section => (
                 <BriefingSection
                   key={section.label}

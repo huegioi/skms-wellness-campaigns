@@ -247,21 +247,14 @@ Write today's briefing using EXACTLY this format — no extra sections, no parag
 **Other**
 [1–2 sentences flagging anything else worth noting — stale data, upcoming deadline, a quick win, or new Quick Builder inquiries awaiting review (by name).]
 
-**Delivery**
-• Today/tomorrow sessions: N scheduled (flag any with presenter-acceptance gaps by name)
-• Challenges missing cohort assessments: name the clients and which day is missing
-• Unscheduled services: N across M clients
-
-${delivery.activeCohort ? `**Renewal**
-[List clients in the ${delivery.activeCohort.label} cohort without a booked strategic review, sorted by days remaining — name each with days out. Omit if none.]
-
-` : ''}---
+---
 
 RULES:
 - Each to-do is ONE line: name + action only. No sub-bullets, no explanations.
 - If a section has fewer than 3 real items, write as many as the data supports — do not invent names.
 - Mention follow-up counts in the opening if notable; do NOT list individual follow-ups — they are shown separately.
-- Total output should be under 320 words.
+- Do NOT write a Delivery or Renewal section — they are rendered separately. You may reference delivery/renewal highlights in the opening.
+- Total output should be under 280 words.
 
 DATA (use this — do not repeat it verbatim):
 
@@ -299,7 +292,7 @@ ${knowledgeText}
 DELIVERY INTELLIGENCE:
 Today/tomorrow sessions (${delivery.todayTomorrowCount || 0}): ${delivery.todayTomorrowSessions?.map(s => `${s.title} — ${s.start} (${s.client || 'no client'}${s.completed ? ', ✓done' : ''}${s.presenterAccepted ? '' : ', presenter NOT accepted'})`).join('; ') || 'none'}
 Presenter-acceptance gaps (${delivery.presenterGapCount || 0}): ${delivery.presenterGapSessions?.map(s => `${s.title} (${s.client || 'no client'}, ${s.status})`).join('; ') || 'none'}
-Challenges missing assessments: ${delivery.challengeAssessmentGaps?.map(g => `${g.client} (missing ${g.missing})`).join('; ') || 'none'}
+Challenges missing assessments: ${delivery.challengeAssessmentGaps?.map(g => `${g.client} (missing ${g.missing} of the cohort assessment)`).join('; ') || 'none'}
 Unscheduled services: ${delivery.unscheduledServicesTotal || 0} across ${delivery.clientsWithDelivery || 0} client(s)
 ${delivery.activeCohort ? `Renewal ramp active: ${delivery.activeCohort.label} cohort, ${delivery.activeCohort.daysRemaining} days remaining. Clients without booked reviews: ${delivery.renewalReviewGaps?.slice(0,8).map(g => `${g.client} (${g.daysRemaining}d, owner: ${g.owner})`).join('; ') || 'none'}` : 'No active renewal ramp.'}
 
@@ -316,21 +309,26 @@ Open follow-up reminders: ${openReminders.length} (${overdueReminders} overdue 3
     const clientItems = silentClients.slice(0,3).map((c,i) => `${i+1}. ${c.company || c.name} — Re-engage, last contact ${c.last_contacted_date || 'unknown'}`).join('\n') || '1. Review client pipeline';
     const partnerItems = overduePartners.slice(0,3).map((l,i) => `${i+1}. ${l.name} — Follow up (overdue ${l.follow_up_due_date})`).join('\n') || '1. Review partner pipeline';
     const campaignItem = triggeredCampaigns.length > 0 ? `• ${triggeredCampaigns[0].campaign.name} — ${triggeredCampaigns[0].label}` : `• Review ${currentMonthName} seasonal themes`;
-    const deliveryFallback = delivery.todayTomorrowCount
-      ? `\n\n**Delivery**\n• ${delivery.todayTomorrowCount} session(s) today/tomorrow${delivery.presenterGapCount ? `, ${delivery.presenterGapCount} with presenter gaps` : ''}\n• ${delivery.challengeAssessmentGaps?.length || 0} challenge(s) missing cohort assessments\n• ${delivery.unscheduledServicesTotal || 0} unscheduled service(s) across ${delivery.clientsWithDelivery || 0} client(s)`
-      : `\n\n**Delivery**\n• No sessions today/tomorrow\n• ${delivery.challengeAssessmentGaps?.length || 0} challenge(s) missing cohort assessments\n• ${delivery.unscheduledServicesTotal || 0} unscheduled service(s) across ${delivery.clientsWithDelivery || 0} client(s)`;
-    const renewalFallback = delivery.activeCohort && delivery.renewalReviewGaps?.length
-      ? `\n\n**Renewal**\n${delivery.renewalReviewGaps.slice(0,3).map(g => `${g.client} (${g.daysRemaining}d)`).join('; ')} — no booked review.`
-      : '';
-    briefing = `Today is ${todayStr}. ${stats.silent_clients} clients need re-engagement and ${stats.overdue_partners} partner follow-ups are overdue. Start with your most at-risk client relationship.\n\n**Client To-Dos**\n${clientItems}\n\n**Partner To-Dos**\n${partnerItems}\n\n**Campaign To-Do**\n${campaignItem}\n\n**Other**\n${stats.renewal_clients} client(s) are in their 90-day renewal window.${deliveryFallback}${renewalFallback}\n\n_Maya hit an upstream error (${err.message || 'timeout'}) — refresh to regenerate._`;
+    briefing = `Today is ${todayStr}. ${stats.silent_clients} clients need re-engagement and ${stats.overdue_partners} partner follow-ups are overdue. Start with your most at-risk client relationship.\n\n**Client To-Dos**\n${clientItems}\n\n**Partner To-Dos**\n${partnerItems}\n\n**Campaign To-Do**\n${campaignItem}\n\n**Other**\n${stats.renewal_clients} client(s) are in their 90-day renewal window.\n\n_Maya hit an upstream error (${err.message || 'timeout'}) — refresh to regenerate._`;
   }
 
   const warningPrefix = contextWarnings.length > 0 ? contextWarnings.join('\n') + '\n\n' : '';
+
+  const deliverySnapshot = {
+    todayTomorrowSessions: delivery.todayTomorrowSessions || [],
+    presenterGapSessions: delivery.presenterGapSessions || [],
+    challengeAssessmentGaps: delivery.challengeAssessmentGaps || [],
+    unscheduledServicesTotal: delivery.unscheduledServicesTotal || 0,
+    clientsWithDelivery: delivery.clientsWithDelivery || 0,
+    activeCohort: delivery.activeCohort || null,
+    renewalReviewGaps: delivery.renewalReviewGaps || [],
+  };
 
   return Response.json({
     briefing: warningPrefix + briefing,
     generated_at: now.toISOString(),
     stats,
     follow_ups: openReminders,
+    delivery_snapshot: deliverySnapshot,
   });
 });
