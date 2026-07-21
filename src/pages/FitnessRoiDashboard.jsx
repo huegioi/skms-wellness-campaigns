@@ -57,6 +57,7 @@ export default function FitnessRoiDashboard() {
     <div>
       <p className="text-xs uppercase tracking-widest text-[#0f766e] font-semibold mb-1">Your dashboard</p>
       <h1 className="text-2xl font-bold text-[#4a2040]">{data.company_name ? data.company_name : 'Your team'}</h1>
+      <p className="text-xs text-stone-500 mt-2 leading-relaxed">This is your private dashboard — only you have this link. It updates live as your team responds, and you can return any time using the link we emailed you.</p>
     </div>
   );
 
@@ -80,9 +81,13 @@ export default function FitnessRoiDashboard() {
           <Header />
           {/* Section 1: Headline + paired dials + paired bars */}
           <div className="bg-white rounded-2xl border border-stone-200 border-l-4 border-l-[#0f766e] p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-[#4a2040] mb-1 text-center">
+            <h2 className="text-lg font-bold text-[#4a2040] mb-1">Your view vs. your team's reality</h2>
+            <p className="text-xs text-stone-500 mb-5 leading-relaxed">
+              Each domain is scored 0–100 (higher is better) with Low, Typical, and High bands from published research norms. The paired markers show where you placed your team next to where they placed themselves — gaps between the two are the most valuable signal on this page.
+            </p>
+            <p className="text-sm font-bold text-[#4a2040] text-center mb-1">
               You estimated {leaderComposite != null ? Math.round(leaderComposite) : '—'}. Your team says {teamComposite != null ? Math.round(teamComposite) : '—'}.
-            </h2>
+            </p>
             <p className="text-xs text-stone-400 text-center italic mb-5">Perception vs. measured.</p>
             <PairedDials leaderScore={leaderComposite} teamScore={teamComposite} />
             <div className="mt-6 pt-4 border-t border-stone-100">
@@ -114,13 +119,28 @@ export default function FitnessRoiDashboard() {
     <div className="min-h-screen bg-[#fdfbf7]" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <div className="max-w-2xl mx-auto px-5 py-8 space-y-6">
         <Header />
-        <ResponseTracker count={data.response_count} />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <ReminderButton magicKey={magicKey} reminderSentAt={data.reminder_sent_at} />
-          <CopyLinkCard surveyUrl={surveyUrl} />
+        <div>
+          <h2 className="text-lg font-bold text-[#4a2040] mb-1">Team responses</h2>
+          <p className="text-xs text-stone-500 mb-4 leading-relaxed">
+            Your team's survey is out. When at least 5 people have responded, this dashboard unlocks your team's real scores — the 5-person minimum protects individual anonymity.
+          </p>
+          <ResponseTracker count={data.response_count} />
+        </div>
+        <div>
+          <p className="text-xs uppercase tracking-widest text-stone-400 mb-1">Boost your response rate</p>
+          <p className="text-xs text-stone-500 mb-4 leading-relaxed">
+            A short nudge in your own words usually works best — or send our one-click reminder (available once every 48 hours).
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ReminderButton magicKey={magicKey} reminderSentAt={data.reminder_sent_at} />
+            <CopyLinkCard surveyUrl={surveyUrl} />
+          </div>
         </div>
         <div className="pt-4 border-t border-stone-200">
-          <p className="text-xs uppercase tracking-widest text-stone-400 mb-4">Your quick results</p>
+          <h2 className="text-lg font-bold text-[#4a2040] mb-1">While you wait — your preliminary snapshot</h2>
+          <p className="text-xs text-stone-500 mb-4 leading-relaxed">
+            These are the scores and ROI projection from your quick assessment. Once your team responds, you'll see how your read compares to theirs.
+          </p>
           <ResultsView data={{ quick_scores: data.quick_scores, roi_snapshot: data.roi_snapshot, magic_key: magicKey }} hideCta />
         </div>
       </div>

@@ -20,7 +20,10 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, estimatedStress
 
   return (
     <div className="bg-white rounded-2xl border border-stone-200 border-l-4 border-l-[#0f766e] p-6 shadow-sm">
-      <h2 className="text-lg font-bold text-[#4a2040] mb-4">Your projection, re-run on your team's real data</h2>
+      <h2 className="text-lg font-bold text-[#4a2040] mb-1">Your ROI, re-run on real data</h2>
+      <p className="text-xs text-stone-500 mb-4 leading-relaxed">
+        Same model, one change: your estimated share of high-stress employees is replaced by the share your team actually reported. Everything downstream — savings, payback, the three-year trajectory — updates from that real number.
+      </p>
       <div className="bg-[#fce7f3] border border-pink-200 rounded-xl p-3 mb-5">
         <p className="text-sm text-[#4a2040]">You estimated {estPct}% of your team at high stress; their responses show {realPct}%.</p>
       </div>

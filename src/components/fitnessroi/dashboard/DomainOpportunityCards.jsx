@@ -35,7 +35,10 @@ function servicesForDomain(domainKey, allServices) {
 export default function DomainOpportunityCards({ domains, services }) {
   return (
     <div className="bg-white rounded-2xl border border-stone-200 border-l-4 border-l-[#0f766e] p-6 shadow-sm">
-      <h2 className="text-lg font-bold text-[#4a2040] mb-4">Where your opportunity is concentrated</h2>
+      <h2 className="text-lg font-bold text-[#4a2040] mb-1">Where your opportunity is concentrated</h2>
+      <p className="text-xs text-stone-500 mb-4 leading-relaxed">
+        Based on your team's domain scores, this is where the savings are concentrated — shown as approximate shares, ranked from largest to smallest, with the SkillfulMeans programming that targets each domain.
+      </p>
       <div className="space-y-3">
         {domains.map((d, i) => {
           const suggestions = servicesForDomain(d.key, services);
