@@ -41,6 +41,7 @@ Deno.serve(async (req) => {
     }
 
     const now = new Date().toISOString();
+    const isDemo = j.is_demo === true;
     const companyName = j.company_name || 'Unknown';
     const compositeScore = j.quick_scores?.composite != null ? Math.round(j.quick_scores.composite) : '—';
 
@@ -56,10 +57,10 @@ Deno.serve(async (req) => {
       if (domains.length > 0) topDomain = domains[0].label;
     }
 
-    // Send internal alert email
+    // Send internal alert email (skip for demos — no team pings during demo click-throughs)
     const teamEmails = (Deno.env.get('TEAM_EMAILS') || '').split(',').map(e => e.trim()).filter(Boolean);
 
-    if (teamEmails.length > 0) {
+    if (!isDemo && teamEmails.length > 0) {
       const subject = `${companyName} clicked book-a-call from their team dashboard — composite ${compositeScore}, top domain ${topDomain}`;
       const html = `<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px;">
 <h2 style="color:#0f766e;">${companyName} clicked book-a-call</h2>
@@ -86,8 +87,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Create ClientInteraction
-    if (j.client_id) {
+    // Create ClientInteraction (skip for demos)
+    if (!isDemo && j.client_id) {
       await base44.asServiceRole.entities.ClientInteraction.create({
         client_id: j.client_id,
         interaction_type: 'call',

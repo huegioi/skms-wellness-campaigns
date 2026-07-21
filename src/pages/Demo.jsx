@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { FlaskConical, Sprout, Trash2, Link2, ClipboardList, Lock, Loader2, QrCode, Brain, Copy, ExternalLink, Users } from 'lucide-react';
+import { FlaskConical, Sprout, Trash2, Link2, ClipboardList, Lock, Loader2, QrCode, Brain, Copy, ExternalLink, Users, TrendingUp } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import DemoStatusBanner from '@/components/demo/DemoStatusBanner';
 import DemoInventoryTable from '@/components/demo/DemoInventoryTable';
@@ -24,6 +24,8 @@ export default function Demo() {
   const [authChecked, setAuthChecked] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [boothQrOpen, setBoothQrOpen] = useState(false);
+  const [isJourneySeeding, setIsJourneySeeding] = useState(false);
+  const [journeyLinks, setJourneyLinks] = useState(null);
 
   useEffect(() => {
     base44.auth.me()
@@ -61,6 +63,24 @@ export default function Demo() {
       toast({ title: 'Seed failed', description: error.message, variant: 'destructive' });
     } finally {
       setIsSeeding(false);
+    }
+  };
+
+  const handleSeedJourney = async () => {
+    setIsJourneySeeding(true);
+    setJourneyLinks(null);
+    try {
+      const res = await base44.functions.invoke('seedJourneyDemo', {});
+      setJourneyLinks(res.data);
+      toast({
+        title: 'Demo journey seeded',
+        description: 'Harborview Logistics — 10 employee responses, dashboard ready. No emails sent.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['demoCounts'] });
+    } catch (error) {
+      toast({ title: 'Journey seed failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsJourneySeeding(false);
     }
   };
 
@@ -216,6 +236,44 @@ export default function Demo() {
                 </p>
               </div>
             )}
+
+            {/* ROI Journey Demo */}
+            <div>
+              <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: '#264d44' }}>
+                <TrendingUp className="w-5 h-5" /> ROI Journey Demo
+              </h2>
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-4 mb-3">
+                    <div>
+                      <p className="font-semibold text-gray-800 text-sm">Mental Fitness ROI Journey — End-to-end demo</p>
+                      <p className="text-sm text-gray-500">Seeds a complete journey: optimistic leader view, 10 contrasting team responses, unlocked dashboard. No emails sent.</p>
+                    </div>
+                    <Button onClick={handleSeedJourney} disabled={isJourneySeeding} className="bg-[#0f766e] hover:bg-[#0d6560] shrink-0">
+                      {isJourneySeeding
+                        ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Seeding...</>
+                        : <><Sprout className="w-4 h-4 mr-2" /> Seed / Reset demo journey</>}
+                    </Button>
+                  </div>
+                  {journeyLinks && (
+                    <div className="space-y-2 pt-3 border-t border-gray-100">
+                      {[
+                        { label: 'HR Dashboard', url: journeyLinks.dashboard_link },
+                        { label: 'Launch page', url: journeyLinks.launch_link },
+                        { label: 'Employee survey', url: journeyLinks.survey_link },
+                      ].map(({ label, url }) => (
+                        <div key={label} className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400 w-28 shrink-0">{label}</span>
+                          <input readOnly value={url} className="flex-1 bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs text-gray-600 font-mono truncate" />
+                          <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(url); toast({ title: 'Copied' }); }}><Copy className="w-3 h-3" /></Button>
+                          <Button size="sm" asChild><a href={url} target="_blank" rel="noopener noreferrer"><ExternalLink className="w-3 h-3" /></a></Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
             <div>
               <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: '#264d44' }}>

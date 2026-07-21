@@ -30,6 +30,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import MayaInsightsWidget from '@/components/shared/MayaInsightsWidget';
 import MfsAdminCard from '@/components/clients/MfsAdminCard';
+import JourneyAdminCard from '@/components/clients/JourneyAdminCard';
 import RecordSnapshotHeader from '@/components/shared/RecordSnapshotHeader';
 import CollapsibleFieldSection from '@/components/shared/CollapsibleFieldSection';
 import { Switch } from '@/components/ui/switch';
@@ -361,8 +362,9 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             </div>
           )}
           {client.is_assessment_lead && (
-            <div className="mb-2">
+            <div className="mb-2 space-y-2">
               <MfsAdminCard client={client} />
+              <JourneyAdminCard client={client} />
             </div>
           )}
           <CollapsibleFieldSection title="Contact" icon={User} defaultOpen>

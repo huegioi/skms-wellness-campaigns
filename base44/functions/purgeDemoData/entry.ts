@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
 
     const entities = [
       'ClientTask', 'CohortAssessment', 'FeedbackResponse', 'CalendarEvent',
-      'Proposal', 'ReferralActivity', 'Referral', 'MfsAssessment', 'Lead', 'Client', 'ReferralPartner',
+      'Proposal', 'ReferralActivity', 'Referral', 'MfsAssessment', 'MfsJourney', 'Lead', 'Client', 'ReferralPartner',
     ];
 
     // ── Parallel reads: demo clients (for task lookup) + every entity's is_demo records ──
