@@ -4,7 +4,6 @@ import { LayoutDashboard, Users, DollarSign, TrendingUp, Package, ChevronLeft, C
 import NewInquiriesCard from '@/components/dashboard/NewInquiriesCard';
 import MfsQuickShareCard from '@/components/mfs/MfsQuickShareCard';
 import ActionableReviewQueue from '@/components/dashboard/ActionableReviewQueue';
-import FollowUpSummary from '@/components/dashboard/FollowUpSummary';
 import MayaBriefingCard from '@/components/dashboard/MayaBriefingCard';
 import FinancialSummary from '@/components/dashboard/FinancialSummary';
 import ClientInformationSection from '@/components/dashboard/ClientInformationSection';
