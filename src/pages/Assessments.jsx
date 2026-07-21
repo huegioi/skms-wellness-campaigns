@@ -67,7 +67,7 @@ export default function Assessments() {
 
   const partnerMap = useMemo(() => {
     const map = {};
-    for (const p of partners) partnerMap[p.unique_portal_id] = p;
+    for (const p of partners) map[p.unique_portal_id] = p;
     return map;
   }, [partners]);
 
