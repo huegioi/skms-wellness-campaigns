@@ -2,10 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { Brain, Copy, BarChart3, Users, Lock, Unlock, TrendingUp, MoreVertical } from 'lucide-react';
+import { Brain, Copy, BarChart3, Users, Lock, Unlock, TrendingUp, MoreVertical, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { normalizeInstrument } from '@/lib/mfsScore';
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
+import JourneyAssessmentTable from '@/components/assessments/JourneyAssessmentTable.jsx';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 
@@ -37,25 +38,40 @@ export default function Assessments() {
     staleTime: 60_000,
   });
 
+  const { data: journeys = [] } = useQuery({
+    queryKey: ['mfs-journeys-all'],
+    queryFn: () => base44.entities.MfsJourney.list('-created_date', 200),
+    staleTime: 30_000,
+  });
+
   const origin = window.location.origin;
 
-  const assessmentData = useMemo(() => {
-    const byClient = {};
+  const byClient = useMemo(() => {
+    const map = {};
     for (const r of cohortRecords) {
       if (!r.client_id) continue;
       const sid = r.instrument_subscores?._sid;
       if (!sid) continue;
-      if (!byClient[r.client_id]) byClient[r.client_id] = {};
-      if (!byClient[r.client_id][sid]) byClient[r.client_id][sid] = {};
-      byClient[r.client_id][sid][r.instrument] = r;
+      if (!map[r.client_id]) map[r.client_id] = {};
+      if (!map[r.client_id][sid]) map[r.client_id][sid] = {};
+      map[r.client_id][sid][r.instrument] = r;
     }
+    return map;
+  }, [cohortRecords]);
 
-    const clientMap = {};
-    for (const c of clients) clientMap[c.id] = c;
+  const clientMap = useMemo(() => {
+    const map = {};
+    for (const c of clients) map[c.id] = c;
+    return map;
+  }, [clients]);
 
-    const partnerMap = {};
+  const partnerMap = useMemo(() => {
+    const map = {};
     for (const p of partners) partnerMap[p.unique_portal_id] = p;
+    return map;
+  }, [partners]);
 
+  const assessmentData = useMemo(() => {
     return assessments.map(a => {
       const submissions = byClient[a.client_id] || {};
       const responseCount = Object.keys(submissions).length;
@@ -84,9 +100,23 @@ export default function Assessments() {
 
       return { ...a, responseCount, locked, composite, partnerName, converted, client };
     });
-  }, [assessments, cohortRecords, clients, partners]);
+  }, [assessments, byClient, clientMap, partnerMap]);
+
+  const journeyData = useMemo(() => {
+    return journeys.map(j => {
+      const submissions = byClient[j.client_id] || {};
+      const responseCount = Object.keys(submissions).length;
+      const locked = responseCount < 5;
+      const composite = j.quick_scores?.composite ?? null;
+      const partner = j.ref ? partnerMap[j.ref] : null;
+      const partnerName = partner?.name || '';
+      const client = clientMap[j.client_id];
+      return { ...j, responseCount, locked, composite, partnerName, client };
+    });
+  }, [journeys, byClient, clientMap, partnerMap]);
 
   const visibleAssessments = showDemo ? assessmentData : assessmentData.filter(a => !a.is_demo);
+  const visibleJourneys = showDemo ? journeyData : journeyData.filter(j => !j.is_demo);
 
   const stats = useMemo(() => {
     const total = visibleAssessments.length;
@@ -224,6 +254,16 @@ export default function Assessments() {
             </table>
           </div>
         )}
+
+        {/* ── ROI Journeys ── */}
+        <div className="flex items-center justify-between mb-4 mt-8">
+          <h2 className="text-lg font-bold text-[#264d44] flex items-center gap-2">
+            <Link2 className="w-5 h-5 text-[#0f766e]" />
+            ROI Journeys
+          </h2>
+        </div>
+
+        <JourneyAssessmentTable journeys={visibleJourneys} origin={origin} copyLink={copyLink} />
       </div>
     </div>
   );
