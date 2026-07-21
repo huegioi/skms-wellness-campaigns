@@ -123,6 +123,11 @@ function headcountToBracket(n) {
   return '5000+';
 }
 
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 async function sendMailgun(apiKey, domain, to, subject, html) {
   const formData = new FormData();
   formData.append('from', `SkillfulMeans Wellness <mailgun@${domain}>`);
@@ -201,7 +206,7 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.MfsJourney.update(journeyId, {
         contact_name, company_name: company_name || undefined, industry: industry || undefined,
         headcount: headcountNum, avg_salary: avgSalaryNum, turnover_rate: turnoverRateNum,
-        quick_answers, quick_scores, roi_snapshot, stage_selected: 2, status: 'quick_done', ref: ref || undefined,
+        quick_answers, quick_scores, roi_snapshot, stage_selected: 2, ref: ref || undefined,
       });
 
       if (clientId) {
@@ -289,7 +294,7 @@ Deno.serve(async (req) => {
       const dashboardUrl = `${appUrl}/FitnessRoi/dashboard?k=${magicKey}`;
       const prospectHtml = `<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px;">
 <h2 style="color:#4a2040;">Your Mental Fitness Score + ROI projection</h2>
-<p style="color:#444;font-size:14px;line-height:1.6;">Thanks for completing the quick assessment, ${contact_name}. Your private dashboard is ready — your score, your ROI projection, and the path forward.</p>
+<p style="color:#444;font-size:14px;line-height:1.6;">Thanks for completing the quick assessment, ${escapeHtml(contact_name)}. Your private dashboard is ready — your score, your ROI projection, and the path forward.</p>
 <a href="${dashboardUrl}" style="display:inline-block;background:#0f766e;color:white;padding:14px 36px;border-radius:9999px;text-decoration:none;font-weight:600;margin:16px 0;font-size:15px;">View my results</a>
 <p style="color:#888;font-size:12px;margin-top:20px;">This link is private to you. Keep it safe to return any time.</p>
 </body></html>`;
@@ -309,11 +314,11 @@ Deno.serve(async (req) => {
       const alertHtml = `<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px;">
 <h2 style="color:#4a2040;">New MFS ROI Journey</h2>
 <table style="font-size:14px;color:#444;border-collapse:collapse;">
-<tr><td style="padding:4px 12px 4px 0;font-weight:600;">Contact:</td><td>${contact_name}</td></tr>
-<tr><td style="padding:4px 12px 4px 0;font-weight:600;">Company:</td><td>${company_name || '—'}</td></tr>
+<tr><td style="padding:4px 12px 4px 0;font-weight:600;">Contact:</td><td>${escapeHtml(contact_name)}</td></tr>
+<tr><td style="padding:4px 12px 4px 0;font-weight:600;">Company:</td><td>${escapeHtml(company_name) || '—'}</td></tr>
 <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Email:</td><td>${normalizedEmail}</td></tr>
 <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Headcount:</td><td>${headcountNum}</td></tr>
-<tr><td style="padding:4px 12px 4px 0;font-weight:600;">Industry:</td><td>${industry || '—'}</td></tr>
+<tr><td style="padding:4px 12px 4px 0;font-weight:600;">Industry:</td><td>${escapeHtml(industry) || '—'}</td></tr>
 <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Composite score:</td><td>${Math.round(quick_scores.composite)}/100</td></tr>
 <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Projected annual savings:</td><td>$${Math.round(roiResult.annualSavings).toLocaleString()}</td></tr>
 </table>
