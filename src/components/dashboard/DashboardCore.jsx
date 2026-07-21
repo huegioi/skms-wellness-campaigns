@@ -101,7 +101,6 @@ export default function DashboardCore() {
             <NewInquiriesCard />
             <MfsQuickShareCard />
             <ActionableReviewQueue />
-            <FollowUpSummary onViewAll={() => setActiveSection('clients')} />
             <MayaBriefingCard />
             <FinancialSummary />
           </>
