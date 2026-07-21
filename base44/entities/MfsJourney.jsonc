@@ -87,6 +87,16 @@
       "type": "string",
       "description": "Associated Lead ID"
     },
+    "ready_alert_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the internal team alert was sent for the unlocked dashboard (fires exactly once)"
+    },
+    "booked_call_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When HR clicked book-a-call from the team dashboard (fires exactly once)"
+    },
     "is_demo": {
       "type": "boolean",
       "default": false,
