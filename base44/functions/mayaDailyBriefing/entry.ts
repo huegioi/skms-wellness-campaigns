@@ -248,7 +248,9 @@ Write today's briefing using EXACTLY this format — no extra sections, no parag
 [1–2 sentences flagging anything else worth noting — stale data, upcoming deadline, a quick win, or new Quick Builder inquiries awaiting review (by name).]
 
 **Delivery**
-[Today/tomorrow sessions: N scheduled, flag any with presenter-acceptance gaps by name. Challenges missing day-0/day-14 assessments: name the clients. Unscheduled services: N across M clients. One line per item, no sub-bullets.]
+• Today/tomorrow sessions: N scheduled (flag any with presenter-acceptance gaps by name)
+• Challenges missing cohort assessments: name the clients and which day is missing
+• Unscheduled services: N across M clients
 
 ${delivery.activeCohort ? `**Renewal**
 [List clients in the ${delivery.activeCohort.label} cohort without a booked strategic review, sorted by days remaining — name each with days out. Omit if none.]
@@ -315,8 +317,8 @@ Open follow-up reminders: ${openReminders.length} (${overdueReminders} overdue 3
     const partnerItems = overduePartners.slice(0,3).map((l,i) => `${i+1}. ${l.name} — Follow up (overdue ${l.follow_up_due_date})`).join('\n') || '1. Review partner pipeline';
     const campaignItem = triggeredCampaigns.length > 0 ? `• ${triggeredCampaigns[0].campaign.name} — ${triggeredCampaigns[0].label}` : `• Review ${currentMonthName} seasonal themes`;
     const deliveryFallback = delivery.todayTomorrowCount
-      ? `\n\n**Delivery**\n${delivery.todayTomorrowCount} session(s) today/tomorrow${delivery.presenterGapCount ? `, ${delivery.presenterGapCount} with presenter gaps` : ''}. ${delivery.challengeAssessmentGaps?.length || 0} challenge(s) missing assessments. ${delivery.unscheduledServicesTotal || 0} unscheduled service(s) across ${delivery.clientsWithDelivery || 0} client(s).`
-      : `\n\n**Delivery**\nNo sessions today/tomorrow. ${delivery.unscheduledServicesTotal || 0} unscheduled service(s) across ${delivery.clientsWithDelivery || 0} client(s).`;
+      ? `\n\n**Delivery**\n• ${delivery.todayTomorrowCount} session(s) today/tomorrow${delivery.presenterGapCount ? `, ${delivery.presenterGapCount} with presenter gaps` : ''}\n• ${delivery.challengeAssessmentGaps?.length || 0} challenge(s) missing cohort assessments\n• ${delivery.unscheduledServicesTotal || 0} unscheduled service(s) across ${delivery.clientsWithDelivery || 0} client(s)`
+      : `\n\n**Delivery**\n• No sessions today/tomorrow\n• ${delivery.challengeAssessmentGaps?.length || 0} challenge(s) missing cohort assessments\n• ${delivery.unscheduledServicesTotal || 0} unscheduled service(s) across ${delivery.clientsWithDelivery || 0} client(s)`;
     const renewalFallback = delivery.activeCohort && delivery.renewalReviewGaps?.length
       ? `\n\n**Renewal**\n${delivery.renewalReviewGaps.slice(0,3).map(g => `${g.client} (${g.daysRemaining}d)`).join('; ')} — no booked review.`
       : '';
