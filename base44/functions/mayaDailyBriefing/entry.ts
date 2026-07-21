@@ -57,6 +57,57 @@ Deno.serve(async (req) => {
   const MAYA_PERSONA = bd.persona || '';
   const delivery = deliveryResponse.data || {};
 
+  // ── Sync reminder candidates to persistent MayaReminder records ──
+  let openReminders = [];
+  let overdueReminders = 0;
+  try {
+    const allReminders = await base44.asServiceRole.entities.MayaReminder.list('trigger_date', 500);
+    const existingKeys = new Set(allReminders.map(r => r.dedupe_key));
+    const candidates = delivery.reminderCandidates || [];
+    for (const c of candidates) {
+      if (existingKeys.has(c.key)) continue;
+      try {
+        await base44.asServiceRole.entities.MayaReminder.create({
+          reminder_type: c.type,
+          dedupe_key: c.key,
+          text: c.text,
+          client_id: c.clientId || '',
+          client_name: c.client || '',
+          source_event_id: c.eventId || '',
+          source_proposal_id: c.proposalId || '',
+          trigger_date: c.triggerDate,
+          status: 'open',
+        });
+      } catch (e) {
+        console.log('[mayaDailyBriefing] Failed to create reminder:', c.key, e.message);
+      }
+    }
+    // Fetch all open reminders sorted by trigger_date ascending
+    const rawOpen = await base44.asServiceRole.entities.MayaReminder.filter({ status: 'open' }, 'trigger_date', 500);
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    openReminders = rawOpen.map(r => {
+      const triggerStart = new Date(r.trigger_date);
+      triggerStart.setHours(0, 0, 0, 0);
+      const overdueDays = Math.round((todayStart - triggerStart) / 86400000);
+      return {
+        id: r.id,
+        text: r.text,
+        reminder_type: r.reminder_type,
+        client_name: r.client_name || '',
+        trigger_date: r.trigger_date,
+        overdue: overdueDays >= 3,
+        overdueDays,
+      };
+    }).sort((a, b) => {
+      if (a.overdue !== b.overdue) return a.overdue ? -1 : 1;
+      return new Date(a.trigger_date) - new Date(b.trigger_date);
+    });
+    overdueReminders = openReminders.filter(r => r.overdue).length;
+  } catch (e) {
+    console.log('[mayaDailyBriefing] Reminder sync failed:', e.message);
+  }
+
   const contextWarnings = [];
   if (!globalContext || bundleRes.status !== 200) {
     contextWarnings.push(`⚠ I couldn't load the global context (context service returned ${bundleRes.status})`);
@@ -165,7 +216,8 @@ Deno.serve(async (req) => {
     delivery_challenge_gaps: (delivery.challengeAssessmentGaps || []).length,
     delivery_unscheduled_services: delivery.unscheduledServicesTotal || 0,
     renewal_review_gaps: (delivery.renewalReviewGaps || []).length,
-    follow_ups: delivery.followUpCount || 0,
+    open_follow_ups: openReminders.length,
+    overdue_follow_ups: overdueReminders,
   };
 
   // =========================================================
@@ -195,9 +247,6 @@ Write today's briefing using EXACTLY this format — no extra sections, no parag
 **Other**
 [1–2 sentences flagging anything else worth noting — stale data, upcoming deadline, a quick win, or new Quick Builder inquiries awaiting review (by name).]
 
-**Follow-Ups**
-[One line per follow-up: client name — what to send and the date hook. Order most time-sensitive first. OMIT this entire section (header included) if there are no follow-ups today.]
-
 **Delivery**
 [Today/tomorrow sessions: N scheduled, flag any with presenter-acceptance gaps by name. Challenges missing day-0/day-14 assessments: name the clients. Unscheduled services: N across M clients. One line per item, no sub-bullets.]
 
@@ -209,6 +258,7 @@ ${delivery.activeCohort ? `**Renewal**
 RULES:
 - Each to-do is ONE line: name + action only. No sub-bullets, no explanations.
 - If a section has fewer than 3 real items, write as many as the data supports — do not invent names.
+- Mention follow-up counts in the opening if notable; do NOT list individual follow-ups — they are shown separately.
 - Total output should be under 320 words.
 
 DATA (use this — do not repeat it verbatim):
@@ -251,12 +301,7 @@ Challenges missing assessments: ${delivery.challengeAssessmentGaps?.map(g => `${
 Unscheduled services: ${delivery.unscheduledServicesTotal || 0} across ${delivery.clientsWithDelivery || 0} client(s)
 ${delivery.activeCohort ? `Renewal ramp active: ${delivery.activeCohort.label} cohort, ${delivery.activeCohort.daysRemaining} days remaining. Clients without booked reviews: ${delivery.renewalReviewGaps?.slice(0,8).map(g => `${g.client} (${g.daysRemaining}d, owner: ${g.owner})`).join('; ') || 'none'}` : 'No active renewal ramp.'}
 
-FOLLOW-UP TRIGGERS:
-Sessions delivered 1–3 days ago (send recording + materials): ${delivery.recordingFollowUps?.map(f => `${f.title} (${f.client || 'no client'}, ${f.date})${f.hasRecording ? '' : ' — recording NOT yet submitted by presenter'}`).join('; ') || 'none'}
-Challenges ended 1–3 days ago (send challenge report): ${delivery.challengeReportFollowUps?.map(f => `${f.title} (${f.client || 'no client'}, ended ${f.endDate})`).join('; ') || 'none'}
-Sessions 7 days out (send client reminder + confirm Zoom details): ${delivery.weekOutConfirmations?.map(f => `${f.title} (${f.client || 'no client'}, ${f.start})${f.hasMeetingLink ? '' : ' — NO meeting link on event'}${f.inviteSent ? '' : ' — calendar invite not sent'}`).join('; ') || 'none'}
-Proposals created in last 3 days (send promo emails for their workshops/challenges/events): ${delivery.newProposalFollowUps?.map(f => `${f.client} (created ${f.created}, status: ${f.status}, services: ${f.services})`).join('; ') || 'none'}
-Proposals from 3–7 days ago that include wellness boxes (ask which box theme(s) they want and when/how to mail them — e.g. 5 after the workshop, 10 to challenge winners): ${delivery.wellnessBoxFollowUps?.map(f => `${f.client} (created ${f.created}, ${f.boxCount} box(es))`).join('; ') || 'none'}`;
+Open follow-up reminders: ${openReminders.length} (${overdueReminders} overdue 3+ days)`;
 
   let briefing;
   try {
@@ -275,13 +320,7 @@ Proposals from 3–7 days ago that include wellness boxes (ask which box theme(s
     const renewalFallback = delivery.activeCohort && delivery.renewalReviewGaps?.length
       ? `\n\n**Renewal**\n${delivery.renewalReviewGaps.slice(0,3).map(g => `${g.client} (${g.daysRemaining}d)`).join('; ')} — no booked review.`
       : '';
-    const followUpsFallback = delivery.followUpCount > 0
-      ? `\n\n**Follow-Ups**\n${[
-          ...(delivery.recordingFollowUps || []).map(f => `${f.client || f.title} — send recording + materials (${f.date})`),
-          ...(delivery.weekOutConfirmations || []).map(f => `${f.client || f.title} — confirm session details (${f.start})`),
-        ].join('\n')}`
-      : '';
-    briefing = `Today is ${todayStr}. ${stats.silent_clients} clients need re-engagement and ${stats.overdue_partners} partner follow-ups are overdue. Start with your most at-risk client relationship.\n\n**Client To-Dos**\n${clientItems}\n\n**Partner To-Dos**\n${partnerItems}\n\n**Campaign To-Do**\n${campaignItem}\n\n**Other**\n${stats.renewal_clients} client(s) are in their 90-day renewal window.${followUpsFallback}${deliveryFallback}${renewalFallback}\n\n_Maya hit an upstream error (${err.message || 'timeout'}) — refresh to regenerate._`;
+    briefing = `Today is ${todayStr}. ${stats.silent_clients} clients need re-engagement and ${stats.overdue_partners} partner follow-ups are overdue. Start with your most at-risk client relationship.\n\n**Client To-Dos**\n${clientItems}\n\n**Partner To-Dos**\n${partnerItems}\n\n**Campaign To-Do**\n${campaignItem}\n\n**Other**\n${stats.renewal_clients} client(s) are in their 90-day renewal window.${deliveryFallback}${renewalFallback}\n\n_Maya hit an upstream error (${err.message || 'timeout'}) — refresh to regenerate._`;
   }
 
   const warningPrefix = contextWarnings.length > 0 ? contextWarnings.join('\n') + '\n\n' : '';
@@ -290,5 +329,6 @@ Proposals from 3–7 days ago that include wellness boxes (ask which box theme(s
     briefing: warningPrefix + briefing,
     generated_at: now.toISOString(),
     stats,
+    follow_ups: openReminders,
   });
 });

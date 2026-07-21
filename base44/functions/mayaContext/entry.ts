@@ -838,7 +838,7 @@ async function buildDeliveryContext(base44) {
     safeFilter(base44, 'CalendarEvent', {}, '-start_date', 500),
     safeFilter(base44, 'Proposal', { status: 'accepted' }, '-created_date', 200),
     safeFilter(base44, 'CohortAssessment', {}, '-submitted_at', 500),
-    safeFilter(base44, 'Proposal', {}, '-created_date', 100),
+    safeFilter(base44, 'Proposal', {}, '-created_date', 200),
   ]);
 
   const clients = allClients.filter(c => !c.is_demo && !c.is_assessment_lead);
@@ -919,115 +919,125 @@ async function buildDeliveryContext(base44) {
       .sort((a, b) => a.daysRemaining - b.daysRemaining);
   }
 
-  // ── Follow-up triggers (time-based reminders — no emails sent) ──
+  // ── Reminder candidates (30-day lookback; deduped in mayaDailyBriefing) ──
   const SESSION_TYPES = ['workshop', 'class', 'leadership', 'presentation'];
+  const todayMinus30 = new Date(startToday);
+  todayMinus30.setDate(todayMinus30.getDate() - 30);
   const todayMinus3 = new Date(startToday);
   todayMinus3.setDate(todayMinus3.getDate() - 3);
-  const todayMinus7 = new Date(startToday);
-  todayMinus7.setDate(todayMinus7.getDate() - 7);
-  const todayPlus6 = new Date(startToday);
-  todayPlus6.setDate(todayPlus6.getDate() + 6);
-  const todayPlus8 = new Date(startToday);
-  todayPlus8.setDate(todayPlus8.getDate() + 8);
+  const todayPlus7 = new Date(startToday);
+  todayPlus7.setDate(todayPlus7.getDate() + 7);
 
-  // a) Sessions delivered 1–3 days ago — send recording + materials
-  const recordingFollowUps = cleanEvents
-    .filter(e => SESSION_TYPES.includes(e.event_type))
-    .filter(e => {
-      const endRef = e.end_date ? new Date(e.end_date) : new Date(e.start_date);
-      const dayStart = startOfDay(endRef);
-      return dayStart >= todayMinus3 && dayStart < startToday;
-    })
-    .map(e => ({
-      title: e.title,
-      client: e.client_name || '',
-      date: fmtDate(e.start_date),
-      hasRecording: !!e.recording_link,
-    }));
+  const reminderCandidates = [];
 
-  // b) Challenges ended 1–3 days ago — send challenge report
-  const challengeReportFollowUps = cleanEvents
-    .filter(e => e.event_type === 'challenge')
-    .filter(e => {
-      let endRef = e.end_date ? new Date(e.end_date) : null;
-      if (!endRef || isNaN(endRef.getTime())) {
-        endRef = new Date(e.start_date);
-        endRef.setDate(endRef.getDate() + 14);
-      }
-      const dayStart = startOfDay(endRef);
-      return dayStart >= todayMinus3 && dayStart < startToday;
-    })
-    .map(e => {
-      let endRef = e.end_date ? new Date(e.end_date) : null;
-      if (!endRef || isNaN(endRef.getTime())) {
-        endRef = new Date(e.start_date);
-        endRef.setDate(endRef.getDate() + 14);
-      }
-      return {
-        title: e.title,
-        client: e.client_name || '',
-        endDate: fmtDate(endRef),
-      };
+  // a) Workshop/class/leadership/presentation recordings — send recording + materials
+  for (const e of cleanEvents) {
+    if (!SESSION_TYPES.includes(e.event_type)) continue;
+    const endRef = e.end_date ? new Date(e.end_date) : new Date(e.start_date);
+    const dayStart = startOfDay(endRef);
+    if (dayStart < todayMinus30 || dayStart >= startToday) continue;
+    const triggerDate = new Date(dayStart);
+    triggerDate.setDate(triggerDate.getDate() + 1);
+    const client = e.client_name || '';
+    reminderCandidates.push({
+      type: 'workshop_recording',
+      key: 'workshop_recording:' + e.id,
+      client,
+      clientId: e.client_id || '',
+      eventId: e.id,
+      triggerDate: triggerDate.toISOString().slice(0, 10),
+      text: `${client} — send recording + materials for "${e.title}" (held ${fmtDate(e.start_date)})${e.recording_link ? '' : ' — recording NOT yet submitted by presenter'}`,
     });
+  }
 
-  // c) Sessions 6–8 days out — send client reminder + confirm Zoom details
-  const weekOutConfirmations = cleanEvents
-    .filter(e => SESSION_TYPES.includes(e.event_type) && !e.completed)
-    .filter(e => {
-      const dayStart = startOfDay(new Date(e.start_date));
-      return dayStart >= todayPlus6 && dayStart <= todayPlus8;
-    })
-    .map(e => ({
-      title: e.title,
-      client: e.client_name || '',
-      start: fmtDateTime(e.start_date),
-      hasMeetingLink: !!(e.meeting_link || (e.location && e.location.startsWith('http'))),
-      inviteSent: !!e.invite_sent,
-      format: e.delivery_format || 'unspecified',
-    }));
-
-  // d) Proposals created in last 3 days — send promo emails
-  const newProposalFollowUps = recentProposals
-    .filter(p => startOfDay(new Date(p.created_date)) >= todayMinus3)
-    .map(p => {
-      const sel = p.selections || {};
-      const parts = [];
-      if ((sel.workshops || []).length) parts.push(`${sel.workshops.length} workshop${sel.workshops.length !== 1 ? 's' : ''}`);
-      if ((sel.challengePrograms || []).length) parts.push(`${sel.challengePrograms.length} challenge${sel.challengePrograms.length !== 1 ? 's' : ''}`);
-      if ((sel.leadership || []).length) parts.push(`${sel.leadership.length} leadership`);
-      if ((sel.movementClasses || []).length) parts.push(`${sel.movementClasses.length} class${sel.movementClasses.length !== 1 ? 'es' : ''}`);
-      return {
-        client: p.client_name || p.company || '',
-        created: fmtDate(p.created_date),
-        status: p.status,
-        services: parts.join(', ') || 'none',
-      };
+  // b) Challenge reports — send challenge report
+  for (const e of cleanEvents) {
+    if (e.event_type !== 'challenge') continue;
+    let endRef = e.end_date ? new Date(e.end_date) : null;
+    if (!endRef || isNaN(endRef.getTime())) {
+      endRef = new Date(e.start_date);
+      endRef.setDate(endRef.getDate() + 14);
+    }
+    const dayStart = startOfDay(endRef);
+    if (dayStart < todayMinus30 || dayStart >= startToday) continue;
+    const triggerDate = new Date(dayStart);
+    triggerDate.setDate(triggerDate.getDate() + 1);
+    const client = e.client_name || '';
+    reminderCandidates.push({
+      type: 'challenge_report',
+      key: 'challenge_report:' + e.id,
+      client,
+      clientId: e.client_id || '',
+      eventId: e.id,
+      triggerDate: triggerDate.toISOString().slice(0, 10),
+      text: `${client} — send challenge report for "${e.title}" (ended ${fmtDate(endRef)})`,
     });
+  }
 
-  // e) Proposals from 3–7 days ago with wellness boxes — ask which themes + mailing plan
-  const wellnessBoxFollowUps = recentProposals
-    .filter(p => {
-      const dayStart = startOfDay(new Date(p.created_date));
-      if (dayStart < todayMinus7 || dayStart >= todayMinus3) return false;
-      const sel = p.selections || {};
-      const hasSampleBoxes = Object.values(sel.sampleBoxQuantities || {}).some(v => Number(v) > 0);
-      const hasWellnessBoxes = (sel.wellnessBoxes || []).some(v => Number(v) > 0);
-      const hasCustomBox = Number(sel.customBoxQuantity) > 0;
-      return hasSampleBoxes || hasWellnessBoxes || hasCustomBox;
-    })
-    .map(p => {
-      const sel = p.selections || {};
-      const sampleTotal = Object.values(sel.sampleBoxQuantities || {}).reduce((s, v) => s + (Number(v) || 0), 0);
-      const wellnessTotal = (sel.wellnessBoxes || []).reduce((s, v) => s + (Number(v) || 0), 0);
-      const customTotal = Number(sel.customBoxQuantity) || 0;
-      return {
-        client: p.client_name || p.company || '',
-        created: fmtDate(p.created_date),
-        boxCount: sampleTotal + wellnessTotal + customTotal,
-      };
+  // c) Week-out confirmations — send client reminder + confirm Zoom details
+  for (const e of cleanEvents) {
+    if (!SESSION_TYPES.includes(e.event_type) || e.completed) continue;
+    const dayStart = startOfDay(new Date(e.start_date));
+    if (dayStart < startToday || dayStart > todayPlus7) continue;
+    const triggerDate = new Date(dayStart);
+    triggerDate.setDate(triggerDate.getDate() - 7);
+    const client = e.client_name || '';
+    const hasLink = !!(e.meeting_link || (e.location && e.location.startsWith('http')));
+    reminderCandidates.push({
+      type: 'week_out_confirmation',
+      key: 'week_out_confirmation:' + e.id,
+      client,
+      clientId: e.client_id || '',
+      eventId: e.id,
+      triggerDate: triggerDate.toISOString().slice(0, 10),
+      text: `${client} — send session reminder + confirm Zoom details for "${e.title}" (${fmtDateTime(e.start_date)})${hasLink ? '' : ' — NO meeting link on event'}${e.invite_sent ? '' : ' — calendar invite not sent'}`,
     });
+  }
 
-  const followUpCount = recordingFollowUps.length + challengeReportFollowUps.length + weekOutConfirmations.length + newProposalFollowUps.length + wellnessBoxFollowUps.length;
+  // d) Proposal promos — send promotional emails for workshops/challenges/events
+  for (const p of recentProposals) {
+    const dayStart = startOfDay(new Date(p.created_date));
+    if (dayStart < todayMinus30 || dayStart >= startToday) continue;
+    const triggerDate = new Date(dayStart);
+    triggerDate.setDate(triggerDate.getDate() + 1);
+    const client = p.client_name || p.company || '';
+    reminderCandidates.push({
+      type: 'proposal_promo',
+      key: 'proposal_promo:' + p.id,
+      client,
+      clientId: p.client_id || '',
+      proposalId: p.id,
+      triggerDate: triggerDate.toISOString().slice(0, 10),
+      text: `${client} — send promotional emails for the workshops/challenges/events on their proposal (created ${fmtDate(p.created_date)})`,
+    });
+  }
+
+  // e) Wellness box follow-ups — ask which themes + mailing plan
+  for (const p of recentProposals) {
+    const dayStart = startOfDay(new Date(p.created_date));
+    if (dayStart < todayMinus30 || dayStart > todayMinus3) continue;
+    const sel = p.selections || {};
+    const hasSampleBoxes = Object.values(sel.sampleBoxQuantities || {}).some(v => Number(v) > 0);
+    const hasWellnessBoxes = (sel.wellnessBoxes || []).some(v => Number(v) > 0);
+    const hasCustomBox = Number(sel.customBoxQuantity) > 0;
+    if (!hasSampleBoxes && !hasWellnessBoxes && !hasCustomBox) continue;
+    const triggerDate = new Date(dayStart);
+    triggerDate.setDate(triggerDate.getDate() + 3);
+    const sampleTotal = Object.values(sel.sampleBoxQuantities || {}).reduce((s, v) => s + (Number(v) || 0), 0);
+    const wellnessTotal = (sel.wellnessBoxes || []).reduce((s, v) => s + (Number(v) || 0), 0);
+    const customTotal = Number(sel.customBoxQuantity) || 0;
+    const boxCount = sampleTotal + wellnessTotal + customTotal;
+    const client = p.client_name || p.company || '';
+    reminderCandidates.push({
+      type: 'wellness_box',
+      key: 'wellness_box:' + p.id,
+      client,
+      clientId: p.client_id || '',
+      proposalId: p.id,
+      triggerDate: triggerDate.toISOString().slice(0, 10),
+      text: `${client} — ask which wellness box theme(s) they'd like and when/how to mail them (e.g. 5 after the workshop, 10 to challenge winners) — ${boxCount} boxes on proposal from ${fmtDate(p.created_date)}`,
+    });
+  }
 
   return {
     todayTomorrowCount: todayTomorrow.length,
@@ -1050,12 +1060,7 @@ async function buildDeliveryContext(base44) {
     clientsWithDelivery,
     activeCohort: cohort,
     renewalReviewGaps,
-    recordingFollowUps,
-    challengeReportFollowUps,
-    weekOutConfirmations,
-    newProposalFollowUps,
-    wellnessBoxFollowUps,
-    followUpCount,
+    reminderCandidates,
   };
 }
 
