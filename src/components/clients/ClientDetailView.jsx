@@ -12,10 +12,11 @@ import {
   User, Building, Mail, Phone, Globe, MapPin, DollarSign, Users, Calendar,
   Plus, Pencil, Trash2, FileText, MessageSquare, PhoneCall, Video, StickyNote,
   ChevronRight, Clock, CheckCircle, XCircle, Eye, Send, Package, Award, ListTodo,
-  Upload, ExternalLink, X, RefreshCw, FolderOpen, Link as LinkIcon, Linkedin
+  Upload, ExternalLink, X, Copy, RefreshCw, FolderOpen, Link as LinkIcon, Linkedin
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { copyToClipboard } from '@/lib/copyToClipboard';
 import TaskList from '@/components/tasks/TaskList';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
@@ -82,6 +83,8 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   const [resourceForm, setResourceForm] = useState({ title: '', url: '', resource_type: 'recording', session_name: '' });
   const [showAddResource, setShowAddResource] = useState(false);
   const [syncingResources, setSyncingResources] = useState(false);
+  const [portalUrl, setPortalUrl] = useState(null);
+  const [generatingPortal, setGeneratingPortal] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -277,6 +280,32 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
     onUpdate({ purchased_services: updated });
     setServiceToAdd('');
     setShowAddService(false);
+  };
+
+  const portalLink = client.portal_token
+    ? `${window.location.origin}/ClientPortal?token=${client.portal_token}`
+    : portalUrl;
+
+  const handleGeneratePortalLink = async () => {
+    setGeneratingPortal(true);
+    try {
+      const res = await base44.functions.invoke('generateClientPortalToken', { client_id: client.id });
+      setPortalUrl(`${window.location.origin}/ClientPortal?token=${res.data.portal_token}`);
+      toast.success('Portal link generated');
+    } catch (e) {
+      toast.error('Failed to generate portal link');
+    } finally {
+      setGeneratingPortal(false);
+    }
+  };
+
+  const handleCopyPortalLink = async () => {
+    const ok = await copyToClipboard(portalLink);
+    if (ok) {
+      toast.success(`Portal link copied for ${client.company || client.name}`);
+    } else {
+      toast.error('Could not copy — please copy manually');
+    }
   };
 
   return (
@@ -1047,23 +1076,32 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
               {/* Portal Link */}
               <div className="border-t pt-4">
                 <h5 className="font-medium text-sm mb-2">Client Portal Access</h5>
-                <div className="flex gap-2">
-                  <Input 
-                    readOnly 
-                    value={`${window.location.origin}${createPageUrl('ClientPortal')}?clientId=${client.id}`}
-                    className="text-xs"
-                  />
-                  <Button 
+                {portalLink ? (
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      value={portalLink}
+                      className="text-xs"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCopyPortalLink}
+                    >
+                      <Copy className="w-4 h-4 mr-1" />
+                      Copy
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}${createPageUrl('ClientPortal')}?clientId=${client.id}`);
-                      alert('Portal link copied to clipboard!');
-                    }}
+                    onClick={handleGeneratePortalLink}
+                    disabled={generatingPortal}
                   >
-                    Copy
+                    {generatingPortal ? 'Generating...' : 'Generate link'}
                   </Button>
-                </div>
+                )}
               </div>
             </CardContent>
           </Card>

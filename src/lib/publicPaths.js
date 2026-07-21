@@ -20,7 +20,10 @@ export const PUBLIC_PATHS = [
 ];
 
 export function isPublicPath(pathname) {
-  const path = pathname || (typeof window !== 'undefined' ? window.location.pathname : '');
+  const path = (pathname || (typeof window !== 'undefined' ? window.location.pathname : '')).toLowerCase();
   if (!path) return false;
-  return PUBLIC_PATHS.some((p) => path === p || path.startsWith(p));
+  return PUBLIC_PATHS.some((p) => {
+    const pl = p.toLowerCase();
+    return path === pl || path.startsWith(pl);
+  });
 }

@@ -9,7 +9,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  */
 
 const TEAM_EMAILS = (Deno.env.get("TEAM_EMAILS") || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
-const isTeamMember = (user) => user && (user.role === 'admin' || TEAM_EMAILS.includes((user.email || "").toLowerCase()));
+const isTeamMember = (user) => user && (user.role === 'admin' || user.role === 'user' || TEAM_EMAILS.includes((user.email || "").toLowerCase()));
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);

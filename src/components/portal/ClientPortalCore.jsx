@@ -66,7 +66,11 @@ export default function ClientPortalCore({ mode, token, clientId }) {
         return res.data;
       } catch (e) {
         const status = e?.response?.status;
-        if (status === 404 || status === 403) {
+        if (status === 403) {
+          setPortalError('forbidden');
+          return null;
+        }
+        if (status === 404) {
           setPortalError('not_found');
           return null;
         }
@@ -90,6 +94,17 @@ export default function ClientPortalCore({ mode, token, clientId }) {
   }
 
   if (!client) {
+    // Admin mode + 403 — a client holding an old ?clientId= link
+    if (mode === 'admin' && portalError === 'forbidden') {
+      return (
+        <PortalError
+          icon={Building}
+          iconClass="w-16 h-16 text-gray-300"
+          heading="Link Outdated"
+          message="This portal link is outdated — please contact SkillfulMeans for your new personal link."
+        />
+      );
+    }
     // Admin preview mode — never strand the admin without a way back
     if (mode === 'admin') {
       return (
