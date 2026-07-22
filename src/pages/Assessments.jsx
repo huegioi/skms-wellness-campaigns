@@ -268,6 +268,14 @@ export default function Assessments() {
           </div>
         )}
 
+        {/* ── ROI Journeys ── */}
+        <div className="flex items-center justify-between mb-4 mt-8">
+          <h2 className="text-lg font-bold text-[#264d44] flex items-center gap-2">
+            <Link2 className="w-5 h-5 text-[#0f766e]" />
+            Mental Fitness Journeys
+          </h2>
+        </div>
+
         <AssessmentShareCard
           title="The Mental Fitness Journey"
           subtitle="ROI projection + team assessment — share it anywhere"
@@ -279,14 +287,6 @@ export default function Assessments() {
           qrTitle="The Mental Fitness Journey"
           qrSubtitle="Scan to start your journey"
         />
-
-        {/* ── ROI Journeys ── */}
-        <div className="flex items-center justify-between mb-4 mt-8">
-          <h2 className="text-lg font-bold text-[#264d44] flex items-center gap-2">
-            <Link2 className="w-5 h-5 text-[#0f766e]" />
-            Mental Fitness Journeys
-          </h2>
-        </div>
 
         <JourneyAssessmentTable journeys={visibleJourneys} origin={origin} copyLink={copyLink} />
       </div>
