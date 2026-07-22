@@ -1,5 +1,6 @@
 import React from 'react';
 import { SCORE_ZONES, getZone, MFS_INSTRUMENTS } from '@/lib/mfsScore';
+import JourneyEvidenceBlock from '@/components/fitnessroi/JourneyEvidenceBlock';
 
 const DOMAINS = [
   { key: 'who5', label: 'Wellbeing' },
@@ -10,9 +11,15 @@ const DOMAINS = [
 
 const COLOR_MAP = Object.fromEntries(MFS_INSTRUMENTS.map(i => [i.key, i.color]));
 
+const ZONE_LABEL_COLORS = {
+  Low: 'text-rose-400',
+  Typical: 'text-gray-400',
+  High: 'text-emerald-400',
+};
+
 export default function JourneyScoreBars({ scores }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {DOMAINS.map(d => {
         const score = scores?.[d.key];
         const zones = SCORE_ZONES[d.key]?.zones || [];
@@ -23,9 +30,18 @@ export default function JourneyScoreBars({ scores }) {
               <span className="font-medium">{d.label}</span>
               <span className="font-semibold" style={{ color: COLOR_MAP[d.key] || '#4a2040' }}>
                 {score != null ? Math.round(score) : '—'}
-                {zone && <span className="ml-1.5 text-xs text-stone-400">· {zone}</span>}
+                {zone && <span className={`ml-1.5 text-xs font-medium ${ZONE_LABEL_COLORS[zone] || 'text-stone-400'}`}>· {zone}</span>}
               </span>
             </div>
+
+            {/* Zone labels */}
+            <div className="flex text-[8px] text-stone-300 mb-0.5 select-none">
+              {zones.map((z, i) => (
+                <span key={z.label} style={{ width: `${z.max - (zones[i - 1]?.max || 0)}%` }}>{z.label}</span>
+              ))}
+            </div>
+
+            {/* Zone bar + score marker */}
             <div className="relative">
               <div className="relative h-3 rounded-full overflow-hidden flex">
                 {zones.map((z, i) => (
@@ -40,6 +56,8 @@ export default function JourneyScoreBars({ scores }) {
                 />
               )}
             </div>
+
+            <JourneyEvidenceBlock instrumentKey={d.key} score={score} />
           </div>
         );
       })}

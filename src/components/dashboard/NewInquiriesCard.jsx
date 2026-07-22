@@ -15,10 +15,12 @@ export default function NewInquiriesCard() {
   // Exclude demo/broker-demo records from dashboard metrics
   const allLeads = rawLeads.filter(l => !l.is_demo);
 
-  // Include both Quick Builder and Mental Fitness Score inquiries
+  // Include Quick Builder, Mental Fitness Score, and Mental Fitness Journey inquiries
   const newInquiries = allLeads.filter(l => {
     if (isNewQuickBuilderInquiry(l)) return true;
-    return (l.source || '').startsWith('Mental Fitness Score') &&
+    const source = l.source || '';
+    const isAssessment = source.startsWith('Mental Fitness Score') || source.startsWith('Mental Fitness Journey');
+    return isAssessment &&
            (l.status || 'cold') === 'cold' &&
            !l.last_contacted_date;
   });
@@ -36,6 +38,13 @@ export default function NewInquiriesCard() {
     staleTime: 60_000,
   });
 
+  // Fetch MfsJourney records to map lead_id → client_id for Journey-sourced leads
+  const { data: journeys = [] } = useQuery({
+    queryKey: ['mfs-journeys', 'for-inquiries'],
+    queryFn: () => base44.entities.MfsJourney.list('-created_date', 100),
+    staleTime: 60_000,
+  });
+
   const leadToAssessment = useMemo(() => {
     const map = {};
     for (const a of mfsAssessments) {
@@ -43,6 +52,14 @@ export default function NewInquiriesCard() {
     }
     return map;
   }, [mfsAssessments]);
+
+  const journeyByLeadId = useMemo(() => {
+    const map = {};
+    for (const j of journeys) {
+      if (j.lead_id) map[j.lead_id] = j;
+    }
+    return map;
+  }, [journeys]);
 
   const responseCountByClient = useMemo(() => {
     const map = {};
@@ -102,8 +119,11 @@ export default function NewInquiriesCard() {
           const wantsBoxes = parseWellnessBoxesPreference(lead.notes);
           const selCount = lead.quickbuilder_selections?.length || 0;
           const isMfs = (lead.source || '').startsWith('Mental Fitness Score');
+          const isJourney = (lead.source || '').startsWith('Mental Fitness Journey');
           const assessment = leadToAssessment[lead.id];
-          const responseCount = assessment ? (responseCountByClient[assessment.client_id] || 0) : 0;
+          const journey = journeyByLeadId[lead.id];
+          const responseClientId = assessment?.client_id || journey?.client_id;
+          const responseCount = responseClientId ? (responseCountByClient[responseClientId] || 0) : 0;
           return (
             <div
               key={lead.id}
@@ -160,6 +180,11 @@ export default function NewInquiriesCard() {
                   {isMfs && (
                     <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
                       <ClipboardCheck className="w-2.5 h-2.5" />Assessment · {responseCount} response{responseCount !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                  {isJourney && (
+                    <span className="text-[10px] bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
+                      <ClipboardCheck className="w-2.5 h-2.5" />Journey · {responseCount} response{responseCount !== 1 ? 's' : ''}
                     </span>
                   )}
                 </div>

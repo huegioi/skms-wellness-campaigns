@@ -91,7 +91,7 @@ function ClientAlertBadges({ client, isSalesStage }) {
   );
 }
 
-function StageColumn({ stage, clients, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onDelete, onClientClick, onHeaderClick, isSalesStage, snapshots, responseCountByClient }) {
+function StageColumn({ stage, clients, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onDelete, onClientClick, onHeaderClick, isSalesStage, snapshots, responseCountByClient, journeyClientIds }) {
   return (
     <div className="w-56 flex-shrink-0">
       <div
@@ -145,9 +145,13 @@ function StageColumn({ stage, clients, onOwnerChange, onStageChange, onTagsChang
                         <>
                           {client.is_assessment_lead && (
                             <div className="mb-1">
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-purple-700 bg-purple-50 border border-purple-200 rounded-full px-2 py-0.5">
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-semibold rounded-full px-2 py-0.5 border ${
+                                journeyClientIds.has(client.id)
+                                  ? 'text-teal-700 bg-teal-50 border-teal-200'
+                                  : 'text-purple-700 bg-purple-50 border-purple-200'
+                              }`}>
                                 <ClipboardCheck className="w-2.5 h-2.5" />
-                                MFS · {responseCountByClient[client.id] || 0} responses
+                                {journeyClientIds.has(client.id) ? 'Journey' : 'MFS'} · {responseCountByClient[client.id] || 0} responses
                               </span>
                             </div>
                           )}
@@ -195,6 +199,19 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
     }
     return map;
   }, [mfsResponses]);
+
+  // Fetch MfsJourney records to distinguish Journey-sourced clients from MFS
+  const { data: journeys = [] } = useQuery({
+    queryKey: ['mfs-journeys', 'pipeline'],
+    queryFn: () => base44.entities.MfsJourney.list('-created_date', 200),
+  });
+  const journeyClientIds = useMemo(() => {
+    const set = new Set();
+    for (const j of journeys) {
+      if (j.client_id) set.add(j.client_id);
+    }
+    return set;
+  }, [journeys]);
 
   // Reuse the delivery hook's events cache for "renewal review booked" checks
   const { data: renewalEvents = [] } = useQuery({
@@ -291,6 +308,7 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
     onClientClick,
     onHeaderClick: setPlaybookStage,
     responseCountByClient,
+    journeyClientIds,
   };
 
   return (

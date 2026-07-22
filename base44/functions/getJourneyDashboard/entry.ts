@@ -103,11 +103,55 @@ function computeDomainOpportunity(teamScores, teamDrivers) {
     }
     raws[domain] = sum * gapFactor;
   }
+
+  // If only one (or zero) domain has a gap, blend in secondary matrix weights
+  // so the split stays plausible instead of showing 100% in one domain.
+  const domainsWithGap = domains.filter(d => raws[d] > 0);
+  if (domainsWithGap.length <= 1) {
+    for (const domain of domains) {
+      if (raws[domain] > 0) continue;
+      let secondarySum = 0;
+      for (const [driver, weights] of Object.entries(DOMAIN_WEIGHTS)) {
+        secondarySum += (teamDrivers[driver] || 0) * (weights[domain] || 0) * 0.15;
+      }
+      raws[domain] = secondarySum;
+    }
+  }
+
   const total = Object.values(raws).reduce((a, b) => a + b, 0);
+  if (total === 0) {
+    return domains.map(d => ({ key: d, label: DOMAIN_LABELS[d], share: 0 }))
+      .sort((a, b) => b.share - a.share);
+  }
+
+  // Raw percentages
+  const shares = {};
+  for (const d of domains) shares[d] = (raws[d] / total) * 100;
+
+  // Floor domains with any gap at 10%, cap max at 60%
+  for (const d of domains) {
+    if (raws[d] > 0) shares[d] = Math.max(10, shares[d]);
+    shares[d] = Math.min(60, shares[d]);
+  }
+
+  // Renormalize after floor/cap
+  const sumAfter = domains.reduce((s, d) => s + shares[d], 0);
+  for (const d of domains) shares[d] = (shares[d] / sumAfter) * 100;
+
+  // Round to nearest 5%
+  for (const d of domains) shares[d] = Math.round(shares[d] / 5) * 5;
+
+  // Fix rounding so shares sum to exactly 100
+  const roundedSum = domains.reduce((s, d) => s + shares[d], 0);
+  if (roundedSum !== 100 && roundedSum > 0) {
+    const largest = domains.reduce((a, b) => shares[a] >= shares[b] ? a : b);
+    shares[largest] = Math.max(0, shares[largest] + (100 - roundedSum));
+  }
+
   return domains.map(d => ({
     key: d,
     label: DOMAIN_LABELS[d],
-    share: total > 0 ? Math.round((raws[d] / total) * 20) * 5 : 0,
+    share: shares[d],
   })).sort((a, b) => b.share - a.share);
 }
 

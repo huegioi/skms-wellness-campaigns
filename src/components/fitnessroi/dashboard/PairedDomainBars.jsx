@@ -1,5 +1,6 @@
 import React from 'react';
-import { SCORE_ZONES, getZone } from '@/lib/mfsScore';
+import { SCORE_ZONES, getZone, MFS_INSTRUMENTS } from '@/lib/mfsScore';
+import JourneyEvidenceBlock from '@/components/fitnessroi/JourneyEvidenceBlock';
 
 const DOMAINS = [
   { key: 'who5', label: 'Wellbeing' },
@@ -8,9 +9,11 @@ const DOMAINS = [
   { key: 'ucla3', label: 'Connection' },
 ];
 
+const COLOR_MAP = Object.fromEntries(MFS_INSTRUMENTS.map(i => [i.key, i.color]));
+
 export default function PairedDomainBars({ leaderScores, teamScores }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {DOMAINS.map(d => {
         const leader = leaderScores?.[d.key];
         const team = teamScores?.[d.key];
@@ -21,7 +24,17 @@ export default function PairedDomainBars({ leaderScores, teamScores }) {
         ];
         return (
           <div key={d.key}>
-            <p className="text-sm font-medium text-stone-600 mb-2">{d.label}</p>
+            <div className="flex justify-between items-baseline mb-2">
+              <p className="text-sm font-medium text-stone-600">{d.label}</p>
+              {leader != null && team != null && (
+                <p className="text-[10px] text-stone-400">
+                  You: {Math.round(leader)} · Team: {Math.round(team)}
+                  <span className={`ml-1 font-semibold ${team < leader ? 'text-amber-600' : team > leader ? 'text-emerald-600' : 'text-stone-400'}`}>
+                    ({team > leader ? '+' : ''}{Math.round(team - leader)})
+                  </span>
+                </p>
+              )}
+            </div>
             <div className="space-y-1.5">
               {rows.map(row => (
                 <div key={row.label} className="flex items-center gap-2">
@@ -40,6 +53,7 @@ export default function PairedDomainBars({ leaderScores, teamScores }) {
                 </div>
               ))}
             </div>
+            <JourneyEvidenceBlock instrumentKey={d.key} score={team} />
           </div>
         );
       })}
