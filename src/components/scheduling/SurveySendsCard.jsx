@@ -9,6 +9,7 @@ const TYPE_LABELS = {
   enps_post_session: 'Post-Session eNPS',
   cohort_end: 'Cohort End',
   cohort_1mo: '30-Day Follow-Up',
+  journey_organizer_reminder: 'Journey Organizer Reminder',
 };
 
 const STATUS_CONFIG = {

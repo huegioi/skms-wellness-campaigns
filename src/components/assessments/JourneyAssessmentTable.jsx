@@ -17,7 +17,7 @@ export default function JourneyAssessmentTable({ journeys, origin, copyLink }) {
     return (
       <div className="bg-white rounded-xl p-12 text-center shadow">
         <Link2 className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-        <p className="text-gray-500">No ROI Journeys yet.</p>
+        <p className="text-gray-500">No Mental Fitness Journeys yet.</p>
       </div>
     );
   }
@@ -45,7 +45,7 @@ export default function JourneyAssessmentTable({ journeys, origin, copyLink }) {
               <tr key={j.id} className="border-b border-gray-50 hover:bg-gray-50/50">
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full font-bold shrink-0">MFS·ROI</span>
+                    <span className="text-[10px] bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full font-bold shrink-0">MFJ</span>
                     <span className="font-semibold text-sm text-gray-800">{j.company_name || '—'}</span>
                     {j.is_demo && <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-bold">DEMO</span>}
                   </div>

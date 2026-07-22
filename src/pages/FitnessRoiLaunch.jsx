@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Loader2, AlertCircle } from 'lucide-react';
 import PrivacyEducation from '@/components/fitnessroi/launch/PrivacyEducation';
-import EmailPreviewModal from '@/components/fitnessroi/launch/EmailPreviewModal';
 import SurveyPreviewModal from '@/components/fitnessroi/launch/SurveyPreviewModal';
 import SendOptions from '@/components/fitnessroi/launch/SendOptions';
 import LaunchConfirmation from '@/components/fitnessroi/launch/LaunchConfirmation';
@@ -52,7 +51,7 @@ export default function FitnessRoiLaunch() {
     return (
       <div className="min-h-screen bg-[#fdfbf7]" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div className="max-w-lg mx-auto px-5 py-12">
-          <LaunchConfirmation magicKey={magicKey} mode={launched.mode} sentCount={launched.sent_count} suppressedCount={launched.suppressed_count} />
+          <LaunchConfirmation magicKey={magicKey} />
         </div>
       </div>
     );
@@ -62,17 +61,16 @@ export default function FitnessRoiLaunch() {
     <div className="min-h-screen bg-[#fdfbf7]" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <div className="max-w-lg mx-auto px-5 py-8 space-y-8">
         <div>
-          <p className="text-xs uppercase tracking-widest text-[#0f766e] font-semibold mb-1">Launch your team assessment</p>
+          <p className="text-xs uppercase tracking-widest text-[#0f766e] font-semibold mb-1">Mental Fitness Journey</p>
           <h1 className="text-2xl font-bold text-[#4a2040]">{journey.company_name ? journey.company_name : 'Your team'} is ready to go</h1>
         </div>
         <PrivacyEducation />
         <div className="space-y-3">
-          <h2 className="text-lg font-bold text-[#4a2040]">Preview before sending</h2>
-          <EmailPreviewModal companyName={journey.company_name} surveyUrl={surveyUrl} />
+          <h2 className="text-lg font-bold text-[#4a2040]">Preview the survey</h2>
           <SurveyPreviewModal />
         </div>
         <div className="space-y-3">
-          <h2 className="text-lg font-bold text-[#4a2040]">Send to your team</h2>
+          <h2 className="text-lg font-bold text-[#4a2040]">Share with your team</h2>
           <SendOptions magicKey={magicKey} surveyUrl={surveyUrl} onLaunched={setLaunched} />
         </div>
       </div>

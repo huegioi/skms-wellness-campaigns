@@ -44,6 +44,11 @@ Deno.serve(async (req) => {
 });
 
 async function processSend(base44, send) {
+  // Journey organizer reminders — link-only flow, no employee emails
+  if (send.send_type === 'journey_organizer_reminder') {
+    return await processJourneyOrganizerReminder(base44, send);
+  }
+
   // Check attendee_emails_allowed
   const clients = send.client_id ? await base44.asServiceRole.entities.Client.filter({ id: send.client_id }) : [];
   const client = clients[0];
@@ -237,4 +242,118 @@ async function sendReminderEmail(to, token) {
     })
   });
   if (!resp.ok) throw new Error(`SendGrid ${resp.status}`);
+}
+
+async function processJourneyOrganizerReminder(base44, send) {
+  const journeys = send.journey_id
+    ? await base44.asServiceRole.entities.MfsJourney.filter({ id: send.journey_id })
+    : [];
+  const journey = journeys[0];
+
+  if (!journey) {
+    await base44.asServiceRole.entities.ScheduledSurveySend.update(send.id, {
+      status: 'skipped', skip_reason: 'Journey no longer exists', sent_at: new Date().toISOString()
+    });
+    return { skipped: true };
+  }
+
+  if (journey.is_demo) {
+    await base44.asServiceRole.entities.ScheduledSurveySend.update(send.id, {
+      status: 'skipped', skip_reason: 'Demo journey', sent_at: new Date().toISOString()
+    });
+    return { skipped: true };
+  }
+
+  const organizerEmail = (journey.email || '').toLowerCase().trim();
+  if (!organizerEmail) {
+    await base44.asServiceRole.entities.ScheduledSurveySend.update(send.id, {
+      status: 'skipped', skip_reason: 'No organizer email on file', sent_at: new Date().toISOString()
+    });
+    return { skipped: true };
+  }
+
+  // Suppression check
+  const suppressed = await base44.asServiceRole.entities.EmailSuppression.filter({ email: organizerEmail });
+  if (suppressed && suppressed.length > 0) {
+    await base44.asServiceRole.entities.ScheduledSurveySend.update(send.id, {
+      status: 'skipped', skip_reason: 'Organizer unsubscribed', sent_at: new Date().toISOString()
+    });
+    return { skipped: true };
+  }
+
+  // Check if converted (is_assessment_lead turned false)
+  if (journey.client_id) {
+    const clients = await base44.asServiceRole.entities.Client.filter({ id: journey.client_id });
+    const client = clients[0];
+    if (client && client.is_assessment_lead === false) {
+      await base44.asServiceRole.entities.ScheduledSurveySend.update(send.id, {
+        status: 'skipped', skip_reason: 'Lead converted to client', sent_at: new Date().toISOString()
+      });
+      return { skipped: true };
+    }
+  }
+
+  // Count responses (unique _sid values)
+  const allResponses = await base44.asServiceRole.entities.CohortAssessment.filter(
+    { client_id: journey.client_id, survey_type: 'mfs' }, '-submitted_at', 4000
+  );
+  const sids = new Set();
+  for (const r of allResponses) {
+    const sid = r.instrument_subscores?._sid;
+    if (sid) sids.add(sid);
+  }
+  const responseCount = sids.size;
+
+  // Skip if responses >= 60% of team size
+  const headcount = journey.headcount || 0;
+  if (headcount > 0 && responseCount / headcount >= 0.6) {
+    await base44.asServiceRole.entities.ScheduledSurveySend.update(send.id, {
+      status: 'skipped',
+      skip_reason: `Strong participation (${responseCount}/${headcount} = ${Math.round(responseCount / headcount * 100)}%)`,
+      sent_at: new Date().toISOString()
+    });
+    return { skipped: true };
+  }
+
+  // Send the organizer reminder email
+  const surveyUrl = `${APP_URL}/MfsJourneySurvey?token=${journey.survey_token}`;
+  const dashboardUrl = `${APP_URL}/FitnessRoi/dashboard?k=${journey.magic_key}`;
+  const unsubLink = `${APP_URL}/Unsubscribe?email=${encodeURIComponent(organizerEmail)}`;
+  const companyName = journey.company_name || 'your team';
+
+  const subject = `Your Mental Fitness Journey — ${responseCount} response${responseCount !== 1 ? 's' : ''} so far`;
+  const html = `<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px;">
+<h2 style="color:#0f766e;">${responseCount} ${responseCount === 1 ? 'person has' : 'people have'} taken your survey so far</h2>
+<p style="color:#444;font-size:14px;line-height:1.6;">Hi ${journey.contact_name || 'there'},</p>
+<p style="color:#444;font-size:14px;line-height:1.6;">Your Mental Fitness Journey team survey is live for <strong>${companyName}</strong>. Right now <strong>${responseCount}</strong> ${responseCount === 1 ? 'person has' : 'people have'} responded.</p>
+<p style="color:#444;font-size:14px;line-height:1.6;">For reliable results, re-send the survey link to everyone you shared it with — teams typically need at least 2 reminders to reach good participation.</p>
+<a href="${surveyUrl}" style="display:inline-block;background:#0f766e;color:white;padding:14px 36px;border-radius:9999px;text-decoration:none;font-weight:600;margin:16px 0;font-size:15px;">Survey link</a>
+<a href="${dashboardUrl}" style="display:inline-block;background:#4a2040;color:white;padding:14px 36px;border-radius:9999px;text-decoration:none;font-weight:600;margin:16px 0;font-size:15px;">View results</a>
+<p style="color:#888;font-size:12px;margin-top:20px;"><a href="${unsubLink}" style="color:#888;">Unsubscribe</a></p>
+</body></html>`;
+
+  try {
+    const resp = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${SENDGRID_API_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: organizerEmail }] }],
+        from: { email: FROM_EMAIL, name: FROM_NAME },
+        subject,
+        content: [{ type: 'text/html', value: html }]
+      })
+    });
+    if (!resp.ok) throw new Error(`SendGrid ${resp.status}: ${await resp.text()}`);
+  } catch (err) {
+    await base44.asServiceRole.entities.ScheduledSurveySend.update(send.id, {
+      status: 'sent', error_message: err.message, sent_at: new Date().toISOString()
+    });
+    return { skipped: false };
+  }
+
+  await base44.asServiceRole.entities.ScheduledSurveySend.update(send.id, {
+    status: 'sent', recipient_count: 1, sent_at: new Date().toISOString()
+  });
+
+  return { skipped: false };
 }

@@ -238,7 +238,7 @@ Deno.serve(async (req) => {
       });
       clientId = client.id;
 
-      const source = ref ? `MFS ROI Journey (${ref})` : 'MFS ROI Journey';
+      const source = ref ? `Mental Fitness Journey (${ref})` : 'Mental Fitness Journey';
       const lead = await base44.asServiceRole.entities.Lead.create({
         name: contact_name, email: normalizedEmail, company: company_name || undefined,
         company_size: sizeBracket, industry: industry || undefined,
@@ -272,12 +272,12 @@ Deno.serve(async (req) => {
             const referral = await base44.asServiceRole.entities.Referral.create({
               referral_partner_id: partner.id, referral_partner_name: partner.name,
               referred_lead_id: leadId, contact_name, contact_email: normalizedEmail,
-              company_name, notes: `MFS ROI Journey · Composite: ${Math.round(quick_scores.composite)}/100`,
+              company_name, notes: `Mental Fitness Journey · Composite: ${Math.round(quick_scores.composite)}/100`,
               referral_date: new Date().toISOString(), status: 'pending_review',
             });
             await base44.asServiceRole.entities.ReferralActivity.create({
               referral_partner_id: partner.id, referral_id: referral.id,
-              message: `New MFS ROI referral: ${company_name || contact_name}`,
+              message: `New Mental Fitness Journey referral: ${company_name || contact_name}`,
               activity_date: new Date().toISOString(),
             });
           }
@@ -317,7 +317,7 @@ Deno.serve(async (req) => {
     // b) Internal team alert
     if (teamEmails) {
       const alertHtml = `<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px;">
-<h2 style="color:#4a2040;">New MFS ROI Journey</h2>
+<h2 style="color:#4a2040;">New Mental Fitness Journey</h2>
 <table style="font-size:14px;color:#444;border-collapse:collapse;">
 <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Contact:</td><td>${escapeHtml(contact_name)}</td></tr>
 <tr><td style="padding:4px 12px 4px 0;font-weight:600;">Company:</td><td>${escapeHtml(company_name) || '—'}</td></tr>
@@ -332,14 +332,14 @@ Deno.serve(async (req) => {
       let alertSent = false;
       for (const teamEmail of emailList) {
         try {
-          const sent = await sendSendGrid(teamEmail, `New MFS ROI Journey: ${company_name || contact_name}`, alertHtml);
+          const sent = await sendSendGrid(teamEmail, `New Mental Fitness Journey: ${company_name || contact_name}`, alertHtml);
           if (sent) alertSent = true;
         } catch (e) { console.error('Team alert email failed:', e.message); }
       }
       if (alertSent) {
         await base44.asServiceRole.entities.EmailLog.create({
           from_email: 'admin@skillfulmeans.life', to_email: teamEmails,
-          subject: `New MFS ROI Journey: ${company_name || contact_name}`,
+          subject: `New Mental Fitness Journey: ${company_name || contact_name}`,
           body_preview: `${contact_name} at ${company_name || '—'} — ${headcountNum} employees, ${industry || '—'}. Composite: ${Math.round(quick_scores.composite)}/100. Projected annual savings: $${Math.round(roiResult.annualSavings).toLocaleString()}.`,
           date: now, direction: 'outbound', matched_client_id: clientId, matched_lead_id: leadId,
         });

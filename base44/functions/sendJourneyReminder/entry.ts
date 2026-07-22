@@ -35,6 +35,12 @@ Deno.serve(async (req) => {
     }
     const journey = journeys[0];
 
+    // Organizer-only nudge — no employee emails
+    const organizerEmail = (journey.email || '').toLowerCase().trim();
+    if (!organizerEmail) {
+      return Response.json({ error: 'no_organizer_email' }, { status: 400 });
+    }
+
     // 48h rate limit
     const reminders = journey.reminder_sent_at || [];
     if (reminders.length > 0) {
@@ -46,57 +52,59 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Get recipient list from EmailLog (original invite emails)
-    const emailLogs = await base44.asServiceRole.entities.EmailLog.filter(
-      { matched_client_id: journey.client_id, direction: 'outbound' }, '-date', 500
-    );
-    const inviteEmails = emailLogs
-      .filter(log => log.subject && log.subject.startsWith('3 minutes, fully anonymous'))
-      .map(log => log.to_email)
-      .filter(Boolean);
-    const uniqueRecipients = [...new Set(inviteEmails)];
-
-    if (uniqueRecipients.length === 0) {
-      return Response.json({ error: 'no_recipients' }, { status: 400 });
+    // Suppression check
+    const suppressed = await base44.asServiceRole.entities.EmailSuppression.filter({ email: organizerEmail });
+    if (suppressed && suppressed.length > 0) {
+      return Response.json({ error: 'suppressed' }, { status: 400 });
     }
+
+    // Count responses (unique _sid values)
+    const allResponses = await base44.asServiceRole.entities.CohortAssessment.filter(
+      { client_id: journey.client_id, survey_type: 'mfs' }, '-submitted_at', 4000
+    );
+    const sids = new Set();
+    for (const r of allResponses) {
+      const sid = r.instrument_subscores?._sid;
+      if (sid) sids.add(sid);
+    }
+    const responseCount = sids.size;
 
     const appUrl = new URL(req.url).origin;
     const surveyUrl = `${appUrl}/MfsJourneySurvey?token=${journey.survey_token}`;
+    const dashboardUrl = `${appUrl}/FitnessRoi/dashboard?k=${journey.magic_key}`;
+    const unsubLink = `${appUrl}/Unsubscribe?email=${encodeURIComponent(organizerEmail)}`;
     const companyName = journey.company_name || 'your team';
-    const subject = `Reminder: 3 minutes, fully anonymous — help shape wellbeing at ${companyName}`;
+
+    const subject = `Your Mental Fitness Journey — ${responseCount} response${responseCount !== 1 ? 's' : ''} so far`;
     const html = `<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px;">
-<h2 style="color:#0f766e;">A quick reminder — 3 minutes, fully anonymous</h2>
-<p style="color:#444;font-size:14px;line-height:1.6;">This is a friendly reminder from your leadership team to take the wellbeing check-in. It takes about 3 minutes, and your answers are <strong>fully anonymous</strong> — no name, no email, no account. Individual responses are never shown to your employer.</p>
-<a href="${surveyUrl}" style="display:inline-block;background:#0f766e;color:white;padding:14px 36px;border-radius:9999px;text-decoration:none;font-weight:600;margin:16px 0;font-size:15px;">Take the 3-minute survey</a>
-<p style="color:#888;font-size:12px;margin-top:20px;">Your participation is voluntary. Questions? <a href="mailto:admin@skillfulmeans.life" style="color:#0f766e;">admin@skillfulmeans.life</a></p>
+<h2 style="color:#0f766e;">${responseCount} ${responseCount === 1 ? 'person has' : 'people have'} taken your survey so far</h2>
+<p style="color:#444;font-size:14px;line-height:1.6;">Hi ${journey.contact_name || 'there'},</p>
+<p style="color:#444;font-size:14px;line-height:1.6;">Your Mental Fitness Journey team survey is live for <strong>${companyName}</strong>. Right now <strong>${responseCount}</strong> ${responseCount === 1 ? 'person has' : 'people have'} responded.</p>
+<p style="color:#444;font-size:14px;line-height:1.6;">For reliable results, re-send the survey link to everyone you shared it with — teams typically need at least 2 reminders to reach good participation.</p>
+<a href="${surveyUrl}" style="display:inline-block;background:#0f766e;color:white;padding:14px 36px;border-radius:9999px;text-decoration:none;font-weight:600;margin:16px 0;font-size:15px;">Survey link</a>
+<a href="${dashboardUrl}" style="display:inline-block;background:#4a2040;color:white;padding:14px 36px;border-radius:9999px;text-decoration:none;font-weight:600;margin:16px 0;font-size:15px;">View results</a>
+<p style="color:#888;font-size:12px;margin-top:20px;"><a href="${unsubLink}" style="color:#888;">Unsubscribe</a></p>
 </body></html>`;
 
     const now = new Date().toISOString();
-    let sentCount = 0;
-    let suppressedCount = 0;
-
-    for (const email of uniqueRecipients) {
-      const suppressed = await base44.asServiceRole.entities.EmailSuppression.filter({ email });
-      if (suppressed && suppressed.length > 0) { suppressedCount++; continue; }
-      try {
-        const sent = await sendSendGrid(email, subject, html);
-        if (sent) {
-          sentCount++;
-          await base44.asServiceRole.entities.EmailLog.create({
-            from_email: 'admin@skillfulmeans.life', to_email: email,
-            subject, body_preview: `Reminder: anonymous team wellbeing survey. Survey link: ${surveyUrl}`,
-            date: now, direction: 'outbound',
-            matched_client_id: journey.client_id, matched_lead_id: journey.lead_id,
-          });
-        }
-      } catch (e) { console.error(`Reminder failed for ${email}:`, e.message); }
+    const sent = await sendSendGrid(organizerEmail, subject, html);
+    if (sent) {
+      await base44.asServiceRole.entities.EmailLog.create({
+        from_email: 'admin@skillfulmeans.life',
+        to_email: organizerEmail,
+        subject,
+        body_preview: `Mental Fitness Journey reminder — ${responseCount} responses. Survey: ${surveyUrl}`,
+        date: now,
+        direction: 'outbound',
+        matched_client_id: journey.client_id,
+        matched_lead_id: journey.lead_id,
+      });
     }
 
-    // Append to reminder_sent_at
     const updatedReminders = [...reminders, now];
     await base44.asServiceRole.entities.MfsJourney.update(journey.id, { reminder_sent_at: updatedReminders });
 
-    return Response.json({ success: true, sent_count: sentCount, suppressed_count: suppressedCount });
+    return Response.json({ success: true, sent_count: sent ? 1 : 0 });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

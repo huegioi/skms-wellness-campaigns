@@ -259,7 +259,7 @@ export default function Assessments() {
         <div className="flex items-center justify-between mb-4 mt-8">
           <h2 className="text-lg font-bold text-[#264d44] flex items-center gap-2">
             <Link2 className="w-5 h-5 text-[#0f766e]" />
-            ROI Journeys
+            Mental Fitness Journeys
           </h2>
         </div>
 

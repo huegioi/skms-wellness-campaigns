@@ -132,7 +132,7 @@ export default function FitnessRoiDashboard() {
         <div>
           <p className="text-xs uppercase tracking-widest text-stone-400 mb-1">Boost your response rate</p>
           <p className="text-xs text-stone-500 mb-4 leading-relaxed">
-            A short nudge in your own words usually works best — or send our one-click reminder (available once every 48 hours).
+            Share the survey link with your team, or email it to yourself as a handy reminder. We'll also nudge you automatically on day 3 and day 7.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <ReminderButton magicKey={magicKey} reminderSentAt={data.reminder_sent_at} />
