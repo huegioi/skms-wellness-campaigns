@@ -19,10 +19,11 @@ const STAGE_SUMMARY = {
 };
 
 const DRIVER_KEYS = ['medical', 'absenteeism', 'presenteeism', 'turnover', 'workersComp'];
-const GAP_THRESHOLD = 5; // points — below this, a domain is "close to your estimate"
+const GAP_THRESHOLD = 5;
 
-// Stress (pss4) is stored inverted (higher = better). For the gap display we
-// flip it back to "% high stress" so the number reads intuitively (higher = worse).
+const COLOR_A = '#a8a29e'; // stone-400 — estimate
+const COLOR_B = '#0f766e'; // brand teal — real data
+
 function domainDisplay(domainKey, score) {
   if (domainKey === 'pss4') {
     return { value: Math.round(100 - score), suffix: '% high stress' };
@@ -30,16 +31,29 @@ function domainDisplay(domainKey, score) {
   return { value: Math.round(score), suffix: '' };
 }
 
+// Nice-step ceiling: headroom never exceeds ~15% above the tallest bar
+function niceMax(rawMax) {
+  if (rawMax <= 0) return 100;
+  const step = Math.pow(10, Math.floor(Math.log10(rawMax / 5)));
+  const stepped = Math.ceil(rawMax / step) * step;
+  // If the stepped ceiling gives more than 15% headroom, try a finer step
+  if (stepped > rawMax * 1.15) {
+    const finer = step / 2;
+    const finerStepped = Math.ceil(rawMax / finer) * finer;
+    return finerStepped > rawMax * 1.15 ? finerStepped : stepped;
+  }
+  return stepped;
+}
+
 export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stressRateReal, leaderScores, teamScores }) {
   const [stageNum, setStageNum] = useState(roiInputs?.stageNum || 2);
 
-  // Reactive ROI — re-run with the selected stage and real stress rate
   const reactiveRoi = useMemo(() => {
     if (!roiInputs) return teamRoi;
     return runRoi({ ...roiInputs, stressRate: stressRateReal, stageNum });
   }, [roiInputs, stressRateReal, stageNum, teamRoi]);
 
-  // Lock the y-axis ONCE: max value across both charts and all slider stages
+  // Locked y-axis max — computed once across both charts and all stages
   const globalMax = useMemo(() => {
     let max = 0;
     if (preliminaryRoi?.drivers) {
@@ -51,14 +65,11 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
         for (const k of DRIVER_KEYS) max = Math.max(max, r.drivers[k] || 0);
       }
     }
-    if (max <= 0) return 100;
-    const mag = Math.pow(10, Math.floor(Math.log10(max)));
-    return Math.ceil(max / mag) * mag;
+    return niceMax(max);
   }, [preliminaryRoi, roiInputs, stressRateReal]);
 
   const stage = STAGES[stageNum - 1];
 
-  // Gap comparison — split domains into "diverged" and "close"
   const { gaps, closeDomains } = useMemo(() => {
     const gaps = [];
     const closeDomains = [];
@@ -70,7 +81,6 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
       const realDisp = domainDisplay(d.key, real);
       const delta = realDisp.value - estDisp.value;
       if (Math.abs(delta) >= GAP_THRESHOLD) {
-        // For stress, team worse = delta > 0. For others, team worse = delta < 0.
         const teamWorse = d.key === 'pss4' ? delta > 0 : delta < 0;
         gaps.push({ domain: d, estDisp, realDisp, delta, teamWorse });
       } else {
@@ -84,22 +94,28 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
     <div className="bg-white rounded-2xl border border-stone-200 border-l-4 border-l-[#0f766e] p-6 shadow-sm">
       <h2 className="text-lg font-bold text-[#4a2040] mb-4">Your ROI, re-run on real data</h2>
 
-      {/* ── Gap comparison — the section's headline ── */}
+      {/* ── Gap comparison — aligned grid ── */}
       <div className="bg-red-50/60 rounded-xl p-4 mb-6 border border-red-100">
-        <p className="text-xs uppercase tracking-widest text-red-700/70 font-semibold mb-3">Where your read diverged from your team's</p>
+        <p className="text-xs uppercase tracking-widest text-red-700/70 font-semibold mb-3">
+          Where your read diverged from your team's
+        </p>
         {gaps.length > 0 ? (
-          <div className="space-y-2.5">
+          <div className="space-y-2">
             {gaps.map((g) => (
-              <div key={g.domain.key} className="flex items-center gap-2 text-sm flex-wrap">
-                <span className="font-semibold text-stone-700 min-w-[80px]">{g.domain.label}</span>
+              <div
+                key={g.domain.key}
+                className="grid grid-cols-[80px_1fr_1fr_auto] items-center gap-3 text-sm"
+              >
+                <span className="font-semibold text-stone-700">{g.domain.label}</span>
                 <span className="text-stone-500">
-                  You estimated:{' '}
+                  <span className="text-[10px] text-stone-400 uppercase tracking-wide mr-1">Est.</span>
                   <span className="font-medium text-stone-700">
                     {g.estDisp.value}
                     {g.estDisp.suffix}
                   </span>
-                  <span className="text-stone-300 mx-1.5">·</span>
-                  Your team reports:{' '}
+                </span>
+                <span className="text-stone-500">
+                  <span className="text-[10px] text-stone-400 uppercase tracking-wide mr-1">Team</span>
                   <span className="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
                     {g.realDisp.value}
                     {g.realDisp.suffix}
@@ -126,58 +142,62 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
         )}
       </div>
 
-      {/* ── Two charts, same locked y-scale ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-        {/* Chart A — static reference */}
+      {/* ── Two charts — equal columns, same locked y-scale ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
         <div>
-          <p className="text-xs font-semibold text-stone-500 mb-2">
+          <p className="text-xs font-semibold text-stone-500 mb-2 flex items-center gap-1.5">
+            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLOR_A }} />
             Projected savings — based on your estimate
           </p>
-          {preliminaryRoi?.drivers && <SavingsChart drivers={preliminaryRoi.drivers} globalMax={globalMax} />}
-          <p className="text-[10px] text-stone-400 italic mt-1 text-center">
-            Static reference — your preliminary stress estimate
-          </p>
+          {preliminaryRoi?.drivers && (
+            <SavingsChart drivers={preliminaryRoi.drivers} globalMax={globalMax} barColor={COLOR_A} />
+          )}
         </div>
-
-        {/* Chart B + slider — same column, visually attached */}
-        <div className="md:border-l md:border-stone-100 md:pl-4">
-          <p className="text-xs font-semibold text-[#0f766e] mb-2">
+        <div>
+          <p className="text-xs font-semibold text-[#0f766e] mb-2 flex items-center gap-1.5">
+            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLOR_B }} />
             Projected savings — based on your team's real data
           </p>
-          {reactiveRoi?.drivers && <SavingsChart drivers={reactiveRoi.drivers} globalMax={globalMax} />}
-          <p className="text-[10px] text-stone-400 italic mt-1 text-center">Reacts to the stage slider below</p>
-
-          {/* Slider — directly beneath Chart B */}
-          <div className="mt-4 pt-4 border-t border-stone-100">
-            <div className="flex justify-between items-center mb-2">
-              <p className="text-xs uppercase tracking-widest text-stone-400">Program stage</p>
-              <span className="text-sm font-semibold text-[#0f766e]">
-                Program stage: {stage.num} — {stage.name}
-              </span>
-            </div>
-            <input
-              type="range"
-              min="1"
-              max="6"
-              step="1"
-              value={stageNum}
-              onChange={(e) => setStageNum(parseInt(e.target.value))}
-              className="w-full accent-[#0f766e] cursor-pointer"
-              style={{ height: '10px' }}
-            />
-            <div className="flex justify-between text-[10px] text-stone-400 mt-1">
-              {STAGES.map((s) => (
-                <span key={s.num} className={s.num === stageNum ? 'font-bold text-[#0f766e]' : ''}>
-                  {s.num}
-                </span>
-              ))}
-            </div>
-            <p className="text-xs text-stone-500 mt-3">{STAGE_SUMMARY[stage.num]}</p>
-            <p className="text-[10px] text-stone-400 italic mt-1">
-              Slide to compare program stages — Chart B updates live, Chart A stays fixed.
-            </p>
-          </div>
+          {reactiveRoi?.drivers && (
+            <SavingsChart drivers={reactiveRoi.drivers} globalMax={globalMax} barColor={COLOR_B} />
+          )}
         </div>
+      </div>
+
+      {/* ── Full-width slider panel ── */}
+      <div className="mt-4 bg-teal-50/50 rounded-xl p-4 border border-teal-100">
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex items-center gap-2">
+            <p className="text-xs uppercase tracking-widest text-stone-400">Program stage</p>
+            <span className="text-[10px] text-[#0f766e] bg-teal-100 px-2 py-0.5 rounded-full font-medium">
+              controls the teal chart →
+            </span>
+          </div>
+          <span className="text-sm font-semibold text-[#0f766e]">
+            Program stage: {stage.num} — {stage.name}
+          </span>
+        </div>
+        <input
+          type="range"
+          min="1"
+          max="6"
+          step="1"
+          value={stageNum}
+          onChange={(e) => setStageNum(parseInt(e.target.value))}
+          className="w-full accent-[#0f766e] cursor-pointer"
+          style={{ height: '10px' }}
+        />
+        <div className="flex justify-between text-[10px] text-stone-400 mt-1">
+          {STAGES.map((s) => (
+            <span key={s.num} className={s.num === stageNum ? 'font-bold text-[#0f766e]' : ''}>
+              {s.num}
+            </span>
+          ))}
+        </div>
+        <p className="text-xs text-stone-500 mt-3">{STAGE_SUMMARY[stage.num]}</p>
+        <p className="text-[10px] text-stone-400 italic mt-1">
+          Only the teal chart updates — your original estimate stays fixed for comparison.
+        </p>
       </div>
     </div>
   );
