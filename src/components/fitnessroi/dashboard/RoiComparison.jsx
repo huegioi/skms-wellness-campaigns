@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { runRoi, STAGES } from '@/lib/roiModel';
-import SavingsChart from '@/components/fitnessroi/dashboard/SavingsChart';
+import SavingsChart, { DRIVERS } from '@/components/fitnessroi/dashboard/SavingsChart';
 
 const DOMAINS = [
   { key: 'who5', label: 'Wellbeing' },
@@ -18,11 +18,7 @@ const STAGE_SUMMARY = {
   6: '4 workshops · 4 challenges · Leader EQ · Group · 1:1 Coaching · Consultant',
 };
 
-const DRIVER_KEYS = ['medical', 'absenteeism', 'presenteeism', 'turnover', 'workersComp'];
 const GAP_THRESHOLD = 5;
-
-const COLOR_A = '#a8a29e'; // stone-400 — estimate
-const COLOR_B = '#0f766e'; // brand teal — real data
 
 function domainDisplay(domainKey, score) {
   if (domainKey === 'pss4') {
@@ -52,16 +48,16 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
     return runRoi({ ...roiInputs, stressRate: stressRateReal, stageNum });
   }, [roiInputs, stressRateReal, stageNum, teamRoi]);
 
-  // Locked y-axis max — computed once across both charts and all stages
+  // Locked y-axis max — tallest stacked-bar total (Year 3) across both charts and all stages
   const globalMax = useMemo(() => {
     let max = 0;
-    if (preliminaryRoi?.drivers) {
-      for (const k of DRIVER_KEYS) max = Math.max(max, preliminaryRoi.drivers[k] || 0);
+    if (preliminaryRoi?.yearProjection?.y3) {
+      max = Math.max(max, preliminaryRoi.yearProjection.y3);
     }
     if (roiInputs) {
       for (const s of STAGES) {
         const r = runRoi({ ...roiInputs, stressRate: stressRateReal, stageNum: s.num });
-        for (const k of DRIVER_KEYS) max = Math.max(max, r.drivers[k] || 0);
+        max = Math.max(max, r.yearProjection?.y3 || 0);
       }
     }
     return niceMax(max);
@@ -133,24 +129,32 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
         )}
       </div>
 
+      {/* ── Chart titles ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
+        <p className="text-[13px] font-semibold text-stone-700">Projected savings — based on your estimate</p>
+        <p className="text-[13px] font-semibold text-stone-700">Projected savings — based on your team's real data</p>
+      </div>
+
+      {/* ── Shared legend ── */}
+      <div className="flex flex-wrap items-center justify-center gap-4 mb-3">
+        {DRIVERS.map((d) => (
+          <div key={d.key} className="flex items-center gap-1.5">
+            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
+            <span className="text-[11px] text-stone-600">{d.label}</span>
+          </div>
+        ))}
+      </div>
+
       {/* ── Two charts — equal columns, same locked y-scale ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
         <div>
-          <p className="text-xs font-semibold text-stone-500 mb-2 flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLOR_A }} />
-            Projected savings — based on your estimate
-          </p>
           {preliminaryRoi?.drivers && (
-            <SavingsChart drivers={preliminaryRoi.drivers} globalMax={globalMax} barColor={COLOR_A} />
+            <SavingsChart drivers={preliminaryRoi.drivers} globalMax={globalMax} />
           )}
         </div>
         <div>
-          <p className="text-xs font-semibold text-[#0f766e] mb-2 flex items-center gap-1.5">
-            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLOR_B }} />
-            Projected savings — based on your team's real data
-          </p>
           {reactiveRoi?.drivers && (
-            <SavingsChart drivers={reactiveRoi.drivers} globalMax={globalMax} barColor={COLOR_B} />
+            <SavingsChart drivers={reactiveRoi.drivers} globalMax={globalMax} />
           )}
         </div>
       </div>
