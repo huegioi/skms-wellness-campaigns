@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { runRoi, STAGES, CHALLENGE_TIERS, LEQ_PER_LEADER, LEADER_FRACTION } from '@/lib/roiModel';
+import { runRoi, STAGES, CHALLENGE_TIERS, LEQ_PER_LEADER, LEADER_FRACTION, WORKSHOP_WEBINAR_CAP, CHALLENGE_RUN_CAP } from '@/lib/roiModel';
 import SavingsChart, { DRIVERS } from '@/components/fitnessroi/dashboard/SavingsChart';
 
 const CALENDLY_URL = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
 
 const fmtK = (v) => '$' + (v / 1000).toFixed(0) + 'k';
+const fmtUSD = (v) => '$' + Math.round(v).toLocaleString();
+const fmtYearly = (v) => fmtUSD(v) + '/yr';
 
 // Nice-step ceiling: headroom never exceeds ~15% above the tallest bar
 function niceMax(rawMax) {
@@ -18,76 +20,42 @@ function niceMax(rawMax) {
   return niceMaxVal;
 }
 
-function getChallengePrice(n) {
-  let price = CHALLENGE_TIERS[CHALLENGE_TIERS.length - 1].price;
-  for (const tier of CHALLENGE_TIERS) {
-    if (n >= tier.min) price = tier.price;
-  }
-  return price;
-}
-
-// Build stage line items with per-unit cost + participant count from roiModel data
-function stageLineItems(stage, roiInputs) {
-  if (!roiInputs || !stage) return [];
+// Build stage line items paired with actual breakdown costs from the roiModel
+function stageLineItems(stage, roiInputs, breakdown) {
+  if (!roiInputs || !stage || !breakdown) return [];
   const N = roiInputs.employees || 0;
   const participRate = roiInputs.participRate || 0.25;
-  const items = [];
 
-  if (stage.workshops > 0) {
-    const wsAttendees = Math.max(1, Math.round(N * participRate));
-    items.push({
-      label: `${stage.workshops} workshop${stage.workshops > 1 ? 's' : ''}`,
-      cost: '$1,500 each',
-      participants: `~${wsAttendees} attendees`,
-    });
-  }
+  const wsAttendees = Math.max(1, Math.round(N * participRate));
+  const participatingN = Math.max(40, Math.round(N * participRate));
+  const leaders = Math.max(1, Math.round(N * LEADER_FRACTION));
+  const cohorts = Math.ceil((N * 0.16) / 12);
+  const indivPeople = Math.round(N * 0.05);
 
-  if (stage.challenges > 0) {
-    const participatingN = Math.max(40, Math.round(N * participRate));
-    const price = getChallengePrice(participatingN);
-    items.push({
-      label: `${stage.challenges} challenge${stage.challenges > 1 ? 's' : ''}`,
-      cost: `$${price}/person`,
-      participants: `~${participatingN} participants`,
-    });
-  }
+  // Wellness box count (mirrors calcInvestment logic)
+  const wsSessions = Math.ceil(wsAttendees / WORKSHOP_WEBINAR_CAP);
+  const challengeRuns = stage.challenges * Math.ceil(participatingN / CHALLENGE_RUN_CAP);
+  const wsBoxes = stage.workshops * wsSessions * 3;
+  const chBoxes = challengeRuns * 3;
+  let boxCount = 0;
+  if (stage.incentiveStage === 1) boxCount = stage.challenges > 0 ? chBoxes : wsBoxes;
+  else if (stage.incentiveStage === 2) boxCount = chBoxes + wsBoxes;
+  else if (stage.incentiveStage === 3) boxCount = N;
 
-  if (stage.leq) {
-    const leaders = Math.max(1, Math.round(N * LEADER_FRACTION));
-    items.push({
-      label: 'Leader EQ Training',
-      cost: `$${LEQ_PER_LEADER}/leader`,
-      participants: `~${leaders} leaders`,
-    });
-  }
+  const meta = {
+    'Workshops & Webinars': { label: `${stage.workshops} workshop${stage.workshops > 1 ? 's' : ''}`, participants: `~${wsAttendees} attendees` },
+    'Challenges': { label: `${stage.challenges} challenge${stage.challenges > 1 ? 's' : ''}`, participants: `~${participatingN} participants` },
+    'Leader EQ Training': { label: 'Leader EQ Training', participants: `~${leaders} leaders` },
+    'Group Coaching': { label: 'Group Coaching', participants: `~${cohorts} cohort${cohorts !== 1 ? 's' : ''}` },
+    'Individual Coaching': { label: '1:1 Coaching', participants: `~${indivPeople} people` },
+    'Consultant': { label: 'Consultant', participants: '' },
+    'Wellness Boxes': { label: 'Wellness Boxes', participants: boxCount > 0 ? `~${boxCount} boxes` : '' },
+  };
 
-  if (stage.groupCoaching) {
-    const cohorts = Math.ceil((N * 0.16) / 12);
-    items.push({
-      label: 'Group Coaching',
-      cost: '$5,000/cohort',
-      participants: `~${cohorts} cohort${cohorts !== 1 ? 's' : ''}`,
-    });
-  }
-
-  if (stage.indivCoaching) {
-    const people = Math.round(N * 0.05);
-    items.push({
-      label: '1:1 Coaching',
-      cost: '$5,000/person',
-      participants: `~${people} people`,
-    });
-  }
-
-  if (stage.consultant) {
-    items.push({
-      label: 'Consultant',
-      cost: stage.consultantFree ? 'included' : '$10,000',
-      participants: '',
-    });
-  }
-
-  return items;
+  return breakdown.map((b) => {
+    const m = meta[b.label] || { label: b.label, participants: '' };
+    return { label: m.label, participants: m.participants, cost: b.cost };
+  });
 }
 
 export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stressRateReal, leaderScores, teamScores }) {
@@ -114,7 +82,15 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
   }, [preliminaryRoi, roiInputs, stressRateReal]);
 
   const stage = STAGES[stageNum - 1];
-  const lineItems = useMemo(() => stageLineItems(stage, roiInputs), [stage, roiInputs]);
+  const lineItems = useMemo(
+    () => stageLineItems(stage, roiInputs, reactiveRoi?.investmentBreakdown),
+    [stage, roiInputs, reactiveRoi]
+  );
+
+  const investmentTotal = reactiveRoi?.investment ?? 0;
+  const fundAbsorbed = reactiveRoi?.fundAbsorbedAnnual ?? 0;
+  const netInvestment = investmentTotal - fundAbsorbed;
+  const hasWellnessFund = fundAbsorbed > 0;
 
   const estComposite = leaderScores?.composite;
   const teamComposite = teamScores?.composite;
@@ -133,21 +109,23 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
         One based on your estimates, one based on your team's real data.
       </p>
 
-      {/* ── Two charts with scores + 3-year totals ── */}
+      {/* ── Two charts with scores + savings headings ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-3">
         {/* Left chart — estimate */}
         <div>
-          <div className="mb-2">
-            <p className="text-sm text-stone-600">
+          <div className="mb-3">
+            <p className="text-sm text-stone-600 mb-2">
               Your estimated score:{' '}
               <span className="font-semibold text-stone-800">
                 {estComposite != null ? Math.round(estComposite) : '—'}
               </span>
             </p>
-            <p className="text-[13px] font-semibold text-stone-700 mt-1">Your estimate</p>
-            {estTotal3yr != null && (
-              <p className="text-sm font-bold text-stone-800">{fmtK(estTotal3yr)} over 3 years</p>
-            )}
+            <div className="text-center">
+              <p className="text-[13px] font-semibold text-[#4a2040]">Initial Estimated Savings</p>
+              {estTotal3yr != null && (
+                <p className="text-lg font-bold text-[#0f766e]">{fmtK(estTotal3yr)} over 3 years</p>
+              )}
+            </div>
           </div>
           {preliminaryRoi?.drivers && (
             <SavingsChart drivers={preliminaryRoi.drivers} globalMax={globalMax} />
@@ -156,8 +134,8 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
 
         {/* Right chart — team real data */}
         <div>
-          <div className="mb-2">
-            <p className="text-sm text-stone-600">
+          <div className="mb-3">
+            <p className="text-sm text-stone-600 mb-2">
               Your team's real score:{' '}
               <span
                 className={`font-semibold ${
@@ -167,10 +145,12 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
                 {teamComposite != null ? Math.round(teamComposite) : '—'}
               </span>
             </p>
-            <p className="text-[13px] font-semibold text-stone-700 mt-1">Your team's real data</p>
-            {teamTotal3yr != null && (
-              <p className="text-sm font-bold text-stone-800">{fmtK(teamTotal3yr)} over 3 years</p>
-            )}
+            <div className="text-center">
+              <p className="text-[13px] font-semibold text-[#4a2040]">Savings from Your Team's Real Data</p>
+              {teamTotal3yr != null && (
+                <p className="text-lg font-bold text-[#0f766e]">{fmtK(teamTotal3yr)} over 3 years</p>
+              )}
+            </div>
           </div>
           {reactiveRoi?.drivers && (
             <SavingsChart drivers={reactiveRoi.drivers} globalMax={globalMax} />
@@ -219,42 +199,60 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
           ))}
         </div>
 
-        {/* Stage line items with cost + participants */}
+        {/* Included in Program Stage */}
+        <h4 className="text-sm font-semibold text-[#0f766e] mt-4 mb-2">Included in Program Stage</h4>
+
+        {/* Stage line items — name + participants left, cost right-aligned */}
         {lineItems.length > 0 && (
-          <div className="mt-3 space-y-1">
+          <div className="space-y-1.5">
             {lineItems.map((item, i) => (
-              <div key={i} className="text-xs text-stone-600 flex items-center gap-1.5 flex-wrap">
-                <span className="font-medium text-stone-700">{item.label}</span>
-                <span className="text-stone-400">·</span>
-                <span>{item.cost}</span>
-                {item.participants && (
-                  <>
-                    <span className="text-stone-400">·</span>
-                    <span>{item.participants}</span>
-                  </>
-                )}
+              <div key={i} className="flex items-baseline justify-between text-xs gap-2">
+                <span className="text-stone-600">
+                  <span className="font-medium text-stone-700">{item.label}</span>
+                  {item.participants && <span className="text-stone-400"> · {item.participants}</span>}
+                </span>
+                <span className="font-medium text-stone-700 tabular-nums shrink-0">{fmtYearly(item.cost)}</span>
               </div>
             ))}
           </div>
         )}
 
+        {/* Subtotal / wellness fund / net */}
+        <div className="mt-3 pt-2 border-t border-teal-100 space-y-1">
+          <div className="flex justify-end text-xs text-stone-600 gap-1">
+            <span>Yearly Investment Subtotal:</span>
+            <span className="font-medium text-stone-700 tabular-nums">{fmtUSD(investmentTotal)}</span>
+          </div>
+          {hasWellnessFund && (
+            <>
+              <div className="flex justify-end text-xs text-stone-600 gap-1">
+                <span>− Wellness fund:</span>
+                <span className="font-medium text-stone-700 tabular-nums">{fmtUSD(fundAbsorbed)}</span>
+              </div>
+              <div className="flex justify-end text-sm gap-1">
+                <span className="font-bold text-[#0f766e]">Net Yearly Investment:</span>
+                <span className="font-bold text-[#0f766e] tabular-nums">{fmtUSD(netInvestment)}</span>
+              </div>
+            </>
+          )}
+        </div>
+
         <p className="text-[10px] text-stone-400 italic mt-3">
           Only the right chart updates — your original estimate stays fixed for comparison.
         </p>
 
-        {/* Book a call — compact inline CTA */}
-        <p className="text-xs text-stone-500 mt-3">
-          Want this tailored to your team?{' '}
+        {/* Book a Call — filled teal button */}
+        <div className="mt-3">
+          <p className="text-xs text-stone-500 mb-2">Want this tailored to your team?</p>
           <a
             href={CALENDLY_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#0f766e] font-medium hover:underline"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-[#0f766e] text-white text-xs font-semibold hover:bg-[#0d625a] transition-colors"
           >
-            Book a call
-          </a>{' '}
-          and we'll build your program together.
-        </p>
+            Book a Call — Build Your Tailored Program
+          </a>
+        </div>
       </div>
     </div>
   );
