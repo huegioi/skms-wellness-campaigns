@@ -10,7 +10,6 @@ import PairedDials from '@/components/fitnessroi/dashboard/PairedDials';
 import PairedDomainBars from '@/components/fitnessroi/dashboard/PairedDomainBars';
 import RoiComparison from '@/components/fitnessroi/dashboard/RoiComparison';
 import DomainOpportunityCards from '@/components/fitnessroi/dashboard/DomainOpportunityCards';
-import BookCallCta from '@/components/fitnessroi/dashboard/BookCallCta';
 import StrategySessionCta from '@/components/fitnessroi/dashboard/StrategySessionCta';
 import ComparisonLegend from '@/components/fitnessroi/dashboard/ComparisonLegend';
 import MethodologyNote from '@/components/fitnessroi/dashboard/MethodologyNote';
@@ -98,6 +97,10 @@ export default function FitnessRoiDashboard() {
               <PairedDomainBars leaderScores={data.quick_scores} teamScores={data.team_scores} />
             </div>
           </div>
+          {/* Operational controls */}
+          <BottomControls />
+          {/* Methodology */}
+          <MethodologyNote />
           {/* Section 2: ROI comparison */}
           <RoiComparison
             preliminaryRoi={data.preliminary_roi}
@@ -107,16 +110,10 @@ export default function FitnessRoiDashboard() {
             leaderScores={data.quick_scores}
             teamScores={data.team_scores}
           />
-          {/* Section 3: Domain opportunity */}
+          {/* Section 3: Campaign cards */}
           <DomainOpportunityCards domains={data.domain_opportunity} services={data.services} />
-          {/* Section 4: Strategy session CTA */}
+          {/* Section 4: Single CTA */}
           <StrategySessionCta />
-          {/* Section 5: Book a call CTA */}
-          <BookCallCta magicKey={magicKey} />
-          {/* Section 5: Methodology */}
-          <MethodologyNote />
-          {/* Bottom controls */}
-          <BottomControls />
         </div>
       </div>
     );
