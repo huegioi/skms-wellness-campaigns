@@ -56,7 +56,7 @@ export const MFS_EVIDENCE_BLOCKS = {
 export const MFS_DISCLAIMER = {
   prefix: "These are population-validated instruments, not diagnoses. For a walk-through of your results:",
   linkText: "book your free strategy session",
-  calendlyUrl: 'https://calendly.com/skillfulmeans/strategy-session',
+  calendlyUrl: 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session',
 };
 
 export function getFirstSentence(text) {

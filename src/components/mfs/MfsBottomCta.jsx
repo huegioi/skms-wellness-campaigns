@@ -1,7 +1,7 @@
 import React from 'react';
 import { CalendarCheck, TrendingUp } from 'lucide-react';
 
-const CALENDLY_URL = 'https://calendly.com/skillfulmeans/strategy-session';
+const CALENDLY_URL = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
 const ROI_ENGINE_BASE = 'https://skillfulmeans-roi-production.up.railway.app/';
 
 export default function MfsBottomCta({ employeeCount }) {

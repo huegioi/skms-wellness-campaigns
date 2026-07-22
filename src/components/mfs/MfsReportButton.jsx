@@ -6,7 +6,7 @@ import { getInstrumentInterpretation, getCompositeInterpretation } from '@/lib/m
 import { MFS_EVIDENCE_BLOCKS, MFS_DISCLAIMER, getZoneContextSentence } from '@/lib/mfsScoreContent';
 
 const LOGO_URL = 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/bb0a43468_SKMSLogoShieldBrown.png';
-const CALENDLY_URL = 'https://calendly.com/skillfulmeans/strategy-session';
+const CALENDLY_URL = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
 
 export default function MfsReportButton({ data, token }) {
   if (!data || data.locked) return null;
@@ -188,7 +188,7 @@ export default function MfsReportButton({ data, token }) {
             <img class="cta-qr" src="${qrUrl}" alt="Strategy session QR" />
             <div class="cta-text">
               <h3>Book your free strategy session</h3>
-              <p>A 30-minute conversation with our team — we'll walk through your results together, what they suggest about your organization, and what a realistic path forward could look like. No obligation, no prepared pitch. Prefer to go through your benefits broker? They're welcome to reach out on your behalf — either way, admin@skillfulmeans.life reaches us directly. Scan the QR code or visit calendly.com/skillfulmeans/strategy-session.</p>
+              <p>A 30-minute conversation with our team — we'll walk through your results together, what they suggest about your organization, and what a realistic path forward could look like. No obligation, no prepared pitch. Prefer to go through your benefits broker? They're welcome to reach out on your behalf — either way, admin@skillfulmeans.life reaches us directly. Scan the QR code or visit calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session.</p>
             </div>
           </div>
           <div class="cta cta-secondary">

@@ -15,7 +15,7 @@ import QuickBuilderCategoryStep from '@/components/quickbuilder/QuickBuilderCate
 import QuickBuilderWellnessBoxStep from '@/components/quickbuilder/QuickBuilderWellnessBoxStep';
 import ServiceImage from '@/components/quickbuilder/ServiceImage';
 
-const CALENDLY_LINK = 'https://calendly.com/skillfulmeans/skms-corporate-wellness-offerings-2';
+const CALENDLY_LINK = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
 
 const TEAM_SIZES = [
   { value: '1-50', label: '1–50' },

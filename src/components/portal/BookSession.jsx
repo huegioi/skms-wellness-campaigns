@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CalendarPlus, ExternalLink, Sparkles } from 'lucide-react';
 
-const CALENDLY_LINK = 'https://calendly.com/skillfulmeans/skms-corporate-wellness-offerings-2';
+const CALENDLY_LINK = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
 
 export default function BookSession({ client }) {
   return (

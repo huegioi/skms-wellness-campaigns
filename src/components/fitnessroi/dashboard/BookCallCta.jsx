@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Calendar, ExternalLink, Loader2 } from 'lucide-react';
 
-const CALENDLY_URL = 'https://calendly.com/skillfulmeans/skms-corporate-wellness-offerings-2';
+const CALENDLY_URL = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
 
 export default function BookCallCta({ magicKey }) {
   const [notifying, setNotifying] = useState(false);
