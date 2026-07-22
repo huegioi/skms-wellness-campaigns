@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { normalizeInstrument } from '@/lib/mfsScore';
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 import JourneyAssessmentTable from '@/components/assessments/JourneyAssessmentTable.jsx';
+import AssessmentShareCard from '@/components/assessments/AssessmentShareCard';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Switch } from '@/components/ui/switch';
 
@@ -156,6 +157,18 @@ export default function Assessments() {
           <StatCard icon={TrendingUp} label="Converted" value={stats.conversions} color="#264d44" />
         </div>
 
+        <AssessmentShareCard
+          title="The Mental Fitness Score"
+          subtitle="Free assessment — share it anywhere"
+          url="https://app.skillfulmeans.life/MentalFitnessScore"
+          shareTitle="The Mental Fitness Score"
+          shareText="Get your team's free Mental Fitness Score — 3 minutes per employee, fully anonymous"
+          accentColor="purple"
+          icon={Brain}
+          qrTitle="The Mental Fitness Score"
+          qrSubtitle="Scan to start the free assessment"
+        />
+
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-[#264d44]">All Assessments</h2>
           <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
@@ -254,6 +267,18 @@ export default function Assessments() {
             </table>
           </div>
         )}
+
+        <AssessmentShareCard
+          title="The Mental Fitness Journey"
+          subtitle="ROI projection + team assessment — share it anywhere"
+          url="https://app.skillfulmeans.life/FitnessRoi"
+          shareTitle="The Mental Fitness Journey"
+          shareText="See your team's mental fitness ROI — 3-minute quick assessment, free"
+          accentColor="teal"
+          icon={TrendingUp}
+          qrTitle="The Mental Fitness Journey"
+          qrSubtitle="Scan to start your journey"
+        />
 
         {/* ── ROI Journeys ── */}
         <div className="flex items-center justify-between mb-4 mt-8">

@@ -2,7 +2,7 @@ import React from 'react';
 
 const LOGO_URL = 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/bb0a43468_SKMSLogoShieldBrown.png';
 
-export default function MfsQrOverlay({ open, onClose, url }) {
+export default function MfsQrOverlay({ open, onClose, url, title, subtitle }) {
   if (!open) return null;
 
   const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&margin=2&data=${encodeURIComponent(url)}`;
@@ -13,8 +13,8 @@ export default function MfsQrOverlay({ open, onClose, url }) {
       onClick={onClose}
     >
       <img src={LOGO_URL} alt="SkillfulMeans" className="h-10 mb-4" />
-      <p className="text-lg font-bold text-[#013f7c] mb-1 text-center px-6">The Mental Fitness Score</p>
-      <p className="text-sm text-gray-500 mb-6 text-center px-6">Scan to start the free assessment</p>
+      <p className="text-lg font-bold text-[#013f7c] mb-1 text-center px-6">{title || 'The Mental Fitness Score'}</p>
+      <p className="text-sm text-gray-500 mb-6 text-center px-6">{subtitle || 'Scan to start the free assessment'}</p>
       <img
         src={qrImgUrl}
         alt="Mental Fitness Score QR code"
