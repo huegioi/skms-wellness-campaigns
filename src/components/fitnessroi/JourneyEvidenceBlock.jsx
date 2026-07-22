@@ -1,5 +1,5 @@
-import React from 'react';
-import { ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { ExternalLink, ChevronDown } from 'lucide-react';
 import { MFS_EVIDENCE_BLOCKS, getFirstSentence } from '@/lib/mfsScoreContent';
 import { getZone, MFS_INSTRUMENTS } from '@/lib/mfsScore';
 
@@ -12,6 +12,7 @@ function getScoreBand(instrumentKey, score) {
 
 // Condensed version of MfsEvidenceBlock — one sentence per paragraph, one per callout.
 export default function JourneyEvidenceBlock({ instrumentKey, score }) {
+  const [open, setOpen] = useState(false);
   const block = MFS_EVIDENCE_BLOCKS[instrumentKey];
   if (!block) return null;
 
@@ -24,6 +25,18 @@ export default function JourneyEvidenceBlock({ instrumentKey, score }) {
 
   return (
     <div className="mt-2 pl-0.5">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1 text-xs text-stone-500 hover:text-stone-700 transition-colors mb-1"
+      >
+        <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        Learn more about this score
+      </button>
+      <div
+        className="grid transition-all duration-300 ease-in-out"
+        style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
+      >
+        <div className="overflow-hidden">
       <p className="text-xs font-bold text-stone-700 mb-0.5">What this measures — and why it matters</p>
       <p className="text-xs text-stone-500 leading-relaxed">{bodyFirst}</p>
 
@@ -50,6 +63,8 @@ export default function JourneyEvidenceBlock({ instrumentKey, score }) {
             {src.label}<ExternalLink className="w-2 h-2" />
           </a>
         ))}
+      </div>
+        </div>
       </div>
     </div>
   );
