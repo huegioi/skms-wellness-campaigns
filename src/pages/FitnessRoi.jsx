@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { ChevronLeft } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { ChevronLeft, ShieldCheck } from 'lucide-react';
 import JourneyProgressBar from '@/components/fitnessroi/JourneyProgressBar';
+import JourneyProcessStrip from '@/components/fitnessroi/JourneyProcessStrip';
+import JourneyStepMarker from '@/components/fitnessroi/JourneyStepMarker';
 import QuickQuestionCard from '@/components/fitnessroi/QuickQuestionCard';
 import CompanyInfoForm from '@/components/fitnessroi/CompanyInfoForm';
 import EmailGate from '@/components/fitnessroi/EmailGate';
@@ -21,17 +23,44 @@ export default function FitnessRoi() {
   const [company, setCompany] = useState({ headcount: '', avgSalary: 65000, turnoverRate: 0.18, industry: '' });
   const [ref] = useState(() => new URLSearchParams(window.location.search).get('ref') || '');
   const [resultsData, setResultsData] = useState(null);
+  const startRef = useRef(null);
+
+  // Maps internal step (0–6) to the 4-step journey phase shown in the strip
+  const activeJourneyStep = step <= 4 ? 1 : step === 5 ? 2 : 4;
 
   const handleQuickAnswer = (key, index) => {
     setAnswers(prev => ({ ...prev, [key]: index }));
     setTimeout(() => setStep(s => s + 1), 300);
   };
 
+  const scrollToStart = () => {
+    startRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <div className="min-h-screen bg-[#fdfbf7]" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
-      <div className={`mx-auto px-5 py-8 ${step === 6 ? 'max-w-2xl' : 'max-w-lg'}`}>
+      {step === 0 && (
+        <div className="max-w-2xl mx-auto px-5 pt-8 pb-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-[#4a2040] mb-3 leading-tight">The Mental Fitness Journey</h1>
+          <p className="text-sm text-stone-600 leading-relaxed mb-6">
+            See your team's mental fitness the way the data sees it. Start with your own two-minute read on your team — then let their anonymous responses show you where you're right, where you're off, and what the gap is costing you.
+          </p>
+          <JourneyProcessStrip />
+          <div className="text-center">
+            <button
+              onClick={scrollToStart}
+              className="inline-flex items-center gap-2 bg-[#4a2040] hover:bg-[#3a1830] text-white font-semibold text-sm px-6 py-3 rounded-full shadow-sm transition-colors"
+            >
+              Start your Journey ↓
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div ref={startRef} className={`mx-auto px-5 py-8 ${step === 6 ? 'max-w-2xl' : 'max-w-lg'} scroll-mt-4`}>
         {step < 6 && (
           <>
+            <JourneyStepMarker activeStep={activeJourneyStep} />
             <JourneyProgressBar step={step} total={5} />
             <p className="text-xs uppercase tracking-widest text-stone-400 mt-2 mb-6">about 3 minutes</p>
             <h1 className="text-2xl font-bold text-[#4a2040] mb-4">{PART_HEADERS[step]}</h1>
@@ -43,8 +72,16 @@ export default function FitnessRoi() {
           </>
         )}
         {step < 4 ? (
-          <QuickQuestionCard label={QUESTIONS[step].label} question={QUESTIONS[step].text} options={OPTIONS}
-            selectedValue={answers[QUESTIONS[step].key]} onSelect={(i) => handleQuickAnswer(QUESTIONS[step].key, i)} />
+          <>
+            <QuickQuestionCard label={QUESTIONS[step].label} question={QUESTIONS[step].text} options={OPTIONS}
+              selectedValue={answers[QUESTIONS[step].key]} onSelect={(i) => handleQuickAnswer(QUESTIONS[step].key, i)} />
+            {step === 0 && (
+              <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-4 text-center flex-wrap">
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                <span>Anonymous team responses · you see team-level results only · questions? <a href="mailto:admin@skillfulmeans.life" className="text-[#0f766e] font-medium underline">admin@skillfulmeans.life</a></span>
+              </div>
+            )}
+          </>
         ) : step === 4 ? (
           <CompanyInfoForm values={company} onChange={setCompany} onSubmit={() => setStep(5)} />
         ) : step === 5 ? (
