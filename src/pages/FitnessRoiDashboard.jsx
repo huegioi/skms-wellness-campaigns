@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Loader2, AlertCircle } from 'lucide-react';
-import ResponseTracker from '@/components/fitnessroi/dashboard/ResponseTracker';
-import ReminderButton from '@/components/fitnessroi/dashboard/ReminderButton';
-import CopyLinkCard from '@/components/fitnessroi/dashboard/CopyLinkCard';
+import DashboardControlsBar from '@/components/fitnessroi/dashboard/DashboardControlsBar';
 import ResultsView from '@/components/fitnessroi/ResultsView';
 import PairedDials from '@/components/fitnessroi/dashboard/PairedDials';
 import PairedDomainBars from '@/components/fitnessroi/dashboard/PairedDomainBars';
@@ -62,16 +60,6 @@ export default function FitnessRoiDashboard() {
     </div>
   );
 
-  const BottomControls = () => (
-    <div className="pt-4 border-t border-stone-200 space-y-4">
-      <ResponseTracker count={data.response_count} />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <ReminderButton magicKey={magicKey} reminderSentAt={data.reminder_sent_at} />
-        <CopyLinkCard surveyUrl={surveyUrl} />
-      </div>
-    </div>
-  );
-
   // ── Unlocked state ──
   if (unlocked) {
     const leaderComposite = data.quick_scores?.composite;
@@ -80,6 +68,12 @@ export default function FitnessRoiDashboard() {
       <div className="min-h-screen bg-[#fdfbf7]" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div className="max-w-2xl mx-auto px-5 py-8 space-y-6">
           <Header />
+          <DashboardControlsBar
+            count={data.response_count}
+            surveyUrl={surveyUrl}
+            magicKey={magicKey}
+            reminderSentAt={data.reminder_sent_at}
+          />
           {/* Section 1: Headline + paired dials + paired bars */}
           <div className="bg-white rounded-2xl border border-stone-200 border-l-4 border-l-[#0f766e] p-6 shadow-sm">
             <h2 className="text-lg font-bold text-[#4a2040] mb-1">Your view vs. your team's reality</h2>
@@ -97,8 +91,6 @@ export default function FitnessRoiDashboard() {
               <PairedDomainBars leaderScores={data.quick_scores} teamScores={data.team_scores} />
             </div>
           </div>
-          {/* Operational controls */}
-          <BottomControls />
           {/* Methodology */}
           <MethodologyNote />
           {/* Section 2: ROI comparison */}
@@ -124,22 +116,17 @@ export default function FitnessRoiDashboard() {
     <div className="min-h-screen bg-[#fdfbf7]" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <div className="max-w-2xl mx-auto px-5 py-8 space-y-6">
         <Header />
+        <DashboardControlsBar
+          count={data.response_count}
+          surveyUrl={surveyUrl}
+          magicKey={magicKey}
+          reminderSentAt={data.reminder_sent_at}
+        />
         <div>
           <h2 className="text-lg font-bold text-[#4a2040] mb-1">Team responses</h2>
           <p className="text-xs text-stone-500 mb-4 leading-relaxed">
-            Your team's survey is out. When at least 5 people have responded, this dashboard unlocks your team's real scores — the 5-person minimum protects individual anonymity.
+            Your team's survey is out. When at least 5 people have responded, this dashboard unlocks your team's real scores — the 5-person minimum protects individual anonymity. We'll also nudge you automatically on day 3 and day 7 if you haven't hit 5 yet.
           </p>
-          <ResponseTracker count={data.response_count} />
-        </div>
-        <div>
-          <p className="text-xs uppercase tracking-widest text-stone-400 mb-1">Boost your response rate</p>
-          <p className="text-xs text-stone-500 mb-4 leading-relaxed">
-            Share the survey link with your team, or email it to yourself as a handy reminder. We'll also nudge you automatically on day 3 and day 7.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <ReminderButton magicKey={magicKey} reminderSentAt={data.reminder_sent_at} />
-            <CopyLinkCard surveyUrl={surveyUrl} />
-          </div>
         </div>
         <div className="pt-4 border-t border-stone-200">
           <h2 className="text-lg font-bold text-[#4a2040] mb-1">While you wait — your preliminary snapshot</h2>
