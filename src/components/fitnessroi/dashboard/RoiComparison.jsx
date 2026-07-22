@@ -34,15 +34,14 @@ function domainDisplay(domainKey, score) {
 // Nice-step ceiling: headroom never exceeds ~15% above the tallest bar
 function niceMax(rawMax) {
   if (rawMax <= 0) return 100;
-  const step = Math.pow(10, Math.floor(Math.log10(rawMax / 5)));
-  const stepped = Math.ceil(rawMax / step) * step;
-  // If the stepped ceiling gives more than 15% headroom, try a finer step
-  if (stepped > rawMax * 1.15) {
-    const finer = step / 2;
-    const finerStepped = Math.ceil(rawMax / finer) * finer;
-    return finerStepped > rawMax * 1.15 ? finerStepped : stepped;
+  let step = Math.pow(10, Math.floor(Math.log10(rawMax / 5)));
+  let niceMaxVal = Math.ceil(rawMax / step) * step;
+  // Halve the step until headroom is within 15%
+  while (niceMaxVal > rawMax * 1.15 && step > 1) {
+    step /= 2;
+    niceMaxVal = Math.ceil(rawMax / step) * step;
   }
-  return stepped;
+  return niceMaxVal;
 }
 
 export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stressRateReal, leaderScores, teamScores }) {
@@ -108,18 +107,10 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
               >
                 <span className="font-semibold text-stone-700">{g.domain.label}</span>
                 <span className="text-stone-500">
-                  <span className="text-[10px] text-stone-400 uppercase tracking-wide mr-1">Est.</span>
-                  <span className="font-medium text-stone-700">
-                    {g.estDisp.value}
-                    {g.estDisp.suffix}
-                  </span>
+                  You estimated: <span className="font-medium text-stone-700">{g.estDisp.value}{g.estDisp.suffix}</span>
                 </span>
                 <span className="text-stone-500">
-                  <span className="text-[10px] text-stone-400 uppercase tracking-wide mr-1">Team</span>
-                  <span className="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">
-                    {g.realDisp.value}
-                    {g.realDisp.suffix}
-                  </span>
+                  Your team reports: <span className="font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded">{g.realDisp.value}{g.realDisp.suffix}</span>
                 </span>
                 <span
                   className={`text-xs font-bold px-2 py-0.5 rounded-full ${
@@ -170,7 +161,7 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
           <div className="flex items-center gap-2">
             <p className="text-xs uppercase tracking-widest text-stone-400">Program stage</p>
             <span className="text-[10px] text-[#0f766e] bg-teal-100 px-2 py-0.5 rounded-full font-medium">
-              controls the teal chart →
+              controls the right chart →
             </span>
           </div>
           <span className="text-sm font-semibold text-[#0f766e]">
