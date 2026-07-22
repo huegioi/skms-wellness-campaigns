@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown, BarChart3, ArrowLeft, BookOpen, ChevronRight, PlayCircle, Star, Download, Brain } from 'lucide-react';
+import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown, BarChart3, ArrowLeft, BookOpen, ChevronRight, PlayCircle, Star, Download, Brain, Wrench } from 'lucide-react';
 import ROIDashboard from '@/components/portal/ROIDashboard';
 import BrokerFeedbackRollup from '@/components/portal/BrokerFeedbackRollup';
 import TierProgress from '@/components/portal/TierProgress';
@@ -16,11 +16,13 @@ import ReferralStepper from '@/components/portal/ReferralStepper';
 import RecentActivity from '@/components/portal/RecentActivity';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 import MfsPromoCard from '@/components/portal/MfsPromoCard';
+import PartnerToolsTab from '@/components/portal/PartnerToolsTab';
 import { REFERRAL_STATUS_COLORS as STATUS_COLORS, REFERRAL_STATUS_LABELS as STATUS_LABELS } from '@/lib/statusConfig';
 
 const TABS = [
   { key: 'start_here', label: 'Start Here', icon: BookOpen },
   { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+  { key: 'tools', label: 'Tools', icon: Wrench },
   { key: 'commissions', label: 'Commissions', icon: DollarSign },
 ];
 
@@ -561,6 +563,11 @@ export default function ReferralPortal() {
               </Button>
             </div>
           </div>
+        )}
+
+        {/* ─── TOOLS TAB ─── */}
+        {activeTab === 'tools' && (
+          <PartnerToolsTab refCode={partner.unique_portal_id} />
         )}
 
         {/* ─── COMMISSIONS TAB ─── */}
