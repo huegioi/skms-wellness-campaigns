@@ -14,10 +14,11 @@
       "type": "string",
       "enum": [
         "client",
+        "partner",
         "lead",
         "referral_partner"
       ],
-      "description": "Which entity type the audience is drawn from"
+      "description": "Which entity type the audience is drawn from. 'partner' = union of Lead + ReferralPartner (deduped by email, prefer ReferralPartner). 'lead' and 'referral_partner' are legacy values kept for backward compatibility."
     },
     "tag_ids": {
       "type": "array",

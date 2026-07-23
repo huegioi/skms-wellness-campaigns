@@ -18,13 +18,25 @@ Deno.serve(async (req) => {
     }
 
     // ── Fetch all records of the audience type ──
+    // Each record is tagged with _recordType so 'partner' campaigns (union of
+    // Lead + ReferralPartner) can set the correct CampaignRecipient.record_type.
     let allRecords = [];
     if (campaign.audience_type === 'client') {
-      allRecords = await base44.entities.Client.list('-created_date', 500);
+      allRecords = (await base44.entities.Client.list('-created_date', 500)).map(r => ({ ...r, _recordType: 'client' }));
     } else if (campaign.audience_type === 'lead') {
-      allRecords = await base44.entities.Lead.list('-created_date', 500);
+      allRecords = (await base44.entities.Lead.list('-created_date', 500)).map(r => ({ ...r, _recordType: 'lead' }));
     } else if (campaign.audience_type === 'referral_partner') {
-      allRecords = await base44.entities.ReferralPartner.list('-created_date', 500);
+      allRecords = (await base44.entities.ReferralPartner.list('-created_date', 500)).map(r => ({ ...r, _recordType: 'referral_partner' }));
+    } else if (campaign.audience_type === 'partner') {
+      const [leads, partners] = await Promise.all([
+        base44.entities.Lead.list('-created_date', 500),
+        base44.entities.ReferralPartner.list('-created_date', 500),
+      ]);
+      // ReferralPartner first so dedup-by-email prefers it over Lead
+      allRecords = [
+        ...partners.map(r => ({ ...r, _recordType: 'referral_partner' })),
+        ...leads.map(r => ({ ...r, _recordType: 'lead' })),
+      ];
     }
 
     // Exclude demo records
@@ -54,7 +66,7 @@ Deno.serve(async (req) => {
       if (!email) {
         skipped.push({
           campaign_id,
-          record_type: campaign.audience_type,
+          record_type: r._recordType,
           record_id: r.id,
           name: r.name || '',
           status: 'skipped',
@@ -65,7 +77,7 @@ Deno.serve(async (req) => {
       if (seenEmails.has(email)) {
         skipped.push({
           campaign_id,
-          record_type: campaign.audience_type,
+          record_type: r._recordType,
           record_id: r.id,
           name: r.name || '',
           email: r.email,
@@ -80,7 +92,7 @@ Deno.serve(async (req) => {
       seenEmails.set(email, r.id);
       toCreate.push({
         campaign_id,
-        record_type: campaign.audience_type,
+        record_type: r._recordType,
         record_id: r.id,
         name: r.name || '',
         email: r.email,

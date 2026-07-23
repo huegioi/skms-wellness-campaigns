@@ -9,9 +9,8 @@ import { TagSelector } from '@/components/ui/TagSelector';
 import { Users, AlertCircle } from 'lucide-react';
 
 const AUDIENCE_TYPES = [
-  { value: 'client', label: 'Clients', entity: 'Client' },
-  { value: 'lead', label: 'Leads', entity: 'Lead' },
-  { value: 'referral_partner', label: 'Referral Partners', entity: 'ReferralPartner' },
+  { value: 'client', label: 'Clients', entities: ['Client'] },
+  { value: 'partner', label: 'Partners', entities: ['Lead', 'ReferralPartner'] },
 ];
 
 export default function WizardStepAudience({ form, updateForm, excludedIds, toggleExclude }) {
@@ -19,12 +18,37 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
 
   const { data: allRecords = [], isLoading } = useQuery({
     queryKey: ['audience_preview', form.audience_type],
-    queryFn: () => base44.entities[selectedType.entity].list('-created_date', 500),
+    queryFn: async () => {
+      const results = await Promise.all(
+        selectedType.entities.map(name => base44.entities[name].list('-created_date', 500))
+      );
+      const tagged = [];
+      selectedType.entities.forEach((entityName, i) => {
+        const recordType = entityName === 'ReferralPartner' ? 'referral_partner' : entityName.toLowerCase();
+        for (const r of results[i]) tagged.push({ ...r, _sourceType: recordType });
+      });
+      return tagged;
+    },
   });
 
-  const matchedRecords = form.tag_ids.length === 0 ? [] : allRecords
-    .filter(r => !r.is_demo)
-    .filter(r => r.tags && r.tags.some(t => form.tag_ids.includes(t)));
+  const matchedRecords = (() => {
+    if (form.tag_ids.length === 0) return [];
+    const tagged = allRecords
+      .filter(r => !r.is_demo)
+      .filter(r => r.tags && r.tags.some(t => form.tag_ids.includes(t)));
+    if (form.audience_type !== 'partner') return tagged;
+    // Partner: dedupe by email, prefer ReferralPartner over Lead
+    const byEmail = new Map();
+    for (const r of tagged.filter(r => r._sourceType === 'referral_partner')) {
+      const key = (r.email || '').toLowerCase().trim() || `_noid_${r.id}`;
+      if (!byEmail.has(key)) byEmail.set(key, r);
+    }
+    for (const r of tagged.filter(r => r._sourceType === 'lead')) {
+      const key = (r.email || '').toLowerCase().trim() || `_noid_${r.id}`;
+      if (!byEmail.has(key)) byEmail.set(key, r);
+    }
+    return Array.from(byEmail.values());
+  })();
 
   // ── Duplicate outreach check: flag emails in other campaigns (drafted+, last 30 days) ──
   const { data: duplicateMap = {} } = useQuery({
@@ -75,7 +99,7 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
         <RadioGroup
           value={form.audience_type}
           onValueChange={v => { updateForm('audience_type', v); updateForm('tag_ids', []); }}
-          className="grid grid-cols-3 gap-2"
+          className="grid grid-cols-2 gap-2"
         >
           {AUDIENCE_TYPES.map(t => (
             <div key={t.value} className="flex items-center gap-2 border rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50">
@@ -127,7 +151,14 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
                       onCheckedChange={() => toggleExclude(r.id)}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">{r.name || '(no name)'}</p>
+                      <p className="text-sm font-medium text-gray-800 truncate">
+                        {r.name || '(no name)'}
+                        {form.audience_type === 'partner' && r._sourceType && (
+                          <span className="ml-1.5 text-[10px] text-gray-400 font-normal">
+                            {r._sourceType === 'referral_partner' ? 'RP' : 'L'}
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs text-gray-500 truncate">
                         {r.email || 'No email'} - {r.company || 'No company'}
                       </p>
