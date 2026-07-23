@@ -88,9 +88,9 @@ export default function MayaInsightsWidget({ recordType, recordId, owner }) {
     } catch (e) {
       toast({
         title: 'Error drafting email',
-        description: e?.response?.data?.error || 'Something went wrong. Please try again.',
+        description: e?.data?.error || e?.response?.data?.error || 'Something went wrong. Please try again.',
         variant: 'destructive',
-        duration: 5000,
+        duration: 6000,
       });
     } finally {
       setDraftingEmail(false);

@@ -107,7 +107,7 @@ CRITICAL EMAIL RULES:
     // Determine sender: explicit override takes priority, then falls back to record owner
     const senderKey = sender_override
       ? sender_override.toLowerCase()
-      : owner.toLowerCase().includes('heather') ? 'heather' : 'william';
+      : (owner || '').toLowerCase().includes('heather') ? 'heather' : 'william';
     const sender = senderKey.includes('heather') ? 'heather' : 'william';
 
     // Delegate MIME building + Gmail draft creation to gmailCreateDraft
