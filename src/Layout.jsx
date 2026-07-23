@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays, ScanText, Sparkles, FlaskConical, ExternalLink } from 'lucide-react';
-import MayaOrb from '@/components/shared/MayaOrb';
 
 const navItems = [
   { name: 'Dashboard', page: 'Home', icon: BarChart3 },
@@ -257,8 +256,6 @@ export default function Layout({ children, currentPageName }) {
           <Menu className="w-5 h-5" />
         </button>
       </div>
-
-      <MayaOrb />
 
     </div>
   );
