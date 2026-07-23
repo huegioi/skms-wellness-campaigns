@@ -26,6 +26,34 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
     .filter(r => !r.is_demo)
     .filter(r => r.tags && r.tags.some(t => form.tag_ids.includes(t)));
 
+  // ── Duplicate outreach check: flag emails in other campaigns (drafted+, last 30 days) ──
+  const { data: duplicateMap = {} } = useQuery({
+    queryKey: ['duplicate_outreach_check'],
+    queryFn: async () => {
+      const [recipients, campaigns] = await Promise.all([
+        base44.entities.CampaignRecipient.list('-created_date', 500),
+        base44.entities.OutreachCampaign.list('-created_date', 500),
+      ]);
+      const campaignNameMap = {};
+      for (const c of campaigns) campaignNameMap[c.id] = c.name;
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const map = {};
+      for (const r of recipients) {
+        if (!['drafted', 'approved', 'sent', 'replied'].includes(r.status)) continue;
+        const createdDate = new Date(r.created_date);
+        if (createdDate < thirtyDaysAgo) continue;
+        const email = (r.email || '').toLowerCase().trim();
+        if (!email) continue;
+        const cName = campaignNameMap[r.campaign_id] || 'Unknown';
+        const dateStr = createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        if (!map[email]) {
+          map[email] = `Also in campaign "${cName}" (${dateStr})`;
+        }
+      }
+      return map;
+    },
+  });
+
   const finalCount = matchedRecords.filter(r => !excludedIds.includes(r.id)).length;
   const noEmailCount = matchedRecords.filter(r => !excludedIds.includes(r.id) && !r.email).length;
 
@@ -107,6 +135,12 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
                     {hasNoEmail && !isExcluded && (
                       <span className="flex items-center gap-1 text-xs text-amber-600 shrink-0">
                         <AlertCircle className="w-3 h-3" /> will be skipped
+                      </span>
+                    )}
+                    {r.email && duplicateMap[r.email.toLowerCase().trim()] && !isExcluded && (
+                      <span className="flex items-center gap-1 text-xs text-amber-600 shrink-0 max-w-[200px] truncate" title={duplicateMap[r.email.toLowerCase().trim()]}>
+                        <AlertCircle className="w-3 h-3 shrink-0" />
+                        {duplicateMap[r.email.toLowerCase().trim()]}
                       </span>
                     )}
                     {r.owner && (

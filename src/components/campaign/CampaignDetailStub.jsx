@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, RefreshCw, Mail, Wand2, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Mail, Wand2, Check, Loader2, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import { TagChips } from '@/components/ui/TagChips';
 import { useDraftGeneration } from '@/components/campaign/useDraftGeneration';
@@ -38,6 +38,8 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
 
   // Bulk approve state
   const [bulkApproving, setBulkApproving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const syncCalledRef = useRef(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
   const [bulkError, setBulkError] = useState(null);
 
@@ -50,6 +52,30 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
     queryKey: ['campaign_recipients_detail', campaignId],
     queryFn: () => base44.entities.CampaignRecipient.filter({ campaign_id: campaignId }, '-created_date', 500),
   });
+
+  const handleSyncStatus = async () => {
+    setSyncing(true);
+    try {
+      const res = await base44.functions.invoke('syncCampaignSendStatus', { campaign_id: campaignId });
+      if (res.data?.notes) {
+        toast.info(res.data.notes.join('; '));
+      }
+      if (res.data?.sent > 0 || res.data?.replied > 0) {
+        toast.success(`${res.data.sent} sent, ${res.data.replied} replied status updated`);
+      }
+      queryClient.invalidateQueries({ queryKey: ['campaign_recipients_detail', campaignId] });
+    } catch (e) {
+      // Silent fail on auto-call
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  useEffect(() => {
+    if (syncCalledRef.current || !campaignId) return;
+    syncCalledRef.current = true;
+    handleSyncStatus();
+  }, [campaignId]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -141,8 +167,17 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
+            onClick={handleSyncStatus}
+            disabled={syncing || generating || bulkApproving}
+            className="gap-1.5 text-sm"
+          >
+            <Activity className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+            Refresh status
+          </Button>
+          <Button
+            variant="outline"
             onClick={handleRefresh}
-            disabled={refreshing || generating || bulkApproving}
+            disabled={refreshing || generating || bulkApproving || syncing}
             className="gap-1.5 text-sm"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />

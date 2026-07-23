@@ -79,6 +79,19 @@ export default function CampaignDraftReview({ recipient, campaign, onBack }) {
     }
   };
 
+  const handleStatusOverride = async (newStatus) => {
+    const updates = { status: newStatus };
+    if (newStatus === 'sent' && !recipient.sent_at) updates.sent_at = new Date().toISOString();
+    if (newStatus === 'replied' && !recipient.replied_at) updates.replied_at = new Date().toISOString();
+    try {
+      await base44.entities.CampaignRecipient.update(recipient.id, updates);
+      toast.success(`Status set to ${newStatus}`);
+      invalidate();
+    } catch (e) {
+      toast.error('Failed to update status');
+    }
+  };
+
   const handleSkip = async () => {
     try {
       await base44.entities.CampaignRecipient.update(recipient.id, { status: 'skipped' });
@@ -135,6 +148,14 @@ export default function CampaignDraftReview({ recipient, campaign, onBack }) {
           </div>
         </div>
       </div>
+
+      {/* Duplicate outreach warning */}
+      {recipient.duplicate_warning && (
+        <div className="px-4 py-2 bg-amber-50 border-b border-amber-100 flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+          <span className="text-xs text-amber-600">{recipient.duplicate_warning}</span>
+        </div>
+      )}
 
       {/* Error banner */}
       {recipient.error_message && recipient.status !== 'approved' && (
@@ -205,6 +226,34 @@ export default function CampaignDraftReview({ recipient, campaign, onBack }) {
               Regenerate
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* Manual status override */}
+      {hasDraft && (
+        <div className="border-t border-gray-100 px-3 py-1.5 flex items-center gap-1 flex-wrap">
+          <span className="text-[10px] text-gray-400 uppercase tracking-wide mr-1">Override:</span>
+          <button
+            onClick={() => handleStatusOverride('sent')}
+            disabled={approving || regenerating}
+            className="text-xs text-gray-400 hover:text-purple-600 disabled:opacity-30 px-1.5 py-0.5"
+          >
+            Mark sent
+          </button>
+          <button
+            onClick={() => handleStatusOverride('replied')}
+            disabled={approving || regenerating}
+            className="text-xs text-gray-400 hover:text-teal-600 disabled:opacity-30 px-1.5 py-0.5"
+          >
+            Mark replied
+          </button>
+          <button
+            onClick={() => handleStatusOverride('drafted')}
+            disabled={approving || regenerating}
+            className="text-xs text-gray-400 hover:text-amber-600 disabled:opacity-30 px-1.5 py-0.5"
+          >
+            Back to drafted
+          </button>
         </div>
       )}
 

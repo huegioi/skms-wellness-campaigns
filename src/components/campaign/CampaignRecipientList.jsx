@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { AlertCircle } from 'lucide-react';
 
 const STATUS_STYLES = {
   pending: 'bg-gray-100 text-gray-600',
@@ -77,6 +78,12 @@ export default function CampaignRecipientList({ recipients, selectedId, onSelect
                   <Badge className={`text-[10px] border-0 ${STATUS_STYLES[r.status] || 'bg-gray-100'}`}>{r.status}</Badge>
                 </div>
               </div>
+              {r.duplicate_warning && (
+                <p className="text-xs text-amber-600 mt-1 truncate flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  {r.duplicate_warning}
+                </p>
+              )}
               {r.error_message && (
                 <p className="text-xs text-red-500 mt-1 truncate">{r.error_message}</p>
               )}

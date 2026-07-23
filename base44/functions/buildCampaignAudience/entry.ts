@@ -101,6 +101,35 @@ Deno.serve(async (req) => {
     const newRecipients = toCreate.filter(r => !existingRecordIds.has(r.record_id));
     const newSkipped = skipped.filter(r => !existingRecordIds.has(r.record_id));
 
+    // ── Duplicate outreach check: flag emails in other campaigns (drafted+, last 30 days) ──
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const allOtherRecipients = await base44.entities.CampaignRecipient.list('-created_date', 500);
+    const allCampaigns = await base44.entities.OutreachCampaign.list('-created_date', 500);
+    const campaignNameMap = {};
+    for (const c of allCampaigns) campaignNameMap[c.id] = c.name;
+
+    const duplicateMap = {};
+    for (const r of allOtherRecipients) {
+      if (r.campaign_id === campaign_id) continue;
+      if (!['drafted', 'approved', 'sent', 'replied'].includes(r.status)) continue;
+      const createdDate = new Date(r.created_date);
+      if (createdDate < thirtyDaysAgo) continue;
+      const email = (r.email || '').toLowerCase().trim();
+      if (!email) continue;
+      const cName = campaignNameMap[r.campaign_id] || 'Unknown';
+      const dateStr = createdDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      if (!duplicateMap[email]) {
+        duplicateMap[email] = `Also in campaign "${cName}" (${dateStr})`;
+      }
+    }
+
+    for (const r of newRecipients) {
+      const email = (r.email || '').toLowerCase().trim();
+      if (duplicateMap[email]) {
+        r.duplicate_warning = duplicateMap[email];
+      }
+    }
+
     const allNew = [...newRecipients, ...newSkipped];
     if (allNew.length > 0) {
       await base44.entities.CampaignRecipient.bulkCreate(allNew);

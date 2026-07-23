@@ -78,6 +78,10 @@
       "type": "string",
       "description": "Error details if drafting or sending failed"
     },
+    "duplicate_warning": {
+      "type": "string",
+      "description": "Warning text if this recipient's email appears in another campaign with drafted-or-later status in the last 30 days"
+    },
     "gmail_draft_id": {
       "type": "string",
       "description": "Gmail draft ID after being pushed to Gmail Drafts"
