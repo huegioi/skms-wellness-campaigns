@@ -10,6 +10,12 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 //         optional linkage: client_id, lead_id, referral_partner_id,
 //         campaign_id, campaign_name
 // Returns: { gmail_draft_id, email_log_id }
+//
+// William: uses the platform shared 'gmail' OAuth connector + Gmail API.
+// Heather: currently returns a clear error — the workspace Gmail connector
+//          cannot be authorized (Gmail does not support BYO_SHARED mode),
+//          and IMAP is blocked by the Deno runtime (outbound TCP sockets
+//          are not allowed). An alternative approach is needed for Heather.
 // ═══════════════════════════════════════════════════════════════════════════
 
 const HEATHER_GMAIL_CONNECTOR_ID = '69d2ee09a67cbfc855d87161';
