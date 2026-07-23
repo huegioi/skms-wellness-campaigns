@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
-import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays, ScanText, Sparkles, FlaskConical } from 'lucide-react';
+import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays, ScanText, Sparkles, FlaskConical, ExternalLink } from 'lucide-react';
 import MayaOrb from '@/components/shared/MayaOrb';
 
 const navItems = [
@@ -15,7 +15,7 @@ const navItems = [
   { name: 'Feedback', page: 'FeedbackAnalytics', icon: ClipboardList },
   { name: 'Campaigns', page: 'CampaignCalendar', icon: CalendarDays },
   { name: 'Presenters', page: 'Presenters', icon: Users },
-  { name: 'Quick Builder', page: 'QuickBuilder', icon: Sparkles },
+  { name: 'Quick Builder', page: 'QuickBuilder', icon: Sparkles, external: true, url: '/QuickBuilder' },
 ];
 
 const LOGO_URL = 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/bb0a43468_SKMSLogoShieldBrown.png';
@@ -98,6 +98,21 @@ export default function Layout({ children, currentPageName }) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPageName === item.page || (item.altPages && item.altPages.includes(currentPageName));
+            if (item.external) {
+              return (
+                <a
+                  key={item.page}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {item.name}
+                  <ExternalLink className="w-3 h-3 ml-auto text-gray-400" />
+                </a>
+              );
+            }
             return (
               <Link
                 key={item.page}
@@ -181,6 +196,22 @@ export default function Layout({ children, currentPageName }) {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPageName === item.page || (item.altPages && item.altPages.includes(currentPageName));
+            if (item.external) {
+              return (
+                <a
+                  key={item.page}
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {item.name}
+                  <ExternalLink className="w-3 h-3 ml-auto text-gray-400" />
+                </a>
+              );
+            }
             return (
               <Link
                 key={item.page}

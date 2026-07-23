@@ -29,6 +29,17 @@ const TOOLS = [
     howToUse: 'The closer. Best for a decision-maker who thinks they already know their team \u2014 the estimate-vs-reality reveal does the persuading for you. Walk through the results with them and the ROI math is already done for the CFO conversation.',
   },
   {
+    key: 'quickbuilder',
+    icon: Sparkles,
+    color: '#264d44',
+    bg: 'rgba(38,77,68,0.06)',
+    title: 'Quick Builder',
+    url: (ref) => `https://app.skillfulmeans.life/QuickBuilder?ref=${ref}`,
+    credited: true,
+    description: 'Let a client sketch their own wellness campaign — pick services, see stage-based pricing, and send you the result. A fast, no-pressure way to start a program conversation.',
+    howToUse: 'The self-serve starter. Send this to a client who wants to explore options on their own time — they pick what fits their team and budget, and you get the results to follow up with a tailored proposal.',
+  },
+  {
     key: 'roi_calc',
     icon: Calculator,
     color: '#013f7c',
@@ -136,7 +147,7 @@ export default function PartnerToolsTab({ refCode }) {
     <div className="space-y-5">
       <div className="text-center">
         <h2 className="text-xl font-bold text-brand-navy">Partner Tools</h2>
-        <p className="text-sm text-stone-500 mt-1">Three tools to open doors, close deals, and make the CFO math easy. Share them with your clients — the first two credit you automatically.</p>
+        <p className="text-sm text-stone-500 mt-1">Four tools to open doors, close deals, and make the CFO math easy. Share them with your clients — the first three credit you automatically.</p>
       </div>
 
       {TOOLS.map(tool => (
