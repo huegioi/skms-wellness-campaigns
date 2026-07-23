@@ -12,13 +12,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 // Returns: { gmail_draft_id, email_log_id }
 //
 // William: uses the platform shared 'gmail' OAuth connector + Gmail API.
-// Heather: currently returns a clear error — the workspace Gmail connector
-//          cannot be authorized (Gmail does not support BYO_SHARED mode),
-//          and IMAP is blocked by the Deno runtime (outbound TCP sockets
-//          are not allowed). An alternative approach is needed for Heather.
+// Heather: exchanges a stored refresh token (HEATHER_GMAIL_REFRESH_TOKEN) for
+//          an access token via Google's OAuth token endpoint, then uses the
+//          same Gmail drafts API call. One-time setup via heatherOAuthHelper.
 // ═══════════════════════════════════════════════════════════════════════════
-
-const HEATHER_GMAIL_CONNECTOR_ID = '69d2ee09a67cbfc855d87161';
 
 // RFC 2047 B-encode the Subject header if it contains non-ASCII characters
 function encodeSubjectHeader(subject) {
@@ -88,31 +85,57 @@ Deno.serve(async (req) => {
     const isHeather = sender === 'heather';
     const fromEmail = isHeather ? 'heather@skillfulmeans.life' : 'william@skillfulmeans.life';
 
-    // ── Select Gmail connector by sender ──
+    // ── Obtain Gmail access token by sender ──
     let accessToken;
-    try {
-      if (isHeather) {
-        // Heather uses the workspace-registered "Admin Gmail Connector"
-        const conn = await base44.asServiceRole.connectors.getWorkspaceConnection(HEATHER_GMAIL_CONNECTOR_ID);
-        accessToken = conn.accessToken;
-      } else {
-        // William uses the platform shared Gmail connector
+    if (isHeather) {
+      // Heather: exchange stored refresh token for an access token
+      const clientId = Deno.env.get('HEATHER_GMAIL_CLIENT_ID');
+      const clientSecret = Deno.env.get('HEATHER_GMAIL_CLIENT_SECRET');
+      const refreshToken = Deno.env.get('HEATHER_GMAIL_REFRESH_TOKEN');
+      if (!clientId || !clientSecret || !refreshToken) {
+        return Response.json(
+          { error: "Heather's Gmail is not connected — re-run the authorization." },
+          { status: 400 }
+        );
+      }
+      const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          client_id: clientId,
+          client_secret: clientSecret,
+          refresh_token: refreshToken,
+        }),
+      });
+      if (!tokenRes.ok) {
+        const errText = await tokenRes.text();
+        console.error('[gmailCreateDraft] Heather token exchange error:', tokenRes.status, errText);
+        return Response.json(
+          { error: "Heather's Gmail is not connected — re-run the authorization." },
+          { status: 400 }
+        );
+      }
+      const tokenData = await tokenRes.json();
+      accessToken = tokenData.access_token;
+    } else {
+      // William: use the platform shared Gmail connector
+      try {
         const conn = await base44.asServiceRole.connectors.getConnection('gmail');
         accessToken = conn.accessToken;
+      } catch (e) {
+        console.error('[gmailCreateDraft] Connector error:', e.message);
+        return Response.json(
+          { error: "William's Gmail is not connected — authorize it in Settings" },
+          { status: 400 }
+        );
       }
-    } catch (e) {
-      console.error('[gmailCreateDraft] Connector error:', e.message);
-      const msg = isHeather
-        ? "Heather's Gmail is not connected — authorize it in Settings"
-        : "William's Gmail is not connected — authorize it in Settings";
-      return Response.json({ error: msg }, { status: 400 });
-    }
-
-    if (!accessToken) {
-      const msg = isHeather
-        ? "Heather's Gmail is not connected — authorize it in Settings"
-        : "William's Gmail is not connected — authorize it in Settings";
-      return Response.json({ error: msg }, { status: 400 });
+      if (!accessToken) {
+        return Response.json(
+          { error: "William's Gmail is not connected — authorize it in Settings" },
+          { status: 400 }
+        );
+      }
     }
 
     // ── Build MIME message ──
