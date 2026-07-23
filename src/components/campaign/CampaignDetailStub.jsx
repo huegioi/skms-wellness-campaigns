@@ -3,9 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, RefreshCw, Mail } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Mail, Wand2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TagChips } from '@/components/ui/TagChips';
+import { useDraftGeneration } from '@/components/campaign/useDraftGeneration';
 
 const RECIPIENT_STATUS_STYLES = {
   pending: 'bg-gray-100 text-gray-600',
@@ -20,6 +21,7 @@ const RECIPIENT_STATUS_STYLES = {
 
 export default function CampaignDetailStub({ campaignId, onBack }) {
   const [refreshing, setRefreshing] = useState(false);
+  const { generating, progress, generate } = useDraftGeneration(campaignId);
 
   const { data: campaign, isLoading: campaignLoading } = useQuery({
     queryKey: ['outreach_campaign', campaignId],
@@ -56,6 +58,12 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
   const activeRecipients = recipients.filter(r => r.status !== 'skipped');
   const skippedRecipients = recipients.filter(r => r.status === 'skipped');
 
+  const eligibleRecipients = recipients.filter(r =>
+    r.status === 'pending' || r.status === 'error' || r.status === 'drafting'
+  );
+  const draftedCount = recipients.filter(r => r.status === 'drafted').length;
+  const buttonLabel = draftedCount > 0 ? 'Resume generating' : 'Generate drafts';
+
   return (
     <div>
       {/* Header */}
@@ -77,16 +85,46 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
             </p>
           </div>
         </div>
-        <Button
-          variant="outline"
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="gap-1.5 text-sm"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh Audience
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={refreshing || generating}
+            className="gap-1.5 text-sm"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh Audience
+          </Button>
+          {eligibleRecipients.length > 0 && (
+            <Button
+              onClick={() => generate(recipients)}
+              disabled={generating}
+              className="bg-[#264d44] hover:bg-[#264d44]/90 text-white gap-1.5 text-sm"
+            >
+              <Wand2 className="w-4 h-4" />
+              {buttonLabel}
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Progress bar */}
+      {generating && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-gray-600">
+              {progress.done} of {progress.total} drafted
+              {progress.failed > 0 && ` (${progress.failed} failed)`}
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className="bg-[#264d44] h-2 rounded-full transition-all"
+              style={{ width: `${progress.total > 0 ? (progress.done / progress.total) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Tags */}
       {campaign?.tag_ids && campaign.tag_ids.length > 0 && (
@@ -128,9 +166,14 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
                   <td className="px-4 py-2.5 text-gray-600 hidden md:table-cell">{r.company || '-'}</td>
                   <td className="px-4 py-2.5 text-gray-600 hidden lg:table-cell">{r.owner || '-'}</td>
                   <td className="px-4 py-2.5 text-right">
-                    <Badge className={`text-xs border-0 ${RECIPIENT_STATUS_STYLES[r.status] || 'bg-gray-100'}`}>
-                      {r.status}
-                    </Badge>
+                    <div className="flex items-center justify-end gap-1.5">
+                      {r.thin_context && (
+                        <Badge className="text-xs border-0 bg-orange-100 text-orange-700">thin</Badge>
+                      )}
+                      <Badge className={`text-xs border-0 ${RECIPIENT_STATUS_STYLES[r.status] || 'bg-gray-100'}`}>
+                        {r.status}
+                      </Badge>
+                    </div>
                   </td>
                 </tr>
               ))}
