@@ -45,6 +45,51 @@ function base64UrlEncode(bytes) {
   return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
+// Escape HTML special characters in plain text
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Convert plain-text email body to simple HTML:
+// escape HTML chars, split on double newlines into <p> blocks, single newlines to <br>
+function plainTextToHtml(text) {
+  const escaped = escapeHtml(text || '');
+  return escaped
+    .split(/\n\n+/)
+    .map(para => `<p>${para.replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}
+
+// Fetch the sender's Gmail signature (HTML) from sendAs settings.
+// Returns null on any failure — never blocks draft creation.
+async function fetchGmailSignature(accessToken, fromEmail) {
+  try {
+    const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs', {
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+    });
+    if (!res.ok) {
+      console.error('[gmailCreateDraft] sendAs fetch failed:', res.status, await res.text());
+      return null;
+    }
+    const data = await res.json();
+    const sendAsList = data.sendAs || [];
+    // Match the From address; fall back to the default/primary entry
+    const match = sendAsList.find(s => s.sendAsEmail === fromEmail)
+      || sendAsList.find(s => s.isDefault)
+      || sendAsList.find(s => s.isPrimary)
+      || null;
+    return (match && match.signature) ? match.signature : null;
+  } catch (e) {
+    console.error('[gmailCreateDraft] sendAs fetch error:', e.message);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -138,8 +183,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Fetch sender's Gmail signature (graceful fallback) ──
+    const signature = await fetchGmailSignature(accessToken, fromEmail);
+
     // ── Build MIME message ──
     const ccArray = Array.isArray(cc) ? cc.filter(Boolean) : [];
+
+    // Convert plain text to HTML and append signature if found
+    let htmlBody = plainTextToHtml(emailBody);
+    if (signature) {
+      htmlBody += `<br><br>${signature}`;
+    }
 
     const mimeLines = [
       `From: ${fromEmail}`,
@@ -151,9 +205,9 @@ Deno.serve(async (req) => {
     mimeLines.push(
       `Subject: ${encodeSubjectHeader(subject)}`,
       `MIME-Version: 1.0`,
-      `Content-Type: text/plain; charset="UTF-8"`,
+      `Content-Type: text/html; charset="UTF-8"`,
       ``,
-      emailBody,
+      htmlBody,
     );
     const rawMime = mimeLines.join('\r\n');
 
@@ -206,6 +260,7 @@ Deno.serve(async (req) => {
     return Response.json({
       gmail_draft_id: gmailDraftId,
       email_log_id: emailLogRecord.id,
+      signature_appended: !!signature,
     });
 
   } catch (error) {
