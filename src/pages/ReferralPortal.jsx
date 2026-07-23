@@ -15,7 +15,6 @@ import TierProgress from '@/components/portal/TierProgress';
 import ReferralStepper from '@/components/portal/ReferralStepper';
 import RecentActivity from '@/components/portal/RecentActivity';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
-import MfsPromoCard from '@/components/portal/MfsPromoCard';
 import PartnerToolsTab from '@/components/portal/PartnerToolsTab';
 import { REFERRAL_STATUS_COLORS as STATUS_COLORS, REFERRAL_STATUS_LABELS as STATUS_LABELS } from '@/lib/statusConfig';
 
@@ -201,9 +200,6 @@ export default function ReferralPortal() {
         {/* ─── DASHBOARD TAB ─── */}
         {activeTab === 'dashboard' && (
           <>
-            {/* MFS Promo Card */}
-            <MfsPromoCard uniquePortalId={partner.unique_portal_id} partnerName={partner.name} compact />
-
             {/* Portfolio Wellness Impact */}
             <BrokerFeedbackRollup clientCompanies={client_companies} services={services} portalId={portalId} />
 
@@ -466,9 +462,6 @@ export default function ReferralPortal() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* MFS Promo Card */}
-            <MfsPromoCard uniquePortalId={partner.unique_portal_id} partnerName={partner.name} />
 
             {/* How to Use This Portal */}
             <Card className="border-[#e6e1d8] bg-[#f9f8f5] border-l-4 border-l-brand-navy">
