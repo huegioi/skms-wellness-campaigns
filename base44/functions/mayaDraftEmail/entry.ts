@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
     }
 
-    const { record_type, record_id, strategic_insights, sender_override } = body;
+    const { record_type, record_id, strategic_insights, sender_override, cc_emails } = body;
     if (!record_type || !record_id || !strategic_insights) {
       return Response.json({ error: 'Missing required fields' }, { status: 400 });
     }
@@ -108,78 +108,32 @@ CRITICAL EMAIL RULES:
     const senderKey = sender_override
       ? sender_override.toLowerCase()
       : owner.toLowerCase().includes('heather') ? 'heather' : 'william';
-    const isHeather = senderKey.includes('heather');
-    const fromEmail = isHeather ? 'heather@skillfulmeans.life' : 'william@skillfulmeans.life';
+    const sender = senderKey.includes('heather') ? 'heather' : 'william';
 
-    const HEATHER_GMAIL_CONNECTOR_ID = 'PASTE_HEATHER_CONNECTOR_ID_HERE';
-    const connectorName = isHeather ? HEATHER_GMAIL_CONNECTOR_ID : 'gmail';
-    let accessToken;
-    try {
-      const conn = await base44.asServiceRole.connectors.getConnection(connectorName);
-      accessToken = conn.accessToken;
-    } catch (e) {
-      const who = isHeather ? "Heather's" : "William's";
-      return Response.json(
-        { error: `${who} Gmail isn't connected — add it in Settings → OAuth Connectors` },
-        { status: 400 }
-      );
-    }
-
-    const mimeLines = [
-      `From: ${fromEmail}`,
-      `To: ${recipientEmail}`,
-      `Subject: ${subject}`,
-      `Content-Type: text/plain; charset="UTF-8"`,
-      `MIME-Version: 1.0`,
-      ``,
-      emailBody,
-    ];
-    const rawMime = mimeLines.join('\r\n');
-
-    const encoder = new TextEncoder();
-    const bytes = encoder.encode(rawMime);
-    let base64 = btoa(String.fromCharCode(...bytes));
-    base64 = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-
-    const gmailRes = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/drafts', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ message: { raw: base64 } }),
+    // Delegate MIME building + Gmail draft creation to gmailCreateDraft
+    const draftRes = await base44.functions.invoke('gmailCreateDraft', {
+      internal_key: _ik,
+      sender,
+      to: recipientEmail,
+      cc: cc_emails || [],
+      subject,
+      body: emailBody,
+      ...(record_type === 'client' ? { client_id: record_id } : { lead_id: record_id }),
     });
 
-    if (!gmailRes.ok) {
-      const errText = await gmailRes.text();
-      console.error('Gmail API error:', gmailRes.status, errText);
-      return Response.json({ error: `Gmail API error ${gmailRes.status}: ${errText}` }, { status: 500 });
+    if (draftRes.status !== 200 || draftRes.data?.error) {
+      const errMsg = draftRes.data?.error || `gmailCreateDraft returned status ${draftRes.status}`;
+      return Response.json({ error: errMsg }, { status: draftRes.status || 500 });
     }
 
-    const gmailDraft = await gmailRes.json();
-    const gmailDraftId = gmailDraft.id;
-    const gmailMessageId = gmailDraft.message?.id;
-
-    const emailLogRecord = await base44.asServiceRole.entities.EmailLog.create({
-      is_draft: true,
-      gmail_message_id: gmailDraftId,
-      from_email: fromEmail,
-      to_email: recipientEmail,
-      subject: subject,
-      body_preview: emailBody.slice(0, 500),
-      snippet: emailBody.slice(0, 200),
-      date: new Date().toISOString(),
-      direction: 'outbound',
-      gmail_account: isHeather ? 'heather' : 'william',
-      ...(record_type === 'client' ? { matched_client_id: record_id } : { matched_lead_id: record_id }),
-    });
+    const fromEmail = sender === 'heather' ? 'heather@skillfulmeans.life' : 'william@skillfulmeans.life';
 
     return Response.json({
       success: true,
       subject,
       body: emailBody,
-      email_log_id: emailLogRecord.id,
-      gmail_draft_id: gmailDraftId,
+      email_log_id: draftRes.data.email_log_id,
+      gmail_draft_id: draftRes.data.gmail_draft_id,
       from_email: fromEmail,
       to_email: recipientEmail,
     });

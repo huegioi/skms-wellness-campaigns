@@ -267,6 +267,8 @@ async function safeList(base44, entityName, sort, limit) {
 // ═══════════════════════════════════════════════════════════════════════════
 
 async function buildRecordContext(base44, record_type, record_id) {
+  // Normalize 'referral_partner' → 'partner' (internal alias used by Outreach Campaigns)
+  if (record_type === 'referral_partner') record_type = 'partner';
   const now = new Date();
   const gaps = [];
   const sections = [];
@@ -624,11 +626,14 @@ COMMISSION TIERS: ${tierInfo}`);
     ? `⚠ DATA GAPS (do not fabricate around these):\n${gaps.map(g => `- ${g}`).join('\n')}\n\n`
     : '';
 
+  const has_rich_context = allInteractions.length > 0 || outboundEmails.length > 0 || inboundEmails.length > 0;
+
   return {
     contextText: gapHeader + sections.join('\n\n'),
     recipientEmail,
     recipientName,
     owner,
+    has_rich_context,
   };
 }
 
@@ -1158,6 +1163,7 @@ Deno.serve(async (req) => {
         response.recipientEmail = results[idx].recipientEmail;
         response.recipientName = results[idx].recipientName;
         response.owner = results[idx].owner;
+        response.has_rich_context = results[idx].has_rich_context;
       }
 
       return Response.json(response);

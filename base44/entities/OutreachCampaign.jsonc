@@ -1,0 +1,138 @@
+{
+  "name": "OutreachCampaign",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Campaign name"
+    },
+    "description": {
+      "type": "string",
+      "description": "What this campaign is for"
+    },
+    "audience_type": {
+      "type": "string",
+      "enum": [
+        "client",
+        "lead",
+        "referral_partner"
+      ],
+      "description": "Which entity type the audience is drawn from"
+    },
+    "tag_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tag IDs \u2014 audience = records of audience_type having ANY of these tags"
+    },
+    "subject_template": {
+      "type": "string",
+      "description": "Email subject skeleton; may contain merge hints like {{first_name}}"
+    },
+    "body_template": {
+      "type": "string",
+      "description": "Email body skeleton; may contain {{first_name}}, {{company}} merge hints and bracketed guidance like [PERSONALIZE: reference our last conversation]"
+    },
+    "personalization_notes": {
+      "type": "string",
+      "description": "Campaign-wide instructions to Maya for personalization"
+    },
+    "cc_emails": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "CC email addresses applied to every recipient draft"
+    },
+    "sender_mode": {
+      "type": "string",
+      "enum": [
+        "record_owner",
+        "william",
+        "heather"
+      ],
+      "default": "record_owner",
+      "description": "Who the email is sent from"
+    },
+    "template_source_id": {
+      "type": "string",
+      "description": "EmailTemplate ID this campaign was loaded from (optional)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "generating",
+        "in_review",
+        "active",
+        "completed",
+        "archived"
+      ],
+      "default": "draft",
+      "description": "Campaign lifecycle status"
+    }
+  },
+  "required": [
+    "name",
+    "audience_type"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    }
+  }
+}
