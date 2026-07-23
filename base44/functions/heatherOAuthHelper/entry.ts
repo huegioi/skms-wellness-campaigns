@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const code = url.searchParams.get('code');
   const action = url.searchParams.get('action');
-  const redirectUri = `${url.origin}${url.pathname}`;
+  const redirectUri = 'https://app.skillfulmeans.life/api/functions/heatherOAuthHelper';
 
   // ── Callback from Google (code present in query) ──
   if (code) {
