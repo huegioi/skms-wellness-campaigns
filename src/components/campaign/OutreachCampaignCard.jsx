@@ -90,18 +90,21 @@ export default function OutreachCampaignCard({ campaign, onClick, onArchive }) {
 
       {counts.total > 0 && (
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1 text-xs">
-            <span className="text-gray-600 font-medium">{counts.total}</span>
+          <div
+            className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs"
+            title="Campaign progress: recipients → drafted → approved → sent → replied"
+          >
+            <span className="text-gray-600 font-medium">{counts.total} recipients</span>
             <ChevronRight className="w-3 h-3 text-gray-300" />
-            <span className="text-amber-600 font-medium">{counts.drafted}</span>
+            <span className="text-amber-600 font-medium">{counts.drafted} drafted</span>
             <ChevronRight className="w-3 h-3 text-gray-300" />
-            <span className="text-green-600 font-medium">{counts.approved}</span>
+            <span className="text-green-600 font-medium">{counts.approved} approved</span>
             <ChevronRight className="w-3 h-3 text-gray-300" />
-            <span className="text-purple-600 font-medium">{counts.sent}</span>
+            <span className="text-purple-600 font-medium">{counts.sent} sent</span>
             <ChevronRight className="w-3 h-3 text-gray-300" />
-            <span className="text-teal-600 font-medium">{counts.replied}</span>
+            <span className="text-teal-600 font-medium">{counts.replied} replied</span>
           </div>
-          <ChevronRight className="w-4 h-4 text-gray-300" />
+          <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
         </div>
       )}
     </div>
