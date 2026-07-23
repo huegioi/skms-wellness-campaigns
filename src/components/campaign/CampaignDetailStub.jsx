@@ -1,27 +1,45 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, RefreshCw, Mail, Wand2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { ArrowLeft, RefreshCw, Mail, Wand2, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { TagChips } from '@/components/ui/TagChips';
 import { useDraftGeneration } from '@/components/campaign/useDraftGeneration';
+import CampaignRecipientList from '@/components/campaign/CampaignRecipientList';
+import CampaignDraftReview from '@/components/campaign/CampaignDraftReview';
 
-const RECIPIENT_STATUS_STYLES = {
-  pending: 'bg-gray-100 text-gray-600',
-  drafting: 'bg-blue-100 text-blue-700',
-  drafted: 'bg-amber-100 text-amber-700',
-  approved: 'bg-green-100 text-green-700',
-  sent: 'bg-purple-100 text-purple-700',
-  replied: 'bg-teal-100 text-teal-700',
-  skipped: 'bg-gray-100 text-gray-400',
-  error: 'bg-red-100 text-red-700',
+const CAMPAIGN_STATUS_STYLES = {
+  draft: 'bg-gray-100 text-gray-600',
+  generating: 'bg-blue-100 text-blue-700',
+  in_review: 'bg-amber-100 text-amber-700',
+  active: 'bg-green-100 text-green-700',
+  completed: 'bg-purple-100 text-purple-700',
+  archived: 'bg-gray-100 text-gray-400',
 };
 
 export default function CampaignDetailStub({ campaignId, onBack }) {
+  const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedRecipientId, setSelectedRecipientId] = useState(null);
   const { generating, progress, generate } = useDraftGeneration(campaignId);
+
+  // Bulk approve state
+  const [bulkApproving, setBulkApproving] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
+  const [bulkError, setBulkError] = useState(null);
 
   const { data: campaign, isLoading: campaignLoading } = useQuery({
     queryKey: ['outreach_campaign', campaignId],
@@ -47,6 +65,37 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
     }
   };
 
+  const handleBulkApprove = async () => {
+    setBulkApproving(true);
+    setBulkError(null);
+
+    const drafted = recipients.filter(r => r.status === 'drafted');
+    setBulkProgress({ done: 0, total: drafted.length });
+
+    let error = null;
+    for (let i = 0; i < drafted.length; i++) {
+      const r = drafted[i];
+      try {
+        const res = await base44.functions.invoke('approveCampaignDraft', { recipient_id: r.id });
+        if (res.data?.error) throw new Error(res.data.error);
+        setBulkProgress({ done: i + 1, total: drafted.length });
+        queryClient.invalidateQueries({ queryKey: ['campaign_recipients_detail', campaignId] });
+        queryClient.invalidateQueries({ queryKey: ['outreach_campaign', campaignId] });
+      } catch (e) {
+        error = `${r.name || r.email}: ${e?.data?.error || e.message}`;
+        setBulkError(error);
+        break;
+      }
+    }
+
+    setBulkApproving(false);
+    if (error) {
+      toast.error(`Stopped: ${error}`);
+    } else {
+      toast.success(`Approved ${drafted.length} drafts — Gmail drafts created`);
+    }
+  };
+
   if (campaignLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -61,13 +110,16 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
   const eligibleRecipients = recipients.filter(r =>
     r.status === 'pending' || r.status === 'error' || r.status === 'drafting'
   );
-  const draftedCount = recipients.filter(r => r.status === 'drafted').length;
+  const draftedRecipients = recipients.filter(r => r.status === 'drafted');
+  const draftedCount = draftedRecipients.length;
   const buttonLabel = draftedCount > 0 ? 'Resume generating' : 'Generate drafts';
+
+  const selectedRecipient = recipients.find(r => r.id === selectedRecipientId);
 
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" className="w-9 h-9" onClick={onBack}>
             <ArrowLeft className="w-4 h-4" />
@@ -75,7 +127,7 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl font-bold text-gray-900 leading-tight">{campaign?.name}</h1>
-              <Badge className={`text-xs border-0 ${RECIPIENT_STATUS_STYLES[campaign?.status] || 'bg-gray-100'}`}>
+              <Badge className={`text-xs border-0 ${CAMPAIGN_STATUS_STYLES[campaign?.status] || 'bg-gray-100'}`}>
                 {campaign?.status}
               </Badge>
             </div>
@@ -85,11 +137,12 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
             onClick={handleRefresh}
-            disabled={refreshing || generating}
+            disabled={refreshing || generating || bulkApproving}
             className="gap-1.5 text-sm"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
@@ -98,17 +151,45 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
           {eligibleRecipients.length > 0 && (
             <Button
               onClick={() => generate(recipients)}
-              disabled={generating}
+              disabled={generating || bulkApproving}
               className="bg-[#264d44] hover:bg-[#264d44]/90 text-white gap-1.5 text-sm"
             >
               <Wand2 className="w-4 h-4" />
               {buttonLabel}
             </Button>
           )}
+          {draftedCount > 0 && !bulkApproving && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  disabled={generating || bulkApproving}
+                  className="gap-1.5 text-sm border-[#264d44] text-[#264d44] hover:bg-[#264d44]/5"
+                >
+                  <Check className="w-4 h-4" />
+                  Approve all drafted ({draftedCount})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Approve {draftedCount} drafted emails?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This creates Gmail drafts for all {draftedCount} recipients with "drafted" status. No emails are sent — they wait in the sender's Gmail Drafts for manual sending. Processing is sequential and stops on the first error.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleBulkApprove}>
+                    Approve {draftedCount}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
 
-      {/* Progress bar */}
+      {/* Generation progress */}
       {generating && (
         <div className="mb-4">
           <div className="flex items-center justify-between mb-1">
@@ -126,6 +207,31 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
         </div>
       )}
 
+      {/* Bulk approve progress */}
+      {bulkApproving && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-gray-600 flex items-center gap-1.5">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              Approving {bulkProgress.done} of {bulkProgress.total}...
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className="bg-[#264d44] h-2 rounded-full transition-all"
+              style={{ width: `${bulkProgress.total > 0 ? (bulkProgress.done / bulkProgress.total) * 100 : 0}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Bulk error */}
+      {bulkError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+          Stopped at: {bulkError}
+        </div>
+      )}
+
       {/* Tags */}
       {campaign?.tag_ids && campaign.tag_ids.length > 0 && (
         <div className="mb-4">
@@ -133,7 +239,7 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
         </div>
       )}
 
-      {/* Recipient list */}
+      {/* Two-panel review queue */}
       {recipientsLoading ? (
         <div className="p-8 text-center text-gray-400 text-sm">Loading recipients...</div>
       ) : recipients.length === 0 ? (
@@ -142,43 +248,30 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
           <p className="text-gray-500 text-sm">No recipients yet. Click "Refresh Audience" to build the list.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-4 py-3 font-semibold text-gray-600">Name</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Email</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Company</th>
-                <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden lg:table-cell">Owner</th>
-                <th className="text-right px-4 py-3 font-semibold text-gray-600">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recipients.map(r => (
-                <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50/60">
-                  <td className="px-4 py-2.5 font-medium text-gray-800">
-                    {r.name || '(no name)'}
-                    {r.error_message && (
-                      <span className="block text-xs text-red-500">{r.error_message}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-2.5 text-gray-600 hidden sm:table-cell">{r.email || '-'}</td>
-                  <td className="px-4 py-2.5 text-gray-600 hidden md:table-cell">{r.company || '-'}</td>
-                  <td className="px-4 py-2.5 text-gray-600 hidden lg:table-cell">{r.owner || '-'}</td>
-                  <td className="px-4 py-2.5 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      {r.thin_context && (
-                        <Badge className="text-xs border-0 bg-orange-100 text-orange-700">thin</Badge>
-                      )}
-                      <Badge className={`text-xs border-0 ${RECIPIENT_STATUS_STYLES[r.status] || 'bg-gray-100'}`}>
-                        {r.status}
-                      </Badge>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="flex gap-4" style={{ minHeight: 'calc(100vh - 340px)' }}>
+          {/* Left panel — recipient list */}
+          <div className={`${selectedRecipientId ? 'hidden lg:block' : 'block'} w-full lg:w-[38%] shrink-0`}>
+            <CampaignRecipientList
+              recipients={recipients}
+              selectedId={selectedRecipientId}
+              onSelect={setSelectedRecipientId}
+            />
+          </div>
+
+          {/* Right panel — draft review */}
+          <div className={`${selectedRecipientId ? 'block' : 'hidden lg:block'} w-full lg:flex-1`}>
+            {selectedRecipient ? (
+              <CampaignDraftReview
+                recipient={selectedRecipient}
+                campaign={campaign}
+                onBack={() => setSelectedRecipientId(null)}
+              />
+            ) : (
+              <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center h-full flex items-center justify-center">
+                <p className="text-gray-400 text-sm">Select a recipient to review their draft.</p>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
