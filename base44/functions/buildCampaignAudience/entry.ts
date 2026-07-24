@@ -44,9 +44,13 @@ Deno.serve(async (req) => {
 
     const isAllScope = campaign.audience_scope === 'all';
 
-    // ── For "All Partners" scope, exclude dead/inactive records ──
+    // ── For "All Partners" scope, match the Partners page exactly ──
     // KEEP IN SYNC with frontend: src/lib/partnerAudienceFilter.js (isExcludedFromAllPartners)
-    // When audience_type='partner' and scope='all', exclude:
+    // The Partners page shows:
+    //   - Leads with lead_type === 'broker_lead' (Referral Partners tab)
+    //   - ReferralPartners (Referral Portals tab)
+    // So for "All Partners" scope, exclude:
+    //   - Leads with lead_type !== 'broker_lead' (old imports, broker, ec, company_inquiry)
     //   - Leads with status in DEAD_LEAD_STATUSES (not_interested, converted, current_client)
     //   - ReferralPartners with partner_status='Inactive' or is_active=false
     // Tag scope does NOT apply this filter.
@@ -54,7 +58,7 @@ Deno.serve(async (req) => {
     const isPartnerAllScope = isAllScope && campaign.audience_type === 'partner';
     if (isPartnerAllScope) {
       allRecords = allRecords.filter(r => {
-        if (r._recordType === 'lead') return !DEAD_LEAD_STATUSES.includes(r.status);
+        if (r._recordType === 'lead') return r.lead_type === 'broker_lead' && !DEAD_LEAD_STATUSES.includes(r.status);
         if (r._recordType === 'referral_partner') return r.partner_status !== 'Inactive' && r.is_active !== false;
         return true;
       });
