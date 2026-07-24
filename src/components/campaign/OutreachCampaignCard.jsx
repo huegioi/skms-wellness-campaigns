@@ -82,17 +82,27 @@ export default function OutreachCampaignCard({ campaign, onClick, onArchive }) {
         </div>
       </div>
 
-      {campaign.audience_scope === 'all' ? (
-        <div className="mb-2">
+      <div className="mb-2 flex flex-wrap items-center gap-1">
+        {campaign.audience_scope === 'all' ? (
           <span className="inline-block text-xs font-medium text-[#264d44] bg-[#264d44]/10 rounded-full px-2.5 py-0.5 capitalize">
             All {campaign.audience_type === 'partner' ? 'partners' : 'clients'}
           </span>
-        </div>
-      ) : campaign.tag_ids && campaign.tag_ids.length > 0 ? (
-        <div className="mb-2">
+        ) : campaign.tag_ids && campaign.tag_ids.length > 0 ? (
           <TagChips tags={campaign.tag_ids} />
-        </div>
-      ) : null}
+        ) : null}
+        {campaign.exclude_tag_ids && campaign.exclude_tag_ids.length > 0 && (
+          <span className="inline-flex items-center gap-0.5">
+            {campaign.exclude_tag_ids.map(tag => (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-0.5 rounded-full border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] font-medium leading-none text-gray-400 line-through"
+              >
+                <span className="text-gray-300 no-underline">-</span>{tag}
+              </span>
+            ))}
+          </span>
+        )}
+      </div>
 
       {counts.total > 0 && (
         <div className="flex items-center justify-between">

@@ -36,6 +36,14 @@
       },
       "description": "Tag IDs \u2014 audience = records of audience_type having ANY of these tags. Ignored when audience_scope is 'all'."
     },
+    "exclude_tag_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Tag IDs \u2014 any record with ANY of these tags is excluded from the audience, regardless of scope. Exclude wins over include if a tag appears in both."
+    },
     "subject_template": {
       "type": "string",
       "description": "Email subject skeleton; may contain merge hints like {{first_name}}"

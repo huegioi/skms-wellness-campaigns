@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TagSelector } from '@/components/ui/TagSelector';
-import { Users, AlertCircle } from 'lucide-react';
+import { Users, AlertCircle, Minus } from 'lucide-react';
 
 const AUDIENCE_TYPES = [
   { value: 'client', label: 'Clients', entities: ['Client'] },
@@ -22,6 +22,8 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
   const selectedType = AUDIENCE_TYPES.find(t => t.value === form.audience_type) || AUDIENCE_TYPES[0];
   const isAllScope = form.audience_scope === 'all';
   const typeLabel = selectedType.label.toLowerCase();
+  const excludeTagIds = form.exclude_tag_ids || [];
+  const conflictingTags = form.tag_ids.filter(t => excludeTagIds.includes(t));
 
   const { data: allRecords = [], isLoading } = useQuery({
     queryKey: ['audience_preview', form.audience_type],
@@ -38,11 +40,24 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
     },
   });
 
+  // ── Compute tag-excluded count (before dedup, for summary line) ──
+  const tagExcludedCount = excludeTagIds.length === 0 ? 0 : (() => {
+    let basePool = allRecords.filter(r => !r.is_demo);
+    if (!isAllScope) {
+      basePool = basePool.filter(r => r.tags && r.tags.some(t => form.tag_ids.includes(t)));
+    }
+    return basePool.filter(r => r.tags && r.tags.some(t => excludeTagIds.includes(t))).length;
+  })();
+
   const matchedRecords = (() => {
     if (!isAllScope && form.tag_ids.length === 0) return [];
     let pool = allRecords.filter(r => !r.is_demo);
     if (!isAllScope) {
       pool = pool.filter(r => r.tags && r.tags.some(t => form.tag_ids.includes(t)));
+    }
+    // Exclude by tag: remove records with ANY exclude tag
+    if (excludeTagIds.length > 0) {
+      pool = pool.filter(r => !(r.tags && r.tags.some(t => excludeTagIds.includes(t))));
     }
     if (form.audience_type !== 'partner') return pool;
     // Partner: dedupe by email, prefer ReferralPartner over Lead
@@ -150,6 +165,27 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
         </div>
       )}
 
+      {/* Exclude by tag */}
+      <div>
+        <Label className="text-sm font-medium text-gray-700 mb-1 block flex items-center gap-1">
+          <Minus className="w-3 h-3" />
+          Exclude by tag
+        </Label>
+        <TagSelector
+          value={excludeTagIds}
+          onChange={v => updateForm('exclude_tag_ids', v)}
+        />
+        <p className="text-xs text-gray-500 mt-1">Records with any of these tags are removed from the audience.</p>
+        {conflictingTags.length > 0 && (
+          <div className="flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-1.5">
+            <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <span>
+              {conflictingTags.length} tag{conflictingTags.length > 1 ? 's' : ''} selected in both include and exclude — exclude wins: {conflictingTags.join(', ')}
+            </span>
+          </div>
+        )}
+      </div>
+
       {/* High-volume note */}
       {showPreview && finalCount > 25 && (
         <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
@@ -168,6 +204,7 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
             </Label>
             <span className="text-xs text-gray-500">
               {finalCount} included{noEmailCount > 0 && ` - ${noEmailCount} will be skipped (no email)`}
+              {tagExcludedCount > 0 && ` - ${tagExcludedCount} excluded by tag`}
             </span>
           </div>
 

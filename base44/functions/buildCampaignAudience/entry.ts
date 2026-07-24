@@ -50,9 +50,15 @@ Deno.serve(async (req) => {
     }
 
     // ── Match: if scope is 'all', include every record; otherwise tag-match ──
-    const matched = isAllScope
+    let matched = isAllScope
       ? allRecords
       : allRecords.filter(r => r.tags && r.tags.some(t => campaignTags.includes(t)));
+
+    // ── Exclude by tag: remove records with ANY exclude tag ──
+    const excludeTags = campaign.exclude_tag_ids || [];
+    if (excludeTags.length > 0) {
+      matched = matched.filter(r => !(r.tags && r.tags.some(t => excludeTags.includes(t))));
+    }
 
     // ── Apply user exclusions ──
     const excludedSet = new Set(excluded_record_ids);
