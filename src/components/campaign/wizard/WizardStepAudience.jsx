@@ -18,26 +18,22 @@ const SCOPE_OPTIONS = [
   { value: 'tags', label: 'By tag' },
 ];
 
+const DEAD_LEAD_STATUSES = ['not_interested', 'converted', 'current_client'];
+
+function isInactivePartnerRecord(r) {
+  if (r._sourceType === 'lead') return DEAD_LEAD_STATUSES.includes(r.status);
+  if (r._sourceType === 'referral_partner') return r.partner_status === 'Inactive' || r.is_active === false;
+  return false;
+}
+
 export default function WizardStepAudience({ form, updateForm, excludedIds, toggleExclude }) {
   const selectedType = AUDIENCE_TYPES.find(t => t.value === form.audience_type) || AUDIENCE_TYPES[0];
   const isAllScope = form.audience_scope === 'all';
   const typeLabel = selectedType.label.toLowerCase();
+  const tagIds = form.tag_ids || [];
   const excludeTagIds = form.exclude_tag_ids || [];
-  const conflictingTags = form.tag_ids.filter(t => excludeTagIds.includes(t));
-
-  // ── Activity filter: for "All Partners" scope, exclude dead/inactive records ──
-  // Leads with these statuses are "dead/lost" and excluded from the partners list.
-  // ReferralPartners that are Inactive or is_active=false are also excluded.
-  const DEAD_LEAD_STATUSES = ['not_interested', 'converted', 'current_client'];
-  const isInactivePartnerRecord = (r) => {
-    if (r._sourceType === 'lead') return DEAD_LEAD_STATUSES.includes(r.status);
-    if (r._sourceType === 'referral_partner') return r.partner_status === 'Inactive' || r.is_active === false;
-    return false;
-  };
+  const conflictingTags = tagIds.filter(t => excludeTagIds.includes(t));
   const isPartnerAllScope = isAllScope && form.audience_type === 'partner';
-  const inactiveExcludedCount = isPartnerAllScope
-    ? allRecords.filter(r => !r.is_demo && isInactivePartnerRecord(r)).length
-    : 0;
 
   const { data: allRecords = [], isLoading } = useQuery({
     queryKey: ['audience_preview', form.audience_type],
@@ -48,34 +44,39 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
       const tagged = [];
       selectedType.entities.forEach((entityName, i) => {
         const recordType = entityName === 'ReferralPartner' ? 'referral_partner' : entityName.toLowerCase();
-        for (const r of results[i]) tagged.push({ ...r, _sourceType: recordType });
+        for (const r of (results[i] || [])) tagged.push({ ...r, _sourceType: recordType });
       });
       return tagged;
     },
   });
 
+  // ── Count inactive/old records excluded (for "All Partners" transparency) ──
+  const inactiveExcludedCount = isPartnerAllScope
+    ? allRecords.filter(r => !r.is_demo && isInactivePartnerRecord(r)).length
+    : 0;
+
   // ── Compute tag-excluded count (before dedup, for summary line) ──
   const tagExcludedCount = excludeTagIds.length === 0 ? 0 : (() => {
     let basePool = allRecords.filter(r => !r.is_demo);
     if (!isAllScope) {
-      basePool = basePool.filter(r => r.tags && r.tags.some(t => form.tag_ids.includes(t)));
+      basePool = basePool.filter(r => (r.tags || []).some(t => tagIds.includes(t)));
     }
-    return basePool.filter(r => r.tags && r.tags.some(t => excludeTagIds.includes(t))).length;
+    return basePool.filter(r => (r.tags || []).some(t => excludeTagIds.includes(t))).length;
   })();
 
   const matchedRecords = (() => {
-    if (!isAllScope && form.tag_ids.length === 0) return [];
+    if (!isAllScope && tagIds.length === 0) return [];
     let pool = allRecords.filter(r => !r.is_demo);
     // For "All Partners" scope, exclude dead/inactive records
     if (isPartnerAllScope) {
       pool = pool.filter(r => !isInactivePartnerRecord(r));
     }
     if (!isAllScope) {
-      pool = pool.filter(r => r.tags && r.tags.some(t => form.tag_ids.includes(t)));
+      pool = pool.filter(r => (r.tags || []).some(t => tagIds.includes(t)));
     }
     // Exclude by tag: remove records with ANY exclude tag
     if (excludeTagIds.length > 0) {
-      pool = pool.filter(r => !(r.tags && r.tags.some(t => excludeTagIds.includes(t))));
+      pool = pool.filter(r => !(r.tags || []).some(t => excludeTagIds.includes(t)));
     }
     if (form.audience_type !== 'partner') return pool;
     // Partner: dedupe by email, prefer ReferralPartner over Lead
@@ -121,7 +122,7 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
 
   const finalCount = matchedRecords.filter(r => !excludedIds.includes(r.id)).length;
   const noEmailCount = matchedRecords.filter(r => !excludedIds.includes(r.id) && !r.email).length;
-  const showPreview = isAllScope || form.tag_ids.length > 0;
+  const showPreview = isAllScope || tagIds.length > 0;
 
   return (
     <div className="space-y-4">
@@ -176,7 +177,7 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
         <div>
           <Label className="text-sm font-medium text-gray-700 mb-1 block">Tags (match ANY) *</Label>
           <TagSelector
-            value={form.tag_ids}
+            value={tagIds}
             onChange={v => updateForm('tag_ids', v)}
           />
           <p className="text-xs text-gray-500 mt-1">Records with any of these tags will be included.</p>
