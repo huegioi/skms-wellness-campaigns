@@ -76,8 +76,8 @@ export default function CheckinAssessmentSurvey({ token, name, email, surveyData
           alt="SKMS Wellness"
           className="h-9 mx-auto mb-2"
         />
-        <h1 className="text-lg font-bold">3 quick questions while you wait</h1>
-        <p className="text-blue-200 text-sm mt-1">About 60 seconds — then you'll join the call</p>
+        <h1 className="text-lg font-bold">A few quick questions while you wait</h1>
+        <p className="text-blue-200 text-sm mt-1">Then you'll join the call</p>
       </div>
 
       {/* Progress bar */}

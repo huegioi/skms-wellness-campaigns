@@ -19,9 +19,9 @@ const DEFAULTS_BY_CATEGORY = {
 };
 
 const TIMING_BY_CATEGORY = {
-  workshop:    'End of session',
-  class:       'End of session',
-  leadership:  'End of session',
+  workshop:    'At check-in (start of session)',
+  class:       'At check-in (start of session)',
+  leadership:  'At check-in (start of session)',
   challenge:   'Day 0 and Day 14 (pre/post)',
   wellness_box:'Not applicable',
 };
@@ -62,7 +62,7 @@ export default function AssessmentsSelector({ category, value = [], onChange, is
     }
   };
 
-  const timing = TIMING_BY_CATEGORY[category] || 'End of session';
+  const timing = TIMING_BY_CATEGORY[category] || 'At check-in (start of session)';
   const isChallenge = category === 'challenge';
 
   // Burden calculation

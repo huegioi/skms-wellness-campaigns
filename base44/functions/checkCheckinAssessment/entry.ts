@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
 // Checks whether an attendee (by email) already has a CohortAssessment
 // for this event's client + service + timing. Returns whether a survey
-// is needed and which instruments to show (max 2 at check-in).
+// is needed and which instruments to show.
 
 const INSTRUMENT_ITEM_COUNTS = {
   who5: 5, enps: 1, uwes3: 3, pss4: 4, ucla3: 3, cbi: 6,
@@ -62,19 +62,9 @@ Deno.serve(async (req) => {
       return Response.json({ needs_survey: false, reason: 'already_submitted' });
     }
 
-    // Select at most 2 instruments: who5 first, then first non-who5
-    let instrumentsToShow = [];
+    // Show all included instruments in their existing order
+    const instrumentsToShow = [...includedAssessments];
     const skipped = [];
-    if (includedAssessments.length <= 2) {
-      instrumentsToShow = [...includedAssessments];
-    } else {
-      if (includedAssessments.includes('who5')) instrumentsToShow.push('who5');
-      const firstNonWho5 = includedAssessments.find(i => i !== 'who5');
-      if (firstNonWho5) instrumentsToShow.push(firstNonWho5);
-      for (const inst of includedAssessments) {
-        if (!instrumentsToShow.includes(inst)) skipped.push(inst);
-      }
-    }
 
     // Resolve meeting link
     const location = (event.location || '').trim();
