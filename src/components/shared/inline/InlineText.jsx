@@ -7,12 +7,22 @@ import ExpandableText from '@/components/shared/ExpandableText';
 export function InlineText({ label, value, onSave, multiline = false, className = '', placeholder = 'Click to add' }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value != null ? String(value) : '');
+  const [lastSaved, setLastSaved] = useState(null);
   const inputRef = useRef(null);
   const { show: showSaved, trigger: triggerSaved } = useSaveBadge();
 
+  // Hold the just-saved value until the prop catches up — prevents flash-back
+  const displayValue = lastSaved != null ? lastSaved : value;
+
   useEffect(() => {
-    if (!editing) setDraft(value != null ? String(value) : '');
-  }, [value, editing]);
+    if (lastSaved != null && String(value) === lastSaved) {
+      setLastSaved(null);
+    }
+  }, [value, lastSaved]);
+
+  useEffect(() => {
+    if (!editing) setDraft(displayValue != null ? String(displayValue) : '');
+  }, [displayValue, editing]);
 
   useEffect(() => {
     if (editing && inputRef.current) {
@@ -22,17 +32,18 @@ export function InlineText({ label, value, onSave, multiline = false, className 
   }, [editing]);
 
   const startEdit = () => {
-    setDraft(value != null ? String(value) : '');
+    setDraft(displayValue != null ? String(displayValue) : '');
     setEditing(true);
   };
 
   const save = async () => {
     setEditing(false);
     const trimmed = draft.trim();
-    if (trimmed !== (value != null ? String(value) : '')) {
+    if (trimmed !== (displayValue != null ? String(displayValue) : '')) {
       try {
         const result = onSave(trimmed);
         if (result && typeof result.then === 'function') await result;
+        setLastSaved(trimmed);
         triggerSaved();
       } catch (e) {
         toast.error('Failed to save', { description: e?.message || 'Unknown error' });
@@ -41,7 +52,7 @@ export function InlineText({ label, value, onSave, multiline = false, className 
   };
 
   const cancel = () => {
-    setDraft(value != null ? String(value) : '');
+    setDraft(displayValue != null ? String(displayValue) : '');
     setEditing(false);
   };
 
@@ -96,10 +107,10 @@ export function InlineText({ label, value, onSave, multiline = false, className 
       <div className="flex items-start gap-2">
         <div className="flex-1 min-w-0">
           {multiline ? (
-            <ExpandableText text={value != null ? String(value) : ''} maxLines={3} className={className} placeholder={placeholder} />
+            <ExpandableText text={displayValue != null ? String(displayValue) : ''} maxLines={3} className={className} placeholder={placeholder} />
           ) : (
             <span className={className || 'text-sm text-gray-700'}>
-              {value != null && value !== '' ? value : <span className="text-gray-300 italic">{placeholder}</span>}
+              {displayValue != null && displayValue !== '' ? displayValue : <span className="text-gray-300 italic">{placeholder}</span>}
             </span>
           )}
         </div>

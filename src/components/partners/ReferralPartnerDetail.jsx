@@ -38,7 +38,14 @@ function TierField({ value, onSave, type = 'text', placeholder, step }) {
 
 export default function ReferralPartnerDetail({ partner: initialPartner, onClose }) {
   const queryClient = useQueryClient();
-  const [partner, setPartner] = useState(initialPartner);
+  const { data: partner = initialPartner } = useQuery({
+    queryKey: ['partner', initialPartner.id],
+    queryFn: async () => {
+      const partners = await base44.entities.ReferralPartner.filter({ id: initialPartner.id });
+      return partners[0] || initialPartner;
+    },
+    initialData: initialPartner
+  });
   const [copied, setCopied] = useState(false);
   const [sendEmailConfirm, setSendEmailConfirm] = useState(null);
   const [sendingEmail, setSendingEmail] = useState(null);
@@ -88,12 +95,13 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
   }, [initialPartner?.id, initialPartner?.name]);
 
   const handleUpdate = async (updates) => {
-    setPartner(prev => ({ ...prev, ...updates }));
+    queryClient.setQueryData(['partner', initialPartner.id], old => old ? { ...old, ...updates } : old);
     try {
       await base44.entities.ReferralPartner.update(initialPartner.id, updates);
       queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
+      queryClient.invalidateQueries({ queryKey: ['partner', initialPartner.id] });
     } catch (e) {
-      setPartner(initialPartner);
+      queryClient.invalidateQueries({ queryKey: ['partner', initialPartner.id] });
       queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
       throw e;
     }

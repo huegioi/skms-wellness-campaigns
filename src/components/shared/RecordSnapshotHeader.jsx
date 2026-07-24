@@ -28,8 +28,7 @@ export function RecordSnapshotHeader({ record, entityType, stages, onUpdate }) {
     setLocalRecord(prev => ({ ...prev, ...updates }));
 
     if (onUpdate) {
-      onUpdate(updates);
-      return;
+      return onUpdate(updates);
     }
     queryClient.setQueryData(queryKey, (old) => {
       if (!Array.isArray(old)) return old;

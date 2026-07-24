@@ -63,7 +63,7 @@ const TAB_MIGRATION = {
   followup: 'setup',
 };
 
-export default function ClientDetailView({ client: initialClient, onClose, onUpdate }) {
+export default function ClientDetailView({ client: initialClient, onClose, onUpdate: onUpdateProp }) {
   const [activeTab, setActiveTab] = useState(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const requested = urlParams.get('tab');
@@ -99,6 +99,19 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   });
 
   const client = freshClient;
+
+  // Wrap onUpdate: optimistically update the detail query cache so edits
+  // reflect instantly without waiting for the parent list to refetch.
+  const onUpdate = async (updates) => {
+    queryClient.setQueryData(['client', initialClient.id], old => old ? { ...old, ...updates } : old);
+    try {
+      await onUpdateProp(updates);
+      queryClient.invalidateQueries({ queryKey: ['client', initialClient.id] });
+    } catch (e) {
+      queryClient.invalidateQueries({ queryKey: ['client', initialClient.id] });
+      throw e;
+    }
+  };
 
   useEffect(() => {
     if (client?.id && client?.name) {

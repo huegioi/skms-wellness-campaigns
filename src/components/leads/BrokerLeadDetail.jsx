@@ -61,10 +61,15 @@ function calcAdjustedRevenue(proposal) {
 
 export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate }) {
   const navigate = useNavigate();
-  const [lead, setLead] = useState(initialLead);
+  const { data: lead = initialLead } = useQuery({
+    queryKey: ['lead', initialLead.id],
+    queryFn: async () => {
+      const leads = await base44.entities.Lead.filter({ id: initialLead.id });
+      return leads[0] || initialLead;
+    },
+    initialData: initialLead
+  });
   const [activeTab, setActiveTab] = useState('overview');
-
-  useEffect(() => { setLead(initialLead); }, [initialLead]);
   const [showAddReferral, setShowAddReferral] = useState(false);
   const [referralForm, setReferralForm] = useState(EMPTY_REFERRAL);
   const [showAddProposal, setShowAddProposal] = useState(false);
@@ -84,6 +89,7 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
     mutationFn: (data) => base44.entities.Lead.update(lead.id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leads'] });
+      queryClient.invalidateQueries({ queryKey: ['lead', initialLead.id] });
       if (onUpdate) onUpdate();
     }
   });
@@ -150,12 +156,12 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
   };
 
   const handleFieldUpdate = async (updates) => {
-    setLead(prev => ({ ...prev, ...updates }));
+    queryClient.setQueryData(['lead', initialLead.id], old => old ? { ...old, ...updates } : old);
 
     try {
       await updateLeadMutation.mutateAsync(updates);
     } catch (e) {
-      setLead(initialLead);
+      queryClient.invalidateQueries({ queryKey: ['lead', initialLead.id] });
       throw e;
     }
 
