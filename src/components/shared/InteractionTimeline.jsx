@@ -8,6 +8,7 @@ import { Mail, Phone, MessageSquare, Linkedin, Video, StickyNote, Plus, Loader2,
 import { FullEmailModal } from '@/components/clients/GmailHistory';
 import { useSaveBadge } from '@/components/shared/SaveBadge';
 import SaveBadge from '@/components/shared/SaveBadge';
+import EditableInteractionNote from '@/components/shared/EditableInteractionNote';
 
 const CHANNEL_OPTIONS = [
   { value: 'email', label: 'Email', icon: Mail },
@@ -249,13 +250,7 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
                     <p className="text-sm font-medium text-gray-800 truncate">{item.subject || item.interaction_type}</p>
                     <span className="text-xs text-gray-400 flex-shrink-0">{relDate(item.date)}</span>
                   </div>
-                  {item.notes && (
-                    isMeetingNotes ? (
-                      <p className="text-xs text-gray-600 mt-0.5 whitespace-pre-line">{item.notes}</p>
-                    ) : (
-                      <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{item.notes}</p>
-                    )
-                  )}
+                  <EditableInteractionNote item={item} scopeKey={scopeKey} />
                   {isMeetingNotes ? (
                     <a href={item.outcome} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline mt-1 inline-flex items-center gap-0.5">
                       Open full notes →

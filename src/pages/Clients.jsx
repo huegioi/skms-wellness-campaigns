@@ -361,10 +361,16 @@ export default function Clients() {
     createMutation.mutate(submitData);
   };
 
-  const handleClientUpdate = (updates) => {
+  const handleClientUpdate = async (updates) => {
     if (viewingClient) {
-      updateMutation.mutate({ id: viewingClient.id, data: updates });
       setViewingClient({ ...viewingClient, ...updates });
+      try {
+        await updateMutation.mutateAsync({ id: viewingClient.id, data: updates });
+      } catch (e) {
+        setViewingClient(viewingClient);
+        queryClient.invalidateQueries({ queryKey: ['clients'] });
+        throw e;
+      }
     }
   };
 

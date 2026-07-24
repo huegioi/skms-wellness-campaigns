@@ -95,6 +95,7 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
     } catch (e) {
       setPartner(initialPartner);
       queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
+      throw e;
     }
   };
 

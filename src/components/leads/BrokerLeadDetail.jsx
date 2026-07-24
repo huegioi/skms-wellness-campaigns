@@ -59,9 +59,12 @@ function calcAdjustedRevenue(proposal) {
   return adjusted > 0 ? adjusted : proposal.total_amount || 0;
 }
 
-export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
+export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate }) {
   const navigate = useNavigate();
+  const [lead, setLead] = useState(initialLead);
   const [activeTab, setActiveTab] = useState('overview');
+
+  useEffect(() => { setLead(initialLead); }, [initialLead]);
   const [showAddReferral, setShowAddReferral] = useState(false);
   const [referralForm, setReferralForm] = useState(EMPTY_REFERRAL);
   const [showAddProposal, setShowAddProposal] = useState(false);
@@ -146,8 +149,15 @@ export default function BrokerLeadDetail({ lead, onClose, onUpdate }) {
     return `${Math.floor(diff / 30)} months ago`;
   };
 
-  const handleFieldUpdate = (updates) => {
-    updateLeadMutation.mutate(updates);
+  const handleFieldUpdate = async (updates) => {
+    setLead(prev => ({ ...prev, ...updates }));
+
+    try {
+      await updateLeadMutation.mutateAsync(updates);
+    } catch (e) {
+      setLead(initialLead);
+      throw e;
+    }
 
     const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || 'Referral Partners';
     if ('status' in updates) {

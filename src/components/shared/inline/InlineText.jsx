@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import { useSaveBadge } from '@/components/shared/SaveBadge';
 import SaveBadge from '@/components/shared/SaveBadge';
+import ExpandableText from '@/components/shared/ExpandableText';
 
 export function InlineText({ label, value, onSave, multiline = false, className = '', placeholder = 'Click to add' }) {
   const [editing, setEditing] = useState(false);
@@ -33,7 +35,7 @@ export function InlineText({ label, value, onSave, multiline = false, className 
         if (result && typeof result.then === 'function') await result;
         triggerSaved();
       } catch (e) {
-        // Save failed — don't show confirmation
+        toast.error('Failed to save', { description: e?.message || 'Unknown error' });
       }
     }
   };
@@ -91,10 +93,16 @@ export function InlineText({ label, value, onSave, multiline = false, className 
       {label && (
         <span className="block text-[10px] uppercase tracking-wide text-gray-400">{label}</span>
       )}
-      <div className="flex items-center gap-2">
-        <span className={className || 'text-sm text-gray-700'}>
-          {value != null && value !== '' ? value : <span className="text-gray-300 italic">{placeholder}</span>}
-        </span>
+      <div className="flex items-start gap-2">
+        <div className="flex-1 min-w-0">
+          {multiline ? (
+            <ExpandableText text={value != null ? String(value) : ''} maxLines={3} className={className} placeholder={placeholder} />
+          ) : (
+            <span className={className || 'text-sm text-gray-700'}>
+              {value != null && value !== '' ? value : <span className="text-gray-300 italic">{placeholder}</span>}
+            </span>
+          )}
+        </div>
         <SaveBadge show={showSaved} />
       </div>
     </div>
