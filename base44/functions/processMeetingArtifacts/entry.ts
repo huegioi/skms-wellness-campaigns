@@ -105,9 +105,10 @@ Deno.serve(async (req) => {
           const docId = att.fileId;
           if (!docId) continue;
 
-          // Dedup by doc_id — never process the same doc twice
+          // Dedup by doc_id — skip if already captured, but re-attempt if inaccessible
           const existing = await base44.asServiceRole.entities.MeetingNote.filter({ doc_id: docId }, '-created_date', 1);
-          if (existing.length > 0) {
+          const existingNote = existing[0];
+          if (existingNote && existingNote.access_status === 'captured') {
             skipped++;
             continue;
           }
@@ -145,25 +146,26 @@ Deno.serve(async (req) => {
           const capturedAt = new Date().toISOString();
 
           if (!accessible) {
-            // Create inaccessible MeetingNote record for the review list
-            await base44.asServiceRole.entities.MeetingNote.create({
-              event_id: evt.id,
-              lead_id: evt.lead_id || null,
-              client_id: evt.client_id || null,
-              referral_partner_id: evt.referral_partner_id || null,
-              doc_url: docUrl,
-              doc_id: docId,
-              doc_title: att.title || '',
-              full_text: '',
-              summary: '',
-              organizer_email: organizerEmail,
-              access_status: 'inaccessible',
-              meeting_title: evt.title || '',
-              meeting_date: evt.start_date || null,
-              captured_at: capturedAt,
-              is_demo: false,
-            });
-
+            // Still inaccessible — create record only if none exists
+            if (!existingNote) {
+              await base44.asServiceRole.entities.MeetingNote.create({
+                event_id: evt.id,
+                lead_id: evt.lead_id || null,
+                client_id: evt.client_id || null,
+                referral_partner_id: evt.referral_partner_id || null,
+                doc_url: docUrl,
+                doc_id: docId,
+                doc_title: att.title || '',
+                full_text: '',
+                summary: '',
+                organizer_email: organizerEmail,
+                access_status: 'inaccessible',
+                meeting_title: evt.title || '',
+                meeting_date: evt.start_date || null,
+                captured_at: capturedAt,
+                is_demo: false,
+              });
+            }
             inaccessibleDocs.push({
               meetingTitle: evt.title || '',
               meetingDate: evt.start_date || '',
@@ -188,8 +190,8 @@ Deno.serve(async (req) => {
             summary = '(Summary generation failed — see full notes.)';
           }
 
-          // Create MeetingNote record
-          const note = await base44.asServiceRole.entities.MeetingNote.create({
+          // Create or update MeetingNote record (update if previously inaccessible)
+          const notePayload = {
             event_id: evt.id,
             lead_id: evt.lead_id || null,
             client_id: evt.client_id || null,
@@ -205,27 +207,35 @@ Deno.serve(async (req) => {
             meeting_date: evt.start_date || null,
             captured_at: capturedAt,
             is_demo: false,
-          });
+          };
 
-          // Create Interaction (channel: meeting, counts as contact)
-          try {
-            const interaction = await base44.asServiceRole.entities.ClientInteraction.create({
-              lead_id: evt.lead_id || null,
-              client_id: evt.client_id || null,
-              referral_partner_id: evt.referral_partner_id || null,
-              calendar_event_id: evt.id,
-              interaction_type: 'meeting',
-              channel: 'meeting',
-              date: evt.start_date || capturedAt,
-              subject: `Meeting notes — ${evt.title || 'Untitled'}`,
-              notes: summary,
-              outcome: docUrl,
-            });
+          let note;
+          if (existingNote) {
+            // Previously inaccessible — update in place
+            note = await base44.asServiceRole.entities.MeetingNote.update(existingNote.id, notePayload);
+          } else {
+            note = await base44.asServiceRole.entities.MeetingNote.create(notePayload);
+          }
 
-            // Link the interaction back to the MeetingNote
-            await base44.asServiceRole.entities.MeetingNote.update(note.id, { interaction_id: interaction.id });
-          } catch (e) {
-            console.warn(`Interaction creation failed for doc ${docId}:`, e.message);
+          // Create Interaction (channel: meeting) — skip if already linked from prior capture
+          if (!existingNote?.interaction_id) {
+            try {
+              const interaction = await base44.asServiceRole.entities.ClientInteraction.create({
+                lead_id: evt.lead_id || null,
+                client_id: evt.client_id || null,
+                referral_partner_id: evt.referral_partner_id || null,
+                calendar_event_id: evt.id,
+                interaction_type: 'meeting',
+                channel: 'meeting',
+                date: evt.start_date || capturedAt,
+                subject: `Meeting notes — ${evt.title || 'Untitled'}`,
+                notes: summary,
+                outcome: docUrl,
+              });
+              await base44.asServiceRole.entities.MeetingNote.update(note.id, { interaction_id: interaction.id });
+            } catch (e) {
+              console.warn(`Interaction creation failed for doc ${docId}:`, e.message);
+            }
           }
 
           processed++;
