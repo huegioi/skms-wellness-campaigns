@@ -66,6 +66,7 @@ export function PortalShell({
             {logo && <img src={LOGO_URL} alt="SKMS Wellness" className="h-8 w-auto mb-3" />}
             {eyebrow && <p className="text-white/70 text-xs font-medium mb-0.5">{eyebrow}</p>}
             <h1 className="text-white font-bold text-sm leading-tight">{title}</h1>
+            {subtitle && <p className={`${subtitleClass} mt-0.5`}>{subtitle}</p>}
             {headerExtra && <div className="mt-1">{headerExtra}</div>}
           </div>
           {renderNav()}
@@ -122,11 +123,10 @@ export function PortalShell({
             </button>
           </div>
 
-          {/* Slim header row (only when subtitle OR headerRight present) */}
-          {(subtitle || headerRight) && (
-            <div className={`${maxWidth} mx-auto w-full px-4 pt-6 flex items-center justify-between gap-4`}>
-              {subtitle && <p className="text-gray-500 text-sm">{subtitle}</p>}
-              {headerRight && <div className="flex items-center gap-4">{headerRight}</div>}
+          {/* Slim header row (headerRight actions only) */}
+          {headerRight && (
+            <div className={`${maxWidth} mx-auto w-full px-4 pt-6 flex items-center justify-end gap-4`}>
+              {headerRight}
             </div>
           )}
 

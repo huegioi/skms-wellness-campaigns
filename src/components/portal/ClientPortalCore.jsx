@@ -177,12 +177,10 @@ export default function ClientPortalCore({ mode, token, clientId }) {
     <PortalShell
       accentColor="#223d32"
       title={`Welcome, ${client.name}`}
-      subtitle="Empowering your team with mindful wellness programs."
       maxWidth="max-w-6xl"
       headerPadding="py-8 px-4"
       logoClass="h-10 hidden sm:block"
       titleClass="text-2xl md:text-3xl font-bold"
-      subtitleClass="text-white/80"
       contentClass="p-4 md:p-8"
       headerRight={
         <>
@@ -191,14 +189,14 @@ export default function ClientPortalCore({ mode, token, clientId }) {
               onClick={handleSharePortal}
               variant="outline"
               disabled={sharing}
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+              className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
             >
               <Share2 className="w-4 h-4 mr-2" />
               {sharing ? 'Generating...' : copied ? 'Copied!' : 'Share Portal'}
             </Button>
           )}
           {latestUpdate && (
-            <div className="flex items-center gap-2 text-sm text-white/70">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
               <Clock className="w-4 h-4" />
               Last updated: {new Date(latestUpdate).toLocaleDateString()}
             </div>
