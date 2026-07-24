@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, Calendar, Mail, Building, Clock, Settings, Share2, ClipboardList, FolderOpen, CalendarPlus, LayoutDashboard, ArrowLeft, AlertCircle, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import ClientProposalView from '@/components/portal/ClientProposalView';
@@ -90,6 +89,18 @@ export default function ClientPortalCore({ mode, token, clientId }) {
   const stats = portalData?.stats || null;
   const checkins = portalData?.checkins || [];
   const acceptedProposal = proposals.find(p => p.status === 'accepted') || proposals[0];
+
+  const portalTabs = [
+    { key: 'home', label: 'Home', icon: LayoutDashboard },
+    { key: 'proposal', label: 'Programming', icon: FileText },
+    { key: 'timeline', label: 'Timeline', icon: Calendar },
+    { key: 'book', label: 'Book', icon: CalendarPlus },
+    { key: 'templates', label: 'Emails', icon: Mail },
+    { key: 'profile', label: 'Profile', icon: Settings },
+    { key: 'resources', label: 'Resources', icon: FolderOpen },
+    { key: 'feedback', label: 'Feedback', icon: ClipboardList },
+    { key: 'engagement', label: 'Engagement', icon: UserCheck },
+  ];
 
   if (clientLoading) {
     return <PortalLoading accentColor="#223d32" label="Loading your portal..." />;
@@ -201,82 +212,42 @@ export default function ClientPortalCore({ mode, token, clientId }) {
           </div>
         </div>
       )}
+      tabs={portalTabs}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
     >
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <div className="overflow-x-auto mb-8 -mx-4 px-4 md:mx-0 md:px-0">
-            <TabsList className="inline-flex w-max min-w-full h-auto p-1 gap-1">
-              <TabsTrigger value="home" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
-                <LayoutDashboard className="w-4 h-4 shrink-0" />
-                <span>Home</span>
-              </TabsTrigger>
-              <TabsTrigger value="proposal" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
-                <FileText className="w-4 h-4 shrink-0" />
-                <span>Programming</span>
-              </TabsTrigger>
-              <TabsTrigger value="timeline" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
-                <Calendar className="w-4 h-4 shrink-0" />
-                <span>Timeline</span>
-              </TabsTrigger>
-              <TabsTrigger value="book" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
-                <CalendarPlus className="w-4 h-4 shrink-0" />
-                <span>Book</span>
-              </TabsTrigger>
-              <TabsTrigger value="templates" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
-                <Mail className="w-4 h-4 shrink-0" />
-                <span>Emails</span>
-              </TabsTrigger>
-              <TabsTrigger value="profile" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
-                <Settings className="w-4 h-4 shrink-0" />
-                <span>Profile</span>
-              </TabsTrigger>
-              <TabsTrigger value="resources" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
-                <FolderOpen className="w-4 h-4 shrink-0" />
-                <span>Resources</span>
-              </TabsTrigger>
-              <TabsTrigger value="feedback" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
-                <ClipboardList className="w-4 h-4 shrink-0" />
-                <span>Feedback</span>
-              </TabsTrigger>
-              <TabsTrigger value="engagement" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
-                <UserCheck className="w-4 h-4 shrink-0" />
-                <span>Engagement</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <TabsContent value="home">
-            <ClientHomeTab
-              events={events}
-              proposals={proposals}
-              stats={stats}
-              onNavigate={setActiveTab}
-            />
-          </TabsContent>
-          <TabsContent value="proposal">
-            <ClientProposalView proposals={proposals} client={client} services={services} />
-          </TabsContent>
-          <TabsContent value="timeline">
-            <ClientTimeline events={events} proposal={acceptedProposal} />
-          </TabsContent>
-          <TabsContent value="book">
-            <BookSession client={client} />
-          </TabsContent>
-          <TabsContent value="templates">
-            <ClientEmailTemplates proposal={acceptedProposal} templates={allTemplates} client={client} services={services} />
-          </TabsContent>
-          <TabsContent value="profile">
-            <ClientProfileSettings client={client} token={token} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['clientPortalData'] })} />
-          </TabsContent>
-          <TabsContent value="resources">
-            <ClientResources client={client} proposals={proposals} services={services} />
-          </TabsContent>
-          <TabsContent value="feedback">
-            <PortalFeedback client={client} proposals={proposals} />
-          </TabsContent>
-          <TabsContent value="engagement">
-            <ClientEngagementTab client={client} events={events} checkins={checkins} />
-          </TabsContent>
-        </Tabs>
+      {activeTab === 'home' && (
+        <ClientHomeTab
+          events={events}
+          proposals={proposals}
+          stats={stats}
+          onNavigate={setActiveTab}
+        />
+      )}
+      {activeTab === 'proposal' && (
+        <ClientProposalView proposals={proposals} client={client} services={services} />
+      )}
+      {activeTab === 'timeline' && (
+        <ClientTimeline events={events} proposal={acceptedProposal} />
+      )}
+      {activeTab === 'book' && (
+        <BookSession client={client} />
+      )}
+      {activeTab === 'templates' && (
+        <ClientEmailTemplates proposal={acceptedProposal} templates={allTemplates} client={client} services={services} />
+      )}
+      {activeTab === 'profile' && (
+        <ClientProfileSettings client={client} token={token} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['clientPortalData'] })} />
+      )}
+      {activeTab === 'resources' && (
+        <ClientResources client={client} proposals={proposals} services={services} />
+      )}
+      {activeTab === 'feedback' && (
+        <PortalFeedback client={client} proposals={proposals} />
+      )}
+      {activeTab === 'engagement' && (
+        <ClientEngagementTab client={client} events={events} checkins={checkins} />
+      )}
       <PortalLinkDialog
         url={linkDialog?.url}
         clientName={linkDialog?.clientName}
