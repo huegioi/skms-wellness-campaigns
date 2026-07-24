@@ -20,12 +20,21 @@
       ],
       "description": "Which entity type the audience is drawn from. 'partner' = union of Lead + ReferralPartner (deduped by email, prefer ReferralPartner). 'lead' and 'referral_partner' are legacy values kept for backward compatibility."
     },
+    "audience_scope": {
+      "type": "string",
+      "enum": [
+        "tags",
+        "all"
+      ],
+      "default": "tags",
+      "description": "Whether the audience is all records of the audience type ('all') or tag-matched ('tags'). When 'all', tag_ids is ignored and every non-demo record of the audience type is included."
+    },
     "tag_ids": {
       "type": "array",
       "items": {
         "type": "string"
       },
-      "description": "Tag IDs \u2014 audience = records of audience_type having ANY of these tags"
+      "description": "Tag IDs \u2014 audience = records of audience_type having ANY of these tags. Ignored when audience_scope is 'all'."
     },
     "subject_template": {
       "type": "string",

@@ -267,12 +267,18 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
         </div>
       )}
 
-      {/* Tags */}
-      {campaign?.tag_ids && campaign.tag_ids.length > 0 && (
+      {/* Tags / Scope */}
+      {campaign?.audience_scope === 'all' ? (
+        <div className="mb-4">
+          <span className="inline-block text-xs font-medium text-[#264d44] bg-[#264d44]/10 rounded-full px-2.5 py-0.5 capitalize">
+            All {campaign?.audience_type === 'partner' ? 'partners' : 'clients'}
+          </span>
+        </div>
+      ) : campaign?.tag_ids && campaign.tag_ids.length > 0 ? (
         <div className="mb-4">
           <TagChips tags={campaign.tag_ids} />
         </div>
-      )}
+      ) : null}
 
       {/* Two-panel review queue */}
       {recipientsLoading ? (

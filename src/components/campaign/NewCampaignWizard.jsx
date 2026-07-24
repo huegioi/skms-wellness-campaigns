@@ -12,6 +12,7 @@ import WizardStepSettings from '@/components/campaign/wizard/WizardStepSettings'
 const INITIAL_FORM = {
   name: '',
   audience_type: 'client',
+  audience_scope: 'tags',
   tag_ids: [],
   subject_template: '',
   body_template: '',
@@ -42,7 +43,7 @@ export default function NewCampaignWizard({ open, onOpenChange, onCreated }) {
   };
 
   const canProceed = () => {
-    if (step === 1) return form.name.trim() !== '' && form.tag_ids.length > 0;
+    if (step === 1) return form.name.trim() !== '' && (form.audience_scope === 'all' || form.tag_ids.length > 0);
     if (step === 2) return form.subject_template.trim() !== '' && form.body_template.trim() !== '';
     return true;
   };
@@ -52,6 +53,7 @@ export default function NewCampaignWizard({ open, onOpenChange, onCreated }) {
       const campaign = await base44.entities.OutreachCampaign.create({
         name: form.name,
         audience_type: form.audience_type,
+        audience_scope: form.audience_scope || 'tags',
         tag_ids: form.tag_ids,
         subject_template: form.subject_template,
         body_template: form.body_template,

@@ -13,8 +13,15 @@ const AUDIENCE_TYPES = [
   { value: 'partner', label: 'Partners', entities: ['Lead', 'ReferralPartner'] },
 ];
 
+const SCOPE_OPTIONS = [
+  { value: 'all', label: 'All {type}' },
+  { value: 'tags', label: 'By tag' },
+];
+
 export default function WizardStepAudience({ form, updateForm, excludedIds, toggleExclude }) {
   const selectedType = AUDIENCE_TYPES.find(t => t.value === form.audience_type) || AUDIENCE_TYPES[0];
+  const isAllScope = form.audience_scope === 'all';
+  const typeLabel = selectedType.label.toLowerCase();
 
   const { data: allRecords = [], isLoading } = useQuery({
     queryKey: ['audience_preview', form.audience_type],
@@ -32,18 +39,19 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
   });
 
   const matchedRecords = (() => {
-    if (form.tag_ids.length === 0) return [];
-    const tagged = allRecords
-      .filter(r => !r.is_demo)
-      .filter(r => r.tags && r.tags.some(t => form.tag_ids.includes(t)));
-    if (form.audience_type !== 'partner') return tagged;
+    if (!isAllScope && form.tag_ids.length === 0) return [];
+    let pool = allRecords.filter(r => !r.is_demo);
+    if (!isAllScope) {
+      pool = pool.filter(r => r.tags && r.tags.some(t => form.tag_ids.includes(t)));
+    }
+    if (form.audience_type !== 'partner') return pool;
     // Partner: dedupe by email, prefer ReferralPartner over Lead
     const byEmail = new Map();
-    for (const r of tagged.filter(r => r._sourceType === 'referral_partner')) {
+    for (const r of pool.filter(r => r._sourceType === 'referral_partner')) {
       const key = (r.email || '').toLowerCase().trim() || `_noid_${r.id}`;
       if (!byEmail.has(key)) byEmail.set(key, r);
     }
-    for (const r of tagged.filter(r => r._sourceType === 'lead')) {
+    for (const r of pool.filter(r => r._sourceType === 'lead')) {
       const key = (r.email || '').toLowerCase().trim() || `_noid_${r.id}`;
       if (!byEmail.has(key)) byEmail.set(key, r);
     }
@@ -80,6 +88,7 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
 
   const finalCount = matchedRecords.filter(r => !excludedIds.includes(r.id)).length;
   const noEmailCount = matchedRecords.filter(r => !excludedIds.includes(r.id) && !r.email).length;
+  const showPreview = isAllScope || form.tag_ids.length > 0;
 
   return (
     <div className="space-y-4">
@@ -110,18 +119,47 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
         </RadioGroup>
       </div>
 
-      {/* Tags */}
+      {/* Audience scope: All vs By tag */}
       <div>
-        <Label className="text-sm font-medium text-gray-700 mb-1 block">Tags (match ANY) *</Label>
-        <TagSelector
-          value={form.tag_ids}
-          onChange={v => updateForm('tag_ids', v)}
-        />
-        <p className="text-xs text-gray-500 mt-1">Records with any of these tags will be included.</p>
+        <Label className="text-sm font-medium text-gray-700 mb-2 block">Audience Scope *</Label>
+        <RadioGroup
+          value={form.audience_scope || 'tags'}
+          onValueChange={v => updateForm('audience_scope', v)}
+          className="grid grid-cols-2 gap-2"
+        >
+          {SCOPE_OPTIONS.map(opt => (
+            <div key={opt.value} className="flex items-center gap-2 border rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50">
+              <RadioGroupItem value={opt.value} id={`scope-${opt.value}`} />
+              <label htmlFor={`scope-${opt.value}`} className="text-sm cursor-pointer flex-1 capitalize">
+                {opt.label.replace('{type}', typeLabel)}
+              </label>
+            </div>
+          ))}
+        </RadioGroup>
       </div>
 
+      {/* Tags — only when scope is 'tags' */}
+      {!isAllScope && (
+        <div>
+          <Label className="text-sm font-medium text-gray-700 mb-1 block">Tags (match ANY) *</Label>
+          <TagSelector
+            value={form.tag_ids}
+            onChange={v => updateForm('tag_ids', v)}
+          />
+          <p className="text-xs text-gray-500 mt-1">Records with any of these tags will be included.</p>
+        </div>
+      )}
+
+      {/* High-volume note */}
+      {showPreview && finalCount > 25 && (
+        <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          <span>Maya will draft {finalCount} individual emails — this may take a few minutes and use more AI credits.</span>
+        </div>
+      )}
+
       {/* Live preview */}
-      {form.tag_ids.length > 0 && (
+      {showPreview && (
         <div>
           <div className="flex items-center justify-between mb-2">
             <Label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
@@ -137,7 +175,7 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
             <div className="text-sm text-gray-400 py-4 text-center">Loading...</div>
           ) : matchedRecords.length === 0 ? (
             <div className="text-sm text-gray-400 py-4 text-center border rounded-lg">
-              No records match the selected tags.
+              {isAllScope ? 'No records found.' : 'No records match the selected tags.'}
             </div>
           ) : (
             <div className="border rounded-lg max-h-64 overflow-y-auto divide-y divide-gray-50">

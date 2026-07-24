@@ -42,15 +42,17 @@ Deno.serve(async (req) => {
     // Exclude demo records
     allRecords = allRecords.filter(r => !r.is_demo);
 
+    const isAllScope = campaign.audience_scope === 'all';
     const campaignTags = campaign.tag_ids || [];
-    if (campaignTags.length === 0) {
+
+    if (!isAllScope && campaignTags.length === 0) {
       return Response.json({ error: 'Campaign has no tags selected' }, { status: 400 });
     }
 
-    // ── Match: record has ANY of the campaign tags ──
-    const matched = allRecords.filter(r =>
-      r.tags && r.tags.some(t => campaignTags.includes(t))
-    );
+    // ── Match: if scope is 'all', include every record; otherwise tag-match ──
+    const matched = isAllScope
+      ? allRecords
+      : allRecords.filter(r => r.tags && r.tags.some(t => campaignTags.includes(t)));
 
     // ── Apply user exclusions ──
     const excludedSet = new Set(excluded_record_ids);
