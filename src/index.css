@@ -2,6 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Save badge — green check + "Saved" that fades out */
+@keyframes save-badge-fade {
+  0%   { opacity: 0; transform: translateY(2px); }
+  15%  { opacity: 1; transform: translateY(0); }
+  85%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-2px); }
+}
+.save-badge-fade {
+  animation: save-badge-fade 2s ease-in-out forwards;
+}
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;

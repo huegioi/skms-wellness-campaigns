@@ -6,6 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Mail, Phone, MessageSquare, Linkedin, Video, StickyNote, Plus, Loader2, X, Send, Inbox } from 'lucide-react';
 import { FullEmailModal } from '@/components/clients/GmailHistory';
+import { useSaveBadge } from '@/components/shared/SaveBadge';
+import SaveBadge from '@/components/shared/SaveBadge';
 
 const CHANNEL_OPTIONS = [
   { value: 'email', label: 'Email', icon: Mail },
@@ -73,7 +75,9 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
     ? { matched_lead_id: lead_id }
     : client_id
       ? { matched_client_id: client_id }
-      : null;
+      : referral_partner_id
+        ? { matched_referral_partner_id: referral_partner_id }
+        : null;
 
   const { data: emailLogs = [] } = useQuery({
     queryKey: [...scopeKey, 'emails'],
@@ -90,6 +94,7 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
   }, [interactions, emailLogs]);
 
   const [selectedEmail, setSelectedEmail] = useState(null);
+  const { show: showSaved, trigger: triggerSaved } = useSaveBadge();
 
   const logMutation = useMutation({
     mutationFn: async () => {
@@ -129,6 +134,7 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
       setChannel('email');
       setIsContact(true);
       setShowForm(false);
+      triggerSaved();
       if (onUpdate) onUpdate();
     },
   });
@@ -176,15 +182,18 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
             <Checkbox checked={isContact} onCheckedChange={v => setIsContact(v === true)} />
             This was a contact (updates last contacted date)
           </label>
-          <Button
-            size="sm"
-            className="bg-brand-green hover:bg-brand-forest gap-1.5"
-            disabled={saveDisabled}
-            onClick={() => logMutation.mutate()}
-          >
-            {logMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-            Save
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              className="bg-brand-green hover:bg-brand-forest gap-1.5"
+              disabled={saveDisabled}
+              onClick={() => logMutation.mutate()}
+            >
+              {logMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              Save
+            </Button>
+            <SaveBadge show={showSaved} />
+          </div>
         </div>
       ) : (
         <div className="flex justify-end">

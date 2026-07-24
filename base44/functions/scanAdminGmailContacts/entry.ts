@@ -3,6 +3,32 @@ import { ImapFlow } from 'npm:imapflow@1.0.169';
 
 const SKMS_ACCOUNTS = ['william@skillfulmeans.life', 'heather@skillfulmeans.life', 'admin@skillfulmeans.life'];
 
+// Exchange Heather's stored refresh token for a Gmail access token (read-only).
+// Returns null on any failure — never blocks the William scan.
+async function getHeatherAccessToken() {
+  const clientId = Deno.env.get('HEATHER_GMAIL_CLIENT_ID');
+  const clientSecret = Deno.env.get('HEATHER_GMAIL_CLIENT_SECRET');
+  const refreshToken = Deno.env.get('HEATHER_GMAIL_REFRESH_TOKEN');
+  if (!clientId || !clientSecret || !refreshToken) return null;
+  try {
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.access_token || null;
+  } catch {
+    return null;
+  }
+}
+
 function isOutbound(fromEmail, toEmail) {
   const fromLower = (fromEmail || '').toLowerCase();
   return SKMS_ACCOUNTS.some(a => fromLower.includes(a.split('@')[0]));
@@ -161,6 +187,7 @@ async function scanViaGmailApi(accessToken, emailMap, base44, accountLabel, days
 
         let matchedClientId = null;
         let matchedLeadId = null;
+        let matchedPartnerId = null;
 
         for (const addr of allAddresses) {
           const matched = emailMap[addr];
@@ -174,9 +201,10 @@ async function scanViaGmailApi(accessToken, emailMap, base44, accountLabel, days
 
           if (!matchedClientId && matched.entityType === 'Client') matchedClientId = matched.record.id;
           if (!matchedLeadId && matched.entityType === 'Lead') matchedLeadId = matched.record.id;
+          if (!matchedPartnerId && matched.entityType === 'ReferralPartner') matchedPartnerId = matched.record.id;
         }
 
-        if (matchedClientId || matchedLeadId) {
+        if (matchedClientId || matchedLeadId || matchedPartnerId) {
           batchLogs.push({
             gmail_message_id: id,
             gmail_account: accountLabel,
@@ -189,6 +217,7 @@ async function scanViaGmailApi(accessToken, emailMap, base44, accountLabel, days
             date: msgDateTime,
             matched_client_id: matchedClientId || '',
             matched_lead_id: matchedLeadId || '',
+            matched_referral_partner_id: matchedPartnerId || '',
             direction,
           });
           existingIds.add(id); // prevent re-processing in future batches
@@ -246,6 +275,7 @@ async function scanMailboxViaImap(imapClient, mailboxPath, since, existingIds, e
 
       let matchedClientId = null;
       let matchedLeadId = null;
+      let matchedPartnerId = null;
 
       for (const addr of allAddresses) {
         const matched = emailMap[addr];
@@ -259,9 +289,10 @@ async function scanMailboxViaImap(imapClient, mailboxPath, since, existingIds, e
 
         if (!matchedClientId && matched.entityType === 'Client') matchedClientId = matched.record.id;
         if (!matchedLeadId && matched.entityType === 'Lead') matchedLeadId = matched.record.id;
+        if (!matchedPartnerId && matched.entityType === 'ReferralPartner') matchedPartnerId = matched.record.id;
       }
 
-      if (matchedClientId || matchedLeadId) {
+      if (matchedClientId || matchedLeadId || matchedPartnerId) {
         newLogs.push({
           gmail_message_id: msgId,
           gmail_account: accountLabel,
@@ -274,6 +305,7 @@ async function scanMailboxViaImap(imapClient, mailboxPath, since, existingIds, e
           date: msgDateTime,
           matched_client_id: matchedClientId || '',
           matched_lead_id: matchedLeadId || '',
+          matched_referral_partner_id: matchedPartnerId || '',
           direction,
         });
       }
@@ -355,9 +387,10 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const daysBack = body.days_back || 90;
 
-    const [clients, leads] = await Promise.all([
+    const [clients, leads, referralPartners] = await Promise.all([
       base44.asServiceRole.entities.Client.list(),
       base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' }),
+      base44.asServiceRole.entities.ReferralPartner.list(),
     ]);
 
     // Build unified email -> { entityType, record } map
@@ -365,8 +398,13 @@ Deno.serve(async (req) => {
 
     for (const c of clients) {
       if (c.email) emailMap[c.email.toLowerCase()] = { entityType: 'Client', record: c };
+      if (c.email2 && !emailMap[c.email2.toLowerCase()]) {
+        emailMap[c.email2.toLowerCase()] = { entityType: 'Client', record: c };
+      }
       for (const contact of c.related_contacts || []) {
-        if (contact.email) emailMap[contact.email.toLowerCase()] = { entityType: 'Client', record: c };
+        if (contact.email && !emailMap[contact.email.toLowerCase()]) {
+          emailMap[contact.email.toLowerCase()] = { entityType: 'Client', record: c };
+        }
       }
     }
 
@@ -376,6 +414,15 @@ Deno.serve(async (req) => {
       }
       if (lead.email2 && !emailMap[lead.email2.toLowerCase()]) {
         emailMap[lead.email2.toLowerCase()] = { entityType: 'Lead', record: lead };
+      }
+    }
+
+    for (const p of referralPartners) {
+      if (p.email && !emailMap[p.email.toLowerCase()]) {
+        emailMap[p.email.toLowerCase()] = { entityType: 'ReferralPartner', record: p };
+      }
+      if (p.email2 && !emailMap[p.email2.toLowerCase()]) {
+        emailMap[p.email2.toLowerCase()] = { entityType: 'ReferralPartner', record: p };
       }
     }
 
@@ -425,20 +472,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 3. Scan Heather's account via IMAP
-    const heatherEmail = Deno.env.get('GMAIL_HEATHER_ADDRESS');
-    const heatherPassword = Deno.env.get('GMAIL_HEATHER_PASSWORD');
-    if (heatherEmail && heatherPassword) {
+    // 3. Scan Heather's mailbox via OAuth refresh token (read-only Gmail API)
+    const heatherToken = await getHeatherAccessToken();
+    if (heatherToken) {
       try {
-        const result = await scanViaImapAndLog(heatherEmail, heatherPassword, 'heather', emailMap, base44, daysBack);
+        const result = await scanViaGmailApi(heatherToken, emailMap, base44, 'heather', daysBack);
         mergeUpdates(result?.updates);
         totalNewLogs += result?.newLogs || 0;
       } catch (err) {
-        console.error(`IMAP scan error for ${heatherEmail}: ${err.message}`);
+        console.error(`Gmail API scan error for heather: ${err.message}`);
       }
+    } else {
+      console.warn('Heather Gmail not connected — skipping her mailbox');
     }
 
-    // Persist last_contacted_date updates to Client and Lead entities
+    // Persist last_contacted_date updates to Client, Lead, and ReferralPartner entities
     let updatedCount = 0;
     for (const { date, entityType, record } of Object.values(allUpdates)) {
       if (!record.last_contacted_date || date > record.last_contacted_date) {
@@ -459,6 +507,8 @@ Deno.serve(async (req) => {
             last_contacted_date: date,
             follow_up_due_date: followUpDueDate,
           });
+        } else if (entityType === 'ReferralPartner') {
+          await base44.asServiceRole.entities.ReferralPartner.update(record.id, { last_contacted_date: date });
         }
         updatedCount++;
       }

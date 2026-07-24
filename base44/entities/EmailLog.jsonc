@@ -47,6 +47,10 @@
       "type": "string",
       "description": "Lead entity ID if email matched a lead"
     },
+    "matched_referral_partner_id": {
+      "type": "string",
+      "description": "ReferralPartner entity ID if email matched a referral partner"
+    },
     "direction": {
       "type": "string",
       "enum": [

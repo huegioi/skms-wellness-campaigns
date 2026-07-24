@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSaveBadge } from '@/components/shared/SaveBadge';
+import SaveBadge from '@/components/shared/SaveBadge';
 
 export function InlineText({ label, value, onSave, multiline = false, className = '', placeholder = 'Click to add' }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value != null ? String(value) : '');
   const inputRef = useRef(null);
+  const { show: showSaved, trigger: triggerSaved } = useSaveBadge();
 
   useEffect(() => {
     if (!editing) setDraft(value != null ? String(value) : '');
@@ -21,10 +24,18 @@ export function InlineText({ label, value, onSave, multiline = false, className 
     setEditing(true);
   };
 
-  const save = () => {
+  const save = async () => {
     setEditing(false);
     const trimmed = draft.trim();
-    if (trimmed !== (value != null ? String(value) : '')) onSave(trimmed);
+    if (trimmed !== (value != null ? String(value) : '')) {
+      try {
+        const result = onSave(trimmed);
+        if (result && typeof result.then === 'function') await result;
+        triggerSaved();
+      } catch (e) {
+        // Save failed — don't show confirmation
+      }
+    }
   };
 
   const cancel = () => {
@@ -80,9 +91,12 @@ export function InlineText({ label, value, onSave, multiline = false, className 
       {label && (
         <span className="block text-[10px] uppercase tracking-wide text-gray-400">{label}</span>
       )}
-      <span className={className || 'text-sm text-gray-700'}>
-        {value != null && value !== '' ? value : <span className="text-gray-300 italic">{placeholder}</span>}
-      </span>
+      <div className="flex items-center gap-2">
+        <span className={className || 'text-sm text-gray-700'}>
+          {value != null && value !== '' ? value : <span className="text-gray-300 italic">{placeholder}</span>}
+        </span>
+        <SaveBadge show={showSaved} />
+      </div>
     </div>
   );
 }
