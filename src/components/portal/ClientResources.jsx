@@ -66,7 +66,29 @@ export default function ClientResources({ client, proposals = [], services = [] 
       });
     }
 
-    return resources;
+    // Dedup by file_url — the same resource can appear from the live service
+    // (Source 1) AND from a synced copy in session_resources (Source 2) because
+    // source_service_id is stripped by the entity schema. Keep one entry; if it
+    // came from multiple services, merge their names.
+    const byUrl = new Map();
+    for (const r of resources) {
+      const key = r.file_url;
+      if (!key) {
+        byUrl.set(`__no_url_${byUrl.size}`, r);
+        continue;
+      }
+      const existing = byUrl.get(key);
+      if (!existing) {
+        byUrl.set(key, r);
+      } else {
+        const names = new Set();
+        if (existing.session_name) names.add(existing.session_name);
+        if (r.session_name) names.add(r.session_name);
+        existing.session_name = [...names].join(' & ');
+      }
+    }
+
+    return [...byUrl.values()];
   }, [proposals, services, client]);
 
   const categoryForType = (t) => {
