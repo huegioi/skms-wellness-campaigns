@@ -1,5 +1,21 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
 
+// Compute eNPS send time: end − 10 min, floored to start + 15 min.
+// Fallback: start + typical duration (60 min) − 10 min when no end_date.
+const ENPS_FLOOR_MIN = 15;
+const ENPS_OFFSET_MIN = 10;
+const ENPS_TYPICAL_DURATION_MIN = 60;
+
+function computeEnpsSendTime(event, startTime) {
+  const floor = new Date(startTime.getTime() + ENPS_FLOOR_MIN * 60 * 1000);
+  if (event.end_date) {
+    const candidate = new Date(new Date(event.end_date).getTime() - ENPS_OFFSET_MIN * 60 * 1000);
+    return candidate < floor ? floor : candidate;
+  }
+  const fallback = new Date(startTime.getTime() + (ENPS_TYPICAL_DURATION_MIN - ENPS_OFFSET_MIN) * 60 * 1000);
+  return fallback < floor ? floor : fallback;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -17,7 +33,7 @@ Deno.serve(async (req) => {
     const results = [];
     const now = new Date();
 
-    // (a) Workshop/class with check-ins running → queue enps_post_session at start + 40 min
+    // (a) Workshop/class with check-ins running → queue enps_post_session at end − 10 min
     if ((event.event_type === 'workshop' || event.event_type === 'class') && event.start_date) {
       const checkins = await base44.entities.EventCheckin.filter({ event_id: event.id });
       const startTime = new Date(event.start_date);
@@ -27,18 +43,19 @@ Deno.serve(async (req) => {
           event_id: event.id, send_type: 'enps_post_session'
         });
         if (existing.filter(s => !s.is_demo).length === 0) {
-          const sendAt = new Date(startTime.getTime() + 40 * 60 * 1000);
-          if (sendAt > now) {
-            const send = await base44.entities.ScheduledSurveySend.create({
-              send_type: 'enps_post_session',
-              event_id: event.id,
-              client_id: event.client_id || undefined,
-              service_id: event.service_id || undefined,
-              send_at: sendAt.toISOString(),
-              status: 'pending'
-            });
-            results.push({ type: 'enps_post_session', send_id: send.id, send_at: sendAt.toISOString() });
-          }
+          const computedSendAt = computeEnpsSendTime(event, startTime);
+          // If already in the past (event already ended), set to now so the next
+          // processing run picks it up rather than dropping it.
+          const sendAt = computedSendAt > now ? computedSendAt : now;
+          const send = await base44.entities.ScheduledSurveySend.create({
+            send_type: 'enps_post_session',
+            event_id: event.id,
+            client_id: event.client_id || undefined,
+            service_id: event.service_id || undefined,
+            send_at: sendAt.toISOString(),
+            status: 'pending'
+          });
+          results.push({ type: 'enps_post_session', send_id: send.id, send_at: sendAt.toISOString() });
         }
       }
     }
