@@ -42,6 +42,19 @@ Deno.serve(async (req) => {
     // Exclude demo records
     allRecords = allRecords.filter(r => !r.is_demo);
 
+    // ── For "All Partners" scope, exclude dead/inactive records ──
+    // Matches the Partners page: Leads with dead/lost statuses and
+    // ReferralPartners that are Inactive or is_active=false are excluded.
+    const isPartnerAllScope = isAllScope && campaign.audience_type === 'partner';
+    if (isPartnerAllScope) {
+      const DEAD_LEAD_STATUSES = ['not_interested', 'converted', 'current_client'];
+      allRecords = allRecords.filter(r => {
+        if (r._recordType === 'lead') return !DEAD_LEAD_STATUSES.includes(r.status);
+        if (r._recordType === 'referral_partner') return r.partner_status !== 'Inactive' && r.is_active !== false;
+        return true;
+      });
+    }
+
     const isAllScope = campaign.audience_scope === 'all';
     const campaignTags = campaign.tag_ids || [];
 

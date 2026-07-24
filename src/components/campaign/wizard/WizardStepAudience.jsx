@@ -25,6 +25,20 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
   const excludeTagIds = form.exclude_tag_ids || [];
   const conflictingTags = form.tag_ids.filter(t => excludeTagIds.includes(t));
 
+  // ── Activity filter: for "All Partners" scope, exclude dead/inactive records ──
+  // Leads with these statuses are "dead/lost" and excluded from the partners list.
+  // ReferralPartners that are Inactive or is_active=false are also excluded.
+  const DEAD_LEAD_STATUSES = ['not_interested', 'converted', 'current_client'];
+  const isInactivePartnerRecord = (r) => {
+    if (r._sourceType === 'lead') return DEAD_LEAD_STATUSES.includes(r.status);
+    if (r._sourceType === 'referral_partner') return r.partner_status === 'Inactive' || r.is_active === false;
+    return false;
+  };
+  const isPartnerAllScope = isAllScope && form.audience_type === 'partner';
+  const inactiveExcludedCount = isPartnerAllScope
+    ? allRecords.filter(r => !r.is_demo && isInactivePartnerRecord(r)).length
+    : 0;
+
   const { data: allRecords = [], isLoading } = useQuery({
     queryKey: ['audience_preview', form.audience_type],
     queryFn: async () => {
@@ -52,6 +66,10 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
   const matchedRecords = (() => {
     if (!isAllScope && form.tag_ids.length === 0) return [];
     let pool = allRecords.filter(r => !r.is_demo);
+    // For "All Partners" scope, exclude dead/inactive records
+    if (isPartnerAllScope) {
+      pool = pool.filter(r => !isInactivePartnerRecord(r));
+    }
     if (!isAllScope) {
       pool = pool.filter(r => r.tags && r.tags.some(t => form.tag_ids.includes(t)));
     }
@@ -205,6 +223,7 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
             <span className="text-xs text-gray-500">
               {finalCount} included{noEmailCount > 0 && ` - ${noEmailCount} will be skipped (no email)`}
               {tagExcludedCount > 0 && ` - ${tagExcludedCount} excluded by tag`}
+              {inactiveExcludedCount > 0 && ` - ${inactiveExcludedCount} inactive/old excluded`}
             </span>
           </div>
 
