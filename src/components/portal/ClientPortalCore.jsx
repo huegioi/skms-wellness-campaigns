@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Calendar, Mail, Building, Clock, Settings, Share2, ClipboardList, FolderOpen, CalendarPlus, LayoutDashboard, ArrowLeft, AlertCircle } from 'lucide-react';
+import { FileText, Calendar, Mail, Building, Clock, Settings, Share2, ClipboardList, FolderOpen, CalendarPlus, LayoutDashboard, ArrowLeft, AlertCircle, UserCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import ClientProposalView from '@/components/portal/ClientProposalView';
 import ClientTimeline from '@/components/portal/ClientTimeline';
@@ -15,6 +15,7 @@ import ClientResources from '@/components/portal/ClientResources';
 import BookSession from '@/components/portal/BookSession';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 import ClientHomeTab from '@/components/portal/ClientHomeTab';
+import ClientEngagementTab from '@/components/portal/ClientEngagementTab';
 import { copyToClipboard } from '@/lib/copyToClipboard';
 import PortalLinkDialog from '@/components/shared/PortalLinkDialog';
 
@@ -87,6 +88,7 @@ export default function ClientPortalCore({ mode, token, clientId }) {
   const allTemplates = portalData?.email_templates || [];
   const services = portalData?.services || [];
   const stats = portalData?.stats || null;
+  const checkins = portalData?.checkins || [];
   const acceptedProposal = proposals.find(p => p.status === 'accepted') || proposals[0];
 
   if (clientLoading) {
@@ -235,6 +237,10 @@ export default function ClientPortalCore({ mode, token, clientId }) {
                 <ClipboardList className="w-4 h-4 shrink-0" />
                 <span>Feedback</span>
               </TabsTrigger>
+              <TabsTrigger value="engagement" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 px-3 py-2 text-xs sm:text-sm whitespace-nowrap min-w-[70px]">
+                <UserCheck className="w-4 h-4 shrink-0" />
+                <span>Engagement</span>
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -266,6 +272,9 @@ export default function ClientPortalCore({ mode, token, clientId }) {
           </TabsContent>
           <TabsContent value="feedback">
             <PortalFeedback client={client} proposals={proposals} />
+          </TabsContent>
+          <TabsContent value="engagement">
+            <ClientEngagementTab client={client} events={events} checkins={checkins} />
           </TabsContent>
         </Tabs>
       <PortalLinkDialog

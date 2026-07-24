@@ -6,6 +6,10 @@
       "type": "string",
       "description": "ID of the CalendarEvent this check-in belongs to"
     },
+    "client_id": {
+      "type": "string",
+      "description": "Client ID copied from the CalendarEvent at check-in time. Null if the event has no client \u2014 surfaces as an 'unmatched' check-in in the portal."
+    },
     "name": {
       "type": "string",
       "description": "Attendee's display name"
@@ -13,12 +17,12 @@
     "email": {
       "type": "string",
       "format": "email",
-      "description": "Attendee's work email (lowercased for dedup)"
+      "description": "Attendee's work email (lowercased + trimmed)"
     },
     "checked_in_at": {
       "type": "string",
       "format": "date-time",
-      "description": "When the attendee checked in"
+      "description": "When the attendee checked in (full ISO timestamp)"
     },
     "is_demo": {
       "type": "boolean",

@@ -39,24 +39,18 @@ Deno.serve(async (req) => {
 
     const now = new Date().toISOString();
 
-    // Dedupe: same email + event updates rather than duplicates
-    const existing = await base44.asServiceRole.entities.EventCheckin.filter(
-      { event_id: event.id, email: normalizedEmail }
-    );
-
-    if (existing && existing.length > 0) {
-      await base44.asServiceRole.entities.EventCheckin.update(existing[0].id, {
-        name: name?.trim() || existing[0].name,
-        checked_in_at: now,
-      });
-    } else {
-      await base44.asServiceRole.entities.EventCheckin.create({
-        event_id: event.id,
-        name: name?.trim() || '',
-        email: normalizedEmail,
-        checked_in_at: now,
-      });
-    }
+    // ALWAYS create a new check-in record — every submission is its own row.
+    // The same email can check into many events and multiple times to the
+    // same event. No upsert, no dedup at write time.
+    // client_id is copied from the event for direct portal grouping; null if
+    // the event has no client (becomes an "unmatched" check-in).
+    await base44.asServiceRole.entities.EventCheckin.create({
+      event_id: event.id,
+      client_id: event.client_id || null,
+      name: name?.trim() || '',
+      email: normalizedEmail,
+      checked_in_at: now,
+    });
 
     // Resolve meeting link
     const location = (event.location || '').trim();

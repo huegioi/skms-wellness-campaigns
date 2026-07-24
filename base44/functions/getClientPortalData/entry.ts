@@ -79,15 +79,29 @@ Deno.serve(async (req) => {
       return false;
     });
 
-    // ── Fetch check-ins for this client's events ───────────────────────
+    // ── Fetch check-ins for this client's events + by client_id ─────────
     const matchedEventIds = matchedEvents.filter(e => !e.is_demo).map(e => e.id);
-    const checkins = matchedEventIds.length > 0
+    const checkinsByEvent = matchedEventIds.length > 0
       ? await base44.asServiceRole.entities.EventCheckin.filter(
           { event_id: { $in: matchedEventIds }, is_demo: { $ne: true } },
           '-checked_in_at',
           2000
         )
       : [];
+    // Also fetch by client_id (new-style check-ins with direct attribution)
+    const checkinsByClient = await base44.asServiceRole.entities.EventCheckin.filter(
+      { client_id: client.id, is_demo: { $ne: true } },
+      '-checked_in_at',
+      2000
+    );
+    // Merge + dedupe by ID (event-based catches legacy; client_id catches new-style)
+    const _checkinMap = new Map();
+    for (const c of [...checkinsByEvent, ...checkinsByClient]) {
+      _checkinMap.set(c.id, c);
+    }
+    const checkins = [..._checkinMap.values()].sort(
+      (a, b) => new Date(b.checked_in_at) - new Date(a.checked_in_at)
+    );
 
     // People engaged: distinct participant emails across pulse feedback + cohort assessments + check-ins
     const pulseEmails = new Set(
@@ -134,6 +148,7 @@ Deno.serve(async (req) => {
       events: portalEvents,
       email_templates: emailTemplates,
       services,
+      checkins,
       stats: { people_engaged: peopleEngaged },
     });
   } catch (error) {
