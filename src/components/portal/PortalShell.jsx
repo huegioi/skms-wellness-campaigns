@@ -1,5 +1,5 @@
-import React from 'react';
-import { AlertCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { AlertCircle, Menu, X } from 'lucide-react';
 
 const LOGO_URL = 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/1272f92b7_SKMSLogoShieldWhite.png';
 
@@ -28,6 +28,120 @@ export function PortalShell({
   titleClass = 'text-2xl font-bold',
   contentClass = 'px-4 py-8',
 }) {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const hasTabs = tabs && tabs.length > 0;
+
+  // ── Sidebar layout (tabs present) ──
+  if (hasTabs) {
+    const renderNav = (onNavigate) => (
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        {tabs.map(({ key, label, icon: Icon }) => (
+          <button
+            key={key}
+            onClick={() => {
+              onTabChange(key);
+              if (onNavigate) onNavigate();
+            }}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left ${
+              activeTab === key
+                ? 'bg-white/15 text-white'
+                : 'text-white/80 hover:bg-white/10 hover:text-white'
+            }`}
+          >
+            {Icon && <Icon className="w-4 h-4 shrink-0" />}
+            {label}
+          </button>
+        ))}
+      </nav>
+    );
+
+    return (
+      <div className="h-screen bg-brand-cream flex overflow-hidden">
+        {/* Desktop sidebar */}
+        <aside
+          className="hidden lg:flex flex-col w-56 shrink-0 fixed inset-y-0 left-0 z-40 shadow-md"
+          style={{ backgroundColor: accentColor }}
+        >
+          <div className="px-4 py-4 border-b border-white/10">
+            {logo && <img src={LOGO_URL} alt="SKMS Wellness" className="h-8 w-auto mb-3" />}
+            {eyebrow && <p className="text-white/70 text-xs font-medium mb-0.5">{eyebrow}</p>}
+            <h1 className="text-white font-bold text-sm leading-tight">{title}</h1>
+            {headerExtra && <div className="mt-1">{headerExtra}</div>}
+          </div>
+          {renderNav()}
+        </aside>
+
+        {/* Mobile overlay */}
+        {drawerOpen && (
+          <div
+            className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+            onClick={() => setDrawerOpen(false)}
+          />
+        )}
+
+        {/* Mobile drawer */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-50 w-64 flex flex-col transition-transform duration-200 lg:hidden ${
+            drawerOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+          style={{ backgroundColor: accentColor }}
+        >
+          <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
+            <div className="flex items-center gap-2">
+              {logo && <img src={LOGO_URL} alt="SKMS" className="h-7 w-auto" />}
+              <span className="text-white font-bold text-sm">{title}</span>
+            </div>
+            <button
+              onClick={() => setDrawerOpen(false)}
+              className="p-1.5 rounded-lg hover:bg-white/10"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
+          {renderNav(() => setDrawerOpen(false))}
+        </aside>
+
+        {/* Main content */}
+        <div className="flex-1 flex flex-col min-w-0 lg:ml-56 overflow-y-auto">
+          {/* Mobile top bar */}
+          <div
+            className="lg:hidden flex items-center justify-between px-4 py-3 shadow-sm"
+            style={{ backgroundColor: accentColor }}
+          >
+            <div className="flex items-center gap-2">
+              {logo && <img src={LOGO_URL} alt="SKMS" className="h-7 w-auto" />}
+              <span className="text-white font-bold text-sm">{title}</span>
+            </div>
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="flex items-center justify-center rounded-full bg-white/20 text-white touch-manipulation"
+              style={{ width: 44, height: 44, WebkitTapHighlightColor: 'transparent' }}
+              aria-label="Open menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Slim header row (only when subtitle OR headerRight present) */}
+          {(subtitle || headerRight) && (
+            <div className={`${maxWidth} mx-auto w-full px-4 pt-6 flex items-center justify-between gap-4`}>
+              {subtitle && <p className="text-gray-500 text-sm">{subtitle}</p>}
+              {headerRight && <div className="flex items-center gap-4">{headerRight}</div>}
+            </div>
+          )}
+
+          {/* Content */}
+          <div className={`${maxWidth} mx-auto ${contentClass} flex-1`}>
+            {children}
+          </div>
+
+          {footer}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Original layout (no tabs) ──
   return (
     <div className="min-h-screen bg-brand-cream">
       {/* Header */}
@@ -48,25 +162,6 @@ export function PortalShell({
             {headerRight && <div className="flex items-center gap-4">{headerRight}</div>}
           </div>
         </div>
-        {/* Tab Bar — inside header band */}
-        {tabs && tabs.length > 0 && (
-          <div className={`${maxWidth} mx-auto mt-5 flex gap-1`}>
-            {tabs.map(({ key, label, icon: Icon }) => (
-              <button
-                key={key}
-                onClick={() => onTabChange(key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-semibold transition-colors ${
-                  activeTab === key
-                    ? 'bg-brand-cream text-brand-navy'
-                    : 'text-blue-200 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                {Icon && <Icon className="w-4 h-4" />}
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* Content */}
