@@ -7,6 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { Users, AlertCircle, Minus } from 'lucide-react';
+import { isExcludedFromAllPartners } from '@/lib/partnerAudienceFilter';
 
 const AUDIENCE_TYPES = [
   { value: 'client', label: 'Clients', entities: ['Client'] },
@@ -18,14 +19,6 @@ const SCOPE_OPTIONS = [
   { value: 'tags', label: 'By tag' },
 ];
 
-const DEAD_LEAD_STATUSES = ['not_interested', 'converted', 'current_client'];
-
-function isInactivePartnerRecord(r) {
-  if (r._sourceType === 'lead') return DEAD_LEAD_STATUSES.includes(r.status);
-  if (r._sourceType === 'referral_partner') return r.partner_status === 'Inactive' || r.is_active === false;
-  return false;
-}
-
 export default function WizardStepAudience({ form, updateForm, excludedIds, toggleExclude }) {
   const selectedType = AUDIENCE_TYPES.find(t => t.value === form.audience_type) || AUDIENCE_TYPES[0];
   const isAllScope = form.audience_scope === 'all';
@@ -35,6 +28,7 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
   const conflictingTags = tagIds.filter(t => excludeTagIds.includes(t));
   const isPartnerAllScope = isAllScope && form.audience_type === 'partner';
 
+  // ── Fetch records for preview ──
   const { data: allRecords = [], isLoading } = useQuery({
     queryKey: ['audience_preview', form.audience_type],
     queryFn: async () => {
@@ -51,8 +45,9 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
   });
 
   // ── Count inactive/old records excluded (for "All Partners" transparency) ──
+  // Uses the shared isExcludedFromAllPartners helper — keep in sync with buildCampaignAudience backend.
   const inactiveExcludedCount = isPartnerAllScope
-    ? allRecords.filter(r => !r.is_demo && isInactivePartnerRecord(r)).length
+    ? allRecords.filter(r => !r.is_demo && isExcludedFromAllPartners(r)).length
     : 0;
 
   // ── Compute tag-excluded count (before dedup, for summary line) ──
@@ -67,9 +62,9 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
   const matchedRecords = (() => {
     if (!isAllScope && tagIds.length === 0) return [];
     let pool = allRecords.filter(r => !r.is_demo);
-    // For "All Partners" scope, exclude dead/inactive records
+    // For "All Partners" scope, exclude dead/inactive records (shared filter)
     if (isPartnerAllScope) {
-      pool = pool.filter(r => !isInactivePartnerRecord(r));
+      pool = pool.filter(r => !isExcludedFromAllPartners(r));
     }
     if (!isAllScope) {
       pool = pool.filter(r => (r.tags || []).some(t => tagIds.includes(t)));
