@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, ChevronRight, ChevronLeft, SkipForward, CheckCircle2 } from 'lucide-react';
+import { Loader2, ChevronRight, ChevronLeft, Video, CheckCircle2 } from 'lucide-react';
 import { INSTRUMENTS, getOrderedInstruments } from '@/components/assessments/instrumentDefs';
 import InstrumentStep from '@/components/assessments/InstrumentStep';
 import { base44 } from '@/api/base44Client';
@@ -53,15 +53,15 @@ export default function CheckinAssessmentSurvey({ token, name, email, surveyData
     onSkip(meeting_link);
   };
 
-  const SkipLink = ({ className = '' }) => (
+  const JoinNowLink = ({ className = '' }) => (
     <button
       type="button"
       onClick={handleSkip}
       disabled={submitting}
-      className={`inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-600 transition-colors ${className}`}
+      className={`inline-flex items-center gap-2 text-sm font-semibold text-[#013f7c] hover:text-[#012d5a] transition-colors ${className}`}
     >
-      <SkipForward className="w-4 h-4" />
-      Skip — join the call
+      <Video className="w-4 h-4" />
+      Join the session now →
     </button>
   );
 
@@ -150,9 +150,9 @@ export default function CheckinAssessmentSurvey({ token, name, email, surveyData
           )}
         </div>
 
-        {/* Persistent skip link */}
+        {/* Persistent join-now link — never block a latecomer */}
         <div className="text-center mt-4">
-          <SkipLink />
+          <JoinNowLink />
         </div>
 
         {skipped_instruments?.length > 0 && (

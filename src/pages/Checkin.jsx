@@ -43,13 +43,12 @@ export default function Checkin() {
       });
   }, []);
 
-  const redirectToCall = (link) => {
+  const goToVideoHandoff = (link) => {
     if (!link) {
-      setMeetingLink(null);
+      setCheckedInNoLink(true);
       return;
     }
     setMeetingLink(link);
-    setTimeout(() => { window.location.href = link; }, 1000);
   };
 
   const resetForKiosk = () => {
@@ -66,7 +65,7 @@ export default function Checkin() {
     if (kiosk) {
       resetForKiosk();
     } else {
-      redirectToCall(link);
+      goToVideoHandoff(link);
     }
   };
 
@@ -75,7 +74,7 @@ export default function Checkin() {
     if (kiosk) {
       resetForKiosk();
     } else {
-      redirectToCall(link);
+      goToVideoHandoff(link);
     }
   };
 
@@ -92,7 +91,7 @@ export default function Checkin() {
       const timing = eventInfo?.assessment_timing || 'none';
       const hasInstruments = eventInfo?.service?.included_assessments?.length > 0;
 
-      if (timing !== 'none' && hasInstruments) {
+      if (timing === 'baseline' && hasInstruments) {
         // Check via backend if this email already has an assessment for this timing
         try {
           const checkRes = await base44.functions.invoke('checkCheckinAssessment', { token, email });
@@ -110,7 +109,7 @@ export default function Checkin() {
       if (kiosk) {
         resetForKiosk();
       } else if (link) {
-        redirectToCall(link);
+        goToVideoHandoff(link);
       } else {
         // No meeting link — show "checked in, host will share link" state
         setCheckedInNoLink(true);
@@ -182,9 +181,15 @@ export default function Checkin() {
           <img src={LOGO_URL} alt="SkillfulMeans" className="h-12 w-auto mx-auto mb-6" />
           <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-gray-800 mb-2">You're checked in!</h1>
-          <p className="text-gray-500 mb-4">Redirecting to your session…</p>
-          <a href={meetingLink} className="inline-flex items-center gap-2 text-[#013f7c] hover:underline">
-            <Video className="w-4 h-4" /> Click here if not redirected
+          <p className="text-gray-500 mb-6">Tap below to join your session.</p>
+          <a
+            href={meetingLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 w-full bg-[#013f7c] hover:bg-[#012d5a] text-white font-semibold py-4 px-6 rounded-xl text-base transition-colors"
+          >
+            <Video className="w-5 h-5" />
+            Join the session
           </a>
         </div>
       </div>
