@@ -489,8 +489,54 @@ Deno.serve(async (req) => {
       const qbInvoices = invoiceResult.QueryResponse?.Invoice || [];
       const syncResults = [];
 
+      // ── Two-pass domain index (mirrors backfillInvoiceClientIds) ──
+      // Map domain → client, but only for UNAMBIGUOUS domains (exactly one
+      // client). Domains shared by 2+ clients are flagged as ambiguous and
+      // excluded from domain matching — those fall back to exact-email match.
+      const domainToClient = new Map();
+      const emailToClient = new Map();
+      const ambiguousDomains = [];
+      const domainToClients = new Map();
+      for (const c of localClients) {
+        if (c.email) {
+          const ek = c.email.toLowerCase().trim();
+          if (!emailToClient.has(ek)) emailToClient.set(ek, c);
+        }
+        const domain = c.email_domain || getOrgDomain(c.email);
+        if (domain) {
+          if (!domainToClients.has(domain)) domainToClients.set(domain, []);
+          domainToClients.get(domain).push(c);
+        }
+      }
+      for (const [domain, clients] of domainToClients) {
+        if (clients.length === 1) {
+          domainToClient.set(domain, clients[0]);
+        } else {
+          ambiguousDomains.push({
+            domain,
+            client_count: clients.length,
+            clients: clients.map(c => ({ id: c.id, name: c.name, email: c.email, company: c.company }))
+          });
+        }
+      }
+
+      // ── Fix 6: ignored customer IDs (out-of-scope businesses in the shared QB file) ──
+      const ignoredConfig = await base44.asServiceRole.entities.QuickBooksConfig.filter({ key: 'ignored_customer_ids' });
+      const ignoredCustomerIds = new Set();
+      if (ignoredConfig && ignoredConfig.length > 0) {
+        try {
+          const ids = JSON.parse(ignoredConfig[0].value);
+          if (Array.isArray(ids)) ids.forEach(id => ignoredCustomerIds.add(String(id)));
+        } catch { /* malformed config — treat as empty ignore list */ }
+      }
+
+      const unmappedCustomers = [];
+
       for (const qbCustomer of qbCustomers) {
         try {
+          // Skip ignored customers entirely (other businesses in the shared QB file)
+          if (ignoredCustomerIds.has(String(qbCustomer.Id))) continue;
+
           const email = qbCustomer.PrimaryEmailAddr?.Address;
           if (!email) continue;
 
@@ -547,37 +593,36 @@ Deno.serve(async (req) => {
 
           const totalInvoiceValue = customerInvoices.reduce((sum, inv) => sum + (inv.TotalAmt || 0), 0);
           const invoiceCount = customerInvoices.length;
-          // Domain-based matching: org emails match by email_domain (the organization
-          // identity key); free-mail/internal emails fall back to exact email match.
-          // This keeps multiple contacts at the same company linked to one Client record.
-          const orgDomain = getOrgDomain(email);
-          const existingClient = orgDomain
-            ? localClients.find(c => (c.email_domain || '').toLowerCase() === orgDomain)
-            : localClients.find(c => (c.email || '').toLowerCase() === email.toLowerCase());
 
-          const clientData = {
-            name: qbCustomer.DisplayName || `${qbCustomer.GivenName || ''} ${qbCustomer.FamilyName || ''}`.trim() || email,
-            email,
-            email_domain: orgDomain || undefined,
-            company: qbCustomer.CompanyName || deriveCompanyFromEmail(email) || '',
-            phone: qbCustomer.PrimaryPhone?.FreeFormNumber || '',
-            company_address: qbCustomer.BillAddr ?
-              `${qbCustomer.BillAddr.Line1 || ''} ${qbCustomer.BillAddr.City || ''} ${qbCustomer.BillAddr.CountrySubDivisionCode || ''} ${qbCustomer.BillAddr.PostalCode || ''}`.trim() : '',
-            notes: qbCustomer.Notes || '',
-            purchased_services: Array.from(purchasedServices),
-            total_invoice_value: totalInvoiceValue,
-            invoice_count: invoiceCount,
-            invoice_ids: invoiceIds
-          };
+          // Domain-based matching via the prebuilt unambiguous domain index;
+          // fall back to exact email for free-mail / null-domain / ambiguous domains.
+          const orgDomain = getOrgDomain(email);
+          const emailKey = email.toLowerCase().trim();
+          const existingClient = (orgDomain && domainToClient.get(orgDomain)) || emailToClient.get(emailKey);
 
           if (existingClient) {
-            const mergedServices = new Set([...(existingClient.purchased_services || []), ...clientData.purchased_services]);
-            const mergedInvoiceIds = [...new Set([...(existingClient.invoice_ids || []), ...clientData.invoice_ids])];
+            const mergedServices = new Set([...(existingClient.purchased_services || []), ...Array.from(purchasedServices)]);
+            const mergedInvoiceIds = [...new Set([...(existingClient.invoice_ids || []), ...invoiceIds])];
+
+            // Update payload — NEVER overwrite name (QB DisplayName is frequently
+            // the company, not a human contact). Only set company if the existing
+            // Client's company is blank.
             const updatePayload = {
-              ...clientData,
+              email,
+              email_domain: orgDomain || undefined,
+              phone: qbCustomer.PrimaryPhone?.FreeFormNumber || '',
+              company_address: qbCustomer.BillAddr ?
+                `${qbCustomer.BillAddr.Line1 || ''} ${qbCustomer.BillAddr.City || ''} ${qbCustomer.BillAddr.CountrySubDivisionCode || ''} ${qbCustomer.BillAddr.PostalCode || ''}`.trim() : '',
+              notes: qbCustomer.Notes || '',
               purchased_services: Array.from(mergedServices),
+              total_invoice_value: totalInvoiceValue,
+              invoice_count: invoiceCount,
               invoice_ids: mergedInvoiceIds
             };
+            // Backfill company only if the existing record has none.
+            if (!existingClient.company || !existingClient.company.trim()) {
+              updatePayload.company = qbCustomer.CompanyName || deriveCompanyFromEmail(email) || '';
+            }
             // If the invoice query returned nothing (throttled/failed), do NOT
             // overwrite the client's existing totals with zeros — preserve them.
             if (qbInvoices.length === 0) {
@@ -587,8 +632,16 @@ Deno.serve(async (req) => {
             await base44.asServiceRole.entities.Client.update(existingClient.id, updatePayload);
             syncResults.push({ email, action: 'updated', client_id: existingClient.id, invoices: invoiceCount, total_value: totalInvoiceValue });
           } else {
-            const newClient = await base44.asServiceRole.entities.Client.create(clientData);
-            syncResults.push({ email, action: 'created', client_id: newClient.id, invoices: invoiceCount, total_value: totalInvoiceValue });
+            // Fix 5: never auto-create a Client — the shared QB file contains
+            // customers from other businesses. Collect for manual review instead.
+            unmappedCustomers.push({
+              customer_id: qbCustomer.Id,
+              display_name: qbCustomer.DisplayName || '',
+              email,
+              company: qbCustomer.CompanyName || '',
+              invoice_count: invoiceCount,
+              combined_total: totalInvoiceValue
+            });
           }
         } catch (error) {
           syncResults.push({ email: qbCustomer.PrimaryEmailAddr?.Address || 'unknown', action: 'failed', error: error.message });
@@ -599,9 +652,11 @@ Deno.serve(async (req) => {
         success: true,
         results: syncResults,
         total: syncResults.length,
-        created: syncResults.filter(r => r.action === 'created').length,
         updated: syncResults.filter(r => r.action === 'updated').length,
-        failed: syncResults.filter(r => r.action === 'failed').length
+        failed: syncResults.filter(r => r.action === 'failed').length,
+        unmapped_customers: unmappedCustomers,
+        unmapped_count: unmappedCustomers.length,
+        ambiguous_domains: ambiguousDomains
       });
     }
 
