@@ -102,9 +102,15 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
   return (
     <div className="bg-white rounded-2xl border border-stone-200 border-l-4 border-l-[#0f766e] p-6 shadow-sm">
       {/* ── Section header ── */}
-      <h2 className="text-base font-bold text-[#4a2040] mb-1">
-        Projected ROI Savings from Implementing SkillfulMeans Mental Fitness Campaigns
+      <h2 className="text-lg font-bold text-[#4a2040] mb-0.5">
+        Projected ROI Savings
       </h2>
+      <p className="text-sm text-stone-600 mb-1">
+        from Implementing SkillfulMeans Mental Fitness Campaigns
+      </p>
+      <p className="text-xs text-stone-500 mb-5">
+        One based on your estimates, one based on your team's real data.
+      </p>
       {/* ── Two charts with savings headings ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-3">
         {/* Left chart — estimate */}
