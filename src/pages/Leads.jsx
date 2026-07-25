@@ -232,6 +232,7 @@ export default function Leads() {
   const tabFromUrl = urlParams.get('tab');
   const urlLeadDismissed = React.useRef(false);
   const urlPartnerDismissed = React.useRef(false);
+  const urlTabApplied = React.useRef(false);
 
   // Broker leads (referral partners) state
   const [brokerSearch, setBrokerSearch] = useState('');
@@ -352,8 +353,15 @@ export default function Leads() {
   const pendingReferrals = referrals.filter(r => r.status === 'pending_review');
 
   React.useEffect(() => {
-    if (filterParam === 'quick_builder') setActiveTab('inquiries');
-    if (tabFromUrl === 'portals' || partnerIdFromUrl) setActiveTab('portals');
+    if (!urlTabApplied.current) {
+      if (filterParam === 'quick_builder') {
+        setActiveTab('inquiries');
+        urlTabApplied.current = true;
+      } else if (tabFromUrl === 'portals' || partnerIdFromUrl) {
+        setActiveTab('portals');
+        urlTabApplied.current = true;
+      }
+    }
     if (leadIdFromUrl && !urlLeadDismissed.current) {
       const lead = (allLeads || []).find(l => l.id === leadIdFromUrl);
       if (lead) setViewingBrokerLead(lead);
@@ -1067,7 +1075,8 @@ export default function Leads() {
               <div className="space-y-4">
                 {referralPartners.map(partner => {
                   const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id);
-                  const earnedAmt = (r) => partner.brokerage_id ? (r.broker_commission != null ? (r.broker_commission || 0) : 0) : (r.commission_amount || 0);
+                  const earnedAmt = (r) => partner.brokerage_id ? (r.broker_commission != null ? (r.broker_commission || 0) : (r.commission_amount || 0)) : (r.commission_amount || 0);
+                  const hasUnsplit = !!partner.brokerage_id && partnerReferrals.some(r => r.broker_commission == null && (r.commission_amount || 0) > 0);
                   const totalCommission = partnerReferrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
                   const totalRevenue = partnerReferrals.reduce((sum, r) => sum + (r.first_year_revenue || 0), 0);
                   const convertedReferrals = partnerReferrals.filter(r => ['converted_to_client','purchased','commission_paid'].includes(r.status));
@@ -1117,6 +1126,9 @@ export default function Leads() {
                                 <p className="text-xs text-purple-600 font-medium">Paid Comm.</p>
                                 <p className="text-lg font-bold text-purple-800">${paidCommission.toLocaleString()}</p>
                                 <p className="text-xs text-purple-500">Total (house + broker): ${totalCommission.toLocaleString()}</p>
+                                {hasUnsplit && (
+                                  <p className="text-[10px] text-amber-500 italic">unsplit — run backfill</p>
+                                )}
                               </div>
                             </div>
 

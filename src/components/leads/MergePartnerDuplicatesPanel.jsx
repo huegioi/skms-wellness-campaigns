@@ -27,6 +27,8 @@ export default function MergePartnerDuplicatesPanel({ onMergeComplete, scanning,
     }
   };
 
+  const mergeableCount = (duplicates || []).filter(d => !d.alreadyLinked).length;
+
   // Only render if there's something to show
   if (duplicates === null && !mergeResult) return null;
 
@@ -44,12 +46,15 @@ export default function MergePartnerDuplicatesPanel({ onMergeComplete, scanning,
             <div>
               <div className="flex items-center gap-2 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 mb-3 text-sm font-medium">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                Found {duplicates.length} duplicate{duplicates.length !== 1 ? 's' : ''} — review below before merging
+                Found {mergeableCount} duplicate{mergeableCount !== 1 ? 's' : ''} to merge
+                {mergeableCount < duplicates.length && (
+                  <span className="text-gray-500 font-normal">({duplicates.length - mergeableCount} already linked)</span>
+                )}
               </div>
 
               <div className="space-y-2 max-h-60 overflow-y-auto mb-4">
                 {duplicates.map((d, i) => (
-                  <div key={i} className="grid grid-cols-2 gap-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                  <div key={i} className={`grid grid-cols-2 gap-3 border rounded-lg px-3 py-2 text-sm ${d.alreadyLinked ? 'bg-green-50 border-green-200 opacity-70' : 'bg-gray-50 border-gray-200'}`}>
                     <div>
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-0.5">Lead (keep)</p>
                       <p className="font-medium text-gray-800">{d.leadName}</p>
@@ -62,6 +67,9 @@ export default function MergePartnerDuplicatesPanel({ onMergeComplete, scanning,
                       {d.partnerAgreementSignedDate && (
                         <p className="text-xs text-blue-600 mt-0.5">Agreement: {d.partnerAgreementSignedDate}</p>
                       )}
+                      {d.alreadyLinked && (
+                        <p className="text-xs text-green-600 mt-0.5 font-medium">✓ Already linked</p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -69,12 +77,12 @@ export default function MergePartnerDuplicatesPanel({ onMergeComplete, scanning,
 
               <Button
                 onClick={handleMerge}
-                disabled={merging}
+                disabled={merging || mergeableCount === 0}
                 className="bg-amber-600 hover:bg-amber-700 text-white gap-2"
                 size="sm"
               >
                 <GitMerge className="w-4 h-4" />
-                {merging ? 'Merging…' : `Merge ${duplicates.length} Duplicate${duplicates.length !== 1 ? 's' : ''}`}
+                {merging ? 'Merging…' : `Merge ${mergeableCount} Duplicate${mergeableCount !== 1 ? 's' : ''}`}
               </Button>
             </div>
           )}

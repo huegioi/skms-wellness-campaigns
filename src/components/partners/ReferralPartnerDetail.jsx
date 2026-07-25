@@ -147,7 +147,8 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const earnedAmt = (r) => partner.brokerage_id ? (r.broker_commission != null ? (r.broker_commission || 0) : 0) : (r.commission_amount || 0);
+  const earnedAmt = (r) => partner.brokerage_id ? (r.broker_commission != null ? (r.broker_commission || 0) : (r.commission_amount || 0)) : (r.commission_amount || 0);
+  const hasUnsplit = !!partner.brokerage_id && referrals.some(r => r.broker_commission == null && (r.commission_amount || 0) > 0);
   const totalCommission = referrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
   const earnedCommission = referrals.reduce((sum, r) => sum + earnedAmt(r), 0);
 
@@ -215,6 +216,9 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
               <p className="text-xl font-bold text-green-600">${earnedCommission.toLocaleString()}</p>
               {partner.brokerage_id && totalCommission > 0 && (
                 <p className="text-[10px] text-gray-400 mt-0.5">Total (house + broker): ${totalCommission.toLocaleString()}</p>
+              )}
+              {hasUnsplit && (
+                <p className="text-[10px] text-amber-500 mt-0.5 italic">unsplit — run backfill</p>
               )}
             </div>
             <div className="bg-gray-50 rounded-lg p-3 text-center">

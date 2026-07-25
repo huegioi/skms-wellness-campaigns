@@ -55,12 +55,13 @@ Deno.serve(async (req) => {
       serviceNameMap[s.id] = s.name;
     }
 
-    // ── Event matching: exact client_id only (no fuzzy name matching) ──
-    // Previously this used substring .includes() on client_name/company, which
-    // caused cross-client leaks (e.g. "Acme Benefits" matched "Acme Benefits Group").
-    // Now we match strictly on client_id — if zero events match, zero events are returned.
+    // ── Event matching: exact client_id OR exact proposal_id ──
+    // No fuzzy name/substring matching — that caused cross-client leaks.
+    // An event whose proposal_id belongs to one of this client's proposals is safely theirs.
+    const proposalIds = new Set(proposals.map(p => p.id));
     const matchedEvents = allEvents.filter(event => {
       if (event.client_id && event.client_id === client.id) return true;
+      if (event.proposal_id && proposalIds.has(event.proposal_id)) return true;
       return false;
     });
 

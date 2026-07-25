@@ -172,6 +172,10 @@
       "type": "string",
       "description": "Client ID if this lead was converted to a client"
     },
+    "referral_partner_id": {
+      "type": "string",
+      "description": "The ReferralPartner record for this same person, when one exists. Set by mergePartnerDuplicates to cross-reference the two records without deleting either."
+    },
     "follow_up_stage": {
       "type": "string",
       "description": "Current follow-up stage in the outreach sequence (legacy \u2014 pipeline board now uses 'status'). Data preserved for reference and tagging."

@@ -87,6 +87,11 @@
       "default": 0,
       "description": "Broker's commission share for this referral"
     },
+    "split_backfilled": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if the broker_commission/brokerage_commission split was backfilled by backfillReferralCommissionSplit (prevents double-application)."
+    },
     "invoice_id": {
       "type": "string",
       "description": "ID of the Invoice linked to this placement"

@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     if (dryRun) {
       return Response.json({
         dryRun: true,
-        count: duplicates.length,
+        count: duplicates.filter(({ lead }) => !lead.referral_partner_id).length,
         duplicates: duplicates.map(({ lead, partner }) => ({
           email: lead.email,
           leadId: lead.id,
@@ -57,42 +57,55 @@ Deno.serve(async (req) => {
           partnerPortalId: partner.unique_portal_id,
           partnerIsActive: partner.is_active,
           partnerReferralCount: partner.referral_count,
+          alreadyLinked: !!lead.referral_partner_id,
         })),
       });
     }
 
-    // Fetch all referrals so we can count how many reference each partner being merged.
-    const allReferrals = await base44.asServiceRole.entities.Referral.list();
+    // Fetch all referrals with explicit high limit so counts are accurate.
+    const allReferrals = await base44.asServiceRole.entities.Referral.list('-created_date', 2000);
 
     // Non-destructive merge: copy unique ReferralPartner fields onto the Lead, but
     // never delete the ReferralPartner record — deleting it would break the partner's
     // live portal URL and orphan every Referral that points at it.
+    // Idempotent: if lead.referral_partner_id is already set or notes already contains
+    // the marker, we skip the notes append so it doesn't grow on every run.
     const merged = [];
     const errors = [];
     const warnings = [];
+    const skipped = [];
 
     for (const { lead, partner } of duplicates) {
       try {
+        // Skip if already cross-referenced — idempotent.
+        if (lead.referral_partner_id) {
+          skipped.push({ email: lead.email, leadId: lead.id, partnerId: partner.id, reason: 'already_linked' });
+          continue;
+        }
+
         const referralCount = allReferrals.filter(r => r.referral_partner_id === partner.id).length;
 
         // Build update payload: only copy fields that are missing/empty on the Lead
-        const updates = {};
+        const updates = { referral_partner_id: partner.id };
         if (!lead.company && partner.company) updates.company = partner.company;
         if (!lead.phone && partner.phone) updates.phone = partner.phone;
         if (!lead.notes && partner.notes) updates.notes = partner.notes;
 
-        // Store agreement info in notes if present
-        const agreementParts = [];
-        if (partner.agreement_file_url) agreementParts.push(`Agreement URL: ${partner.agreement_file_url}`);
-        if (partner.agreement_signed_date) agreementParts.push(`Agreement signed: ${partner.agreement_signed_date}`);
-        if (partner.unique_portal_id) agreementParts.push(`Portal ID: ${partner.unique_portal_id}`);
-        if (partner.commission_tiers?.length) agreementParts.push(`Commission tiers: ${JSON.stringify(partner.commission_tiers)}`);
-        if (partner.ytd_revenue) agreementParts.push(`YTD revenue: $${partner.ytd_revenue}`);
-        if (partner.total_commissions_paid) agreementParts.push(`Total commissions paid: $${partner.total_commissions_paid}`);
+        // Store agreement info in notes — one-time only (guarded by marker check).
+        const alreadyHasMarker = (lead.notes || '').includes('[Merged from ReferralPartner]');
+        if (!alreadyHasMarker) {
+          const agreementParts = [];
+          if (partner.agreement_file_url) agreementParts.push(`Agreement URL: ${partner.agreement_file_url}`);
+          if (partner.agreement_signed_date) agreementParts.push(`Agreement signed: ${partner.agreement_signed_date}`);
+          if (partner.unique_portal_id) agreementParts.push(`Portal ID: ${partner.unique_portal_id}`);
+          if (partner.commission_tiers?.length) agreementParts.push(`Commission tiers: ${JSON.stringify(partner.commission_tiers)}`);
+          if (partner.ytd_revenue) agreementParts.push(`YTD revenue: $${partner.ytd_revenue}`);
+          if (partner.total_commissions_paid) agreementParts.push(`Total commissions paid: $${partner.total_commissions_paid}`);
 
-        if (agreementParts.length > 0) {
-          const appendText = `\n\n[Merged from ReferralPartner]\n${agreementParts.join('\n')}`;
-          updates.notes = (lead.notes || '') + appendText;
+          if (agreementParts.length > 0) {
+            const appendText = `\n\n[Merged from ReferralPartner]\n${agreementParts.join('\n')}`;
+            updates.notes = (lead.notes || '') + appendText;
+          }
         }
 
         // Promote partner_status to active_partner if partner was active
@@ -105,9 +118,7 @@ Deno.serve(async (req) => {
           updates.referral_count = partner.referral_count;
         }
 
-        if (Object.keys(updates).length > 0) {
-          await base44.asServiceRole.entities.Lead.update(lead.id, updates);
-        }
+        await base44.asServiceRole.entities.Lead.update(lead.id, updates);
 
         // ReferralPartner record is intentionally left intact to preserve the
         // live portal URL and existing Referral foreign keys.
@@ -124,7 +135,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ dryRun: false, merged: merged.length, warnings, errors, details: merged });
+    return Response.json({ dryRun: false, merged: merged.length, skipped: skipped.length, warnings, errors, details: merged, skippedDetails: skipped });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
