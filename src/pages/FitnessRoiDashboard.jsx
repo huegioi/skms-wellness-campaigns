@@ -80,7 +80,7 @@ export default function FitnessRoiDashboard() {
             <p className="text-xs text-stone-500 mb-5 leading-relaxed">
               Each domain is scored 0–100 (higher is better) with Low, Typical, and High bands from published research norms. The paired markers show where you placed your team next to where they placed themselves — gaps between the two are the most valuable signal on this page.
             </p>
-            <p className="text-sm uppercase tracking-widest text-[#441D37] font-bold text-center mt-6 mb-4">Mental Fitness Score</p>
+            <p className="text-sm uppercase tracking-widest text-[#441D37] font-bold text-center mt-10 mb-8">Mental Fitness Score</p>
             <div className="mb-5">
               <PairedDials leaderScore={leaderComposite} teamScore={teamComposite} />
             </div>
