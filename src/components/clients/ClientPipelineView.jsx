@@ -129,8 +129,8 @@ function StageColumn({ stage, clients, onOwnerChange, onStageChange, onTagsChang
                       record={client}
                       provided={provided}
                       snapshot={snapshot}
-                      title={client.company || client.name}
-                      subtitle={client.company ? client.name : null}
+                      title={client.company}
+                      subtitle={client.name}
                       stages={CLIENT_STAGES}
                       stageValue={client.client_stage}
                       onStageChange={onStageChange}

@@ -176,7 +176,8 @@ export default function ClientPortalCore({ mode, token, clientId }) {
   return (
     <PortalShell
       accentColor="#223d32"
-      title={`Welcome, ${client.name}`}
+      title={`${client.company || client.name}`}
+
       maxWidth="max-w-6xl"
       headerPadding="py-8 px-4"
       logoClass="h-10 hidden sm:block"

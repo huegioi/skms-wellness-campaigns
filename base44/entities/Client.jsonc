@@ -11,6 +11,10 @@
       "format": "email",
       "description": "Primary contact email address"
     },
+    "email_domain": {
+      "type": "string",
+      "description": "Lowercased domain of the primary contact email. The organization's identity key \u2014 used for matching, dedupe, and linking. Null for free-mail addresses."
+    },
     "email2": {
       "type": "string",
       "format": "email",
@@ -372,7 +376,8 @@
   },
   "required": [
     "name",
-    "email"
+    "email",
+    "company"
   ],
   "rls": {
     "create": {

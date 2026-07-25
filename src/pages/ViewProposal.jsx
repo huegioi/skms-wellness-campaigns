@@ -121,9 +121,11 @@ export default function ViewProposal() {
               />
               <div>
                 <h1 className="text-xl md:text-2xl font-bold">
-                  {proposal.client_name ? `Welcome, ${proposal.client_name}` : 'Your Wellness Proposal'}
+                  {proposal.company || client?.company || 'Your Wellness Proposal'}
                 </h1>
-                <p className="text-white/80 text-sm">{proposal.company || client?.company || 'SkillfulMeans Wellness Program'}</p>
+                {proposal.client_name && (
+                  <p className="text-white/80 text-sm">Contact: {proposal.client_name}</p>
+                )}
               </div>
             </div>
             <div className="text-sm text-white/70">

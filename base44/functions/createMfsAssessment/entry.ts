@@ -66,10 +66,13 @@ Deno.serve(async (req) => {
     const token = crypto.randomUUID();
 
     // ── Create Client (is_assessment_lead, event_follow_up, tagged MFS) ──
+    // Derive company from email domain if not provided — never leave it empty.
+    const resolvedCompany = company_name || deriveCompanyFromEmail(normalizedEmail) || 'Unknown Company';
     const client = await base44.asServiceRole.entities.Client.create({
       name: contact_name,
       email: normalizedEmail,
-      company: company_name,
+      email_domain: getOrgDomain(normalizedEmail),
+      company: resolvedCompany,
       company_size: employee_count,
       industry: industry || undefined,
       is_assessment_lead: true,

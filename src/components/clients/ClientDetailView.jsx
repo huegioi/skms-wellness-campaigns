@@ -114,11 +114,11 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
   };
 
   useEffect(() => {
-    if (client?.id && client?.name) {
-      setMayaRecordContext({ recordType: 'client', recordId: client.id, recordName: client.name });
+    if (client?.id) {
+      setMayaRecordContext({ recordType: 'client', recordId: client.id, recordName: client.company || client.name });
     }
     return () => clearMayaRecordContext();
-  }, [client?.id, client?.name]);
+  }, [client?.id, client?.company, client?.name]);
 
   const deliverySnapshots = useClientDeliveryStatus(client ? [client] : []);
   const deliverySnapshot = client ? deliverySnapshots[client.id] : null;

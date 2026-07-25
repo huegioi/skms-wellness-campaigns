@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { getOrgDomain, extractEmailDomain } from '../../shared/emailDomain.ts';
 
 const TEAM_EMAILS = (Deno.env.get("TEAM_EMAILS") || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
 const isTeamMember = (user) => user && (user.role === 'admin' || TEAM_EMAILS.includes((user.email || "").toLowerCase()));
@@ -17,7 +18,10 @@ Deno.serve(async (req) => {
     const allInvoices = await base44.asServiceRole.entities.Invoice.list('-created_date', 1000);
     const allClients = await base44.asServiceRole.entities.Client.list('-created_date', 1000);
 
-    // Build email → client lookup (case-insensitive)
+    // Build lookup indexes:
+    // 1. email_domain → client (primary — organization identity key)
+    // 2. exact email → client (fallback for free-mail / null-domain records)
+    const domainToClient = new Map();
     const emailToClient = new Map();
     for (const c of allClients) {
       if (c.email) {
@@ -25,6 +29,11 @@ Deno.serve(async (req) => {
         if (!emailToClient.has(emailKey)) {
           emailToClient.set(emailKey, c);
         }
+      }
+      // Use computed domain (falls back to null for free-mail/excluded)
+      const domain = c.email_domain || getOrgDomain(c.email);
+      if (domain && !domainToClient.has(domain)) {
+        domainToClient.set(domain, c);
       }
     }
 
@@ -35,7 +44,10 @@ Deno.serve(async (req) => {
 
     for (const inv of orphanInvoices) {
       const emailKey = (inv.client_email || '').toLowerCase().trim();
-      const client = emailToClient.get(emailKey);
+      // Try domain-based matching first (organization identity key),
+      // then fall back to exact email for free-mail / null-domain records.
+      const invoiceDomain = getOrgDomain(inv.client_email);
+      const client = (invoiceDomain && domainToClient.get(invoiceDomain)) || emailToClient.get(emailKey);
 
       if (client) {
         matched.push({

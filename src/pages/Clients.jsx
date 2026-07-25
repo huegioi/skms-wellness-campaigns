@@ -236,7 +236,16 @@ export default function Clients() {
   const deliverySnapshots = useClientDeliveryStatus(clients);
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.Client.create(data),
+    mutationFn: (data) => {
+      // Compute email_domain using the same free-mail rule as the backend
+      const FREE_MAIL = new Set(['gmail.com','outlook.com','hotmail.com','yahoo.com','aol.com','icloud.com','me.com','proton.me','protonmail.com','skillfulmeans.life']);
+      let emailDomain = null;
+      if (data.email && data.email.includes('@')) {
+        const domain = data.email.split('@').pop().toLowerCase().trim();
+        emailDomain = FREE_MAIL.has(domain) ? null : domain;
+      }
+      return base44.entities.Client.create({ ...data, email_domain: emailDomain });
+    },
     onSuccess: async (newClient) => {
       // Auto-create tasks for new client
       await createDefaultTasksForClient(base44, newClient.id, newClient.name);
@@ -701,7 +710,7 @@ export default function Clients() {
                       <div key={client.id} className="border rounded-lg p-4 hover:border-blue-500 cursor-pointer transition-colors">
                         <div className="flex justify-between items-start mb-2">
                           <div>
-                            <p className="font-semibold text-gray-800">{client.company || client.name}</p>
+                            <p className="font-semibold text-gray-800">{client.company}</p>
                             <p className="text-sm text-gray-600">{client.name}{client.title ? ` · ${client.title}` : ''}</p>
                             <p className="text-sm text-gray-500">{client.email}</p>
                           </div>
@@ -766,12 +775,12 @@ export default function Clients() {
                         <div className="flex items-center gap-2 mb-1">
                           <Building className="w-4 h-4 text-gray-400 flex-shrink-0" />
                           <h3 className="text-xl font-bold" style={{ color: '#264d44' }}>
-                            {client.company || client.name}
+                            {client.company}
                           </h3>
                         </div>
                         <div className="flex items-center gap-1 text-sm text-gray-600 mb-2">
                           <User className="w-3.5 h-3.5 text-gray-400" />
-                          <span className="font-medium">{client.name}</span>
+                          {client.name && <span className="font-medium">{client.name}</span>}
                           {client.title && <span className="text-gray-400">· {client.title}</span>}
                         </div>
                         <div className="flex flex-wrap gap-4 text-sm text-gray-600">
