@@ -608,7 +608,6 @@ Deno.serve(async (req) => {
             // the company, not a human contact). Only set company if the existing
             // Client's company is blank.
             const updatePayload = {
-              email,
               email_domain: orgDomain || undefined,
               phone: qbCustomer.PrimaryPhone?.FreeFormNumber || '',
               company_address: qbCustomer.BillAddr ?
@@ -622,6 +621,12 @@ Deno.serve(async (req) => {
             // Backfill company only if the existing record has none.
             if (!existingClient.company || !existingClient.company.trim()) {
               updatePayload.company = qbCustomer.CompanyName || deriveCompanyFromEmail(email) || '';
+            }
+            // Backfill email only if the existing record has none — on a domain
+            // match the QB customer's email is often a different person (billing
+            // vs. programme contact); never overwrite the contact of record.
+            if (!existingClient.email) {
+              updatePayload.email = email;
             }
             // If the invoice query returned nothing (throttled/failed), do NOT
             // overwrite the client's existing totals with zeros — preserve them.

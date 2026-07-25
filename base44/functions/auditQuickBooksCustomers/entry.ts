@@ -52,6 +52,8 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Forbidden — admin only' }, { status: 403 });
     }
 
+    const body = await req.json().catch(() => ({}));
+
     // 1. Resolve realm + token from DB (same store quickbooksSync uses)
     const realmId = await getRealmId(base44);
     if (!realmId) {
@@ -64,6 +66,43 @@ Deno.serve(async (req) => {
     const customerResult = await qbQuery(accessToken, realmId, 'SELECT * FROM Customer MAXRESULTS 1000');
     const allCustomers = customerResult.data?.Customer || [];
     const customersTruncated = allCustomers.length === 1000;
+
+    // Optional: compact filtered lookup for customer ID resolution.
+    // Returns ONLY matching customers (by DisplayName/CompanyName substring)
+    // including those without email — keeps the response tiny for one-off lookups.
+    if (body.filter_terms && Array.isArray(body.filter_terms)) {
+      const terms = body.filter_terms.map(t => String(t).toLowerCase());
+      const filtered = allCustomers
+        .filter(c => {
+          const dn = (c.DisplayName || '').toLowerCase();
+          const cn = (c.CompanyName || '').toLowerCase();
+          return terms.some(t => dn.includes(t) || cn.includes(t));
+        })
+        .map(c => ({
+          Id: c.Id,
+          DisplayName: c.DisplayName || '',
+          CompanyName: c.CompanyName || '',
+          PrimaryEmailAddr: c.PrimaryEmailAddr?.Address || null,
+          Active: c.Active
+        }));
+      const matchedTerms = new Set();
+      for (const c of filtered) {
+        const dn = c.DisplayName.toLowerCase();
+        const cn = c.CompanyName.toLowerCase();
+        for (const t of terms) {
+          if (dn.includes(t) || cn.includes(t)) { matchedTerms.add(t); break; }
+        }
+      }
+      return Response.json({
+        read_only: true,
+        token_refreshed: true,
+        rotated_token_saved: tokenRotated,
+        total_customers_searched: allCustomers.length,
+        matched_count: filtered.length,
+        filtered_customers: filtered,
+        unmatched_terms: terms.filter(t => !matchedTerms.has(t))
+      });
+    }
 
     // 3. Fetch all QB invoices (MAXRESULTS 1000)
     const invoiceResult = await qbQuery(accessToken, realmId, 'SELECT * FROM Invoice MAXRESULTS 1000');
