@@ -164,6 +164,10 @@
       "type": "string",
       "description": "Legacy: single broker email"
     },
+    "brokerage_id": {
+      "type": "string",
+      "description": "Associated Brokerage ID"
+    },
     "wellness_consultant_name": {
       "type": "string",
       "description": "Wellness consultant name"

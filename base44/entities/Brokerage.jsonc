@@ -50,6 +50,14 @@
       "default": 0.5,
       "description": "The broker's fraction of total commission when both brokerage and broker commission are enabled (0\u20131)"
     },
+    "client_id": {
+      "type": "string",
+      "description": "Primary client ID associated with this brokerage"
+    },
+    "email_domain": {
+      "type": "string",
+      "description": "Primary email domain for this brokerage (e.g. bbrown.com)"
+    },
     "is_demo": {
       "type": "boolean",
       "default": false,
