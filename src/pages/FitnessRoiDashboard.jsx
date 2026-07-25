@@ -80,11 +80,7 @@ export default function FitnessRoiDashboard() {
             <p className="text-xs text-stone-500 mb-5 leading-relaxed">
               Each domain is scored 0–100 (higher is better) with Low, Typical, and High bands from published research norms. The paired markers show where you placed your team next to where they placed themselves — gaps between the two are the most valuable signal on this page.
             </p>
-            <p className="text-xs uppercase tracking-widest text-stone-400 font-semibold text-center mb-1">Mental Fitness Score</p>
-            <p className="text-sm font-bold text-[#4a2040] text-center mb-1">
-              You estimated {leaderComposite != null ? Math.round(leaderComposite) : '—'}. Your team says {teamComposite != null ? Math.round(teamComposite) : '—'}.
-            </p>
-            <p className="text-xs text-stone-400 text-center italic mb-4">Perception vs. measured.</p>
+            <p className="text-xs uppercase tracking-widest text-red-600 font-semibold text-center mb-4">Mental Fitness Score</p>
             <div className="mb-5">
               <PairedDials leaderScore={leaderComposite} teamScore={teamComposite} />
             </div>
