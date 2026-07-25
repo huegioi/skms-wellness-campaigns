@@ -105,21 +105,11 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
       <h2 className="text-base font-bold text-[#4a2040] mb-1">
         Projected ROI Savings from Implementing SkillfulMeans Mental Fitness Campaigns
       </h2>
-      <p className="text-xs text-stone-500 mb-5">
-        One based on your estimates, one based on your team's real data.
-      </p>
-
-      {/* ── Two charts with scores + savings headings ── */}
+      {/* ── Two charts with savings headings ── */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-3">
         {/* Left chart — estimate */}
         <div>
           <div className="mb-3">
-            <p className="text-sm text-stone-600 mb-2">
-              Your estimated score:{' '}
-              <span className="font-semibold text-stone-800">
-                {estComposite != null ? Math.round(estComposite) : '—'}
-              </span>
-            </p>
             <div className="text-center">
               <p className="text-[13px] font-semibold text-[#4a2040]">Initial Estimated Savings</p>
               {estTotal3yr != null && (
@@ -135,16 +125,6 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
         {/* Right chart — team real data */}
         <div>
           <div className="mb-3">
-            <p className="text-sm text-stone-600 mb-2">
-              Your team's real score:{' '}
-              <span
-                className={`font-semibold ${
-                  teamLower ? 'text-red-600 bg-red-100 px-1.5 py-0.5 rounded' : 'text-stone-800'
-                }`}
-              >
-                {teamComposite != null ? Math.round(teamComposite) : '—'}
-              </span>
-            </p>
             <div className="text-center">
               <p className="text-[13px] font-semibold text-[#4a2040]">Savings from Your Team's Real Data</p>
               {teamTotal3yr != null && (
