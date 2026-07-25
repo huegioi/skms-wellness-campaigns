@@ -4,6 +4,7 @@ import { calculateChallengePrice } from './pricingUtils';
 import StepNavigation from './StepNavigation';
 import { Sparkles, Target, CheckCircle, Plus, Minus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { getOrgDomain } from '@/lib/emailDomain';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 
@@ -571,8 +572,8 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
   };
 
   const handleSubmit = async () => {
-    if (!clientName || !clientEmail) {
-      alert('Please go back and fill in the client name and email in the Assessment step.');
+    if (!clientName || !clientEmail || !companyName) {
+      alert('Please go back and fill in the client name, email, and company in the Assessment step.');
       return;
     }
 
@@ -619,6 +620,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
         const newClient = await base44.entities.Client.create({
           name: clientName,
           email: clientEmail,
+          email_domain: getOrgDomain(clientEmail),
           company: companyName,
           wellness_budget: assessmentData.wellnessBudget ? parseFloat(assessmentData.wellnessBudget) : null,
           industry: assessmentData.industry || null,

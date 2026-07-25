@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import { getOrgDomain, deriveCompanyFromEmail } from '../../shared/emailDomain.ts';
 
 const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') || 'https://app.skillfulmeans.life').replace(/\/+$/, '');
 
@@ -231,8 +232,11 @@ Deno.serve(async (req) => {
       const surveyToken = crypto.randomUUID();
       const sizeBracket = headcountToBracket(headcountNum);
 
+      const resolvedCompany = company_name || deriveCompanyFromEmail(normalizedEmail) || 'Unknown Company';
       const client = await base44.asServiceRole.entities.Client.create({
-        name: contact_name, email: normalizedEmail, company: company_name || undefined,
+        name: contact_name, email: normalizedEmail,
+        email_domain: getOrgDomain(normalizedEmail),
+        company: resolvedCompany,
         company_size: sizeBracket, employee_count: headcountNum, industry: industry || undefined,
         is_assessment_lead: true, client_stage: 'event_follow_up',
         portal_token: crypto.randomUUID(), tags: ['MFS·ROI'],

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { getOrgDomain, deriveCompanyFromEmail } from '../../shared/emailDomain.ts';
 
 
 const TEAM_EMAILS = (Deno.env.get("TEAM_EMAILS") || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
@@ -43,10 +44,13 @@ Deno.serve(async (req) => {
     } else {
       // (a) Create new client from client_fields + referral partner info
       const cf = client_fields || {};
+      const clientEmail = cf.email || referral.contact_email || '';
+      const resolvedCompany = cf.company || referral.company_name || deriveCompanyFromEmail(clientEmail) || 'Unknown Company';
       const clientData = {
         name: cf.name || referral.contact_name || '',
-        email: cf.email || referral.contact_email || '',
-        company: cf.company || referral.company_name || '',
+        email: clientEmail,
+        email_domain: getOrgDomain(clientEmail),
+        company: resolvedCompany,
         referral_partner_id: partnerId,
         referral_partner_name: partnerName,
         client_stage: 'new_client_setup',

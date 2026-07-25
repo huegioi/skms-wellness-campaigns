@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import { getOrgDomain } from '../../shared/emailDomain.ts';
 
 const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') || 'https://app.skillfulmeans.life').replace(/\/+$/, '');
 
@@ -224,7 +225,7 @@ Deno.serve(async (req) => {
 
     // ── Create demo Client + Lead (mirroring createMfsJourney plumbing) ──
     const client = await base44.asServiceRole.entities.Client.create({
-      name: 'Dana Reyes', email: DEMO_EMAIL, company: 'Harborview Logistics',
+      name: 'Dana Reyes', email: DEMO_EMAIL, email_domain: getOrgDomain(DEMO_EMAIL), company: 'Harborview Logistics',
       company_size: headcountToBracket(headcount), employee_count: headcount, industry: 'Logistics',
       is_assessment_lead: true, client_stage: 'event_follow_up',
       portal_token: crypto.randomUUID(), tags: [DEMO_TAG, 'MFS·ROI'],

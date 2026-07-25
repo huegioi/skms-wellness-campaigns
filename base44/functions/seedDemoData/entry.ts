@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { getOrgDomain } from '../../shared/emailDomain.ts';
 
 const DEMO_TAG = 'Demo';
 
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
     const meridianToken = makeToken('cp');
 
     const lakeside = await base44.asServiceRole.entities.Client.create({
-      name: 'Dana Whitfield', email: 'dana.whitfield@lakeside-demo.com', company: 'Lakeside Manufacturing',
+      name: 'Dana Whitfield', email: 'dana.whitfield@lakeside-demo.com', email_domain: getOrgDomain('dana.whitfield@lakeside-demo.com'), company: 'Lakeside Manufacturing',
       phone: '(555) 300-2000', title: 'HR Director', industry: 'Manufacturing', company_size: '201-500', employee_count: 280,
       company_address: '1450 Industrial Pkwy, Cleveland, OH', referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan',
       portal_token: lakesideToken, client_stage: 'program_delivery', tier: 'Tier 1', renewal_cohort: 'Jan 1',
@@ -103,7 +104,7 @@ Deno.serve(async (req) => {
       owner: 'Heather', tags: [DEMO_TAG], is_demo: true,
     });
     const brightpath = await base44.asServiceRole.entities.Client.create({
-      name: 'Marcus Bell', email: 'marcus.bell@brightpath-demo.com', company: 'Brightpath Credit Union',
+      name: 'Marcus Bell', email: 'marcus.bell@brightpath-demo.com', email_domain: getOrgDomain('marcus.bell@brightpath-demo.com'), company: 'Brightpath Credit Union',
       phone: '(555) 400-3000', title: 'Benefits Manager', industry: 'Financial Services', company_size: '51-200', employee_count: 95,
       company_address: '88 Finance Blvd, Austin, TX', referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan',
       portal_token: brightpathToken, client_stage: 'program_delivery', tier: 'Tier 2', renewal_cohort: 'July 1',
@@ -111,7 +112,7 @@ Deno.serve(async (req) => {
       owner: 'William', tags: [DEMO_TAG], is_demo: true,
     });
     const meridian = await base44.asServiceRole.entities.Client.create({
-      name: 'Priya Nair', email: 'priya.nair@meridian-demo.com', company: 'Meridian Health Group',
+      name: 'Priya Nair', email: 'priya.nair@meridian-demo.com', email_domain: getOrgDomain('priya.nair@meridian-demo.com'), company: 'Meridian Health Group',
       phone: '(555) 500-4000', title: 'VP People & Culture', industry: 'Healthcare', company_size: '501-1000', employee_count: 520,
       company_address: '920 Wellness Way, Phoenix, AZ', referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan',
       portal_token: meridianToken, client_stage: 'new_client_setup', tier: 'Tier 1', renewal_cohort: 'Jan 1',
@@ -341,7 +342,7 @@ Deno.serve(async (req) => {
     // ── Harborview Logistics — complete journey: 45 responses, composite ~61, Connection lowest ──
     const mfsToken = makeToken('mfs');
     const harborviewClient = await base44.asServiceRole.entities.Client.create({
-      name: 'Jordan Reeves', email: 'jordan.reeves@harborview-demo.com', company: 'Harborview Logistics',
+      name: 'Jordan Reeves', email: 'jordan.reeves@harborview-demo.com', email_domain: getOrgDomain('jordan.reeves@harborview-demo.com'), company: 'Harborview Logistics',
       phone: '(555) 600-7000', title: 'VP of People', industry: 'Logistics', company_size: '51-200', employee_count: 140,
       company_address: '2200 Harbor Blvd, Long Beach, CA', client_stage: 'event_follow_up',
       is_assessment_lead: true, referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan',
@@ -373,7 +374,7 @@ Deno.serve(async (req) => {
     // ── Brightwater Dental Group — early journey: 3 responses, privacy gate active ──
     const brightwaterMfsToken = makeToken('mfs');
     const brightwaterMfsClient = await base44.asServiceRole.entities.Client.create({
-      name: 'Dr. Emily Chen', email: 'emily.chen@brightwater-demo.com', company: 'Brightwater Dental Group',
+      name: 'Dr. Emily Chen', email: 'emily.chen@brightwater-demo.com', email_domain: getOrgDomain('emily.chen@brightwater-demo.com'), company: 'Brightwater Dental Group',
       phone: '(555) 600-8000', title: 'Practice Owner', industry: 'Healthcare', company_size: '1-50', employee_count: 35,
       company_address: '450 Smiles Ave, Sacramento, CA', client_stage: 'event_follow_up',
       is_assessment_lead: true, referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan',
@@ -404,7 +405,7 @@ Deno.serve(async (req) => {
     // ── Cedar & Vine Hospitality — healthier team: 28 responses, composite ~68, Engagement strongest ──
     const cedarToken = makeToken('mfs');
     const cedarClient = await base44.asServiceRole.entities.Client.create({
-      name: 'Maria Santos', email: 'maria.santos@cedarvine-demo.com', company: 'Cedar & Vine Hospitality',
+      name: 'Maria Santos', email: 'maria.santos@cedarvine-demo.com', email_domain: getOrgDomain('maria.santos@cedarvine-demo.com'), company: 'Cedar & Vine Hospitality',
       phone: '(555) 600-9000', title: 'Director of People & Culture', industry: 'Hospitality', company_size: '51-200', employee_count: 85,
       company_address: '1200 Vineyard Rd, Napa, CA', client_stage: 'event_follow_up',
       is_assessment_lead: true, referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan',

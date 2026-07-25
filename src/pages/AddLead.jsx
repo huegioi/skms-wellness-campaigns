@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Save, ChevronLeft, ScanText, Loader2, CheckCircle2, Camera, Linkedin } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { TagSelector } from '@/components/ui/TagSelector';
+import { getOrgDomain } from '@/lib/emailDomain';
 import { toast } from 'sonner';
 
 const EMPTY_FORM = {
@@ -116,7 +117,12 @@ Fill in whatever you can find. If a field is not present, leave it as an empty s
   });
 
   const createClientMutation = useMutation({
-    mutationFn: (data) => base44.entities.Client.create(data),
+    mutationFn: (data) => {
+      if (!data.company || !data.company.trim()) {
+        throw new Error('Company is required');
+      }
+      return base44.entities.Client.create({ ...data, email_domain: getOrgDomain(data.email) });
+    },
     onSuccess: (newClient) => {
       setSavedRecord({ id: newClient.id, type: 'client' });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
