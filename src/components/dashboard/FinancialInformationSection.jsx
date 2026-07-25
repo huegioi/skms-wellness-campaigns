@@ -21,7 +21,7 @@ export default function FinancialInformationSection() {
   const { data: rawQuickBooksExpenses = [], isLoading: loadingExpenses, refetch: refetchExpenses } = useDashExpenses();
 
   // Exclude demo/broker-demo records from dashboard metrics
-  const invoices = rawInvoices.filter(i => !i.is_demo);
+  const invoices = rawInvoices.filter(i => !i.is_demo && !i.out_of_scope);
   const quickBooksExpenses = rawQuickBooksExpenses.filter(e => !e.is_demo);
 
   if (loadingInvoices || loadingExpenses) {

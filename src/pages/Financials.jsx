@@ -90,7 +90,7 @@ function InvoicesPanel() {
 
   const { data: rawInvoices = [], isLoading } = useQuery({
     queryKey: ['invoices'],
-    queryFn: () => base44.entities.Invoice.list('-created_date')
+    queryFn: () => base44.entities.Invoice.list('-created_date', 10000)
   });
 
   const { data: rawClients = [] } = useQuery({
@@ -99,7 +99,7 @@ function InvoicesPanel() {
   });
 
   // Exclude demo/broker-demo records from dashboard metrics
-  const invoices = rawInvoices.filter(i => !i.is_demo);
+  const invoices = rawInvoices.filter(i => !i.is_demo && !i.out_of_scope);
   const clients = rawClients.filter(c => !c.is_demo);
 
   const syncToQBMutation = useMutation({

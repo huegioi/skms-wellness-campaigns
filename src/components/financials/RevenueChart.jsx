@@ -61,7 +61,7 @@ export default function RevenueChart() {
   });
 
   // Exclude demo/broker-demo records from dashboard metrics
-  const invoices = rawInvoices.filter(i => !i.is_demo);
+  const invoices = rawInvoices.filter(i => !i.is_demo && !i.out_of_scope);
 
   const { chartData, totalRevenue, invoiceCount } = useMemo(() => {
     const fromDate = new Date(fromYear, fromMonth, 1);

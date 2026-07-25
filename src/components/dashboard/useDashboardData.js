@@ -25,7 +25,7 @@ export function useDashProposals() {
 export function useDashInvoices() {
   return useQuery({
     queryKey: ['dash-invoices'],
-    queryFn: () => base44.entities.Invoice.list('-created_date', 10000),
+    queryFn: async () => { const all = await base44.entities.Invoice.list('-created_date', 10000); return all.filter(i => !i.out_of_scope); },
     staleTime: STALE_TIME,
   });
 }

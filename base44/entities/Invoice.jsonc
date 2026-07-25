@@ -113,6 +113,11 @@
     "memo": {
       "type": "string",
       "description": "Memo visible to customer"
+    },
+    "out_of_scope": {
+      "type": "boolean",
+      "default": false,
+      "description": "Invoice belongs to a different business in the shared QuickBooks file. Excluded from all SkillfulMeans revenue and financial reporting."
     }
   },
   "required": [

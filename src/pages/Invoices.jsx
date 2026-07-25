@@ -24,6 +24,7 @@ export default function Invoices() {
   const [showQBView, setShowQBView] = useState(false);
   const [qbInvoices, setQBInvoices] = useState([]);
   const [loadingQB, setLoadingQB] = useState(false);
+  const [showOutOfScope, setShowOutOfScope] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -38,7 +39,7 @@ export default function Invoices() {
 
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['invoices'],
-    queryFn: () => base44.entities.Invoice.list('-created_date')
+    queryFn: () => base44.entities.Invoice.list('-created_date', 10000)
   });
 
   const { data: clients = [] } = useQuery({
@@ -215,9 +216,10 @@ export default function Invoices() {
     }
   };
 
-  const filteredInvoices = invoices.filter(inv => 
-    filterStatus === 'all' || inv.status === filterStatus
-  );
+  const filteredInvoices = invoices.filter(inv => {
+    if (!showOutOfScope && inv.out_of_scope) return false;
+    return filterStatus === 'all' || inv.status === filterStatus;
+  });
 
   // Calculate totals
   const totalAmount = filteredInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
@@ -369,6 +371,16 @@ export default function Invoices() {
               </div>
             </div>
 
+            <button
+              onClick={() => setShowOutOfScope(prev => !prev)}
+              className={`text-xs font-semibold rounded-lg border px-3 py-1.5 transition-colors ${
+                showOutOfScope
+                  ? 'border-amber-300 bg-amber-50 text-amber-700'
+                  : 'border-gray-200 bg-white text-gray-500 hover:border-amber-300 hover:text-amber-600'
+              }`}
+            >
+              {showOutOfScope ? '✓ ' : ''}Show other-business invoices
+            </button>
             <span className="text-sm text-gray-500 sm:ml-auto">
               {filteredInvoices.length} invoice{filteredInvoices.length !== 1 ? 's' : ''}
             </span>
@@ -522,6 +534,11 @@ export default function Invoices() {
                         {invoice.quickbooks_id && (
                           <Badge variant="outline" className="text-green-600 border-green-200 text-xs">
                             QB Synced
+                          </Badge>
+                        )}
+                        {invoice.out_of_scope && (
+                          <Badge variant="outline" className="text-amber-600 border-amber-200 text-xs">
+                            Other Business
                           </Badge>
                         )}
                       </div>
