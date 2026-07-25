@@ -20,9 +20,14 @@ Deno.serve(async (req) => {
 
     // Build lookup indexes:
     // 1. email_domain → client (primary — organization identity key)
-    // 2. exact email → client (fallback for free-mail / null-domain records)
+    //    If multiple clients share a domain, it's ambiguous — store null so we
+    //    fall back to exact-email matching for those invoices, and report them.
+    // 2. exact email → client (fallback for free-mail / null-domain / ambiguous domains)
     const domainToClient = new Map();
     const emailToClient = new Map();
+    const ambiguousDomains = [];
+    // First pass: collect all clients per domain
+    const domainToClients = new Map();
     for (const c of allClients) {
       if (c.email) {
         const emailKey = c.email.toLowerCase().trim();
@@ -30,10 +35,24 @@ Deno.serve(async (req) => {
           emailToClient.set(emailKey, c);
         }
       }
-      // Use computed domain (falls back to null for free-mail/excluded)
       const domain = c.email_domain || getOrgDomain(c.email);
-      if (domain && !domainToClient.has(domain)) {
-        domainToClient.set(domain, c);
+      if (domain) {
+        if (!domainToClients.has(domain)) {
+          domainToClients.set(domain, []);
+        }
+        domainToClients.get(domain).push(c);
+      }
+    }
+    // Second pass: only map unambiguous domains; flag ambiguous ones
+    for (const [domain, clients] of domainToClients) {
+      if (clients.length === 1) {
+        domainToClient.set(domain, clients[0]);
+      } else {
+        ambiguousDomains.push({
+          domain,
+          client_count: clients.length,
+          clients: clients.map(c => ({ id: c.id, name: c.name, email: c.email, company: c.company }))
+        });
       }
     }
 
@@ -148,7 +167,8 @@ Deno.serve(async (req) => {
         matched: matched.length,
         unmatched: unmatched.length,
         unmatched_details: unmatched,
-        matched_sample: matched.slice(0, 20) // first 20 for preview
+        matched_sample: matched.slice(0, 20), // first 20 for preview
+        ambiguous_domains: ambiguousDomains
       },
       verification: {
         clients_checked: allClients.length,
