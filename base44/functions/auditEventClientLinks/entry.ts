@@ -52,10 +52,14 @@ function normalizedMatchType(candKey, idxKey) {
   const candNoSpaces = candKey.replace(/\s/g, '');
   const idxNoSpaces = idxKey.replace(/\s/g, '');
   if (candNoSpaces && idxNoSpaces && candNoSpaces === idxNoSpaces) return 'spaces_removed';
-  // Prefix match with ≥6 chars in common.
+  // Prefix match with ≥6 chars in common (raw keys).
   const shorter = candKey.length <= idxKey.length ? candKey : idxKey;
   const longer = candKey.length <= idxKey.length ? idxKey : candKey;
   if (shorter.length >= 6 && longer.startsWith(shorter)) return 'prefix';
+  // Also check prefix on space-removed versions — catches "silverhill" → "silver hill hospital".
+  const shorterNS = candNoSpaces.length <= idxNoSpaces.length ? candNoSpaces : idxNoSpaces;
+  const longerNS = candNoSpaces.length <= idxNoSpaces.length ? idxNoSpaces : candNoSpaces;
+  if (shorterNS.length >= 6 && longerNS.startsWith(shorterNS)) return 'prefix';
   return null;
 }
 

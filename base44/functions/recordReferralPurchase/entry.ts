@@ -64,9 +64,16 @@ Deno.serve(async (req) => {
       catch { partner = null; }
     }
 
+    // ─── Hard guard: demo revenue must never influence a real broker's tier ───
+    const isDemoReferral = referral.is_demo === true;
+    const isDemoPartner = partner?.is_demo === true;
+
     // Update partner YTD first (needed for brokerage aggregate computation)
-    const partnerYtdRevenue = (partner?.ytd_revenue || 0) + firstYearRevenue;
-    if (firstYearRevenue > 0 && partner) {
+    // Demo referrals do not inflate real partner YTD
+    const partnerYtdRevenue = (isDemoReferral || isDemoPartner)
+      ? (partner?.ytd_revenue || 0)
+      : (partner?.ytd_revenue || 0) + firstYearRevenue;
+    if (firstYearRevenue > 0 && partner && !isDemoReferral && !isDemoPartner) {
       await base44.asServiceRole.entities.ReferralPartner.update(partner.id, { ytd_revenue: partnerYtdRevenue });
     }
 
