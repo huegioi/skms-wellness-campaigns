@@ -5,30 +5,24 @@ const isTeamMember = (user) => user && (user.role === 'admin' || TEAM_EMAILS.inc
 
 // ── Normalization helpers ──
 
-// Credential suffixes to strip from comma-separated tails (e.g. "Jane Doe, MS, RD")
 const CREDENTIAL_SUFFIXES = new Set([
   'ms', 'm.s.', 'rd', 'r.d.', 'cdn', 'mba', 'phd', 'ph.d.', 'lcsw', 'lmsw',
   'rn', 'np', 'pa', 'md', 'do', 'ncc', 'cce', 'chwc', 'acsm-cep', 'rdn',
   'ldn', 'cscs', 'ces', 'rph', 'dtr', 'cde', 'bcba', 'lcpc', 'lmft', 'psy.d.',
-  'edd', 'm.ed.', 'ma', 'm.a.', 'bs', 'b.s.', 'msw', 'm.s.w.', 'rdn', 'ld',
+  'edd', 'm.ed.', 'ma', 'm.a.', 'bs', 'b.s.', 'msw', 'm.s.w.', 'ld',
 ]);
 
 function normalizeKey(raw) {
-  if (!raw) return '';
+  if (!raw) return { key: '', parenContent: '' };
   let s = String(raw).toLowerCase().trim();
-  // Extract parenthetical content first (before we strip it).
   const parenMatch = s.match(/\(([^)]+)\)/);
   const parenContent = parenMatch ? parenMatch[1].trim() : '';
-  // Strip parentheticals.
   s = s.replace(/\([^)]*\)/g, ' ');
-  // Strip comma-separated credential tails.
   const parts = s.split(',').map(p => p.trim()).filter(Boolean);
   if (parts.length > 1) {
-    // Keep only parts that aren't credential suffixes.
     const kept = parts.filter(p => !CREDENTIAL_SUFFIXES.has(p.toLowerCase().replace(/\./g, '')));
     s = kept.length > 0 ? kept.join(' ') : parts[0];
   }
-  // Collapse whitespace.
   s = s.replace(/\s+/g, ' ').trim();
   return { key: s, parenContent };
 }
@@ -51,6 +45,24 @@ function levenshtein(a, b) {
   return prev[b.length];
 }
 
+// Check if two keys are a normalized match (spaces-removed equality or prefix with ≥6 chars).
+function normalizedMatchType(candKey, idxKey) {
+  if (!candKey || !idxKey || candKey === idxKey) return null;
+  // Spaces-removed equality.
+  const candNoSpaces = candKey.replace(/\s/g, '');
+  const idxNoSpaces = idxKey.replace(/\s/g, '');
+  if (candNoSpaces && idxNoSpaces && candNoSpaces === idxNoSpaces) return 'spaces_removed';
+  // Prefix match with ≥6 chars in common.
+  const shorter = candKey.length <= idxKey.length ? candKey : idxKey;
+  const longer = candKey.length <= idxKey.length ? idxKey : candKey;
+  if (shorter.length >= 6 && longer.startsWith(shorter)) return 'prefix';
+  return null;
+}
+
+// Entity priority: lower = higher priority.
+const ENTITY_PRIORITY = { client: 1, partner: 2, brokerage: 3, lead: 4 };
+const DELIVERY_TYPES = new Set(['workshop', 'challenge', 'leadership', 'class', 'delivery', 'presentation']);
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -58,78 +70,90 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (!isTeamMember(user)) return Response.json({ error: 'Forbidden — team members only' }, { status: 403 });
 
+    const body = await req.json().catch(() => ({}));
+    const { classification: classificationFilter, offset: rawOffset, limit: rawLimit } = body;
+    const offset = Math.max(0, parseInt(rawOffset) || 0);
+    const limit = Math.max(1, parseInt(rawLimit) || 5);
+
     // ── Fetch all entities (read-only, high limits) ──
-    const [events, clients, partners, brokerages, leads] = await Promise.all([
+    const [events, clients, partners, brokerages, leads, proposals, invoices] = await Promise.all([
       base44.asServiceRole.entities.CalendarEvent.list('-created_date', 2000),
       base44.asServiceRole.entities.Client.list('-created_date', 2000),
       base44.asServiceRole.entities.ReferralPartner.list('-created_date', 2000),
       base44.asServiceRole.entities.Brokerage.list('-created_date', 500),
       base44.asServiceRole.entities.Lead.list('-created_date', 2000),
+      base44.asServiceRole.entities.Proposal.list('-created_date', 2000),
+      base44.asServiceRole.entities.Invoice.list('-created_date', 2000),
     ]);
 
-    // ── Build lookup indexes: normalized key → [{ entity_type, record_id, display }] ──
-    const index = new Map(); // normalizedKey -> array of matches
+    // ── Build lookup index: normalizedKey → [{ entity_type, record_id, display, last_contacted_date }] ──
+    const index = new Map();
 
-    function addToIndex(rawName, rawCompany, entityType, recordId, display) {
+    function addToIndex(rawName, rawCompany, entityType, recordId, display, lastContacted) {
       for (const raw of [rawName, rawCompany]) {
         if (!raw || !String(raw).trim()) continue;
         const { key, parenContent } = normalizeKey(raw);
         if (!key) continue;
-        const entry = { entity_type: entityType, record_id: recordId, display: display || String(raw).trim() };
-        const list = index.get(key) || [];
-        // Dedup by record_id + entity_type.
-        if (!list.some(m => m.record_id === recordId && m.entity_type === entityType)) {
-          list.push(entry);
-        }
-        index.set(key, list);
-        // Also index the parenthetical content as a separate candidate.
-        if (parenContent) {
-          const list2 = index.get(parenContent) || [];
-          if (!list2.some(m => m.record_id === recordId && m.entity_type === entityType)) {
-            list2.push(entry);
-          }
-          index.set(parenContent, list2);
+        const entry = { entity_type: entityType, record_id: recordId, display: display || String(raw).trim(), last_contacted_date: lastContacted || null };
+        for (const k of [key, parenContent]) {
+          if (!k) continue;
+          const list = index.get(k) || [];
+          if (!list.some(m => m.record_id === recordId && m.entity_type === entityType)) list.push(entry);
+          index.set(k, list);
         }
       }
     }
 
-    for (const c of clients) {
-      addToIndex(c.name, c.company, 'client', c.id, c.name || c.company);
-    }
-    for (const p of partners) {
-      addToIndex(p.name, p.company, 'partner', p.id, p.name || p.company);
-    }
-    for (const b of brokerages) {
-      addToIndex(b.name, b.company, 'brokerage', b.id, b.name || b.company);
-    }
-    for (const l of leads) {
-      addToIndex(l.name, l.company, 'lead', l.id, l.name || l.company);
-    }
+    for (const c of clients) addToIndex(c.name, c.company, 'client', c.id, c.name || c.company, c.last_contacted_date || c.last_contacted);
+    for (const p of partners) addToIndex(p.name, p.company, 'partner', p.id, p.name || p.company, p.last_contacted_date);
+    for (const b of brokerages) addToIndex(b.name, b.company, 'brokerage', b.id, b.name || b.company, null);
+    for (const l of leads) addToIndex(l.name, l.company, 'lead', l.id, l.name || l.company, l.last_contacted_date);
 
-    // ── Build all index keys as an array for fuzzy matching ──
     const allIndexKeys = Array.from(index.keys());
 
-    // ── Find orphan events (null client_id) ──
+    // ── Build proposal/invoice lookup by normalized client_name/company ──
+    function normalizeForLookup(raw) {
+      if (!raw) return '';
+      return normalizeKey(raw).key;
+    }
+
+    const proposalKeys = proposals.map(p => ({
+      keys: [normalizeForLookup(p.client_name), normalizeForLookup(p.company)].filter(Boolean),
+    }));
+    const invoiceKeys = invoices.map(inv => ({
+      keys: [normalizeForLookup(inv.client_name), normalizeForLookup(inv.company)].filter(Boolean),
+    }));
+
+    // ── Orphan events ──
     const total = events.length;
     const orphanEvents = events.filter(e => !e.client_id);
     const orphanCount = orphanEvents.length;
     const withName = orphanEvents.filter(e => e.client_name && String(e.client_name).trim());
     const withNameCount = withName.length;
+    const withoutName = orphanEvents.filter(e => !e.client_name || !String(e.client_name).trim());
 
-    // ── Group by normalized candidate keys ──
-    // For each event, generate candidate keys from client_name.
-    // Group events by the PRIMARY key (first non-empty candidate), but match against ALL candidates.
-    const groupMap = new Map(); // primaryKey -> { display, events: [...] }
+    // ── Itemize orphans without a name ──
+    const orphans_without_name = withoutName.map(e => ({
+      event_id: e.id,
+      title: e.title,
+      start_date: e.start_date,
+      is_future: e.start_date ? new Date(e.start_date) >= new Date() : false,
+      event_type: e.event_type,
+      presenter: e.presenter || e.presenter_email || null,
+      service_id: e.service_id || null,
+      proposal_id: e.proposal_id || null,
+      location: e.location || null,
+    }));
 
+    // ── Group orphan events by normalized primary key ──
+    const groupMap = new Map();
     for (const e of withName) {
       const display = String(e.client_name).trim();
       const { key: primaryKey, parenContent } = normalizeKey(display);
-      // Collect all candidate keys for this event.
       const candidates = [primaryKey];
       if (parenContent) candidates.push(parenContent);
-      // Also add the raw lowercased display as a candidate (for cases where normalization changed something meaningful).
       const rawLower = display.toLowerCase().trim();
-      if (rawLower && rawLower !== primaryKey) candidates.push(rawLower);
+      if (rawLower && !candidates.includes(rawLower)) candidates.push(rawLower);
 
       const groupKey = primaryKey || rawLower || display.toLowerCase();
       let group = groupMap.get(groupKey);
@@ -142,75 +166,146 @@ Deno.serve(async (req) => {
         title: e.title,
         start_date: e.start_date,
         is_future: e.start_date ? new Date(e.start_date) >= new Date() : false,
+        event_type: e.event_type,
+        presenter: e.presenter || e.presenter_email || null,
       });
     }
 
-    // ── For each group, find exact matches and fuzzy suggestions ──
+    // ── Process each group: compute matches (exact, normalized, fuzzy) across ALL sources ──
     const distinctNames = [];
     for (const group of groupMap.values()) {
-      // Collect all exact matches across all candidate keys.
-      const allMatches = [];
-      const seenMatchKeys = new Set();
+      // Collect all matches, deduped by entity_type:record_id.
+      const matchMap = new Map(); // `${type}:${id}` -> { entity_type, record_id, display, match_type, detail, distance, last_contacted_date }
+
       for (const candKey of group.candidates) {
-        const matches = index.get(candKey);
-        if (matches) {
-          for (const m of matches) {
-            const mk = `${m.entity_type}:${m.record_id}`;
-            if (!seenMatchKeys.has(mk)) {
-              seenMatchKeys.add(mk);
-              allMatches.push({ entity_type: m.entity_type, record_id: m.record_id, display: m.display });
+        if (!candKey || candKey.length < 2) continue;
+
+        for (const idxKey of allIndexKeys) {
+          if (!idxKey || idxKey.length < 2) continue;
+          const idxEntries = index.get(idxKey) || [];
+
+          // 1. Exact match.
+          if (candKey === idxKey) {
+            for (const m of idxEntries) {
+              const mk = `${m.entity_type}:${m.record_id}`;
+              const existing = matchMap.get(mk);
+              if (!existing || existing.match_type !== 'exact') {
+                matchMap.set(mk, { ...m, match_type: 'exact', detail: null, distance: 0 });
+              }
             }
+            continue; // exact is the strongest — skip normalized/fuzzy for this pair
           }
-        }
-      }
 
-      // Classify.
-      let proposed_classification = 'unknown';
-      const entityTypes = new Set(allMatches.map(m => m.entity_type));
-      if (allMatches.length === 0) {
-        proposed_classification = 'unknown';
-      } else if (entityTypes.size > 1) {
-        proposed_classification = 'ambiguous';
-      } else {
-        proposed_classification = Array.from(entityTypes)[0]; // client / partner / brokerage / lead
-      }
+          // 2. Normalized match.
+          const normType = normalizedMatchType(candKey, idxKey);
+          if (normType) {
+            for (const m of idxEntries) {
+              const mk = `${m.entity_type}:${m.record_id}`;
+              const existing = matchMap.get(mk);
+              if (!existing || (existing.match_type === 'fuzzy_suggestion')) {
+                matchMap.set(mk, { ...m, match_type: 'normalized_match', detail: normType, distance: 0 });
+              }
+            }
+            continue;
+          }
 
-      // Fuzzy suggestions: if no exact match, find up to 3 by edit distance ≤ 2.
-      let fuzzy_suggestions = [];
-      if (allMatches.length === 0) {
-        const sugSet = new Map(); // key -> { key, entity_type, record_id, display, distance }
-        for (const candKey of group.candidates) {
-          if (!candKey || candKey.length < 3) continue;
-          for (const idxKey of allIndexKeys) {
-            if (!idxKey || idxKey.length < 3) continue;
-            // Quick length filter.
-            if (Math.abs(candKey.length - idxKey.length) > 2) continue;
-            const dist = levenshtein(candKey, idxKey);
-            if (dist > 0 && dist <= 2) {
-              const matches = index.get(idxKey) || [];
-              for (const m of matches) {
-                const mk = `${m.entity_type}:${m.record_id}`;
-                if (!sugSet.has(mk) || sugSet.get(mk).distance > dist) {
-                  sugSet.set(mk, { key: idxKey, entity_type: m.entity_type, record_id: m.record_id, display: m.display, distance: dist });
-                }
+          // 3. Fuzzy match (edit distance ≤ 2, > 0).
+          if (Math.abs(candKey.length - idxKey.length) > 2) continue;
+          const dist = levenshtein(candKey, idxKey);
+          if (dist > 0 && dist <= 2) {
+            for (const m of idxEntries) {
+              const mk = `${m.entity_type}:${m.record_id}`;
+              const existing = matchMap.get(mk);
+              if (!existing) {
+                matchMap.set(mk, { ...m, match_type: 'fuzzy_suggestion', detail: null, distance: dist });
+              } else if (existing.match_type === 'fuzzy_suggestion' && existing.distance > dist) {
+                matchMap.set(mk, { ...m, match_type: 'fuzzy_suggestion', detail: null, distance: dist });
               }
             }
           }
         }
-        fuzzy_suggestions = Array.from(sugSet.values())
-          .sort((a, b) => a.distance - b.distance)
-          .slice(0, 3);
       }
 
-      // Event details.
+      // ── Rank matches: exact first, then normalized, then fuzzy. Within tier, by entity priority. ──
+      const tierRank = { exact: 0, normalized_match: 1, fuzzy_suggestion: 2 };
+      const allMatches = Array.from(matchMap.values()).sort((a, b) => {
+        if (a.match_type !== b.match_type) return tierRank[a.match_type] - tierRank[b.match_type];
+        const pa = ENTITY_PRIORITY[a.entity_type] || 99;
+        const pb = ENTITY_PRIORITY[b.entity_type] || 99;
+        if (pa !== pb) return pa - pb;
+        return (a.distance || 0) - (b.distance || 0);
+      });
+
+      // ── Classify by priority: Client > Partner > Brokerage > Lead ──
+      // First entity type (in priority order) with ANY match wins.
+      // At the winning type: best-tier matches determine the label.
+      // Ambiguous if multiple records at the same (winning) tier+type.
+      let proposed_classification = 'unknown';
+      const matchesByType = {}; // entity_type -> { best_tier, records: [] }
+      for (const m of allMatches) {
+        if (!matchesByType[m.entity_type]) matchesByType[m.entity_type] = { best_tier: m.match_type, records: [] };
+        const tier = tierRank[m.match_type];
+        const currentBest = tierRank[matchesByType[m.entity_type].best_tier];
+        if (tier < currentBest) {
+          matchesByType[m.entity_type] = { best_tier: m.match_type, records: [m] };
+        } else if (tier === currentBest) {
+          matchesByType[m.entity_type].records.push(m);
+        }
+      }
+
+      const priorityTypes = ['client', 'partner', 'brokerage', 'lead'];
+      for (const type of priorityTypes) {
+        const info = matchesByType[type];
+        if (!info) continue;
+        const isFuzzy = info.best_tier !== 'exact';
+        const suffix = isFuzzy ? '_fuzzy' : '';
+        if (info.records.length > 1) {
+          proposed_classification = 'ambiguous';
+        } else {
+          proposed_classification = `${type}${suffix}`;
+        }
+        break; // first priority type with matches wins
+      }
+
+      // ── Relationship signals ──
+      const bestMatch = allMatches[0] || null;
+      const last_contacted_date = bestMatch?.last_contacted_date || null;
+
+      // Count proposals/invoices matching any candidate key.
+      const candSet = new Set(group.candidates.filter(Boolean));
+      let proposal_count = 0;
+      for (const p of proposalKeys) {
+        if (p.keys.some(k => candSet.has(k))) proposal_count++;
+      }
+      let invoice_count = 0;
+      for (const inv of invoiceKeys) {
+        if (inv.keys.some(k => candSet.has(k))) invoice_count++;
+      }
+
+      // Earliest / latest event dates.
+      const dates = group.events.map(e => e.start_date ? new Date(e.start_date) : null).filter(Boolean);
+      const earliest_event_date = dates.length ? new Date(Math.min(...dates.map(d => d.getTime()))).toISOString() : null;
+      const latest_event_date = dates.length ? new Date(Math.max(...dates.map(d => d.getTime()))).toISOString() : null;
+
+      // Event activity (event_type + presenter per event).
+      const event_activity = group.events.map(e => ({
+        event_id: e.event_id,
+        event_type: e.event_type,
+        presenter: e.presenter,
+      }));
+
+      // looks_like_delivery: any event with a delivery-type event_type.
+      const looks_like_delivery = group.events.some(e => DELIVERY_TYPES.has(e.event_type));
+
+      // ── Build event list (sorted: future first, then past desc) ──
       const eventDetails = group.events.map(e => ({
         event_id: e.event_id,
         title: e.title,
         start_date: e.start_date,
         is_future: e.is_future,
+        event_type: e.event_type,
+        presenter: e.presenter,
       }));
-
-      // Sort events: future first (by start_date asc), then past (by start_date desc).
       eventDetails.sort((a, b) => {
         if (a.is_future !== b.is_future) return a.is_future ? -1 : 1;
         const ad = a.start_date ? new Date(a.start_date).getTime() : 0;
@@ -218,7 +313,7 @@ Deno.serve(async (req) => {
         return a.is_future ? ad - bd : bd - ad;
       });
 
-      const futureCount = eventDetails.filter(e => e.is_future).length;
+      const futureCount = group.events.filter(e => e.is_future).length;
 
       distinctNames.push({
         client_name: group.display,
@@ -226,17 +321,32 @@ Deno.serve(async (req) => {
         event_count: group.events.length,
         future_event_count: futureCount,
         events: eventDetails,
-        matches: allMatches,
+        matches: allMatches.map(m => ({
+          entity_type: m.entity_type,
+          record_id: m.record_id,
+          display: m.display,
+          match_type: m.match_type,
+          detail: m.detail,
+          distance: m.distance,
+        })),
         proposed_classification,
-        fuzzy_suggestions,
+        relationship_signals: {
+          last_contacted_date,
+          proposal_count,
+          invoice_count,
+          earliest_event_date,
+          latest_event_date,
+          event_activity,
+          looks_like_delivery,
+        },
       });
     }
 
-    // Sort: unknown/ambiguous first (they need attention), then by event_count desc.
-    const priorityOrder = { unknown: 0, ambiguous: 1, client: 2, partner: 3, brokerage: 4, lead: 5 };
+    // ── Sort: unknown/ambiguous first, then by event_count desc ──
+    const priorityOrder = { unknown: 0, ambiguous: 1, client: 2, client_fuzzy: 3, partner: 4, partner_fuzzy: 5, brokerage: 6, brokerage_fuzzy: 7, lead: 8, lead_fuzzy: 9 };
     distinctNames.sort((a, b) => {
-      const pa = priorityOrder[a.proposed_classification] ?? 9;
-      const pb = priorityOrder[b.proposed_classification] ?? 9;
+      const pa = priorityOrder[a.proposed_classification] ?? 99;
+      const pb = priorityOrder[b.proposed_classification] ?? 99;
       if (pa !== pb) return pa - pb;
       return b.event_count - a.event_count;
     });
@@ -256,6 +366,15 @@ Deno.serve(async (req) => {
       classificationCounts[d.proposed_classification] = (classificationCounts[d.proposed_classification] || 0) + 1;
     }
 
+    // ── Apply classification filter ──
+    let filtered = distinctNames;
+    if (classificationFilter) {
+      filtered = distinctNames.filter(d => d.proposed_classification === classificationFilter);
+    }
+    const totalGroups = filtered.length;
+    const paged = filtered.slice(offset, offset + limit);
+    const has_more = offset + limit < totalGroups;
+
     return Response.json({
       summary: {
         total_events: total,
@@ -273,9 +392,19 @@ Deno.serve(async (req) => {
         referral_partners: partners.length,
         brokerages: brokerages.length,
         leads: leads.length,
+        proposals: proposals.length,
+        invoices: invoices.length,
         total_index_keys: allIndexKeys.length,
       },
-      distinct_client_names: distinctNames,
+      paging: {
+        classification_filter: classificationFilter || null,
+        offset,
+        limit,
+        total_groups: totalGroups,
+        has_more,
+      },
+      orphans_without_name,
+      distinct_client_names: paged,
     });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
