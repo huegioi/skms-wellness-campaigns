@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     }
 
     // ── Phase 1: Backfill client_id on invoices where it's null and client_email is set ──
-    const orphanInvoices = allInvoices.filter(inv => !inv.client_id && inv.client_email);
+    const orphanInvoices = allInvoices.filter(inv => !inv.client_id && inv.client_email && !inv.out_of_scope);
     const matched = [];
     const unmatchedMap = new Map(); // email → { invoice_count, total, invoices: [] }
 

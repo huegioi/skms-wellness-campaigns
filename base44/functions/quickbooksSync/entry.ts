@@ -543,6 +543,12 @@ Deno.serve(async (req) => {
           const customerInvoices = qbInvoices.filter(inv => inv.CustomerRef?.value === qbCustomer.Id);
           const invoiceIds = [];
 
+          // Domain-based matching via the prebuilt unambiguous domain index;
+          // fall back to exact email for free-mail / null-domain / ambiguous domains.
+          const orgDomain = getOrgDomain(email);
+          const emailKey = email.toLowerCase().trim();
+          const existingClient = (orgDomain && domainToClient.get(orgDomain)) || emailToClient.get(emailKey);
+
           for (const qbInv of customerInvoices) {
             let localInvoice = localInvoices.find(inv => inv.quickbooks_id === qbInv.Id);
 
@@ -561,6 +567,7 @@ Deno.serve(async (req) => {
 
             const invoiceData = {
               invoice_number: qbInv.DocNumber,
+              client_id: existingClient?.id,
               client_name: qbCustomer.DisplayName || email,
               client_email: email,
               company: qbCustomer.CompanyName || '',
@@ -593,12 +600,6 @@ Deno.serve(async (req) => {
 
           const totalInvoiceValue = customerInvoices.reduce((sum, inv) => sum + (inv.TotalAmt || 0), 0);
           const invoiceCount = customerInvoices.length;
-
-          // Domain-based matching via the prebuilt unambiguous domain index;
-          // fall back to exact email for free-mail / null-domain / ambiguous domains.
-          const orgDomain = getOrgDomain(email);
-          const emailKey = email.toLowerCase().trim();
-          const existingClient = (orgDomain && domainToClient.get(orgDomain)) || emailToClient.get(emailKey);
 
           if (existingClient) {
             const mergedServices = new Set([...(existingClient.purchased_services || []), ...Array.from(purchasedServices)]);
