@@ -55,27 +55,12 @@ Deno.serve(async (req) => {
       serviceNameMap[s.id] = s.name;
     }
 
-    // ── Event matching logic (copied verbatim from ClientPortal.jsx) ────
-    const proposalIds = new Set(proposals.map(p => p.id));
-    const clientNameLower = client.name?.toLowerCase().trim() || '';
-    const clientCompanyLower = client.company?.toLowerCase().trim() || '';
-
+    // ── Event matching: exact client_id only (no fuzzy name matching) ──
+    // Previously this used substring .includes() on client_name/company, which
+    // caused cross-client leaks (e.g. "Acme Benefits" matched "Acme Benefits Group").
+    // Now we match strictly on client_id — if zero events match, zero events are returned.
     const matchedEvents = allEvents.filter(event => {
-      const eventClientLower = event.client_name?.toLowerCase().trim() || '';
-
       if (event.client_id && event.client_id === client.id) return true;
-      if (event.proposal_id && proposalIds.has(event.proposal_id)) return true;
-
-      if (!eventClientLower) return false;
-
-      if (clientNameLower && eventClientLower === clientNameLower) return true;
-      if (clientCompanyLower && eventClientLower === clientCompanyLower) return true;
-
-      if (clientNameLower && clientNameLower.length > 5 && clientNameLower.includes(eventClientLower)) return true;
-      if (clientNameLower && eventClientLower.length > 5 && eventClientLower.includes(clientNameLower)) return true;
-      if (clientCompanyLower && clientCompanyLower.length > 5 && clientCompanyLower.includes(eventClientLower)) return true;
-      if (clientCompanyLower && eventClientLower.length > 5 && eventClientLower.includes(clientCompanyLower)) return true;
-
       return false;
     });
 

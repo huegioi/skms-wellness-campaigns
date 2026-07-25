@@ -147,7 +147,9 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const earnedAmt = (r) => partner.brokerage_id ? (r.broker_commission != null ? (r.broker_commission || 0) : 0) : (r.commission_amount || 0);
   const totalCommission = referrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
+  const earnedCommission = referrals.reduce((sum, r) => sum + earnedAmt(r), 0);
 
   return (
     <>
@@ -210,7 +212,10 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
             </div>
             <div className="bg-gray-50 rounded-lg p-3 text-center">
               <p className="text-xs text-gray-500">Commission Earned</p>
-              <p className="text-xl font-bold text-green-600">${totalCommission.toLocaleString()}</p>
+              <p className="text-xl font-bold text-green-600">${earnedCommission.toLocaleString()}</p>
+              {partner.brokerage_id && totalCommission > 0 && (
+                <p className="text-[10px] text-gray-400 mt-0.5">Total (house + broker): ${totalCommission.toLocaleString()}</p>
+              )}
             </div>
             <div className="bg-gray-50 rounded-lg p-3 text-center">
               <p className="text-xs text-gray-500">Linked Clients</p>
@@ -353,8 +358,8 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {r.commission_amount > 0 && (
-                        <span className="text-xs text-green-700 font-medium">${r.commission_amount.toLocaleString()}</span>
+                      {earnedAmt(r) > 0 && (
+                        <span className="text-xs text-green-700 font-medium">${earnedAmt(r).toLocaleString()}</span>
                       )}
                       <Badge className={REFERRAL_STATUS_COLORS[r.status] || 'bg-blue-100 text-blue-700'}>
                         {r.status?.replace(/_/g, ' ')}

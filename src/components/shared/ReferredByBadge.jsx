@@ -16,7 +16,7 @@ export default function ReferredByBadge({ partnerId, partnerName, compact = fals
 
   if (partnerId) {
     return (
-      <Link to={`/referral-partner-admin?partnerId=${partnerId}`} onClick={(e) => e.stopPropagation()}>
+      <Link to={`/Leads?tab=portals&partnerId=${partnerId}`} onClick={(e) => e.stopPropagation()}>
         {badge}
       </Link>
     );

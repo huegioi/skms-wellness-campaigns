@@ -61,12 +61,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Actually merge: copy unique ReferralPartner fields into Lead, then delete ReferralPartner
+    // Fetch all referrals so we can count how many reference each partner being merged.
+    const allReferrals = await base44.asServiceRole.entities.Referral.list();
+
+    // Non-destructive merge: copy unique ReferralPartner fields onto the Lead, but
+    // never delete the ReferralPartner record — deleting it would break the partner's
+    // live portal URL and orphan every Referral that points at it.
     const merged = [];
     const errors = [];
+    const warnings = [];
 
     for (const { lead, partner } of duplicates) {
       try {
+        const referralCount = allReferrals.filter(r => r.referral_partner_id === partner.id).length;
+
         // Build update payload: only copy fields that are missing/empty on the Lead
         const updates = {};
         if (!lead.company && partner.company) updates.company = partner.company;
@@ -101,16 +109,22 @@ Deno.serve(async (req) => {
           await base44.asServiceRole.entities.Lead.update(lead.id, updates);
         }
 
-        // Delete the duplicate ReferralPartner
-        await base44.asServiceRole.entities.ReferralPartner.delete(partner.id);
+        // ReferralPartner record is intentionally left intact to preserve the
+        // live portal URL and existing Referral foreign keys.
 
-        merged.push({ email: lead.email, leadId: lead.id, deletedPartnerId: partner.id });
+        warnings.push({
+          partnerId: partner.id,
+          partnerName: partner.name,
+          referralCount,
+        });
+
+        merged.push({ email: lead.email, leadId: lead.id, partnerId: partner.id });
       } catch (err) {
         errors.push({ email: lead.email, error: err.message });
       }
     }
 
-    return Response.json({ dryRun: false, merged: merged.length, errors, details: merged });
+    return Response.json({ dryRun: false, merged: merged.length, warnings, errors, details: merged });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

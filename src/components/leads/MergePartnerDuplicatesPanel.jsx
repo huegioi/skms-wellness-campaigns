@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, CheckCircle2, Trash2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, GitMerge } from 'lucide-react';
 import { toast } from 'sonner';
 
 // This component is now trigger-only — called from Leads page header button.
@@ -11,7 +11,7 @@ export default function MergePartnerDuplicatesPanel({ onMergeComplete, scanning,
 
   const handleMerge = async () => {
     if (!window.confirm(
-      `This will merge ${duplicates.length} duplicate(s): copy unique data from ReferralPartner into the Lead record, then permanently delete the ReferralPartner record. Continue?`
+      `This will merge ${duplicates.length} duplicate(s): copy unique data from ReferralPartner into the Lead record. The ReferralPartner record is kept intact. Continue?`
     )) return;
 
     setMerging(true);
@@ -56,7 +56,7 @@ export default function MergePartnerDuplicatesPanel({ onMergeComplete, scanning,
                       <p className="text-xs text-gray-500">{d.email}</p>
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-amber-500 uppercase tracking-wide mb-0.5">ReferralPartner (delete)</p>
+                      <p className="text-xs font-semibold text-amber-500 uppercase tracking-wide mb-0.5">ReferralPartner (kept)</p>
                       <p className="font-medium text-gray-800">{d.partnerName}</p>
                       <p className="text-xs text-gray-500">{d.partnerCompany || '—'}</p>
                       {d.partnerAgreementSignedDate && (
@@ -73,8 +73,8 @@ export default function MergePartnerDuplicatesPanel({ onMergeComplete, scanning,
                 className="bg-amber-600 hover:bg-amber-700 text-white gap-2"
                 size="sm"
               >
-                <Trash2 className="w-4 h-4" />
-                {merging ? 'Merging…' : `Merge & Delete ${duplicates.length} Duplicate${duplicates.length !== 1 ? 's' : ''}`}
+                <GitMerge className="w-4 h-4" />
+                {merging ? 'Merging…' : `Merge ${duplicates.length} Duplicate${duplicates.length !== 1 ? 's' : ''}`}
               </Button>
             </div>
           )}
@@ -83,11 +83,23 @@ export default function MergePartnerDuplicatesPanel({ onMergeComplete, scanning,
 
       {/* Merge result */}
       {mergeResult && (
-        <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm font-medium">
-          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-          Successfully merged {mergeResult.merged} record{mergeResult.merged !== 1 ? 's' : ''}.
-          {mergeResult.errors?.length > 0 && (
-            <span className="ml-2 text-red-600">{mergeResult.errors.length} error(s) — check console.</span>
+        <div>
+          <div className="flex items-center gap-2 text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm font-medium">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            Successfully merged {mergeResult.merged} record{mergeResult.merged !== 1 ? 's' : ''}. Partner records were kept intact.
+            {mergeResult.errors?.length > 0 && (
+              <span className="ml-2 text-red-600">{mergeResult.errors.length} error(s) — check console.</span>
+            )}
+          </div>
+          {mergeResult.warnings?.length > 0 && (
+            <div className="mt-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              <p className="font-semibold mb-1">Referrals still referencing merged partners (records not deleted):</p>
+              <ul className="list-disc list-inside space-y-0.5">
+                {mergeResult.warnings.map(w => (
+                  <li key={w.partnerId}>{w.partnerName}: {w.referralCount} referral{w.referralCount !== 1 ? 's' : ''}</li>
+                ))}
+              </ul>
+            </div>
           )}
         </div>
       )}

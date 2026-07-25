@@ -228,7 +228,10 @@ export default function Leads() {
   const urlParams = new URLSearchParams(window.location.search);
   const leadIdFromUrl = urlParams.get('leadId');
   const filterParam = urlParams.get('filter');
+  const partnerIdFromUrl = urlParams.get('partnerId');
+  const tabFromUrl = urlParams.get('tab');
   const urlLeadDismissed = React.useRef(false);
+  const urlPartnerDismissed = React.useRef(false);
 
   // Broker leads (referral partners) state
   const [brokerSearch, setBrokerSearch] = useState('');
@@ -350,11 +353,19 @@ export default function Leads() {
 
   React.useEffect(() => {
     if (filterParam === 'quick_builder') setActiveTab('inquiries');
+    if (tabFromUrl === 'portals' || partnerIdFromUrl) setActiveTab('portals');
     if (leadIdFromUrl && !urlLeadDismissed.current) {
       const lead = (allLeads || []).find(l => l.id === leadIdFromUrl);
       if (lead) setViewingBrokerLead(lead);
     }
-  }, [leadIdFromUrl, filterParam, allLeads]);
+    if (partnerIdFromUrl && !urlPartnerDismissed.current) {
+      const partner = (referralPartners || []).find(p => p.id === partnerIdFromUrl);
+      if (partner) {
+        urlPartnerDismissed.current = true;
+        openEditPartner(partner);
+      }
+    }
+  }, [leadIdFromUrl, filterParam, allLeads, partnerIdFromUrl, tabFromUrl, referralPartners]);
 
   const existingCompanies = [...new Set(referralPartners.map(p => p.company).filter(Boolean))].sort();
 
@@ -1056,11 +1067,12 @@ export default function Leads() {
               <div className="space-y-4">
                 {referralPartners.map(partner => {
                   const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id);
+                  const earnedAmt = (r) => partner.brokerage_id ? (r.broker_commission != null ? (r.broker_commission || 0) : 0) : (r.commission_amount || 0);
                   const totalCommission = partnerReferrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
                   const totalRevenue = partnerReferrals.reduce((sum, r) => sum + (r.first_year_revenue || 0), 0);
                   const convertedReferrals = partnerReferrals.filter(r => ['converted_to_client','purchased','commission_paid'].includes(r.status));
-                  const pendingCommission = partnerReferrals.filter(r => r.status === 'purchased').reduce((sum, r) => sum + (r.commission_amount || 0), 0);
-                  const paidCommission = partnerReferrals.filter(r => r.status === 'commission_paid').reduce((sum, r) => sum + (r.commission_amount || 0), 0);
+                  const pendingCommission = partnerReferrals.filter(r => r.status === 'purchased').reduce((sum, r) => sum + earnedAmt(r), 0);
+                  const paidCommission = partnerReferrals.filter(r => r.status === 'commission_paid').reduce((sum, r) => sum + earnedAmt(r), 0);
 
                   // Determine current tier
                   const ytd = partner.ytd_revenue || 0;
@@ -1104,7 +1116,7 @@ export default function Leads() {
                               <div className="bg-purple-50 rounded-lg px-3 py-2 text-center">
                                 <p className="text-xs text-purple-600 font-medium">Paid Comm.</p>
                                 <p className="text-lg font-bold text-purple-800">${paidCommission.toLocaleString()}</p>
-                                <p className="text-xs text-purple-500">of ${totalCommission.toLocaleString()} total</p>
+                                <p className="text-xs text-purple-500">Total (house + broker): ${totalCommission.toLocaleString()}</p>
                               </div>
                             </div>
 
@@ -1173,7 +1185,7 @@ export default function Leads() {
       </div>
 
       {/* Referral Partner Add/Edit Dialog */}
-      <Dialog open={showPartnerDialog} onOpenChange={v => { setShowPartnerDialog(v); if (!v) { setEditingPartner(null); setShowAddReferral(false); } }}>
+      <Dialog open={showPartnerDialog} onOpenChange={v => { setShowPartnerDialog(v); if (!v) { setEditingPartner(null); setShowAddReferral(false); urlPartnerDismissed.current = true; } }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center justify-between pr-6">
