@@ -62,14 +62,7 @@ async function getAccessToken(client) {
   // Token expired or doesn't exist, refresh it
   const clientId = Deno.env.get('QUICKBOOKS_CLIENT_ID');
   const clientSecret = Deno.env.get('QUICKBOOKS_CLIENT_SECRET');
-  console.log('CLIENT_SECRET length:', Deno.env.get('QUICKBOOKS_CLIENT_SECRET')?.length);
   const refreshToken = await getStoredRefreshToken(client);
-
-  console.log('Client ID first 10:', clientId?.substring(0, 10));
-  console.log('Client Secret first 10:', clientSecret?.substring(0, 10));
-  console.log('Refresh token first 10:', refreshToken?.substring(0, 10));
-  console.log('Full refresh token being used:', refreshToken);
-  console.log('Full client ID being used:', clientId);
 
   const response = await fetch('https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer', {
     method: 'POST',
@@ -82,10 +75,6 @@ async function getAccessToken(client) {
       refresh_token: refreshToken
     })
   });
-
-  const responseText = await response.clone().text();
-  console.log('Intuit response status:', response.status);
-  console.log('Intuit response body:', responseText);
 
   if (!response.ok) {
     const errorText = await response.text();
