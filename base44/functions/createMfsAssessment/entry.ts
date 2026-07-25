@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import { getOrgDomain, deriveCompanyFromEmail } from '../../shared/emailDomain.ts';
 
 Deno.serve(async (req) => {
   try {
