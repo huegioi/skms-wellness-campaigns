@@ -71,9 +71,10 @@ Deno.serve(async (req) => {
     if (!isTeamMember(user)) return Response.json({ error: 'Forbidden — team members only' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
-    const { classification: classificationFilter, offset: rawOffset, limit: rawLimit } = body;
+    const { classification: classificationFilter, offset: rawOffset, limit: rawLimit, compact, include_unnamed } = body;
     const offset = Math.max(0, parseInt(rawOffset) || 0);
-    const limit = Math.max(1, parseInt(rawLimit) || 5);
+    const limit = Math.max(1, parseInt(rawLimit) || 2);
+    const isCompact = !!compact;
 
     // ── Fetch all entities (read-only, high limits) ──
     const [events, clients, partners, brokerages, leads, proposals, invoices] = await Promise.all([
@@ -366,7 +367,50 @@ Deno.serve(async (req) => {
       classificationCounts[d.proposed_classification] = (classificationCounts[d.proposed_classification] || 0) + 1;
     }
 
-    // ── Apply classification filter ──
+    // ── Compact mode: flat single-line strings, all groups, no paging ──
+    if (isCompact) {
+      let compactGroups = distinctNames;
+      if (classificationFilter) {
+        compactGroups = distinctNames.filter(d => d.proposed_classification === classificationFilter);
+      }
+      const compactLines = compactGroups.map(g => {
+        const best = g.matches[0] || {};
+        const bestStr = best.entity_type
+          ? `${best.entity_type}/${best.match_type}/${best.display || '—'}/${best.record_id || '—'}`
+          : 'none';
+        const delivery = g.relationship_signals.looks_like_delivery;
+        const props = g.relationship_signals.proposal_count;
+        const inv = g.relationship_signals.invoice_count;
+        const earliest = g.relationship_signals.earliest_event_date
+          ? g.relationship_signals.earliest_event_date.slice(0, 10)
+          : '—';
+        const latest = g.relationship_signals.latest_event_date
+          ? g.relationship_signals.latest_event_date.slice(0, 10)
+          : '—';
+        const lastContact = g.relationship_signals.last_contacted_date
+          ? g.relationship_signals.last_contacted_date.slice(0, 10)
+          : 'none';
+        return `${g.client_name} | events:${g.event_count} future:${g.future_event_count} | ${g.proposed_classification} | best:${bestStr} | delivery:${delivery} | props:${props} inv:${inv} | ${earliest} → ${latest} | last_contact:${lastContact}`;
+      });
+
+      return Response.json({
+        summary: {
+          total_events: total,
+          events_with_null_client_id: orphanCount,
+          of_those_with_client_name: withNameCount,
+          of_those_without_client_name: orphanCount - withNameCount,
+          future_events_with_null_client_id: futureTotal,
+          past_events_with_null_client_id: pastTotal,
+          no_date_with_null_client_id: noDateTotal,
+          distinct_client_names: distinctNames.length,
+        },
+        classification_counts: classificationCounts,
+        compact: true,
+        groups: compactLines,
+      });
+    }
+
+    // ── Non-compact mode: paged nested objects ──
     let filtered = distinctNames;
     if (classificationFilter) {
       filtered = distinctNames.filter(d => d.proposed_classification === classificationFilter);
@@ -375,7 +419,7 @@ Deno.serve(async (req) => {
     const paged = filtered.slice(offset, offset + limit);
     const has_more = offset + limit < totalGroups;
 
-    return Response.json({
+    const response = {
       summary: {
         total_events: total,
         events_with_null_client_id: orphanCount,
@@ -403,9 +447,15 @@ Deno.serve(async (req) => {
         total_groups: totalGroups,
         has_more,
       },
-      orphans_without_name,
       distinct_client_names: paged,
-    });
+    };
+
+    // Only include orphans_without_name when explicitly requested.
+    if (include_unnamed) {
+      response.orphans_without_name = orphans_without_name;
+    }
+
+    return Response.json(response);
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
