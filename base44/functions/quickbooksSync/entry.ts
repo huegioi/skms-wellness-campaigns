@@ -571,11 +571,18 @@ Deno.serve(async (req) => {
           if (existingClient) {
             const mergedServices = new Set([...(existingClient.purchased_services || []), ...clientData.purchased_services]);
             const mergedInvoiceIds = [...new Set([...(existingClient.invoice_ids || []), ...clientData.invoice_ids])];
-            await base44.asServiceRole.entities.Client.update(existingClient.id, {
+            const updatePayload = {
               ...clientData,
               purchased_services: Array.from(mergedServices),
               invoice_ids: mergedInvoiceIds
-            });
+            };
+            // If the invoice query returned nothing (throttled/failed), do NOT
+            // overwrite the client's existing totals with zeros — preserve them.
+            if (qbInvoices.length === 0) {
+              delete updatePayload.total_invoice_value;
+              delete updatePayload.invoice_count;
+            }
+            await base44.asServiceRole.entities.Client.update(existingClient.id, updatePayload);
             syncResults.push({ email, action: 'updated', client_id: existingClient.id, invoices: invoiceCount, total_value: totalInvoiceValue });
           } else {
             const newClient = await base44.asServiceRole.entities.Client.create(clientData);
