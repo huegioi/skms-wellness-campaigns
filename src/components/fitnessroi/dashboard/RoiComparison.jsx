@@ -109,7 +109,7 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-3">
         {/* Left chart — estimate */}
         <div>
-          <div className="mb-3">
+          <div className="mb-3 mt-10">
             <div className="text-center">
               <p className="text-[13px] font-semibold text-[#4a2040]">Initial Estimated Savings</p>
               {estTotal3yr != null && (
@@ -124,7 +124,7 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
 
         {/* Right chart — team real data */}
         <div>
-          <div className="mb-3">
+          <div className="mb-3 mt-10">
             <div className="text-center">
               <p className="text-[13px] font-semibold text-[#4a2040]">Savings from Your Team's Real Data</p>
               {teamTotal3yr != null && (
