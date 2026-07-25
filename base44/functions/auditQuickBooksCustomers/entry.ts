@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
     }
 
     // 5. Targeted lookups — filter customers by DisplayName / CompanyName
-    const searchTerms = ['Silver Hill', 'Weitzman', 'USTA'];
+    const searchTerms = ['Silver Hill', 'Weitzman', 'USTA', 'Partner Reinsurance'];
     const targetedLookups = searchTerms.map(term => {
       const termLower = term.toLowerCase();
       const matches = allCustomers.filter(c => {
