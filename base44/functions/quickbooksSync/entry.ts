@@ -604,15 +604,18 @@ Deno.serve(async (req) => {
             const mergedServices = new Set([...(existingClient.purchased_services || []), ...Array.from(purchasedServices)]);
             const mergedInvoiceIds = [...new Set([...(existingClient.invoice_ids || []), ...invoiceIds])];
 
-            // Update payload — NEVER overwrite name (QB DisplayName is frequently
-            // the company, not a human contact). Only set company if the existing
-            // Client's company is blank.
+            // Update payload — QuickBooks may fill a blank, never overwrite
+            // something that's already there (except invoice aggregates, for
+            // which QB is the source of truth). name is never set: QB
+            // DisplayName is frequently the company, not a human contact.
+            const qbPhone = qbCustomer.PrimaryPhone?.FreeFormNumber?.trim() || '';
+            const qbAddress = qbCustomer.BillAddr
+              ? `${qbCustomer.BillAddr.Line1 || ''} ${qbCustomer.BillAddr.City || ''} ${qbCustomer.BillAddr.CountrySubDivisionCode || ''} ${qbCustomer.BillAddr.PostalCode || ''}`.trim()
+              : '';
+            const qbNotes = qbCustomer.Notes?.trim() || '';
+
             const updatePayload = {
               email_domain: orgDomain || undefined,
-              phone: qbCustomer.PrimaryPhone?.FreeFormNumber || '',
-              company_address: qbCustomer.BillAddr ?
-                `${qbCustomer.BillAddr.Line1 || ''} ${qbCustomer.BillAddr.City || ''} ${qbCustomer.BillAddr.CountrySubDivisionCode || ''} ${qbCustomer.BillAddr.PostalCode || ''}`.trim() : '',
-              notes: qbCustomer.Notes || '',
               purchased_services: Array.from(mergedServices),
               total_invoice_value: totalInvoiceValue,
               invoice_count: invoiceCount,
@@ -627,6 +630,18 @@ Deno.serve(async (req) => {
             // vs. programme contact); never overwrite the contact of record.
             if (!existingClient.email) {
               updatePayload.email = email;
+            }
+            // Backfill phone / address / notes only when QB has a value AND the
+            // existing Base44 field is blank — omitting the key entirely preserves
+            // any existing value (partial-merge semantics).
+            if (qbPhone && !existingClient.phone) {
+              updatePayload.phone = qbPhone;
+            }
+            if (qbAddress && !existingClient.company_address) {
+              updatePayload.company_address = qbAddress;
+            }
+            if (qbNotes && !existingClient.notes) {
+              updatePayload.notes = qbNotes;
             }
             // If the invoice query returned nothing (throttled/failed), do NOT
             // overwrite the client's existing totals with zeros — preserve them.
