@@ -687,8 +687,6 @@ Deno.serve(async (req) => {
       }
 
       const invoiceData = invoice[0];
-      let qbWarning = null;
-
       if (invoiceData.quickbooks_id) {
         try {
           const qbInvoice = await getQBInvoice(accessToken, realmId, invoiceData.quickbooks_id);
@@ -711,12 +709,18 @@ Deno.serve(async (req) => {
               errorMsg = errorText;
               console.error('QuickBooks delete raw error:', errorText);
             }
-            // Don't block local deletion — just warn
-            qbWarning = errorMsg;
+            // QB is source of truth — abort local deletion to avoid divergence
+            return Response.json(
+              { error: `QuickBooks deletion failed: ${errorMsg}. The local invoice was not deleted.` },
+              { status: 502 }
+            );
           }
         } catch (error) {
           console.error('QB delete exception:', error.message);
-          qbWarning = error.message;
+          return Response.json(
+            { error: `QuickBooks deletion failed: ${error.message}. The local invoice was not deleted.` },
+            { status: 502 }
+          );
         }
       }
 
@@ -724,10 +728,7 @@ Deno.serve(async (req) => {
 
       return Response.json({
         success: true,
-        message: qbWarning
-          ? `Invoice deleted locally. QuickBooks warning: ${qbWarning}`
-          : 'Invoice deleted successfully',
-        qb_warning: qbWarning
+        message: 'Invoice deleted successfully'
       });
     }
 
@@ -739,7 +740,6 @@ Deno.serve(async (req) => {
 
       const invoiceData = invoice[0];
       const paidDate = new Date().toISOString().split('T')[0];
-      let qbWarning = null;
 
       // If synced to QB, record a payment there too
       if (invoiceData.quickbooks_id) {
@@ -748,7 +748,6 @@ Deno.serve(async (req) => {
 
           // Only record payment if there's still a balance
           if (qbInvoice.Balance > 0) {
-            // Find or create an AR account reference (QuickBooks requires it)
             const paymentPayload = {
               TotalAmt: qbInvoice.Balance,
               CustomerRef: qbInvoice.CustomerRef,
@@ -780,16 +779,22 @@ Deno.serve(async (req) => {
               } catch {
                 errorMsg = errorText;
               }
-              qbWarning = errorMsg;
+              // QB is source of truth — abort local update to avoid divergence
+              return Response.json(
+                { error: `QuickBooks payment failed: ${errorMsg}. The local invoice was not marked as paid.` },
+                { status: 502 }
+              );
             }
           }
         } catch (error) {
           console.error('QB mark paid exception:', error.message);
-          qbWarning = error.message;
+          return Response.json(
+            { error: `QuickBooks payment failed: ${error.message}. The local invoice was not marked as paid.` },
+            { status: 502 }
+          );
         }
       }
 
-      // Always update local record
       await base44.asServiceRole.entities.Invoice.update(invoiceId, {
         status: 'paid',
         paid_date: paidDate
@@ -798,10 +803,7 @@ Deno.serve(async (req) => {
       return Response.json({
         success: true,
         paid_date: paidDate,
-        message: qbWarning
-          ? `Marked as paid locally. QuickBooks warning: ${qbWarning}`
-          : 'Invoice marked as paid successfully',
-        qb_warning: qbWarning
+        message: 'Invoice marked as paid successfully'
       });
     }
 

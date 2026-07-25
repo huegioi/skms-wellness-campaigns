@@ -8,9 +8,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   FileText, DollarSign, Calendar, CheckCircle,
-  RefreshCw, Eye, Pencil, Send, Loader2, Trash2, Users
+  RefreshCw, Eye, Pencil, Send, Loader2, Trash2, Users, Upload
 } from 'lucide-react';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
+import QuickBooksActionsPanel from '@/components/invoices/QuickBooksActionsPanel';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { INVOICE_STATUS_CONFIG as statusConfig } from '@/lib/statusConfig';
 
 export default function Invoices() {
@@ -25,6 +27,7 @@ export default function Invoices() {
   const [qbInvoices, setQBInvoices] = useState([]);
   const [loadingQB, setLoadingQB] = useState(false);
   const [showOutOfScope, setShowOutOfScope] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -93,9 +96,11 @@ export default function Invoices() {
       const response = await base44.functions.invoke('quickbooksSync', { action: 'markAsPaid', invoiceId: invoice.id });
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      if (data?.qb_warning) alert(`Invoice marked as paid.\n\nQuickBooks note: ${data.qb_warning}`);
+    },
+    onError: (error) => {
+      alert(`Failed to mark as paid: ${error.message}`);
     }
   });
 
@@ -181,7 +186,7 @@ export default function Invoices() {
   };
 
   const handleSyncClients = async () => {
-    if (!confirm('Sync all customer data from QuickBooks to the Clients database?\n\nThis will create new clients or update existing ones based on QB customer and invoice data.')) return;
+    if (!confirm('Import all customer data from QuickBooks?\n\nPulls customers and invoices into the app. Never creates clients.')) return;
     
     setSyncingAll(true);
     try {
@@ -197,22 +202,15 @@ export default function Invoices() {
     }
   };
 
-  const handleDeleteInvoice = async (invoice) => {
-    const message = invoice.quickbooks_id 
-      ? `Delete invoice ${invoice.invoice_number}?\n\nThis will delete it from both the app AND QuickBooks.`
-      : `Delete invoice ${invoice.invoice_number}?`;
-    
-    if (!confirm(message)) return;
-    
+  const handleDeleteInvoice = async () => {
+    if (!deleteTarget) return;
     try {
-      const result = await deleteMutation.mutateAsync(invoice.id);
-      if (result?.qb_warning) {
-        alert(`Invoice deleted.\n\nQuickBooks note: ${result.qb_warning}`);
-      } else {
-        alert('Invoice deleted successfully!');
-      }
+      await deleteMutation.mutateAsync(deleteTarget.id);
+      alert('Invoice deleted successfully!');
     } catch (error) {
       alert(`Failed to delete invoice: ${error.message}`);
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -245,67 +243,24 @@ export default function Invoices() {
             <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#013f7c' }}>Invoices</h1>
             <p className="text-sm sm:text-base text-gray-600">Manage invoices and sync with QuickBooks</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button 
-              variant="outline"
-              size="sm"
-              className="sm:size-default"
-              onClick={() => {
-                if (!showQBView) {
-                  handleLoadQBInvoices();
-                } else {
-                  setShowQBView(false);
-                }
-              }}
-            >
-              {showQBView ? 'Show Local' : 'View QuickBooks'}
-            </Button>
-            {!showQBView && (
-              <>
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  className="sm:size-default"
-                  onClick={handleSyncAll}
-                  disabled={syncingAll}
-                >
-                  {syncingAll ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 sm:mr-2" />}
-                  <span className="hidden sm:inline">Sync Invoices</span>
-                </Button>
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  className="sm:size-default bg-blue-50 hover:bg-blue-100"
-                  onClick={handleSyncClients}
-                  disabled={syncingAll}
-                >
-                  {syncingAll ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 sm:mr-2" />}
-                  <span className="hidden sm:inline">Sync Clients</span>
-                </Button>
-              </>
-            )}
-            {showQBView && (
-              <Button 
-                variant="outline"
-                size="sm"
-                className="sm:size-default"
-                onClick={handleLoadQBInvoices}
-                disabled={loadingQB}
-              >
-                {loadingQB ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 sm:mr-2" />}
-                <span className="hidden sm:inline">Refresh QB</span>
-              </Button>
-            )}
-            <Button 
-              className="bg-[#264d44] hover:bg-[#1a3830]"
-              size="sm"
-              onClick={() => setSelectedInvoice({ mode: 'create' })}
-            >
-              <FileText className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">Create Invoice</span>
-            </Button>
-          </div>
+          <Button 
+            className="bg-[#264d44] hover:bg-[#1a3830]"
+            size="sm"
+            onClick={() => setSelectedInvoice({ mode: 'create' })}
+          >
+            <FileText className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Create Invoice</span>
+          </Button>
         </div>
+
+        <QuickBooksActionsPanel
+          onImportClients={handleSyncClients}
+          onRefreshStatus={handleSyncAll}
+          onPreviewQB={() => showQBView ? setShowQBView(false) : handleLoadQBInvoices()}
+          showQBView={showQBView}
+          syncingAll={syncingAll}
+          loadingQB={loadingQB}
+        />
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -572,28 +527,31 @@ export default function Invoices() {
                         <Button
                           size="sm"
                           variant="outline"
+                          className="border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 whitespace-nowrap"
                           onClick={() => handleRefreshStatus(invoice)}
                           disabled={isSyncing}
                         >
-                          {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                          {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                          <span className="hidden sm:inline">Push Update</span>
                         </Button>
                       ) : invoice.status === 'draft' ? (
                         <Button
                           size="sm"
-                          className="bg-blue-600 hover:bg-blue-700 whitespace-nowrap"
+                          variant="outline"
+                          className="border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 whitespace-nowrap"
                           onClick={() => handleSyncToQB(invoice)}
                           disabled={isSyncing}
                         >
                           {isSyncing ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" /> : <Send className="w-4 h-4 sm:mr-2" />}
-                          <span className="hidden sm:inline">Send to QB</span>
+                          <span className="hidden sm:inline">Send to QuickBooks</span>
                         </Button>
                       ) : null}
 
                       {['sent', 'overdue'].includes(invoice.status) && (
-                        <Button size="sm" variant="outline" className="text-green-600 hover:text-green-800 hover:border-green-500 whitespace-nowrap"
-                          onClick={() => { if (confirm(`Mark invoice ${invoice.invoice_number || ''} as paid?`)) markPaidMutation.mutate(invoice); }}>
+                        <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 whitespace-nowrap"
+                          onClick={() => markPaidMutation.mutate(invoice)}>
                           <CheckCircle className="w-4 h-4 sm:mr-1" />
-                          <span className="hidden sm:inline">Paid</span>
+                          <span className="hidden sm:inline">Mark Paid</span>
                         </Button>
                       )}
 
@@ -618,8 +576,8 @@ export default function Invoices() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-red-500 hover:text-red-700 hover:border-red-500"
-                        onClick={() => handleDeleteInvoice(invoice)}
+                        className="border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+                        onClick={() => setDeleteTarget(invoice)}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -714,6 +672,33 @@ export default function Invoices() {
             </DialogContent>
           </Dialog>
         )}
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete from QuickBooks</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div>
+                  <p>Delete invoice <strong>{deleteTarget?.invoice_number || `INV-${deleteTarget?.id?.slice(0, 8)}`}</strong>?</p>
+                  <p className="mt-1">Amount: <strong>${deleteTarget?.total_amount?.toLocaleString()}</strong></p>
+                  {deleteTarget?.quickbooks_id && (
+                    <p className="mt-2 text-red-600 font-medium">This will delete it from both the app AND QuickBooks.</p>
+                  )}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteInvoice}
+                className="bg-red-600 text-white hover:bg-red-700"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

@@ -8,12 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   FileText, DollarSign, Calendar, CheckCircle, Clock, XCircle, AlertCircle,
-  RefreshCw, Eye, Pencil, Send, Loader2, Trash2, BarChart2, TrendingUp
+  RefreshCw, Eye, Pencil, Send, Loader2, Trash2, BarChart2, TrendingUp, Upload
 } from 'lucide-react';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 import RevenueChart from '@/components/financials/RevenueChart';
 import FinancialInformationSection from '@/components/dashboard/FinancialInformationSection';
 import ExpenseManager from '@/components/dashboard/ExpenseManager';
+import QuickBooksActionsPanel from '@/components/invoices/QuickBooksActionsPanel';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const TABS = [
   { id: 'dashboard', label: 'Revenue Chart', icon: BarChart2 },
@@ -85,6 +87,7 @@ function InvoicesPanel() {
   const [showQBView, setShowQBView] = useState(false);
   const [qbInvoices, setQBInvoices] = useState([]);
   const [loadingQB, setLoadingQB] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -131,9 +134,11 @@ function InvoicesPanel() {
       const response = await base44.functions.invoke('quickbooksSync', { action: 'markAsPaid', invoiceId: invoice.id });
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      if (data?.qb_warning) alert(`Invoice marked as paid.\n\nQuickBooks note: ${data.qb_warning}`);
+    },
+    onError: (error) => {
+      alert(`Failed to mark as paid: ${error.message}`);
     }
   });
 
@@ -203,7 +208,7 @@ function InvoicesPanel() {
   };
 
   const handleSyncClients = async () => {
-    if (!confirm('Sync all customer data from QuickBooks to the Clients database?')) return;
+    if (!confirm('Import all customer data from QuickBooks?\n\nPulls customers and invoices into the app. Never creates clients.')) return;
     setSyncingAll(true);
     try {
       const response = await base44.functions.invoke('quickbooksSync', { action: 'syncClientsFromQB' });
@@ -216,20 +221,15 @@ function InvoicesPanel() {
     }
   };
 
-  const handleDeleteInvoice = async (invoice) => {
-    const message = invoice.quickbooks_id
-      ? `Delete invoice ${invoice.invoice_number}?\n\nThis will delete it from both the app AND QuickBooks.`
-      : `Delete invoice ${invoice.invoice_number}?`;
-    if (!confirm(message)) return;
+  const handleDeleteInvoice = async () => {
+    if (!deleteTarget) return;
     try {
-      const result = await deleteMutation.mutateAsync(invoice.id);
-      if (result?.qb_warning) {
-        alert(`Invoice deleted.\n\nQuickBooks note: ${result.qb_warning}`);
-      } else {
-        alert('Invoice deleted successfully!');
-      }
+      await deleteMutation.mutateAsync(deleteTarget.id);
+      alert('Invoice deleted successfully!');
     } catch (error) {
       alert(`Failed to delete invoice: ${error.message}`);
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -248,30 +248,19 @@ function InvoicesPanel() {
     <div className="space-y-6">
       {/* Header buttons */}
       <div className="flex flex-wrap gap-2 justify-end">
-        <Button variant="outline" size="sm" onClick={() => showQBView ? setShowQBView(false) : handleLoadQBInvoices()}>
-          {showQBView ? 'Show Local' : 'View QuickBooks'}
-        </Button>
-        {!showQBView && (
-          <>
-            <Button variant="outline" size="sm" onClick={handleSyncAll} disabled={syncingAll}>
-              {syncingAll ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
-              Sync Invoices
-            </Button>
-            <Button variant="outline" size="sm" className="bg-blue-50 hover:bg-blue-100" onClick={handleSyncClients} disabled={syncingAll}>
-              <RefreshCw className="w-4 h-4 mr-1" /> Sync Clients
-            </Button>
-          </>
-        )}
-        {showQBView && (
-          <Button variant="outline" size="sm" onClick={handleLoadQBInvoices} disabled={loadingQB}>
-            {loadingQB ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
-            Refresh QB
-          </Button>
-        )}
         <Button className="bg-[#264d44] hover:bg-[#1a3830]" size="sm" onClick={() => setSelectedInvoice({ mode: 'create' })}>
           <FileText className="w-4 h-4 mr-1" /> Create Invoice
         </Button>
       </div>
+
+      <QuickBooksActionsPanel
+        onImportClients={handleSyncClients}
+        onRefreshStatus={handleSyncAll}
+        onPreviewQB={() => showQBView ? setShowQBView(false) : handleLoadQBInvoices()}
+        showQBView={showQBView}
+        syncingAll={syncingAll}
+        loadingQB={loadingQB}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -409,26 +398,27 @@ function InvoicesPanel() {
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {invoice.quickbooks_id ? (
-                        <Button size="sm" variant="outline" onClick={() => handleRefreshStatus(invoice)} disabled={isSyncing}>
-                          {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                        <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 whitespace-nowrap" onClick={() => handleRefreshStatus(invoice)} disabled={isSyncing}>
+                          {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                          <span className="hidden sm:inline">Push Update</span>
                         </Button>
                       ) : invoice.status === 'draft' ? (
-                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => handleSyncToQB(invoice)} disabled={isSyncing}>
-                          {isSyncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
-                          Send to QB
+                        <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 whitespace-nowrap" onClick={() => handleSyncToQB(invoice)} disabled={isSyncing}>
+                          {isSyncing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
+                          Send to QuickBooks
                         </Button>
                       ) : null}
                       {['sent', 'overdue'].includes(invoice.status) && (
-                        <Button size="sm" variant="outline" className="text-green-600 hover:text-green-800 hover:border-green-500 whitespace-nowrap"
-                          onClick={() => { if (confirm(`Mark invoice ${invoice.invoice_number || ''} as paid?`)) markPaidMutation.mutate(invoice); }}>
-                          <CheckCircle className="w-4 h-4 mr-1" /> Paid
+                        <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 whitespace-nowrap"
+                          onClick={() => markPaidMutation.mutate(invoice)}>
+                          <CheckCircle className="w-4 h-4 mr-1" /> Mark Paid
                         </Button>
                       )}
                       <Button size="sm" variant="outline" onClick={() => setSelectedInvoice({ mode: 'view', invoice })}><Eye className="w-4 h-4" /></Button>
                       {invoice.status === 'draft' && (
                         <Button size="sm" variant="outline" onClick={() => setSelectedInvoice({ mode: 'edit', invoice })}><Pencil className="w-4 h-4" /></Button>
                       )}
-                      <Button size="sm" variant="outline" className="text-red-500 hover:text-red-700 hover:border-red-500" onClick={() => handleDeleteInvoice(invoice)}>
+                      <Button size="sm" variant="outline" className="border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400" onClick={() => setDeleteTarget(invoice)}>
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -475,6 +465,33 @@ function InvoicesPanel() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete from QuickBooks</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                <p>Delete invoice <strong>{deleteTarget?.invoice_number || `INV-${deleteTarget?.id?.slice(0, 8)}`}</strong>?</p>
+                <p className="mt-1">Amount: <strong>${deleteTarget?.total_amount?.toLocaleString()}</strong></p>
+                {deleteTarget?.quickbooks_id && (
+                  <p className="mt-2 text-red-600 font-medium">This will delete it from both the app AND QuickBooks.</p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteInvoice}
+              className="bg-red-600 text-white hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
