@@ -176,6 +176,10 @@
       "type": "string",
       "description": "The ReferralPartner record for this same person, when one exists. Set by mergePartnerDuplicates to cross-reference the two records without deleting either."
     },
+    "brokerage_id": {
+      "type": "string",
+      "description": "ID of the Brokerage this lead belongs to. Used for grouping broker leads under their parent firm."
+    },
     "follow_up_stage": {
       "type": "string",
       "description": "Current follow-up stage in the outreach sequence (legacy \u2014 pipeline board now uses 'status'). Data preserved for reference and tagging."
