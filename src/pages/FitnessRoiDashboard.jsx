@@ -89,7 +89,6 @@ export default function FitnessRoiDashboard() {
               <PairedDials leaderScore={leaderComposite} teamScore={teamComposite} />
             </div>
             <ComparisonLegend />
-            <p className="text-xs text-stone-400 italic mt-4 mb-0">Where the two markers sit far apart, your read and your team's experience differ — those gaps are worth a conversation.</p>
             <div className="mt-6 pt-4 border-t border-stone-100">
               <PairedDomainBars leaderScores={data.quick_scores} teamScores={data.team_scores} />
             </div>

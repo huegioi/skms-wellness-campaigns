@@ -24,7 +24,6 @@ export default function ComparisonLegend() {
             <span className="text-xs text-stone-600">{b.label}</span>
           </div>
         ))}
-        <span className="text-xs text-stone-400">— research-based ranges; higher is better in every domain</span>
       </div>
     </div>
   );
