@@ -80,8 +80,12 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 4b. Fetch all Base44 Invoices for gap reconciliation
+    const localInvoices = await base44.asServiceRole.entities.Invoice.list('-created_date', 2000);
+    const localQBIds = new Set(localInvoices.filter(i => i.quickbooks_id).map(i => String(i.quickbooks_id)));
+
     // 5. Targeted lookups — filter customers by DisplayName / CompanyName
-    const searchTerms = ['Silver Hill', 'Weitzman', 'USTA', 'Partner Reinsurance'];
+    const searchTerms = ['Silver Hill', 'Weitzman', 'USTA', 'Partner Reinsurance', 'AVCO'];
     const targetedLookups = searchTerms.map(term => {
       const termLower = term.toLowerCase();
       const matches = allCustomers.filter(c => {
@@ -131,7 +135,24 @@ Deno.serve(async (req) => {
       };
     });
 
-    // 8. Assemble report
+    // 8. Gap reconciliation — QB invoices whose Id has no matching quickbooks_id in Base44
+    const customerById = new Map(allCustomers.map(c => [c.Id, c]));
+    const qbInvoicesMissingInBase44 = allInvoices
+      .filter(inv => !localQBIds.has(String(inv.Id)))
+      .map(inv => {
+        const cust = customerById.get(inv.CustomerRef?.value);
+        return {
+          qb_invoice_id: inv.Id,
+          DocNumber: inv.DocNumber || null,
+          customer_display_name: cust?.DisplayName || null,
+          customer_email: cust?.PrimaryEmailAddr?.Address || null,
+          TxnDate: inv.TxnDate || null,
+          TotalAmt: inv.TotalAmt || 0
+        };
+      });
+    const missingTotalAmt = qbInvoicesMissingInBase44.reduce((sum, inv) => sum + (inv.TotalAmt || 0), 0);
+
+    // 9. Assemble report
     return Response.json({
       read_only: true,
       token: {
@@ -173,6 +194,14 @@ Deno.serve(async (req) => {
         note: 'This is the dollar value quickbooksSync silently skips at line 500 (if (!email) continue;). These customers exist in QB with invoices but are never imported because they have no PrimaryEmailAddr.'
       },
       match_check: matchCheck,
+      gap_reconciliation: {
+        qb_invoice_count: allInvoices.length,
+        base44_invoice_count: localInvoices.length,
+        base44_invoices_with_quickbooks_id: localQBIds.size,
+        missing_from_base44_count: qbInvoicesMissingInBase44.length,
+        missing_from_base44_total_amount: missingTotalAmt,
+        missing_invoices: qbInvoicesMissingInBase44
+      },
       truncation: {
         customers_returned_exactly_1000: customersTruncated,
         invoices_returned_exactly_1000: invoicesTruncated,
