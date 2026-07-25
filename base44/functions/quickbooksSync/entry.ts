@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { getOrgDomain, deriveCompanyFromEmail } from '../../shared/emailDomain.ts';
 
 const QB_API_URL = 'https://quickbooks.api.intuit.com/v3/company';
 
@@ -546,12 +547,19 @@ Deno.serve(async (req) => {
 
           const totalInvoiceValue = customerInvoices.reduce((sum, inv) => sum + (inv.TotalAmt || 0), 0);
           const invoiceCount = customerInvoices.length;
-          const existingClient = localClients.find(c => c.email?.toLowerCase() === email.toLowerCase());
+          // Domain-based matching: org emails match by email_domain (the organization
+          // identity key); free-mail/internal emails fall back to exact email match.
+          // This keeps multiple contacts at the same company linked to one Client record.
+          const orgDomain = getOrgDomain(email);
+          const existingClient = orgDomain
+            ? localClients.find(c => (c.email_domain || '').toLowerCase() === orgDomain)
+            : localClients.find(c => (c.email || '').toLowerCase() === email.toLowerCase());
 
           const clientData = {
             name: qbCustomer.DisplayName || `${qbCustomer.GivenName || ''} ${qbCustomer.FamilyName || ''}`.trim() || email,
             email,
-            company: qbCustomer.CompanyName || '',
+            email_domain: orgDomain || undefined,
+            company: qbCustomer.CompanyName || deriveCompanyFromEmail(email) || '',
             phone: qbCustomer.PrimaryPhone?.FreeFormNumber || '',
             company_address: qbCustomer.BillAddr ?
               `${qbCustomer.BillAddr.Line1 || ''} ${qbCustomer.BillAddr.City || ''} ${qbCustomer.BillAddr.CountrySubDivisionCode || ''} ${qbCustomer.BillAddr.PostalCode || ''}`.trim() : '',
