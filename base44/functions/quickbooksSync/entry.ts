@@ -490,6 +490,11 @@ Deno.serve(async (req) => {
         { headers: { 'Authorization': `Bearer ${accessToken}`, 'Accept': 'application/json' } }
       );
 
+      if (!invoiceResponse.ok) {
+        const errorText = await invoiceResponse.text();
+        throw new Error(`Failed to fetch invoices from QuickBooks: ${errorText}`);
+      }
+
       const invoiceResult = await invoiceResponse.json();
       const qbInvoices = invoiceResult.QueryResponse?.Invoice || [];
       const syncResults = [];
