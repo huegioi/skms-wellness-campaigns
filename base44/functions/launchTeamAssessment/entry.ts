@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
+const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') || 'https://app.skillfulmeans.life').replace(/\/+$/, '');
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -18,8 +20,7 @@ Deno.serve(async (req) => {
     }
 
     const journey = journeys[0];
-    const appUrl = new URL(req.url).origin;
-    const surveyUrl = `${appUrl}/MfsJourneySurvey?token=${journey.survey_token}`;
+    const surveyUrl = `${APP_BASE_URL}/MfsJourneySurvey?token=${journey.survey_token}`;
 
     // Set status to team_launched (only if still quick_done)
     if (journey.status === 'quick_done') {

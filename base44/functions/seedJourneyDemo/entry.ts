@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
+const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') || 'https://app.skillfulmeans.life').replace(/\/+$/, '');
+
 const DEMO_TAG = 'Demo';
 const DEMO_EMAIL = 'demo-journey@skillfulmeans.life';
 
@@ -176,7 +178,6 @@ Deno.serve(async (req) => {
     if (!user || user.role !== 'admin') {
       return Response.json({ error: 'Unauthorized — admin only' }, { status: 403 });
     }
-    const origin = new URL(req.url).origin;
     const now = new Date().toISOString();
     const year = new Date().getFullYear();
 
@@ -277,9 +278,9 @@ Deno.serve(async (req) => {
     // ── Return three demo URLs ──
     return Response.json({
       success: true,
-      dashboard_link: `${origin}/FitnessRoi/dashboard?k=${magicKey}`,
-      launch_link: `${origin}/FitnessRoi/launch?k=${magicKey}`,
-      survey_link: `${origin}/MfsJourneySurvey?token=${surveyToken}`,
+      dashboard_link: `${APP_BASE_URL}/FitnessRoi/dashboard?k=${magicKey}`,
+      launch_link: `${APP_BASE_URL}/FitnessRoi/launch?k=${magicKey}`,
+      survey_link: `${APP_BASE_URL}/MfsJourneySurvey?token=${surveyToken}`,
       magic_key: magicKey,
       survey_token: surveyToken,
       client_id: client.id,

@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
+const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') || 'https://app.skillfulmeans.life').replace(/\/+$/, '');
+
 async function sendSendGrid(to, subject, html) {
   const apiKey = Deno.env.get('SENDGRID_API_KEY');
   if (!apiKey) { console.error('SENDGRID_API_KEY not set'); return false; }
@@ -69,10 +71,9 @@ Deno.serve(async (req) => {
     }
     const responseCount = sids.size;
 
-    const appUrl = new URL(req.url).origin;
-    const surveyUrl = `${appUrl}/MfsJourneySurvey?token=${journey.survey_token}`;
-    const dashboardUrl = `${appUrl}/FitnessRoi/dashboard?k=${journey.magic_key}`;
-    const unsubLink = `${appUrl}/Unsubscribe?email=${encodeURIComponent(organizerEmail)}`;
+    const surveyUrl = `${APP_BASE_URL}/MfsJourneySurvey?token=${journey.survey_token}`;
+    const dashboardUrl = `${APP_BASE_URL}/FitnessRoi/dashboard?k=${journey.magic_key}`;
+    const unsubLink = `${APP_BASE_URL}/Unsubscribe?email=${encodeURIComponent(organizerEmail)}`;
     const companyName = journey.company_name || 'your team';
 
     const subject = `Your Mental Fitness Journey — ${responseCount} response${responseCount !== 1 ? 's' : ''} so far`;

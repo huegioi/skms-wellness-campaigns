@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
+const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') || 'https://app.skillfulmeans.life').replace(/\/+$/, '');
+
 // ── Inlined ROI model (from src/lib/roiModel.js) ──
 const STAGES = [
   { num: 1, name: 'Foundation', engagement: 0.25, workshops: 2, challenges: 1, leq: false, groupCoaching: false, indivCoaching: false, consultant: false, consultantFree: false, incentiveStage: 1 },
@@ -264,7 +266,7 @@ Deno.serve(async (req) => {
 
       if (teamEmails.length > 0) {
         const subject = `${companyName} team dashboard is live — composite ${compositeScore}, top domain ${topDomain}, projected annual savings $${annualSavings.toLocaleString()}`;
-        const dashboardUrl = `${new URL(req.url).origin}/FitnessRoi/dashboard?k=${j.magic_key}`;
+        const dashboardUrl = `${APP_BASE_URL}/FitnessRoi/dashboard?k=${j.magic_key}`;
         const html = `<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px;">
 <h2 style="color:#0f766e;">${companyName} team dashboard is live</h2>
 <p style="color:#444;font-size:14px;line-height:1.6;">The team survey has reached 5+ responses and the dashboard is unlocked.</p>

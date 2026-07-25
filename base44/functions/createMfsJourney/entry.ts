@@ -1,5 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
+const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') || 'https://app.skillfulmeans.life').replace(/\/+$/, '');
+
 // ── Inlined ROI model (backend functions can't import from src/lib) ──
 
 const QUICK_MAP = [10, 25, 50, 75, 90];
@@ -174,7 +176,6 @@ Deno.serve(async (req) => {
 
     const avgSalaryNum = Number(avg_salary) || 65000;
     const turnoverRateNum = Number(turnover_rate) || 0.18;
-    const appUrl = new URL(req.url).origin;
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
@@ -294,7 +295,7 @@ Deno.serve(async (req) => {
 
     // a) Prospect magic-link email
     if (!isSuppressed) {
-      const dashboardUrl = `${appUrl}/FitnessRoi/dashboard?k=${magicKey}`;
+      const dashboardUrl = `${APP_BASE_URL}/FitnessRoi/dashboard?k=${magicKey}`;
       const prospectHtml = `<!DOCTYPE html><html><body style="font-family:Inter,Arial,sans-serif;max-width:480px;margin:0 auto;padding:20px;">
 <h2 style="color:#4a2040;">Your Mental Fitness Score + ROI projection</h2>
 <p style="color:#444;font-size:14px;line-height:1.6;">Thanks for completing the quick assessment, ${escapeHtml(contact_name)}. Your private dashboard is ready — your score, your ROI projection, and the path forward.</p>
