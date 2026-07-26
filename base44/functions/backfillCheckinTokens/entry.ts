@@ -23,7 +23,13 @@ Deno.serve(async (req) => {
     );
 
     let updated = 0;
+    let tokensSkipped = 0;
     for (const event of needsToken) {
+      if (event.assessment_timing === 'none') {
+        console.log(`[backfillCheckinTokens] Skipping token backfill — assessment_timing is 'none': ${event.id} "${event.title}"`);
+        tokensSkipped++;
+        continue;
+      }
       const token = crypto.randomUUID();
       await base44.asServiceRole.entities.CalendarEvent.update(event.id, { checkin_token: token });
       updated++;
@@ -32,6 +38,7 @@ Deno.serve(async (req) => {
     return Response.json({
       success: true,
       updated,
+      tokensSkipped,
       scanned: events.length,
       eligible: needsToken.length,
     });
