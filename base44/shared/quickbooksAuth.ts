@@ -77,4 +77,57 @@ export async function getAccessToken(client) {
   return { accessToken: data.access_token, tokenRotated: rotated };
 }
 
+// ── Customer lookup result ──────────────────────────────────────────
+// Distinguishes "not found" (search succeeded, zero matches) from
+// "error" (search itself failed — non-2xx, network error, thrown exception).
+// Callers must check .status and throw/abort on 'error' rather than
+// falling through to customer creation.
+export interface QBCustomerLookupResult {
+  status: 'found' | 'not_found' | 'error';
+  customerId?: string;
+  error?: string;
+  httpStatus?: number;
+}
+
+export async function findQBCustomer(
+  accessToken: string,
+  realmId: string,
+  email: string
+): Promise<QBCustomerLookupResult> {
+  try {
+    const query = `SELECT * FROM Customer WHERE PrimaryEmailAddr = '${email}'`;
+    const response = await fetch(
+      `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(query)}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json'
+        }
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return {
+        status: 'error',
+        error: `QB customer search failed (HTTP ${response.status}): ${errorText.substring(0, 300)}`,
+        httpStatus: response.status
+      };
+    }
+
+    const result = await response.json();
+    const customerId = result.QueryResponse?.Customer?.[0]?.Id;
+
+    if (customerId) {
+      return { status: 'found', customerId };
+    }
+    return { status: 'not_found' };
+  } catch (err) {
+    return {
+      status: 'error',
+      error: `QB customer search threw: ${err.message}`
+    };
+  }
+}
+
 export { QB_API_URL };

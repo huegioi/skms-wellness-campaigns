@@ -160,7 +160,11 @@
     },
     "quickbooks_item_id": {
       "type": "string",
-      "description": "QuickBooks item/product ID for invoice line item syncing"
+      "description": "QuickBooks item/product ID for invoice line item syncing. When set, invoice lines for this Service route to this Item; when unset, the category-level default from QB_CATEGORY_ITEM_DEFAULTS is used."
+    },
+    "qb_item_name": {
+      "type": "string",
+      "description": "Human-readable QuickBooks Item name for display in the admin UI only. Never used for matching or API calls \u2014 matching uses quickbooks_item_id."
     }
   },
   "required": [

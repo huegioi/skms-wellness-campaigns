@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 import { getOrgDomain, deriveCompanyFromEmail, buildClientDomainIndex } from '../../shared/emailDomain.ts';
+import { findQBCustomer } from '../../shared/quickbooksAuth.ts';
 
 const QB_API_URL = 'https://quickbooks.api.intuit.com/v3/company';
 
@@ -143,23 +144,8 @@ async function createQBCustomer(accessToken, realmId, clientData) {
   return result.Customer.Id;
 }
 
-async function findQBCustomer(accessToken, realmId, email) {
-  const query = `SELECT * FROM Customer WHERE PrimaryEmailAddr = '${email}'`;
-  const response = await fetch(
-    `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(query)}`,
-    {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Accept': 'application/json'
-      }
-    }
-  );
-
-  if (!response.ok) return null;
-
-  const result = await response.json();
-  return result.QueryResponse?.Customer?.[0]?.Id || null;
-}
+// findQBCustomer moved to shared/quickbooksAuth.ts — returns { status, customerId, error }
+// Callers must check .status === 'error' and abort rather than creating a customer.
 
 async function createQBInvoice(accessToken, realmId, invoiceData, customerId) {
   const qbInvoice = {
@@ -286,7 +272,11 @@ Deno.serve(async (req) => {
         return Response.json({ error: 'Invoice must have at least one line item' }, { status: 400 });
       }
 
-      let customerId = await findQBCustomer(accessToken, realmId, invoiceData.client_email);
+      const lookup = await findQBCustomer(accessToken, realmId, invoiceData.client_email);
+      if (lookup.status === 'error') {
+        return Response.json({ error: `Customer search failed: ${lookup.error}` }, { status: 502 });
+      }
+      let customerId = lookup.customerId;
       if (!customerId) {
         customerId = await createQBCustomer(accessToken, realmId, invoiceData);
       }
