@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
+import { isExcludedDomain } from '@/lib/emailDomain';
 
 const DEFAULT_TIERS = [
   { label: 'Introducing Partner', min_revenue: 0, max_revenue: 74999, rate: 0.10 },
@@ -17,6 +18,8 @@ const DEFAULT_TIERS = [
 const EMPTY_FORM = {
   name: '',
   company: '',
+  email_domain: '',
+  email_domain_aliases: '',
   notes: '',
   commission_tiers: DEFAULT_TIERS,
   brokerage_commission_enabled: true,
@@ -24,17 +27,43 @@ const EMPTY_FORM = {
   broker_split: 0.5,
 };
 
-export default function BrokerageDialog({ open, onOpenChange, editing, onSaved }) {
+// Normalize a domain string: lowercase, trim, strip leading @ or https://
+function normalizeDomain(raw) {
+  let d = (raw || '').toLowerCase().trim();
+  if (d.startsWith('@')) d = d.slice(1);
+  d = d.replace(/^https?:\/\//, '');
+  d = d.replace(/\/$/, '');
+  return d;
+}
+
+// Parse comma-separated aliases into a normalized array
+function parseAliases(raw) {
+  return (raw || '')
+    .split(',')
+    .map(s => normalizeDomain(s))
+    .filter(d => d.length > 0);
+}
+
+export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, defaultEmailDomain }) {
   const qc = useQueryClient();
   const { toast } = useToast();
   const [form, setForm] = useState(EMPTY_FORM);
+  const [domainErrors, setDomainErrors] = useState([]);
+
+  const { data: existingBrokerages = [] } = useQuery({
+    queryKey: ['brokerages'],
+    queryFn: () => base44.entities.Brokerage.list('name', 500),
+  });
 
   useEffect(() => {
     if (open) {
+      setDomainErrors([]);
       if (editing) {
         setForm({
           name: editing.name || '',
           company: editing.company || '',
+          email_domain: editing.email_domain || '',
+          email_domain_aliases: (editing.email_domain_aliases || []).join(', '),
           notes: editing.notes || '',
           commission_tiers: editing.commission_tiers || DEFAULT_TIERS,
           brokerage_commission_enabled: editing.brokerage_commission_enabled !== false,
@@ -42,10 +71,10 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved }
           broker_split: editing.broker_split ?? 0.5,
         });
       } else {
-        setForm(EMPTY_FORM);
+        setForm({ ...EMPTY_FORM, email_domain: defaultEmailDomain || '' });
       }
     }
-  }, [editing, open]);
+  }, [editing, open, defaultEmailDomain]);
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
@@ -62,6 +91,55 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved }
       onSaved?.(saved);
     },
   });
+
+  const validateDomains = () => {
+    const errors = [];
+    const normalizedDomain = normalizeDomain(form.email_domain);
+    const normalizedAliases = parseAliases(form.email_domain_aliases);
+
+    // Reject free-mail in primary
+    if (normalizedDomain && isExcludedDomain(normalizedDomain)) {
+      errors.push(`${normalizedDomain} is a personal email provider, not a firm domain.`);
+    }
+
+    // Reject free-mail in aliases
+    for (const alias of normalizedAliases) {
+      if (isExcludedDomain(alias)) {
+        errors.push(`${alias} is a personal email provider, not a firm domain.`);
+      }
+    }
+
+    // Reject domains already claimed by another brokerage
+    const allDomains = [...(normalizedDomain ? [normalizedDomain] : []), ...normalizedAliases];
+    for (const d of allDomains) {
+      const claimer = existingBrokerages.find(b => {
+        if (editing && b.id === editing.id) return false;
+        const primary = (b.email_domain || '').toLowerCase().trim();
+        const aliases = (b.email_domain_aliases || []).map(a => String(a).toLowerCase().trim());
+        return primary === d || aliases.includes(d);
+      });
+      if (claimer) {
+        errors.push(`Domain ${d} is already claimed by ${claimer.name}.`);
+      }
+    }
+
+    return errors;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const errors = validateDomains();
+    if (errors.length > 0) {
+      setDomainErrors(errors);
+      return;
+    }
+    setDomainErrors([]);
+    saveMutation.mutate({
+      ...form,
+      email_domain: normalizeDomain(form.email_domain),
+      email_domain_aliases: parseAliases(form.email_domain_aliases),
+    });
+  };
 
   const updateTier = (i, field, value) => {
     const tiers = [...form.commission_tiers];
@@ -86,7 +164,7 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved }
         <DialogHeader>
           <DialogTitle>{editing ? 'Edit Brokerage' : 'Add Brokerage'}</DialogTitle>
         </DialogHeader>
-        <form onSubmit={e => { e.preventDefault(); saveMutation.mutate(form); }} className="space-y-5 mt-2">
+        <form onSubmit={handleSubmit} className="space-y-5 mt-2">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-sm font-medium text-gray-700 block mb-1">Name *</label>
@@ -97,6 +175,31 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved }
               <Input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} placeholder="Legal entity name" />
             </div>
           </div>
+
+          {/* Email domain + aliases */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Email domain</label>
+              <Input value={form.email_domain} onChange={e => setForm(f => ({ ...f, email_domain: e.target.value }))} placeholder="e.g. burnsemployeebenefits.com" />
+              <p className="text-xs text-gray-400 mt-1">The firm's mail domain — this is how brokers are matched to this firm.</p>
+              {!normalizeDomain(form.email_domain) && (
+                <p className="text-xs text-amber-600 mt-1">No domain set — this firm won't be matched to any broker automatically.</p>
+              )}
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Domain aliases</label>
+              <Input value={form.email_domain_aliases} onChange={e => setForm(f => ({ ...f, email_domain_aliases: e.target.value }))} placeholder="e.g. oldfirm.com, legacy-brand.com" />
+              <p className="text-xs text-gray-400 mt-1">Other domains this firm owns, e.g. after an acquisition.</p>
+            </div>
+          </div>
+
+          {domainErrors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-1">
+              {domainErrors.map((err, i) => (
+                <p key={i} className="text-xs text-red-700 font-medium">{err}</p>
+              ))}
+            </div>
+          )}
 
           <div>
             <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>

@@ -136,6 +136,7 @@ export default function BrokeragePicker({ value, onChange, contactEmail, disable
         open={showBrokerageDialog}
         onOpenChange={setShowBrokerageDialog}
         onSaved={handleBrokerageSaved}
+        defaultEmailDomain={getOrgDomain(contactEmail)}
       />
     </div>
   );
