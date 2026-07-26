@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
     let hasMore = true;
     let skip = 0;
     while (hasMore) {
-      const batch = await base44.asServiceRole.entities.Lead.list('-created_date', 500, skip);
+      const batch = await base44.asServiceRole.entities.Lead.filter({ is_archived: { $ne: true } }, '-created_date', 500, skip);
       for (const lead of batch) {
         if (Array.isArray(lead.tags)) {
           for (const tag of lead.tags) {

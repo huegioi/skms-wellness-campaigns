@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
   let allLeads = [];
   let skip = 0;
   while (true) {
-    const batch = await base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' }, '-created_date', 200, skip);
+    const batch = await base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead', is_archived: { $ne: true } }, '-created_date', 200, skip);
     if (!batch || batch.length === 0) break;
     allLeads = allLeads.concat(batch);
     if (batch.length < 200) break;

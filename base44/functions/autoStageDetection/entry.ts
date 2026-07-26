@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     }
 
     // ── Partners (broker_leads) ───────────────────────────────────────────────
-    const allPartners = await base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' });
+    const allPartners = await base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead', is_archived: { $ne: true } });
 
     let partners_stalled = 0;
     let partners_needing_checkin = 0;

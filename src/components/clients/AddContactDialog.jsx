@@ -45,7 +45,7 @@ export default function AddContactDialog({ open, onOpenChange, client, onUpdate 
 
   const { data: allLeads = [] } = useQuery({
     queryKey: ['brokerLeads'],
-    queryFn: () => base44.entities.Lead.filter({ lead_type: 'broker_lead' }, 'name'),
+    queryFn: () => base44.entities.Lead.filter({ lead_type: 'broker_lead', is_archived: { $ne: true } }, 'name'),
     enabled: open
   });
 

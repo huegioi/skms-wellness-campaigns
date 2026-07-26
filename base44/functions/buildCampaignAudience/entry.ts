@@ -24,12 +24,12 @@ Deno.serve(async (req) => {
     if (campaign.audience_type === 'client') {
       allRecords = (await base44.entities.Client.list('-created_date', 500)).map(r => ({ ...r, _recordType: 'client' }));
     } else if (campaign.audience_type === 'lead') {
-      allRecords = (await base44.entities.Lead.list('-created_date', 500)).map(r => ({ ...r, _recordType: 'lead' }));
+      allRecords = (await base44.entities.Lead.filter({ is_archived: { $ne: true } }, '-created_date', 500)).map(r => ({ ...r, _recordType: 'lead' }));
     } else if (campaign.audience_type === 'referral_partner') {
       allRecords = (await base44.entities.ReferralPartner.list('-created_date', 500)).map(r => ({ ...r, _recordType: 'referral_partner' }));
     } else if (campaign.audience_type === 'partner') {
       const [leads, partners] = await Promise.all([
-        base44.entities.Lead.list('-created_date', 500),
+        base44.entities.Lead.filter({ is_archived: { $ne: true } }, '-created_date', 500),
         base44.entities.ReferralPartner.list('-created_date', 500),
       ]);
       // ReferralPartner first so dedup-by-email prefers it over Lead

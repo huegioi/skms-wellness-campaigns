@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
 
     // Fetch all broker_lead Leads and all ReferralPartners
     const [leads, partners] = await Promise.all([
-      base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' }),
+      base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead', is_archived: { $ne: true } }),
       base44.asServiceRole.entities.ReferralPartner.list(),
     ]);
 

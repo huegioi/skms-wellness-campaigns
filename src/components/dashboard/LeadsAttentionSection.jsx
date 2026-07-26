@@ -43,7 +43,7 @@ export default function LeadsAttentionSection() {
 
   const { data: rawLeads = [] } = useQuery({
     queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list('-created_date', 500)
+    queryFn: () => base44.entities.Lead.filter({ is_archived: { $ne: true } }, '-created_date', 500)
   });
 
   const { data: interactions = [] } = useQuery({

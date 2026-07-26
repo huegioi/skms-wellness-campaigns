@@ -64,8 +64,8 @@ Deno.serve(async (req) => {
     );
 
     // 4. Load all Lead records — broker + broker_lead types, paginated
-    const brokers = await base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker' }, '-created_date', 1000);
-    const brokerLeads = await base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' }, '-created_date', 1000);
+    const brokers = await base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker', is_archived: { $ne: true } }, '-created_date', 1000);
+    const brokerLeads = await base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead', is_archived: { $ne: true } }, '-created_date', 1000);
     const allLeads = [...brokers, ...brokerLeads];
 
     // 5. Filter: skip if no email, deleted, already has sheet_row_id, or email already in sheet

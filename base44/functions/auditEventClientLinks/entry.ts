@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.Client.list('-created_date', 2000),
       base44.asServiceRole.entities.ReferralPartner.list('-created_date', 2000),
       base44.asServiceRole.entities.Brokerage.list('-created_date', 500),
-      base44.asServiceRole.entities.Lead.list('-created_date', 2000),
+      base44.asServiceRole.entities.Lead.filter({ is_archived: { $ne: true } }, '-created_date', 2000),
       base44.asServiceRole.entities.Proposal.list('-created_date', 2000),
       base44.asServiceRole.entities.Invoice.list('-created_date', 2000),
     ]);

@@ -287,7 +287,7 @@ export default function Leads() {
 
   const { data: allLeads = [], isLoading } = useQuery({
     queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list('-created_date'),
+    queryFn: () => base44.entities.Lead.filter({ is_archived: { $ne: true } }, '-created_date'),
     staleTime: 30_000,
     refetchOnWindowFocus: true,
     refetchInterval: brokerViewMode === 'pipeline' ? 60_000 : false,

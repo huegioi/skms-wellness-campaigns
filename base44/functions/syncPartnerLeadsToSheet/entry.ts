@@ -73,8 +73,8 @@ Deno.serve(async (req) => {
     const lastCol = String.fromCharCode(65 + numCols - 1);
 
     // 4. Gather all records — broker leads + referral partners, deduped by email
-    const brokerLeads = await base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker' }, '-created_date', 1000);
-    const brokerLeadLeads = await base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead' }, '-created_date', 1000);
+    const brokerLeads = await base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker', is_archived: { $ne: true } }, '-created_date', 1000);
+    const brokerLeadLeads = await base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead', is_archived: { $ne: true } }, '-created_date', 1000);
     const partners = await base44.asServiceRole.entities.ReferralPartner.list('-created_date', 1000);
 
     const deduped = new Map(); // lowercase email -> row data

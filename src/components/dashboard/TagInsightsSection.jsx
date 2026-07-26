@@ -16,7 +16,7 @@ export default function TagInsightsSection() {
 
   const { data: rawLeads = [], isLoading: leadsLoading } = useQuery({
     queryKey: ['leads'],
-    queryFn: () => base44.entities.Lead.list('-created_date', 500),
+    queryFn: () => base44.entities.Lead.filter({ is_archived: { $ne: true } }, '-created_date', 500),
   });
   const { data: rawClients = [], isLoading: clientsLoading } = useQuery({
     queryKey: ['clients'],

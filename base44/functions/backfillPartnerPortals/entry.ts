@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
 
   // ── 3. Walk active_partner Leads — upsert ReferralPartner ───────────────
   const activeLeads = await base44.asServiceRole.entities.Lead.filter(
-    { partner_status: 'active_partner', lead_type: 'broker_lead' },
+    { partner_status: 'active_partner', lead_type: 'broker_lead', is_archived: { $ne: true } },
     '-created_date',
     500
   );

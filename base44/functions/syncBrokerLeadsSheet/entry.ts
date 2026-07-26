@@ -214,7 +214,7 @@ Deno.serve(async (req) => {
 
       // 7. Backfill: read all leads and build email → status label map
       const allLeads = await base44.asServiceRole.entities.Lead.filter(
-        { lead_type: 'broker_lead' }, '-created_date', 1000
+        { lead_type: 'broker_lead', is_archived: { $ne: true } }, '-created_date', 1000
       );
       const statusLabelByEmail = {};
       for (const lead of allLeads) {
@@ -893,7 +893,7 @@ Deno.serve(async (req) => {
     // ── 3. Load ALL broker_lead records regardless of sheet_origin ────────────
     // Matching by email so a tab rename doesn't cause duplicate creation.
     const existingLeads = await base44.asServiceRole.entities.Lead.filter(
-      { lead_type: 'broker_lead' }, '-created_date', 1000
+      { lead_type: 'broker_lead', is_archived: { $ne: true } }, '-created_date', 1000
     );
     const byEmail = {};
     for (const lead of existingLeads) {

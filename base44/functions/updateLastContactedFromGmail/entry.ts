@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
 
     // Load all three record types
     const [leads, clients, referralPartners] = await Promise.all([
-      base44.asServiceRole.entities.Lead.list(),
+      base44.asServiceRole.entities.Lead.filter({ is_archived: { $ne: true } }),
       base44.asServiceRole.entities.Client.list(),
       base44.asServiceRole.entities.ReferralPartner.list(),
     ]);

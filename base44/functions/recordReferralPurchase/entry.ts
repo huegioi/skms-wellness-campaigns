@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
     // Best-effort: mark the partner's broker lead as active_partner
     if (partner?.email) {
       try {
-        const matchingLeads = await base44.asServiceRole.entities.Lead.filter({ email: partner.email });
+        const matchingLeads = await base44.asServiceRole.entities.Lead.filter({ email: partner.email, is_archived: { $ne: true } });
         if (matchingLeads.length > 0) {
           await base44.asServiceRole.entities.Lead.update(matchingLeads[0].id, { partner_status: 'active_partner' });
         }

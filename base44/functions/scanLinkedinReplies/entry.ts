@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
 
     // Load all entities once for matching
     const [leads, clients, partners] = await Promise.all([
-      base44.asServiceRole.entities.Lead.filter({ is_demo: false }, '-created_date', 500),
+      base44.asServiceRole.entities.Lead.filter({ is_demo: false, is_archived: { $ne: true } }, '-created_date', 500),
       base44.asServiceRole.entities.Client.filter({ is_demo: false }, '-created_date', 500),
       base44.asServiceRole.entities.ReferralPartner.filter({ is_demo: false }, '-created_date', 500),
     ]);

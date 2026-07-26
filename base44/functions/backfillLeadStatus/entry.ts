@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
     if (!isTeamMember(user)) return Response.json({ error: 'Team only' }, { status: 403 });
 
-    const leads = await base44.asServiceRole.entities.Lead.list();
+    const leads = await base44.asServiceRole.entities.Lead.filter({ is_archived: { $ne: true } });
 
     // ── Part 1: Migrate responded → in_conversation ──────────────────────────
     let statusMigrated = 0;

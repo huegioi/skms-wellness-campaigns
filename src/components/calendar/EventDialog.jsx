@@ -37,7 +37,7 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
   // Fetch leads for the contact picker (clients are passed as a prop)
   const { data: leads = [] } = useQuery({
     queryKey: ['leads-for-event'],
-    queryFn: () => base44.entities.Lead.list('name', 500)
+    queryFn: () => base44.entities.Lead.filter({ is_archived: { $ne: true } }, 'name', 500)
   });
 
   // Fetch existing events for the selected client + service (for smart assessment default)

@@ -22,7 +22,7 @@ async function fetchAttention() {
   try {
     const [inquiries, events, overdueClients] = await Promise.all([
       base44.entities.Lead.filter(
-        { lead_type: 'company_inquiry', status: 'cold', is_demo: false },
+        { lead_type: 'company_inquiry', status: 'cold', is_demo: false, is_archived: { $ne: true } },
         '-created_date',
         50
       ),

@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
     const dataRows = rows.slice(1); // skip header
 
     // ── 2. Load existing leads from DB (filtered by sheet origin) ────────────
-    const existingLeads = await base44.asServiceRole.entities.Lead.filter({ sheet_origin: SHEET_NAME }, '-created_date', 500);
+    const existingLeads = await base44.asServiceRole.entities.Lead.filter({ sheet_origin: SHEET_NAME, is_archived: { $ne: true } }, '-created_date', 500);
     const byEmail = {};
     const byRowId = {};
     for (const lead of existingLeads) {

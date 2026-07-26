@@ -8,7 +8,7 @@ import { parseQuickBuilderGoals, parseWellnessBoxesPreference, timeSince, isNewQ
 export default function NewInquiriesCard() {
   const { data: rawLeads = [] } = useQuery({
     queryKey: ['leads', 'company_inquiry'],
-    queryFn: () => base44.entities.Lead.filter({ lead_type: 'company_inquiry' }, '-created_date'),
+    queryFn: () => base44.entities.Lead.filter({ lead_type: 'company_inquiry', is_archived: { $ne: true } }, '-created_date'),
     staleTime: 60_000,
   });
 

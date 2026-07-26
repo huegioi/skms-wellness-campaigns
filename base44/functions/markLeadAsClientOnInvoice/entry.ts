@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     }
 
     // Find matching lead by email
-    const leads = await base44.asServiceRole.entities.Lead.list();
+    const leads = await base44.asServiceRole.entities.Lead.filter({ is_archived: { $ne: true } });
     const matchingLead = leads.find(l => l.email?.toLowerCase() === email);
 
     if (!matchingLead) {

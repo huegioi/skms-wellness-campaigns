@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
 
     // ── Rate limit: reject if same email submitted in the past hour ──
     const recentLeads = await base44.asServiceRole.entities.Lead.filter(
-      { email: normalizedEmail },
+      { email: normalizedEmail, is_archived: { $ne: true } },
       '-created_date',
       1
     );

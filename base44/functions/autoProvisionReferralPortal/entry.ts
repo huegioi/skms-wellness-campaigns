@@ -47,6 +47,7 @@ Deno.serve(async (req) => {
   const matchingLeads = await base44.asServiceRole.entities.Lead.filter({
     email: partner.email,
     lead_type: 'broker_lead',
+    is_archived: { $ne: true },
   });
   for (const lead of matchingLeads) {
     if (lead.partner_status !== 'active_partner') {

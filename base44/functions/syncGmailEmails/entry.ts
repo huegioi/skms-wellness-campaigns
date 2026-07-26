@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
     if (lastContactDate) {
       const emailDateStr = new Date(lastContactDate).toISOString().split('T')[0];
       try {
-        const leads = await base44.asServiceRole.entities.Lead.filter({ email: clientEmail });
+        const leads = await base44.asServiceRole.entities.Lead.filter({ email: clientEmail, is_archived: { $ne: true } });
         if (leads.length > 0) {
           const lead = leads[0];
           const existing = lead.last_contacted_date;

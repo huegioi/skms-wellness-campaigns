@@ -61,7 +61,7 @@ Deno.serve(async (req) => {
     // Load clients, leads, existing CalendarEvents, and interactions with a calendar link
     const [clients, leads, calEvents, recentInteractions] = await Promise.all([
       base44.asServiceRole.entities.Client.list(),
-      base44.asServiceRole.entities.Lead.list(),
+      base44.asServiceRole.entities.Lead.filter({ is_archived: { $ne: true } }),
       base44.asServiceRole.entities.CalendarEvent.list('-start_date', 500),
       base44.asServiceRole.entities.ClientInteraction.list('-date', 500),
     ]);

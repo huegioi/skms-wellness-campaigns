@@ -140,7 +140,7 @@ export default function ReferralPartnerAdmin() {
         try {
           const emailKey = (data.email || '').toLowerCase();
           // Check if a matching broker Lead already exists for this email
-          const allLeads = await base44.entities.Lead.filter({ lead_type: 'broker_lead' }, '-created_date', 500);
+          const allLeads = await base44.entities.Lead.filter({ lead_type: 'broker_lead', is_archived: { $ne: true } }, '-created_date', 500);
           let matchedLead = allLeads.find(l => l.email?.toLowerCase() === emailKey);
 
           if (!matchedLead) {

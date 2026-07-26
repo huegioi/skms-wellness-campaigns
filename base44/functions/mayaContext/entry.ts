@@ -649,9 +649,9 @@ async function buildGlobalContext(base44) {
   const [services, allClients, allLeads, allPartners, qbInquiryLeads] = await Promise.all([
     safeList(base44, 'Service', 'sort_order', 200),
     safeList(base44, 'Client'),
-    safeFilter(base44, 'Lead', { lead_type: 'broker_lead' }),
+    safeFilter(base44, 'Lead', { lead_type: 'broker_lead', is_archived: { $ne: true } }),
     safeFilter(base44, 'ReferralPartner', { is_active: true }),
-    safeFilter(base44, 'Lead', { lead_type: 'company_inquiry' }),
+    safeFilter(base44, 'Lead', { lead_type: 'company_inquiry', is_archived: { $ne: true } }),
   ]);
 
   const clients = allClients.filter(c => !c.is_demo && !c.is_assessment_lead);
