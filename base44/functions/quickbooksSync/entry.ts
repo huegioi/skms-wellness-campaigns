@@ -336,8 +336,10 @@ Deno.serve(async (req) => {
         }
       } else if (new Date(qbInvoice.DueDate) < new Date()) {
         status = 'overdue';
-      } else {
+      } else if (qbInvoice.EmailStatus === 'EmailSent') {
         status = 'sent';
+      } else {
+        status = 'created_in_quickbooks';
       }
 
       await base44.asServiceRole.entities.Invoice.update(invoiceId, {
@@ -385,8 +387,10 @@ Deno.serve(async (req) => {
             }
           } else if (new Date(qbInvoice.DueDate) < new Date()) {
             status = 'overdue';
-          } else {
+          } else if (qbInvoice.EmailStatus === 'EmailSent') {
             status = 'sent';
+          } else {
+            status = 'created_in_quickbooks';
           }
 
           await base44.asServiceRole.entities.Invoice.update(invoice.id, {
@@ -428,7 +432,7 @@ Deno.serve(async (req) => {
 
       const enrichedInvoices = qbInvoices.map(qbInv => {
         const localMatch = localInvoices.find(l => l.quickbooks_id === qbInv.Id);
-        let status = 'sent';
+        let status = qbInv.EmailStatus === 'EmailSent' ? 'sent' : 'created_in_quickbooks';
         if (qbInv.Balance === 0) status = 'paid';
         else if (new Date(qbInv.DueDate) < new Date()) status = 'overdue';
 
@@ -540,7 +544,7 @@ Deno.serve(async (req) => {
                 amount: line.Amount || 0
               }));
 
-            let status = 'sent';
+            let status = qbInv.EmailStatus === 'EmailSent' ? 'sent' : 'created_in_quickbooks';
             if (qbInv.Balance === 0) status = 'paid';
             else if (new Date(qbInv.DueDate) < new Date()) status = 'overdue';
 

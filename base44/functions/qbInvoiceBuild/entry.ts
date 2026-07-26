@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { getAccessToken, getRealmId, findQBCustomer, QB_API_URL } from '../../shared/quickbooksAuth.ts';
 import { QB_CATEGORY_ITEM_DEFAULTS, QB_SALES_ITEM_ID } from '../../shared/quickbooksItems.ts';
 import { BOX_DISPLAY_NAMES, BOX_KEY_TO_SERVICE_NAME, WELLNESS_BOX_FALLBACK_PRICES } from '../../shared/wellnessBoxes.ts';
+import { isExcludedDomain } from '../../shared/emailDomain.ts';
 
 // ── Dry-run invoice builder ─────────────────────────────────────────
 // Takes a proposal_id and returns the exact JSON body that would be POSTed
@@ -69,10 +70,10 @@ Deno.serve(async (req) => {
     let customerLookup = await findQBCustomer(accessToken, realmId, clientEmail);
     let matchStrategy = 'exact_email';
 
-    // Step 2: email domain
+    // Step 2: email domain (skip for free-mail providers — they identify a person, not an org)
     if (customerLookup.status === 'not_found') {
       const domain = clientEmail.split('@')[1];
-      if (domain) {
+      if (domain && !isExcludedDomain(domain)) {
         const domainQuery = `SELECT Id, DisplayName, PrimaryEmailAddr FROM Customer WHERE PrimaryEmailAddr LIKE '%@${domain}' MAXRESULTS 50`;
         const domainResp = await fetch(
           `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(domainQuery)}`,
@@ -88,6 +89,8 @@ Deno.serve(async (req) => {
             matchStrategy = 'domain_ambiguous';
           }
         }
+      } else {
+        matchStrategy = 'domain_skipped_freemail';
       }
     }
 
@@ -141,6 +144,7 @@ Deno.serve(async (req) => {
     const lines: any[] = [];
     const lineAnalysis: any[] = [];
     const warnings: string[] = [];
+    const blockingErrors: any[] = [];
 
     // Helper: resolve ItemRef for a Service
     function resolveItemRef(serviceId: string) {
@@ -185,6 +189,10 @@ Deno.serve(async (req) => {
       const { price, source } = resolveServicePrice(id, 'workshopsData');
       const itemRef = resolveItemRef(id);
       const svc = serviceMap.get(id);
+      if (itemRef.source === 'no_item') {
+        blockingErrors.push({ type: 'workshop', service_id: id, name: svc?.name, category: svc?.category, reason: 'No QuickBooks Item — Service has no quickbooks_item_id and no category default' });
+        continue;
+      }
       lines.push({
         DetailType: 'SalesItemLineDetail',
         Amount: price,
@@ -212,6 +220,10 @@ Deno.serve(async (req) => {
       }
       const itemRef = resolveItemRef(id);
       const svc = serviceMap.get(id);
+      if (itemRef.source === 'no_item') {
+        blockingErrors.push({ type: 'challenge', service_id: id, name: svc?.name, category: svc?.category, reason: 'No QuickBooks Item — Service has no quickbooks_item_id and no category default' });
+        continue;
+      }
       const qty = s.challengeParticipants || s.participantCount || 1;
       lines.push({
         DetailType: 'SalesItemLineDetail',
@@ -231,6 +243,10 @@ Deno.serve(async (req) => {
       const { price, source } = resolveServicePrice(id, 'leadershipData');
       const itemRef = resolveItemRef(id);
       const svc = serviceMap.get(id);
+      if (itemRef.source === 'no_item') {
+        blockingErrors.push({ type: 'leadership', service_id: id, name: svc?.name, category: svc?.category, reason: 'No QuickBooks Item — Service has no quickbooks_item_id and no category default' });
+        continue;
+      }
       lines.push({
         DetailType: 'SalesItemLineDetail',
         Amount: price,
@@ -249,6 +265,10 @@ Deno.serve(async (req) => {
       const { price, source } = resolveServicePrice(id, 'movementClassesData');
       const itemRef = resolveItemRef(id);
       const svc = serviceMap.get(id);
+      if (itemRef.source === 'no_item') {
+        blockingErrors.push({ type: 'class', service_id: id, name: svc?.name, category: svc?.category, reason: 'No QuickBooks Item — Service has no quickbooks_item_id and no category default' });
+        continue;
+      }
       const qty = (s.movementClassSessions && s.movementClassSessions[id]) || 1;
       lines.push({
         DetailType: 'SalesItemLineDetail',
@@ -268,36 +288,40 @@ Deno.serve(async (req) => {
     const boxSnapshot = s.sampleBoxPrices || {};
     for (const [key, qty] of Object.entries(boxQtys)) {
       if (!qty) continue;
+      const boxSvcName = BOX_KEY_TO_SERVICE_NAME[key];
+      const boxSvc = allServices.find(svc => svc.category === 'wellness_box' && svc.name === boxSvcName);
       let price: number, source: string;
       // 1. sampleBoxPrices snapshot
       if (boxSnapshot[key] != null) {
         price = boxSnapshot[key]; source = 'sample_box_prices';
+      } else if (boxSvc && boxSvc.price > 0) {
+        warnings.push(`Box "${BOX_DISPLAY_NAMES[key] || key}" used live Service price ($${boxSvc.price}) — no snapshot found.`);
+        price = boxSvc.price; source = 'live_service_price';
       } else {
-        // 2. Live Service price
-        const boxSvcName = BOX_KEY_TO_SERVICE_NAME[key];
-        const boxSvc = allServices.find(svc => svc.category === 'wellness_box' && svc.name === boxSvcName);
-        if (boxSvc && boxSvc.price > 0) {
-          warnings.push(`Box "${BOX_DISPLAY_NAMES[key] || key}" used live Service price ($${boxSvc.price}) — no snapshot found.`);
-          price = boxSvc.price; source = 'live_service_price';
-        } else {
-          // 3. Fallback constant
-          price = WELLNESS_BOX_FALLBACK_PRICES[key] || 0;
-          source = 'fallback_constant';
-          warnings.push(`Box "${BOX_DISPLAY_NAMES[key] || key}" used fallback constant ($${price}) — no Service record or snapshot.`);
-        }
+        price = WELLNESS_BOX_FALLBACK_PRICES[key] || 0;
+        source = 'fallback_constant';
+        warnings.push(`Box "${BOX_DISPLAY_NAMES[key] || key}" used fallback constant ($${price}) — no Service record or snapshot.`);
       }
       const displayName = BOX_DISPLAY_NAMES[key] || key;
+      // Resolve box ItemRef: box Service's quickbooks_item_id → category default
+      const boxItemRef = boxSvc?.quickbooks_item_id
+        ? { value: boxSvc.quickbooks_item_id, source: 'service_level', itemName: boxSvc.qb_item_name || boxSvc.name }
+        : { value: QB_CATEGORY_ITEM_DEFAULTS.wellness_box.itemId, source: 'category_default', itemName: QB_CATEGORY_ITEM_DEFAULTS.wellness_box.itemName };
+      if (!boxItemRef.value) {
+        blockingErrors.push({ type: 'wellness_box', box_key: key, name: displayName, category: 'wellness_box', reason: 'No QuickBooks Item — no Service quickbooks_item_id and no category default' });
+        continue;
+      }
       lines.push({
         DetailType: 'SalesItemLineDetail',
         Amount: price * qty,
         Description: displayName,
         SalesItemLineDetail: {
-          ItemRef: { value: QB_CATEGORY_ITEM_DEFAULTS.wellness_box.itemId },
+          ItemRef: { value: boxItemRef.value },
           Qty: qty,
           UnitPrice: price,
         },
       });
-      lineAnalysis.push({ type: 'wellness_box', box_key: key, name: displayName, item_source: 'category_default', item_name: QB_CATEGORY_ITEM_DEFAULTS.wellness_box.itemName, price_source: source, price, qty });
+      lineAnalysis.push({ type: 'wellness_box', box_key: key, name: displayName, item_source: boxItemRef.source, item_name: boxItemRef.itemName, price_source: source, price, qty });
     }
 
     // ── Custom wellness box ──
@@ -333,6 +357,17 @@ Deno.serve(async (req) => {
         },
       });
       lineAnalysis.push({ type: 'custom_charge', name: label, item_source: 'generic_sales', item_name: 'Sales', price_source: 'custom_charge', price: amount, qty: 1 });
+    }
+
+    // ── Blocking errors: any line with no Item makes the body invalid ──
+    if (blockingErrors.length > 0) {
+      return Response.json({
+        dry_run: true,
+        blocked: 'missing_item_refs',
+        blocking_errors: blockingErrors,
+        message: 'Cannot build invoice — one or more lines have no QuickBooks Item.',
+        customer_resolution: customerResolution,
+      }, { status: 422 });
     }
 
     // ── Assemble invoice body ──
