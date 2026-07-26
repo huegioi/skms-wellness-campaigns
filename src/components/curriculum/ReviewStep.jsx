@@ -7,6 +7,7 @@ import { base44 } from '@/api/base44Client';
 import { getOrgDomain } from '@/lib/emailDomain';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { resolveBoxPrices, WELLNESS_BOX_PRICES } from '@/lib/wellnessBoxes';
 
 function CartItem({ removed, name, price, qty, total, itemKey, note, noteExpanded, image, onQtyChange, onNoteChange, onToggleNote, onRemove, onRestore }) {
   return (
@@ -62,6 +63,9 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
     if (fromCatalog) return { name: fromCatalog.name, price: fromCatalog.price, description: fromCatalog.description || '' };
     return null;
   };
+
+  // Resolve box prices from live Service records, fall back to shared constants
+  const boxPriceMap = resolveBoxPrices(allServices).prices;
   const navigate = useNavigate();
   const [showMessage, setShowMessage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -100,31 +104,26 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
   const calculateTotal = () => {
     let total = 0;
     (selections.workshops || []).filter(k => !removedItems.has(`w_${k}`)).forEach(key => {
-      total += (getServiceById(key, 'workshops')?.price || 0) * getQty(`w_${key}`);
+      const snap = (selections.workshopsData || []).find(x => x.id === key);
+      const price = (snap && snap.price > 0) ? snap.price : (getServiceById(key, 'workshops')?.price || 0);
+      total += price * getQty(`w_${key}`);
     });
     (selections.challengePrograms || []).filter(k => !removedItems.has(`c_${k}`)).forEach(key => {
       total += challengePrice * getQty(`c_${key}`);
     });
     (selections.leadership || []).filter(k => !removedItems.has(`l_${k}`)).forEach(key => {
-      total += (getServiceById(key, 'leadership')?.price || 0) * getQty(`l_${key}`);
+      const snap = (selections.leadershipData || []).find(x => x.id === key);
+      const price = (snap && snap.price > 0) ? snap.price : (getServiceById(key, 'leadership')?.price || 0);
+      total += price * getQty(`l_${key}`);
     });
     (selections.movementClasses || []).filter(k => !removedItems.has(`m_${k}`)).forEach(key => {
-      total += (getServiceById(key, 'movementClasses')?.price || 0) * getQty(`m_${key}`);
+      const snap = (selections.movementClassesData || []).find(x => x.id === key);
+      const price = (snap && snap.price > 0) ? snap.price : (getServiceById(key, 'movementClasses')?.price || 0);
+      total += price * getQty(`m_${key}`);
     });
 
-    const boxPrices = {
-      reduceStress: 60,
-      largeEmotional: 100,
-      relaxationSleep: 60,
-      largeStressReduction: 120,
-      stressReductionDigital: 50,
-      beyondBurnoutDigital: 100,
-      emotionalWellness: 100,
-      wintertimeHealthy: 100,
-      newYearFreshStart: 100,
-    };
     Object.entries(sampleBoxQuantities).forEach(([id, qty]) => {
-      total += (qty || 0) * (boxPrices[id] || 65);
+      total += (qty || 0) * (boxPriceMap[id] || WELLNESS_BOX_PRICES[id] || 0);
     });
 
     if (selections.customBoxQuantity > 0 && customBoxItems.length > 0) {
@@ -464,7 +463,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
             ${sampleBoxQuantities.reduceStress > 0 ? `
               <div class="item">
                 <div class="item-title">Reduce Stress Box (${sampleBoxQuantities.reduceStress} boxes)</div>
-                <div class="item-price">${sampleBoxQuantities.reduceStress} × $60 = $${(sampleBoxQuantities.reduceStress * 60).toLocaleString()}</div>
+                <div class="item-price">${sampleBoxQuantities.reduceStress} × $${boxPriceMap.reduceStress ?? WELLNESS_BOX_PRICES.reduceStress} = $${(sampleBoxQuantities.reduceStress * (boxPriceMap.reduceStress ?? WELLNESS_BOX_PRICES.reduceStress)).toLocaleString()}</div>
                 <div class="item-description">
                   <strong>Includes:</strong>
                   <ul>
@@ -480,7 +479,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
             ${sampleBoxQuantities.relaxationSleep > 0 ? `
               <div class="item">
                 <div class="item-title">Relaxation & Sleep Box (${sampleBoxQuantities.relaxationSleep} boxes)</div>
-                <div class="item-price">${sampleBoxQuantities.relaxationSleep} × $60 = $${(sampleBoxQuantities.relaxationSleep * 60).toLocaleString()}</div>
+                <div class="item-price">${sampleBoxQuantities.relaxationSleep} × $${boxPriceMap.relaxationSleep ?? WELLNESS_BOX_PRICES.relaxationSleep} = $${(sampleBoxQuantities.relaxationSleep * (boxPriceMap.relaxationSleep ?? WELLNESS_BOX_PRICES.relaxationSleep)).toLocaleString()}</div>
                 <div class="item-description">
                   <strong>Includes:</strong>
                   <ul>
@@ -496,7 +495,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
             ${sampleBoxQuantities.largeEmotional > 0 ? `
               <div class="item">
                 <div class="item-title">Large Emotional Wellness Box (${sampleBoxQuantities.largeEmotional} boxes)</div>
-                <div class="item-price">${sampleBoxQuantities.largeEmotional} × $100 = $${(sampleBoxQuantities.largeEmotional * 100).toLocaleString()}</div>
+                <div class="item-price">${sampleBoxQuantities.largeEmotional} × $${boxPriceMap.largeEmotional ?? WELLNESS_BOX_PRICES.largeEmotional} = $${(sampleBoxQuantities.largeEmotional * (boxPriceMap.largeEmotional ?? WELLNESS_BOX_PRICES.largeEmotional)).toLocaleString()}</div>
                 <div class="item-description">
                   <strong>Includes:</strong>
                   <ul>
@@ -514,7 +513,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
             ${sampleBoxQuantities.largeStressReduction > 0 ? `
               <div class="item">
                 <div class="item-title">Large Stress Reduction Box (${sampleBoxQuantities.largeStressReduction} boxes)</div>
-                <div class="item-price">${sampleBoxQuantities.largeStressReduction} × $120 = $${(sampleBoxQuantities.largeStressReduction * 120).toLocaleString()}</div>
+                <div class="item-price">${sampleBoxQuantities.largeStressReduction} × $${boxPriceMap.largeStressReduction ?? WELLNESS_BOX_PRICES.largeStressReduction} = $${(sampleBoxQuantities.largeStressReduction * (boxPriceMap.largeStressReduction ?? WELLNESS_BOX_PRICES.largeStressReduction)).toLocaleString()}</div>
                 <div class="item-description">
                   <strong>Includes:</strong>
                   <ul>
@@ -1057,16 +1056,16 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
         {Object.values(sampleBoxQuantities).some(q => (q || 0) > 0) || (selections.customBoxQuantity > 0 && customBoxItems.length > 0) ? (
         <div className="review-section">
               <div className="review-section-title">Wellness Boxes</div>
-              {[ 
-                { id: 'reduceStress', label: 'Reduce Stress Box', price: 60 },
-                { id: 'largeEmotional', label: 'Large Emotional Wellness Box', price: 100 },
-                { id: 'relaxationSleep', label: 'Relaxation & Sleep Box', price: 60 },
-                { id: 'largeStressReduction', label: 'Large Stress Reduction Box', price: 120 },
-                { id: 'stressReductionDigital', label: 'Stress Reduction Digital Box', price: 50 },
-                { id: 'beyondBurnoutDigital', label: 'Beyond Burnout Digital Box', price: 100 },
-                { id: 'emotionalWellness', label: 'Emotional Wellness Box', price: 100 },
-                { id: 'wintertimeHealthy', label: 'Wintertime Stay Healthy Box', price: 100 },
-                { id: 'newYearFreshStart', label: 'New Year Fresh Start Box', price: 100 },
+              {[
+                { id: 'reduceStress', label: 'Reduce Stress Box', price: boxPriceMap.reduceStress ?? WELLNESS_BOX_PRICES.reduceStress },
+                { id: 'largeEmotional', label: 'Large Emotional Wellness Box', price: boxPriceMap.largeEmotional ?? WELLNESS_BOX_PRICES.largeEmotional },
+                { id: 'relaxationSleep', label: 'Relaxation & Sleep Box', price: boxPriceMap.relaxationSleep ?? WELLNESS_BOX_PRICES.relaxationSleep },
+                { id: 'largeStressReduction', label: 'Large Stress Reduction Box', price: boxPriceMap.largeStressReduction ?? WELLNESS_BOX_PRICES.largeStressReduction },
+                { id: 'stressReductionDigital', label: 'Stress Reduction Digital Box', price: boxPriceMap.stressReductionDigital ?? WELLNESS_BOX_PRICES.stressReductionDigital },
+                { id: 'beyondBurnoutDigital', label: 'Beyond Burnout Digital Box', price: boxPriceMap.beyondBurnoutDigital ?? WELLNESS_BOX_PRICES.beyondBurnoutDigital },
+                { id: 'emotionalWellness', label: 'Emotional Wellness Box', price: boxPriceMap.emotionalWellness ?? WELLNESS_BOX_PRICES.emotionalWellness },
+                { id: 'wintertimeHealthy', label: 'Wintertime Stay Healthy Box', price: boxPriceMap.wintertimeHealthy ?? WELLNESS_BOX_PRICES.wintertimeHealthy },
+                { id: 'newYearFreshStart', label: 'New Year Fresh Start Box', price: boxPriceMap.newYearFreshStart ?? WELLNESS_BOX_PRICES.newYearFreshStart },
               ].filter(b => (sampleBoxQuantities[b.id] || 0) > 0).map(b => (
                 <div key={b.id} className="mb-2 p-2 bg-white rounded-lg border border-gray-100">
                   <div className="flex items-center gap-2">

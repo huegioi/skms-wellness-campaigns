@@ -12,6 +12,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
 import { findMatchedStage, formatStageLabel } from '@/components/quickbuilder/stagePricing';
+import { WELLNESS_BOX_PRICES, BOX_KEY_TO_SERVICE_NAME, resolveBoxPrices } from '@/lib/wellnessBoxes';
 import { markTaskComplete, createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -83,6 +84,7 @@ export default function EditProposal() {
         narrative_summary: proposal.narrative_summary || ''
       });
       setSelections({
+        ...(proposal.selections || {}),
         workshops: proposal.selections?.workshops || [],
         challengePrograms: proposal.selections?.challengePrograms || [],
         leadership: proposal.selections?.leadership || [],
@@ -150,9 +152,16 @@ export default function EditProposal() {
     return map;
   }, [services]);
 
-  // Get price for a service: check overrides first, then challengePrice for challenges, then entity price
+  // Get price for a service: overrides → *Data snapshot → challengePrice → live Service.price → 0
+  // Snapshot-first so a proposal quoted months ago keeps its original prices.
   const getPrice = (serviceId) => {
     if (priceOverrides[serviceId] !== undefined) return priceOverrides[serviceId];
+    // Snapshot from the proposal's *Data arrays (preserved across saves)
+    const snapshotEntry =
+      (selections.workshopsData || []).find(x => x.id === serviceId) ||
+      (selections.leadershipData || []).find(x => x.id === serviceId) ||
+      (selections.movementClassesData || []).find(x => x.id === serviceId);
+    if (snapshotEntry && snapshotEntry.price > 0) return snapshotEntry.price;
     const service = services.find(s => s.id === serviceId);
     if (service?.category === 'challenge') return challengePrice;
     return service?.price || 0;
@@ -210,7 +219,7 @@ export default function EditProposal() {
     selections.movementClasses.forEach(id => total += getPrice(id));
     
     const boxes = selections.sampleBoxQuantities;
-    const boxPrices = { reduceStress: 60, relaxationSleep: 60, largeEmotional: 100, largeStressReduction: 120, stressReductionDigital: 50, beyondBurnoutDigital: 100, emotionalWellness: 100, wintertimeHealthy: 100, newYearFreshStart: 100 };
+    const { prices: boxPrices } = resolveBoxPrices(services);
     Object.entries(boxes).forEach(([key, qty]) => { total += (qty || 0) * (boxPrices[key] || 0); });
     
     if (selections.customBoxQuantity > 0 && selections.customBoxItems?.length > 0) {
@@ -292,10 +301,10 @@ export default function EditProposal() {
       return;
     }
     saveMutation.mutate({
-      ...formData,
-      total_amount: calculateTotal(),
-      matched_stage: matchedStageLabel || undefined,
-      selections: { ...selections, priceOverrides, customCharges }
+    ...formData,
+    total_amount: calculateTotal(),
+    matched_stage: matchedStageLabel || undefined,
+    selections: { ...(proposal?.selections || {}), ...selections, priceOverrides, customCharges }
     });
   };
 
@@ -403,17 +412,12 @@ export default function EditProposal() {
 
         ${(() => {
           const boxes = selections.sampleBoxQuantities || {};
-          const bpMap = {
-            reduceStress: { name: 'Reduce Stress Box', price: 60 },
-            relaxationSleep: { name: 'Relaxation & Sleep Box', price: 60 },
-            largeEmotional: { name: 'Large Emotional Wellness Box', price: 100 },
-            largeStressReduction: { name: 'Large Stress Reduction Box', price: 120 },
-            stressReductionDigital: { name: 'Stress Reduction Digital Box', price: 50 },
-            beyondBurnoutDigital: { name: 'Beyond Burnout Digital Box', price: 100 },
-            emotionalWellness: { name: 'Emotional Wellness Box', price: 100 },
-            wintertimeHealthy: { name: 'Wintertime Stay Healthy Box', price: 100 },
-            newYearFreshStart: { name: 'New Year Fresh Start Box', price: 100 }
-          };
+          const { prices: pdfBoxPrices } = resolveBoxPrices(services);
+          const bpMap = Object.fromEntries(
+            Object.entries(BOX_KEY_TO_SERVICE_NAME).map(([key, name]) => ({
+              key, name: name.replace(' Wellness Box', ' Box').replace(' Sample Box', ' Box'), price: pdfBoxPrices[key]
+            })).map(o => [o.key, o])
+          );
           const boxRows = Object.entries(boxes).filter(([,q]) => (q || 0) > 0).map(([key, qty]) => {
             const b = bpMap[key]; if (!b) return '';
             return `<div class="item"><div class="item-title">${b.name} (${qty})</div><div class="item-price">${qty} × $${b.price} = $${(qty * b.price).toLocaleString()}</div></div>`;
