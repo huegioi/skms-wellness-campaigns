@@ -302,6 +302,7 @@ export default function Invoices() {
                 <SelectItem value="paid">Paid</SelectItem>
                 <SelectItem value="overdue">Overdue</SelectItem>
                 <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="created_in_quickbooks">In QuickBooks, not sent</SelectItem>
               </SelectContent>
             </Select>
 
@@ -391,7 +392,7 @@ export default function Invoices() {
               qbInvoices
                 .filter(inv => filterStatus === 'all' || inv.status === filterStatus)
                 .map(invoice => {
-                  const status = statusConfig[invoice.status];
+                  const status = statusConfig[invoice.status] || { label: invoice.status, color: 'bg-slate-100 text-slate-600 border-slate-300', icon: FileText };
                   const StatusIcon = status.icon;
 
                   return (
@@ -470,7 +471,7 @@ export default function Invoices() {
             </div>
           ) : (
             filteredInvoices.map(invoice => {
-              const status = statusConfig[invoice.status];
+              const status = statusConfig[invoice.status] || { label: invoice.status, color: 'bg-slate-100 text-slate-600 border-slate-300', icon: FileText };
               const StatusIcon = status.icon;
               const isSyncing = syncing === invoice.id;
 
@@ -547,7 +548,7 @@ export default function Invoices() {
                         </Button>
                       ) : null}
 
-                      {['sent', 'overdue'].includes(invoice.status) && (
+                      {['sent', 'overdue', 'created_in_quickbooks'].includes(invoice.status) && (
                         <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 whitespace-nowrap"
                           onClick={() => markPaidMutation.mutate(invoice)}>
                           <CheckCircle className="w-4 h-4 sm:mr-1" />
@@ -617,8 +618,8 @@ export default function Invoices() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Status</p>
-                    <Badge className={statusConfig[selectedInvoice.invoice.status].color}>
-                      {statusConfig[selectedInvoice.invoice.status].label}
+                    <Badge className={(statusConfig[selectedInvoice.invoice.status] || { color: 'bg-slate-100 text-slate-600 border-slate-300' }).color}>
+                      {(statusConfig[selectedInvoice.invoice.status] || { label: selectedInvoice.invoice.status }).label}
                     </Badge>
                   </div>
                 </div>

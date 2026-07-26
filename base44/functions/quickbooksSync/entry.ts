@@ -336,10 +336,10 @@ Deno.serve(async (req) => {
         }
       } else if (new Date(qbInvoice.DueDate) < new Date()) {
         status = 'overdue';
-      } else if (qbInvoice.EmailStatus === 'EmailSent') {
-        status = 'sent';
-      } else {
+      } else if (invoiceData.status === 'created_in_quickbooks' && qbInvoice.EmailStatus !== 'EmailSent') {
         status = 'created_in_quickbooks';
+      } else {
+        status = 'sent';
       }
 
       await base44.asServiceRole.entities.Invoice.update(invoiceId, {
@@ -387,10 +387,10 @@ Deno.serve(async (req) => {
             }
           } else if (new Date(qbInvoice.DueDate) < new Date()) {
             status = 'overdue';
-          } else if (qbInvoice.EmailStatus === 'EmailSent') {
-            status = 'sent';
-          } else {
+          } else if (invoice.status === 'created_in_quickbooks' && qbInvoice.EmailStatus !== 'EmailSent') {
             status = 'created_in_quickbooks';
+          } else {
+            status = 'sent';
           }
 
           await base44.asServiceRole.entities.Invoice.update(invoice.id, {
@@ -432,9 +432,10 @@ Deno.serve(async (req) => {
 
       const enrichedInvoices = qbInvoices.map(qbInv => {
         const localMatch = localInvoices.find(l => l.quickbooks_id === qbInv.Id);
-        let status = qbInv.EmailStatus === 'EmailSent' ? 'sent' : 'created_in_quickbooks';
+        let status = 'sent';
         if (qbInv.Balance === 0) status = 'paid';
         else if (new Date(qbInv.DueDate) < new Date()) status = 'overdue';
+        else if (localMatch?.status === 'created_in_quickbooks' && qbInv.EmailStatus !== 'EmailSent') status = 'created_in_quickbooks';
 
         const line_items = (qbInv.Line || [])
           .filter(line => line.DetailType === 'SalesItemLineDetail')
@@ -544,9 +545,10 @@ Deno.serve(async (req) => {
                 amount: line.Amount || 0
               }));
 
-            let status = qbInv.EmailStatus === 'EmailSent' ? 'sent' : 'created_in_quickbooks';
+            let status = 'sent';
             if (qbInv.Balance === 0) status = 'paid';
             else if (new Date(qbInv.DueDate) < new Date()) status = 'overdue';
+            else if (localInvoice?.status === 'created_in_quickbooks' && qbInv.EmailStatus !== 'EmailSent') status = 'created_in_quickbooks';
 
             const invoiceData = {
               invoice_number: qbInv.DocNumber,

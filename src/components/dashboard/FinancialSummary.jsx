@@ -24,7 +24,7 @@ export default function FinancialSummary() {
 
   // Three stat tiles: revenue, outstanding, net this month
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + (i.total_amount || 0), 0);
-  const outstanding = invoices.filter(i => ['sent', 'overdue'].includes(i.status)).reduce((s, i) => s + (i.total_amount || 0), 0);
+  const outstanding = invoices.filter(i => ['sent', 'overdue', 'created_in_quickbooks'].includes(i.status)).reduce((s, i) => s + (i.total_amount || 0), 0);
 
   const now = new Date();
   const thisMonthPaid = invoices

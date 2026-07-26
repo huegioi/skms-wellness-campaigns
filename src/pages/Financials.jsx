@@ -16,6 +16,7 @@ import FinancialInformationSection from '@/components/dashboard/FinancialInforma
 import ExpenseManager from '@/components/dashboard/ExpenseManager';
 import QuickBooksActionsPanel from '@/components/invoices/QuickBooksActionsPanel';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { INVOICE_STATUS_CONFIG as statusConfig } from '@/lib/statusConfig';
 
 const TABS = [
   { id: 'dashboard', label: 'Revenue Chart', icon: BarChart2 },
@@ -23,14 +24,6 @@ const TABS = [
   { id: 'invoices', label: 'Invoices', icon: FileText },
   { id: 'expenses', label: 'Expenses', icon: DollarSign },
 ];
-
-const statusConfig = {
-  draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
-  sent: { label: 'Sent', color: 'bg-blue-100 text-blue-700', icon: Send },
-  paid: { label: 'Paid', color: 'bg-green-100 text-green-700', icon: CheckCircle },
-  overdue: { label: 'Overdue', color: 'bg-red-100 text-red-700', icon: AlertCircle },
-  cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-500', icon: XCircle }
-};
 
 export default function Financials() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -290,6 +283,7 @@ function InvoicesPanel() {
               <SelectItem value="paid">Paid</SelectItem>
               <SelectItem value="overdue">Overdue</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="created_in_quickbooks">In QuickBooks, not sent</SelectItem>
             </SelectContent>
           </Select>
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -408,7 +402,7 @@ function InvoicesPanel() {
                           Send to QuickBooks
                         </Button>
                       ) : null}
-                      {['sent', 'overdue'].includes(invoice.status) && (
+                      {['sent', 'overdue', 'created_in_quickbooks'].includes(invoice.status) && (
                         <Button size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 whitespace-nowrap"
                           onClick={() => markPaidMutation.mutate(invoice)}>
                           <CheckCircle className="w-4 h-4 mr-1" /> Mark Paid

@@ -47,10 +47,10 @@ export default function FinancialInformationSection() {
 
     const totalInvoiced = periodInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
     const totalPaid = invoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
-    const outstanding = invoices.filter(inv => ['sent', 'overdue'].includes(inv.status)).reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
+    const outstanding = invoices.filter(inv => ['sent', 'overdue', 'created_in_quickbooks'].includes(inv.status)).reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
     
     const dueSoon = invoices.filter(inv => {
-      if (inv.status !== 'sent') return false;
+      if (!['sent', 'created_in_quickbooks'].includes(inv.status)) return false;
       const dueDate = new Date(inv.due_date);
       const daysUntilDue = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
       return daysUntilDue <= 7 && daysUntilDue >= 0;

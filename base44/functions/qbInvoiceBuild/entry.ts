@@ -215,7 +215,7 @@ Deno.serve(async (req) => {
       } else if (challengePrice > 0) {
         price = challengePrice; source = 'challenge_price_field';
       } else {
-        const result = resolveServicePrice(id, 'challengeData');
+        const result = resolveServicePrice(id, 'challengeProgramsData');
         price = result.price; source = result.source;
       }
       const itemRef = resolveItemRef(id);
@@ -224,7 +224,10 @@ Deno.serve(async (req) => {
         blockingErrors.push({ type: 'challenge', service_id: id, name: svc?.name, category: svc?.category, reason: 'No QuickBooks Item — Service has no quickbooks_item_id and no category default' });
         continue;
       }
-      const qty = s.challengeParticipants || s.participantCount || 1;
+      // challengePrice is a flat per-challenge amount, not a per-head rate.
+      // Verified against proposal 6a6679ba: $6,000 = 2 × $3,000 (challengePrice).
+      // No participant-count field exists in any proposal selections.
+      const qty = 1;
       lines.push({
         DetailType: 'SalesItemLineDetail',
         Amount: price * qty,
@@ -269,7 +272,8 @@ Deno.serve(async (req) => {
         blockingErrors.push({ type: 'class', service_id: id, name: svc?.name, category: svc?.category, reason: 'No QuickBooks Item — Service has no quickbooks_item_id and no category default' });
         continue;
       }
-      const qty = (s.movementClassSessions && s.movementClassSessions[id]) || 1;
+      // No session-count field exists in any proposal — classes are priced per session.
+      const qty = 1;
       lines.push({
         DetailType: 'SalesItemLineDetail',
         Amount: price * qty,

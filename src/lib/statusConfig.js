@@ -70,6 +70,7 @@ export const INVOICE_STATUS_CONFIG = {
   overdue:   { label: 'Overdue',   color: 'bg-red-100 text-red-700',     icon: AlertCircle,  chart: '#ef4444' },
   draft:     { label: 'Draft',     color: 'bg-gray-100 text-gray-700',   icon: Clock,        chart: '#a0aec0' },
   cancelled: { label: 'Cancelled', color: 'bg-gray-100 text-gray-500',   icon: XCircle,      chart: '#cbd5e1' },
+  created_in_quickbooks: { label: 'In QuickBooks, not sent', color: 'bg-amber-100 text-amber-800 border-amber-300', icon: Clock, chart: '#f59e0b' },
 };
 
 export const INVOICE_STATUSES = Object.keys(INVOICE_STATUS_CONFIG);
