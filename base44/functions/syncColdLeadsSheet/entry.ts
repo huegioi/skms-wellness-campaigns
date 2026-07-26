@@ -142,7 +142,7 @@ Deno.serve(async (req) => {
     const dataRows = rows.slice(1); // skip header
 
     // ── 2. Load existing leads from DB (filtered by sheet origin) ────────────
-    const existingLeads = await base44.asServiceRole.entities.Lead.filter({ sheet_origin: SHEET_NAME, is_archived: { $ne: true } }, '-created_date', 500);
+    const existingLeads = await base44.asServiceRole.entities.Lead.filter({ sheet_origin: SHEET_NAME }, '-created_date', 500);
     const byEmail = {};
     const byRowId = {};
     for (const lead of existingLeads) {
@@ -179,6 +179,7 @@ Deno.serve(async (req) => {
       const existing = existingByRow || existingByEmail;
 
       if (existing) {
+        if (existing.is_archived) continue;
         const appStatusRank = Object.keys(APP_STATUS_TO_SHEET).indexOf(existing.status);
         const sheetStatusRank = Object.keys(APP_STATUS_TO_SHEET).indexOf(lead.status);
         const updates = {
@@ -230,7 +231,7 @@ Deno.serve(async (req) => {
       }
 
       // Append app-only leads to sheet
-      const appOnlyLeads = existingLeads.filter(l => !l.sheet_row_id && (!l.sheet_origin || l.sheet_origin === SHEET_NAME));
+      const appOnlyLeads = existingLeads.filter(l => !l.is_archived && !l.sheet_row_id && (!l.sheet_origin || l.sheet_origin === SHEET_NAME));
       const appendRows = appOnlyLeads.map(l => leadToSheetRow(l));
 
       if (appendRows.length > 0) {

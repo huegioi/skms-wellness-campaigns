@@ -893,7 +893,7 @@ Deno.serve(async (req) => {
     // ── 3. Load ALL broker_lead records regardless of sheet_origin ────────────
     // Matching by email so a tab rename doesn't cause duplicate creation.
     const existingLeads = await base44.asServiceRole.entities.Lead.filter(
-      { lead_type: 'broker_lead', is_archived: { $ne: true } }, '-created_date', 1000
+      { lead_type: 'broker_lead' }, '-created_date', 1000
     );
     const byEmail = {};
     for (const lead of existingLeads) {
@@ -944,6 +944,7 @@ Deno.serve(async (req) => {
       const existing = byEmail[emailKey];
 
       if (existing) {
+        if (existing.is_archived) continue;
         const normalizedAppStatus = normalizeStatus(existing.status);
         const appRank = APP_STATUS_RANK.indexOf(normalizedAppStatus);
         const sheetRank = APP_STATUS_RANK.indexOf(lead.status);
