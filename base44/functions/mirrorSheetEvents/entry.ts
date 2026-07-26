@@ -384,9 +384,19 @@ Deno.serve(async (req) => {
     }
 
     // ── Backfill checkin tokens for any upcoming events still missing them ──
+    // Skip events with assessment_timing === 'none' — a token there marks an
+    // attendee present with no survey (attendance-only with no survey is never
+    // intentional). Events with null/unset timing still get a token (normal
+    // state for a workshop before timing is computed).
     let tokensBackfilled = 0;
+    let tokensSkipped = 0;
     for (const ev of existingEvents) {
       if (!ev.is_demo && !ev.checkin_token && ev.start_date && new Date(ev.start_date) >= now) {
+        if (ev.assessment_timing === 'none') {
+          console.log(`[mirrorSheetEvents] Skipping token backfill — assessment_timing is 'none': ${ev.id} "${ev.title}"`);
+          tokensSkipped++;
+          continue;
+        }
         await base44.asServiceRole.entities.CalendarEvent.update(ev.id, { checkin_token: crypto.randomUUID() });
         tokensBackfilled++;
       }
