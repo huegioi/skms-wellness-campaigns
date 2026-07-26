@@ -31,6 +31,7 @@ export interface NormalizedLine {
   serviceName?: string;         // for error reporting / analysis
   lineType?: string;            // for analysis (workshop, challenge, wellness_box, etc.)
   priceSource?: string;         // for analysis (price_override, proposal_snapshot, etc.)
+  confidence?: string;          // 'explicit' | 'service_ref' | 'exact' | 'guess' | 'category_default'
 }
 
 export interface InvoiceBodyOptions {
@@ -115,6 +116,7 @@ export function buildInvoiceBody(opts: InvoiceBodyOptions): InvoiceBodyResult {
       item_source: itemRef.source,
       item_name: itemRef.itemName,
       price_source: line.priceSource || 'unknown',
+      confidence: line.confidence || null,
       price: line.unitPrice,
       qty: line.quantity,
       amount,
@@ -186,6 +188,7 @@ export function linesFromProposal(
       serviceName: svc?.name,
       lineType: 'workshop',
       priceSource: source,
+      confidence: 'service_ref',
     });
   }
 
@@ -213,6 +216,7 @@ export function linesFromProposal(
       serviceName: svc?.name,
       lineType: 'challenge',
       priceSource: source,
+      confidence: 'service_ref',
     });
   }
 
@@ -229,6 +233,7 @@ export function linesFromProposal(
       serviceName: svc?.name,
       lineType: 'leadership',
       priceSource: source,
+      confidence: 'service_ref',
     });
   }
 
@@ -247,6 +252,7 @@ export function linesFromProposal(
       serviceName: svc?.name,
       lineType: 'class',
       priceSource: source,
+      confidence: 'service_ref',
     });
   }
 
@@ -279,6 +285,7 @@ export function linesFromProposal(
       serviceName: displayName,
       lineType: 'wellness_box',
       priceSource: source,
+      confidence: boxSvc ? 'service_ref' : 'category_default',
     });
   }
 
@@ -296,6 +303,7 @@ export function linesFromProposal(
       serviceName: 'Custom Wellness Box',
       lineType: 'custom_wellness_box',
       priceSource: 'custom_box_items',
+      confidence: 'category_default',
     });
   }
 
@@ -312,6 +320,7 @@ export function linesFromProposal(
       serviceName: label,
       lineType: 'custom_charge',
       priceSource: 'custom_charge',
+      confidence: 'explicit',
     });
   }
 
@@ -333,32 +342,53 @@ export function linesFromInvoice(
     const unitPrice = item.rate || 0;
     const amount = item.amount || (quantity * unitPrice);
 
-    // Try to match by description to a Service for Item resolution.
-    // 1. Exact name match
-    // 2. Substring match (Service name contained in description)
+    // Item resolution preference:
+    // 1. quickbooks_item_id on the line itself (explicit)
+    // 2. service_id on the line (direct reference from handleProposalChange)
+    // 3. Exact Service-name match
+    // 4. Substring guess (longest match wins)
+    // 5. Falls through to blocking error in the builder
     let serviceId: string | undefined;
     let serviceName: string | undefined;
     let category: string | undefined;
+    let confidence: string | undefined;
 
-    if (!item.quickbooks_item_id) {
+    if (item.quickbooks_item_id) {
+      confidence = 'explicit';
+    } else if (item.service_id) {
+      const svc = allServices.find(s => s.id === item.service_id);
+      if (svc) {
+        serviceId = svc.id;
+        serviceName = svc.name;
+        category = svc.category;
+        confidence = 'service_ref';
+      }
+    }
+
+    if (!serviceId && !item.quickbooks_item_id) {
       const descLower = description.toLowerCase();
       // Exact match first
       let matched = allServices.find(svc => svc.name && svc.name.toLowerCase() === descLower);
-      // Substring match: longest matching Service name wins (most specific)
-      if (!matched) {
+      if (matched) {
+        serviceId = matched.id;
+        serviceName = matched.name;
+        category = matched.category;
+        confidence = 'exact';
+      } else {
+        // Substring match: longest matching Service name wins (most specific)
         const candidates = allServices.filter(svc =>
           svc.name && descLower.includes(svc.name.toLowerCase())
         );
         if (candidates.length > 0) {
           matched = candidates.sort((a, b) => (b.name?.length || 0) - (a.name?.length || 0))[0];
+          serviceId = matched.id;
+          serviceName = matched.name;
+          category = matched.category;
+          confidence = 'guess';
+          warnings.push(`Invoice line "${description}" matched Service "${matched.name}" by substring guess — verify this is correct.`);
+        } else {
+          warnings.push(`Invoice line "${description}" did not match any Service — Item will need manual resolution.`);
         }
-      }
-      if (matched) {
-        serviceId = matched.id;
-        serviceName = matched.name;
-        category = matched.category;
-      } else {
-        warnings.push(`Invoice line "${description}" did not match any Service — Item will need manual resolution.`);
       }
     }
 
@@ -373,6 +403,7 @@ export function linesFromInvoice(
       serviceName,
       lineType: 'invoice_line',
       priceSource: 'invoice_line_item',
+      confidence,
     });
   }
 

@@ -126,6 +126,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
             quantity: 1,
             rate: price,
             amount: price,
+            service_id: serviceId,
             proposal_item_id: itemId,
             already_invoiced: invoicedItems.includes(itemId)
           });
@@ -146,6 +147,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
             quantity: 1,
             rate: price,
             amount: price,
+            service_id: serviceId,
             proposal_item_id: itemId,
             already_invoiced: invoicedItems.includes(itemId)
           });
@@ -166,6 +168,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
             quantity: 1,
             rate: price,
             amount: price,
+            service_id: serviceId,
             proposal_item_id: itemId,
             already_invoiced: invoicedItems.includes(itemId)
           });
@@ -186,6 +189,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
             quantity: 1,
             rate: price,
             amount: price,
+            service_id: serviceId,
             proposal_item_id: itemId,
             already_invoiced: invoicedItems.includes(itemId)
           });
@@ -218,6 +222,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
             quantity: quantity,
             rate: price,
             amount: price * quantity,
+            service_id: services.find(s => s.category === 'wellness_box' && s.name === (boxNames[key] || key))?.id || null,
             proposal_item_id: itemId,
             already_invoiced: invoicedItems.includes(itemId)
           });

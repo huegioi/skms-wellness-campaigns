@@ -47,6 +47,10 @@
           "quickbooks_item_id": {
             "type": "string",
             "description": "QuickBooks product/service item ID"
+          },
+          "service_id": {
+            "type": "string",
+            "description": "Service entity ID this line was built from. Populated by InvoiceDialog when importing from a Proposal; used by linesFromInvoice for Item resolution before name matching. Null for custom charges and manually-added lines."
           }
         }
       },
