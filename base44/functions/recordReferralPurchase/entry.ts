@@ -1,34 +1,108 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// Wellness box items count at 50% when computing first-year revenue
-// (shared logic — extracted from BrokerLeadDetail's linkProposalMutation)
-function calcAdjustedRevenue(proposal) {
+// Hardcoded fallback for wellness box prices — used only if a Service record is missing or has no price
+const FALLBACK_BOX_PRICES = {
+  reduceStress: 60, relaxationSleep: 60, largeEmotional: 100,
+  largeStressReduction: 120, stressReductionDigital: 50,
+  beyondBurnoutDigital: 100, emotionalWellness: 100,
+  wintertimeHealthy: 100, newYearFreshStart: 100
+};
+
+// Maps wellness box code keys to Service record names for price lookup
+const BOX_KEY_TO_SERVICE_NAME = {
+  reduceStress: 'Reduce Stress Wellness Box',
+  relaxationSleep: 'Relaxation & Sleep Wellness Box',
+  largeEmotional: 'Large Emotional Wellness Box',
+  largeStressReduction: 'Large Stress Reduction Wellness Box',
+  stressReductionDigital: 'Stress Reduction Digital Wellness Box',
+  beyondBurnoutDigital: 'Beyond Burnout Digital Wellness Box',
+  emotionalWellness: 'Emotional Wellness Box',
+  wintertimeHealthy: 'Wintertime Stay Healthy Box',
+  newYearFreshStart: 'New Year Fresh Start Box',
+};
+
+// Wellness box items count at 50% when computing first-year revenue (deliberate policy)
+function calcAdjustedRevenue(proposal, servicePriceMap, boxServicePrices, fallbacksUsed) {
   if (!proposal) return 0;
   const s = proposal.selections || {};
   const overrides = s.priceOverrides || {};
   const customCharges = s.customCharges || [];
-  const BOX_PRICES = {
-    reduceStress: 60, relaxationSleep: 60, largeEmotional: 100,
-    largeStressReduction: 120, stressReductionDigital: 50,
-    beyondBurnoutDigital: 100, emotionalWellness: 100,
-    wintertimeHealthy: 100, newYearFreshStart: 100
-  };
+
   let nonBoxTotal = 0;
   const challengePrice = s.challengePrice || 0;
-  (s.workshops || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
-  (s.challengePrograms || []).forEach(id => nonBoxTotal += (overrides[id] ?? challengePrice));
-  (s.leadership || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
-  (s.movementClasses || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
+
+  // Workshops: priceOverrides → workshopsData.price → Service.price → 0
+  (s.workshops || []).forEach(id => {
+    let price = overrides[id];
+    if (price === undefined) {
+      const dataEntry = (s.workshopsData || []).find(x => x.id === id);
+      if (dataEntry && dataEntry.price > 0) {
+        price = dataEntry.price;
+      } else {
+        const svcPrice = servicePriceMap.get(id);
+        price = (svcPrice && svcPrice > 0) ? svcPrice : 0;
+      }
+    }
+    nonBoxTotal += price;
+  });
+
+  // Challenge programs: keep existing ?? challengePrice fallback (already works)
+  (s.challengePrograms || []).forEach(id => {
+    nonBoxTotal += (overrides[id] ?? challengePrice);
+  });
+
+  // Leadership: priceOverrides → leadershipData.price → Service.price → 0
+  (s.leadership || []).forEach(id => {
+    let price = overrides[id];
+    if (price === undefined) {
+      const dataEntry = (s.leadershipData || []).find(x => x.id === id);
+      if (dataEntry && dataEntry.price > 0) {
+        price = dataEntry.price;
+      } else {
+        const svcPrice = servicePriceMap.get(id);
+        price = (svcPrice && svcPrice > 0) ? svcPrice : 0;
+      }
+    }
+    nonBoxTotal += price;
+  });
+
+  // Movement classes: priceOverrides → movementClassesData.price → Service.price → 0
+  (s.movementClasses || []).forEach(id => {
+    let price = overrides[id];
+    if (price === undefined) {
+      const dataEntry = (s.movementClassesData || []).find(x => x.id === id);
+      if (dataEntry && dataEntry.price > 0) {
+        price = dataEntry.price;
+      } else {
+        const svcPrice = servicePriceMap.get(id);
+        price = (svcPrice && svcPrice > 0) ? svcPrice : 0;
+      }
+    }
+    nonBoxTotal += price;
+  });
+
   customCharges.forEach(c => nonBoxTotal += (c.amount || 0));
+
+  // Box prices: use Service record prices, fall back to hardcoded if missing
   let boxTotal = 0;
   const boxQtys = s.sampleBoxQuantities || {};
-  Object.entries(boxQtys).forEach(([key, qty]) => { boxTotal += (qty || 0) * (BOX_PRICES[key] || 0); });
+  Object.entries(boxQtys).forEach(([key, qty]) => {
+    if (!qty) return;
+    let price = boxServicePrices[key];
+    if (price === undefined || price === null) {
+      price = FALLBACK_BOX_PRICES[key] || 0;
+      fallbacksUsed.push({ box_key: key, reason: 'Service record missing or no price', fallback_price: price });
+    }
+    boxTotal += (qty || 0) * price;
+  });
+
   const customBoxQty = s.customBoxQuantity || 0;
   const customBoxItems = s.customBoxItems || [];
   if (customBoxQty > 0 && customBoxItems.length > 0) {
     const unitPrice = customBoxItems.reduce((sum, item) => sum + (item.price || 0), 0);
     boxTotal += customBoxQty * unitPrice;
   }
+
   const adjusted = nonBoxTotal + boxTotal * 0.5;
   return adjusted > 0 ? adjusted : proposal.total_amount || 0;
 }
@@ -55,7 +129,24 @@ Deno.serve(async (req) => {
     const proposal = await base44.asServiceRole.entities.Proposal.get(proposal_id);
     if (!proposal) return Response.json({ error: 'Proposal not found' }, { status: 404 });
 
-    const firstYearRevenue = calcAdjustedRevenue(proposal);
+    // ── Build Service price lookup maps for calcAdjustedRevenue ──
+    const allServices = await base44.asServiceRole.entities.Service.list('name', 500);
+    const servicePriceMap = new Map(allServices.map(svc => [svc.id, svc.price]));
+
+    // Build box price map from wellness_box Services matched by name
+    const boxServicePrices = {};
+    for (const [key, name] of Object.entries(BOX_KEY_TO_SERVICE_NAME)) {
+      const svc = allServices.find(svc => svc.category === 'wellness_box' && svc.name === name);
+      if (svc && typeof svc.price === 'number') {
+        boxServicePrices[key] = svc.price;
+      }
+    }
+
+    const fallbacksUsed = [];
+    const firstYearRevenue = calcAdjustedRevenue(proposal, servicePriceMap, boxServicePrices, fallbacksUsed);
+    if (fallbacksUsed.length > 0) {
+      console.warn('recordReferralPurchase: box price fallbacks used:', JSON.stringify(fallbacksUsed));
+    }
 
     // Fetch partner (with fallback for deleted records)
     let partner = null;
