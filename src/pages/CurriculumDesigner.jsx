@@ -270,7 +270,6 @@ export default function CurriculumDesigner() {
             style={{ maxWidth: '400px', width: '100%', height: 'auto' }}
           />
           <h1 className="text-2xl md:text-4xl font-bold mb-3 md:mb-4" style={{ color: '#013f7c' }}>Build Your Mental Fitness Campaign
-            Build Your Wellness Campaign
           </h1>
           <p className="text-sm md:text-lg" style={{ color: '#666' }}>
             Create a customized mental fitness program for your organization
