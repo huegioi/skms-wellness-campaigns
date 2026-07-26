@@ -77,10 +77,11 @@
         "sent",
         "paid",
         "overdue",
-        "cancelled"
+        "cancelled",
+        "created_in_quickbooks"
       ],
       "default": "draft",
-      "description": "Invoice status"
+      "description": "Invoice status. 'created_in_quickbooks' means the invoice exists in QuickBooks but has not been sent to the customer \u2014 William sends it manually from QuickBooks."
     },
     "issue_date": {
       "type": "string",
@@ -90,7 +91,7 @@
     "due_date": {
       "type": "string",
       "format": "date",
-      "description": "Payment due date"
+      "description": "Payment due date. When the invoice is created in QuickBooks, this is read back from the POST response \u2014 QuickBooks applies the customer's default terms."
     },
     "paid_date": {
       "type": "string",

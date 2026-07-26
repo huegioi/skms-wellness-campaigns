@@ -336,8 +336,13 @@ Deno.serve(async (req) => {
     }
 
     // ── Assemble invoice body ──
+    // This app creates invoices UNSENT by design — no EmailStatus, no
+    // DeliveryInfo, no SalesTermRef, no DueDate in the body. BillEmail
+    // populates the recipient field for when William sends manually.
     const invoiceBody: any = {
       CustomerRef: { value: customerLookup.customerId },
+      TxnDate: new Date().toISOString().split('T')[0],
+      BillEmail: { Address: clientEmail },
       Line: lines,
     };
 
@@ -346,9 +351,6 @@ Deno.serve(async (req) => {
     if (existingWithDocNumber?.invoice_number) {
       invoiceBody.DocNumber = existingWithDocNumber.invoice_number;
     }
-
-    // TxnDate: use today (the date the invoice would be created)
-    invoiceBody.TxnDate = new Date().toISOString().split('T')[0];
 
     // No TxnTaxDetail — tax is set by hand in QuickBooks, not by the app.
 

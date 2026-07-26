@@ -148,10 +148,20 @@ async function createQBCustomer(accessToken, realmId, clientData) {
 // Callers must check .status === 'error' and abort rather than creating a customer.
 
 async function createQBInvoice(accessToken, realmId, invoiceData, customerId) {
+  // This app creates invoices UNSENT by design.
+  // The invoice is created in QuickBooks and stops there — William sends it
+  // manually from QuickBooks. Adding a send call (POST /invoice/{id}/send)
+  // or setting EmailStatus to "NeedToSend" is a deliberate product decision,
+  // not a bug fix. Neither should be added without explicit instruction.
+  //
+  // No EmailStatus, no DeliveryInfo, no SalesTermRef, no DueDate in the body.
+  // BillEmail populates the recipient field so it's prefilled when William
+  // sends by hand — it does not trigger delivery. DueDate is read back from
+  // the POST response (QuickBooks applies the customer's default terms).
   const qbInvoice = {
     CustomerRef: { value: customerId },
     TxnDate: invoiceData.issue_date,
-    DueDate: invoiceData.due_date,
+    BillEmail: { Address: invoiceData.client_email },
     Line: invoiceData.line_items.map((item) => {
       const lineDetail = {
         DetailType: 'SalesItemLineDetail',
@@ -286,13 +296,16 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.Invoice.update(invoiceId, {
         quickbooks_id: qbInvoice.Id,
         quickbooks_sync_date: new Date().toISOString(),
-        status: 'sent'
+        status: 'created_in_quickbooks',
+        due_date: qbInvoice.DueDate || null
       });
 
       return Response.json({
         success: true,
         quickbooks_id: qbInvoice.Id,
-        invoice_number: qbInvoice.DocNumber
+        invoice_number: qbInvoice.DocNumber,
+        due_date: qbInvoice.DueDate || null,
+        message: 'Created in QuickBooks — not yet sent'
       });
     }
 
