@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 import { getOrgDomain, deriveCompanyFromEmail, buildClientDomainIndex } from '../../shared/emailDomain.ts';
 import { findQBCustomer } from '../../shared/quickbooksAuth.ts';
+import { linesFromInvoice, buildInvoiceBody } from '../../shared/quickbooksInvoiceBuilder.ts';
 
 const QB_API_URL = 'https://quickbooks.api.intuit.com/v3/company';
 
@@ -147,39 +148,13 @@ async function createQBCustomer(accessToken, realmId, clientData) {
 // findQBCustomer moved to shared/quickbooksAuth.ts — returns { status, customerId, error }
 // Callers must check .status === 'error' and abort rather than creating a customer.
 
-async function createQBInvoice(accessToken, realmId, invoiceData, customerId) {
-  // This app creates invoices UNSENT by design.
-  // The invoice is created in QuickBooks and stops there — William sends it
-  // manually from QuickBooks. Adding a send call (POST /invoice/{id}/send)
-  // or setting EmailStatus to "NeedToSend" is a deliberate product decision,
-  // not a bug fix. Neither should be added without explicit instruction.
-  //
-  // No EmailStatus, no DeliveryInfo, no SalesTermRef, no DueDate in the body.
-  // BillEmail populates the recipient field so it's prefilled when William
-  // sends by hand — it does not trigger delivery. DueDate is read back from
-  // the POST response (QuickBooks applies the customer's default terms).
-  const qbInvoice = {
-    CustomerRef: { value: customerId },
-    TxnDate: invoiceData.issue_date,
-    BillEmail: { Address: invoiceData.client_email },
-    Line: invoiceData.line_items.map((item) => {
-      const lineDetail = {
-        DetailType: 'SalesItemLineDetail',
-        Amount: item.amount,
-        Description: item.name || item.description || 'Service',
-        SalesItemLineDetail: {
-          Qty: item.quantity || 1,
-          UnitPrice: item.rate || 0
-        }
-      };
-      if (item.quickbooks_item_id) {
-        lineDetail.SalesItemLineDetail.ItemRef = { value: item.quickbooks_item_id };
-      }
-      return lineDetail;
-    }),
-    CustomerMemo: invoiceData.memo ? { value: invoiceData.memo } : undefined
-  };
-
+async function createQBInvoice(accessToken, realmId, invoiceBody) {
+  // Body is pre-built by buildInvoiceBody (shared module) — this function
+  // only POSTs it. The body is always UNSENT: no EmailStatus, no
+  // DeliveryInfo, no SalesTermRef, no DueDate. BillEmail populates the
+  // recipient field for manual dispatch — it does not trigger delivery.
+  // DueDate is read back from the POST response (QuickBooks applies the
+  // customer's default terms).
   const response = await fetch(`${QB_API_URL}/${realmId}/invoice`, {
     method: 'POST',
     headers: {
@@ -187,7 +162,7 @@ async function createQBInvoice(accessToken, realmId, invoiceData, customerId) {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     },
-    body: JSON.stringify(qbInvoice)
+    body: JSON.stringify(invoiceBody)
   });
 
   if (!response.ok) {
@@ -291,7 +266,35 @@ Deno.serve(async (req) => {
         customerId = await createQBCustomer(accessToken, realmId, invoiceData);
       }
 
-      const qbInvoice = await createQBInvoice(accessToken, realmId, invoiceData, customerId);
+      // Load services for Item resolution (same shared path as the Proposal dry-run)
+      const allServices = await base44.asServiceRole.entities.Service.list('name', 500);
+      const serviceMap = new Map(allServices.map(s => [s.id, s]));
+
+      const { lines, warnings: lineWarnings } = linesFromInvoice(invoiceData.line_items, allServices);
+
+      // Reconciliation choices for the Invoice path:
+      //   TxnDate: the Invoice's issue_date
+      //   CustomerMemo: include when present
+      //   DocNumber: only when the app already has one
+      const { body: invoiceBody, lineAnalysis, blockingErrors, warnings } = buildInvoiceBody({
+        customerId,
+        customerEmail: invoiceData.client_email,
+        txnDate: invoiceData.issue_date,
+        lines,
+        memo: invoiceData.memo,
+        docNumber: invoiceData.invoice_number,
+        serviceMap,
+      });
+
+      if (blockingErrors.length > 0) {
+        return Response.json({
+          error: 'Cannot build invoice — one or more lines have no QuickBooks Item.',
+          blocking_errors: blockingErrors,
+          line_analysis: lineAnalysis,
+        }, { status: 422 });
+      }
+
+      const qbInvoice = await createQBInvoice(accessToken, realmId, invoiceBody);
 
       await base44.asServiceRole.entities.Invoice.update(invoiceId, {
         quickbooks_id: qbInvoice.Id,
@@ -790,6 +793,46 @@ Deno.serve(async (req) => {
         success: true,
         paid_date: paidDate,
         message: 'Invoice marked as paid successfully'
+      });
+    }
+
+    if (action === 'buildFromInvoice') {
+      // Dry-run: builds the invoice body from an Invoice's line_items
+      // without POSTing to QuickBooks. Used to verify the Invoice adapter
+      // produces the same body shape as the Proposal adapter.
+      const invoice = await base44.asServiceRole.entities.Invoice.filter({ id: invoiceId });
+      if (!invoice || invoice.length === 0) {
+        return Response.json({ error: 'Invoice not found' }, { status: 404 });
+      }
+      const invoiceData = invoice[0];
+      if (!invoiceData.line_items || invoiceData.line_items.length === 0) {
+        return Response.json({ error: 'Invoice has no line items' }, { status: 400 });
+      }
+
+      const allServices = await base44.asServiceRole.entities.Service.list('name', 500);
+      const serviceMap = new Map(allServices.map(s => [s.id, s]));
+
+      const { lines, warnings: lineWarnings } = linesFromInvoice(invoiceData.line_items, allServices);
+
+      const { body: invoiceBody, lineAnalysis, blockingErrors, warnings } = buildInvoiceBody({
+        customerId: 'DRY_RUN_PLACEHOLDER',
+        customerEmail: invoiceData.client_email || 'unknown',
+        txnDate: invoiceData.issue_date || new Date().toISOString().split('T')[0],
+        lines,
+        memo: invoiceData.memo,
+        docNumber: invoiceData.invoice_number,
+        serviceMap,
+      });
+
+      return Response.json({
+        dry_run: true,
+        invoice_id: invoiceId,
+        invoice_number: invoiceData.invoice_number,
+        invoice_body: invoiceBody,
+        line_analysis: lineAnalysis,
+        blocking_errors: blockingErrors,
+        warnings: [...warnings, ...lineWarnings],
+        line_count: lines.length,
       });
     }
 
