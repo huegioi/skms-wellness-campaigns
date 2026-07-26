@@ -356,6 +356,7 @@ Deno.serve(async (req) => {
     // ── Handle removals: upcoming sheet-mirrored events whose sheet_key is gone ──
     const removed: any[] = [];
     const keptWithCheckins: any[] = [];
+    const deletionsSkipped: any[] = [];
 
     for (const ev of existingEvents) {
       if (ev.source_calendar !== 'sheet' || !ev.sheet_key) continue;
@@ -369,8 +370,21 @@ Deno.serve(async (req) => {
       const checkins = await base44.asServiceRole.entities.EventCheckin.filter({ event_id: ev.id });
 
       if (checkins.length === 0) {
-        await base44.asServiceRole.entities.CalendarEvent.delete(ev.id);
-        removed.push({ title: ev.title, date: ev.start_date, id: ev.id });
+        // Check for client/lead/presenter links — keep + flag if any exist
+        const hasLink = ev.client_id || ev.lead_id || ev.presenter || ev.presenter_id;
+        if (hasLink) {
+          const currentDesc = ev.description || '';
+          if (!currentDesc.includes('[Removed from sheet')) {
+            await base44.asServiceRole.entities.CalendarEvent.update(ev.id, {
+              description: `[Removed from sheet — client link preserved]\n${currentDesc}`
+            });
+          }
+          console.log(`[mirrorSheetEvents] Skipping deletion — linked record preserved: ${ev.id} "${ev.title}"`);
+          deletionsSkipped.push({ title: ev.title, date: ev.start_date, id: ev.id, client_id: ev.client_id, lead_id: ev.lead_id, presenter: ev.presenter });
+        } else {
+          await base44.asServiceRole.entities.CalendarEvent.delete(ev.id);
+          removed.push({ title: ev.title, date: ev.start_date, id: ev.id });
+        }
       } else {
         // Keep but flag
         const currentDesc = ev.description || '';
@@ -420,6 +434,9 @@ Deno.serve(async (req) => {
       kept_with_checkins: keptWithCheckins.length,
       kept_with_checkins_details: keptWithCheckins,
       tokens_backfilled: tokensBackfilled,
+      tokens_skipped: tokensSkipped,
+      deletions_skipped: deletionsSkipped.length,
+      deletions_skipped_details: deletionsSkipped,
     });
 
   } catch (error) {
