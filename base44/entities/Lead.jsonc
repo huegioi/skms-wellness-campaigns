@@ -216,6 +216,11 @@
       "type": "boolean",
       "default": false,
       "description": "True if this record is demo/broker-demo sample data. Excluded from all syncs (Sheets, Kajabi), Maya briefings, and dashboard/analytics metrics."
+    },
+    "is_archived": {
+      "type": "boolean",
+      "default": false,
+      "description": "Archived from the pre-2026 sales process. Excluded from all lists, counts, and pipelines. Not deleted."
     }
   },
   "required": [
