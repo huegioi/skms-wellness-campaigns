@@ -464,7 +464,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
             ${sampleBoxQuantities.reduceStress > 0 ? `
               <div class="item">
                 <div class="item-title">Reduce Stress Box (${sampleBoxQuantities.reduceStress} boxes)</div>
-                <div class="item-price">${sampleBoxQuantities.reduceStress} × $65 = $${(sampleBoxQuantities.reduceStress * 65).toLocaleString()}</div>
+                <div class="item-price">${sampleBoxQuantities.reduceStress} × $60 = $${(sampleBoxQuantities.reduceStress * 60).toLocaleString()}</div>
                 <div class="item-description">
                   <strong>Includes:</strong>
                   <ul>
@@ -480,7 +480,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
             ${sampleBoxQuantities.relaxationSleep > 0 ? `
               <div class="item">
                 <div class="item-title">Relaxation & Sleep Box (${sampleBoxQuantities.relaxationSleep} boxes)</div>
-                <div class="item-price">${sampleBoxQuantities.relaxationSleep} × $65 = $${(sampleBoxQuantities.relaxationSleep * 65).toLocaleString()}</div>
+                <div class="item-price">${sampleBoxQuantities.relaxationSleep} × $60 = $${(sampleBoxQuantities.relaxationSleep * 60).toLocaleString()}</div>
                 <div class="item-description">
                   <strong>Includes:</strong>
                   <ul>
@@ -514,7 +514,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
             ${sampleBoxQuantities.largeStressReduction > 0 ? `
               <div class="item">
                 <div class="item-title">Large Stress Reduction Box (${sampleBoxQuantities.largeStressReduction} boxes)</div>
-                <div class="item-price">${sampleBoxQuantities.largeStressReduction} × $100 = $${(sampleBoxQuantities.largeStressReduction * 100).toLocaleString()}</div>
+                <div class="item-price">${sampleBoxQuantities.largeStressReduction} × $120 = $${(sampleBoxQuantities.largeStressReduction * 120).toLocaleString()}</div>
                 <div class="item-description">
                   <strong>Includes:</strong>
                   <ul>
