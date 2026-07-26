@@ -42,6 +42,22 @@ export const BOX_KEY_TO_SERVICE_NAME = {
   newYearFreshStart: 'New Year Fresh Start Box',
 };
 
+// Display labels for the nine keyed sample-box types — presentation only.
+// Shared by ReviewStep (display array + PDF) and EditProposal (PDF).
+// These are NOT Service record names; prices come from resolveBoxPrices,
+// names come from here. Don't derive one from the other.
+export const BOX_DISPLAY_NAMES = {
+  reduceStress: 'Reduce Stress Box',
+  relaxationSleep: 'Relaxation & Sleep Box',
+  largeEmotional: 'Large Emotional Wellness Box',
+  largeStressReduction: 'Large Stress Reduction Box',
+  stressReductionDigital: 'Stress Reduction Digital Box',
+  beyondBurnoutDigital: 'Beyond Burnout Digital Box',
+  emotionalWellness: 'Emotional Wellness Box',
+  wintertimeHealthy: 'Wintertime Stay Healthy Box',
+  newYearFreshStart: 'New Year Fresh Start Box',
+};
+
 // Helper: build a key→price map from an array of Service records.
 // Falls back to WELLNESS_BOX_PRICES for any key whose Service is missing
 // or has no price. Returns { prices, fallbacksUsed } so callers can

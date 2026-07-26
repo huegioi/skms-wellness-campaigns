@@ -12,7 +12,13 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
 import { findMatchedStage, formatStageLabel } from '@/components/quickbuilder/stagePricing';
-import { WELLNESS_BOX_PRICES, BOX_KEY_TO_SERVICE_NAME, resolveBoxPrices } from '@/lib/wellnessBoxes';
+import { WELLNESS_BOX_PRICES, BOX_KEY_TO_SERVICE_NAME, BOX_DISPLAY_NAMES, resolveBoxPrices } from '@/lib/wellnessBoxes';
+
+// Snapshot-first box price lookup: proposal snapshot → live Service → constant → 0
+const getBoxPrice = (key, snapshot, livePrices) =>
+  (snapshot && snapshot[key] != null) ? snapshot[key]
+  : (livePrices && livePrices[key] != null) ? livePrices[key]
+  : (WELLNESS_BOX_PRICES[key] || 0);
 import { markTaskComplete, createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -220,7 +226,8 @@ export default function EditProposal() {
     
     const boxes = selections.sampleBoxQuantities;
     const { prices: boxPrices } = resolveBoxPrices(services);
-    Object.entries(boxes).forEach(([key, qty]) => { total += (qty || 0) * (boxPrices[key] || 0); });
+    const boxSnapshot = selections.sampleBoxPrices;
+    Object.entries(boxes).forEach(([key, qty]) => { total += (qty || 0) * getBoxPrice(key, boxSnapshot, boxPrices); });
     
     if (selections.customBoxQuantity > 0 && selections.customBoxItems?.length > 0) {
       const customBoxTotal = selections.customBoxItems.reduce((sum, item) => sum + item.price, 0);
@@ -413,14 +420,11 @@ export default function EditProposal() {
         ${(() => {
           const boxes = selections.sampleBoxQuantities || {};
           const { prices: pdfBoxPrices } = resolveBoxPrices(services);
-          const bpMap = Object.fromEntries(
-            Object.entries(BOX_KEY_TO_SERVICE_NAME).map(([key, name]) => ({
-              key, name: name.replace(' Wellness Box', ' Box').replace(' Sample Box', ' Box'), price: pdfBoxPrices[key]
-            })).map(o => [o.key, o])
-          );
+          const boxSnapshot = selections.sampleBoxPrices;
           const boxRows = Object.entries(boxes).filter(([,q]) => (q || 0) > 0).map(([key, qty]) => {
-            const b = bpMap[key]; if (!b) return '';
-            return `<div class="item"><div class="item-title">${b.name} (${qty})</div><div class="item-price">${qty} × $${b.price} = $${(qty * b.price).toLocaleString()}</div></div>`;
+            const label = BOX_DISPLAY_NAMES[key]; if (!label) return '';
+            const price = getBoxPrice(key, boxSnapshot, pdfBoxPrices);
+            return `<div class="item"><div class="item-title">${label} (${qty})</div><div class="item-price">${qty} × $${price} = $${(qty * price).toLocaleString()}</div></div>`;
           }).join('');
           const customQty = selections.customBoxQuantity || 0;
           const customItems = selections.customBoxItems || [];

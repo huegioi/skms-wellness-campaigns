@@ -83,14 +83,23 @@ function calcAdjustedRevenue(proposal, servicePriceMap, boxServicePrices, fallba
 
   customCharges.forEach(c => nonBoxTotal += (c.amount || 0));
 
-  // Box prices: use Service record prices, fall back to hardcoded if missing
+  // Box prices: proposal snapshot → live Service price → FALLBACK_BOX_PRICES → 0
+  const boxSnapshot = s.sampleBoxPrices || {};
   let boxTotal = 0;
   const boxQtys = s.sampleBoxQuantities || {};
   Object.entries(boxQtys).forEach(([key, qty]) => {
     if (!qty) return;
-    let price = boxServicePrices[key];
-    if (price === undefined || price === null) {
+    let price;
+    let source;
+    if (boxSnapshot[key] != null) {
+      price = boxSnapshot[key];
+      source = 'proposal_snapshot';
+    } else if (boxServicePrices[key] != null) {
+      price = boxServicePrices[key];
+      source = 'service_record';
+    } else {
       price = FALLBACK_BOX_PRICES[key] || 0;
+      source = 'fallback_constant';
       fallbacksUsed.push({ box_key: key, reason: 'Service record missing or no price', fallback_price: price });
     }
     boxTotal += (qty || 0) * price;
