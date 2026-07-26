@@ -64,7 +64,7 @@
         "type": "string"
       },
       "default": [],
-      "description": "Additional mail domains owned by this brokerage (acquired firms, legacy brands). Used alongside email_domain for broker/firm matching."
+      "description": "Additional mail domains owned by this brokerage (acquired firms, legacy brands). Used alongside email_domain for broker/firm matching. Any UI or code path that persists aliases must call sanitizeEmailDomainAliases from shared/emailDomain.ts first. Note: this field currently has no reader \u2014 firm matching by domain does not exist as a code path."
     },
     "is_demo": {
       "type": "boolean",
