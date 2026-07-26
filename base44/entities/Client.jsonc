@@ -15,6 +15,14 @@
       "type": "string",
       "description": "Lowercased domain of the primary contact email. The organization's identity key \u2014 used for matching, dedupe, and linking. Null for free-mail addresses."
     },
+    "email_domain_aliases": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Additional organization domains that belong to this same Client (e.g. acquired-company mail domains, legacy brands). Treated as extra keys in the domain-matching index alongside email_domain; a collision between an alias and a primary (or two aliases) is ambiguous exactly like a primary-primary collision."
+    },
     "email2": {
       "type": "string",
       "format": "email",

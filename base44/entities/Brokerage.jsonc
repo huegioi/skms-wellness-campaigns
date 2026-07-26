@@ -58,6 +58,14 @@
       "type": "string",
       "description": "Primary email domain for this brokerage (e.g. bbrown.com)"
     },
+    "email_domain_aliases": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Additional mail domains owned by this brokerage (acquired firms, legacy brands). Used alongside email_domain for broker/firm matching."
+    },
     "is_demo": {
       "type": "boolean",
       "default": false,
