@@ -28,38 +28,6 @@ import { setMayaRecordContext, clearMayaRecordContext } from '@/lib/mayaOrbStore
 const EMPTY_REFERRAL = { date: '', company_name: '', contact_name: '', notes: '', client_id: '', proposal_id: '', partner_id: '' };
 const EMPTY_PROPOSAL_FORM = { referralId: '', proposalId: '' };
 
-// Calculate adjusted revenue: wellness box items count at 50%
-function calcAdjustedRevenue(proposal) {
-  if (!proposal) return 0;
-  const s = proposal.selections || {};
-  const overrides = s.priceOverrides || {};
-  const customCharges = s.customCharges || [];
-  const BOX_PRICES = {
-    reduceStress: 60, relaxationSleep: 60, largeEmotional: 100,
-    largeStressReduction: 120, stressReductionDigital: 50,
-    beyondBurnoutDigital: 100, emotionalWellness: 100,
-    wintertimeHealthy: 100, newYearFreshStart: 100
-  };
-  let nonBoxTotal = 0;
-  const challengePrice = s.challengePrice || 0;
-  (s.workshops || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
-  (s.challengePrograms || []).forEach(id => nonBoxTotal += (overrides[id] ?? challengePrice));
-  (s.leadership || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
-  (s.movementClasses || []).forEach(id => nonBoxTotal += (overrides[id] ?? 0));
-  customCharges.forEach(c => nonBoxTotal += (c.amount || 0));
-  let boxTotal = 0;
-  const boxQtys = s.sampleBoxQuantities || {};
-  Object.entries(boxQtys).forEach(([key, qty]) => { boxTotal += (qty || 0) * (BOX_PRICES[key] || 0); });
-  const customBoxQty = s.customBoxQuantity || 0;
-  const customBoxItems = s.customBoxItems || [];
-  if (customBoxQty > 0 && customBoxItems.length > 0) {
-    const unitPrice = customBoxItems.reduce((sum, item) => sum + (item.price || 0), 0);
-    boxTotal += customBoxQty * unitPrice;
-  }
-  const adjusted = nonBoxTotal + boxTotal * 0.5;
-  return adjusted > 0 ? adjusted : proposal.total_amount || 0;
-}
-
 export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate }) {
   const navigate = useNavigate();
   const { data: lead = initialLead } = useQuery({
@@ -257,32 +225,36 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
       return;
     }
 
-    const linkedProposal = referralForm.proposal_id
-      ? allProposals.find(p => p.id === referralForm.proposal_id)
-      : null;
-    const firstYearRevenue = calcAdjustedRevenue(linkedProposal);
-    const ytdRevenue = (partner.ytd_revenue || 0) + firstYearRevenue;
-    const tiers = partner.commission_tiers || [];
-    const tier = tiers.filter(t => ytdRevenue >= (t.min_revenue || 0)).sort((a, b) => b.min_revenue - a.min_revenue)[0] || null;
-    const commissionRate = tier?.rate || 0;
-
-    await base44.entities.Referral.create({
+    // Always create as 'submitted' with zero values. The server (recordReferralPurchase)
+    // computes revenue, tier, brokerage aggregate, commission split, demo guard, and ReferralActivity.
+    const created = await base44.entities.Referral.create({
       referral_partner_id: partner.id,
       referral_partner_name: partner.name,
       contact_name: referralForm.contact_name || '',
       company_name: referralForm.company_name,
       notes: referralForm.notes || '',
       referral_date: new Date(referralForm.date).toISOString(),
-      status: linkedProposal ? 'purchased' : 'submitted',
+      status: 'submitted',
       referred_client_id: referralForm.client_id || '',
       invoice_id: referralForm.proposal_id || '',
-      first_year_revenue: firstYearRevenue,
-      commission_rate: commissionRate,
-      commission_amount: firstYearRevenue * commissionRate
+      first_year_revenue: 0,
+      commission_rate: 0,
+      commission_amount: 0,
     });
 
-    if (firstYearRevenue > 0) {
-      await base44.entities.ReferralPartner.update(partner.id, { ytd_revenue: ytdRevenue });
+    // If a proposal was linked, let the server upgrade the referral to 'purchased'
+    // and compute all commission fields. On failure, leave the Referral as 'submitted'
+    // so it can be re-linked through the Link Proposal flow — do not roll back.
+    if (referralForm.proposal_id) {
+      try {
+        await base44.functions.invoke('recordReferralPurchase', {
+          referral_id: created.id,
+          proposal_id: referralForm.proposal_id,
+        });
+      } catch (e) {
+        console.error('recordReferralPurchase failed for referral', created.id, e);
+        toast.error('Referral saved as "submitted" but proposal linking failed. Use "Link Proposal" to retry.');
+      }
     }
 
     // Update lead history + partner_status
@@ -301,7 +273,9 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
 
     setReferralForm(EMPTY_REFERRAL);
     setShowAddReferral(false);
+    queryClient.invalidateQueries({ queryKey: ['allProposals'] });
     queryClient.invalidateQueries({ queryKey: ['referrals'] });
+    queryClient.invalidateQueries({ queryKey: ['leads'] });
     queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
     toast.success('Referral added!');
   };
