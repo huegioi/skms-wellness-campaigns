@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { getOrgDomain, extractEmailDomain } from '../../shared/emailDomain.ts';
+import { getOrgDomain, extractEmailDomain, buildClientDomainIndex } from '../../shared/emailDomain.ts';
 
 const TEAM_EMAILS = (Deno.env.get("TEAM_EMAILS") || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
 const isTeamMember = (user) => user && (user.role === 'admin' || TEAM_EMAILS.includes((user.email || "").toLowerCase()));
@@ -18,43 +18,12 @@ Deno.serve(async (req) => {
     const allInvoices = await base44.asServiceRole.entities.Invoice.list('-created_date', 1000);
     const allClients = await base44.asServiceRole.entities.Client.list('-created_date', 1000);
 
-    // Build lookup indexes:
-    // 1. email_domain → client (primary — organization identity key)
-    //    If multiple clients share a domain, it's ambiguous — store null so we
-    //    fall back to exact-email matching for those invoices, and report them.
-    // 2. exact email → client (fallback for free-mail / null-domain / ambiguous domains)
-    const domainToClient = new Map();
-    const emailToClient = new Map();
-    const ambiguousDomains = [];
-    // First pass: collect all clients per domain
-    const domainToClients = new Map();
-    for (const c of allClients) {
-      if (c.email) {
-        const emailKey = c.email.toLowerCase().trim();
-        if (!emailToClient.has(emailKey)) {
-          emailToClient.set(emailKey, c);
-        }
-      }
-      const domain = c.email_domain || getOrgDomain(c.email);
-      if (domain) {
-        if (!domainToClients.has(domain)) {
-          domainToClients.set(domain, []);
-        }
-        domainToClients.get(domain).push(c);
-      }
-    }
-    // Second pass: only map unambiguous domains; flag ambiguous ones
-    for (const [domain, clients] of domainToClients) {
-      if (clients.length === 1) {
-        domainToClient.set(domain, clients[0]);
-      } else {
-        ambiguousDomains.push({
-          domain,
-          client_count: clients.length,
-          clients: clients.map(c => ({ id: c.id, name: c.name, email: c.email, company: c.company }))
-        });
-      }
-    }
+    // ── Two-pass domain index (shared builder — mirrors quickbooksSync) ──
+    // Aliases (email_domain_aliases) are additional keys; collisions between
+    // an alias and a primary (or two aliases) are ambiguous exactly like a
+    // primary-primary collision. Free-mail/internal domains in aliases are
+    // skipped and logged. Records predating the aliases field are safe (|| []).
+    const { domainToClient, emailToClient, ambiguousDomains } = buildClientDomainIndex(allClients);
 
     // ── Phase 1: Backfill client_id on invoices where it's null and client_email is set ──
     const orphanInvoices = allInvoices.filter(inv => !inv.client_id && inv.client_email && !inv.out_of_scope);

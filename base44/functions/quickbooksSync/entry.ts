@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
-import { getOrgDomain, deriveCompanyFromEmail } from '../../shared/emailDomain.ts';
+import { getOrgDomain, deriveCompanyFromEmail, buildClientDomainIndex } from '../../shared/emailDomain.ts';
 
 const QB_API_URL = 'https://quickbooks.api.intuit.com/v3/company';
 
@@ -489,49 +489,12 @@ Deno.serve(async (req) => {
       const qbInvoices = invoiceResult.QueryResponse?.Invoice || [];
       const syncResults = [];
 
-      // ── Two-pass domain index (mirrors backfillInvoiceClientIds) ──
-      // Map domain → client, but only for UNAMBIGUOUS domains (exactly one
-      // client). Domains shared by 2+ clients are flagged as ambiguous and
-      // excluded from domain matching — those fall back to exact-email match.
-      //
-      // Aliases (email_domain_aliases) are treated as additional primary-style
-      // keys: a collision between an alias and a primary (or two aliases) is
-      // ambiguous exactly like a primary-primary collision — no silent outrank.
-      const domainToClient = new Map();
-      const emailToClient = new Map();
-      const ambiguousDomains = [];
-      const domainToClients = new Map();
-      const trackDomain = (domain, client) => {
-        const d = String(domain).toLowerCase().trim();
-        if (!d) return;
-        if (!domainToClients.has(d)) domainToClients.set(d, []);
-        domainToClients.get(d).push(client);
-      };
-      for (const c of localClients) {
-        if (c.email) {
-          const ek = c.email.toLowerCase().trim();
-          if (!emailToClient.has(ek)) emailToClient.set(ek, c);
-        }
-        const domain = c.email_domain || getOrgDomain(c.email);
-        if (domain) trackDomain(domain, c);
-        if (Array.isArray(c.email_domain_aliases)) {
-          for (const alias of c.email_domain_aliases) trackDomain(alias, c);
-        }
-      }
-      for (const [domain, clients] of domainToClients) {
-        // De-dup: a client may contribute the same domain as both primary and
-        // alias — that must not inflate the count or create a false collision.
-        const unique = clients.filter((c, i, arr) => arr.findIndex(x => x.id === c.id) === i);
-        if (unique.length === 1) {
-          domainToClient.set(domain, unique[0]);
-        } else {
-          ambiguousDomains.push({
-            domain,
-            client_count: unique.length,
-            clients: unique.map(c => ({ id: c.id, name: c.name, email: c.email, company: c.company }))
-          });
-        }
-      }
+      // ── Two-pass domain index (shared builder — mirrors backfillInvoiceClientIds) ──
+      // Aliases (email_domain_aliases) are additional keys; collisions between
+      // an alias and a primary (or two aliases) are ambiguous exactly like a
+      // primary-primary collision. Free-mail/internal domains in aliases are
+      // skipped and logged. Records predating the aliases field are safe (|| []).
+      const { domainToClient, emailToClient, ambiguousDomains } = buildClientDomainIndex(localClients);
 
       // ── Fix 6: ignored customer IDs (out-of-scope businesses in the shared QB file) ──
       const ignoredConfig = await base44.asServiceRole.entities.QuickBooksConfig.filter({ key: 'ignored_customer_ids' });
