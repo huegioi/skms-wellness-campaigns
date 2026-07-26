@@ -49,15 +49,12 @@ export default function BrokeragePicker({ value, onChange, contactEmail, disable
       });
       if (matches.length === 1) {
         suggestion = matches[0];
-        suggestionLabel = `Suggested — matches ${domain}`;
+        suggestionLabel = `Suggested: ${suggestion.name} — matches ${domain}`;
       } else if (matches.length > 1) {
         suggestionLabel = `Domain ${domain} claimed by multiple firms`;
       }
     }
   }
-
-  // The effective value: if value is null but we have a suggestion, show it as pre-selected
-  const effectiveValue = value || (suggestion ? suggestion.id : NONE);
 
   const handleChange = (val) => {
     if (val === NONE) {
@@ -67,24 +64,19 @@ export default function BrokeragePicker({ value, onChange, contactEmail, disable
     }
   };
 
-  const handleBrokerageSaved = async () => {
+  const handleBrokerageSaved = async (savedRecord) => {
     // Invalidate so the new brokerage shows up in the list
     await qc.invalidateQueries({ queryKey: ['brokerages'] });
-    // The BrokerageDialog doesn't return the created record, so we
-    // refetch and find the newest one (highest created_date)
-    const refreshed = await base44.entities.Brokerage.list('-created_date', 1);
-    if (refreshed.length > 0) {
-      onChange(refreshed[0].id);
+    // Select by the actual saved record id — never infer by newest created
+    if (savedRecord?.id) {
+      onChange(savedRecord.id);
     }
   };
-
-  const selectedBrokerage = brokerages.find(b => b.id === effectiveValue);
-  const showSuggestionBadge = !!suggestion && !value;
 
   return (
     <div className="space-y-1">
       <Select
-        value={effectiveValue}
+        value={value || NONE}
         onValueChange={handleChange}
         disabled={disabled}
       >
@@ -108,22 +100,27 @@ export default function BrokeragePicker({ value, onChange, contactEmail, disable
         </SelectContent>
       </Select>
 
-      {showSuggestionBadge && suggestion && (
-        <p className="text-xs text-blue-600 font-medium flex items-center gap-1">
-          <Sparkles className="w-3 h-3" />
-          {suggestionLabel}
-        </p>
+      {/* Single-match suggestion — separate prompt with Apply button */}
+      {suggestion && (
+        <div className="flex items-center gap-2">
+          <p className="text-xs text-blue-600 font-medium flex items-center gap-1">
+            <Sparkles className="w-3 h-3" />
+            {suggestionLabel}
+          </p>
+          <button
+            type="button"
+            onClick={() => onChange(suggestion.id)}
+            className="text-xs text-blue-600 underline hover:text-blue-800 font-medium"
+          >
+            Apply
+          </button>
+        </div>
       )}
 
+      {/* Multi-match warning — selects nothing, says so */}
       {suggestionLabel && !suggestion && (
         <p className="text-xs text-amber-600 font-medium">
           {suggestionLabel}
-        </p>
-      )}
-
-      {selectedBrokerage && !value && suggestion && (
-        <p className="text-xs text-gray-400 mt-0.5">
-          Assignment shown above — save to confirm.
         </p>
       )}
 

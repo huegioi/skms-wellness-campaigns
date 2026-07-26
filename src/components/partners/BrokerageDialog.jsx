@@ -54,12 +54,12 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved }
       }
       return base44.entities.Brokerage.create(data);
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
       qc.invalidateQueries({ queryKey: ['brokerages'] });
       qc.invalidateQueries({ queryKey: ['referralPartners'] });
       onOpenChange(false);
       toast({ title: editing ? 'Brokerage updated' : 'Brokerage created' });
-      onSaved?.();
+      onSaved?.(saved);
     },
   });
 
