@@ -1,6 +1,14 @@
 /**
  * Frontend mirror of base44/shared/emailDomain.ts.
- * Used by Client creation forms to compute email_domain before the API call.
+ *
+ * SOURCE OF TRUTH: base44/shared/emailDomain.ts — that Deno module is the
+ * canonical implementation. It cannot be imported from the frontend (Vite
+ * ESM vs Deno runtime), so this file is a deliberate mirror. The
+ * EXCLUDED_DOMAINS set MUST be kept in sync with the backend module;
+ * if a domain is added or removed there, update it here too.
+ *
+ * Used by Client creation forms and BrokeragePicker to derive organization
+ * identity keys from email addresses.
  */
 
 const EXCLUDED_DOMAINS = new Set([
@@ -15,6 +23,15 @@ const EXCLUDED_DOMAINS = new Set([
   'protonmail.com',
   'skillfulmeans.life',
 ]);
+
+/**
+ * Returns true if the domain is excluded (free-mail or SkillfulMeans own).
+ * Mirrors isExcludedDomain from base44/shared/emailDomain.ts.
+ */
+export function isExcludedDomain(domain) {
+  if (!domain) return true;
+  return EXCLUDED_DOMAINS.has(domain);
+}
 
 export function extractEmailDomain(email) {
   if (!email || typeof email !== 'string') return null;

@@ -15,6 +15,7 @@ import { PARTNER_STAGES } from '@/components/shared/constants';
 import { REFERRAL_STATUS_COLORS } from '@/lib/statusConfig';
 import InteractionTimeline from '@/components/shared/InteractionTimeline';
 import CommissionPaymentsLedger from '@/components/partners/CommissionPaymentsLedger';
+import BrokeragePicker from '@/components/partners/BrokeragePicker';
 import { setMayaRecordContext, clearMayaRecordContext } from '@/lib/mayaOrbStore';
 
 function TierField({ value, onSave, type = 'text', placeholder, step }) {
@@ -248,6 +249,15 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
             )}
             <div className="sm:col-span-2">
               <InlineText label="Address" value={partner.address} onSave={v => handleUpdate({ address: v })} />
+            </div>
+            {/* Brokerage */}
+            <div className="sm:col-span-2">
+              <span className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Brokerage</span>
+              <BrokeragePicker
+                value={partner.brokerage_id}
+                onChange={v => handleUpdate({ brokerage_id: v })}
+                contactEmail={partner.email}
+              />
             </div>
           </CollapsibleFieldSection>
 

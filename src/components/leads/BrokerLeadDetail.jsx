@@ -22,6 +22,7 @@ import { InlineSelect } from '@/components/shared/inline/InlineSelect';
 import { LEAD_STAGES } from '@/components/shared/constants';
 import { LEAD_STATUS_CONFIG as STATUS_CONFIG, PARTNER_STATUS_CONFIG, REFERRAL_STATUS_COLORS, PROPOSAL_STATUS_CONFIG } from '@/lib/statusConfig';
 import InteractionTimeline from '@/components/shared/InteractionTimeline';
+import BrokeragePicker from '@/components/partners/BrokeragePicker';
 import { setMayaRecordContext, clearMayaRecordContext } from '@/lib/mayaOrbStore';
 
 const EMPTY_REFERRAL = { date: '', company_name: '', contact_name: '', notes: '', client_id: '', proposal_id: '', partner_id: '' };
@@ -444,6 +445,14 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
                       { value: 'active_partner', label: 'Active Partner' },
                       { value: 'inactive', label: 'Inactive' },
                     ]}
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <span className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Brokerage</span>
+                  <BrokeragePicker
+                    value={lead.brokerage_id}
+                    onChange={v => handleFieldUpdate({ brokerage_id: v })}
+                    contactEmail={lead.email}
                   />
                 </div>
                 {lead.last_contacted_date && (
