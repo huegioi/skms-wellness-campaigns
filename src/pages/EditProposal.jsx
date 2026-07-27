@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Save, Download, Plus, Minus, X, Sparkles, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Save, Download, Plus, Minus, X, Sparkles, RefreshCw, Loader2 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -53,6 +53,7 @@ export default function EditProposal() {
   const [newChargeLabel, setNewChargeLabel] = useState('');
   const [newChargeAmount, setNewChargeAmount] = useState('');
   const [isDirty, setIsDirty] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
@@ -453,7 +454,15 @@ export default function EditProposal() {
       </html>
     `;
 
-    await htmlToPdfDownload(pdfContent, proposalFilename(formData));
+    setIsGeneratingPdf(true);
+    try {
+      await htmlToPdfDownload(pdfContent, proposalFilename(formData));
+    } catch (err) {
+      console.error('Proposal PDF generation failed', err);
+      toast.error("Couldn't generate the PDF — try again");
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   if (isLoading || isLoadingServices) {
@@ -487,7 +496,10 @@ export default function EditProposal() {
             )}
           </div>
           {!isNewProposal && (
-            <Button variant="outline" onClick={generatePDF}><Download className="w-4 h-4 mr-2" /> Download</Button>
+            <Button variant="outline" disabled={isGeneratingPdf} onClick={generatePDF}>
+              {isGeneratingPdf ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Download className="w-4 h-4 mr-2" />}
+              Download
+            </Button>
           )}
           <Button onClick={handleSave} className="bg-[#264d44] hover:bg-[#1a3830]" disabled={saveMutation.isPending || (!isNewProposal && !isDirty)}>
             <Save className="w-4 h-4 mr-2" /> {saveMutation.isPending ? 'Saving...' : (isNewProposal ? 'Create' : (isDirty ? 'Save' : 'Saved'))}

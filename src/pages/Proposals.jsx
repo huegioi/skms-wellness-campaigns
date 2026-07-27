@@ -425,6 +425,10 @@ export default function Proposals() {
                           onClick={async () => {
                             setDownloadingId(proposal.id);
                             try { await exportProposalPDF(proposal); }
+                            catch (err) {
+                              console.error('Proposal PDF generation failed', err);
+                              toast.error("Couldn't generate the PDF — try again");
+                            }
                             finally { setDownloadingId(null); }
                           }}
                         >

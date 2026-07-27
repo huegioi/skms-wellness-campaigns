@@ -26,8 +26,17 @@ export async function htmlToPdfDownload(html, filename) {
     const fullHeight = body.scrollHeight;
     iframe.style.height = fullHeight + 'px';
 
+    // Chrome caps canvas dimensions at 16,384px. At scale:2 against a 1000px
+    // width, a body taller than ~8,000px exceeds that ceiling and html2canvas
+    // silently returns a blank/clipped canvas. Downscale when we'd hit it.
+    let scale = 2;
+    if (fullHeight * scale > 16000) {
+      scale = Math.max(1, 16000 / fullHeight);
+      console.warn(`[proposalPdf] body height ${fullHeight}px exceeds canvas ceiling; downscaling to scale=${scale.toFixed(3)}`);
+    }
+
     const canvas = await html2canvas(body, {
-      scale: 2,
+      scale,
       useCORS: true,
       width: 1000,
       height: fullHeight,
