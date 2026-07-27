@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   FileText, Calendar, DollarSign, Copy, Pencil, Trash2, 
-  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock, Bell, Mail, Link2, Search, Download
+  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock, Bell, Mail, Link2, Search, Download, Loader2
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -18,6 +18,7 @@ import SendReminderDialog from '@/components/proposals/SendReminderDialog';
 import QuickBooksInvoiceReview from '@/components/proposals/QuickBooksInvoiceReview';
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 import { PROPOSAL_STATUS_CONFIG as statusConfig } from '@/lib/statusConfig';
+import { htmlToPdfDownload, proposalFilename } from '@/lib/proposalPdf';
 
 export default function Proposals() {
   const [sortBy, setSortBy] = useState('date');
@@ -29,6 +30,7 @@ export default function Proposals() {
   const [sendingProposal, setSendingProposal] = useState(null);
   const [reminderProposal, setReminderProposal] = useState(null);
   const [qbProposal, setQbProposal] = useState(null);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -71,7 +73,7 @@ export default function Proposals() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['proposals'] })
   });
 
-  const downloadProposalPDF = (proposal) => {
+  const exportProposalPDF = async (proposal) => {
     const sel = proposal.selections || {};
     const priceOverrides = sel.priceOverrides || {};
     
@@ -154,15 +156,7 @@ export default function Proposals() {
     <div class="total-box"><div style="font-size:18px">Estimated Total Investment</div><div class="total-amount">$${(proposal.total_amount||0).toLocaleString()}</div></div>
     </body></html>`;
 
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Proposal-${proposal.client_name.replace(/\s+/g,'-')}-${new Date(proposal.created_date).toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'2-digit'}).replace(/\//g,'-')}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    await htmlToPdfDownload(html, proposalFilename(proposal));
   };
 
   const duplicateMutation = useMutation({
@@ -423,8 +417,20 @@ export default function Proposals() {
                         >
                           <Link2 className="w-4 h-4" />
                         </Button>
-                        <Button size="icon" variant="outline" title="Download proposal" onClick={() => downloadProposalPDF(proposal)}>
-                          <Download className="w-4 h-4" />
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          title="Download proposal"
+                          disabled={downloadingId === proposal.id}
+                          onClick={async () => {
+                            setDownloadingId(proposal.id);
+                            try { await exportProposalPDF(proposal); }
+                            finally { setDownloadingId(null); }
+                          }}
+                        >
+                          {downloadingId === proposal.id
+                            ? <Loader2 className="w-4 h-4 animate-spin" />
+                            : <Download className="w-4 h-4" />}
                         </Button>
                         <Button size="icon" variant="outline" onClick={() => setViewingProposal(proposal)}>
                           <Eye className="w-4 h-4" />

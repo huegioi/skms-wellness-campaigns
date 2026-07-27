@@ -20,8 +20,7 @@ const getBoxPrice = (key, snapshot, livePrices) =>
   : (livePrices && livePrices[key] != null) ? livePrices[key]
   : (WELLNESS_BOX_PRICES[key] || 0);
 import { markTaskComplete, createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { htmlToPdfDownload, proposalFilename } from '@/lib/proposalPdf';
 
 export default function EditProposal() {
   const [searchParams] = useSearchParams();
@@ -454,48 +453,7 @@ export default function EditProposal() {
       </html>
     `;
 
-    // Render HTML into a hidden iframe, capture with html2canvas, save as PDF
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.left = '-9999px';
-    iframe.style.top = '0';
-    iframe.style.width = '1000px';
-    iframe.style.height = '1px';
-    iframe.style.border = 'none';
-    document.body.appendChild(iframe);
-
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-    iframeDoc.open();
-    iframeDoc.write(pdfContent);
-    iframeDoc.close();
-
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    const body = iframeDoc.body;
-    const fullHeight = body.scrollHeight;
-    iframe.style.height = fullHeight + 'px';
-
-    const canvas = await html2canvas(body, {
-      scale: 2,
-      useCORS: true,
-      width: 1000,
-      height: fullHeight,
-      windowWidth: 1000,
-      windowHeight: fullHeight
-    });
-
-    document.body.removeChild(iframe);
-
-    // Use a single tall page sized to fit all content — avoids any mid-element cuts
-    const pageWidth = 595; // A4 width in pt
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * pageWidth) / canvas.width;
-
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: [pageWidth, imgHeight] });
-    const imgData = canvas.toDataURL('image/png');
-    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-
-    pdf.save(`Proposal-${formData.client_name.replace(/\s+/g, '-')}.pdf`);
+    await htmlToPdfDownload(pdfContent, proposalFilename(formData));
   };
 
   if (isLoading || isLoadingServices) {
