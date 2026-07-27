@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { useDashInvoices } from './useDashboardData';
+import { useDashInvoices, useDashServices } from './useDashboardData';
+import { buildServiceMatcher } from '@/lib/serviceMatching';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { DollarSign, TrendingUp, Clock, CheckCircle2, RefreshCw } from 'lucide-react';
+import { DollarSign, CheckCircle2, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CHART_PALETTE, formatCurrency } from '@/lib/dashboardStyle';
 import DashboardSkeleton from './DashboardSkeleton';
 import DashboardEmptyState from './DashboardEmptyState';
-import TopCustomersCard from './TopCustomersCard';
 import ReceivablesAgingTable from '@/components/financials/ReceivablesAgingTable';
-import RevenueConcentrationPanel from '@/components/financials/RevenueConcentrationPanel';
+import RevenueByClientPanel from '@/components/financials/RevenueByClientPanel';
 import BookedNotDeliveredTile from '@/components/financials/BookedNotDeliveredTile';
 
 export default function FinancialInformationSection() {
@@ -18,6 +18,7 @@ export default function FinancialInformationSection() {
   const [syncing, setSyncing] = useState(false);
 
   const { data: rawInvoices = [], isLoading: loadingInvoices, refetch: refetchInvoices } = useDashInvoices();
+  const { data: services = [] } = useDashServices();
 
   // Exclude demo/broker-demo records from dashboard metrics
   const invoices = rawInvoices.filter(i => !i.is_demo && !i.out_of_scope);
@@ -45,16 +46,8 @@ export default function FinancialInformationSection() {
 
     const totalInvoiced = periodInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
     const totalPaid = invoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
-    const outstanding = invoices.filter(inv => ['sent', 'overdue', 'created_in_quickbooks'].includes(inv.status)).reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
 
-    const dueSoon = invoices.filter(inv => {
-      if (!['sent', 'created_in_quickbooks'].includes(inv.status)) return false;
-      const dueDate = new Date(inv.due_date);
-      const daysUntilDue = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24));
-      return daysUntilDue <= 7 && daysUntilDue >= 0;
-    }).length;
-
-    return { totalInvoiced, totalPaid, outstanding, dueSoon };
+    return { totalInvoiced, totalPaid };
   };
 
   const metrics = calculateMetrics();
@@ -70,8 +63,10 @@ export default function FinancialInformationSection() {
     }
   };
 
-  // Generate income breakdown from invoices
-  const generateIncomeBreakdown = () => {
+  // Revenue by Service Line — accrual basis (all invoices by issue_date),
+  // grouped by service category. Falls back to line description where no
+  // category is resolvable.
+  const generateServiceLineBreakdown = () => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
@@ -79,39 +74,50 @@ export default function FinancialInformationSection() {
     const startDate = timeframe === 'month' ? startOfMonth : timeframe === 'quarter' ? startOfQuarter : timeframe === 'year' ? startOfYear : new Date(0);
 
     const periodInvoices = invoices.filter(inv => {
-      if (inv.status !== 'paid') return false;
-      const d = inv.paid_date || inv.issue_date;
+      const d = inv.issue_date;
       return d && new Date(d) >= startDate;
     });
 
-    const byCustomer = {};
-    const byService = {};
+    const matchService = buildServiceMatcher(services);
+    const categoryLabels = {
+      workshop: 'Workshop',
+      challenge: 'Challenge',
+      leadership: 'Leadership',
+      class: 'Class',
+      wellness_box: 'Box',
+    };
+
+    const byCategory = {};
+    let unmatchedCount = 0;
+    let unmatchedRevenue = 0;
+    let totalRevenue = 0;
 
     periodInvoices.forEach(inv => {
-      const customer = inv.client_name || inv.company || 'Unknown';
-      byCustomer[customer] = (byCustomer[customer] || 0) + (inv.total_amount || 0);
-
-      if (inv.line_items && Array.isArray(inv.line_items)) {
-        inv.line_items.forEach(item => {
-          const service = item.description || 'General';
-          byService[service] = (byService[service] || 0) + (item.amount || 0);
-        });
-      }
+      if (!inv.line_items || !Array.isArray(inv.line_items)) return;
+      inv.line_items.forEach(item => {
+        const amount = item.amount || 0;
+        const service = matchService(item);
+        let label;
+        if (service) {
+          label = categoryLabels[service.category] || service.category;
+        } else {
+          label = item.description || 'Custom';
+          unmatchedCount++;
+          unmatchedRevenue += amount;
+        }
+        byCategory[label] = (byCategory[label] || 0) + amount;
+        totalRevenue += amount;
+      });
     });
 
-    const topCustomers = Object.entries(byCustomer)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 6)
-      .map(([name, value]) => ({ name, value }));
+    const serviceBreakdown = Object.entries(byCategory)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
 
-    const serviceBreakdown = Object.entries(byService)
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, value]) => ({ name, value }));
-
-    return { topCustomers, serviceBreakdown, typeBreakdown: [] };
+    return { serviceBreakdown, unmatchedCount, unmatchedRevenue, totalRevenue };
   };
 
-  const incomeData = generateIncomeBreakdown();
+  const serviceLineData = generateServiceLineBreakdown();
 
   const StatCard = ({ title, value, icon: Icon, colorClass }) => (
     <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
@@ -162,7 +168,7 @@ export default function FinancialInformationSection() {
       <ReceivablesAgingTable invoices={invoices} />
 
       {/* Financial KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
         <StatCard
           title={`Total Invoiced (${timeframe === 'month' ? 'This Month' : timeframe === 'quarter' ? 'This Quarter' : timeframe === 'year' ? 'This Year' : 'All Time'})`}
           value={formatCurrency(metrics.totalInvoiced)}
@@ -175,49 +181,38 @@ export default function FinancialInformationSection() {
           icon={CheckCircle2}
           colorClass={colorMap.green}
         />
-        <StatCard
-          title="Outstanding (current)"
-          value={formatCurrency(metrics.outstanding)}
-          icon={TrendingUp}
-          colorClass={colorMap.orange}
-        />
-        <StatCard
-          title="Due Soon (7 days)"
-          value={metrics.dueSoon}
-          icon={Clock}
-          colorClass={colorMap.red}
-        />
       </div>
 
       {/* Booked, Not Delivered */}
       <BookedNotDeliveredTile />
 
-      {/* Top Customers (merged revenue + LTV) */}
-      <TopCustomersCard
-        incomeData={incomeData}
-        invoices={invoices}
-        timeframe={timeframe}
-      />
+      {/* Revenue by Client — collected, all time */}
+      <RevenueByClientPanel invoices={invoices} />
 
-      {/* Revenue Concentration */}
-      <RevenueConcentrationPanel invoices={invoices} />
-
-      {/* Income by Service/Product */}
+      {/* Revenue by Service Line — Invoiced */}
       <Card className="hover:shadow-lg transition-shadow duration-300">
         <CardHeader>
-          <CardTitle className="text-base font-semibold text-brand-green">Income by Service/Product</CardTitle>
+          <CardTitle className="text-base font-semibold text-brand-green">Revenue by Service Line — Invoiced</CardTitle>
+          <p className="text-sm text-gray-500">Accrual basis by issue date · all statuses</p>
         </CardHeader>
         <CardContent>
-          {incomeData.serviceBreakdown.length > 0 ? (
-            <ResponsiveContainer width="100%" height={256}>
-              <BarChart data={incomeData.serviceBreakdown}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
-                <Bar dataKey="value" name="Amount" fill={CHART_PALETTE[10]} radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          {serviceLineData.serviceBreakdown.length > 0 ? (
+            <>
+              <ResponsiveContainer width="100%" height={256}>
+                <BarChart data={serviceLineData.serviceBreakdown}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+                  <Bar dataKey="value" name="Amount" fill={CHART_PALETTE[10]} radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              {serviceLineData.unmatchedCount > 0 && (
+                <p className="text-xs text-amber-600 mt-2">
+                  {serviceLineData.unmatchedCount} line item(s) lack a resolvable service category — {serviceLineData.totalRevenue > 0 ? ((serviceLineData.unmatchedRevenue / serviceLineData.totalRevenue) * 100).toFixed(1) : 0}% of total invoiced revenue, grouped by description.
+                </p>
+              )}
+            </>
           ) : (
             <DashboardEmptyState icon={DollarSign} message="No service data yet" />
           )}

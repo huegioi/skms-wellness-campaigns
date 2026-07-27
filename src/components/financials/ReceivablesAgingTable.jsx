@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 const OUTSTANDING_STATUSES = ['sent', 'overdue', 'created_in_quickbooks'];
 
 export default function ReceivablesAgingTable({ invoices }) {
-  const { buckets, oldInvoices } = useMemo(() => {
+  const { buckets, oldInvoices, grandTotal } = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -47,7 +47,12 @@ export default function ReceivablesAgingTable({ invoices }) {
 
     old.sort((a, b) => b.daysOverdue - a.daysOverdue);
 
-    return { buckets: b, oldInvoices: old };
+    const grandTotal = Object.values(b).reduce(
+      (acc, bucket) => ({ count: acc.count + bucket.count, total: acc.total + bucket.total }),
+      { count: 0, total: 0 }
+    );
+
+    return { buckets: b, oldInvoices: old, grandTotal };
   }, [invoices]);
 
   const bucketLabels = [
@@ -79,6 +84,15 @@ export default function ReceivablesAgingTable({ invoices }) {
               <p className="text-xs text-gray-400">{buckets[key].count} invoice{buckets[key].count !== 1 ? 's' : ''}</p>
             </div>
           ))}
+        </div>
+
+        {/* Grand total — this is the Outstanding figure */}
+        <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3 border border-gray-200 mt-2">
+          <div>
+            <span className="text-sm font-semibold text-gray-700">Outstanding (all buckets)</span>
+            <span className="text-xs text-gray-400 ml-2">{grandTotal.count} invoice{grandTotal.count !== 1 ? 's' : ''}</span>
+          </div>
+          <span className="text-lg font-bold text-brand-navy">{formatCurrency(grandTotal.total)}</span>
         </div>
 
         {oldInvoices.length > 0 ? (

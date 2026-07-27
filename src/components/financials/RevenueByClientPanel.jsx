@@ -1,13 +1,28 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CHART_PALETTE, formatCurrency } from '@/lib/dashboardStyle';
+import DashboardEmptyState from '../dashboard/DashboardEmptyState';
+import { Users } from 'lucide-react';
 
-export default function RevenueConcentrationPanel({ invoices }) {
-  const { rows, totalRevenue, top3Share } = useMemo(() => {
+/**
+ * Revenue by Client — Collected, all time.
+ *
+ * Cash basis: sums total_amount on paid invoices only.
+ * No timeframe control — this panel is deliberately immune to the page-level
+ * timeframe selector.
+ *
+ * timeframe filtering must not be added to this panel until paid_date is
+ * backfilled from QuickBooks Payment records — 54 of 63 paid invoices
+ * currently share a synthetic paid_date of 2026-07-20, so any period-filtered
+ * cash figure is fiction.
+ */
+export default function RevenueByClientPanel({ invoices }) {
+  const { rows, totalCollected, top3Share } = useMemo(() => {
+    const paid = invoices.filter(inv => inv.status === 'paid');
     const byClient = {};
     let total = 0;
 
-    invoices.forEach(inv => {
+    paid.forEach(inv => {
       const name = inv.client_name || inv.company || 'Unknown';
       const amount = inv.total_amount || 0;
       byClient[name] = (byClient[name] || 0) + amount;
@@ -29,17 +44,17 @@ export default function RevenueConcentrationPanel({ invoices }) {
 
     const top3 = sorted.slice(0, 3).reduce((s, r) => s + r.pct, 0);
 
-    return { rows: allRows, totalRevenue: total, top3Share: top3 };
+    return { rows: allRows, totalCollected: total, top3Share: top3 };
   }, [invoices]);
 
   return (
     <Card className="hover:shadow-lg transition-shadow duration-300">
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-semibold text-brand-green">
-          Revenue Concentration
+          Revenue by Client — Collected, all time
         </CardTitle>
         <p className="text-sm text-gray-500">
-          Share of total invoiced revenue (accrual, all statuses) · Top 3 clients = {top3Share.toFixed(1)}% of revenue
+          Cash basis (paid invoices only) · Top 3 clients = {top3Share.toFixed(1)}% of collected revenue
         </p>
       </CardHeader>
       <CardContent className="pt-0">
@@ -71,12 +86,12 @@ export default function RevenueConcentrationPanel({ invoices }) {
               </div>
             ))}
             <div className="flex justify-between pt-2 border-t mt-2">
-              <span className="text-sm font-semibold text-gray-700">Total Invoiced</span>
-              <span className="text-sm font-bold text-brand-navy">{formatCurrency(totalRevenue)}</span>
+              <span className="text-sm font-semibold text-gray-700">Total Collected</span>
+              <span className="text-sm font-bold text-brand-navy">{formatCurrency(totalCollected)}</span>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-gray-400 text-center py-4">No invoice data</p>
+          <DashboardEmptyState icon={Users} message="No paid invoice data" />
         )}
       </CardContent>
     </Card>
