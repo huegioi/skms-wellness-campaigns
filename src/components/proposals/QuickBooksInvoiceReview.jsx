@@ -164,17 +164,30 @@ export default function QuickBooksInvoiceReview({ proposal, open, onOpenChange }
         <div className="space-y-5 mt-4">
           {/* Blocking errors at the top */}
           {hasBlocking && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-2">
-              <div className="flex items-center gap-2 font-semibold text-red-700">
-                <AlertCircle className="w-4 h-4" />
-                {blockingErrors.length} line(s) cannot be sent — no QuickBooks Item
-              </div>
-              {blockingErrors.map((err, i) => (
-                <div key={i} className="text-sm text-red-600 pl-6">
-                  • {err.name || 'Unknown'} — {err.reason}
+            (() => {
+              const allReasons = blockingErrors.map(e => e.reason || '');
+              const isPriceOnly = allReasons.every(r => /price|pricing/i.test(r));
+              const isItemOnly = allReasons.every(r => /item/i.test(r));
+              const headlineReason = isPriceOnly
+                ? '— no price available'
+                : isItemOnly
+                  ? '— no QuickBooks Item'
+                  : '';
+              return (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center gap-2 font-semibold text-red-700">
+                    <AlertCircle className="w-4 h-4" />
+                    {blockingErrors.length} line(s) cannot be sent yet{headlineReason}
+                  </div>
+                  <p className="text-xs text-red-500">Fix the pricing on the proposal, then reopen this dialog.</p>
+                  {blockingErrors.map((err, i) => (
+                    <div key={i} className="text-sm text-red-600 pl-6">
+                      • {err.name || 'Unknown'} — {err.reason}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              );
+            })()
           )}
 
           {/* Send error */}
