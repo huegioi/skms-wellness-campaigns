@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { 
   FileText, Calendar, DollarSign, Copy, Pencil, Trash2, 
-  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock, Bell, Mail, Link2, Search, Download, Receipt
+  ArrowUpDown, Filter, Eye, Send, CheckCircle, XCircle, Clock, Bell, Mail, Link2, Search, Download
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
@@ -399,18 +399,13 @@ export default function Proposals() {
                         )}
                         {proposal.status === 'accepted' && (
                           <>
-                            <Link to={createPageUrl('Invoices') + `?create=true&proposal_id=${proposal.id}`}>
-                              <Button size="sm" variant="outline" className="text-green-700 border-green-600 hover:bg-green-50">
-                                <Receipt className="w-4 h-4 mr-1" /> Create Invoice
-                              </Button>
-                            </Link>
                             {proposal.quickbooks_invoice_id ? (
                               <Button size="sm" variant="outline" disabled className="text-green-700 border-green-600 opacity-60">
                                 <CheckCircle className="w-4 h-4 mr-1" /> Already invoiced — DocNumber {proposal.quickbooks_doc_number}
                               </Button>
                             ) : (
                               <Button size="sm" variant="outline" className="text-[#013f7c] border-[#013f7c]" onClick={() => setQbProposal(proposal)}>
-                                <Send className="w-4 h-4 mr-1" /> Prepare QB Invoice
+                                <Send className="w-4 h-4 mr-1" /> Send to QuickBooks…
                               </Button>
                             )}
                           </>
