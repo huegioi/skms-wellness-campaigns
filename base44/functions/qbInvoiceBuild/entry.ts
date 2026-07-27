@@ -63,26 +63,59 @@ Deno.serve(async (req) => {
     const serviceMap = new Map(allServices.map(s => [s.id, s]));
 
     // ── Resolve QB customer (strictly sequential) ──
-    // Fast path: stored QB customer ID on the Client — skip all API calls.
-    let customerResolution;
-    let tokenRotated = false;
-
-    if (client?.quickbooks_customer_id) {
-      customerResolution = {
-        strategy: 'stored_customer_id',
-        status: 'found',
-        customer_id: client.quickbooks_customer_id,
-        customer_display_name: client?.company || proposal.company || null,
-        customer_email: clientEmail,
-        email_searched: clientEmail,
-        error: null,
-      };
-    } else {
     const realmId = await getRealmId(base44);
     if (!realmId) return Response.json({ error: 'No realm_id configured' }, { status: 500 });
     const tokenResult = await getAccessToken(base44);
-    tokenRotated = tokenResult.tokenRotated;
+    const tokenRotated = tokenResult.tokenRotated;
     const accessToken = tokenResult.accessToken;
+
+    let customerResolution = null;
+
+    // Fast path: stored QB customer ID on the Client — fetch the real record.
+    // One API call (vs one-to-three for the search path). Populates
+    // customer_display_name and customer_email from the QuickBooks response
+    // so the review dialog can compare app-side vs QB-side values.
+    if (client?.quickbooks_customer_id) {
+      const storedId = client.quickbooks_customer_id;
+      const resp = await fetch(
+        `${QB_API_URL}/${realmId}/customer/${storedId}`,
+        { headers: { 'Authorization': `Bearer ${accessToken}`, 'Accept': 'application/json' } }
+      );
+
+      if (resp.ok) {
+        const data = await resp.json();
+        const qbCustomer = data.Customer;
+        if (qbCustomer) {
+          customerResolution = {
+            strategy: 'stored_customer_id',
+            status: 'found',
+            customer_id: storedId,
+            customer_display_name: qbCustomer.DisplayName || null,
+            customer_email: qbCustomer.PrimaryEmailAddr?.Address || null,
+            email_searched: clientEmail,
+            error: null,
+          };
+        }
+      } else if (resp.status === 404) {
+        // Stored ID is stale — customer was deleted from QuickBooks.
+        // Clear it so future proposals search instead of hitting a dead ID,
+        // then fall through to the normal search path below.
+        try {
+          await base44.asServiceRole.entities.Client.update(client.id, { quickbooks_customer_id: '' });
+        } catch {}
+      } else {
+        // Any other error — do not silently fall through.
+        const errorText = await resp.text();
+        return Response.json({
+          dry_run: true,
+          error: `QuickBooks customer lookup failed (HTTP ${resp.status}): ${errorText.substring(0, 300)}`,
+        }, { status: 502 });
+      }
+    }
+
+    // Normal search path — runs when no stored ID, or when a stale stored ID
+    // was cleared above.
+    if (!customerResolution) {
 
     // Step 1: exact email
     let customerLookup = await findQBCustomer(accessToken, realmId, clientEmail);
@@ -166,7 +199,7 @@ Deno.serve(async (req) => {
         searched_display_name: (client?.company || proposal.company || proposal.client_name || '') || null,
       }, { status: 404 });
     }
-    } // end else (no stored customer ID — searched QB)
+    } // end search path
 
     // ── Build normalised lines from Proposal ──
     const { lines, warnings: lineWarnings, blockingErrors: priceBlockingErrors } = linesFromProposal(
