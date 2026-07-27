@@ -35,7 +35,7 @@ export default async function(req) {
     if (user.role !== 'admin') return Response.json({ error: 'Forbidden — admin only' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
-    const { proposal_id, invoice_body, fingerprint } = body;
+    const { proposal_id, invoice_body, fingerprint, line_service_ids } = body;
 
     if (!proposal_id || !invoice_body || !fingerprint) {
       return Response.json({ error: 'proposal_id, invoice_body, and fingerprint are required' }, { status: 400 });
@@ -133,6 +133,17 @@ export default async function(req) {
       }, { status: 409 });
     }
 
+    // ── Service ID propagation ──
+    // line_service_ids is index-aligned to invoice_body.Line (built by
+    // qbInvoiceBuild from lineAnalysis). It is NOT part of invoice_body and
+    // was not included in the fingerprint — local metadata only.
+    // If the length doesn't match, write no service_id values at all.
+    const salesItemLines = (invoice_body.Line || []).filter(l => l.DetailType === 'SalesItemLineDetail');
+    const serviceIdsValid = Array.isArray(line_service_ids) && line_service_ids.length === (invoice_body.Line || []).length;
+    if (Array.isArray(line_service_ids) && !serviceIdsValid) {
+      console.warn(`[qbInvoiceSend] line_service_ids length (${line_service_ids.length}) does not match invoice_body.Line.length (${(invoice_body.Line || []).length}) — no service_id values will be written.`);
+    }
+
     const invoiceData = {
       proposal_id,
       client_id: proposal.client_id || '',
@@ -140,14 +151,13 @@ export default async function(req) {
       client_email: proposal.client_email || '',
       company: proposal.company || '',
       invoice_number: qbDocNumber || '',
-      line_items: (invoice_body.Line || [])
-        .filter(l => l.DetailType === 'SalesItemLineDetail')
-        .map(l => ({
-          description: l.Description || '',
-          quantity: l.SalesItemLineDetail?.Qty || 1,
-          rate: l.SalesItemLineDetail?.UnitPrice || 0,
-          amount: l.Amount || 0,
-        })),
+      line_items: salesItemLines.map((l, i) => ({
+        description: l.Description || '',
+        quantity: l.SalesItemLineDetail?.Qty || 1,
+        rate: l.SalesItemLineDetail?.UnitPrice || 0,
+        amount: l.Amount || 0,
+        ...(serviceIdsValid ? { service_id: line_service_ids[i] || '' } : {}),
+      })),
       subtotal: qbTotalAmt,
       total_amount: qbTotalAmt,
       status: 'created_in_quickbooks',

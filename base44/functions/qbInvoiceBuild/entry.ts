@@ -171,6 +171,11 @@ Deno.serve(async (req) => {
     const allWarnings = [...warnings, ...lineWarnings];
     const allBlockingErrors = [...priceBlockingErrors, ...itemBlockingErrors];
 
+    // Service IDs index-aligned to invoice_body.Line — extracted from
+    // lineAnalysis (which is index-aligned to resolvedLines / body.Line).
+    // Not part of invoice_body, not included in the fingerprint.
+    const line_service_ids = lineAnalysis.map(l => l.service_id || null);
+
     // Return 200 even with blocking errors — the review screen needs to
     // display them alongside the customer resolution. The Send button is
     // disabled when blocking_errors is non-empty.
@@ -183,6 +188,7 @@ Deno.serve(async (req) => {
         customer_resolution: customerResolution,
         invoice_body: invoiceBody,
         line_analysis: lineAnalysis,
+        line_service_ids,
         warnings: allWarnings,
         fingerprint,
       });
@@ -197,6 +203,7 @@ Deno.serve(async (req) => {
       customer_resolution: customerResolution,
       invoice_body: invoiceBody,
       fingerprint,
+      line_service_ids,
       line_count: lines.length,
       line_analysis: lineAnalysis,
       warnings: allWarnings,

@@ -41,6 +41,7 @@ export default function QuickBooksInvoiceReview({ proposal, open, onOpenChange }
         proposal_id: proposal.id,
         invoice_body: dryRun.invoice_body,
         fingerprint: dryRun.fingerprint,
+        line_service_ids: dryRun.line_service_ids,
       });
       return res.data;
     },

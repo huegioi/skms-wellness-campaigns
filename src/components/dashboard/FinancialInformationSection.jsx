@@ -64,8 +64,9 @@ export default function FinancialInformationSection() {
   };
 
   // Revenue by Service Line — accrual basis (all invoices by issue_date).
-  // Resolution per line item: (1) matchService, (2) keyword classifier
-  // (first match wins, case-insensitive), (3) "Uncategorized."
+  // Resolution per line item: (1) matchService, (2) two-tier keyword
+  // classifier (Tier 1 deliverables first, Tier 2 modifiers only if no
+  // Tier 1 match), (3) "Uncategorized."
   const generateServiceLineBreakdown = () => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -93,23 +94,35 @@ export default function FinancialInformationSection() {
     let unmatchedRevenue = 0;
     let totalRevenue = 0;
 
-    // Keyword classifier — applied only when matchService returns nothing.
-    // First match wins, case-insensitive. Precedence is significant:
-    // "Zoom recording of the EQ workshop" must land in Digital / Licensing,
-    // not Workshop, so Pass-through and Digital / Licensing come first.
-    const KEYWORD_CLASSIFIER = [
-      { label: 'Pass-through', keywords: ['shipping', 'freight', 'credit card fee', 'processing fee', 'sales tax'] },
-      { label: 'Digital / Licensing', keywords: ['recording', 'lms', 'worksheet', 'license', 'licensing'] },
+    // Keyword classifier — two tiers, applied only when matchService
+    // returns nothing. Tier 1 (primary deliverables) is checked first;
+    // a line matching "workshop (recording included)" lands in Workshop,
+    // not Digital / Licensing, because the modifier describes what's
+    // included, not what was sold. Tier 2 is reached only when no
+    // Tier 1 keyword matched.
+    const TIER1_DELIVERABLES = [
       { label: 'Box', keywords: ['wellness box', 'box'] },
       { label: 'Challenge', keywords: ['challenge'] },
       { label: 'Leadership', keywords: ['leadership', 'manager', 'executive'] },
       { label: 'Class', keywords: ['class', 'series'] },
-      { label: 'Workshop', keywords: ['workshop', 'eq workshop', 'training', 'session'] },
+      { label: 'Workshop', keywords: ['workshop', 'training', 'session'] },
+    ];
+
+    const TIER2_MODIFIERS = [
+      { label: 'Pass-through', keywords: ['shipping', 'freight', 'credit card fee', 'processing fee', 'sales tax'] },
+      { label: 'Digital / Licensing', keywords: ['recording', 'lms', 'worksheet', 'license', 'licensing'] },
     ];
 
     const classifyByKeyword = (desc) => {
       const lower = desc.toLowerCase();
-      for (const rule of KEYWORD_CLASSIFIER) {
+      // Tier 1 — first match wins
+      for (const rule of TIER1_DELIVERABLES) {
+        for (const kw of rule.keywords) {
+          if (lower.includes(kw)) return rule.label;
+        }
+      }
+      // Tier 2 — only reached when no Tier 1 keyword matched
+      for (const rule of TIER2_MODIFIERS) {
         for (const kw of rule.keywords) {
           if (lower.includes(kw)) return rule.label;
         }
