@@ -1,30 +1,28 @@
 import React, { useState } from 'react';
-import { useDashInvoices, useDashExpenses } from './useDashboardData';
-import { base44 } from '@/api/base44Client';
+import { useDashInvoices } from './useDashboardData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { DollarSign, TrendingUp, Clock, CheckCircle2, RefreshCw, TrendingDown, Wallet } from 'lucide-react';
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { CHART_PALETTE, formatCurrency, formatPercent } from '@/lib/dashboardStyle';
+import { DollarSign, TrendingUp, Clock, CheckCircle2, RefreshCw } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { CHART_PALETTE, formatCurrency } from '@/lib/dashboardStyle';
 import DashboardSkeleton from './DashboardSkeleton';
 import DashboardEmptyState from './DashboardEmptyState';
-import ReportsSection from './ReportsSection';
 import TopCustomersCard from './TopCustomersCard';
+import ReceivablesAgingTable from '@/components/financials/ReceivablesAgingTable';
+import RevenueConcentrationPanel from '@/components/financials/RevenueConcentrationPanel';
+import BookedNotDeliveredTile from '@/components/financials/BookedNotDeliveredTile';
 
 export default function FinancialInformationSection() {
   const [timeframe, setTimeframe] = useState('year');
   const [syncing, setSyncing] = useState(false);
-  const [activeTab, setActiveTab] = useState('overview');
 
   const { data: rawInvoices = [], isLoading: loadingInvoices, refetch: refetchInvoices } = useDashInvoices();
-  const { data: rawQuickBooksExpenses = [], isLoading: loadingExpenses, refetch: refetchExpenses } = useDashExpenses();
 
   // Exclude demo/broker-demo records from dashboard metrics
   const invoices = rawInvoices.filter(i => !i.is_demo && !i.out_of_scope);
-  const quickBooksExpenses = rawQuickBooksExpenses.filter(e => !e.is_demo);
 
-  if (loadingInvoices || loadingExpenses) {
+  if (loadingInvoices) {
     return (
       <div className="space-y-8">
         <DashboardSkeleton title rows={4} />
@@ -48,7 +46,7 @@ export default function FinancialInformationSection() {
     const totalInvoiced = periodInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
     const totalPaid = invoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
     const outstanding = invoices.filter(inv => ['sent', 'overdue', 'created_in_quickbooks'].includes(inv.status)).reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
-    
+
     const dueSoon = invoices.filter(inv => {
       if (!['sent', 'created_in_quickbooks'].includes(inv.status)) return false;
       const dueDate = new Date(inv.due_date);
@@ -56,21 +54,7 @@ export default function FinancialInformationSection() {
       return daysUntilDue <= 7 && daysUntilDue >= 0;
     }).length;
 
-    // Income: paid invoices in period, using paid_date || issue_date
-    const paidInvoices = invoices.filter(inv => {
-      if (inv.status !== 'paid') return false;
-      const d = inv.paid_date || inv.issue_date;
-      return d && new Date(d) >= startDate;
-    });
-    const totalIncome = paidInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
-
-    const totalExpenses = quickBooksExpenses
-      .filter(exp => exp.transaction_date && new Date(exp.transaction_date) >= startDate)
-      .reduce((sum, exp) => sum + (exp.amount || 0), 0);
-
-    const netProfit = totalIncome - totalExpenses;
-
-    return { totalInvoiced, totalPaid, outstanding, dueSoon, totalExpenses, totalIncome, netProfit };
+    return { totalInvoiced, totalPaid, outstanding, dueSoon };
   };
 
   const metrics = calculateMetrics();
@@ -79,79 +63,11 @@ export default function FinancialInformationSection() {
     setSyncing(true);
     try {
       await refetchInvoices();
-      await refetchExpenses();
     } catch (error) {
       console.error('Sync error:', error);
     } finally {
       setSyncing(false);
     }
-  };
-
-  const generateMonthlyData = () => {
-    const monthlyData = {};
-
-    const getKey = (dateStr) => {
-      // Parse date parts directly to avoid UTC/local timezone shifting
-      const parts = dateStr.split('T')[0].split('-');
-      const year = parseInt(parts[0]);
-      const month = parseInt(parts[1]) - 1;
-      const key = `${year}-${String(month + 1).padStart(2, '0')}`;
-      const label = new Date(year, month, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-      return { key, label };
-    };
-
-    // Track paid invoices as income — use paid_date if available, fall back to issue_date
-    invoices.filter(inv => inv.status === 'paid' && (inv.paid_date || inv.issue_date)).forEach(inv => {
-      const { key, label } = getKey(inv.paid_date || inv.issue_date);
-      if (!monthlyData[key]) monthlyData[key] = { key, month: label, expenses: 0, income: 0 };
-      monthlyData[key].income += inv.total_amount || 0;
-    });
-
-    // Track expenses
-    quickBooksExpenses.filter(exp => exp.transaction_date).forEach(exp => {
-      const { key, label } = getKey(exp.transaction_date);
-      if (!monthlyData[key]) monthlyData[key] = { key, month: label, expenses: 0, income: 0 };
-      monthlyData[key].expenses += exp.amount || 0;
-    });
-
-    return Object.values(monthlyData)
-      .sort((a, b) => a.key.localeCompare(b.key))
-      .slice(-6)
-      .map(data => ({ ...data, profit: data.income - data.expenses }));
-  };
-
-  const monthlyData = generateMonthlyData();
-
-  const generateExpenseBreakdown = () => {
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfQuarter = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
-    const startDate = timeframe === 'month' ? startOfMonth : timeframe === 'quarter' ? startOfQuarter : timeframe === 'year' ? startOfYear : new Date(0);
-
-    const periodExpenses = quickBooksExpenses.filter(exp =>
-      exp.transaction_date && new Date(exp.transaction_date) >= startDate
-    );
-
-    const categoryBreakdown = {};
-    let contractorTotalAmount = 0;
-    let contractorTotalCount = 0;
-
-    periodExpenses.forEach(exp => {
-      const category = exp.category || 'Other';
-      categoryBreakdown[category] = (categoryBreakdown[category] || 0) + (exp.amount || 0);
-
-      if (exp.vendor_name && exp.vendor_name.toLowerCase().includes('contractor')) {
-        contractorTotalAmount += exp.amount || 0;
-        contractorTotalCount++;
-      }
-    });
-
-    const breakdown = Object.entries(categoryBreakdown)
-      .sort((a, b) => b[1] - a[1])
-      .map(([name, value]) => ({ name, value }));
-
-    return { breakdown, contractorTotal: { total: contractorTotalAmount, count: contractorTotalCount } };
   };
 
   // Generate income breakdown from invoices
@@ -195,19 +111,15 @@ export default function FinancialInformationSection() {
     return { topCustomers, serviceBreakdown, typeBreakdown: [] };
   };
 
-  const expenseData = generateExpenseBreakdown();
   const incomeData = generateIncomeBreakdown();
 
-  const StatCard = ({ title, value, icon: Icon, trend, colorClass }) => (
+  const StatCard = ({ title, value, icon: Icon, colorClass }) => (
     <Card className="relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
       <CardContent className="p-6 z-10 relative">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
             <p className={`text-3xl font-bold ${colorClass.value}`}>{value}</p>
-            {trend && (
-              <p className="text-sm text-gray-500 mt-1">{trend}</p>
-            )}
           </div>
           <div className={`p-3 rounded-full ${colorClass.bg} transition-all duration-300 group-hover:scale-110`}>
             <Icon className={`w-6 h-6 ${colorClass.icon}`} />
@@ -223,37 +135,31 @@ export default function FinancialInformationSection() {
     green: { value: "text-green-600", bg: "bg-green-100", icon: "text-green-600" },
     orange: { value: "text-orange-600", bg: "bg-orange-100", icon: "text-orange-600" },
     red: { value: "text-red-600", bg: "bg-red-100", icon: "text-red-600" },
-    purple: { value: "text-purple-600", bg: "bg-purple-100", icon: "text-purple-600" },
   };
 
   return (
     <div className="space-y-8">
-      {/* Main Tabs: Overview and Reports */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="reports">Reports</TabsTrigger>
-          </TabsList>
-          <Button onClick={handleSyncFinancials} disabled={syncing} className="bg-brand-green hover:bg-brand-forest">
-            <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Refreshing...' : 'Refresh Data'}
-          </Button>
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <Button onClick={handleSyncFinancials} disabled={syncing} className="bg-brand-green hover:bg-brand-forest">
+          <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+          {syncing ? 'Refreshing...' : 'Refresh Data'}
+        </Button>
+      </div>
 
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-8">
-          {/* Timeframe Selector */}
-          <div className="flex flex-wrap items-center gap-4">
-            <Tabs value={timeframe} onValueChange={setTimeframe}>
-              <TabsList>
-                <TabsTrigger value="month">This Month</TabsTrigger>
-                <TabsTrigger value="quarter">This Quarter</TabsTrigger>
-                <TabsTrigger value="year">This Year</TabsTrigger>
-                <TabsTrigger value="all">All Time</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+      {/* Timeframe Selector */}
+      <div className="flex flex-wrap items-center gap-4">
+        <Tabs value={timeframe} onValueChange={setTimeframe}>
+          <TabsList>
+            <TabsTrigger value="month">This Month</TabsTrigger>
+            <TabsTrigger value="quarter">This Quarter</TabsTrigger>
+            <TabsTrigger value="year">This Year</TabsTrigger>
+            <TabsTrigger value="all">All Time</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Receivables Aging — top of overview */}
+      <ReceivablesAgingTable invoices={invoices} />
 
       {/* Financial KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -283,55 +189,8 @@ export default function FinancialInformationSection() {
         />
       </div>
 
-      {/* Income vs Expenses */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-        <Card className="bg-gradient-to-br from-green-50 to-emerald-100 relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-          <CardContent className="p-6 z-10 relative">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Total Income</p>
-                <p className="text-3xl font-bold text-green-600">{formatCurrency(metrics.totalIncome)}</p>
-              </div>
-              <div className="p-4 rounded-full bg-green-100 transition-all duration-300 group-hover:scale-110">
-                <TrendingUp className="w-8 h-8 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-          <div className="absolute inset-0 opacity-10 bg-green-200 blur-2xl"></div>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-red-50 to-rose-100 relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-          <CardContent className="p-6 z-10 relative">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Total Expenses</p>
-                <p className="text-3xl font-bold text-red-600">{formatCurrency(metrics.totalExpenses)}</p>
-              </div>
-              <div className="p-4 rounded-full bg-red-100 transition-all duration-300 group-hover:scale-110">
-                <TrendingDown className="w-8 h-8 text-red-600" />
-              </div>
-            </div>
-          </CardContent>
-          <div className="absolute inset-0 opacity-10 bg-red-200 blur-2xl"></div>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-50 to-violet-100 relative overflow-hidden group hover:shadow-lg transition-shadow duration-300">
-          <CardContent className="p-6 z-10 relative">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">Net Profit</p>
-                <p className={`text-3xl font-bold ${metrics.netProfit >= 0 ? 'text-purple-600' : 'text-red-600'}`}>
-                  {formatCurrency(metrics.netProfit)}
-                </p>
-              </div>
-              <div className="p-4 rounded-full bg-purple-100 transition-all duration-300 group-hover:scale-110">
-                <Wallet className="w-8 h-8 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-          <div className="absolute inset-0 opacity-10 bg-purple-200 blur-2xl"></div>
-        </Card>
-      </div>
+      {/* Booked, Not Delivered */}
+      <BookedNotDeliveredTile />
 
       {/* Top Customers (merged revenue + LTV) */}
       <TopCustomersCard
@@ -340,32 +199,8 @@ export default function FinancialInformationSection() {
         timeframe={timeframe}
       />
 
-      {/* Income vs Expenses Chart */}
-      <Card className="hover:shadow-lg transition-shadow duration-300">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base font-semibold text-brand-green">Income vs Expenses (Last 6 Months)</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 sm:p-6">
-          {monthlyData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={256}>
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
-                <Tooltip
-                  formatter={(value, name) => [`$${value.toLocaleString()}`, name]}
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                />
-                <Legend />
-                <Bar dataKey="income" name="Income" fill={CHART_PALETTE[7]} radius={[6, 6, 0, 0]} />
-                <Bar dataKey="expenses" name="Expenses" fill={CHART_PALETTE[9]} radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <DashboardEmptyState icon={TrendingUp} message="No financial data yet — click Refresh Data" />
-          )}
-        </CardContent>
-      </Card>
+      {/* Revenue Concentration */}
+      <RevenueConcentrationPanel invoices={invoices} />
 
       {/* Income by Service/Product */}
       <Card className="hover:shadow-lg transition-shadow duration-300">
@@ -388,47 +223,6 @@ export default function FinancialInformationSection() {
           )}
         </CardContent>
       </Card>
-
-      {/* Profit Trend */}
-      <Card className="hover:shadow-lg transition-shadow duration-300">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-base font-semibold text-brand-green">Net Profit Trend</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 sm:p-6">
-          {monthlyData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={256}>
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} />
-                <YAxis axisLine={false} tickLine={false} />
-                <Tooltip 
-                  formatter={(value) => `$${value.toLocaleString()}`}
-                  contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="profit" 
-                  name="Net Profit" 
-                  stroke={CHART_PALETTE[10]} 
-                  strokeWidth={3} 
-                  dot={{ r: 4, fill: CHART_PALETTE[10], stroke: '#fff', strokeWidth: 2 }} 
-                  activeDot={{ r: 6, fill: '#fff', stroke: CHART_PALETTE[10], strokeWidth: 2 }} 
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <DashboardEmptyState icon={TrendingUp} message="No data available" />
-          )}
-        </CardContent>
-      </Card>
-
-        </TabsContent>
-
-        {/* Reports Tab */}
-        <TabsContent value="reports">
-          <ReportsSection />
-        </TabsContent>
-      </Tabs>
     </div>
   );
 }

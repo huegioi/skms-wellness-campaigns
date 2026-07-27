@@ -201,7 +201,7 @@ function InvoicesPanel() {
   const filteredInvoices = invoices.filter(inv => filterStatus === 'all' || inv.status === filterStatus);
   const totalAmount = filteredInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
   const paidAmount = filteredInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
-  const outstandingAmount = totalAmount - paidAmount;
+  const outstandingAmount = filteredInvoices.filter(inv => ['sent', 'overdue', 'created_in_quickbooks'].includes(inv.status)).reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
   const qbFilteredInvoices = qbInvoices.filter(inv => filterStatus === 'all' || inv.status === filterStatus);
   const qbTotalAmount = qbFilteredInvoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
   const qbPaidAmount = qbFilteredInvoices.filter(inv => inv.status === 'paid').reduce((sum, inv) => sum + (inv.total_amount || 0), 0);
