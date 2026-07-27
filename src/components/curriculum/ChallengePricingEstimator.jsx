@@ -16,9 +16,11 @@ const TIERS = [
   { min: 1000, max: Infinity, price: 9 },
 ];
 
+const ENGAGEMENT_RATE = 0.20;   // expected participation as a share of headcount
+
 function calcPricing(headcount) {
   if (!headcount || headcount <= 0) return null;
-  const baseSlots = Math.round(headcount * 0.3);
+  const baseSlots = Math.round(headcount * ENGAGEMENT_RATE);
   const minimumApplied = baseSlots < 40;
   const targetSlots = minimumApplied ? 40 : baseSlots;
   const tier = TIERS.find(t => targetSlots >= t.min && targetSlots <= t.max);
@@ -66,7 +68,7 @@ export default function ChallengePricingEstimator({ initialHeadcount }) {
         {result ? (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-              <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">Target Engagement Slots (30%)</p>
+              <p className="text-xs font-semibold text-blue-500 uppercase tracking-wide mb-1">Target Engagement Slots ({Math.round(ENGAGEMENT_RATE * 100)}%)</p>
               <p className="text-3xl font-bold text-blue-800">{result.targetSlots.toLocaleString()}</p>
               {result.minimumApplied && (
                 <p className="text-xs text-blue-500 italic mt-1">(Platform minimum applied)</p>
