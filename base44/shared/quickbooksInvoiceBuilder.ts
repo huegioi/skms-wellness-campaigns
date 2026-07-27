@@ -31,7 +31,7 @@ export interface NormalizedLine {
   serviceName?: string;         // for error reporting / analysis
   lineType?: string;            // for analysis (workshop, challenge, wellness_box, etc.)
   priceSource?: string;         // for analysis (price_override, proposal_snapshot, etc.)
-  confidence?: string;          // 'explicit' | 'service_ref' | 'exact' | 'guess' | 'category_default'
+  confidence?: string;          // 'explicit' | 'service_ref' | 'exact' | 'guess'
 }
 
 export interface InvoiceBodyOptions {
@@ -261,8 +261,17 @@ export function linesFromProposal(
   const boxSnapshot = s.sampleBoxPrices || {};
   for (const [key, qty] of Object.entries(boxQtys)) {
     if (!qty) continue;
-    const boxSvcName = BOX_KEY_TO_SERVICE_NAME[key];
-    const boxSvc = allServices.find(svc => svc.category === 'wellness_box' && svc.name === boxSvcName);
+    // Resolve by qb_box_key first (stable); fall back to name match (fragile)
+    let boxSvc = allServices.find(svc => svc.category === 'wellness_box' && svc.qb_box_key === key);
+    if (!boxSvc) {
+      const boxSvcName = BOX_KEY_TO_SERVICE_NAME[key];
+      if (boxSvcName) {
+        boxSvc = allServices.find(svc => svc.category === 'wellness_box' && svc.name === boxSvcName);
+        if (boxSvc) {
+          warnings.push(`Box "${BOX_DISPLAY_NAMES[key] || key}" resolved by name match, not qb_box_key — Service "${boxSvc.name}" is missing its qb_box_key field.`);
+        }
+      }
+    }
     let price: number, source: string;
     if (boxSnapshot[key] != null) {
       price = boxSnapshot[key]; source = 'sample_box_prices';
@@ -285,7 +294,7 @@ export function linesFromProposal(
       serviceName: displayName,
       lineType: 'wellness_box',
       priceSource: source,
-      confidence: boxSvc ? 'service_ref' : 'category_default',
+      confidence: boxSvc ? 'service_ref' : undefined,
     });
   }
 
@@ -303,7 +312,6 @@ export function linesFromProposal(
       serviceName: 'Custom Wellness Box',
       lineType: 'custom_wellness_box',
       priceSource: 'custom_box_items',
-      confidence: 'category_default',
     });
   }
 

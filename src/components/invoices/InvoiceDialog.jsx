@@ -222,7 +222,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
             quantity: quantity,
             rate: price,
             amount: price * quantity,
-            service_id: services.find(s => s.category === 'wellness_box' && s.name === (boxNames[key] || key))?.id || null,
+            service_id: services.find(s => s.category === 'wellness_box' && s.qb_box_key === key)?.id || services.find(s => s.category === 'wellness_box' && s.name === (boxNames[key] || key))?.id || null,
             proposal_item_id: itemId,
             already_invoiced: invoicedItems.includes(itemId)
           });
