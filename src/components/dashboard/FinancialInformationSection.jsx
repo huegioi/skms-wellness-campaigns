@@ -63,9 +63,9 @@ export default function FinancialInformationSection() {
     }
   };
 
-  // Revenue by Service Line — accrual basis (all invoices by issue_date),
-  // grouped by service category. Falls back to line description where no
-  // category is resolvable.
+  // Revenue by Service Line — accrual basis (all invoices by issue_date).
+  // Resolution per line item: (1) matchService, (2) keyword classifier
+  // (first match wins, case-insensitive), (3) "Uncategorized."
   const generateServiceLineBreakdown = () => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -93,21 +93,61 @@ export default function FinancialInformationSection() {
     let unmatchedRevenue = 0;
     let totalRevenue = 0;
 
+    // Keyword classifier — applied only when matchService returns nothing.
+    // First match wins, case-insensitive. Precedence is significant:
+    // "Zoom recording of the EQ workshop" must land in Digital / Licensing,
+    // not Workshop, so Pass-through and Digital / Licensing come first.
+    const KEYWORD_CLASSIFIER = [
+      { label: 'Pass-through', keywords: ['shipping', 'freight', 'credit card fee', 'processing fee', 'sales tax'] },
+      { label: 'Digital / Licensing', keywords: ['recording', 'lms', 'worksheet', 'license', 'licensing'] },
+      { label: 'Box', keywords: ['wellness box', 'box'] },
+      { label: 'Challenge', keywords: ['challenge'] },
+      { label: 'Leadership', keywords: ['leadership', 'manager', 'executive'] },
+      { label: 'Class', keywords: ['class', 'series'] },
+      { label: 'Workshop', keywords: ['workshop', 'eq workshop', 'training', 'session'] },
+    ];
+
+    const classifyByKeyword = (desc) => {
+      const lower = desc.toLowerCase();
+      for (const rule of KEYWORD_CLASSIFIER) {
+        for (const kw of rule.keywords) {
+          if (lower.includes(kw)) return rule.label;
+        }
+      }
+      return null;
+    };
+
     periodInvoices.forEach(inv => {
       if (!inv.line_items || !Array.isArray(inv.line_items)) return;
       inv.line_items.forEach(item => {
         const amount = item.amount || 0;
+        const desc = (item.description || '').trim();
+
+        // Step 1: matchService (unchanged)
         const service = matchService(item);
         let label;
         if (service) {
           label = categoryLabels[service.category] || service.category;
+        } else if (desc) {
+          // Step 2: keyword classifier
+          const kwLabel = classifyByKeyword(desc);
+          if (kwLabel) {
+            label = kwLabel;
+          } else {
+            // Step 3: Uncategorized
+            label = 'Uncategorized';
+            unmatchedCount++;
+            unmatchedRevenue += amount;
+            descAmounts[desc] = (descAmounts[desc] || 0) + amount;
+          }
         } else {
-          label = 'Custom / Uncategorized';
+          // No description — Uncategorized
+          label = 'Uncategorized';
           unmatchedCount++;
           unmatchedRevenue += amount;
-          const desc = (item.description || '(no description)').trim();
-          descAmounts[desc] = (descAmounts[desc] || 0) + amount;
+          descAmounts['(no description)'] = (descAmounts['(no description)'] || 0) + amount;
         }
+
         byCategory[label] = (byCategory[label] || 0) + amount;
         totalRevenue += amount;
       });
@@ -218,7 +258,7 @@ export default function FinancialInformationSection() {
               {serviceLineData.unmatchedCount > 0 && (
                 <div className="mt-3 space-y-1">
                   <p className="text-xs text-amber-600">
-                    {serviceLineData.unmatchedCount} line item(s) lack a resolvable service category — {serviceLineData.totalRevenue > 0 ? ((serviceLineData.unmatchedRevenue / serviceLineData.totalRevenue) * 100).toFixed(1) : 0}% of total invoiced revenue.
+                    {serviceLineData.unmatchedCount} line item(s) could not be classified by service match or keyword — {serviceLineData.totalRevenue > 0 ? ((serviceLineData.unmatchedRevenue / serviceLineData.totalRevenue) * 100).toFixed(1) : 0}% of total invoiced revenue.
                   </p>
                   <p className="text-xs font-medium text-gray-500">Top unmatched descriptions:</p>
                   <ul className="text-xs text-gray-500 space-y-0.5">
