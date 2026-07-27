@@ -40,7 +40,7 @@ export default function FinancialInformationSection() {
     const startDate = timeframe === 'month' ? startOfMonth : timeframe === 'quarter' ? startOfQuarter : timeframe === 'year' ? startOfYear : new Date(0);
 
     const periodInvoices = invoices.filter(inv => {
-      const d = inv.paid_date || inv.issue_date;
+      const d = inv.issue_date;
       return d && new Date(d) >= startDate;
     });
 
@@ -88,6 +88,7 @@ export default function FinancialInformationSection() {
     };
 
     const byCategory = {};
+    const descAmounts = {};
     let unmatchedCount = 0;
     let unmatchedRevenue = 0;
     let totalRevenue = 0;
@@ -101,9 +102,11 @@ export default function FinancialInformationSection() {
         if (service) {
           label = categoryLabels[service.category] || service.category;
         } else {
-          label = item.description || 'Custom';
+          label = 'Custom / Uncategorized';
           unmatchedCount++;
           unmatchedRevenue += amount;
+          const desc = (item.description || '(no description)').trim();
+          descAmounts[desc] = (descAmounts[desc] || 0) + amount;
         }
         byCategory[label] = (byCategory[label] || 0) + amount;
         totalRevenue += amount;
@@ -114,7 +117,12 @@ export default function FinancialInformationSection() {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    return { serviceBreakdown, unmatchedCount, unmatchedRevenue, totalRevenue };
+    const topDescriptions = Object.entries(descAmounts)
+      .map(([desc, amount]) => ({ desc, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 5);
+
+    return { serviceBreakdown, unmatchedCount, unmatchedRevenue, totalRevenue, topDescriptions };
   };
 
   const serviceLineData = generateServiceLineBreakdown();
@@ -208,9 +216,20 @@ export default function FinancialInformationSection() {
                 </BarChart>
               </ResponsiveContainer>
               {serviceLineData.unmatchedCount > 0 && (
-                <p className="text-xs text-amber-600 mt-2">
-                  {serviceLineData.unmatchedCount} line item(s) lack a resolvable service category — {serviceLineData.totalRevenue > 0 ? ((serviceLineData.unmatchedRevenue / serviceLineData.totalRevenue) * 100).toFixed(1) : 0}% of total invoiced revenue, grouped by description.
-                </p>
+                <div className="mt-3 space-y-1">
+                  <p className="text-xs text-amber-600">
+                    {serviceLineData.unmatchedCount} line item(s) lack a resolvable service category — {serviceLineData.totalRevenue > 0 ? ((serviceLineData.unmatchedRevenue / serviceLineData.totalRevenue) * 100).toFixed(1) : 0}% of total invoiced revenue.
+                  </p>
+                  <p className="text-xs font-medium text-gray-500">Top unmatched descriptions:</p>
+                  <ul className="text-xs text-gray-500 space-y-0.5">
+                    {serviceLineData.topDescriptions.map((d, i) => (
+                      <li key={i} className="flex justify-between">
+                        <span className="truncate mr-2">{d.desc}</span>
+                        <span className="font-medium text-gray-600 whitespace-nowrap">{formatCurrency(d.amount)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </>
           ) : (

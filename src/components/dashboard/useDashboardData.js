@@ -66,15 +66,6 @@ export function useDashExpenses() {
   });
 }
 
-/** All QuickBooks income — used by ReportsSection */
-export function useDashIncome() {
-  return useQuery({
-    queryKey: ['dash-income'],
-    queryFn: () => base44.entities.QuickBooksIncome.list(),
-    staleTime: STALE_TIME,
-  });
-}
-
 /** Calendar events (start-date desc, high limit) — used by ClientInformationSection, ServicesAnalytics */
 export function useDashCalendarEvents() {
   return useQuery({
