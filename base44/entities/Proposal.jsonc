@@ -73,6 +73,14 @@
       "default": 0,
       "description": "Number of reminders sent"
     },
+    "quickbooks_invoice_id": {
+      "type": "string",
+      "description": "QuickBooks invoice ID once the invoice has been created via the review gate. When set, the Prepare QB Invoice button is replaced with the 'Already invoiced' state and the gate refuses re-send."
+    },
+    "quickbooks_doc_number": {
+      "type": "string",
+      "description": "QuickBooks DocNumber assigned to the invoice created via the review gate."
+    },
     "is_demo": {
       "type": "boolean",
       "default": false,

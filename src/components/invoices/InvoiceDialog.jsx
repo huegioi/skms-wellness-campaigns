@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Trash2, Save } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
+import { BOX_DISPLAY_NAMES, WELLNESS_BOX_PRICES } from '@/lib/wellnessBoxes';
 
 export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clients, preselectedProposalId }) {
   const [formData, setFormData] = useState({
@@ -197,32 +198,22 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
       });
     }
 
-    // Add wellness boxes
+    // Add wellness boxes — uses shared display-name map (all 9 keys) and
+    // resolves Service by qb_box_key only. The old name-based fallback
+    // matched display names against Service names and only ever matched
+    // largeEmotional, so it was dead code.
     if (selections.sampleBoxQuantities) {
-      const boxPrices = {
-        reduceStress: 65,
-        relaxationSleep: 65,
-        largeEmotional: 125,
-        largeStressReduction: 125
-      };
-      const boxNames = {
-        reduceStress: 'Reduce Stress Box',
-        relaxationSleep: 'Relaxation & Sleep Box',
-        largeEmotional: 'Large Emotional Wellness Box',
-        largeStressReduction: 'Large Stress Reduction Box'
-      };
-      
       Object.entries(selections.sampleBoxQuantities).forEach(([key, quantity]) => {
         if (quantity > 0) {
           const itemId = `box_${key}`;
-          const price = boxPrices[key] || 65;
+          const price = WELLNESS_BOX_PRICES[key] || 0;
           lineItems.push({
-            name: boxNames[key] || key,
+            name: BOX_DISPLAY_NAMES[key] || key,
             description: '',
             quantity: quantity,
             rate: price,
             amount: price * quantity,
-            service_id: services.find(s => s.category === 'wellness_box' && s.qb_box_key === key)?.id || services.find(s => s.category === 'wellness_box' && s.name === (boxNames[key] || key))?.id || null,
+            service_id: services.find(s => s.category === 'wellness_box' && s.qb_box_key === key)?.id || null,
             proposal_item_id: itemId,
             already_invoiced: invoicedItems.includes(itemId)
           });

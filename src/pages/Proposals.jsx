@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import SendProposalDialog from '@/components/proposals/SendProposalDialog';
 import SendReminderDialog from '@/components/proposals/SendReminderDialog';
+import QuickBooksInvoiceReview from '@/components/proposals/QuickBooksInvoiceReview';
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 import { PROPOSAL_STATUS_CONFIG as statusConfig } from '@/lib/statusConfig';
 
@@ -27,6 +28,7 @@ export default function Proposals() {
   const [viewingProposal, setViewingProposal] = useState(null);
   const [sendingProposal, setSendingProposal] = useState(null);
   const [reminderProposal, setReminderProposal] = useState(null);
+  const [qbProposal, setQbProposal] = useState(null);
 
   const queryClient = useQueryClient();
 
@@ -396,11 +398,22 @@ export default function Proposals() {
                           </Button>
                         )}
                         {proposal.status === 'accepted' && (
-                          <Link to={createPageUrl('Invoices') + `?create=true&proposal_id=${proposal.id}`}>
-                            <Button size="sm" variant="outline" className="text-green-700 border-green-600 hover:bg-green-50">
-                              <Receipt className="w-4 h-4 mr-1" /> Create Invoice
-                            </Button>
-                          </Link>
+                          <>
+                            <Link to={createPageUrl('Invoices') + `?create=true&proposal_id=${proposal.id}`}>
+                              <Button size="sm" variant="outline" className="text-green-700 border-green-600 hover:bg-green-50">
+                                <Receipt className="w-4 h-4 mr-1" /> Create Invoice
+                              </Button>
+                            </Link>
+                            {proposal.quickbooks_invoice_id ? (
+                              <Button size="sm" variant="outline" disabled className="text-green-700 border-green-600 opacity-60">
+                                <CheckCircle className="w-4 h-4 mr-1" /> Already invoiced — DocNumber {proposal.quickbooks_doc_number}
+                              </Button>
+                            ) : (
+                              <Button size="sm" variant="outline" className="text-[#013f7c] border-[#013f7c]" onClick={() => setQbProposal(proposal)}>
+                                <Send className="w-4 h-4 mr-1" /> Prepare QB Invoice
+                              </Button>
+                            )}
+                          </>
                         )}
 
                         <Button 
@@ -543,6 +556,15 @@ export default function Proposals() {
             open={!!reminderProposal} 
             onOpenChange={(open) => !open && setReminderProposal(null)}
             onSent={() => queryClient.invalidateQueries({ queryKey: ['proposals'] })}
+          />
+        )}
+
+        {/* QuickBooks Invoice Review */}
+        {qbProposal && (
+          <QuickBooksInvoiceReview
+            proposal={qbProposal}
+            open={!!qbProposal}
+            onOpenChange={(open) => !open && setQbProposal(null)}
           />
         )}
       </div>

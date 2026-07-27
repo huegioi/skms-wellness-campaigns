@@ -85,6 +85,8 @@ export async function getAccessToken(client) {
 export interface QBCustomerLookupResult {
   status: 'found' | 'not_found' | 'error';
   customerId?: string;
+  displayName?: string | null;
+  email?: string | null;
   error?: string;
   httpStatus?: number;
 }
@@ -116,10 +118,15 @@ export async function findQBCustomer(
     }
 
     const result = await response.json();
-    const customerId = result.QueryResponse?.Customer?.[0]?.Id;
+    const customer = result.QueryResponse?.Customer?.[0];
 
-    if (customerId) {
-      return { status: 'found', customerId };
+    if (customer?.Id) {
+      return {
+        status: 'found',
+        customerId: customer.Id,
+        displayName: customer.DisplayName || null,
+        email: customer.PrimaryEmailAddr?.Address || null,
+      };
     }
     return { status: 'not_found' };
   } catch (err) {

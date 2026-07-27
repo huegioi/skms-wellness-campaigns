@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { getAccessToken, getRealmId, findQBCustomer, QB_API_URL } from '../../shared/quickbooksAuth.ts';
 import { linesFromProposal, buildInvoiceBody } from '../../shared/quickbooksInvoiceBuilder.ts';
 import { isExcludedDomain } from '../../shared/emailDomain.ts';
+import { computeFingerprint } from '../../shared/invoiceFingerprint.ts';
 
 // ── Dry-run invoice builder ─────────────────────────────────────────
 // Takes a proposal_id and returns the exact JSON body that would be POSTed
@@ -69,6 +70,8 @@ Deno.serve(async (req) => {
     // Step 1: exact email
     let customerLookup = await findQBCustomer(accessToken, realmId, clientEmail);
     let matchStrategy = 'exact_email';
+    let customerDisplayName = customerLookup.displayName || null;
+    let customerEmailFromQB = customerLookup.email || null;
 
     // Step 2: email domain (skip for free-mail providers)
     if (customerLookup.status === 'not_found') {
@@ -84,6 +87,8 @@ Deno.serve(async (req) => {
           const matches = domainData.QueryResponse?.Customer || [];
           if (matches.length === 1) {
             customerLookup = { status: 'found', customerId: matches[0].Id };
+            customerDisplayName = matches[0].DisplayName || null;
+            customerEmailFromQB = matches[0].PrimaryEmailAddr?.Address || null;
             matchStrategy = 'email_domain';
           } else if (matches.length > 1) {
             matchStrategy = 'domain_ambiguous';
@@ -98,7 +103,7 @@ Deno.serve(async (req) => {
     if (customerLookup.status === 'not_found') {
       const displayName = (client?.company || proposal.company || proposal.client_name || '').replace(/'/g, "\\'");
       if (displayName) {
-        const nameQuery = `SELECT Id, DisplayName FROM Customer WHERE DisplayName = '${displayName}' MAXRESULTS 10`;
+        const nameQuery = `SELECT Id, DisplayName, PrimaryEmailAddr FROM Customer WHERE DisplayName = '${displayName}' MAXRESULTS 10`;
         const nameResp = await fetch(
           `${QB_API_URL}/${realmId}/query?query=${encodeURIComponent(nameQuery)}`,
           { headers: { 'Authorization': `Bearer ${accessToken}`, 'Accept': 'application/json' } }
@@ -108,6 +113,8 @@ Deno.serve(async (req) => {
           const matches = nameData.QueryResponse?.Customer || [];
           if (matches.length === 1) {
             customerLookup = { status: 'found', customerId: matches[0].Id };
+            customerDisplayName = matches[0].DisplayName || null;
+            customerEmailFromQB = matches[0].PrimaryEmailAddr?.Address || null;
             matchStrategy = 'display_name';
           }
         }
@@ -118,6 +125,8 @@ Deno.serve(async (req) => {
       strategy: matchStrategy,
       status: customerLookup.status,
       customer_id: customerLookup.customerId || null,
+      customer_display_name: customerDisplayName,
+      customer_email: customerEmailFromQB,
       email_searched: clientEmail,
       error: customerLookup.error || null,
     };
@@ -161,15 +170,24 @@ Deno.serve(async (req) => {
 
     const allWarnings = [...warnings, ...lineWarnings];
 
+    // Return 200 even with blocking errors — the review screen needs to
+    // display them alongside the customer resolution. The Send button is
+    // disabled when blocking_errors is non-empty.
     if (blockingErrors.length > 0) {
+      const fingerprint = await computeFingerprint(invoiceBody);
       return Response.json({
         dry_run: true,
-        blocked: 'missing_item_refs',
         blocking_errors: blockingErrors,
-        message: 'Cannot build invoice — one or more lines have no QuickBooks Item.',
+        message: 'Cannot send — one or more lines have no QuickBooks Item.',
         customer_resolution: customerResolution,
-      }, { status: 422 });
+        invoice_body: invoiceBody,
+        line_analysis: lineAnalysis,
+        warnings: allWarnings,
+        fingerprint,
+      });
     }
+
+    const fingerprint = await computeFingerprint(invoiceBody);
 
     return Response.json({
       dry_run: true,
@@ -177,6 +195,7 @@ Deno.serve(async (req) => {
       proposal_id,
       customer_resolution: customerResolution,
       invoice_body: invoiceBody,
+      fingerprint,
       line_count: lines.length,
       line_analysis: lineAnalysis,
       warnings: allWarnings,
