@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Loader2, AlertCircle, CheckCircle, Send, X, AlertTriangle } from 'lucide-react';
+import CustomerNotFoundState from './CustomerNotFoundState';
 
 const STRATEGY_LABELS = {
   exact_email: 'Exact email match',
@@ -12,6 +13,7 @@ const STRATEGY_LABELS = {
   display_name: 'Display name match',
   domain_ambiguous: 'Domain ambiguous',
   domain_skipped_freemail: 'Free-mail — domain search skipped',
+  stored_customer_id: 'Stored QuickBooks customer ID',
 };
 
 const NEEDS_VERIFICATION = new Set(['email_domain', 'display_name', 'domain_ambiguous']);
@@ -20,11 +22,13 @@ export default function QuickBooksInvoiceReview({ proposal, open, onOpenChange }
   const queryClient = useQueryClient();
   const [sendResult, setSendResult] = useState(null);
   const [sendError, setSendError] = useState(null);
+  const [rebuildKey, setRebuildKey] = useState(0);
 
   // Dry-run query — runs only when the dialog is open and no send has happened.
   // Not a poll, not a refetch — single fetch per open.
+  // rebuildKey is incremented to force a re-fetch after customer creation/linking.
   const { data: dryRun, isLoading, error } = useQuery({
-    queryKey: ['qbInvoiceBuild', proposal?.id],
+    queryKey: ['qbInvoiceBuild', proposal?.id, rebuildKey],
     queryFn: async () => {
       const res = await base44.functions.invoke('qbInvoiceBuild', { proposal_id: proposal.id });
       return res.data;
@@ -105,7 +109,23 @@ export default function QuickBooksInvoiceReview({ proposal, open, onOpenChange }
   // ── Error state ──
   if (error) {
     const errData = error?.response?.data || {};
-    const isAlreadyInvoiced = errData.blocked === 'idempotency' || errData.quickbooks_invoice_id;
+    const statusCode = error?.response?.status;
+
+    // 404 — customer not found: delegate to CustomerNotFoundState
+    if (statusCode === 404) {
+      return (
+        <CustomerNotFoundState
+          notFoundData={errData}
+          proposal={proposal}
+          onRebuild={() => setRebuildKey(k => k + 1)}
+          onClose={handleClose}
+        />
+      );
+    }
+
+    const isAlreadyInvoiced = statusCode === 409 || errData.blocked === 'idempotency' || errData.quickbooks_invoice_id;
+    const invoiceId = errData.existing_quickbooks_id || errData.quickbooks_invoice_id;
+
     return (
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="max-w-md">
@@ -117,12 +137,19 @@ export default function QuickBooksInvoiceReview({ proposal, open, onOpenChange }
               <>
                 <CheckCircle className="w-12 h-12 mx-auto text-green-500" />
                 <p className="font-semibold">Already invoiced — DocNumber {errData.existing_doc_number || errData.quickbooks_doc_number || '—'}</p>
+                <p className="text-sm text-gray-600">
+                  This proposal already has a QuickBooks invoice.{invoiceId ? ` (QB ID: ${invoiceId})` : ''}
+                </p>
               </>
             ) : (
               <>
                 <AlertCircle className="w-12 h-12 mx-auto text-red-400" />
                 <p className="font-semibold text-red-700">Could not prepare invoice</p>
-                <p className="text-sm text-gray-500">{errData.message || error?.message || 'Unknown error'}</p>
+                <p className="text-sm text-gray-500">{errData.error || errData.message || error?.message || 'Unknown error'}</p>
+                <p className="text-sm text-gray-600">Couldn't reach QuickBooks. The connection may need re-authorizing.</p>
+                {statusCode && (
+                  <p className="text-xs text-gray-400">HTTP {statusCode}</p>
+                )}
               </>
             )}
           </div>

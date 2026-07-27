@@ -380,6 +380,10 @@
       "type": "boolean",
       "default": false,
       "description": "Demo data flag."
+    },
+    "quickbooks_customer_id": {
+      "type": "string",
+      "description": "QuickBooks Customer ID. When set, qbInvoiceBuild uses it directly \u2014 skipping all customer search API calls and token rotation. Written by qbCustomerCreate on successful customer creation, and by the similar-customer selection flow in CustomerNotFoundState."
     }
   },
   "required": [

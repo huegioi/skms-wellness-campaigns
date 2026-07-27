@@ -63,9 +63,26 @@ Deno.serve(async (req) => {
     const serviceMap = new Map(allServices.map(s => [s.id, s]));
 
     // ── Resolve QB customer (strictly sequential) ──
+    // Fast path: stored QB customer ID on the Client — skip all API calls.
+    let customerResolution;
+    let tokenRotated = false;
+
+    if (client?.quickbooks_customer_id) {
+      customerResolution = {
+        strategy: 'stored_customer_id',
+        status: 'found',
+        customer_id: client.quickbooks_customer_id,
+        customer_display_name: client?.company || proposal.company || null,
+        customer_email: clientEmail,
+        email_searched: clientEmail,
+        error: null,
+      };
+    } else {
     const realmId = await getRealmId(base44);
     if (!realmId) return Response.json({ error: 'No realm_id configured' }, { status: 500 });
-    const { accessToken, tokenRotated } = await getAccessToken(base44);
+    const tokenResult = await getAccessToken(base44);
+    tokenRotated = tokenResult.tokenRotated;
+    const accessToken = tokenResult.accessToken;
 
     // Step 1: exact email
     let customerLookup = await findQBCustomer(accessToken, realmId, clientEmail);
@@ -121,7 +138,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const customerResolution = {
+    customerResolution = {
       strategy: matchStrategy,
       status: customerLookup.status,
       customer_id: customerLookup.customerId || null,
@@ -144,8 +161,12 @@ Deno.serve(async (req) => {
         dry_run: true,
         customer_resolution: customerResolution,
         error: 'Customer not found in QuickBooks. Dry run does not create customers.',
+        searched_email: clientEmail,
+        searched_domain: clientEmail.split('@')[1] || null,
+        searched_display_name: (client?.company || proposal.company || proposal.client_name || '') || null,
       }, { status: 404 });
     }
+    } // end else (no stored customer ID — searched QB)
 
     // ── Build normalised lines from Proposal ──
     const { lines, warnings: lineWarnings, blockingErrors: priceBlockingErrors } = linesFromProposal(
@@ -160,7 +181,7 @@ Deno.serve(async (req) => {
     const existingWithDocNumber = existingInvoices.find((inv: any) => inv.invoice_number);
 
     const { body: invoiceBody, lineAnalysis, blockingErrors: itemBlockingErrors, warnings } = buildInvoiceBody({
-      customerId: customerLookup.customerId,
+      customerId: customerResolution.customer_id,
       customerEmail: clientEmail,
       txnDate: new Date().toISOString().split('T')[0],
       lines,
