@@ -120,10 +120,12 @@ export default async function(req) {
     const existingInvoices = await base44.asServiceRole.entities.Invoice.filter({ proposal_id });
 
     if (existingInvoices.length > 1) {
-      // Ambiguous — do not guess. The Proposal fields are already written
-      // (closing the crash window), but no Invoice is created or updated.
+      // The QuickBooks invoice was created successfully and the Proposal already
+      // carries quickbooks_invoice_id, so a retry is impossible — the idempotency
+      // guard will refuse. The duplicate app Invoice records must be merged by
+      // hand; no further send is needed or possible for this proposal.
       return Response.json({
-        error: `Found ${existingInvoices.length} Invoice records for this proposal. Cannot determine which to update. Merge them and retry.`,
+        error: `QuickBooks invoice ${qbDocNumber || '(no DocNumber)'} (ID ${qbInvoiceId}) was created successfully, but ${existingInvoices.length} app Invoice records already exist for this proposal. Merge the duplicates by hand — no further send is needed or possible (the Proposal is already marked as invoiced).`,
         invoice_ids: existingInvoices.map(inv => inv.id),
         invoice_numbers: existingInvoices.map(inv => inv.invoice_number || `INV-${inv.id.slice(0, 8)}`),
         quickbooks_invoice_id: qbInvoiceId,

@@ -84,7 +84,7 @@
     "is_sample": {
       "type": "boolean",
       "default": false,
-      "description": "True if this record is sample/seed data for demo purposes."
+      "description": "Vestigial \u2014 present on all existing records (always false) but not read or written by any code in the codebase. Retained so live records don't carry an undeclared key. Do not use; is_demo is the active demo-data flag."
     },
     "is_demo": {
       "type": "boolean",
