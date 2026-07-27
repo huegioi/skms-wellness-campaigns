@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -536,16 +538,16 @@ export default function Invoices() {
                           <span className="hidden sm:inline">Push Update</span>
                         </Button>
                       ) : invoice.status === 'draft' ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-amber-300 text-amber-700 hover:bg-amber-50 hover:border-amber-400 whitespace-nowrap"
-                          onClick={() => handleSyncToQB(invoice)}
-                          disabled={isSyncing}
-                        >
-                          {isSyncing ? <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" /> : <Send className="w-4 h-4 sm:mr-2" />}
-                          <span className="hidden sm:inline">Send to QuickBooks</span>
-                        </Button>
+                        <Link to={createPageUrl('Proposals')} title="QuickBooks invoices are now created from the Proposals page via the review gate">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-[#013f7c] text-[#013f7c] hover:bg-[#013f7c] hover:text-white whitespace-nowrap"
+                          >
+                            <Send className="w-4 h-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Create QB Invoice</span>
+                          </Button>
+                        </Link>
                       ) : null}
 
                       {['sent', 'overdue', 'created_in_quickbooks'].includes(invoice.status) && (

@@ -81,6 +81,11 @@
       "type": "string",
       "description": "QuickBooks DocNumber assigned to the invoice created via the review gate."
     },
+    "is_sample": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this record is sample/seed data for demo purposes."
+    },
     "is_demo": {
       "type": "boolean",
       "default": false,

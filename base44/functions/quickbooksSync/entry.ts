@@ -242,6 +242,18 @@ Deno.serve(async (req) => {
     const accessToken = await getAccessToken(base44);
 
     if (action === 'createInvoice') {
+      // ── DISABLED — 410 Gone ──
+      // This action posted directly to QuickBooks with no review screen, no
+      // fingerprint, and no Proposal-level idempotency check. It has been
+      // superseded by the review gate: qbInvoiceBuild (dry-run) → qbInvoiceSend
+      // (fingerprinted POST). The old implementation is retained below for
+      // reference but is unreachable because this return runs first.
+      // Do not re-enable without wiring it through the same review gate.
+      return Response.json({
+        error: 'This action is disabled. Invoices must be created through the review gate (qbInvoiceBuild → qbInvoiceSend) from the Proposals page.',
+      }, { status: 410 });
+
+      // ── Old implementation (unreachable — kept for reference) ──
       const invoice = await base44.asServiceRole.entities.Invoice.filter({ id: invoiceId });
       if (!invoice || invoice.length === 0) {
         return Response.json({ error: 'Invoice not found' }, { status: 404 });

@@ -13,7 +13,7 @@ import { computeFingerprint } from '../../shared/invoiceFingerprint.ts';
 //
 // Before POSTing, we refuse if the Proposal already has a quickbooks_invoice_id.
 // On success, we write to the Proposal FIRST (quickbooks_invoice_id +
-// quickbooks_doc_number), then create the Invoice record. That ordering closes
+// quickbooks_doc_number), then create or update the Invoice record. That ordering closes
 // the crash window: if we crash after the QB POST but before the Invoice write,
 // the Proposal still records the QB invoice id, so a retry will refuse.
 //
@@ -111,7 +111,26 @@ export default async function(req) {
       quickbooks_doc_number: qbDocNumber,
     });
 
-    // ── Then create the Invoice record ──
+    // ── Then create or update the Invoice record ──
+    // Before creating, look for an existing Invoice linked to this proposal.
+    // The Proposals page has a "Create Invoice" button that makes a local
+    // draft Invoice for the same proposal; qbInvoiceBuild's idempotency
+    // check only looks for a quickbooks_id, so a draft passes. We must not
+    // create a second Invoice — update the existing one instead.
+    const existingInvoices = await base44.asServiceRole.entities.Invoice.filter({ proposal_id });
+
+    if (existingInvoices.length > 1) {
+      // Ambiguous — do not guess. The Proposal fields are already written
+      // (closing the crash window), but no Invoice is created or updated.
+      return Response.json({
+        error: `Found ${existingInvoices.length} Invoice records for this proposal. Cannot determine which to update. Merge them and retry.`,
+        invoice_ids: existingInvoices.map(inv => inv.id),
+        invoice_numbers: existingInvoices.map(inv => inv.invoice_number || `INV-${inv.id.slice(0, 8)}`),
+        quickbooks_invoice_id: qbInvoiceId,
+        quickbooks_doc_number: qbDocNumber,
+      }, { status: 409 });
+    }
+
     const invoiceData = {
       proposal_id,
       client_id: proposal.client_id || '',
@@ -137,7 +156,17 @@ export default async function(req) {
       memo: invoice_body.CustomerMemo?.value || '',
     };
 
-    const invoice = await base44.asServiceRole.entities.Invoice.create(invoiceData);
+    let invoice;
+    let invoiceAction;
+    if (existingInvoices.length === 1) {
+      // Update the existing draft Invoice with the QuickBooks data
+      invoice = await base44.asServiceRole.entities.Invoice.update(existingInvoices[0].id, invoiceData);
+      invoiceAction = 'updated';
+    } else {
+      // No existing Invoice — create a new one
+      invoice = await base44.asServiceRole.entities.Invoice.create(invoiceData);
+      invoiceAction = 'created';
+    }
 
     return Response.json({
       success: true,
@@ -145,6 +174,7 @@ export default async function(req) {
       quickbooks_doc_number: qbDocNumber,
       due_date: qbDueDate,
       invoice_id: invoice.id,
+      invoice_action: invoiceAction,
       message: 'Created in QuickBooks — not yet sent',
     });
 
