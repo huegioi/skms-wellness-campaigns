@@ -100,14 +100,6 @@ function InvoicesPanel() {
   const invoices = rawInvoices.filter(i => !i.is_demo && !i.out_of_scope);
   const clients = rawClients.filter(c => !c.is_demo);
 
-  const syncToQBMutation = useMutation({
-    mutationFn: async (invoiceId) => {
-      const response = await base44.functions.invoke('quickbooksSync', { action: 'createInvoice', invoiceId });
-      return response.data;
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['invoices'] }); setSyncing(null); }
-  });
-
   const syncStatusMutation = useMutation({
     mutationFn: async (invoiceId) => {
       const response = await base44.functions.invoke('quickbooksSync', { action: 'syncInvoice', invoiceId });
@@ -154,28 +146,6 @@ function InvoicesPanel() {
       alert(`Sync failed: ${error.message}`);
     } finally {
       setSyncingAll(false);
-    }
-  };
-
-  const handleSyncToQB = async (invoice) => {
-    const missingFields = [];
-    if (!invoice.client_email) missingFields.push('Client Email');
-    if (!invoice.client_name) missingFields.push('Client Name');
-    if (!invoice.line_items || invoice.line_items.length === 0) missingFields.push('Line Items');
-    if (!invoice.issue_date) missingFields.push('Issue Date');
-    if (!invoice.due_date) missingFields.push('Due Date');
-    if (missingFields.length > 0) {
-      alert(`Cannot send to QuickBooks - Missing:\n\n${missingFields.map(f => `• ${f}`).join('\n')}`);
-      return;
-    }
-    if (!confirm(`Send invoice ${invoice.invoice_number || 'draft'} to QuickBooks?`)) return;
-    setSyncing(invoice.id);
-    try {
-      await syncToQBMutation.mutateAsync(invoice.id);
-      alert('Invoice synced to QuickBooks!');
-    } catch (error) {
-      alert(`Failed: ${error.message}`);
-      setSyncing(null);
     }
   };
 

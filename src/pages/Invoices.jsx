@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
@@ -33,15 +33,6 @@ export default function Invoices() {
 
   const queryClient = useQueryClient();
 
-  // Auto-open create dialog when navigated from Proposals page
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('create') === 'true') {
-      const proposalId = params.get('proposal_id');
-      setSelectedInvoice({ mode: 'create', preselectedProposalId: proposalId || null });
-    }
-  }, []);
-
   const { data: invoices = [], isLoading } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => base44.entities.Invoice.list('-created_date', 10000)
@@ -50,20 +41,6 @@ export default function Invoices() {
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
     queryFn: () => base44.entities.Client.list()
-  });
-
-  const syncToQBMutation = useMutation({
-    mutationFn: async (invoiceId) => {
-      const response = await base44.functions.invoke('quickbooksSync', {
-        action: 'createInvoice',
-        invoiceId
-      });
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      setSyncing(null);
-    }
   });
 
   const syncStatusMutation = useMutation({
@@ -122,43 +99,6 @@ export default function Invoices() {
       alert(`Sync failed: ${error.message}`);
     } finally {
       setSyncingAll(false);
-    }
-  };
-
-  const handleSyncToQB = async (invoice) => {
-    // Validate invoice has required fields for QuickBooks
-    const missingFields = [];
-    
-    if (!invoice.client_email) missingFields.push('Client Email');
-    if (!invoice.client_name) missingFields.push('Client Name');
-    if (!invoice.line_items || invoice.line_items.length === 0) missingFields.push('Line Items (at least one)');
-    if (!invoice.issue_date) missingFields.push('Issue Date');
-    if (!invoice.due_date) missingFields.push('Due Date');
-    
-    // Check if line items have required fields
-    const invalidLineItems = invoice.line_items?.filter(item => 
-      !item.name && !item.description
-    ) || [];
-    
-    if (invalidLineItems.length > 0) {
-      missingFields.push(`Line Item Names/Descriptions (${invalidLineItems.length} items missing)`);
-    }
-    
-    if (missingFields.length > 0) {
-      alert(
-        `Cannot send to QuickBooks - Missing required information:\n\n${missingFields.map(f => `• ${f}`).join('\n')}\n\nPlease edit the invoice to add this information before sending to QuickBooks.`
-      );
-      return;
-    }
-    
-    if (!confirm(`Send invoice ${invoice.invoice_number || 'draft'} to QuickBooks?`)) return;
-    setSyncing(invoice.id);
-    try {
-      await syncToQBMutation.mutateAsync(invoice.id);
-      alert('Invoice synced to QuickBooks!');
-    } catch (error) {
-      alert(`Failed to sync: ${error.message}`);
-      setSyncing(null);
     }
   };
 
