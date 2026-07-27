@@ -150,11 +150,12 @@ export function linesFromProposal(
   selections: any,
   serviceMap: Map<string, any>,
   allServices: any[]
-): { lines: NormalizedLine[]; warnings: string[] } {
+): { lines: NormalizedLine[]; warnings: string[]; blockingErrors: any[] } {
   const s = selections || {};
   const overrides = s.priceOverrides || {};
   const lines: NormalizedLine[] = [];
   const warnings: string[] = [];
+  const blockingErrors: any[] = [];
 
   // Helper: resolve price for a non-box Service, snapshot-first
   function resolveServicePrice(serviceId: string, dataKey: string) {
@@ -193,6 +194,12 @@ export function linesFromProposal(
   }
 
   // ── Challenge programs ──
+  // Service.price for a challenge is a per-participant rate, NOT a flat
+  // program price. Using it as one produces a plausible but wildly wrong
+  // line (e.g. $30 instead of $1,500+). So the challenge branch stops after
+  // the snapshot: if no priceOverride, challengePrice, or
+  // challengeProgramsData snapshot yields a price, it pushes a blocking
+  // error instead of building a line.
   const challengePrice = s.challengePrice || 0;
   for (const id of (s.challengePrograms || [])) {
     let price: number, source: string;
@@ -201,8 +208,21 @@ export function linesFromProposal(
     } else if (challengePrice > 0) {
       price = challengePrice; source = 'challenge_price_field';
     } else {
-      const result = resolveServicePrice(id, 'challengeProgramsData');
-      price = result.price; source = result.source;
+      const dataArr = s.challengeProgramsData || [];
+      const dataEntry = dataArr.find((x: any) => x.id === id);
+      if (dataEntry && dataEntry.price > 0) {
+        price = dataEntry.price; source = 'proposal_snapshot';
+      } else {
+        const errSvc = serviceMap.get(id);
+        blockingErrors.push({
+          type: 'challenge',
+          service_id: id,
+          name: errSvc?.name || 'Challenge',
+          category: 'challenge',
+          reason: `No flat challenge price available — priceOverrides, challengePrice, and challengeProgramsData snapshot all yielded no price. The live Service.price ($${errSvc?.price ?? '?'}) is a per-participant rate and must not be used as a flat challenge price.`,
+        });
+        continue;
+      }
     }
     const svc = serviceMap.get(id);
     // challengePrice is a flat per-challenge amount, not a per-head rate.
@@ -332,7 +352,7 @@ export function linesFromProposal(
     });
   }
 
-  return { lines, warnings };
+  return { lines, warnings, blockingErrors };
 }
 
 // ── Invoice adapter ──────────────────────────────────────────────────

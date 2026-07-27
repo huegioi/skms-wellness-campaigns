@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
     }
 
     // ── Build normalised lines from Proposal ──
-    const { lines, warnings: lineWarnings } = linesFromProposal(
+    const { lines, warnings: lineWarnings, blockingErrors: priceBlockingErrors } = linesFromProposal(
       proposal.selections, serviceMap, allServices
     );
 
@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
     //   DocNumber: only if the app already has one on an existing Invoice
     const existingWithDocNumber = existingInvoices.find((inv: any) => inv.invoice_number);
 
-    const { body: invoiceBody, lineAnalysis, blockingErrors, warnings } = buildInvoiceBody({
+    const { body: invoiceBody, lineAnalysis, blockingErrors: itemBlockingErrors, warnings } = buildInvoiceBody({
       customerId: customerLookup.customerId,
       customerEmail: clientEmail,
       txnDate: new Date().toISOString().split('T')[0],
@@ -169,16 +169,17 @@ Deno.serve(async (req) => {
     });
 
     const allWarnings = [...warnings, ...lineWarnings];
+    const allBlockingErrors = [...priceBlockingErrors, ...itemBlockingErrors];
 
     // Return 200 even with blocking errors — the review screen needs to
     // display them alongside the customer resolution. The Send button is
     // disabled when blocking_errors is non-empty.
-    if (blockingErrors.length > 0) {
+    if (allBlockingErrors.length > 0) {
       const fingerprint = await computeFingerprint(invoiceBody);
       return Response.json({
         dry_run: true,
-        blocking_errors: blockingErrors,
-        message: 'Cannot send — one or more lines have no QuickBooks Item.',
+        blocking_errors: allBlockingErrors,
+        message: 'Cannot send — one or more lines have a blocking error (missing price or missing QuickBooks Item).',
         customer_resolution: customerResolution,
         invoice_body: invoiceBody,
         line_analysis: lineAnalysis,
