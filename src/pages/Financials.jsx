@@ -15,7 +15,6 @@ import {
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 import RevenueChart from '@/components/financials/RevenueChart';
 import FinancialInformationSection from '@/components/dashboard/FinancialInformationSection';
-import ExpenseManager from '@/components/dashboard/ExpenseManager';
 import QuickBooksActionsPanel from '@/components/invoices/QuickBooksActionsPanel';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { INVOICE_STATUS_CONFIG as statusConfig } from '@/lib/statusConfig';
@@ -24,7 +23,6 @@ const TABS = [
   { id: 'dashboard', label: 'Revenue Chart', icon: BarChart2 },
   { id: 'overview', label: 'Overview', icon: TrendingUp },
   { id: 'invoices', label: 'Invoices', icon: FileText },
-  { id: 'expenses', label: 'Expenses', icon: DollarSign },
 ];
 
 export default function Financials() {
@@ -65,7 +63,6 @@ export default function Financials() {
         {activeTab === 'dashboard' && <RevenueChart />}
         {activeTab === 'overview' && <FinancialInformationSection />}
         {activeTab === 'invoices' && <InvoicesPanel />}
-        {activeTab === 'expenses' && <ExpenseManager />}
       </div>
     </div>
   );

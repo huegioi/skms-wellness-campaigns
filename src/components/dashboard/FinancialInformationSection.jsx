@@ -164,19 +164,19 @@ export default function FinancialInformationSection() {
       {/* Financial KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <StatCard
-          title={`Total Invoiced (${timeframe === 'month' ? 'This Month' : 'This Quarter'})`}
+          title={`Total Invoiced (${timeframe === 'month' ? 'This Month' : timeframe === 'quarter' ? 'This Quarter' : timeframe === 'year' ? 'This Year' : 'All Time'})`}
           value={formatCurrency(metrics.totalInvoiced)}
           icon={DollarSign}
           colorClass={colorMap.blue}
         />
         <StatCard
-          title="Total Paid"
+          title="Total Paid (all time)"
           value={formatCurrency(metrics.totalPaid)}
           icon={CheckCircle2}
           colorClass={colorMap.green}
         />
         <StatCard
-          title="Outstanding"
+          title="Outstanding (current)"
           value={formatCurrency(metrics.outstanding)}
           icon={TrendingUp}
           colorClass={colorMap.orange}
