@@ -19,6 +19,47 @@ const INTERNAL_EMAILS = new Set([
   'admin@skillfulmeans.life',
 ]);
 
+// ── Inline email-domain helpers (can't import from ../../shared/ in Deno) ──
+const EXCLUDED_DOMAINS = new Set([
+  'gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'aol.com',
+  'icloud.com', 'me.com', 'proton.me', 'protonmail.com', 'skillfulmeans.life',
+]);
+
+function extractEmailDomain(email) {
+  if (!email || typeof email !== 'string') return null;
+  const atIdx = email.indexOf('@');
+  if (atIdx === -1) return null;
+  const domain = email.slice(atIdx + 1).toLowerCase().trim();
+  return domain || null;
+}
+
+function isExcludedDomain(domain) {
+  if (!domain) return true;
+  return EXCLUDED_DOMAINS.has(domain);
+}
+
+// Build domain → client index (only unambiguous domains map to a single client).
+function buildClientDomainIndex(clients) {
+  const domainToClients = new Map();
+  const trackDomain = (domain, client) => {
+    const d = String(domain).toLowerCase().trim();
+    if (!d || EXCLUDED_DOMAINS.has(d)) return;
+    if (!domainToClients.has(d)) domainToClients.set(d, []);
+    domainToClients.get(d).push(client);
+  };
+  for (const c of clients) {
+    const domain = c.email_domain || extractEmailDomain(c.email);
+    if (domain) trackDomain(domain, c);
+    for (const alias of (c.email_domain_aliases || [])) trackDomain(alias, c);
+  }
+  const domainToClient = new Map();
+  for (const [domain, list] of domainToClients) {
+    const unique = list.filter((c, i, arr) => arr.findIndex(x => x.id === c.id) === i);
+    if (unique.length === 1) domainToClient.set(domain, unique[0]);
+  }
+  return domainToClient;
+}
+
 // Chunked bulkCreate (SDK limit: 500 per call)
 async function batchBulkCreate(entity, records) {
   let total = 0;
@@ -59,9 +100,10 @@ Deno.serve(async (req) => {
     const sinceStr = new Date(now.getTime() - lookbackMs).toISOString();
 
     // Load clients, leads, existing CalendarEvents, and interactions with a calendar link
-    const [clients, leads, calEvents, recentInteractions] = await Promise.all([
+    const [clients, leads, partners, calEvents, recentInteractions] = await Promise.all([
       base44.asServiceRole.entities.Client.list(),
       base44.asServiceRole.entities.Lead.filter({ is_archived: { $ne: true } }),
+      base44.asServiceRole.entities.ReferralPartner.list(),
       base44.asServiceRole.entities.CalendarEvent.list('-start_date', 500),
       base44.asServiceRole.entities.ClientInteraction.list('-date', 500),
     ]);
@@ -87,6 +129,14 @@ Deno.serve(async (req) => {
       if (client.email) clientByEmail[client.email.toLowerCase().trim()] = client;
       if (client.email2) clientByEmail[client.email2.toLowerCase().trim()] = client;
     }
+    // ReferralPartner index — checked before leads and clients (more specific identity)
+    const partnerByEmail = {};
+    for (const partner of partners) {
+      if (partner.email) partnerByEmail[partner.email.toLowerCase().trim()] = partner;
+      if (partner.email2) partnerByEmail[partner.email2.toLowerCase().trim()] = partner;
+    }
+    // Domain → client index for the client-only domain fallback (unambiguous domains only)
+    const domainToClient = buildClientDomainIndex(clients);
 
     // ── Fetch all watched calendars in parallel ──────────────────────────
     const calendarResults = await Promise.all(
@@ -171,15 +221,33 @@ Deno.serve(async (req) => {
         // Rule (b)+(c): match contacts by attendee email only — no title fallback.
         // Only external attendees are checked, so internal contact records (whose
         // emails are in the blocklist) can never be matched.
+        // Match order: partner first (most specific), then lead, then client.
+        // Domain fallback (clients only) runs last when no exact match is found.
+        let matchedPartner = null;
         let matchedLead = null;
         let matchedClient = null;
 
         for (const email of externalAttendees) {
-          if (leadByEmail[email]) { matchedLead = leadByEmail[email]; break; }
+          if (partnerByEmail[email]) { matchedPartner = partnerByEmail[email]; break; }
         }
-        if (!matchedLead) {
+        if (!matchedPartner) {
+          for (const email of externalAttendees) {
+            if (leadByEmail[email]) { matchedLead = leadByEmail[email]; break; }
+          }
+        }
+        if (!matchedPartner && !matchedLead) {
           for (const email of externalAttendees) {
             if (clientByEmail[email]) { matchedClient = clientByEmail[email]; break; }
+          }
+        }
+        // Domain fallback for clients only — when no exact email match on any entity
+        if (!matchedPartner && !matchedLead && !matchedClient) {
+          for (const email of externalAttendees) {
+            const domain = extractEmailDomain(email);
+            if (domain && !isExcludedDomain(domain) && domainToClient.has(domain)) {
+              matchedClient = domainToClient.get(domain);
+              break;
+            }
           }
         }
 
@@ -195,8 +263,12 @@ Deno.serve(async (req) => {
           if (endISO && existingCE.end_date !== endISO) { updatePayload.end_date = endISO; changed = true; }
           if (location && existingCE.location !== location) { updatePayload.location = location; changed = true; }
           if (!existingCE.source_calendar) { updatePayload.source_calendar = cal.id; changed = true; }
+          // Backfill contact IDs on existing events that were created before partner/domain matching
+          if (matchedPartner && !existingCE.referral_partner_id) { updatePayload.referral_partner_id = matchedPartner.id; changed = true; }
+          if (matchedLead && !existingCE.lead_id) { updatePayload.lead_id = matchedLead.id; changed = true; }
+          if (matchedClient && !existingCE.client_id) { updatePayload.client_id = matchedClient.id; changed = true; }
           if (changed) pendingUpdatesByCEId[existingCE.id] = updatePayload;
-        } else if (matchedLead || matchedClient) {
+        } else if (matchedPartner || matchedLead || matchedClient) {
           // Collect create (dedup by google_event_id for shared events across calendars)
           if (!event.id || !pendingCreatesByGid[event.id]) {
             const createData = {
@@ -210,9 +282,10 @@ Deno.serve(async (req) => {
               google_event_id: event.id || undefined,
               source_calendar: cal.id,
               ingested: true,
+              referral_partner_id: matchedPartner?.id || undefined,
               lead_id: matchedLead?.id || undefined,
               client_id: matchedClient?.id || undefined,
-              client_name: matchedLead?.name || matchedClient?.name || '',
+              client_name: matchedPartner?.name || matchedLead?.name || matchedClient?.name || '',
             };
             if (event.id) {
               pendingCreatesByGid[event.id] = createData;
