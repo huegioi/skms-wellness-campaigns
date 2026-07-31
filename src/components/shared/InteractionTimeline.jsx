@@ -46,6 +46,17 @@ function relDate(dateStr) {
   return new Date(dateStr).toLocaleDateString();
 }
 
+// Relative date for calendar events — shows forward-looking labels for upcoming events
+function calDate(dateStr) {
+  if (!dateStr) return '';
+  const diff = Math.floor((new Date(dateStr).getTime() - Date.now()) / 86400000);
+  if (diff < 0) return relDate(dateStr);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Tomorrow';
+  if (diff < 7) return `In ${diff}d`;
+  return new Date(dateStr).toLocaleDateString();
+}
+
 export default function InteractionTimeline({ lead_id, client_id, referral_partner_id, onUpdate }) {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
@@ -86,13 +97,29 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
     enabled: !!emailFilter,
   });
 
+  // Fetch calendar events for the same scope and interleave chronologically
+  const calFilter = lead_id
+    ? { lead_id }
+    : client_id
+      ? { client_id }
+      : referral_partner_id
+        ? { referral_partner_id }
+        : null;
+
+  const { data: calendarEvents = [] } = useQuery({
+    queryKey: [...scopeKey, 'calendar'],
+    queryFn: () => base44.entities.CalendarEvent.filter(calFilter, '-start_date', 100),
+    enabled: !!calFilter,
+  });
+
   const merged = useMemo(() => {
     const items = [
-      ...interactions.map(it => ({ ...it, _type: 'interaction' })),
-      ...emailLogs.map(e => ({ ...e, _type: 'email' })),
+      ...interactions.map(it => ({ ...it, _type: 'interaction', _date: it.date })),
+      ...emailLogs.map(e => ({ ...e, _type: 'email', _date: e.date })),
+      ...calendarEvents.map(ev => ({ ...ev, _type: 'calendar', _date: ev.start_date })),
     ];
-    return items.sort((a, b) => new Date(b.date) - new Date(a.date));
-  }, [interactions, emailLogs]);
+    return items.sort((a, b) => new Date(b._date) - new Date(a._date));
+  }, [interactions, emailLogs, calendarEvents]);
 
   const [selectedEmail, setSelectedEmail] = useState(null);
   const { show: showSaved, trigger: triggerSaved } = useSaveBadge();
@@ -236,6 +263,40 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
                     )}
                   </div>
                 </button>
+              );
+            }
+            if (item._type === 'calendar') {
+              const isUpcoming = new Date(item.start_date) > new Date();
+              return (
+                <div
+                  key={`cal-${item.id}`}
+                  className={`flex gap-3 border rounded-lg p-3 ${isUpcoming ? 'bg-blue-50 border-blue-200' : 'bg-white'}`}
+                >
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-brand-navy/10">
+                    <Video className="w-4 h-4 text-brand-navy" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-gray-800 truncate flex items-center gap-1.5">
+                        {item.title || 'Untitled Event'}
+                        {isUpcoming && (
+                          <span className="text-xs text-blue-600 font-medium bg-blue-100 px-1.5 py-0.5 rounded">Upcoming</span>
+                        )}
+                      </p>
+                      <span className="text-xs text-gray-400 flex-shrink-0">{calDate(item.start_date)}</span>
+                    </div>
+                    {item.meeting_link && (
+                      <a
+                        href={item.meeting_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:underline mt-1 inline-flex items-center gap-0.5"
+                      >
+                        Join meeting →
+                      </a>
+                    )}
+                  </div>
+                </div>
               );
             }
             const Icon = CHANNEL_ICONS[item.channel] || StickyNote;
