@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
     });
 
     if (candidates.length === 0) {
-      return Response.json({ status: 'ok', mode: backfillDays ? `backfill_${backfillDays}d` : 'scheduled', message: 'No candidate events', processed: 0, inaccessible: 0, skipped: 0, inaccessibleDocs: [] });
+      return Response.json({ status: 'ok', mode: backfillDays ? `backfill_${backfillDays}d` : 'scheduled', message: 'No candidate events', processed: 0, inaccessible: 0, skipped: 0, skipped_no_attachment: 0, skipped_already_captured: 0, inaccessibleDocs: [] });
     }
 
     // Get connector access tokens
@@ -72,7 +72,8 @@ Deno.serve(async (req) => {
 
     let processed = 0;
     let inaccessible = 0;
-    let skipped = 0;
+    let skippedNoAttachment = 0;
+    let skippedAlreadyCaptured = 0;
     const inaccessibleDocs = [];
 
     for (const evt of candidates) {
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
         const notesAttachments = attachments.filter(a => isNotesDoc(a.title));
 
         if (notesAttachments.length === 0) {
-          skipped++;
+          skippedNoAttachment++;
           continue;
         }
 
@@ -109,7 +110,7 @@ Deno.serve(async (req) => {
           const existing = await base44.asServiceRole.entities.MeetingNote.filter({ doc_id: docId }, '-created_date', 1);
           const existingNote = existing[0];
           if (existingNote && existingNote.access_status === 'captured') {
-            skipped++;
+            skippedAlreadyCaptured++;
             continue;
           }
 
@@ -252,7 +253,9 @@ Deno.serve(async (req) => {
       candidates: candidates.length,
       processed,
       inaccessible,
-      skipped,
+      skipped: skippedNoAttachment + skippedAlreadyCaptured,
+      skipped_no_attachment: skippedNoAttachment,
+      skipped_already_captured: skippedAlreadyCaptured,
       inaccessibleDocs,
     });
   } catch (error) {

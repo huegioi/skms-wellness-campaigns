@@ -221,27 +221,21 @@ Deno.serve(async (req) => {
         // Rule (b)+(c): match contacts by attendee email only — no title fallback.
         // Only external attendees are checked, so internal contact records (whose
         // emails are in the blocklist) can never be matched.
-        // Match order: partner first (most specific), then lead, then client.
-        // Domain fallback (clients only) runs last when no exact match is found.
+        // Match all three identities independently — a person who is both a Lead
+        // and a Client links to both, so meeting notes reach every profile.
+        // Domain fallback (clients only) runs last, only when no exact client match.
         let matchedPartner = null;
         let matchedLead = null;
         let matchedClient = null;
 
         for (const email of externalAttendees) {
-          if (partnerByEmail[email]) { matchedPartner = partnerByEmail[email]; break; }
+          if (!matchedPartner && partnerByEmail[email]) matchedPartner = partnerByEmail[email];
+          if (!matchedLead && leadByEmail[email]) matchedLead = leadByEmail[email];
+          if (!matchedClient && clientByEmail[email]) matchedClient = clientByEmail[email];
+          if (matchedPartner && matchedLead && matchedClient) break;
         }
-        if (!matchedPartner) {
-          for (const email of externalAttendees) {
-            if (leadByEmail[email]) { matchedLead = leadByEmail[email]; break; }
-          }
-        }
-        if (!matchedPartner && !matchedLead) {
-          for (const email of externalAttendees) {
-            if (clientByEmail[email]) { matchedClient = clientByEmail[email]; break; }
-          }
-        }
-        // Domain fallback for clients only — when no exact email match on any entity
-        if (!matchedPartner && !matchedLead && !matchedClient) {
+        // Domain fallback for clients only — last resort when no exact client match.
+        if (!matchedClient) {
           for (const email of externalAttendees) {
             const domain = extractEmailDomain(email);
             if (domain && !isExcludedDomain(domain) && domainToClient.has(domain)) {
