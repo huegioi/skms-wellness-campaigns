@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
@@ -80,6 +80,7 @@ export default function SchedulingHub() {
   const [eventLens, setEventLens] = useState('delivery'); // 'delivery' | 'meetings'
   const [filterType, setFilterType] = useState('all');
   const [filterPresenter, setFilterPresenter] = useState('all');
+  const [eventRange, setEventRange] = useState('30');   // days forward
   const queryClient = useQueryClient();
 
   const eventTypeConfig = {
@@ -125,15 +126,15 @@ export default function SchedulingHub() {
   });
 
   const { data: calendarEvents = [], refetch: refetchCalendarEvents } = useQuery({
-    queryKey: ['calendarEvents'],
-    queryFn: () => base44.entities.CalendarEvent.list('-start_date')
+    queryKey: ['calendarEvents', eventRange],
+    queryFn: () => base44.entities.CalendarEvent.list('start_date', 1000)
   });
 
   // Mirror sheet rows into CalendarEvent records (auto-runs on mount + every 5 min)
   const { data: mirrorResult } = useQuery({
     queryKey: ['mirrorSheetEvents'],
     queryFn: async () => {
-      const response = await base44.functions.invoke('mirrorSheetEvents', { window_days: 30 });
+      const response = await base44.functions.invoke('mirrorSheetEvents', { window_days: 365 });
       return response.data;
     },
     refetchInterval: 300000,
@@ -273,6 +274,37 @@ export default function SchedulingHub() {
     setEditingCell(null);
     setEditValue('');
   };
+
+  // Range-filtered list for the All Events list view (forward/past window).
+  // Declared before early returns so the useMemo hook order stays stable.
+  const rangeFilteredEvents = useMemo(() => {
+    const startToday = new Date();
+    startToday.setHours(0, 0, 0, 0);
+    const filtered = (calendarEvents || []).filter(event => {
+      const typeMatch = filterType === 'all' || event.event_type === filterType;
+      const presenterMatch = filterPresenter === 'all' || event.presenter === filterPresenter;
+      return typeMatch && presenterMatch;
+    });
+    if (eventRange === 'past') {
+      return filtered
+        .filter(e => parseISO(e.start_date) < startToday)
+        .sort((a, b) => parseISO(b.start_date) - parseISO(a.start_date)); // newest first
+    }
+    if (eventRange === 'all') {
+      return filtered
+        .filter(e => parseISO(e.start_date) >= startToday)
+        .sort((a, b) => parseISO(a.start_date) - parseISO(b.start_date)); // soonest first
+    }
+    const days = parseInt(eventRange, 10) || 30;
+    const endWindow = new Date(startToday);
+    endWindow.setDate(endWindow.getDate() + days);
+    return filtered
+      .filter(e => {
+        const d = parseISO(e.start_date);
+        return d >= startToday && d < endWindow;
+      })
+      .sort((a, b) => parseISO(a.start_date) - parseISO(b.start_date)); // soonest first
+  }, [calendarEvents, filterType, filterPresenter, eventRange]);
 
   if (isLoading) {
     return (
@@ -802,6 +834,23 @@ export default function SchedulingHub() {
                   </SelectContent>
                 </Select>
               )}
+
+              {calendarView === 'list' && (
+                <Select value={eventRange} onValueChange={setEventRange}>
+                  <SelectTrigger className="w-[150px]">
+                    <SelectValue placeholder="Date Range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">Next 7 days</SelectItem>
+                    <SelectItem value="30">Next 30 days</SelectItem>
+                    <SelectItem value="90">Next 90 days</SelectItem>
+                    <SelectItem value="180">Next 6 months</SelectItem>
+                    <SelectItem value="365">Next 12 months</SelectItem>
+                    <SelectItem value="all">All upcoming</SelectItem>
+                    <SelectItem value="past">Past events</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
         </Card>
@@ -814,11 +863,11 @@ export default function SchedulingHub() {
             {calendarView === 'list' && (
               <Card className="p-6">
                 <h2 className="text-2xl font-bold mb-4" style={{ color: '#013f7c' }}>All Events</h2>
-                {filteredCalendarEvents.length === 0 ? (
+                {rangeFilteredEvents.length === 0 ? (
                   <p className="text-center text-gray-500 py-8">No events match your filters</p>
                 ) : (
                   <div className="space-y-3">
-                    {filteredCalendarEvents.slice(0, 50).map((event) => (
+                    {rangeFilteredEvents.slice(0, 200).map((event) => (
                       <div 
                         key={event.id}
                         className="bg-white rounded-lg p-4 border hover:shadow-md transition-shadow cursor-pointer"
@@ -879,6 +928,11 @@ export default function SchedulingHub() {
                         </div>
                       </div>
                     ))}
+                    {rangeFilteredEvents.length > 200 && (
+                      <p className="text-sm text-gray-500 text-center pt-2">
+                        Showing 200 of {rangeFilteredEvents.length} — narrow the range to see more
+                      </p>
+                    )}
                   </div>
                 )}
               </Card>

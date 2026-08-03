@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
     if (!isTeamMember(user)) return Response.json({ error: 'Team only' }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
-    const windowDays: number = body.window_days || 30;
+    const windowDays: number = body.window_days || 365;
 
     // ── Fetch sheet data ──
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googlesheets');
@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
     });
 
     // ── Fetch existing CalendarEvents + Clients ──
-    const existingEvents = await base44.asServiceRole.entities.CalendarEvent.list('-start_date', 500);
+    const existingEvents = await base44.asServiceRole.entities.CalendarEvent.list('-start_date', 1000);
     const clients = await base44.asServiceRole.entities.Client.list('name', 500);
 
     // Build sheet_key index
