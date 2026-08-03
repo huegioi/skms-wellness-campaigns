@@ -167,14 +167,26 @@ async function sendSurveyEmail(to, sendType, token) {
     cohort_1mo: 'It\u2019s been about a month since your wellness program. We\u2019d love to check in.'
   };
 
+  const durations = {
+    enps_post_session: 'It\u2019s one question and takes about 10 seconds.',
+    cohort_end: 'It takes less than 2 minutes.',
+    cohort_1mo: 'It takes less than 2 minutes.'
+  };
+
+  const buttons = {
+    enps_post_session: 'Answer one question',
+    cohort_end: 'Take the survey',
+    cohort_1mo: 'Take the survey'
+  };
+
   const body = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto">
     <div style="background:linear-gradient(135deg,#013f7c,#264d44);padding:24px;border-radius:12px 12px 0 0;text-align:center">
       <h1 style="color:#fff;margin:0;font-size:20px">SKMS Wellness</h1>
     </div>
     <div style="background:#f9f9f9;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb">
       <p style="color:#374151;font-size:15px;line-height:1.6">${intros[sendType]}</p>
-      <p style="color:#374151;font-size:15px;line-height:1.6">It takes less than 2 minutes.</p>
-      <a href="${surveyLink}" style="display:inline-block;background:#264d44;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;margin:16px 0">Take the survey</a>
+      <p style="color:#374151;font-size:15px;line-height:1.6">${durations[sendType]}</p>
+      <a href="${surveyLink}" style="display:inline-block;background:#264d44;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;margin:16px 0">${buttons[sendType]}</a>
       <p style="color:#9ca3af;font-size:12px;margin-top:24px"><a href="${unsubLink}" style="color:#9ca3af">Unsubscribe</a></p>
     </div>
   </div>`;
