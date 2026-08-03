@@ -51,6 +51,15 @@
       "default": "captured",
       "description": "Whether the doc content was successfully exported or is inaccessible"
     },
+    "capture_source": {
+      "type": "string",
+      "enum": [
+        "calendar_attachment",
+        "drive_search"
+      ],
+      "default": "calendar_attachment",
+      "description": "How the notes doc was discovered: 'calendar_attachment' (attached to the Google Calendar event) or 'drive_search' (Drive fallback used when the event had no calendar attachment)."
+    },
     "meeting_title": {
       "type": "string",
       "description": "Calendar event title (denormalized for display)"
