@@ -611,7 +611,6 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
         await base44.entities.Client.update(clientId, {
           name: clientName,
           company: companyName,
-          wellness_budget: assessmentData.wellnessBudget ? parseFloat(assessmentData.wellnessBudget) : null,
           industry: assessmentData.industry || null,
           company_size: companySizeEnum,
           employee_count: parseInt(assessmentData.companySize, 10) || undefined,
@@ -628,7 +627,6 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
           email: clientEmail,
           email_domain: getOrgDomain(clientEmail),
           company: companyName,
-          wellness_budget: assessmentData.wellnessBudget ? parseFloat(assessmentData.wellnessBudget) : null,
           industry: assessmentData.industry || null,
           company_size: companySizeEnum,
           employee_count: parseInt(assessmentData.companySize, 10) || undefined,
@@ -1174,12 +1172,6 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
               <span className="font-semibold text-gray-600">Company:</span>
               <span className="ml-2">{companyName || 'Not provided'}</span>
             </div>
-            {assessmentData.wellnessBudget && (
-              <div>
-                <span className="font-semibold text-gray-600">Wellness Budget:</span>
-                <span className="ml-2">${parseInt(assessmentData.wellnessBudget).toLocaleString()}</span>
-              </div>
-            )}
           </div>
           
           {(!clientName || !clientEmail) && (

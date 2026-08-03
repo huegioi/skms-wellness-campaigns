@@ -54,7 +54,6 @@ export default function CurriculumDesigner() {
           companyName: client.company || '',
           companyAddress: client.company_address || '',
           companySize: client.employee_count || enumToApproxCount(client.company_size) || '',
-          wellnessBudget: client.wellness_budget || '',
           brokerName: primaryBroker.name || client.broker_name || '',
           brokerEmail: primaryBroker.email || client.broker_email || '',
           brokerCompany: primaryBroker.company || '',

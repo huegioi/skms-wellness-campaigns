@@ -60,7 +60,6 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
       companyName: client.company || '',
       companyAddress: client.company_address || '',
       companySize: client.employee_count || enumToApproxCount(client.company_size) || '',
-      wellnessBudget: client.wellness_budget || '',
       planYearStart: client.plan_year_start || '',
       wellnessFundSize: client.wellness_fund_size || '',
       brokerName: primaryBroker.name || client.broker_name || '',
@@ -94,7 +93,6 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
     companyName: selections.assessmentData?.companyName || '',
     companyAddress: selections.assessmentData?.companyAddress || '',
     companySize: selections.assessmentData?.companySize || '',
-    wellnessBudget: selections.assessmentData?.wellnessBudget || '',
     planYearStart: selections.assessmentData?.planYearStart || '',
     wellnessFundSize: selections.assessmentData?.wellnessFundSize || '',
     brokerName: selections.assessmentData?.brokerName || '',
@@ -542,18 +540,6 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
             placeholder="Enter company address..."
             value={formData.companyAddress}
             onChange={(e) => handleInputChange('companyAddress', e.target.value)}
-          />
-        </div>
-
-        <div className="question-group">
-          <label className="question-label">Annual Wellness Budget ($)</label>
-          <input
-            type="number"
-            className="neuro-input"
-            placeholder="Enter wellness budget..."
-            min="0"
-            value={formData.wellnessBudget}
-            onChange={(e) => handleInputChange('wellnessBudget', e.target.value)}
           />
         </div>
 
