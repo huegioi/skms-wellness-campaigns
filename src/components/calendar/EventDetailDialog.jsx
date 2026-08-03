@@ -16,6 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
 import CheckinQrDialog from '@/components/shared/CheckinQrDialog';
 import { isChallengeEvent } from '@/lib/challengeUtils';
+import { buildInviteDescription, icsEscape, icsFold } from '@/lib/calendarInviteBody';
 
 export default function EventDetailDialog({ event, open, onOpenChange, eventTypeConfig, onUpdated }) {
   const [deleting, setDeleting] = useState(false);
@@ -79,6 +80,16 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
       return checkins.length;
     },
     enabled: !!event.id,
+  });
+
+  const { data: service = null } = useQuery({
+    queryKey: ['event-service', event.service_id],
+    queryFn: async () => {
+      if (!event.service_id) return null;
+      const services = await base44.entities.Service.filter({ id: event.service_id });
+      return services[0] || null;
+    },
+    enabled: !!event.service_id,
   });
 
   const handleDelete = async () => {
@@ -181,17 +192,20 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
     
     const formatICSDate = (date) => format(date, "yyyyMMdd'T'HHmmss");
     
-    const icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//SKMS Wellness//Calendar//EN
-BEGIN:VEVENT
-DTSTART:${formatICSDate(startDate)}
-DTEND:${formatICSDate(endDate)}
-SUMMARY:${event.title}
-DESCRIPTION:${event.description || ''}
-LOCATION:${event.location || ''}
-END:VEVENT
-END:VCALENDAR`;
+    const icsLines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//SKMS Wellness//Calendar//EN',
+      'BEGIN:VEVENT',
+      icsFold(`DTSTART:${icsEscape(formatICSDate(startDate))}`),
+      icsFold(`DTEND:${icsEscape(formatICSDate(endDate))}`),
+      icsFold(`SUMMARY:${icsEscape(event.title)}`),
+      icsFold(`DESCRIPTION:${icsEscape(buildInviteDescription(event, service))}`),
+      icsFold(`LOCATION:${icsEscape(event.location || '')}`),
+      'END:VEVENT',
+      'END:VCALENDAR'
+    ];
+    const icsContent = icsLines.join('\r\n');
 
     const blob = new Blob([icsContent], { type: 'text/calendar' });
     const url = URL.createObjectURL(blob);

@@ -1,5 +1,38 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+const APP_BASE_URL = 'https://app.skillfulmeans.life';
+function buildCheckinUrl(token) {
+  if (!token) return null;
+  return `${APP_BASE_URL}/Checkin?t=${token}`;
+}
+function buildInviteDescription(event, service) {
+  const parts = [];
+  const checkinUrl = buildCheckinUrl(event?.checkin_token);
+  if (checkinUrl) {
+    parts.push('CHECK IN HERE:');
+    parts.push(checkinUrl);
+    parts.push('Please check in at this link when the session starts. Your video link will appear right after you check in.');
+    parts.push('');
+  }
+  if (service?.description) parts.push(service.description);
+  else if (service?.short_description) parts.push(service.short_description);
+  if (service?.key_benefits?.length) {
+    parts.push('');
+    parts.push('Key Benefits:');
+    service.key_benefits.forEach(b => parts.push('• ' + b));
+  }
+  if (event?.description) {
+    const existing = String(event.description).trim();
+    if (existing && !parts.join('\n').includes(existing)) {
+      parts.push('');
+      parts.push(existing);
+    }
+  }
+  parts.push('');
+  parts.push('— SkillfulMeans Wellness Services');
+  return parts.join('\n').trim();
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -36,10 +69,13 @@ Deno.serve(async (req) => {
     const attendeeEmail = client?.email || lead?.email;
     const attendees = attendeeEmail ? [{ email: attendeeEmail }] : [];
 
+    // Placeholder description — PATCHed below with the check-in link once the token exists.
+    const placeholderDescription = `Follow-up check-in call with ${contactName} from ${companyName}.`;
+
     // Create event with Google Meet conference
     const eventBody = {
       summary: eventTitle,
-      description: `Follow-up check-in call with ${contactName} from ${companyName}.\n\nScheduled via SkillfulMeans Wellness Services.`,
+      description: placeholderDescription,
       start: { dateTime: startDateTime, timeZone: 'America/New_York' },
       end: { dateTime: endDateTime, timeZone: 'America/New_York' },
       attendees,
@@ -78,21 +114,42 @@ Deno.serve(async (req) => {
     const gcalEvent = await gcalRes.json();
     const meetLink = gcalEvent.conferenceData?.entryPoints?.find(e => e.entryPointType === 'video')?.uri || '';
 
-    // Save CalendarEvent entity so it shows in Scheduling Hub.
+    // Generate the check-in token now; the invite points at the check-in page, not the Meet link.
+    const checkin_token = crypto.randomUUID();
+    const checkinUrl = buildCheckinUrl(checkin_token);
+    const inviteDescription = buildInviteDescription({ checkin_token, description: placeholderDescription }, null);
+
+    // Save CalendarEvent entity so it shows in Scheduling Hub. The Meet link is stored on
+    // meeting_link (handed to the attendee AFTER check-in); location is the check-in URL.
     // lead_id is passed through so the calendar ingestion can attribute the touch.
     const calEvent = await base44.entities.CalendarEvent.create({
       title: eventTitle,
-      description: eventBody.description,
+      description: inviteDescription,
       event_type: 'follow_up',
       start_date: startDateTime,
       end_date: endDateTime,
       client_id: clientId || undefined,
       lead_id: leadId || undefined,
       client_name: contactName,
-      location: meetLink,
+      meeting_link: meetLink,
+      location: checkinUrl,
+      checkin_token,
       google_event_id: gcalEvent.id,
       completed: false
     });
+
+    // PATCH the Google event so its description + location point at the check-in page.
+    await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events/${gcalEvent.id}?sendUpdates=none`,
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ description: inviteDescription, location: checkinUrl })
+      }
+    );
 
     // Booking is not a contact — only update client follow-up status (not last_contacted_date for leads).
     // Lead last_contacted_date is set later by updateLastContactedFromCalendar once the call ends.

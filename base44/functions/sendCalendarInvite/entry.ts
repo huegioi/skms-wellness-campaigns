@@ -21,18 +21,33 @@ Deno.serve(async (req) => {
     const formatICS = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     const formatDisplay = (d) => d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+    // RFC 5545 escape + fold (backend can't import from src/)
+    const icsEscape = (value) => String(value || '')
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\r?\n/g, '\\n');
+    const icsFold = (line) => {
+      if (line.length <= 75) return line;
+      const out = [line.slice(0, 75)];
+      let rest = line.slice(75);
+      while (rest.length > 74) { out.push(' ' + rest.slice(0, 74)); rest = rest.slice(74); }
+      if (rest.length) out.push(' ' + rest);
+      return out.join('\r\n');
+    };
+
     const icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
       'PRODID:-//SKMS Wellness//Calendar//EN',
       'METHOD:REQUEST',
       'BEGIN:VEVENT',
-      `DTSTART:${formatICS(startDate)}`,
-      `DTEND:${formatICS(endDate)}`,
-      `SUMMARY:${event.title}`,
-      `DESCRIPTION:${(event.description || '').replace(/\n/g, '\\n')}`,
-      `LOCATION:${event.location || ''}`,
-      `UID:${event.id}@skms-wellness`,
+      icsFold(`DTSTART:${icsEscape(formatICS(startDate))}`),
+      icsFold(`DTEND:${icsEscape(formatICS(endDate))}`),
+      icsFold(`SUMMARY:${icsEscape(event.title)}`),
+      icsFold(`DESCRIPTION:${icsEscape(event.description || '')}`),
+      icsFold(`LOCATION:${icsEscape(event.location || '')}`),
+      icsFold(`UID:${icsEscape(event.id + '@skms-wellness')}`),
       'STATUS:CONFIRMED',
       'END:VEVENT',
       'END:VCALENDAR'

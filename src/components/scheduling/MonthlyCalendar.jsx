@@ -148,7 +148,9 @@ export default function MonthlyCalendar({ sheets, calendarEvents = [], refetchEv
         action: 'createEvent',
         eventData: {
           title: event.title,
-          description: `Client: ${event.client}\nSheet: ${event.sheet}`,
+          description: (event.description && String(event.description).trim())
+            ? event.description
+            : `Client: ${event.client}\nSheet: ${event.sheet}`,
           location: event.location || '',
           start_date: startDate.toISOString(),
           end_date: endDate.toISOString(),

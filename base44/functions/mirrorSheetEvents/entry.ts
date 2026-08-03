@@ -160,6 +160,7 @@ function parseSheetEvents(sheets: any[]): any[] {
         meetingLink: findVal('link to host', 'host video', 'host link'),
         recording: findVal('recording', 'need recording'),
         translation: findVal('translation', 'need translation'),
+        description: findVal('description', 'notes'),
       });
     }
   }
@@ -326,7 +327,10 @@ Deno.serve(async (req) => {
       const matchedClient = matchClient(sheetEvent.client, clients);
       const eventType = deriveEventType(sheetEvent.title, sheetEvent.sheetTab);
 
-      let description = `Client: ${sheetEvent.client || 'N/A'}\nSource: ${sheetEvent.sheetTab} (auto-mirrored)`;
+      const clientSourceLines = `Client: ${sheetEvent.client || 'N/A'}\nSource: ${sheetEvent.sheetTab} (auto-mirrored)`;
+      let description = sheetEvent.description && String(sheetEvent.description).trim()
+        ? `${String(sheetEvent.description).trim()}\n\n${clientSourceLines}`
+        : clientSourceLines;
       if (sheetEvent.recording) description += `\nRecording: ${sheetEvent.recording}`;
       if (sheetEvent.translation) description += `\nTranslation: ${sheetEvent.translation}`;
 

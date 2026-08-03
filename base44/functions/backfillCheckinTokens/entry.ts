@@ -25,11 +25,8 @@ Deno.serve(async (req) => {
     let updated = 0;
     let tokensSkipped = 0;
     for (const event of needsToken) {
-      if (event.assessment_timing === 'none') {
-        console.log(`[backfillCheckinTokens] Skipping token backfill — assessment_timing is 'none': ${event.id} "${event.title}"`);
-        tokensSkipped++;
-        continue;
-      }
+      // Every event gets a check-in token: the check-in page is the invite's landing page
+      // regardless of whether a survey is attached.
       const token = crypto.randomUUID();
       await base44.asServiceRole.entities.CalendarEvent.update(event.id, { checkin_token: token });
       updated++;

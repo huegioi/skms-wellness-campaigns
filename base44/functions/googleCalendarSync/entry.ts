@@ -1,5 +1,38 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
+const APP_BASE_URL = 'https://app.skillfulmeans.life';
+function buildCheckinUrl(token) {
+  if (!token) return null;
+  return `${APP_BASE_URL}/Checkin?t=${token}`;
+}
+function buildInviteDescription(event, service) {
+  const parts = [];
+  const checkinUrl = buildCheckinUrl(event?.checkin_token);
+  if (checkinUrl) {
+    parts.push('CHECK IN HERE:');
+    parts.push(checkinUrl);
+    parts.push('Please check in at this link when the session starts. Your video link will appear right after you check in.');
+    parts.push('');
+  }
+  if (service?.description) parts.push(service.description);
+  else if (service?.short_description) parts.push(service.short_description);
+  if (service?.key_benefits?.length) {
+    parts.push('');
+    parts.push('Key Benefits:');
+    service.key_benefits.forEach(b => parts.push('• ' + b));
+  }
+  if (event?.description) {
+    const existing = String(event.description).trim();
+    if (existing && !parts.join('\n').includes(existing)) {
+      parts.push('');
+      parts.push(existing);
+    }
+  }
+  parts.push('');
+  parts.push('— SkillfulMeans Wellness Services');
+  return parts.join('\n').trim();
+}
+
 // ── Inline email-domain helpers (can't import from ../../shared/ in Deno) ──
 const EXCLUDED_DOMAINS = new Set([
   'gmail.com', 'outlook.com', 'hotmail.com', 'yahoo.com', 'aol.com',
@@ -62,10 +95,11 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'createEvent') {
+      const checkinUrl = buildCheckinUrl(eventData.checkin_token);
       const googleEvent = {
         summary: eventData.title,
-        description: eventData.description || '',
-        location: eventData.location || '',
+        description: eventData.checkin_token ? buildInviteDescription(eventData, null) : (eventData.description || ''),
+        location: eventData.checkin_token ? (checkinUrl || '') : (eventData.location || ''),
         start: eventData.all_day 
           ? { date: eventData.start_date.split('T')[0] }
           : { dateTime: eventData.start_date, timeZone: 'America/New_York' },
@@ -96,10 +130,11 @@ Deno.serve(async (req) => {
 
     if (action === 'updateEvent') {
       const { googleEventId } = eventData;
+      const checkinUrl = buildCheckinUrl(eventData.checkin_token);
       const googleEvent = {
         summary: eventData.title,
-        description: eventData.description || '',
-        location: eventData.location || '',
+        description: eventData.checkin_token ? buildInviteDescription(eventData, null) : (eventData.description || ''),
+        location: eventData.checkin_token ? (checkinUrl || '') : (eventData.location || ''),
         start: eventData.all_day 
           ? { date: eventData.start_date.split('T')[0] }
           : { dateTime: eventData.start_date, timeZone: 'America/New_York' },
@@ -109,8 +144,8 @@ Deno.serve(async (req) => {
       };
 
       const targetCalendar = calendarId || 'primary';
-      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendar)}/events/${googleEventId}`, {
-        method: 'PUT',
+      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendar)}/events/${googleEventId}?sendUpdates=none`, {
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
@@ -275,11 +310,12 @@ Deno.serve(async (req) => {
         else if (matchMethod === 'client_domain') matchedClientDomain++;
         else unlinked++;
 
-        // Meet link: hangoutLink → conferenceData video entryPoint → location
+        // Meet link: hangoutLink → conferenceData video entryPoint. Stored on meeting_link only;
+        // location holds the Google event's own location field so invites point at the check-in page.
         const videoLink = gEvent.hangoutLink
           || gEvent.conferenceData?.entryPoints?.find(e => e.entryPointType === 'video')?.uri
           || '';
-        const location = videoLink || gEvent.location || '';
+        const location = gEvent.location || '';
         const eventType = attendeeEmails.length > 0 ? 'meeting' : 'other';
         
         const newEvent = await base44.entities.CalendarEvent.create({

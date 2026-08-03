@@ -1,5 +1,38 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
 
+const APP_BASE_URL = 'https://app.skillfulmeans.life';
+function buildCheckinUrl(token) {
+  if (!token) return null;
+  return `${APP_BASE_URL}/Checkin?t=${token}`;
+}
+function buildInviteDescription(event, service) {
+  const parts = [];
+  const checkinUrl = buildCheckinUrl(event?.checkin_token);
+  if (checkinUrl) {
+    parts.push('CHECK IN HERE:');
+    parts.push(checkinUrl);
+    parts.push('Please check in at this link when the session starts. Your video link will appear right after you check in.');
+    parts.push('');
+  }
+  if (service?.description) parts.push(service.description);
+  else if (service?.short_description) parts.push(service.short_description);
+  if (service?.key_benefits?.length) {
+    parts.push('');
+    parts.push('Key Benefits:');
+    service.key_benefits.forEach(b => parts.push('• ' + b));
+  }
+  if (event?.description) {
+    const existing = String(event.description).trim();
+    if (existing && !parts.join('\n').includes(existing)) {
+      parts.push('');
+      parts.push(existing);
+    }
+  }
+  parts.push('');
+  parts.push('— SkillfulMeans Wellness Services');
+  return parts.join('\n').trim();
+}
+
 const CALENDAR_ID = 'admin%40skillfulmeans.life';
 
 Deno.serve(async (req) => {
@@ -30,11 +63,20 @@ Deno.serve(async (req) => {
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
 
     if (action === 'sync') {
+      // Fetch the service so the invite description can include its copy.
+      let service = null;
+      if (event.service_id) {
+        try {
+          const services = await base44.asServiceRole.entities.Service.filter({ id: event.service_id });
+          service = services[0] || null;
+        } catch { /* non-fatal */ }
+      }
+      const checkinUrl = buildCheckinUrl(event.checkin_token);
       // Create or update in Google Calendar
       const eventData = {
         summary: event.title,
-        description: event.description || '',
-        location: event.location || '',
+        description: event.checkin_token ? buildInviteDescription(event, service) : (event.description || ''),
+        location: event.checkin_token ? (checkinUrl || '') : (event.location || ''),
         start: event.all_day 
           ? { date: event.start_date.split('T')[0] }
           : { dateTime: event.start_date, timeZone: 'America/New_York' },
@@ -46,11 +88,12 @@ Deno.serve(async (req) => {
       let googleEventId = event.google_event_id;
 
       if (googleEventId) {
-        // Update existing event
+        // Update existing event (PATCH — not PUT — to preserve attendees, conferenceData,
+        // reminders, extendedProperties and colorId on the Google event.)
         const updateResponse = await fetch(
           `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events/${googleEventId}?sendUpdates=none`,
           {
-            method: 'PUT',
+            method: 'PATCH',
             headers: {
               'Authorization': `Bearer ${accessToken}`,
               'Content-Type': 'application/json'

@@ -214,7 +214,8 @@ Deno.serve(async (req) => {
         const endISO = event.end?.dateTime
           || (event.end?.date ? new Date(event.end.date + 'T00:00:00').toISOString() : null)
           || startISO;
-        const location = event.hangoutLink || event.location || '';
+        const location = event.location || '';
+        const videoLink = event.hangoutLink || '';
         const attendeeEmails = (event.attendees || [])
           .map(a => a.email?.toLowerCase().trim())
           .filter(Boolean);
@@ -265,6 +266,7 @@ Deno.serve(async (req) => {
           if (startISO && existingCE.start_date !== startISO) { updatePayload.start_date = startISO; changed = true; }
           if (endISO && existingCE.end_date !== endISO) { updatePayload.end_date = endISO; changed = true; }
           if (location && existingCE.location !== location) { updatePayload.location = location; changed = true; }
+          if (videoLink && existingCE.meeting_link !== videoLink) { updatePayload.meeting_link = videoLink; changed = true; }
           if (!existingCE.source_calendar) { updatePayload.source_calendar = cal.id; changed = true; }
           // Backfill contact IDs on existing events that were created before partner/domain matching
           if (matchedPartner && !existingCE.referral_partner_id) { updatePayload.referral_partner_id = matchedPartner.id; changed = true; }
@@ -278,6 +280,7 @@ Deno.serve(async (req) => {
               title,
               description: event.description || '',
               location,
+              meeting_link: videoLink || undefined,
               start_date: startISO,
               end_date: endISO,
               all_day: !event.start?.dateTime,

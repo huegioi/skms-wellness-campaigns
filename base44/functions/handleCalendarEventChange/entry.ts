@@ -1,5 +1,38 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
+const APP_BASE_URL = 'https://app.skillfulmeans.life';
+function buildCheckinUrl(token) {
+  if (!token) return null;
+  return `${APP_BASE_URL}/Checkin?t=${token}`;
+}
+function buildInviteDescription(event, service) {
+  const parts = [];
+  const checkinUrl = buildCheckinUrl(event?.checkin_token);
+  if (checkinUrl) {
+    parts.push('CHECK IN HERE:');
+    parts.push(checkinUrl);
+    parts.push('Please check in at this link when the session starts. Your video link will appear right after you check in.');
+    parts.push('');
+  }
+  if (service?.description) parts.push(service.description);
+  else if (service?.short_description) parts.push(service.short_description);
+  if (service?.key_benefits?.length) {
+    parts.push('');
+    parts.push('Key Benefits:');
+    service.key_benefits.forEach(b => parts.push('• ' + b));
+  }
+  if (event?.description) {
+    const existing = String(event.description).trim();
+    if (existing && !parts.join('\n').includes(existing)) {
+      parts.push('');
+      parts.push(existing);
+    }
+  }
+  parts.push('');
+  parts.push('— SkillfulMeans Wellness Services');
+  return parts.join('\n').trim();
+}
+
 // Shared multi-calendar watch list. Keep in sync with updateLastContactedFromCalendar.
 const WATCHED_CALENDARS = [
   { id: 'primary', owner: 'William' },
@@ -48,10 +81,19 @@ Deno.serve(async (req) => {
     }
 
     if (event.type === 'update' && data.google_event_id) {
+      // Fetch the service so the invite description can include its copy.
+      let service = null;
+      if (data.service_id) {
+        try {
+          const services = await base44.asServiceRole.entities.Service.filter({ id: data.service_id });
+          service = services[0] || null;
+        } catch { /* non-fatal — invite description simply omits service copy */ }
+      }
+      const checkinUrl = buildCheckinUrl(data.checkin_token);
       const eventData = {
         summary: data.title,
-        description: data.description || '',
-        location: data.location || '',
+        description: data.checkin_token ? buildInviteDescription(data, service) : (data.description || ''),
+        location: data.checkin_token ? (checkinUrl || '') : (data.location || ''),
         start: data.all_day
           ? { date: data.start_date.split('T')[0] }
           : { dateTime: data.start_date, timeZone: 'America/New_York' },
@@ -64,7 +106,7 @@ Deno.serve(async (req) => {
       for (const calId of candidateCals) {
         const res = await fetch(
           `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events/${data.google_event_id}?sendUpdates=none`,
-          { method: 'PUT', headers: jsonHeaders, body: JSON.stringify(eventData) }
+          { method: 'PATCH', headers: jsonHeaders, body: JSON.stringify(eventData) }
         );
         if (res.ok) { updated = true; break; }
         if (res.status === 404) continue; // not on this calendar — try the next
