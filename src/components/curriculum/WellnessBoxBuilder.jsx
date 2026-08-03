@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { X, Plus } from 'lucide-react';
+import { customBoxUnitPrice } from '@/lib/wellnessBoxes';
 
 export default function WellnessBoxBuilder({ wellnessItems, customBoxQuantity, onQuantityChange, onCustomBoxChange }) {
   const [customBox, setCustomBox] = useState([]);
@@ -27,7 +28,7 @@ export default function WellnessBoxBuilder({ wellnessItems, customBoxQuantity, o
   };
 
   const calculateTotal = () => {
-    return Math.max(customBox.reduce((sum, item) => sum + item.price, 0), 65);
+    return customBoxUnitPrice(customBox);
   };
 
   const updateStepper = (increment) => {

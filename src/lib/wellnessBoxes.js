@@ -41,6 +41,11 @@ export function applyBoxFloor(key, price) {
   return Math.max(Number(price) || 0, boxPriceFloor(key));
 }
 
+export function customBoxUnitPrice(items = []) {
+  const sum = (items || []).reduce((s, i) => s + (Number(i?.price) || 0), 0);
+  return Math.max(sum, MIN_PHYSICAL_BOX_PRICE);   // custom boxes are physical
+}
+
 // Maps box code keys to wellness_box Service record names for price lookup
 export const BOX_KEY_TO_SERVICE_NAME = {
   reduceStress: 'Reduce Stress Wellness Box',

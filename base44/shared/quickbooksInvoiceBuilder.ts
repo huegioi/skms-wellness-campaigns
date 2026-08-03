@@ -15,7 +15,7 @@
 // recipient field for manual dispatch — it does not trigger delivery.
 
 import { QB_CATEGORY_ITEM_DEFAULTS, QB_SALES_ITEM_ID } from './quickbooksItems.ts';
-import { BOX_DISPLAY_NAMES, BOX_KEY_TO_SERVICE_NAME, WELLNESS_BOX_FALLBACK_PRICES, applyBoxFloor } from './wellnessBoxes.ts';
+import { BOX_DISPLAY_NAMES, BOX_KEY_TO_SERVICE_NAME, WELLNESS_BOX_FALLBACK_PRICES, applyBoxFloor, customBoxUnitPrice } from './wellnessBoxes.ts';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -322,7 +322,7 @@ export function linesFromProposal(
   const customBoxQty = s.customBoxQuantity || 0;
   const customBoxItems = s.customBoxItems || [];
   if (customBoxQty > 0 && customBoxItems.length > 0) {
-    const unitPrice = Math.max(customBoxItems.reduce((sum: number, item: any) => sum + (item.price || 0), 0), 65);
+    const unitPrice = customBoxUnitPrice(customBoxItems);
     lines.push({
       description: 'Custom Wellness Box',
       quantity: customBoxQty,

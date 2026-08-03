@@ -7,7 +7,7 @@ import { base44 } from '@/api/base44Client';
 import { getOrgDomain } from '@/lib/emailDomain';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { resolveBoxPrices, WELLNESS_BOX_PRICES, BOX_DISPLAY_NAMES, applyBoxFloor } from '@/lib/wellnessBoxes';
+import { resolveBoxPrices, WELLNESS_BOX_PRICES, BOX_DISPLAY_NAMES, applyBoxFloor, customBoxUnitPrice } from '@/lib/wellnessBoxes';
 
 // Snapshot-first box price lookup: proposal snapshot → live Service → constant → 0
 const getBoxPrice = (key, snapshot, livePrices) =>
@@ -136,7 +136,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
     });
 
     if (selections.customBoxQuantity > 0 && customBoxItems.length > 0) {
-      const customBoxTotal = Math.max(customBoxItems.reduce((sum, item) => sum + item.price, 0), 65);
+      const customBoxTotal = customBoxUnitPrice(customBoxItems);
       total += customBoxTotal * selections.customBoxQuantity;
     }
     customCharges.forEach(charge => {
@@ -194,7 +194,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
   const narrative = generateNarrative();
 
   const generatePDF = () => {
-    const customBoxTotal = Math.max(customBoxItems.reduce((sum, item) => sum + item.price, 0), 65);
+    const customBoxTotal = customBoxUnitPrice(customBoxItems);
     
     const pdfContent = `
       <!DOCTYPE html>
@@ -1090,7 +1090,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
               {selections.customBoxQuantity > 0 && customBoxItems.length > 0 && (
                 <div className="review-item">
                   <span>Custom Wellness Boxes ({selections.customBoxQuantity})</span>
-                  <span className="font-semibold">${(customBoxItems.reduce((sum, item) => sum + item.price, 0) * selections.customBoxQuantity).toLocaleString()}</span>
+                  <span className="font-semibold">${(customBoxUnitPrice(customBoxItems) * selections.customBoxQuantity).toLocaleString()}</span>
                 </div>
               )}
             </div>

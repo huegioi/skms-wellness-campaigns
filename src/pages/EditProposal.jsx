@@ -12,7 +12,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
 import { findMatchedStage, formatStageLabel } from '@/components/quickbuilder/stagePricing';
-import { WELLNESS_BOX_PRICES, BOX_KEY_TO_SERVICE_NAME, BOX_DISPLAY_NAMES, resolveBoxPrices, applyBoxFloor } from '@/lib/wellnessBoxes';
+import { WELLNESS_BOX_PRICES, BOX_KEY_TO_SERVICE_NAME, BOX_DISPLAY_NAMES, resolveBoxPrices, applyBoxFloor, customBoxUnitPrice } from '@/lib/wellnessBoxes';
 
 // Snapshot-first box price lookup: proposal snapshot → live Service → constant → 0
 const getBoxPrice = (key, snapshot, livePrices) =>
@@ -232,7 +232,7 @@ export default function EditProposal() {
     Object.entries(boxes).forEach(([key, qty]) => { total += (qty || 0) * getBoxPrice(key, boxSnapshot, boxPrices); });
     
     if (selections.customBoxQuantity > 0 && selections.customBoxItems?.length > 0) {
-      const customBoxTotal = Math.max(selections.customBoxItems.reduce((sum, item) => sum + item.price, 0), 65);
+      const customBoxTotal = customBoxUnitPrice(selections.customBoxItems);
       total += customBoxTotal * selections.customBoxQuantity;
     }
     
@@ -432,7 +432,7 @@ export default function EditProposal() {
           const customItems = selections.customBoxItems || [];
           let customRow = '';
           if (customQty > 0 && customItems.length > 0) {
-            const customUnitPrice = customItems.reduce((s, i) => s + i.price, 0);
+            const customUnitPrice = customBoxUnitPrice(customItems);
             const customTotal = customUnitPrice * customQty;
             const itemList = customItems.map(i => `${i.name} ($${i.price.toFixed(2)})`).join(', ');
             customRow = `<div class="item"><div class="item-title">Custom Wellness Box (${customQty})</div><div class="item-price">${customQty} × $${customUnitPrice.toFixed(2)} = $${customTotal.toLocaleString()}</div><div class="item-description">${itemList}</div></div>`;

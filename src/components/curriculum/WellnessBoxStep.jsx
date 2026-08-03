@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { WELLNESS_BOX_PRICES } from '@/lib/wellnessBoxes';
+import { WELLNESS_BOX_PRICES, customBoxUnitPrice } from '@/lib/wellnessBoxes';
 
 const IMG_BASE = 'https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/';
 
@@ -362,7 +362,7 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
       t += (qty || 0) * (WELLNESS_BOX_PRICES[key] || 0);
     });
     if (customBoxQuantity > 0 && customBoxItems.length > 0) {
-      t += customBoxItems.reduce((s, i) => s + i.price, 0) * customBoxQuantity;
+      t += customBoxUnitPrice(customBoxItems) * customBoxQuantity;
     }
     return t;
   };

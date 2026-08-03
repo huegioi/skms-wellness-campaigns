@@ -19,6 +19,7 @@ import QuickBooksInvoiceReview from '@/components/proposals/QuickBooksInvoiceRev
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 import { PROPOSAL_STATUS_CONFIG as statusConfig } from '@/lib/statusConfig';
 import { htmlToPdfDownload, proposalFilename } from '@/lib/proposalPdf';
+import { customBoxUnitPrice } from '@/lib/wellnessBoxes';
 
 export default function Proposals() {
   const [sortBy, setSortBy] = useState('date');
@@ -120,7 +121,7 @@ export default function Proposals() {
     const customItems = sel.customBoxItems || [];
     let customBoxRow = '';
     if (customQty > 0 && customItems.length > 0) {
-      const customUnit = customItems.reduce((s, i) => s + i.price, 0);
+      const customUnit = customBoxUnitPrice(customItems);
       const itemList = customItems.map(i => `${i.name} ($${i.price.toFixed(2)})`).join(', ');
       customBoxRow = `<div class="item"><div class="item-title">Custom Wellness Box (${customQty})</div><div class="item-price">${customQty} × $${customUnit.toFixed(2)} = $${(customUnit * customQty).toLocaleString()}</div><div class="item-description">${itemList}</div></div>`;
     }

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { customBoxUnitPrice } from '../../shared/wellnessBoxes.ts';
 
 // Hardcoded fallback for wellness box prices — used only if a Service record is missing or has no price
 const FALLBACK_BOX_PRICES = {
@@ -116,7 +117,7 @@ function calcAdjustedRevenue(proposal, servicePriceMap, boxServicePrices, fallba
   const customBoxQty = s.customBoxQuantity || 0;
   const customBoxItems = s.customBoxItems || [];
   if (customBoxQty > 0 && customBoxItems.length > 0) {
-    const unitPrice = Math.max(customBoxItems.reduce((sum, item) => sum + (item.price || 0), 0), 65);
+    const unitPrice = customBoxUnitPrice(customBoxItems);
     boxTotal += customBoxQty * unitPrice;
   }
 

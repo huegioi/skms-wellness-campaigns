@@ -49,3 +49,8 @@ export function boxPriceFloor(key: string): number {
 export function applyBoxFloor(key: string, price: number | undefined | null): number {
   return Math.max(Number(price) || 0, boxPriceFloor(key));
 }
+
+export function customBoxUnitPrice(items: any[] = []): number {
+  const sum = (items || []).reduce((s: number, i: any) => s + (Number(i?.price) || 0), 0);
+  return Math.max(sum, MIN_PHYSICAL_BOX_PRICE);   // custom boxes are physical
+}
