@@ -30,7 +30,7 @@ export default function WellnessBoxes() {
     {
       id: 'physical',
       name: 'Custom Wellness Boxes (Physical)',
-      priceRange: '$40-$100',
+      priceRange: '$65-$100',
       description: 'Custom-curated physical gift boxes delivered to your team. Perfect for tangible appreciation.',
       themes: ['Mental Health/Stress Relief', 'Gratitude', 'New Year New You', 'Self-Care', 'Relaxation'],
       icon: Gift,
@@ -299,7 +299,6 @@ Format as an array of items with name, description, and estimated_cost fields.`;
                       <SelectValue placeholder="Select budget range..." />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="$25-$50">$25-$50</SelectItem>
                       <SelectItem value="$50-$75">$50-$75</SelectItem>
                       <SelectItem value="$75-$100">$75-$100</SelectItem>
                       <SelectItem value="$100-$150">$100-$150</SelectItem>

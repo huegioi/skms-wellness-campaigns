@@ -178,7 +178,7 @@ export const productCatalog = {
   wellnessBoxes: {
     physical: {
       name: "Custom Wellness Boxes (Physical)",
-      priceRange: "$40-$100",
+      priceRange: "$65-$100",
       description: "Custom-curated physical gift boxes. Themes can include Mental Health/Stress Relief, Gratitude, or New Year New You theme.",
       icon: "Gift"
     },

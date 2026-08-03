@@ -18,8 +18,8 @@
 // WELLNESS_BOX_PRICES directly.
 
 export const WELLNESS_BOX_PRICES = {
-  reduceStress: 60,
-  relaxationSleep: 60,
+  reduceStress: 65,
+  relaxationSleep: 65,
   largeEmotional: 100,
   largeStressReduction: 120,
   stressReductionDigital: 50,
@@ -28,6 +28,18 @@ export const WELLNESS_BOX_PRICES = {
   wintertimeHealthy: 100,
   newYearFreshStart: 100,
 };
+
+// Digital box keys — digital boxes have a lower price floor than physical ones.
+export const DIGITAL_BOX_KEYS = ['stressReductionDigital', 'beyondBurnoutDigital'];
+export const MIN_PHYSICAL_BOX_PRICE = 65;
+export const MIN_DIGITAL_BOX_PRICE = 50;
+export function isDigitalBox(key) { return DIGITAL_BOX_KEYS.includes(key); }
+export function boxPriceFloor(key) {
+  return isDigitalBox(key) ? MIN_DIGITAL_BOX_PRICE : MIN_PHYSICAL_BOX_PRICE;
+}
+export function applyBoxFloor(key, price) {
+  return Math.max(Number(price) || 0, boxPriceFloor(key));
+}
 
 // Maps box code keys to wellness_box Service record names for price lookup
 export const BOX_KEY_TO_SERVICE_NAME = {
@@ -68,9 +80,9 @@ export function resolveBoxPrices(services = []) {
   for (const [key, name] of Object.entries(BOX_KEY_TO_SERVICE_NAME)) {
     const svc = services.find(s => s.category === 'wellness_box' && s.name === name);
     if (svc && typeof svc.price === 'number') {
-      prices[key] = svc.price;
+      prices[key] = applyBoxFloor(key, svc.price);
     } else {
-      prices[key] = WELLNESS_BOX_PRICES[key] || 0;
+      prices[key] = applyBoxFloor(key, WELLNESS_BOX_PRICES[key] || 0);
       fallbacksUsed.push({ key, fallback_price: prices[key] });
     }
   }

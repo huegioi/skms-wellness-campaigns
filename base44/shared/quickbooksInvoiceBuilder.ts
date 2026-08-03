@@ -15,7 +15,7 @@
 // recipient field for manual dispatch — it does not trigger delivery.
 
 import { QB_CATEGORY_ITEM_DEFAULTS, QB_SALES_ITEM_ID } from './quickbooksItems.ts';
-import { BOX_DISPLAY_NAMES, BOX_KEY_TO_SERVICE_NAME, WELLNESS_BOX_FALLBACK_PRICES } from './wellnessBoxes.ts';
+import { BOX_DISPLAY_NAMES, BOX_KEY_TO_SERVICE_NAME, WELLNESS_BOX_FALLBACK_PRICES, applyBoxFloor } from './wellnessBoxes.ts';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -294,12 +294,12 @@ export function linesFromProposal(
     }
     let price: number, source: string;
     if (boxSnapshot[key] != null) {
-      price = boxSnapshot[key]; source = 'sample_box_prices';
+      price = applyBoxFloor(key, boxSnapshot[key]); source = 'sample_box_prices';
     } else if (boxSvc && boxSvc.price > 0) {
       warnings.push(`Box "${BOX_DISPLAY_NAMES[key] || key}" used live Service price ($${boxSvc.price}) — no snapshot found.`);
-      price = boxSvc.price; source = 'live_service_price';
+      price = applyBoxFloor(key, boxSvc.price); source = 'live_service_price';
     } else {
-      price = WELLNESS_BOX_FALLBACK_PRICES[key] || 0;
+      price = applyBoxFloor(key, WELLNESS_BOX_FALLBACK_PRICES[key] || 0);
       source = 'fallback_constant';
       warnings.push(`Box "${BOX_DISPLAY_NAMES[key] || key}" used fallback constant ($${price}) — no Service record or snapshot.`);
     }
@@ -322,7 +322,7 @@ export function linesFromProposal(
   const customBoxQty = s.customBoxQuantity || 0;
   const customBoxItems = s.customBoxItems || [];
   if (customBoxQty > 0 && customBoxItems.length > 0) {
-    const unitPrice = customBoxItems.reduce((sum: number, item: any) => sum + (item.price || 0), 0);
+    const unitPrice = Math.max(customBoxItems.reduce((sum: number, item: any) => sum + (item.price || 0), 0), 65);
     lines.push({
       description: 'Custom Wellness Box',
       quantity: customBoxQty,

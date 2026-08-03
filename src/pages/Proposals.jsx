@@ -102,8 +102,8 @@ export default function Proposals() {
 
     const boxes = sel.sampleBoxQuantities || sel.wellnessBoxes || {};
     const bpMap = {
-      reduceStress: { name: 'Reduce Stress Box', price: 60 },
-      relaxationSleep: { name: 'Relaxation & Sleep Box', price: 60 },
+      reduceStress: { name: 'Reduce Stress Box', price: 65 },
+      relaxationSleep: { name: 'Relaxation & Sleep Box', price: 65 },
       largeEmotional: { name: 'Large Emotional Wellness Box', price: 100 },
       largeStressReduction: { name: 'Large Stress Reduction Box', price: 120 },
       stressReductionDigital: { name: 'Stress Reduction Digital Box', price: 50 },

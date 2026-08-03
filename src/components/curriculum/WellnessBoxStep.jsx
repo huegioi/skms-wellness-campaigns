@@ -16,8 +16,8 @@ const physicalBrochureBoxes = [
   {
     id: 'reduceStress',
     name: 'Reduce Stress Wellness Sample Box',
-    price: 60,
-    priceLabel: '$60/box + shipping',
+    price: 65,
+    priceLabel: '$65/box + shipping',
     bgColor: '#d0d5f0',
     items: [
       { name: 'Heywell Calm + Hydrate Sparkling Lime', img: 'f85466826_HeywellCalmHydrateSparklingLime.png' },
@@ -49,8 +49,8 @@ const physicalBrochureBoxes = [
   {
     id: 'relaxationSleep',
     name: 'Relaxation & Sleep Sample Box',
-    price: 60,
-    priceLabel: '$60 Per Box',
+    price: 65,
+    priceLabel: '$65 Per Box',
     bgColor: '#f5dde8',
     items: [
       { name: 'Heywell Calm + Hydrate', img: 'f85466826_HeywellCalmHydrateSparklingLime.png' },
@@ -121,7 +121,7 @@ const physicalSteps = [
     num: '02',
     title: 'Step Two',
     heading: 'Tell Us Your Budget',
-    body: 'We determine your per box budget using your wellness fund budget divided by your employee head count. Boxes range between $40–$100 depending on items included.'
+    body: 'We determine your per box budget using your wellness fund budget divided by your employee head count. Boxes range between $65–$100 depending on items included.'
   },
   {
     num: '03',
@@ -142,7 +142,7 @@ const digitalSteps = [
     num: '02',
     title: 'Step Two',
     heading: 'Tell Us Your Budget',
-    body: 'We determine your per box budget using your wellness fund budget divided by your employee head count. Digital Boxes are $30/box plus to cost of your gift card ($5–$200 or more). Employees will be able to chose the merchant for the gift card of their choice based on available merchants in their country.'
+    body: 'We determine your per box budget using your wellness fund budget divided by your employee head count. Digital Boxes are $50/box plus to cost of your gift card ($5–$200 or more). Employees will be able to chose the merchant for the gift card of their choice based on available merchants in their country.'
   },
   {
     num: '03',
@@ -478,7 +478,7 @@ export default function WellnessBoxStep({ selections, updateSelections, onNext, 
                 <Select value={builderForm.budget} onValueChange={(v) => setBuilderForm({...builderForm, budget: v})}>
                   <SelectTrigger><SelectValue placeholder="Select budget range..." /></SelectTrigger>
                   <SelectContent>
-                    {['$25-$50','$50-$75','$75-$100','$100-$150','$150+'].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                    {['$50-$75','$75-$100','$100-$150','$150+'].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

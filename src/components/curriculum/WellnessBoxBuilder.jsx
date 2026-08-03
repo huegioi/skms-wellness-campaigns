@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { X, Plus } from 'lucide-react';
@@ -28,7 +27,7 @@ export default function WellnessBoxBuilder({ wellnessItems, customBoxQuantity, o
   };
 
   const calculateTotal = () => {
-    return customBox.reduce((sum, item) => sum + item.price, 0);
+    return Math.max(customBox.reduce((sum, item) => sum + item.price, 0), 65);
   };
 
   const updateStepper = (increment) => {
@@ -288,6 +287,9 @@ export default function WellnessBoxBuilder({ wellnessItems, customBoxQuantity, o
                           </div>
                           <p className="text-xs mt-1 text-right" style={{ color: '#666' }}>
                             (estimated before shipping)
+                          </p>
+                          <p className="text-xs mt-1 text-right" style={{ color: '#770142' }}>
+                            Minimum custom box price: $65
                           </p>
                         </div>
                       </>

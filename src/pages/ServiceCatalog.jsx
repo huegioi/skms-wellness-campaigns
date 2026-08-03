@@ -18,6 +18,7 @@ import ServiceResourceManager from '@/components/services/ServiceResourceManager
 import AssessmentsSelector from '@/components/services/AssessmentsSelector';
 import ServiceImagesManager from '@/components/services/ServiceImagesManager';
 import { Toaster as SonnerToaster } from '@/components/ui/sonner';
+import { boxPriceFloor } from '@/lib/wellnessBoxes';
 
 const SERVICES_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1qYMjE_ZWwUVl3nFC4k4RGHLpmDCG8lg1hEY9cGZZ-P8/edit';
 
@@ -449,6 +450,11 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
                 onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value) || 0})}
                 placeholder="0"
               />
+              {formData.category === 'wellness_box' && formData.qb_box_key && Number(formData.price) > 0 && Number(formData.price) < boxPriceFloor(formData.qb_box_key) && (
+                <p className="text-xs mt-1 text-amber-600 font-medium">
+                  Below the ${boxPriceFloor(formData.qb_box_key)} minimum for this wellness box.
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Price Label</label>

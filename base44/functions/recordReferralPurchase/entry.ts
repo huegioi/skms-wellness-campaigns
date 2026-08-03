@@ -2,7 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 // Hardcoded fallback for wellness box prices — used only if a Service record is missing or has no price
 const FALLBACK_BOX_PRICES = {
-  reduceStress: 60, relaxationSleep: 60, largeEmotional: 100,
+  reduceStress: 65, relaxationSleep: 65, largeEmotional: 100,
   largeStressReduction: 120, stressReductionDigital: 50,
   beyondBurnoutDigital: 100, emotionalWellness: 100,
   wintertimeHealthy: 100, newYearFreshStart: 100
@@ -20,6 +20,14 @@ const BOX_KEY_TO_SERVICE_NAME = {
   wintertimeHealthy: 'Wintertime Stay Healthy Box',
   newYearFreshStart: 'New Year Fresh Start Box',
 };
+
+// Digital vs physical box floors — mirror of base44/shared/wellnessBoxes.ts
+const DIGITAL_BOX_KEYS = ['stressReductionDigital', 'beyondBurnoutDigital'];
+const MIN_PHYSICAL_BOX_PRICE = 65;
+const MIN_DIGITAL_BOX_PRICE = 50;
+function isDigitalBox(key) { return DIGITAL_BOX_KEYS.includes(key); }
+function boxPriceFloor(key) { return isDigitalBox(key) ? MIN_DIGITAL_BOX_PRICE : MIN_PHYSICAL_BOX_PRICE; }
+function applyBoxFloor(key, price) { return Math.max(Number(price) || 0, boxPriceFloor(key)); }
 
 // Wellness box items count at 50% when computing first-year revenue (deliberate policy)
 function calcAdjustedRevenue(proposal, servicePriceMap, boxServicePrices, fallbacksUsed) {
@@ -92,13 +100,13 @@ function calcAdjustedRevenue(proposal, servicePriceMap, boxServicePrices, fallba
     let price;
     let source;
     if (boxSnapshot[key] != null) {
-      price = boxSnapshot[key];
+      price = applyBoxFloor(key, boxSnapshot[key]);
       source = 'proposal_snapshot';
     } else if (boxServicePrices[key] != null) {
-      price = boxServicePrices[key];
+      price = applyBoxFloor(key, boxServicePrices[key]);
       source = 'service_record';
     } else {
-      price = FALLBACK_BOX_PRICES[key] || 0;
+      price = applyBoxFloor(key, FALLBACK_BOX_PRICES[key] || 0);
       source = 'fallback_constant';
       fallbacksUsed.push({ box_key: key, reason: 'Service record missing or no price', fallback_price: price });
     }
@@ -108,7 +116,7 @@ function calcAdjustedRevenue(proposal, servicePriceMap, boxServicePrices, fallba
   const customBoxQty = s.customBoxQuantity || 0;
   const customBoxItems = s.customBoxItems || [];
   if (customBoxQty > 0 && customBoxItems.length > 0) {
-    const unitPrice = customBoxItems.reduce((sum, item) => sum + (item.price || 0), 0);
+    const unitPrice = Math.max(customBoxItems.reduce((sum, item) => sum + (item.price || 0), 0), 65);
     boxTotal += customBoxQty * unitPrice;
   }
 

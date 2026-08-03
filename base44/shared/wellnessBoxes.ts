@@ -27,8 +27,8 @@ export const BOX_DISPLAY_NAMES: Record<string, string> = {
 };
 
 export const WELLNESS_BOX_FALLBACK_PRICES: Record<string, number> = {
-  reduceStress: 60,
-  relaxationSleep: 60,
+  reduceStress: 65,
+  relaxationSleep: 65,
   largeEmotional: 100,
   largeStressReduction: 120,
   stressReductionDigital: 50,
@@ -37,3 +37,15 @@ export const WELLNESS_BOX_FALLBACK_PRICES: Record<string, number> = {
   wintertimeHealthy: 100,
   newYearFreshStart: 100,
 };
+
+// Digital box keys — digital boxes have a lower price floor than physical ones.
+export const DIGITAL_BOX_KEYS = ['stressReductionDigital', 'beyondBurnoutDigital'];
+export const MIN_PHYSICAL_BOX_PRICE = 65;
+export const MIN_DIGITAL_BOX_PRICE = 50;
+export function isDigitalBox(key: string): boolean { return DIGITAL_BOX_KEYS.includes(key); }
+export function boxPriceFloor(key: string): number {
+  return isDigitalBox(key) ? MIN_DIGITAL_BOX_PRICE : MIN_PHYSICAL_BOX_PRICE;
+}
+export function applyBoxFloor(key: string, price: number | undefined | null): number {
+  return Math.max(Number(price) || 0, boxPriceFloor(key));
+}

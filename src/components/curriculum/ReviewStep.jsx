@@ -7,13 +7,15 @@ import { base44 } from '@/api/base44Client';
 import { getOrgDomain } from '@/lib/emailDomain';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { resolveBoxPrices, WELLNESS_BOX_PRICES, BOX_DISPLAY_NAMES } from '@/lib/wellnessBoxes';
+import { resolveBoxPrices, WELLNESS_BOX_PRICES, BOX_DISPLAY_NAMES, applyBoxFloor } from '@/lib/wellnessBoxes';
 
 // Snapshot-first box price lookup: proposal snapshot → live Service → constant → 0
 const getBoxPrice = (key, snapshot, livePrices) =>
-  (snapshot && snapshot[key] != null) ? snapshot[key]
-  : (livePrices && livePrices[key] != null) ? livePrices[key]
-  : (WELLNESS_BOX_PRICES[key] || 0);
+  applyBoxFloor(key,
+    (snapshot && snapshot[key] != null) ? snapshot[key]
+    : (livePrices && livePrices[key] != null) ? livePrices[key]
+    : (WELLNESS_BOX_PRICES[key] || 0)
+  );
 
 function CartItem({ removed, name, price, qty, total, itemKey, note, noteExpanded, image, onQtyChange, onNoteChange, onToggleNote, onRemove, onRestore }) {
   return (
@@ -134,7 +136,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
     });
 
     if (selections.customBoxQuantity > 0 && customBoxItems.length > 0) {
-      const customBoxTotal = customBoxItems.reduce((sum, item) => sum + item.price, 0);
+      const customBoxTotal = Math.max(customBoxItems.reduce((sum, item) => sum + item.price, 0), 65);
       total += customBoxTotal * selections.customBoxQuantity;
     }
     customCharges.forEach(charge => {
@@ -192,7 +194,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
   const narrative = generateNarrative();
 
   const generatePDF = () => {
-    const customBoxTotal = customBoxItems.reduce((sum, item) => sum + item.price, 0);
+    const customBoxTotal = Math.max(customBoxItems.reduce((sum, item) => sum + item.price, 0), 65);
     
     const pdfContent = `
       <!DOCTYPE html>

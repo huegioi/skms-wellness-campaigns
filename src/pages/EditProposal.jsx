@@ -12,13 +12,15 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
 import { findMatchedStage, formatStageLabel } from '@/components/quickbuilder/stagePricing';
-import { WELLNESS_BOX_PRICES, BOX_KEY_TO_SERVICE_NAME, BOX_DISPLAY_NAMES, resolveBoxPrices } from '@/lib/wellnessBoxes';
+import { WELLNESS_BOX_PRICES, BOX_KEY_TO_SERVICE_NAME, BOX_DISPLAY_NAMES, resolveBoxPrices, applyBoxFloor } from '@/lib/wellnessBoxes';
 
 // Snapshot-first box price lookup: proposal snapshot → live Service → constant → 0
 const getBoxPrice = (key, snapshot, livePrices) =>
-  (snapshot && snapshot[key] != null) ? snapshot[key]
-  : (livePrices && livePrices[key] != null) ? livePrices[key]
-  : (WELLNESS_BOX_PRICES[key] || 0);
+  applyBoxFloor(key,
+    (snapshot && snapshot[key] != null) ? snapshot[key]
+    : (livePrices && livePrices[key] != null) ? livePrices[key]
+    : (WELLNESS_BOX_PRICES[key] || 0)
+  );
 import { markTaskComplete, createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
 import { htmlToPdfDownload, proposalFilename } from '@/lib/proposalPdf';
 
@@ -230,7 +232,7 @@ export default function EditProposal() {
     Object.entries(boxes).forEach(([key, qty]) => { total += (qty || 0) * getBoxPrice(key, boxSnapshot, boxPrices); });
     
     if (selections.customBoxQuantity > 0 && selections.customBoxItems?.length > 0) {
-      const customBoxTotal = selections.customBoxItems.reduce((sum, item) => sum + item.price, 0);
+      const customBoxTotal = Math.max(selections.customBoxItems.reduce((sum, item) => sum + item.price, 0), 65);
       total += customBoxTotal * selections.customBoxQuantity;
     }
     
@@ -621,8 +623,8 @@ export default function EditProposal() {
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Wellness Boxes</h2>
           <div className="space-y-3">
             {[
-              { key: 'reduceStress', name: 'Reduce Stress Box', price: 60 },
-              { key: 'relaxationSleep', name: 'Relaxation & Sleep Box', price: 60 },
+              { key: 'reduceStress', name: 'Reduce Stress Box', price: 65 },
+              { key: 'relaxationSleep', name: 'Relaxation & Sleep Box', price: 65 },
               { key: 'largeEmotional', name: 'Large Emotional Wellness Box', price: 100 },
               { key: 'largeStressReduction', name: 'Large Stress Reduction Box', price: 120 },
               { key: 'stressReductionDigital', name: 'Stress Reduction Digital Box', price: 50 },
