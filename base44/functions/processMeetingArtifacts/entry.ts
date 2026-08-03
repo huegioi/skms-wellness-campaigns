@@ -104,6 +104,57 @@ Deno.serve(async (req) => {
       console.warn('Drive index build failed:', e.message);
     }
 
+    // ── Timestamp parsing for Drive-fallback matching ──
+    // Gemini names docs "<session> - YYYY/MM/DD HH:MM TZ - Notes by Gemini".
+    // The session name rarely matches the calendar event title, but the
+    // embedded timestamp is the Meet session start (when the first participant
+    // joined — typically a few minutes early).
+    const TZ_ADD_MIN = {
+      EDT: 240, EST: 300, CDT: 300, CST: 360, MDT: 360, MST: 420,
+      PDT: 420, PST: 480, AKDT: 480, AKST: 540, HDT: 540, HST: 600,
+      UTC: 0, GMT: 0, Z: 0,
+    };
+    const TS_RE = /(\d{4})\/(\d{2})\/(\d{2})\s+(\d{2}):(\d{2})\s+([A-Z]{2,4})/;
+    // Parse the embedded session-start timestamp. Returns null if it doesn't
+    // parse (or the TZ abbreviation is unknown) — caller falls back to createdTime.
+    const parseSessionStart = (name) => {
+      const m = (name || '').match(TS_RE);
+      if (!m) return null;
+      const add = TZ_ADD_MIN[m[6]];
+      if (add === undefined) return null; // unknown TZ — can't reliably convert
+      const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) + add * 60 * 1000);
+      return isNaN(d.getTime()) ? null : d;
+    };
+    // Recover the <session> portion (everything before the timestamp segment).
+    const sessionName = (name) => (name || '').replace(/\s*-\s*\d{4}\/\d{2}\/\d{2}\s+\d{2}:\d{2}\s+[A-Z]{2,4}.*$/i, '').trim() || (name || '');
+    const wordSet = (s) => new Set((s || '').toLowerCase().split(/[^a-z0-9]+/i).filter(Boolean));
+    const titleOverlap = (eventTitle, docSession) => {
+      const a = wordSet(eventTitle), b = wordSet(docSession);
+      let n = 0;
+      for (const w of a) if (b.has(w)) n++;
+      return n;
+    };
+
+    // Index stats for observability (reported in the response).
+    let driveIndexParseable = 0;
+    let driveIndexInAnyWindow = 0;
+    const candidateStarts = candidates
+      .map(c => new Date(c.start_date))
+      .filter(d => !isNaN(d.getTime()));
+    for (const f of driveIndex) {
+      const ts = parseSessionStart(f.name);
+      if (ts) driveIndexParseable++;
+      const ref = ts || (f.createdTime ? new Date(f.createdTime) : null);
+      if (ref && !isNaN(ref.getTime())) {
+        for (const cs of candidateStarts) {
+          if (Math.abs(ref.getTime() - cs.getTime()) <= 30 * 60 * 1000) {
+            driveIndexInAnyWindow++;
+            break;
+          }
+        }
+      }
+    }
+
     // ── Shared capture path (calendar-attachment and Drive-search both use it).
     // Returns { status: 'processed' | 'inaccessible' | 'already_captured', inaccessibleDoc? } ──
     const captureFromDoc = async ({ evt, docId, docTitle, docUrl, organizerEmail, captureSource }) => {
@@ -239,30 +290,31 @@ Deno.serve(async (req) => {
       return { status: 'processed' };
     };
 
-    // ── Part 2 helpers: match a candidate event against the Drive index ──
-    const normTitle = (s) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
-    // Strip a trailing " - Notes by Gemini" suffix to recover the meeting-title portion.
-    const stripGeminiSuffix = (name) => (name || '').replace(/\s*[-–—]\s*notes by gemini\s*$/i, '').trim();
-
+    // ── Drive-fallback matching: match on the embedded session timestamp,
+    // not the session name. Gemini stamps when the first participant joins,
+    // which runs a little early, so allow ±30 minutes around the event start. ──
     const matchDriveDocs = (evt) => {
       const eventStart = new Date(evt.start_date);
-      if (isNaN(eventStart.getTime())) return [];
-      const eventTitleN = normTitle(evt.title);
-      if (!eventTitleN) return [];
-      const windowEnd = new Date(eventStart.getTime() + 48 * 60 * 60 * 1000); // 48h after start
-      const matches = [];
+      if (isNaN(eventStart.getTime())) return { docs: [], ambiguous: false };
+      const windowMs = 30 * 60 * 1000; // ±30 minutes
+      const inWindow = [];
       for (const f of driveIndex) {
-        const portionN = normTitle(stripGeminiSuffix(f.name));
-        if (!portionN) continue;
-        // Exact match, or the doc's title portion starts with the event title.
-        const titleMatch = portionN === eventTitleN || portionN.startsWith(eventTitleN);
-        if (!titleMatch) continue;
-        const created = new Date(f.createdTime);
-        if (isNaN(created.getTime())) continue;
-        if (created < eventStart || created > windowEnd) continue;
-        matches.push(f);
+        const ts = parseSessionStart(f.name);
+        const ref = ts || (f.createdTime ? new Date(f.createdTime) : null);
+        if (!ref || isNaN(ref.getTime())) continue;
+        if (Math.abs(ref.getTime() - eventStart.getTime()) <= windowMs) inWindow.push(f);
       }
-      return matches;
+      if (inWindow.length === 0) return { docs: [], ambiguous: false };
+      if (inWindow.length === 1) return { docs: [inWindow[0]], ambiguous: false };
+      // >1 in the window — use title word overlap as a tiebreaker (never required).
+      let best = -1, winners = [];
+      for (const f of inWindow) {
+        const ov = titleOverlap(evt.title, sessionName(f.name));
+        if (ov > best) { best = ov; winners = [f]; }
+        else if (ov === best) winners.push(f);
+      }
+      if (winners.length === 1) return { docs: [winners[0]], ambiguous: false };
+      return { docs: [], ambiguous: true }; // genuinely ambiguous — capture nothing
     };
 
     let processed = 0;
@@ -296,12 +348,10 @@ Deno.serve(async (req) => {
 
         if (notesAttachments.length === 0) {
           // ── Drive fallback: no calendar attachment, try the Drive index ──
-          const matches = matchDriveDocs(evt);
+          const { docs: matches, ambiguous } = matchDriveDocs(evt);
           if (matches.length === 0) {
-            skippedNoAttachment++;
-          } else if (matches.length > 1) {
-            // Ambiguous — a recurring meeting could match multiple instances.
-            driveAmbiguous++;
+            if (ambiguous) driveAmbiguous++;
+            else skippedNoAttachment++;
           } else {
             const doc = matches[0];
             const docUrl = doc.webViewLink || `https://drive.google.com/file/d/${doc.id}/view`;
@@ -350,6 +400,8 @@ Deno.serve(async (req) => {
       eventsScanned: events.length,
       candidates: candidates.length,
       driveIndexSize: driveIndex.length,
+      driveIndexParseable,
+      driveIndexInAnyWindow,
       processed,
       inaccessible,
       skipped: skippedNoAttachment + skippedAlreadyCaptured,
