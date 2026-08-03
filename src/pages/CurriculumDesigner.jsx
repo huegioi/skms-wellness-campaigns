@@ -12,11 +12,7 @@ import LeadershipStep from '../components/curriculum/LeadershipStep';
 import ReviewStep from '../components/curriculum/ReviewStep';
 import { suggestServicesFromMfs } from '@/lib/mfsServiceMapping';
 import { Sparkles, X } from 'lucide-react';
-
-const enumToApproxCount = (size) => ({
-  '1-50': 25, '51-200': 125, '201-500': 350,
-  '501-1000': 750, '1001-5000': 3000, '5000+': 5000,
-}[size] || '');
+import { enumToApproxCount } from '@/components/curriculum/pricingUtils';
 
 export default function CurriculumDesigner() {
   const [currentStep, setCurrentStep] = useState(1);

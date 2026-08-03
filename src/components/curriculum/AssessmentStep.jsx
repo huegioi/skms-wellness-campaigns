@@ -3,11 +3,7 @@ import { workforceChallenges } from './catalogData';
 import StepNavigation from './StepNavigation';
 import { Brain, Users, Target, TrendingUp, DollarSign, Flame, MessageCircle, Monitor, Heart, Crown, Activity, Scale, ChevronDown, ChevronUp } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
-
-const enumToApproxCount = (size) => ({
-  '1-50': 25, '51-200': 125, '201-500': 350,
-  '501-1000': 750, '1001-5000': 3000, '5000+': 5000,
-}[size] || '');
+import { enumToApproxCount } from './pricingUtils';
 
 export default function AssessmentStep({ selections, updateSelections, onNext, isFirstStep }) {
   const [clients, setClients] = useState([]);

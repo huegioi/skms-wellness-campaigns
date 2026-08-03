@@ -10,7 +10,8 @@ import { ArrowLeft, Save, Download, Plus, Minus, X, Sparkles, RefreshCw, Loader2
 import { Textarea } from '@/components/ui/textarea';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
+import { enumToApproxCount } from '@/components/curriculum/pricingUtils';
+import { calcPricing } from '@/components/curriculum/ChallengePricingEstimator';
 import { findMatchedStage, formatStageLabel } from '@/components/quickbuilder/stagePricing';
 import { WELLNESS_BOX_PRICES, BOX_KEY_TO_SERVICE_NAME, BOX_DISPLAY_NAMES, resolveBoxPrices, applyBoxFloor, customBoxUnitPrice } from '@/lib/wellnessBoxes';
 
@@ -202,8 +203,9 @@ export default function EditProposal() {
     }));
   };
 
-  // Use stored challengePrice from proposal if available, otherwise calculate from company size
-  const challengePrice = selections.challengePrice || calculateChallengePrice(selections.assessmentData?.companySize);
+  // Canonical challenge pricing — null when no headcount (manual form never falls back to $1,500).
+  const challengePricing = useMemo(() => calcPricing(parseInt(selections.assessmentData?.companySize, 10)), [selections.assessmentData?.companySize]);
+  const challengePrice = challengePricing ? challengePricing.totalCost : null;
 
   const matchedStageLabel = useMemo(() => {
     const workshopCount = (selections.workshops || []).length;
@@ -221,7 +223,8 @@ export default function EditProposal() {
     selections.workshops.forEach(id => total += getPrice(id));
     selections.challengePrograms.forEach(id => {
       const override = priceOverrides[id];
-      total += override !== undefined ? override : challengePrice;
+      if (override !== undefined) total += override;
+      else if (challengePrice != null) total += challengePrice;
     });
     selections.leadership.forEach(id => total += getPrice(id));
     selections.movementClasses.forEach(id => total += getPrice(id));
@@ -292,6 +295,7 @@ export default function EditProposal() {
   const handleClientSelect = (clientId) => {
     const selectedClient = clients.find(c => c.id === clientId);
     if (selectedClient) {
+      const companySize = selectedClient.employee_count || enumToApproxCount(selectedClient.company_size) || '';
       setFormData({
         ...formData,
         client_id: clientId,
@@ -299,6 +303,11 @@ export default function EditProposal() {
         client_email: selectedClient.email,
         company: selectedClient.company || ''
       });
+      setSelections(prev => ({
+        ...prev,
+        assessmentData: { ...(prev.assessmentData || {}), companySize }
+      }));
+      setIsDirty(true);
     }
   };
 
@@ -309,11 +318,30 @@ export default function EditProposal() {
       alert('Please select a client first');
       return;
     }
+    // Write headcount back to the Client record (matches ReviewStep behavior)
+    const companySize = selections.assessmentData?.companySize;
+    const headcount = parseInt(companySize, 10);
+    if (formData.client_id && headcount > 0) {
+      const getCompanySizeEnum = (size) => {
+        const num = parseInt(size, 10);
+        if (!num) return null;
+        if (num <= 50) return '1-50';
+        if (num <= 200) return '51-200';
+        if (num <= 500) return '201-500';
+        if (num <= 1000) return '501-1000';
+        if (num <= 5000) return '1001-5000';
+        return '5000+';
+      };
+      base44.entities.Client.update(formData.client_id, {
+        employee_count: headcount,
+        company_size: getCompanySizeEnum(companySize),
+      }).catch(() => {});
+    }
     saveMutation.mutate({
     ...formData,
     total_amount: calculateTotal(),
     matched_stage: matchedStageLabel || undefined,
-    selections: { ...(proposal?.selections || {}), ...selections, priceOverrides, customCharges }
+    selections: { ...(proposal?.selections || {}), ...selections, challengePrice, priceOverrides, customCharges }
     });
   };
 
@@ -339,6 +367,46 @@ export default function EditProposal() {
               onChange={(e) => setPrice(service.id, e.target.value)}
             />
           </div>
+        </div>
+      );
+    });
+  };
+
+  // Challenges are priced canonically from headcount (not the $1,500 fallback).
+  const renderChallengeList = () => {
+    const list = getServicesByCategory('challenge');
+    if (list.length === 0) {
+      return <p className="text-gray-400 text-sm italic">No services found. Add services in the Service Catalog.</p>;
+    }
+    const hasHeadcount = challengePricing != null;
+    return list.map((service) => {
+      const isSelected = (selections.challengePrograms || []).includes(service.id);
+      const override = priceOverrides[service.id];
+      const hasOverride = override !== undefined;
+      const displayPrice = hasOverride ? override : (hasHeadcount ? challengePrice : null);
+      return (
+        <div key={service.id} className={`flex items-center gap-4 p-3 rounded-lg border ${isSelected ? 'bg-green-50 border-green-200' : 'bg-gray-50'}`}>
+          <Checkbox checked={isSelected} onCheckedChange={() => toggleItem('challengePrograms', service.id)} />
+          <div className="flex-1">
+            <p className="font-medium">{service.name}</p>
+            {service.duration && <p className="text-xs text-gray-400">{service.duration}</p>}
+            {!hasHeadcount && !hasOverride && (
+              <p className="text-xs text-amber-600 mt-0.5">Enter company size to price this challenge</p>
+            )}
+          </div>
+          {hasOverride || hasHeadcount ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-500">$</span>
+              <Input
+                type="number"
+                className="w-24"
+                value={displayPrice ?? ''}
+                onChange={(e) => setPrice(service.id, e.target.value)}
+              />
+            </div>
+          ) : (
+            <span className="text-gray-400 font-medium w-28 text-right">—</span>
+          )}
         </div>
       );
     });
@@ -401,7 +469,7 @@ export default function EditProposal() {
         ${selections.challengePrograms.length > 0 ? `
           <div class="section">
             <div class="section-title">14-Day Challenges (${selections.challengePrograms.length})</div>
-            ${selections.challengePrograms.map(id => `<div class="item"><div class="item-title">${getName(id)}</div><div class="item-price">$${challengePrice.toLocaleString()}</div>${getDesc(id) ? `<div class="item-description">${getDesc(id)}</div>` : ''}</div>`).join('')}
+            ${selections.challengePrograms.map(id => `<div class="item"><div class="item-title">${getName(id)}</div><div class="item-price">$${(challengePrice != null ? challengePrice.toLocaleString() : '—')}</div>${getDesc(id) ? `<div class="item-description">${getDesc(id)}</div>` : ''}</div>`).join('')}
           </div>
         ` : ''}
 
@@ -558,6 +626,17 @@ export default function EditProposal() {
               </Select>
             </div>
           </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-gray-600 mb-1">Company Size (Number of Employees)</label>
+            <Input
+              type="number"
+              min="1"
+              placeholder="Enter number of employees..."
+              value={selections.assessmentData?.companySize ?? ''}
+              onChange={(e) => { setIsDirty(true); setSelections(prev => ({ ...prev, assessmentData: { ...(prev.assessmentData || {}), companySize: e.target.value } })); }}
+              disabled={isNewProposal && !formData.client_id}
+            />
+          </div>
         </div>
 
         {/* Narrative Summary */}
@@ -597,8 +676,16 @@ export default function EditProposal() {
         {/* Challenges */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>14-Day Challenges</h2>
+          {challengePricing ? (
+            <p className="text-sm text-gray-600 mb-3">
+              {parseInt(selections.assessmentData?.companySize, 10) || 0} employees × 20% expected participation = {challengePricing.targetSlots} slots @ ${challengePricing.pricePerPerson}/person = ${challengePricing.totalCost.toLocaleString()}
+              {challengePricing.minimumApplied && <span className="block text-xs text-amber-600 mt-0.5">40-slot platform minimum applied</span>}
+            </p>
+          ) : (
+            <p className="text-sm text-gray-400 mb-3">Enter company size (above) to estimate challenge pricing.</p>
+          )}
           <div className="space-y-3">
-            {renderServiceList(getServicesByCategory('challenge'), 'challengePrograms')}
+            {renderChallengeList()}
           </div>
         </div>
 
