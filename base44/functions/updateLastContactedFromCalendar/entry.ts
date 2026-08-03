@@ -4,7 +4,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 // Calendars must be shared with the connected Google account (read access).
 // owner maps a calendar to the team member whose touches should be attributed.
 const WATCHED_CALENDARS = [
-  { id: 'primary', owner: 'William' },
+  { id: 'primary', owner: null },
+  { id: 'william@skillfulmeans.life', owner: 'William' },
   { id: 'heather@skillfulmeans.life', owner: 'Heather' },
   { id: 'admin@skillfulmeans.life', owner: null },
 ];
@@ -142,28 +143,36 @@ Deno.serve(async (req) => {
     const calendarResults = await Promise.all(
       WATCHED_CALENDARS.map(async (cal) => {
         try {
-          const params = new URLSearchParams({
-            singleEvents: 'true',
-            orderBy: backfillDays > 0 ? 'startTime' : 'updated',
-            maxResults: '2500',
-          });
-          // Backfill: timeMin returns all events from that point forward (past + future).
-          // Incremental: updatedMin returns events modified since that point (catches changes).
-          if (backfillDays > 0) {
-            params.set('timeMin', sinceStr);
-          } else {
-            params.set('updatedMin', sinceStr);
+          // Paginate via nextPageToken so a 90-day backfill across multiple
+          // calendars doesn't silently truncate at the per-page cap.
+          const allEvents = [];
+          let pageToken = null;
+          for (let page = 0; page < 10; page++) { // up to 10 pages × 2500 = 25k events
+            const params = new URLSearchParams({
+              singleEvents: 'true',
+              orderBy: backfillDays > 0 ? 'startTime' : 'updated',
+              maxResults: '2500',
+            });
+            if (backfillDays > 0) {
+              params.set('timeMin', sinceStr);
+            } else {
+              params.set('updatedMin', sinceStr);
+            }
+            if (pageToken) params.set('pageToken', pageToken);
+            const calRes = await fetch(
+              `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal.id)}/events?${params}`,
+              { headers: authHeader }
+            );
+            if (!calRes.ok) {
+              console.error(`Calendar ${cal.id} API error: ${await calRes.text()}`);
+              break;
+            }
+            const calData = await calRes.json();
+            allEvents.push(...(calData.items || []));
+            if (!calData.nextPageToken) break;
+            pageToken = calData.nextPageToken;
           }
-          const calRes = await fetch(
-            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(cal.id)}/events?${params}`,
-            { headers: authHeader }
-          );
-          if (!calRes.ok) {
-            console.error(`Calendar ${cal.id} API error: ${await calRes.text()}`);
-            return { cal, events: [] };
-          }
-          const calData = await calRes.json();
-          return { cal, events: calData.items || [] };
+          return { cal, events: allEvents };
         } catch (e) {
           console.error(`Failed to fetch calendar ${cal.id}:`, e.message);
           return { cal, events: [] };
