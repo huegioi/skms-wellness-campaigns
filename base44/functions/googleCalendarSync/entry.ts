@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
       };
 
       const targetCalendar = calendarId || 'primary';
-      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendar)}/events`, {
+      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendar)}/events?sendUpdates=none`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
       const { googleEventId } = eventData;
       const targetCalendar = calendarId || 'primary';
       
-      await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendar)}/events/${googleEventId}`, {
+      await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendar)}/events/${googleEventId}?sendUpdates=none`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${accessToken}` }
       });
