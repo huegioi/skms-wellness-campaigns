@@ -4,10 +4,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 // Calendars must be shared with the connected Google account (read access).
 // owner maps a calendar to the team member whose touches should be attributed.
 const WATCHED_CALENDARS = [
-  { id: 'primary', owner: null },
   { id: 'william@skillfulmeans.life', owner: 'William' },
   { id: 'heather@skillfulmeans.life', owner: 'Heather' },
   { id: 'admin@skillfulmeans.life', owner: null },
+  { id: 'primary', owner: null },   // fallback; may duplicate a named calendar above
 ];
 
 // Internal email blocklist — these are the watched calendar owners / team accounts.
