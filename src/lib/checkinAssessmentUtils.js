@@ -1,3 +1,5 @@
+import { getPlanYearWindow } from '@/lib/planYear';
+
 // Shared utilities for check-in assessment flow.
 
 /**
@@ -37,20 +39,36 @@ export function selectCheckinInstruments(includedAssessments) {
 
 /**
  * Computes the smart default for assessment_timing.
- * - 0 existing events for this client+service → 'baseline'
- * - Selected date is on or after the last existing event → 'endpoint'
- * - Otherwise → 'none'
+ * Baseline is per CLIENT per PLAN YEAR (any service). After a baseline has been
+ * taken in the current plan year, subsequent sessions are 'session' (or 'endpoint'
+ * if the selected date is at/after the last existing event for this client+service).
+ * - no baseline yet in this plan year → 'baseline'
+ * - selected date >= last event for this client+service → 'endpoint'
+ * - otherwise → 'session'
+ * 'none' is reserved for manual suppression and is never returned here.
  */
-export function computeSmartAssessmentTiming({ clientId, serviceId, events, selectedDate }) {
+export function computeSmartAssessmentTiming({ client, clientId, serviceId, events, selectedDate }) {
   if (!clientId || !serviceId) return 'none';
-  const serviceEvents = (events || [])
-    .filter(e => e.client_id === clientId && e.service_id === serviceId && !e.is_demo)
-    .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
-  if (serviceEvents.length === 0) return 'baseline';
-  if (selectedDate) {
-    const selected = new Date(selectedDate);
-    const lastEvent = new Date(serviceEvents[serviceEvents.length - 1].start_date);
-    if (selected >= lastEvent) return 'endpoint';
-  }
-  return 'none';
+  const selected = selectedDate ? new Date(selectedDate) : new Date();
+  if (isNaN(selected)) return 'session';
+  const { start, end } = getPlanYearWindow(client, selected);
+
+  const clientEvents = (events || [])
+    .filter(e => e && e.client_id === clientId && !e.is_demo && e.start_date)
+    .map(e => ({ e, d: new Date(e.start_date) }))
+    .filter(x => !isNaN(x.d));
+
+  // baselineTaken: any baseline event for this client within the plan year, before selectedDate
+  const baselineTaken = clientEvents.some(({ e, d }) =>
+    e.assessment_timing === 'baseline' && d >= start && d < end && d < selected
+  );
+  if (!baselineTaken) return 'baseline';
+
+  // Scoped to this client + service: if selectedDate >= last event → endpoint, else session
+  const serviceEvents = clientEvents
+    .filter(({ e }) => e.service_id === serviceId)
+    .sort((a, b) => a.d - b.d);
+  if (serviceEvents.length === 0) return 'session';
+  const lastEvent = serviceEvents[serviceEvents.length - 1].d;
+  return selected >= lastEvent ? 'endpoint' : 'session';
 }

@@ -87,12 +87,12 @@ export default function Checkin() {
       const res = await base44.functions.invoke('submitCheckin', { token, name, email });
       const link = res.data?.meeting_link || null;
 
-      // Check if assessment survey is needed
+      // Check if assessment survey is needed — call the backend for any non-none
+      // timing and let it decide (it returns needs_survey:false when there's
+      // nothing to collect). Keep fail-open behavior on error.
       const timing = eventInfo?.assessment_timing || 'none';
-      const hasInstruments = eventInfo?.service?.included_assessments?.length > 0;
 
-      if (timing === 'baseline' && hasInstruments) {
-        // Check via backend if this email already has an assessment for this timing
+      if (timing !== 'none') {
         try {
           const checkRes = await base44.functions.invoke('checkCheckinAssessment', { token, email });
           if (checkRes.data?.needs_survey) {

@@ -14,6 +14,10 @@
       "type": "string",
       "description": "The accepted proposal ID (for cohort_start / cohort_end / cohort_1mo types)"
     },
+    "event_id": {
+      "type": "string",
+      "description": "The CalendarEvent this response was captured at"
+    },
     "participant_email": {
       "type": "string",
       "description": "Participant email (lowercased + trimmed) \u2014 used as the person key for pairing"

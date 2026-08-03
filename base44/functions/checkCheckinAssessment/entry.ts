@@ -28,7 +28,8 @@ Deno.serve(async (req) => {
     const event = events[0];
 
     // No assessment needed if timing is none
-    if (!event.assessment_timing || event.assessment_timing === 'none') {
+    const timing = event.assessment_timing;
+    if (!timing || timing === 'none') {
       return Response.json({ needs_survey: false, reason: 'no_timing' });
     }
 
@@ -38,33 +39,62 @@ Deno.serve(async (req) => {
       const svcResults = await base44.asServiceRole.entities.Service.filter({ id: event.service_id });
       service = svcResults[0] || null;
     }
-    const includedAssessments = service?.included_assessments || [];
-    if (includedAssessments.length === 0) {
-      return Response.json({ needs_survey: false, reason: 'no_instruments' });
+    const isChallenge = service?.category === 'challenge';
+
+    // Instruments per timing.
+    // baseline → BASELINE_BATTERY (hardcoded — backend can't import from src/).
+    //   eNPS is deliberately excluded; it is always collected post-session.
+    //   Service.included_assessments is IGNORED for baseline.
+    // session / endpoint → service.included_assessments minus 'enps'. If empty, no survey.
+    let instrumentsToShow;
+    let skipped;
+    if (timing === 'baseline') {
+      instrumentsToShow = ['who5', 'uwes3', 'pss4', 'ucla3', 'cbi'];
+      skipped = [];
+    } else {
+      const all = service?.included_assessments || [];
+      instrumentsToShow = all.filter(a => a !== 'enps');
+      skipped = all.filter(a => a === 'enps');
+      if (instrumentsToShow.length === 0) {
+        return Response.json({ needs_survey: false, reason: 'no_instruments' });
+      }
     }
 
-    // Determine survey_type from timing + service category
-    const isChallenge = service?.category === 'challenge';
-    const surveyType = event.assessment_timing === 'baseline'
+    // survey_type mapping:
+    //   baseline  → challenge_day0 / cohort_start
+    //   endpoint  → challenge_day14 / cohort_end
+    //   session   → challenge_day14 / cohort_end (reuses endpoint enums — no new value needed)
+    const surveyType = timing === 'baseline'
       ? (isChallenge ? 'challenge_day0' : 'cohort_start')
       : (isChallenge ? 'challenge_day14' : 'cohort_end');
 
-    // Dedup: check if this email already submitted for this client + service + survey_type
-    const existing = await base44.asServiceRole.entities.CohortAssessment.filter({
-      participant_email: normalizedEmail,
-      survey_type: surveyType,
-      client_id: event.client_id || null,
-      service_id: event.service_id || null,
-      is_demo: false,
-    });
+    // cohort_year from the event's start_date year (plan-year aware dedup)
+    const cohort_year = event.start_date ? new Date(event.start_date).getFullYear() : new Date().getFullYear();
+
+    // Dedup:
+    //   baseline → one per person per client per plan year (survey_type + cohort_year)
+    //   session / endpoint → one per person per event (event_id), so each session collects its own row
+    let dedupFilter;
+    if (timing === 'baseline') {
+      dedupFilter = {
+        participant_email: normalizedEmail,
+        client_id: event.client_id || null,
+        survey_type: surveyType,
+        cohort_year,
+        is_demo: false,
+      };
+    } else {
+      dedupFilter = {
+        participant_email: normalizedEmail,
+        event_id: event.id || null,
+        is_demo: false,
+      };
+    }
+    const existing = await base44.asServiceRole.entities.CohortAssessment.filter(dedupFilter);
 
     if (existing && existing.length > 0) {
       return Response.json({ needs_survey: false, reason: 'already_submitted' });
     }
-
-    // Show all included instruments in their existing order
-    const instrumentsToShow = [...includedAssessments];
-    const skipped = [];
 
     // Resolve meeting link
     const location = (event.location || '').trim();

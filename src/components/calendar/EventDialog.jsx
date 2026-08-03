@@ -40,38 +40,41 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     queryFn: () => base44.entities.Lead.filter({ is_archived: { $ne: true } }, 'name', 500)
   });
 
-  // Fetch existing events for the selected client + service (for smart assessment default)
-  const { data: clientServiceEvents = [] } = useQuery({
-    queryKey: ['client-service-events', formData.client_id, formData.service_id],
+  // Fetch the client's events across ALL services (for the per-client/per-plan-year
+  // baseline logic in computeSmartAssessmentTiming).
+  const { data: clientEvents = [] } = useQuery({
+    queryKey: ['client-events-planyear', formData.client_id],
     queryFn: async () => {
-      if (!formData.client_id || !formData.service_id) return [];
+      if (!formData.client_id) return [];
       return base44.entities.CalendarEvent.filter(
-        { client_id: formData.client_id, service_id: formData.service_id }, 'start_date', 100
+        { client_id: formData.client_id }, 'start_date', 500
       );
     },
-    enabled: !!formData.client_id && !!formData.service_id,
+    enabled: !!formData.client_id,
   });
 
-  // Compute smart default for assessment_timing
+  // Compute smart default for assessment_timing (baseline is per client per plan year,
+  // independent of service.included_assessments, so we compute whenever a service is set).
   const selectedService = catalogServices.find(s => s.id === formData.service_id);
-  const hasAssessments = selectedService?.included_assessments?.length > 0;
 
   // Auto-set assessment_timing when service or client changes
   useEffect(() => {
-    if (!formData.service_id || !hasAssessments) {
+    if (!formData.service_id) {
       if (formData.assessment_timing !== 'none') {
         setFormData(prev => ({ ...prev, assessment_timing: 'none' }));
       }
       return;
     }
+    const client = clients.find(c => c.id === formData.client_id);
     const smart = computeSmartAssessmentTiming({
+      client,
       clientId: formData.client_id,
       serviceId: formData.service_id,
-      events: clientServiceEvents,
+      events: clientEvents,
       selectedDate: formData.start_date,
     });
     setFormData(prev => ({ ...prev, assessment_timing: smart }));
-  }, [formData.service_id, formData.client_id, formData.start_date, hasAssessments, clientServiceEvents]);
+  }, [formData.service_id, formData.client_id, formData.start_date, clientEvents, clients]);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -679,7 +682,7 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
                 </div>
               )}
 
-              {formData.service_id && hasAssessments && (
+              {formData.service_id && (
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">
                     <ClipboardCheck className="w-4 h-4 inline mr-1" />
@@ -695,11 +698,16 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
                     <SelectContent>
                       <SelectItem value="none">No assessment</SelectItem>
                       <SelectItem value="baseline">Baseline (first session)</SelectItem>
+                      <SelectItem value="session">Every session (service instruments)</SelectItem>
                       <SelectItem value="endpoint">Endpoint (last session)</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-gray-400 mt-1">
-                    Attendees will be asked {selectedService.included_assessments.length === 1 ? '1 quick survey' : `${selectedService.included_assessments.length} quick surveys`} at check-in.
+                    {(() => {
+                      const t = formData.assessment_timing || 'none';
+                      const count = t === 'baseline' ? 5 : (selectedService?.included_assessments || []).filter(a => a !== 'enps').length;
+                      return `Attendees will be asked ${count} quick survey${count !== 1 ? 's' : ''} at check-in.`;
+                    })()}
                   </p>
                 </div>
               )}

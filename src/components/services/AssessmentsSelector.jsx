@@ -3,7 +3,6 @@ import { AlertTriangle } from 'lucide-react';
 
 const INSTRUMENTS = [
   { key: 'who5',  label: 'WHO-5',  subtitle: 'Wellbeing',        items: 5  },
-  { key: 'enps',  label: 'eNPS',   subtitle: 'Advocacy',         items: 1  },
   { key: 'uwes3', label: 'UWES-3', subtitle: 'Work engagement',  items: 3  },
   { key: 'pss4',  label: 'PSS-4',  subtitle: 'Perceived stress', items: 4  },
   { key: 'ucla3', label: 'UCLA-3', subtitle: 'Loneliness',       items: 3  },
@@ -11,9 +10,9 @@ const INSTRUMENTS = [
 ];
 
 const DEFAULTS_BY_CATEGORY = {
-  workshop:    ['enps'],
-  class:       ['enps'],
-  leadership:  ['enps', 'uwes3'],
+  workshop:    [],
+  class:       [],
+  leadership:  ['uwes3'],
   challenge:   ['who5'],
   wellness_box: [],
 };
@@ -105,6 +104,8 @@ export default function AssessmentsSelector({ category, value = [], onChange, is
           );
         })}
       </div>
+
+      <p className="text-xs text-gray-500 -mt-1">eNPS is collected automatically after every session — no need to select it.</p>
 
       {/* Burden estimate */}
       {value.length > 0 && (

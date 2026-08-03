@@ -1288,15 +1288,17 @@ export default function SchedulingHub() {
 
                     {bookingForm.service_id && (() => {
                       const svc = allServices.find(s => s.id === bookingForm.service_id);
-                      const hasAssessments = svc?.included_assessments?.length > 0;
-                      if (!hasAssessments) return null;
                       const calendarEventsList = calendarEvents || [];
+                      const client = bookingForm.client_id ? allClients.find(c => c.id === bookingForm.client_id) : null;
                       const smartTiming = computeSmartAssessmentTiming({
+                        client,
                         clientId: bookingForm.client_id,
                         serviceId: bookingForm.service_id,
                         events: calendarEventsList,
                         selectedDate: bookingForm.start_date,
                       });
+                      const t = bookingForm.assessment_timing || smartTiming;
+                      const count = t === 'baseline' ? 5 : (svc?.included_assessments || []).filter(a => a !== 'enps').length;
                       return (
                         <div className="sm:col-span-2">
                           <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Assessment at check-in</Label>
@@ -1310,11 +1312,12 @@ export default function SchedulingHub() {
                             <SelectContent>
                               <SelectItem value="none">No assessment</SelectItem>
                               <SelectItem value="baseline">Baseline (first session)</SelectItem>
+                              <SelectItem value="session">Every session (service instruments)</SelectItem>
                               <SelectItem value="endpoint">Endpoint (last session)</SelectItem>
                             </SelectContent>
                           </Select>
                           <p className="text-xs text-gray-400 mt-1">
-                            Attendees will be asked {svc.included_assessments.length} quick survey{svc.included_assessments.length !== 1 ? 's' : ''} at check-in. Suggested: {smartTiming}.
+                            Attendees will be asked {count} quick survey{count !== 1 ? 's' : ''} at check-in. Suggested: {smartTiming}.
                           </p>
                         </div>
                       );

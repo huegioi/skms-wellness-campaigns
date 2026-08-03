@@ -126,6 +126,10 @@ export const LOW_BURDEN_ORDER = ['enps', 'ucla3', 'uwes3', 'pss4', 'who5', 'cbi'
 // Full battery for cohort start/end census
 export const FULL_BATTERY = ['who5', 'uwes3', 'pss4', 'ucla3', 'cbi', 'enps'];
 
+// Full baseline battery. eNPS deliberately excluded — it is always collected
+// post-session by queueSurveySendsForEvent, so asking it at baseline is redundant.
+export const BASELINE_BATTERY = ['who5', 'uwes3', 'pss4', 'ucla3', 'cbi'];
+
 // Returns instrument definitions in low-burden order for the given keys
 export function getOrderedInstruments(keys) {
   return LOW_BURDEN_ORDER.filter(k => keys.includes(k)).map(k => INSTRUMENTS[k]);

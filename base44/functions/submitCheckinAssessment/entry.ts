@@ -81,31 +81,54 @@ Deno.serve(async (req) => {
       const svcResults = await base44.asServiceRole.entities.Service.filter({ id: event.service_id });
       service = svcResults[0] || null;
     }
-    const includedAssessments = service?.included_assessments || [];
-    if (includedAssessments.length === 0 || !answers || typeof answers !== 'object') {
+    const timing = event.assessment_timing;
+    const isChallenge = service?.category === 'challenge';
+
+    // Effective instruments per timing (mirrors checkCheckinAssessment):
+    //   baseline → BASELINE_BATTERY (eNPS excluded, service.included_assessments ignored)
+    //   session / endpoint → service.included_assessments minus 'enps'
+    const BASELINE_BATTERY = ['who5', 'uwes3', 'pss4', 'ucla3', 'cbi'];
+    const effectiveAssessments = timing === 'baseline'
+      ? BASELINE_BATTERY
+      : (service?.included_assessments || []).filter(a => a !== 'enps');
+    if (effectiveAssessments.length === 0 || !answers || typeof answers !== 'object') {
       return Response.json({ success: true, meeting_link: meetingLink, reason: 'no_instruments' });
     }
 
-    // Determine survey_type
-    const isChallenge = service?.category === 'challenge';
-    const surveyType = event.assessment_timing === 'baseline'
+    // survey_type mapping (session reuses endpoint enums — no new value needed)
+    const surveyType = timing === 'baseline'
       ? (isChallenge ? 'challenge_day0' : 'cohort_start')
       : (isChallenge ? 'challenge_day14' : 'cohort_end');
 
-    // Dedup: skip if already submitted
-    const existing = await base44.asServiceRole.entities.CohortAssessment.filter({
-      participant_email: normalizedEmail,
-      survey_type: surveyType,
-      client_id: event.client_id || null,
-      service_id: event.service_id || null,
-      is_demo: false,
-    });
+    // cohort_year from the EVENT's start_date (not submission time) so a late
+    // submission doesn't land in the wrong plan year.
+    const cohort_year = event.start_date ? new Date(event.start_date).getFullYear() : new Date().getFullYear();
+
+    // Dedup (mirrors checkCheckinAssessment):
+    //   baseline → survey_type + cohort_year (one per person per client per plan year)
+    //   session / endpoint → event_id (one per person per event)
+    let dedupFilter;
+    if (timing === 'baseline') {
+      dedupFilter = {
+        participant_email: normalizedEmail,
+        client_id: event.client_id || null,
+        survey_type: surveyType,
+        cohort_year,
+        is_demo: false,
+      };
+    } else {
+      dedupFilter = {
+        participant_email: normalizedEmail,
+        event_id: event.id || null,
+        is_demo: false,
+      };
+    }
+    const existing = await base44.asServiceRole.entities.CohortAssessment.filter(dedupFilter);
     if (existing && existing.length > 0) {
       return Response.json({ success: true, meeting_link: meetingLink, reason: 'already_submitted' });
     }
 
     // Create a CohortAssessment row for each instrument in answers
-    const cohort_year = new Date().getFullYear();
     const submitted_at = new Date().toISOString();
     const createdIds = [];
 
@@ -131,6 +154,7 @@ Deno.serve(async (req) => {
       const record = {
         client_id: event.client_id || null,
         service_id: event.service_id || null,
+        event_id: event.id || null,
         participant_email: normalizedEmail,
         survey_type: surveyType,
         instrument: instKey,

@@ -121,10 +121,11 @@
       "enum": [
         "none",
         "baseline",
+        "session",
         "endpoint"
       ],
       "default": "none",
-      "description": "When to collect assessment data at check-in: 'baseline' for the first session of a service, 'endpoint' for the last, 'none' for no assessment."
+      "description": "When to collect assessment data at check-in: 'baseline' for the first session of the plan year, 'session' for every session (service instruments), 'endpoint' for the last, 'none' for no assessment."
     },
     "recording_link": {
       "type": "string",
