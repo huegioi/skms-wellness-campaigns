@@ -242,7 +242,7 @@ export default function ClientPortalCore({ mode, token, clientId }) {
         <ClientResources client={client} proposals={proposals} services={services} />
       )}
       {activeTab === 'feedback' && (
-        <PortalFeedback client={client} proposals={proposals} />
+        <PortalFeedback client={client} proposals={proposals} services={services} />
       )}
       {activeTab === 'engagement' && (
         <ClientEngagementTab client={client} events={events} checkins={checkins} />

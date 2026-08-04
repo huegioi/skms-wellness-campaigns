@@ -1,27 +1,24 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Printer, ArrowLeft, ShieldAlert } from 'lucide-react';
+import ReportWellbeingOutcomes from '@/components/feedback/ReportWellbeingOutcomes';
 
 function avg(arr, key) {
   const vals = arr.map(r => r[key]).filter(v => v != null && !isNaN(v));
   return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
 }
 
-function StarRow({ value, max = 5 }) {
-  return (
-    <div className="flex gap-0.5">
-      {Array.from({ length: max }, (_, i) => (
-        <div
-          key={i}
-          className={`w-4 h-4 rounded-sm ${i < Math.round(value) ? 'bg-[#013f7c]' : 'bg-gray-200'}`}
-        />
-      ))}
-      <span className="text-xs text-gray-500 ml-1">{value ? value.toFixed(1) : '—'}/{max}</span>
-    </div>
-  );
+function topImpacts(recs, n = 3) {
+  const tally = {};
+  for (const r of recs) {
+    if (Array.isArray(r.expected_impact)) {
+      for (const imp of r.expected_impact) tally[imp] = (tally[imp] || 0) + 1;
+    }
+  }
+  return Object.entries(tally).sort((a, b) => b[1] - a[1]).slice(0, n);
 }
 
 export default function ClientReport() {
@@ -49,6 +46,7 @@ export default function ClientReport() {
   const services = accessResult?.services || [];
   const checkins = accessResult?.checkins || [];
   const clientEvents = accessResult?.events || [];
+  const cohortAssessments = accessResult?.cohort_assessments || [];
 
   const serviceMap = Object.fromEntries(services.map(s => [s.id, s]));
 
@@ -72,24 +70,43 @@ export default function ClientReport() {
     }))
     .sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
 
-  const promoters = responses.filter(r => r.nps_score >= 9).length;
-  const detractors = responses.filter(r => r.nps_score <= 6).length;
-  const withNPS = responses.filter(r => r.nps_score != null);
+  // eNPS — promoters/detractors/denominator from ONLY rows with a non-null nps_score.
+  // (null <= 6 is true in JS, so the old formula counted non-resolvers as detractors.)
+  const withNPS = useMemo(() => responses.filter(r => r.nps_score != null), [responses]);
+  const promoters = useMemo(() => withNPS.filter(r => r.nps_score >= 9).length, [withNPS]);
+  const detractors = useMemo(() => withNPS.filter(r => r.nps_score <= 6).length, [withNPS]);
   const npsScore = withNPS.length
     ? Math.round(((promoters - detractors) / withNPS.length) * 100)
     : null;
 
-  // Group by service
-  const byService = {};
-  responses.forEach(r => {
-    const key = r.service_id || r.service_name || 'Unknown';
-    if (!byService[key]) byService[key] = [];
-    byService[key].push(r);
-  });
+  // Distinct sessions covered by pulse responses
+  const distinctSessions = useMemo(
+    () => new Set(responses.map(r => r.event_id).filter(Boolean)).size,
+    [responses]
+  );
 
-  const takeaways = responses
-    .filter(r => r.biggest_takeaway?.trim().length > 10)
-    .slice(0, 6);
+  // Avg confidence-to-apply (0-10)
+  const avgConfidence = useMemo(() => {
+    const vals = responses.map(r => r.fit_confidence).filter(v => v != null && !isNaN(v));
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  }, [responses]);
+
+  // Group by service
+  const byService = useMemo(() => {
+    const m = {};
+    responses.forEach(r => {
+      const key = r.service_id || r.service_name || 'Unknown';
+      if (!m[key]) m[key] = [];
+      m[key].push(r);
+    });
+    return m;
+  }, [responses]);
+
+  // Anonymous behavior-intent quotes (no attendee names in reports)
+  const quotes = useMemo(
+    () => responses.filter(r => r.behavior_intent?.trim().length > 10).slice(0, 6),
+    [responses]
+  );
 
   const handlePrint = () => window.print();
 
@@ -153,7 +170,7 @@ export default function ClientReport() {
           </div>
         </div>
 
-        {responses.length === 0 && sessionsWithAttendance.length === 0 ? (
+        {responses.length === 0 && sessionsWithAttendance.length === 0 && cohortAssessments.length === 0 ? (
           <div className="text-center text-gray-400 py-12">No feedback or attendance data collected yet for this client.</div>
         ) : (
           <>
@@ -164,20 +181,20 @@ export default function ClientReport() {
                 {[
                   { label: 'Total Respondents', value: responses.length, color: '#013f7c' },
                   {
-                    label: 'Net Promoter Score',
-                    value: npsScore != null ? `${npsScore > 0 ? '+' : ''}${npsScore}` : '—',
-                    color: npsScore >= 50 ? '#22c55e' : npsScore >= 0 ? '#f59e0b' : '#ef4444'
-                  },
-                  {
-                    label: 'Avg Stress Reduction',
-                    value: avg(responses, 'pre_stress_impact') ? `${avg(responses, 'pre_stress_impact').toFixed(1)}/5` : '—',
+                    label: 'Distinct Sessions',
+                    value: distinctSessions || '—',
                     color: '#264d44'
                   },
                   {
-                    label: 'Avg Pressure Mgmt',
-                    value: avg(responses, 'pressure_management_ability') ? `${avg(responses, 'pressure_management_ability').toFixed(1)}/5` : '—',
+                    label: 'Avg Confidence to Apply',
+                    value: avgConfidence != null ? `${avgConfidence.toFixed(1)}/10` : '—',
                     color: '#770142'
-                  }
+                  },
+                  {
+                    label: 'Employee Net Promoter Score (eNPS)',
+                    value: npsScore != null ? `${npsScore > 0 ? '+' : ''}${npsScore}` : '—',
+                    color: npsScore >= 50 ? '#22c55e' : npsScore >= 0 ? '#f59e0b' : '#ef4444'
+                  },
                 ].map((s, i) => (
                   <div key={i} className="border rounded-xl p-4 text-center">
                     <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
@@ -194,40 +211,52 @@ export default function ClientReport() {
                 {Object.entries(byService).map(([key, recs]) => {
                   const svc = serviceMap[key];
                   const name = svc?.name || recs[0]?.service_name || key;
+                  const sConf = avg(recs, 'fit_confidence');
                   const sNPS = avg(recs, 'nps_score');
+                  const impacts = topImpacts(recs, 3);
+                  const progSessions = new Set(recs.map(r => r.event_id).filter(Boolean)).size;
                   return (
                     <div key={key} className="border rounded-xl p-4">
                       <div className="flex items-start justify-between gap-3 mb-3">
                         <div>
                           <p className="font-semibold text-gray-800">{name}</p>
-                          <p className="text-xs text-gray-400">{recs.length} respondent{recs.length !== 1 ? 's' : ''}</p>
+                          <p className="text-xs text-gray-400">{recs.length} respondent{recs.length !== 1 ? 's' : ''}{progSessions > 0 ? ` · ${progSessions} session${progSessions !== 1 ? 's' : ''}` : ''}</p>
                         </div>
-                        {sNPS != null && (
-                          <div className="text-right">
-                            <p className="text-xs text-gray-400">Avg NPS</p>
-                            <p className="font-bold text-lg text-[#013f7c]">{sNPS.toFixed(1)}/10</p>
+                        <div className="flex gap-4 text-right">
+                          {sConf != null && (
+                            <div>
+                              <p className="text-xs text-gray-400">Avg Confidence</p>
+                              <p className="font-bold text-lg text-[#770142]">{sConf.toFixed(1)}/10</p>
+                            </div>
+                          )}
+                          {sNPS != null && (
+                            <div>
+                              <p className="text-xs text-gray-400">Avg eNPS</p>
+                              <p className="font-bold text-lg text-[#013f7c]">{sNPS.toFixed(1)}/10</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {impacts.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-xs text-gray-400 mb-1">Top Expected Impact Areas</p>
+                          <div className="flex flex-wrap gap-2">
+                            {impacts.map(([label, count]) => (
+                              <span key={label} className="text-xs bg-gray-100 rounded-full px-2 py-0.5 text-gray-700">
+                                {label} · {count}
+                              </span>
+                            ))}
                           </div>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-3 gap-3 text-xs">
-                        <div>
-                          <p className="text-gray-400 mb-1">Stress Reduction</p>
-                          <StarRow value={avg(recs, 'pre_stress_impact')} />
                         </div>
-                        <div>
-                          <p className="text-gray-400 mb-1">Tool Confidence</p>
-                          <StarRow value={avg(recs, 'tool_equipped_confidence')} />
-                        </div>
-                        <div>
-                          <p className="text-gray-400 mb-1">Pressure Mgmt</p>
-                          <StarRow value={avg(recs, 'pressure_management_ability')} />
-                        </div>
-                      </div>
+                      )}
                     </div>
                   );
                 })}
               </div>
             </div>
+
+            {/* Wellbeing outcomes (cohort assessments) */}
+            <ReportWellbeingOutcomes cohortAssessments={cohortAssessments} />
 
             {/* Session Attendance */}
             {sessionsWithAttendance.length > 0 && (
@@ -247,15 +276,14 @@ export default function ClientReport() {
               </div>
             )}
 
-            {/* Takeaway quotes */}
-            {takeaways.length > 0 && (
+            {/* Behavior-intent quotes (anonymous) */}
+            {quotes.length > 0 && (
               <div>
-                <h2 className="text-base font-bold text-gray-700 uppercase tracking-wide mb-3">Attendee Takeaways</h2>
+                <h2 className="text-base font-bold text-gray-700 uppercase tracking-wide mb-3">What Participants Will Do Differently</h2>
                 <div className="space-y-3">
-                  {takeaways.map((r, i) => (
+                  {quotes.map((r, i) => (
                     <blockquote key={i} className="border-l-4 border-[#264d44] pl-4 py-1">
-                      <p className="text-sm text-gray-700 italic">"{r.biggest_takeaway}"</p>
-                      {r.full_name && <p className="text-xs text-gray-400 mt-1">— {r.full_name}</p>}
+                      <p className="text-sm text-gray-700 italic">"{r.behavior_intent}"</p>
                     </blockquote>
                   ))}
                 </div>

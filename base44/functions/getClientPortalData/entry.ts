@@ -45,8 +45,8 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.CalendarEvent.list('start_date'),
       base44.asServiceRole.entities.EmailTemplate.list(),
       base44.asServiceRole.entities.Service.list('sort_order'),
-      base44.asServiceRole.entities.FeedbackResponse.filter({ client_id: client.id }, '-submitted_at', 200),
-      base44.asServiceRole.entities.CohortAssessment.filter({ client_id: client.id }, '-submitted_at', 500),
+      base44.asServiceRole.entities.FeedbackResponse.filter({ client_id: client.id, is_demo: { $ne: true } }, '-submitted_at', 200),
+      base44.asServiceRole.entities.CohortAssessment.filter({ client_id: client.id, is_demo: { $ne: true }, survey_type: { $ne: 'mfs' } }, '-submitted_at', 500),
     ]);
 
     // Build service name lookup
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
     const peopleEngaged = new Set([...pulseEmails, ...cohortEmails, ...checkinEmails]).size;
 
     // ── Project events to only portal-rendered fields ───────────────────
-    const portalEvents = matchedEvents.map(e => ({
+    const portalEvents = matchedEvents.filter(e => !e.is_demo).map(e => ({
       id: e.id,
       title: e.title,
       start_date: e.start_date,

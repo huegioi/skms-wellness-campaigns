@@ -1,42 +1,32 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { base44 } from '@/api/base44Client';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3, ClipboardList } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { BarChart3 } from 'lucide-react';
 import ROIDashboard from './ROIDashboard';
 
-export default function PortalFeedback({ client, proposals = [] }) {
+export default function PortalFeedback({ client, proposals = [], services = [] }) {
   const acceptedProposal = proposals.find(p => p.status === 'accepted');
-  // Fetch only services tied to this client — via purchased_services IDs or proposal selections
-  const { data: clientServices = [] } = useQuery({
-    queryKey: ['client-services', client?.id],
-    queryFn: async () => {
-      // Collect all service IDs associated with this client
-      const serviceIdSet = new Set();
 
-      // 1. From client.purchased_services array
-      (client?.purchased_services || []).forEach(id => serviceIdSet.add(id));
+  // Filter the services already fetched by getClientPortalData to those tied
+  // to this client — via purchased_services IDs or accepted proposal selections.
+  // No client-side Service read (that returns empty under RLS for portal visitors).
+  const clientServices = useMemo(() => {
+    const serviceIdSet = new Set();
 
-      // 2. From accepted proposal selections — values are arrays of service IDs per category
-      const SERVICE_ARRAY_KEYS = ['workshops', 'challengePrograms', 'leadership', 'movementClasses'];
-      proposals
-        .filter(p => p.status === 'accepted')
-        .forEach(p => {
-          if (!p.selections || typeof p.selections !== 'object') return;
-          SERVICE_ARRAY_KEYS.forEach(key => {
-            const arr = p.selections[key];
-            if (Array.isArray(arr)) arr.forEach(id => id && serviceIdSet.add(id));
-          });
+    (client?.purchased_services || []).forEach(id => serviceIdSet.add(id));
+
+    const SERVICE_ARRAY_KEYS = ['workshops', 'challengePrograms', 'leadership', 'movementClasses'];
+    proposals
+      .filter(p => p.status === 'accepted')
+      .forEach(p => {
+        if (!p.selections || typeof p.selections !== 'object') return;
+        SERVICE_ARRAY_KEYS.forEach(key => {
+          const arr = p.selections[key];
+          if (Array.isArray(arr)) arr.forEach(id => id && serviceIdSet.add(id));
         });
+      });
 
-      if (serviceIdSet.size === 0) return [];
-
-      // Fetch only those specific services
-      const all = await base44.entities.Service.list('sort_order');
-      return all.filter(s => serviceIdSet.has(s.id));
-    },
-    enabled: !!client?.id
-  });
+    if (serviceIdSet.size === 0) return [];
+    return services.filter(s => serviceIdSet.has(s.id));
+  }, [client?.purchased_services, proposals, services]);
 
   return (
     <div className="space-y-4">

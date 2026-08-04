@@ -24,10 +24,9 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
   // ── Section 1: Cohort arc ──────────────────────────────────────────────────
   const cohortRows_ = useMemo(() =>
     cohortRows.filter(r =>
-      (r.survey_type === 'cohort_start' || r.survey_type === 'cohort_end' || r.survey_type === 'session_check') &&
-      r.proposal_id === acceptedProposalId
+      r.survey_type === 'cohort_start' || r.survey_type === 'cohort_end' || r.survey_type === 'session_check'
     ),
-    [cohortRows, acceptedProposalId]
+    [cohortRows]
   );
   const cohortInstrumentStats = useMemo(
     () => buildInstrumentStats(cohortRows_, 'cohort_start', ['cohort_end', 'session_check']),
@@ -47,11 +46,11 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
   return (
     <div className="space-y-4">
       {/* ── Section 1: Cohort arc ───────────────────────────────────────────── */}
-      {acceptedProposalId && (
+      {cohortRows_.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Activity className="w-4 h-4 text-brand-plum" />
-            <p className="text-sm font-semibold text-gray-700">Cohort Wellbeing — Whole Year</p>
+            <p className="text-sm font-semibold text-gray-700">Wellbeing — This Plan Year</p>
           </div>
           <p className="text-xs text-gray-400 mb-3">Year arc — matched comparison</p>
           {cohortInstrumentStats.length > 0 ? (

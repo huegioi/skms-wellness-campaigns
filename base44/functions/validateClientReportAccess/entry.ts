@@ -12,6 +12,24 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 const TEAM_EMAILS = (Deno.env.get("TEAM_EMAILS") || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
 const isTeamMember = (user) => user && (user.role === 'admin' || TEAM_EMAILS.includes((user.email || "").toLowerCase()));
+
+const PORTAL_COHORT_FIELDS = [
+  'id', 'client_id', 'service_id', 'proposal_id', 'event_id',
+  'participant_email', 'survey_type', 'instrument',
+  'instrument_total', 'instrument_subscores', 'item_responses',
+  'who5_cheerful', 'who5_calm', 'who5_active', 'who5_rested',
+  'who5_interested', 'who5_total', 'cohort_year', 'submitted_at',
+  'assessment_phase', 'is_demo'
+];
+
+function projectRow(row, fields) {
+  const out = {};
+  for (const f of fields) {
+    if (row[f] !== undefined) out[f] = row[f];
+  }
+  return out;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -61,11 +79,12 @@ Deno.serve(async (req) => {
     }
 
     // ── Fetch client + feedback data (service role, filtered to this client) ──
-    const [clients, responses, services, events] = await Promise.all([
+    const [clients, responses, services, events, cohortAssessments] = await Promise.all([
       base44.asServiceRole.entities.Client.filter({ id: client_id }),
-      base44.asServiceRole.entities.FeedbackResponse.filter({ client_id }, '-submitted_at', 500),
+      base44.asServiceRole.entities.FeedbackResponse.filter({ client_id, is_demo: { $ne: true } }, '-submitted_at', 500),
       base44.asServiceRole.entities.Service.list('sort_order'),
       base44.asServiceRole.entities.CalendarEvent.filter({ client_id, is_demo: { $ne: true } }, '-start_date', 500),
+      base44.asServiceRole.entities.CohortAssessment.filter({ client_id, is_demo: { $ne: true }, survey_type: { $ne: 'mfs' } }, '-submitted_at', 500),
     ]);
 
     // Fetch check-ins for this client's events
@@ -81,7 +100,7 @@ Deno.serve(async (req) => {
     const PORTAL_CLIENT_FIELDS = [
       'id', 'name', 'email', 'email2', 'company', 'phone', 'title',
       'company_address', 'company_website', 'company_size', 'employee_count',
-      'industry', 'portal_token', 'portal_template_ids', 'purchased_services',
+      'industry', 'portal_template_ids', 'purchased_services',
       'portal_documents', 'session_resources', 'updated_date'
     ];
     const rawClient = clients[0] || null;
@@ -101,6 +120,7 @@ Deno.serve(async (req) => {
       services,
       events: events.map(e => ({ id: e.id, title: e.title, start_date: e.start_date, completed: e.completed })),
       checkins: checkins.map(c => ({ event_id: c.event_id, email: c.email, checked_in_at: c.checked_in_at })),
+      cohort_assessments: cohortAssessments.map(r => projectRow(r, PORTAL_COHORT_FIELDS)),
     });
   } catch (error) {
     return Response.json({ allowed: false, error: error.message }, { status: 500 });

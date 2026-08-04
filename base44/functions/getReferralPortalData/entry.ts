@@ -199,6 +199,13 @@ Deno.serve(async (req) => {
     is_mfs: !!(r.referred_lead_id && mfsLeadIdSet.has(r.referred_lead_id)),
   }));
 
+  // ── Services (projected, no pricing) for broker portal ROI views ──
+  const allServices = await base44.asServiceRole.entities.Service.list('sort_order');
+  const portalServices = allServices.map(s => ({
+    id: s.id, name: s.name, category: s.category,
+    included_assessments: s.included_assessments, sort_order: s.sort_order
+  }));
+
   const response = {
     partner: {
       id: partner.id,
@@ -226,6 +233,7 @@ Deno.serve(async (req) => {
       message: a.message,
       activity_date: a.activity_date
     })),
+    services: portalServices,
   };
 
   if (brokerage) {

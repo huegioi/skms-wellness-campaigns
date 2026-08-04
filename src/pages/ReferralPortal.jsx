@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,11 +43,6 @@ export default function ReferralPortal() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showOlder, setShowOlder] = useState(false);
-
-  const { data: services = [] } = useQuery({
-    queryKey: ['services'],
-    queryFn: () => base44.entities.Service.list('sort_order')
-  });
 
   useEffect(() => {
     if (!portalId) { setError('No portal ID provided.'); setLoading(false); return; }
@@ -106,7 +100,7 @@ export default function ReferralPortal() {
     );
   }
 
-  const { partner, referrals, commission_summary = {}, client_companies = [], partner_proposals = [], commission_ledger = [], activities = [], brokerage = null } = data;
+  const { partner, referrals, commission_summary = {}, client_companies = [], partner_proposals = [], commission_ledger = [], activities = [], brokerage = null, services = [] } = data;
   const tiers = partner.commission_tiers || [];
   const commissionsEnabled = partner.commissions_enabled !== false;
   const visibleTabs = commissionsEnabled ? TABS : TABS.filter(t => t.key !== 'commissions');

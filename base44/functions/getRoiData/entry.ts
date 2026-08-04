@@ -16,7 +16,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
  */
 
 const PORTAL_FEEDBACK_FIELDS = [
-  'id', 'client_id', 'service_id', 'service_name', 'service_category',
+  'id', 'client_id', 'service_id', 'service_name', 'service_category', 'event_id',
   'event_label', 'attendee_name', 'attendee_email', 'company_name',
   'email_address', 'submitted_at', 'presenter', 'delivery_format',
   'behavior_intent', 'fit_confidence', 'expected_impact',
@@ -24,7 +24,7 @@ const PORTAL_FEEDBACK_FIELDS = [
 ];
 
 const PORTAL_COHORT_FIELDS = [
-  'id', 'client_id', 'service_id', 'proposal_id',
+  'id', 'client_id', 'service_id', 'proposal_id', 'event_id',
   'participant_email', 'survey_type', 'instrument',
   'instrument_total', 'instrument_subscores', 'item_responses',
   'who5_cheerful', 'who5_calm', 'who5_active', 'who5_rested',
@@ -94,10 +94,10 @@ Deno.serve(async (req) => {
       // Fetch feedback + cohort data for all owned clients in parallel
       const [feedbackResults, cohortResults] = await Promise.all([
         Promise.all(validIds.map(id =>
-          base44.asServiceRole.entities.FeedbackResponse.filter({ client_id: id }, '-submitted_at', 200)
+          base44.asServiceRole.entities.FeedbackResponse.filter({ client_id: id, is_demo: { $ne: true } }, '-submitted_at', 200)
         )),
         Promise.all(validIds.map(id =>
-          base44.asServiceRole.entities.CohortAssessment.filter({ client_id: id }, '-submitted_at', 500)
+          base44.asServiceRole.entities.CohortAssessment.filter({ client_id: id, is_demo: { $ne: true }, survey_type: { $ne: 'mfs' } }, '-submitted_at', 500)
         )),
       ]);
 
@@ -150,8 +150,8 @@ Deno.serve(async (req) => {
 
     // Fetch feedback + cohort data for this client
     const [feedback, cohorts] = await Promise.all([
-      base44.asServiceRole.entities.FeedbackResponse.filter({ client_id }, '-submitted_at', 500),
-      base44.asServiceRole.entities.CohortAssessment.filter({ client_id }, '-submitted_at', 500),
+      base44.asServiceRole.entities.FeedbackResponse.filter({ client_id, is_demo: { $ne: true } }, '-submitted_at', 500),
+      base44.asServiceRole.entities.CohortAssessment.filter({ client_id, is_demo: { $ne: true }, survey_type: { $ne: 'mfs' } }, '-submitted_at', 500),
     ]);
 
     const checkins = await fetchCheckinsForClients(base44, [client_id]);

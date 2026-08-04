@@ -78,59 +78,59 @@ export default function AttendeeForm() {
     }
   }, [resolved?.email]);
 
-  const { data: service } = useQuery({
-    queryKey: ['attendee-service', effectiveServiceId],
+  // Anonymous mode: fetch display/submit context from the public backend function
+  // (service name/category, company, most recent past event). No client-side entity
+  // reads — those return empty under RLS for unauthenticated visitors.
+  const { data: anonContext = null } = useQuery({
+    queryKey: ['attendee-form-context', serviceIdFromUrl, clientIdFromUrl],
     queryFn: async () => {
-      if (!effectiveServiceId) return null;
-      const res = await base44.entities.Service.filter({ id: effectiveServiceId });
-      return res[0] || null;
+      if (!serviceIdFromUrl) return null;
+      const res = await base44.functions.invoke('getAttendeeFormContext', {
+        service_id: serviceIdFromUrl,
+        ...(clientIdFromUrl ? { client_id: clientIdFromUrl } : {}),
+      });
+      return res.data;
     },
-    enabled: !!effectiveServiceId
+    enabled: !tokenMode && !!serviceIdFromUrl,
   });
 
-  const { data: client } = useQuery({
-    queryKey: ['attendee-client', effectiveClientId],
-    queryFn: async () => {
-      if (!effectiveClientId) return null;
-      const res = await base44.entities.Client.filter({ id: effectiveClientId });
-      return res[0] || null;
-    },
-    enabled: !!effectiveClientId
-  });
-
-  // Fetch matching CalendarEvent to capture presenter + delivery_format (+ event_id in anonymous mode)
-  const { data: calendarEvent } = useQuery({
-    queryKey: ['attendee-event', effectiveServiceId, effectiveClientId, effectiveEventId],
-    queryFn: async () => {
-      if (effectiveEventId) {
-        const res = await base44.entities.CalendarEvent.filter({ id: effectiveEventId });
-        return res[0] || null;
-      }
-      if (!effectiveServiceId) return null;
-      const filter = { service_id: effectiveServiceId };
-      if (effectiveClientId) filter.client_id = effectiveClientId;
-      const res = await base44.entities.CalendarEvent.filter(filter, '-start_date', 1);
-      return res[0] || null;
-    },
-    enabled: !!effectiveEventId || !!effectiveServiceId
-  });
+  // Derived display/submit values. Token mode uses resolveSurveyToken (service_name,
+  // event_id). Anonymous mode uses getAttendeeFormContext (full context).
+  const serviceName = tokenMode
+    ? (resolved?.service_name || '')
+    : (anonContext?.service_name || '');
+  const serviceCategory = tokenMode
+    ? null
+    : (anonContext?.service_category || null);
+  const companyName = tokenMode
+    ? ''
+    : (anonContext?.company_name || '');
+  const presenter = tokenMode
+    ? null
+    : (anonContext?.event?.presenter || null);
+  const deliveryFormat = tokenMode
+    ? null
+    : (anonContext?.event?.delivery_format || null);
+  const contextEventId = tokenMode
+    ? null
+    : (anonContext?.event?.event_id || null);
 
   const submitMutation = useMutation({
     mutationFn: async () => {
       const res = await base44.functions.invoke('submitFeedbackResponse', {
         service_id: effectiveServiceId || '',
-        service_name: service?.name || '',
-        service_category: service?.category || undefined,
+        service_name: serviceName,
+        service_category: serviceCategory || undefined,
         client_id: effectiveClientId || '',
-        company_name: client?.company || '',
-        presenter: calendarEvent?.presenter || undefined,
-        delivery_format: calendarEvent?.delivery_format || undefined,
+        company_name: companyName,
+        presenter: presenter || undefined,
+        delivery_format: deliveryFormat || undefined,
         behavior_intent: form.behavior_intent,
         fit_confidence: form.fit_confidence,
         expected_impact: form.expected_impact.length > 0 ? form.expected_impact : undefined,
         attendee_name: form.attendee_name.trim() || undefined,
         attendee_email: form.attendee_email.trim() || undefined,
-        event_id: effectiveEventId || calendarEvent?.id || undefined,
+        event_id: effectiveEventId || contextEventId || undefined,
         nps_score: form.enps_score,
         submitted_at: new Date().toISOString(),
       });
@@ -232,8 +232,8 @@ function ImpactCheckboxes({ value, onChange }) {
         />
         <h1 className="text-xl font-bold">Quick Pulse Check</h1>
         <p className="text-blue-200 text-xs mt-1">~90 seconds · 3 questions</p>
-        {service && <p className="text-blue-200 text-sm mt-2 font-medium">{service.name}</p>}
-        {client && <p className="text-blue-300 text-xs mt-0.5">{client.company}</p>}
+        {serviceName && <p className="text-blue-200 text-sm mt-2 font-medium">{serviceName}</p>}
+        {companyName && <p className="text-blue-300 text-xs mt-0.5">{companyName}</p>}
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6">
