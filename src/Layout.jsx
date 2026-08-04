@@ -19,7 +19,7 @@ const navItems = [
 
 const LOGO_URL = 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/bb0a43468_SKMSLogoShieldBrown.png';
 
-const PUBLIC_PAGES = ['ViewProposal', 'MyPortal', 'ClientPortal', 'FeedbackForm', 'ReferralPortal', 'Checkin', 'MentalFitnessScore', 'MfsSurvey', 'MfsResults'];
+const PUBLIC_PAGES = ['ViewProposal', 'MyPortal', 'ClientPortal', 'FeedbackForm', 'ReferralPortal', 'Checkin', 'MentalFitnessScore', 'MfsSurvey', 'MfsResults', 'Unsubscribe'];
 
 export default function Layout({ children, currentPageName }) {
   const [mobileOpen, setMobileOpen] = useState(false);
