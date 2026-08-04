@@ -22,8 +22,7 @@ import { productCatalog } from '@/components/curriculum/catalogData';
 import InvoiceDialog from '@/components/invoices/InvoiceDialog';
 import FollowUpSettings from '@/components/clients/FollowUpSettings';
 import BrokersEditor from '@/components/clients/BrokersEditor';
-import AddContactDialog from '@/components/clients/AddContactDialog';
-import PrimaryContactEditor from '@/components/clients/PrimaryContactEditor';
+import ContactsCard from '@/components/clients/ContactsCard';
 import ClientScheduleTab from '@/components/clients/ClientScheduleTab';
 import { TagSelector } from '@/components/ui/TagSelector';
 import TagManager from '@/components/ui/TagManager';
@@ -70,9 +69,6 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
     if (!requested) return 'overview';
     return TAB_MIGRATION[requested] || requested;
   });
-  const [showAddContact, setShowAddContact] = useState(false);
-  const [editingContact, setEditingContact] = useState(null);
-  const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', title: '', notes: '' });
   const [viewingProposal, setViewingProposal] = useState(null);
   const [showAddService, setShowAddService] = useState(false);
   const [serviceToAdd, setServiceToAdd] = useState('');
@@ -179,31 +175,6 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
     client.invoice_ids?.includes(inv.id) || 
     inv.client_email?.toLowerCase() === client.email?.toLowerCase()
   );
-
-  const handleAddContact = () => {
-    const contacts = [...(client.related_contacts || [])];
-    if (editingContact !== null) {
-      contacts[editingContact] = contactForm;
-    } else {
-      contacts.push(contactForm);
-    }
-    onUpdate({ related_contacts: contacts });
-    setShowAddContact(false);
-    setEditingContact(null);
-    setContactForm({ name: '', email: '', phone: '', title: '', notes: '' });
-  };
-
-  const handleDeleteContact = (index) => {
-    const contacts = [...(client.related_contacts || [])];
-    contacts.splice(index, 1);
-    onUpdate({ related_contacts: contacts });
-  };
-
-  const openEditContact = (contact, index) => {
-    setContactForm(contact);
-    setEditingContact(index);
-    setShowAddContact(true);
-  };
 
   const getServiceName = (serviceId) => {
     for (const category of Object.values(productCatalog)) {
@@ -325,6 +296,9 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
     <div className="space-y-6 overflow-y-auto flex-1 p-6 pt-8">
       {/* Snapshot Header */}
       <RecordSnapshotHeader record={client} entityType="Client" stages={CLIENT_STAGES} onUpdate={onUpdate} />
+
+      {/* Contacts card — always visible, above the tab strip */}
+      <ContactsCard client={client} onUpdate={onUpdate} />
 
       {/* Referral partner badge */}
       {client.referral_partner_name && (
@@ -736,128 +710,8 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           </div>
         </TabsContent>
 
-        {/* Setup Tab — Contacts + Portal Docs + Follow-Up */}
+        {/* Setup Tab — Portal Docs + Follow-Up */}
         <TabsContent value="setup" className="mt-4 space-y-2">
-          <CollapsibleFieldSection title="Contacts" icon={Users} defaultOpen>
-           <div className="flex justify-between items-center mb-4">
-             <h4 className="font-semibold text-gray-700">All Contacts</h4>
-             <Button size="sm" variant="outline" onClick={() => { setEditingContact(null); setShowAddContact(true); }}>
-               <Plus className="w-4 h-4 mr-1" /> Add Contact
-             </Button>
-           </div>
-
-           <div className="space-y-3">
-             {/* Primary Contact */}
-             <PrimaryContactEditor client={client} onUpdate={onUpdate} />
-
-
-            {/* Brokers */}
-            {(() => {
-              const activeBrokers = client.brokers?.length > 0
-                ? client.brokers
-                : (client.broker_name ? [{ name: client.broker_name, email: client.broker_email }] : []);
-              return activeBrokers.map((broker, i) => (
-                <div key={i} className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <div>
-                    <Badge className="bg-orange-100 text-orange-700 mb-2">Broker{activeBrokers.length > 1 ? ` ${i + 1}` : ''}</Badge>
-                    {broker.name && <p className="font-semibold">{broker.name}</p>}
-                    {broker.company && <p className="text-sm text-gray-600">{broker.company}</p>}
-                    {broker.email && <p className="text-sm text-gray-500">{broker.email}</p>}
-                    {broker.phone && <p className="text-sm text-gray-500">{broker.phone}</p>}
-                    {broker.notes && <p className="text-xs text-gray-400 italic mt-1">{broker.notes}</p>}
-                  </div>
-                </div>
-              ));
-            })()}
-
-            {/* Wellness Consultant */}
-            {(client.wellness_consultant_name || client.wellness_consultant_email) && (
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <Badge className="bg-purple-100 text-purple-700 mb-2">Wellness Consultant</Badge>
-                    {client.wellness_consultant_name && <p className="font-semibold">{client.wellness_consultant_name}</p>}
-                    {client.company && <p className="text-sm text-gray-600">{client.company}</p>}
-                    {client.wellness_consultant_email && <p className="text-sm text-gray-500">{client.wellness_consultant_email}</p>}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Related Contacts */}
-            {(client.related_contacts || []).map((contact, index) => {
-               const typeColors = {
-                 broker: 'bg-orange-100 text-orange-700',
-                 wellness_consultant: 'bg-purple-100 text-purple-700',
-                 other: 'bg-gray-100 text-gray-700',
-               };
-               const typeLabel = {
-                 broker: 'Broker',
-                 wellness_consultant: 'Wellness Consultant',
-                 other: 'Other',
-               };
-
-               const handleMakePrimary = () => {
-                 // New primary fields from this contact
-                 const newPrimary = {
-                   name: contact.name || '',
-                   email: contact.email || '',
-                   title: contact.title || '',
-                   phone: contact.phone || '',
-                 };
-                 // Old primary becomes a related contact
-                 const oldPrimaryAsContact = {
-                   name: client.name || '',
-                   email: client.email || '',
-                   title: client.title || '',
-                   phone: client.phone || '',
-                   notes: '',
-                 };
-                 // Remove this contact from related_contacts, add old primary
-                 const updatedContacts = [
-                   ...( client.related_contacts || []).filter((_, i) => i !== index),
-                   oldPrimaryAsContact,
-                 ];
-                 onUpdate({ ...newPrimary, related_contacts: updatedContacts });
-               };
-
-               return (
-               <div key={index} className="bg-white border rounded-lg p-4">
-                 <div className="flex justify-between items-start">
-                   <div>
-                     {contact.contact_type && contact.contact_type !== 'other' && (
-                       <Badge className={`${typeColors[contact.contact_type] || typeColors.other} mb-2`}>
-                         {typeLabel[contact.contact_type] || contact.contact_type}
-                       </Badge>
-                     )}
-                     <p className="font-semibold">{contact.name}</p>
-                     {contact.title && <p className="text-sm text-gray-600">{contact.title}</p>}
-                     {contact.company && <p className="text-sm text-gray-500">{contact.company}</p>}
-                     {contact.email && <p className="text-sm text-gray-500">{contact.email}</p>}
-                     {contact.phone && <p className="text-sm text-gray-500">{contact.phone}</p>}
-                     {contact.linked_partner_id && (
-                       <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                         <LinkIcon className="w-3 h-3" /> Linked referral partner
-                       </p>
-                     )}
-                     {contact.notes && <p className="text-sm text-gray-400 mt-1">{contact.notes}</p>}
-                   </div>
-                   <div className="flex gap-1 items-start flex-col sm:flex-row">
-                     {contact.name && contact.email && (
-                       <Button size="sm" variant="outline" className="text-xs h-7 text-blue-600 border-blue-200 hover:bg-blue-50" onClick={handleMakePrimary}>
-                         Make Primary
-                       </Button>
-                     )}
-                     <Button size="icon" variant="ghost" onClick={() => openEditContact(contact, index)}><Pencil className="w-4 h-4" /></Button>
-                     <Button size="icon" variant="ghost" className="text-red-500" onClick={() => handleDeleteContact(index)}><Trash2 className="w-4 h-4" /></Button>
-                   </div>
-                 </div>
-               </div>
-               );
-             })}
-          </div>
-          </CollapsibleFieldSection>
-
           <CollapsibleFieldSection title="Portal Documents" icon={FileText}>
           {/* Templates Info */}
           <Card className="bg-blue-50 border-blue-200">
@@ -1138,34 +992,6 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           </CollapsibleFieldSection>
         </TabsContent>
       </Tabs>
-
-      {/* Add Contact Dialog */}
-      <AddContactDialog
-        open={showAddContact && editingContact === null}
-        onOpenChange={setShowAddContact}
-        client={client}
-        onUpdate={onUpdate}
-      />
-
-      {/* Edit Contact Dialog (legacy simple form) */}
-      <Dialog open={showAddContact && editingContact !== null} onOpenChange={(o) => { if (!o) { setShowAddContact(false); setEditingContact(null); } }}>
-        <DialogContent className="w-[95vw] sm:w-full">
-          <DialogHeader>
-            <DialogTitle>Edit Contact</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 mt-4">
-            <Input placeholder="Name *" value={contactForm.name} onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })} />
-            <Input placeholder="Title" value={contactForm.title} onChange={(e) => setContactForm({ ...contactForm, title: e.target.value })} />
-            <Input placeholder="Company" value={contactForm.company || ''} onChange={(e) => setContactForm({ ...contactForm, company: e.target.value })} />
-            <Input type="email" placeholder="Email" value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} />
-            <Input placeholder="Phone" value={contactForm.phone} onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })} />
-            <Textarea placeholder="Notes" value={contactForm.notes} onChange={(e) => setContactForm({ ...contactForm, notes: e.target.value })} />
-            <Button onClick={handleAddContact} disabled={!contactForm.name} className="w-full bg-[#264d44] hover:bg-[#1a3830]">
-              Save Changes
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* View Proposal Dialog */}
       <Dialog open={!!viewingProposal} onOpenChange={(open) => !open && setViewingProposal(null)}>

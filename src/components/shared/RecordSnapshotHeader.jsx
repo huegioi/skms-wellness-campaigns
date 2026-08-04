@@ -57,8 +57,11 @@ export function RecordSnapshotHeader({ record, entityType, stages, onUpdate }) {
   };
 
   const r = localRecord;
-  const initials = r.name
-    ? r.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
+  const isClient = entityType === 'Client';
+  const titleField = isClient ? 'company' : 'name';
+  const subtitleField = isClient ? 'name' : 'company';
+  const initials = r[titleField]
+    ? r[titleField].split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
     : '??';
 
   const stageField =
@@ -75,15 +78,15 @@ export function RecordSnapshotHeader({ record, entityType, stages, onUpdate }) {
       </div>
       <div className="flex-1 min-w-[180px]">
         <InlineText
-          value={r.name}
-          onSave={(v) => update({ name: v })}
+          value={r[titleField]}
+          onSave={(v) => update({ [titleField]: v })}
           className="text-lg font-bold text-[#013f7c]"
         />
         <InlineText
-          value={r.company}
-          onSave={(v) => update({ company: v })}
+          value={r[subtitleField]}
+          onSave={(v) => update({ [subtitleField]: v })}
           className="text-sm text-gray-500"
-          placeholder="Add company"
+          placeholder={isClient ? 'Add contact name' : 'Add company'}
         />
       </div>
       <div className="flex flex-wrap items-center gap-2">

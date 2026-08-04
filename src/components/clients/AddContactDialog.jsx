@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Search, Link as LinkIcon, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { contactsUpdate } from '@/lib/clientContacts';
 
 const CONTACT_TYPES = [
   { value: 'other', label: 'Other' },
@@ -21,21 +22,35 @@ const emptyForm = {
   name: '', email: '', phone: '', title: '', company: '', notes: '', contact_type: 'other'
 };
 
-export default function AddContactDialog({ open, onOpenChange, client, onUpdate }) {
+export default function AddContactDialog({ open, onOpenChange, client, onUpdate, contact, index }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(emptyForm);
   const [searchQuery, setSearchQuery] = useState('');
   const [linkedPartner, setLinkedPartner] = useState(null); // ReferralPartner linked
   const [saving, setSaving] = useState(false);
+  const editing = contact != null && index != null;
+  const resolvedPartner = useRef(false);
 
-  // Reset on open/close
+  // Reset / pre-fill on open
   useEffect(() => {
-    if (open) {
+    if (!open) { resolvedPartner.current = false; return; }
+    if (contact) {
+      setForm({
+        name: contact.name || '',
+        email: contact.email || '',
+        phone: contact.phone || '',
+        title: contact.title || '',
+        company: contact.company || '',
+        notes: contact.notes || '',
+        contact_type: contact.contact_type || 'other',
+      });
+    } else {
       setForm(emptyForm);
-      setSearchQuery('');
-      setLinkedPartner(null);
     }
-  }, [open]);
+    setSearchQuery('');
+    setLinkedPartner(null);
+    resolvedPartner.current = false;
+  }, [open, contact]);
 
   const { data: allPartners = [] } = useQuery({
     queryKey: ['referralPartners'],
@@ -48,6 +63,15 @@ export default function AddContactDialog({ open, onOpenChange, client, onUpdate 
     queryFn: () => base44.entities.Lead.filter({ lead_type: 'broker_lead', is_archived: { $ne: true } }, 'name'),
     enabled: open
   });
+
+  // Resolve the linked referral partner from the contact's linked_partner_id
+  // once the partner list loads (edit mode only).
+  useEffect(() => {
+    if (open && contact?.linked_partner_id && !resolvedPartner.current && allPartners.length) {
+      const p = allPartners.find(p => p.id === contact.linked_partner_id);
+      if (p) { setLinkedPartner(p); resolvedPartner.current = true; }
+    }
+  }, [open, contact, allPartners]);
 
   const isBrokerOrConsultant = form.contact_type === 'broker' || form.contact_type === 'wellness_consultant';
 
@@ -89,8 +113,7 @@ export default function AddContactDialog({ open, onOpenChange, client, onUpdate 
     if (!form.name) return;
     setSaving(true);
     try {
-      // 1. Build the new contact entry
-      const newContact = {
+      const contactEntry = {
         name: form.name,
         email: form.email,
         phone: form.phone,
@@ -98,38 +121,42 @@ export default function AddContactDialog({ open, onOpenChange, client, onUpdate 
         company: form.company,
         notes: form.notes,
         contact_type: form.contact_type,
-        linked_partner_id: linkedPartner?.id || null,
+        linked_partner_id: isBrokerOrConsultant ? (linkedPartner?.id || null) : null,
       };
 
-      // 2. Update client's related_contacts
-      const updatedContacts = [...(client.related_contacts || []), newContact];
+      const currentContacts = [...(client.related_contacts || [])];
+      let updatedContacts;
+      if (editing) {
+        updatedContacts = currentContacts.map((c, i) => i === index ? { ...c, ...contactEntry } : c);
+      } else {
+        updatedContacts = [...currentContacts, contactEntry];
+      }
 
-      // 3. If broker or consultant, also update the top-level fields on client
+      const updatePayload = contactsUpdate(updatedContacts);
+
+      // Extra top-level fields (broker/consultant/referral) — add mode only.
       const extraFields = {};
-      if (form.contact_type === 'broker') {
-        extraFields.broker_name = form.name;
-        extraFields.broker_email = form.email;
-      } else if (form.contact_type === 'wellness_consultant') {
-        extraFields.wellness_consultant_name = form.name;
-        extraFields.wellness_consultant_email = form.email;
+      if (!editing) {
+        if (form.contact_type === 'broker') {
+          extraFields.broker_name = form.name;
+          extraFields.broker_email = form.email;
+        } else if (form.contact_type === 'wellness_consultant') {
+          extraFields.wellness_consultant_name = form.name;
+          extraFields.wellness_consultant_email = form.email;
+        }
+        if (linkedPartner) {
+          extraFields.referral_partner_id = linkedPartner.id;
+          extraFields.referral_partner_name = linkedPartner.name;
+        }
       }
 
-      // 4. If linked to a ReferralPartner, also set referral_partner fields
-      if (linkedPartner) {
-        extraFields.referral_partner_id = linkedPartner.id;
-        extraFields.referral_partner_name = linkedPartner.name;
-      }
+      await onUpdate({ ...updatePayload, ...extraFields });
 
-      await onUpdate({ related_contacts: updatedContacts, ...extraFields });
-
-      // 5. Always create a Referral record if broker/consultant type
-      if (form.contact_type === 'broker' || form.contact_type === 'wellness_consultant') {
+      // Create a Referral record for broker/consultant — add mode only.
+      if (!editing && (form.contact_type === 'broker' || form.contact_type === 'wellness_consultant')) {
         const partnerId = linkedPartner?.id;
-        // If no linked partner, try to find or create one based on name
         let finalPartnerId = partnerId;
-
         if (!finalPartnerId) {
-          // Create a new referral partner record
           const newPartner = await base44.entities.ReferralPartner.create({
             name: form.name,
             email: form.email,
@@ -140,8 +167,6 @@ export default function AddContactDialog({ open, onOpenChange, client, onUpdate 
           });
           finalPartnerId = newPartner.id;
         }
-
-        // Create the referral linking this client to the partner
         await base44.entities.Referral.create({
           referral_partner_id: finalPartnerId,
           referral_partner_name: form.name,
@@ -153,14 +178,13 @@ export default function AddContactDialog({ open, onOpenChange, client, onUpdate 
           referral_date: new Date().toISOString(),
           status: 'converted_to_client',
         });
-
         queryClient.invalidateQueries({ queryKey: ['referralPartners'] });
       }
 
-      toast.success('Contact added successfully');
+      toast.success(editing ? 'Contact updated' : 'Contact added successfully');
       onOpenChange(false);
     } catch (err) {
-      toast.error('Failed to add contact: ' + err.message);
+      toast.error('Failed to save contact: ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -170,7 +194,7 @@ export default function AddContactDialog({ open, onOpenChange, client, onUpdate 
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Add Contact</DialogTitle>
+          <DialogTitle>{editing ? 'Edit Contact' : 'Add Contact'}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
@@ -283,7 +307,7 @@ export default function AddContactDialog({ open, onOpenChange, client, onUpdate 
               disabled={!form.name || saving}
               className="flex-1 bg-[#264d44] hover:bg-[#1a3830]"
             >
-              {saving ? 'Saving...' : 'Add Contact'}
+              {saving ? 'Saving...' : (editing ? 'Save Changes' : 'Add Contact')}
             </Button>
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           </div>

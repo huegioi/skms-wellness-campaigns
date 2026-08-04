@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pencil, X, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { contactsUpdate } from '@/lib/clientContacts';
 
 export default function PrimaryContactEditor({ client, onUpdate }) {
   const [editing, setEditing] = useState(false);
@@ -20,7 +21,19 @@ export default function PrimaryContactEditor({ client, onUpdate }) {
       toast.error('Name and email are required');
       return;
     }
-    await onUpdate(form);
+    // Route through contactsUpdate: update the primary entry in related_contacts
+    // and re-mirror into the top-level fields (email2 stays top-level).
+    const contacts = [...(client.related_contacts || [])];
+    const primaryIdx = contacts.findIndex(c => c.is_primary);
+    let updatedContacts;
+    if (primaryIdx >= 0) {
+      updatedContacts = contacts.map((c, i) => i === primaryIdx
+        ? { ...c, name: form.name, email: form.email, title: form.title, phone: form.phone }
+        : c);
+    } else {
+      updatedContacts = [{ name: form.name, email: form.email, title: form.title, phone: form.phone, is_primary: true }, ...contacts];
+    }
+    await onUpdate({ ...contactsUpdate(updatedContacts), email2: form.email2 });
     toast.success('Primary contact updated');
     setEditing(false);
   };

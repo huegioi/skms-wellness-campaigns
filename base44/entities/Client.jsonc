@@ -204,6 +204,7 @@
     },
     "related_contacts": {
       "type": "array",
+      "description": "All contacts at this company. Exactly one has is_primary: true; its name/email/title/phone are mirrored into the top-level Client fields for backward compatibility.",
       "items": {
         "type": "object",
         "properties": {
@@ -221,10 +222,29 @@
           },
           "notes": {
             "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "contact_type": {
+            "type": "string",
+            "enum": [
+              "other",
+              "broker",
+              "wellness_consultant",
+              "hr"
+            ],
+            "default": "other"
+          },
+          "linked_partner_id": {
+            "type": "string"
+          },
+          "is_primary": {
+            "type": "boolean",
+            "default": false
           }
         }
-      },
-      "description": "Additional contacts"
+      }
     },
     "purchased_services": {
       "type": "array",
@@ -369,7 +389,7 @@
     "attendee_emails_allowed": {
       "type": "boolean",
       "default": true,
-      "description": "Whether automated attendee survey emails are allowed. When false, all survey sends are visibly skipped (never silently)."
+      "description": "Whether automated attendee survey emails are allowed. When false, all sends are visibly skipped (never silently)."
     },
     "is_assessment_lead": {
       "type": "boolean",
