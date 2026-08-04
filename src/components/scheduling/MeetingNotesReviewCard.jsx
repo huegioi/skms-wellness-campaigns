@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { FileWarning, ExternalLink } from 'lucide-react';
+import { isInternalOrganizer } from '@/lib/meetingNoteAccess';
 
 export default function MeetingNotesReviewCard() {
   const { data: inaccessible = [] } = useQuery({
@@ -10,7 +11,12 @@ export default function MeetingNotesReviewCard() {
     queryFn: () => base44.entities.MeetingNote.filter({ access_status: 'inaccessible' }, '-captured_at', 50),
   });
 
-  if (inaccessible.length === 0) return null;
+  // Only surface notes whose organizer is in-house — an external organizer's
+  // Meet Recordings folder isn't ours to ask for. External-organized notes still
+  // surface on the profile Activity timeline (InteractionTimeline), just not here.
+  const actionable = inaccessible.filter(n => isInternalOrganizer(n.organizer_email));
+
+  if (actionable.length === 0) return null;
 
   return (
     <Card className="border-amber-200 bg-amber-50/50">
@@ -18,14 +24,14 @@ export default function MeetingNotesReviewCard() {
         <div className="flex items-center gap-2 mb-3">
           <FileWarning className="w-4 h-4 text-amber-600" />
           <h3 className="text-sm font-semibold text-amber-800">
-            Unshared Meeting Notes ({inaccessible.length})
+            Unshared Meeting Notes ({actionable.length})
           </h3>
         </div>
         <p className="text-xs text-amber-700 mb-3">
           These meeting-notes docs couldn't be accessed by the connected Google account. Ask the organizer to share their Meet Recordings folder.
         </p>
         <div className="space-y-2">
-          {inaccessible.map(note => (
+          {actionable.map(note => (
             <div key={note.id} className="bg-white rounded-lg border border-amber-100 p-3 text-xs">
               <div className="flex items-center justify-between gap-2 mb-1">
                 <p className="font-medium text-gray-800 truncate">{note.meeting_title || 'Untitled meeting'}</p>

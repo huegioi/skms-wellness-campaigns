@@ -4,7 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mail, Phone, MessageSquare, Linkedin, Video, StickyNote, Plus, Loader2, X, Send, Inbox } from 'lucide-react';
+import { Mail, Phone, MessageSquare, Linkedin, Video, StickyNote, Plus, Loader2, X, Send, Inbox, FileWarning } from 'lucide-react';
+import { isInternalOrganizer } from '@/lib/meetingNoteAccess';
 import { FullEmailModal } from '@/components/clients/GmailHistory';
 import { useSaveBadge } from '@/components/shared/SaveBadge';
 import SaveBadge from '@/components/shared/SaveBadge';
@@ -55,6 +56,23 @@ function calDate(dateStr) {
   if (diff === 1) return 'Tomorrow';
   if (diff < 7) return `In ${diff}d`;
   return new Date(dateStr).toLocaleDateString();
+}
+
+function NoteAccessWarning({ note }) {
+  return (
+    <div className="mt-1.5 flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded px-2 py-1.5">
+      <FileWarning className="w-3.5 h-3.5 flex-shrink-0 mt-px" />
+      <span>
+        <span className="font-medium">Meeting notes not available.</span>{' '}
+        {isInternalOrganizer(note.organizer_email)
+          ? <>Ask <strong>{note.organizer_email || 'the organizer'}</strong> to share their Meet Recordings folder.</>
+          : <>The notes doc is owned by <strong>{note.organizer_email}</strong> outside SkillfulMeans, so it can't be pulled in automatically.</>}
+        {note.doc_url && (
+          <> <a href={note.doc_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Open doc →</a></>
+        )}
+      </span>
+    </div>
+  );
 }
 
 export default function InteractionTimeline({ lead_id, client_id, referral_partner_id, onUpdate }) {
@@ -112,14 +130,60 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
     enabled: !!calFilter,
   });
 
+  // Inaccessible meeting notes scoped to this contact — surfaced on the timeline
+  // (attached to the matching meeting row, or rendered standalone) so the missing
+  // notes aren't silently hidden. processMeetingArtifacts copies lead_id /
+  // client_id / referral_partner_id onto inaccessible rows from the parent event.
+  const notesFilter = lead_id
+    ? { lead_id, access_status: 'inaccessible' }
+    : client_id
+      ? { client_id, access_status: 'inaccessible' }
+      : { referral_partner_id, access_status: 'inaccessible' };
+
+  const { data: inaccessibleNotes = [] } = useQuery({
+    queryKey: [...scopeKey, 'inaccessible-notes'],
+    queryFn: () => base44.entities.MeetingNote.filter(notesFilter, '-meeting_date', 50),
+    enabled: !!(lead_id || client_id || referral_partner_id),
+  });
+
+  // Key inaccessible notes by their calendar event so we can attach a warning
+  // inline to the existing timeline row for that meeting instead of duplicating.
+  const notesByEvent = useMemo(() => {
+    const m = new Map();
+    inaccessibleNotes.forEach(n => { if (n.event_id) m.set(n.event_id, n); });
+    return m;
+  }, [inaccessibleNotes]);
+
+  const attachedEventIds = useMemo(() => {
+    const s = new Set();
+    for (const it of interactions) {
+      if (it.calendar_event_id && notesByEvent.has(it.calendar_event_id)) s.add(it.calendar_event_id);
+    }
+    for (const ev of calendarEvents) {
+      if (notesByEvent.has(ev.id)) s.add(ev.id);
+    }
+    return s;
+  }, [interactions, calendarEvents, notesByEvent]);
+
+  // Calendar events present as their own timeline row — a note attaches to the
+  // calendar row preferentially, so don't also render it on a linked interaction row.
+  const calendarEventIds = useMemo(() => new Set(calendarEvents.map(ev => ev.id)), [calendarEvents]);
+
+  // Notes with no matching timeline row render as their own standalone rows.
+  const standaloneNotes = useMemo(
+    () => inaccessibleNotes.filter(n => n.event_id && !attachedEventIds.has(n.event_id)),
+    [inaccessibleNotes, attachedEventIds]
+  );
+
   const merged = useMemo(() => {
     const items = [
       ...interactions.map(it => ({ ...it, _type: 'interaction', _date: it.date })),
       ...emailLogs.map(e => ({ ...e, _type: 'email', _date: e.date })),
       ...calendarEvents.map(ev => ({ ...ev, _type: 'calendar', _date: ev.start_date })),
+      ...standaloneNotes.map(n => ({ ...n, _type: 'note', _date: n.meeting_date })),
     ];
     return items.sort((a, b) => new Date(b._date) - new Date(a._date));
-  }, [interactions, emailLogs, calendarEvents]);
+  }, [interactions, emailLogs, calendarEvents, standaloneNotes]);
 
   const [selectedEmail, setSelectedEmail] = useState(null);
   const { show: showSaved, trigger: triggerSaved } = useSaveBadge();
@@ -295,6 +359,23 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
                         Join meeting →
                       </a>
                     )}
+                    {notesByEvent.has(item.id) && <NoteAccessWarning note={notesByEvent.get(item.id)} />}
+                  </div>
+                </div>
+              );
+            }
+            if (item._type === 'note') {
+              return (
+                <div key={`note-${item.id}`} className="flex gap-3 bg-white border rounded-lg p-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                    <FileWarning className="w-4 h-4 text-amber-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-gray-800 truncate">{item.meeting_title || 'Untitled meeting'}</p>
+                      <span className="text-xs text-gray-400 flex-shrink-0">{relDate(item.meeting_date)}</span>
+                    </div>
+                    <NoteAccessWarning note={item} />
                   </div>
                 </div>
               );
@@ -319,6 +400,9 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
                   ) : item.outcome ? (
                     <p className="text-xs text-green-600 mt-1">→ {item.outcome}</p>
                   ) : null}
+                  {item.calendar_event_id && notesByEvent.has(item.calendar_event_id) && !calendarEventIds.has(item.calendar_event_id) && (
+                    <NoteAccessWarning note={notesByEvent.get(item.calendar_event_id)} />
+                  )}
                 </div>
               </div>
             );

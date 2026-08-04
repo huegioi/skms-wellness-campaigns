@@ -632,7 +632,6 @@ export default function SchedulingHub() {
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-3 sm:p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <MeetingNotesReviewCard />
         <div className="mb-4">
           <SurveySendsCard />
         </div>
@@ -680,6 +679,8 @@ export default function SchedulingHub() {
             </a>
           </div>
         </div>
+
+        <MeetingNotesReviewCard />
 
         {/* Deep-link To-Schedule Checklist */}
         {checklistClientId && (
