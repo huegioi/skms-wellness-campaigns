@@ -84,7 +84,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
   // ── Hero metric: Wellbeing change (WHO-5 delta) ────────────────────────────
   const who5Delta = useMemo(() => {
     const who5Rows = cohortAssessments.filter(r => getInstrumentKey(r) === 'who5');
-    const cohortResult = matchPairs(who5Rows, 'cohort_start', 'cohort_end');
+    const cohortResult = matchPairs(who5Rows, 'cohort_start', ['cohort_end', 'session_check']);
     const challengeResult = matchPairs(who5Rows, 'challenge_day0', 'challenge_day14');
     const allPairs = [...cohortResult.pairs, ...challengeResult.pairs];
     const allDistinct = cohortResult.distinctStarts + challengeResult.distinctStarts;

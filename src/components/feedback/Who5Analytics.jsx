@@ -62,7 +62,7 @@ function buildCombinedStats(rows) {
     byInstrument[key].push(r);
   }
   return Object.entries(byInstrument).map(([key, rows]) => {
-    const cohortResult = matchPairs(rows, 'cohort_start', 'cohort_end');
+    const cohortResult = matchPairs(rows, 'cohort_start', ['cohort_end', 'session_check']);
     const challengeResult = matchPairs(rows, 'challenge_day0', 'challenge_day14');
     const allPairs = [...cohortResult.pairs, ...challengeResult.pairs];
     const allDistinct = cohortResult.distinctStarts + challengeResult.distinctStarts;
@@ -169,12 +169,16 @@ export default function Who5Analytics({ filters }) {
       const email = (r.participant_email || '').toLowerCase().trim();
       if (!email) continue;
       if (r.survey_type === 'cohort_start' || r.survey_type === 'challenge_day0') starterEmails.add(email);
+      // Only true endpoint rows count as completers — session_check is mid-program, not an end
       if (r.survey_type === 'cohort_end' || r.survey_type === 'challenge_day14') endEmails.add(email);
     }
     const distinctStarters = starterEmails.size;
-    const distinctEnds = endEmails.size;
-    const completion = distinctStarters > 0 ? Math.round((distinctEnds / distinctStarters) * 100) : 0;
-    return { completion, distinctStarters, distinctEnds };
+    // Completers = intersection: must have BOTH a start and an end row.
+    // This prevents completion from exceeding 100% when someone has an end but no baseline.
+    let completers = 0;
+    for (const email of endEmails) if (starterEmails.has(email)) completers++;
+    const completion = distinctStarters > 0 ? Math.min(100, Math.round((completers / distinctStarters) * 100)) : 0;
+    return { completion, distinctStarters, distinctEnds: completers };
   }, [allRows]);
 
   // ── Session pulse summary ────────────────────────────────────────────────────

@@ -130,13 +130,25 @@ async function computeRecipients(base44, send) {
   const suppressedSet = new Set(suppressions.map(s => (s.email || '').toLowerCase().trim()));
   candidates = candidates.filter(e => !suppressedSet.has(e));
 
-  // Exclude already-submitted for this timing
+  // Exclude already-submitted for this timing.
+  // cohort_end / cohort_1mo are scoped to the send's service AND the event's plan year,
+  // so a session_check (mid-program) or a prior-year completion doesn't suppress the
+  // true endpoint email. enps_post_session keeps the original unscoped filter.
+  // post_session_pulse has no CohortAssessment dedup by design (not in the map).
   const surveyTypeMap = { cohort_end: 'cohort_end', cohort_1mo: 'cohort_1mo', enps_post_session: 'enps_post_session' };
   const st = surveyTypeMap[send.send_type];
   if (st) {
-    const submitted = await base44.asServiceRole.entities.CohortAssessment.filter({
-      client_id: send.client_id, survey_type: st
-    });
+    const dedupFilter = { client_id: send.client_id, survey_type: st };
+    if (send.send_type === 'cohort_end' || send.send_type === 'cohort_1mo') {
+      let cohortYear = new Date().getFullYear();
+      if (send.event_id) {
+        const ev = await base44.asServiceRole.entities.CalendarEvent.filter({ id: send.event_id });
+        if (ev[0]?.start_date) cohortYear = new Date(ev[0].start_date).getFullYear();
+      }
+      dedupFilter.service_id = send.service_id;
+      dedupFilter.cohort_year = cohortYear;
+    }
+    const submitted = await base44.asServiceRole.entities.CohortAssessment.filter(dedupFilter);
     const submittedSet = new Set(submitted.map(a => (a.participant_email || '').toLowerCase().trim()));
     candidates = candidates.filter(e => !submittedSet.has(e));
   }

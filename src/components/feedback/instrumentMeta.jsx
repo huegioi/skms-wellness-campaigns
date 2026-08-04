@@ -52,28 +52,42 @@ export function getInstrumentKey(row) {
   return row.instrument || 'who5';
 }
 
-// Generalized matched-pair logic — reuses the existing WHO-5 Day 0→Day 14
-// matching approach, but works for any instrument via instrument_total.
-export function matchPairs(rows, startType, endType) {
-  const starts = {};
-  const ends = {};
+// Generalized matched-pair logic — year-aware, multi-end-type.
+// Groups rows by (email, cohort_year) so pairs never cross plan years.
+// Within each group: start = EARLIEST by submitted_at, end = LATEST by submitted_at.
+// endTypes accepts a string OR an array of strings (normalized internally).
+export function matchPairs(rows, startType, endTypes) {
+  const endSet = Array.isArray(endTypes) ? new Set(endTypes) : new Set([endTypes]);
+  const groups = {};
   for (const r of rows) {
     const email = (r.participant_email || '').toLowerCase().trim();
     if (!email) continue;
-    if (r.survey_type === startType) starts[email] = r;
-    if (r.survey_type === endType)   ends[email]   = r;
+    const year = r.cohort_year || (r.submitted_at ? new Date(r.submitted_at).getFullYear() : null);
+    if (year == null) continue;
+    const gk = `${email}|${year}`;
+    if (!groups[gk]) groups[gk] = { email, starts: [], ends: [] };
+    if (r.survey_type === startType) groups[gk].starts.push(r);
+    if (endSet.has(r.survey_type)) groups[gk].ends.push(r);
   }
+  const distinctStartEmails = new Set();
   const pairs = [];
-  for (const email of Object.keys(starts)) {
-    if (ends[email]) {
-      const startScore = getScore(starts[email]);
-      const endScore = getScore(ends[email]);
-      if (startScore != null && endScore != null) {
-        pairs.push({ email, start: startScore, end: endScore });
-      }
+  for (const gk of Object.keys(groups)) {
+    const g = groups[gk];
+    if (!g.starts.length) continue;
+    distinctStartEmails.add(g.email);
+    if (!g.ends.length) continue;
+    // start = earliest submission, end = latest submission
+    g.starts.sort((a, b) => new Date(a.submitted_at) - new Date(b.submitted_at));
+    g.ends.sort((a, b) => new Date(a.submitted_at) - new Date(b.submitted_at));
+    const startRow = g.starts[0];
+    const endRow = g.ends[g.ends.length - 1];
+    const startScore = getScore(startRow);
+    const endScore = getScore(endRow);
+    if (startScore != null && endScore != null) {
+      pairs.push({ email: g.email, start: startScore, end: endScore });
     }
   }
-  return { pairs, distinctStarts: Object.keys(starts).length };
+  return { pairs, distinctStarts: distinctStartEmails.size };
 }
 
 // Generalized stats with direction-of-good awareness.

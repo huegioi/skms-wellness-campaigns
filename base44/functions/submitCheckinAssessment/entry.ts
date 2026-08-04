@@ -95,10 +95,15 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, meeting_link: meetingLink, reason: 'no_instruments' });
     }
 
-    // survey_type mapping (session reuses endpoint enums — no new value needed)
+    // survey_type mapping:
+    //   baseline  → challenge_day0 / cohort_start
+    //   endpoint  → challenge_day14 / cohort_end
+    //   session   → 'session_check' (honest mid-program stamp, distinct from endpoint)
     const surveyType = timing === 'baseline'
       ? (isChallenge ? 'challenge_day0' : 'cohort_start')
-      : (isChallenge ? 'challenge_day14' : 'cohort_end');
+      : timing === 'endpoint'
+        ? (isChallenge ? 'challenge_day14' : 'cohort_end')
+        : 'session_check';
 
     // cohort_year from the EVENT's start_date (not submission time) so a late
     // submission doesn't land in the wrong plan year.

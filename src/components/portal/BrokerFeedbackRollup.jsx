@@ -17,7 +17,7 @@ function deltaColor(delta, directionOfGood = 'higher') {
 // Compute WHO-5 matched-pair delta for a set of cohort assessment rows.
 function who5DeltaForRows(rows) {
   const who5Rows = rows.filter(r => getInstrumentKey(r) === 'who5');
-  const cohortResult = matchPairs(who5Rows, 'cohort_start', 'cohort_end');
+  const cohortResult = matchPairs(who5Rows, 'cohort_start', ['cohort_end', 'session_check']);
   const challengeResult = matchPairs(who5Rows, 'challenge_day0', 'challenge_day14');
   const allPairs = [...cohortResult.pairs, ...challengeResult.pairs];
   const allDistinct = cohortResult.distinctStarts + challengeResult.distinctStarts;

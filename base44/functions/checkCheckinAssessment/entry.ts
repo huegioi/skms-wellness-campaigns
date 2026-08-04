@@ -63,10 +63,12 @@ Deno.serve(async (req) => {
     // survey_type mapping:
     //   baseline  → challenge_day0 / cohort_start
     //   endpoint  → challenge_day14 / cohort_end
-    //   session   → challenge_day14 / cohort_end (reuses endpoint enums — no new value needed)
+    //   session   → 'session_check' (honest mid-program stamp, distinct from endpoint)
     const surveyType = timing === 'baseline'
       ? (isChallenge ? 'challenge_day0' : 'cohort_start')
-      : (isChallenge ? 'challenge_day14' : 'cohort_end');
+      : timing === 'endpoint'
+        ? (isChallenge ? 'challenge_day14' : 'cohort_end')
+        : 'session_check';
 
     // cohort_year from the event's start_date year (plan-year aware dedup)
     const cohort_year = event.start_date ? new Date(event.start_date).getFullYear() : new Date().getFullYear();

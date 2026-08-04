@@ -24,13 +24,13 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
   // ── Section 1: Cohort arc ──────────────────────────────────────────────────
   const cohortRows_ = useMemo(() =>
     cohortRows.filter(r =>
-      (r.survey_type === 'cohort_start' || r.survey_type === 'cohort_end') &&
+      (r.survey_type === 'cohort_start' || r.survey_type === 'cohort_end' || r.survey_type === 'session_check') &&
       r.proposal_id === acceptedProposalId
     ),
     [cohortRows, acceptedProposalId]
   );
   const cohortInstrumentStats = useMemo(
-    () => buildInstrumentStats(cohortRows_, 'cohort_start', 'cohort_end'),
+    () => buildInstrumentStats(cohortRows_, 'cohort_start', ['cohort_end', 'session_check']),
     [cohortRows_]
   );
 
