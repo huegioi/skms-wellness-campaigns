@@ -23,7 +23,7 @@ const LEAD_PLAYBOOKS = {
     label: 'Contacted',
     description: 'You\'ve made first contact. Keep the momentum with a multi-channel cadence.',
     steps: [
-      'Send a brief intro email — who you are, what SKMS does, why you\'re reaching out (under 5 sentences).',
+      'Send a brief intro email — who you are, what SkillfulMeans does, why you\'re reaching out (under 5 sentences).',
       'Call their direct line; if voicemail: leave a 20-second message — name, company, what you do.',
       'Send a short text following up on your call attempt.',
       'Second call at a different time of day than the first.',

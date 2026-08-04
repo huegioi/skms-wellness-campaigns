@@ -264,7 +264,7 @@ export default function ClientReport() {
 
             {/* Footer */}
             <div className="border-t pt-4 text-center text-xs text-gray-400">
-              SKMS Wellness · Confidential Client Report · {new Date().getFullYear()}
+              SkillfulMeans · Confidential Client Report · {new Date().getFullYear()}
             </div>
           </>
         )}

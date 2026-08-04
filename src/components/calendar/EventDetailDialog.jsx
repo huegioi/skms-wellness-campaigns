@@ -195,7 +195,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
     const icsLines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//SKMS Wellness//Calendar//EN',
+      'PRODID:-//SkillfulMeans//Calendar//EN',
       'BEGIN:VEVENT',
       icsFold(`DTSTART:${icsEscape(formatICSDate(startDate))}`),
       icsFold(`DTEND:${icsEscape(formatICSDate(endDate))}`),

@@ -45,7 +45,7 @@ export default function SpeakerPortalRedirect() {
         <AlertCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
         <h2 className="text-xl font-bold text-gray-800 mb-2">No Presenter Profile Found</h2>
         <p className="text-gray-600">
-          No presenter profile found for {user?.email} — contact SKMS Wellness.
+          No presenter profile found for {user?.email} — contact SkillfulMeans.
         </p>
       </div>
     </div>

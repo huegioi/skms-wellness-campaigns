@@ -63,7 +63,7 @@ export function PortalShell({
           style={{ backgroundColor: accentColor }}
         >
           <div className="px-4 py-4 border-b border-white/10">
-            {logo && <img src={LOGO_URL} alt="SKMS Wellness" className="h-8 w-auto mb-3" />}
+            {logo && <img src={LOGO_URL} alt="SkillfulMeans" className="h-8 w-auto mb-3" />}
             {eyebrow && <p className="text-white/70 text-xs font-medium mb-0.5">{eyebrow}</p>}
             <h1 className="text-white font-bold text-sm leading-tight">{title}</h1>
             {subtitle && <p className={`${subtitleClass} mt-0.5`}>{subtitle}</p>}
@@ -150,7 +150,7 @@ export function PortalShell({
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="flex items-center gap-4">
               {logo && (
-                <img src={LOGO_URL} alt="SKMS Wellness" className={logoClass} />
+                <img src={LOGO_URL} alt="SkillfulMeans" className={logoClass} />
               )}
               <div>
                 {eyebrow && <p className={eyebrowClass}>{eyebrow}</p>}

@@ -73,7 +73,7 @@ export default function CheckinAssessmentSurvey({ token, name, email, surveyData
       <div className="bg-[#013f7c] text-white px-4 py-5 text-center">
         <img
           src="https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/1272f92b7_SKMSLogoShieldWhite.png"
-          alt="SKMS Wellness"
+          alt="SkillfulMeans"
           className="h-9 mx-auto mb-2"
         />
         <h1 className="text-lg font-bold">A few quick questions while you wait</h1>

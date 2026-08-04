@@ -20,7 +20,7 @@ export default function UserAgreement() {
                 1. Acceptance of Terms
               </h2>
               <p className="text-gray-700 mb-3">
-                By accessing and using the SKMS Wellness Campaigns platform ("Service"), you accept and agree to be bound by the terms and provision of this agreement.
+                By accessing and using the SkillfulMeans platform ("Service"), you accept and agree to be bound by the terms and provision of this agreement.
               </p>
             </section>
 
@@ -83,7 +83,7 @@ export default function UserAgreement() {
                 6. Intellectual Property
               </h2>
               <p className="text-gray-700 mb-3">
-                All content, features, and functionality of the Service are owned by SKMS Wellness and are protected by copyright, trademark, and other intellectual property laws.
+                All content, features, and functionality of the Service are owned by SkillfulMeans and are protected by copyright, trademark, and other intellectual property laws.
               </p>
             </section>
 
@@ -125,7 +125,7 @@ export default function UserAgreement() {
 
             <div className="mt-8 p-4 bg-gray-100 rounded-lg">
               <p className="text-sm text-gray-600">
-                By using the SKMS Wellness Campaigns platform, you acknowledge that you have read, understood, and agree to be bound by these terms and conditions.
+                By using the SkillfulMeans platform, you acknowledge that you have read, understood, and agree to be bound by these terms and conditions.
               </p>
             </div>
           </div>

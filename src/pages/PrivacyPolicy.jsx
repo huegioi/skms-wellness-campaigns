@@ -20,7 +20,7 @@ export default function PrivacyPolicy() {
                 1. Information We Collect
               </h2>
               <p className="text-gray-700 mb-3">
-                We collect information that you provide directly to us when using the SKMS Wellness Campaigns platform:
+                We collect information that you provide directly to us when using the SkillfulMeans platform:
               </p>
               <ul className="list-disc ml-6 text-gray-700 mb-3">
                 <li><strong>Account Information:</strong> Name, email address, and credentials</li>
@@ -158,7 +158,7 @@ export default function PrivacyPolicy() {
 
             <div className="mt-8 p-4 bg-gray-100 rounded-lg">
               <p className="text-sm text-gray-600">
-                By using the SKMS Wellness Campaigns platform, you acknowledge that you have read and understood this Privacy Policy.
+                By using the SkillfulMeans platform, you acknowledge that you have read and understood this Privacy Policy.
               </p>
             </div>
           </div>

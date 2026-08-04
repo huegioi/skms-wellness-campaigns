@@ -452,7 +452,7 @@ Deno.serve(async (req) => {
           to: 'william@skillfulmeans.life',
           subject: 'Gmail Sync Error',
           body: `<p>The Gmail email sync encountered an error at ${new Date().toISOString()}.</p><p>Error details: ${err.message}</p><p>The sync will retry automatically on the next scheduled run.</p>`,
-          from_name: 'SKMS System Alert',
+          from_name: 'SkillfulMeans System Alert',
         });
       } catch (mailErr) {
         console.error('Failed to send quota alert email:', mailErr.message);

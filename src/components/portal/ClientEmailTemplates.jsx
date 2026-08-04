@@ -97,7 +97,7 @@ export default function ClientEmailTemplates({ proposal, templates = [], client,
 </html>`;
 
       content = `Subject: ${template.subject}\r\n`;
-      content += `From: SKMS Wellness <noreply@skillfulmeans.life>\r\n`;
+      content += `From: SkillfulMeans <noreply@skillfulmeans.life>\r\n`;
       content += `To: \r\n`;
       content += `MIME-Version: 1.0\r\n`;
       content += `Content-Type: multipart/alternative; boundary="${boundary}"\r\n`;

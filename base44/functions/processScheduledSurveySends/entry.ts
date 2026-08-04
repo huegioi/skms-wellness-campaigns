@@ -3,7 +3,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
 const APP_URL = Deno.env.get('APP_URL') || 'https://app.skillfulmeans.life';
 const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY');
 const FROM_EMAIL = 'admin@skillfulmeans.life';
-const FROM_NAME = 'SKMS Wellness';
+const FROM_NAME = 'SkillfulMeans';
 
 Deno.serve(async (req) => {
   try {
@@ -201,7 +201,7 @@ async function sendSurveyEmail(to, sendType, token) {
 
   const body = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto">
     <div style="background:linear-gradient(135deg,#013f7c,#264d44);padding:24px;border-radius:12px 12px 0 0;text-align:center">
-      <h1 style="color:#fff;margin:0;font-size:20px">SKMS Wellness</h1>
+      <h1 style="color:#fff;margin:0;font-size:20px">skillfulmeans</h1>
     </div>
     <div style="background:#f9f9f9;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb">
       <p style="color:#374151;font-size:15px;line-height:1.6">${intros[sendType]}</p>
@@ -269,7 +269,7 @@ async function sendReminderEmail(to, token, sendType = 'cohort_end') {
   const buttonText = isPulse ? 'Share your takeaway' : 'Take the survey';
   const body = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto">
     <div style="background:linear-gradient(135deg,#013f7c,#264d44);padding:24px;border-radius:12px 12px 0 0;text-align:center">
-      <h1 style="color:#fff;margin:0;font-size:20px">SKMS Wellness</h1>
+      <h1 style="color:#fff;margin:0;font-size:20px">skillfulmeans</h1>
     </div>
     <div style="background:#f9f9f9;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb">
       <p style="color:#374151;font-size:15px;line-height:1.6">${intro}</p>

@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     const icsContent = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//SKMS Wellness//Calendar//EN',
+      'PRODID:-//SkillfulMeans//Calendar//EN',
       'METHOD:REQUEST',
       'BEGIN:VEVENT',
       icsFold(`DTSTART:${icsEscape(formatICS(startDate))}`),
@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
               ${event.description ? `<p style="margin: 12px 0 0; color: #4b5563; white-space: pre-wrap;">${event.description}</p>` : ''}
             </div>
             <p style="color: #6b7280; font-size: 14px;">A calendar file (.ics) is attached. Open it to add this event to your calendar.</p>
-            <p style="color: #374151;">Best regards,<br><strong>SKMS Wellness</strong></p>
+            <p style="color: #374151;">Best regards,<br><strong>SkillfulMeans</strong></p>
           </div>
         </div>
       `;
@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
       const boundary = `boundary_${Date.now()}`;
       const rawEmail = [
         `To: ${toEmail}`,
-        `From: SKMS Wellness <me>`,
+        `From: SkillfulMeans <me>`,
         `Subject: Calendar Invite: ${event.title}`,
         'MIME-Version: 1.0',
         `Content-Type: multipart/mixed; boundary="${boundary}"`,

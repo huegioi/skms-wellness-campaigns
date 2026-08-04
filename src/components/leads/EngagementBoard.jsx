@@ -23,7 +23,7 @@ const ENGAGEMENT_STAGES = [
 
 const ACTION_STEPS = {
   'New Referral Partner': [
-    'Send welcome email with SKMS overview and marketing materials.',
+    'Send welcome email with SkillfulMeans overview and marketing materials.',
     'Set expectations: "Here\'s how we work together."',
     'Share a sample proposal they can show their clients.',
     'Schedule an intro call to discuss their book of business.',

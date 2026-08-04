@@ -31,7 +31,7 @@ export function buildICS({ id, title, start, end, location, description }) {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//SKMS Wellness//Portal//EN',
+    'PRODID:-//SkillfulMeans//Portal//EN',
     'CALSCALE:GREGORIAN',
     'BEGIN:VEVENT',
     `UID:${id || dtStamp}@skms-wellness`,

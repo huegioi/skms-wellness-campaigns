@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
       personalizations: [{ to: [{ email: to }] }],
       from: {
         email: from_email || 'admin@skillfulmeans.life',
-        name: from_name || 'SKMS Wellness'
+        name: from_name || 'SkillfulMeans'
       },
       subject,
       content: [{ type: 'text/html', value: body }]
