@@ -102,7 +102,7 @@ export default function Who5Analytics({ filters }) {
       if (filters.startDate && r.submitted_at && r.submitted_at.slice(0, 10) < filters.startDate) return false;
       if (filters.endDate   && r.submitted_at && r.submitted_at.slice(0, 10) > filters.endDate)   return false;
       if (filters.touchpoint && filters.touchpoint !== 'all' && filters.touchpoint !== 'session_pulse') {
-        const touchpointMap = { day0: 'challenge_day0', day14: 'challenge_day14', cohort_start: 'cohort_start', cohort_end: 'cohort_end' };
+        const touchpointMap = { day0: 'challenge_day0', day14: 'challenge_day14', cohort_start: 'cohort_start', cohort_end: 'cohort_end', cohort_1mo: 'cohort_1mo' };
         if (touchpointMap[filters.touchpoint] && r.survey_type !== touchpointMap[filters.touchpoint]) return false;
       }
       return true;

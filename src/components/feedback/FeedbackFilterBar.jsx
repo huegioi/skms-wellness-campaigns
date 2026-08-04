@@ -36,6 +36,7 @@ const TOUCHPOINT_OPTIONS = [
   { value: 'day14', label: 'Day 14' },
   { value: 'cohort_start', label: 'Cohort Start' },
   { value: 'cohort_end', label: 'Cohort End' },
+  { value: 'cohort_1mo', label: '30-Day Follow-Up' },
 ];
 
 export default function FeedbackFilterBar({ filters, onChange, companies, speakers }) {

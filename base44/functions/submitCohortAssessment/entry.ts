@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'participant_email and survey_type are required' }, { status: 400 });
   }
 
-  const validSurveyTypes = ['challenge_day0', 'challenge_day14', 'cohort_start', 'cohort_end'];
+  const validSurveyTypes = ['challenge_day0', 'challenge_day14', 'cohort_start', 'cohort_end', 'cohort_1mo'];
   if (!validSurveyTypes.includes(survey_type)) {
     return Response.json({ error: 'Invalid survey_type' }, { status: 400 });
   }
