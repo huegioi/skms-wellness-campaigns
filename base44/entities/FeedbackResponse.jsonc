@@ -29,6 +29,10 @@
       "type": "string",
       "description": "Foreign key to the Client entity"
     },
+    "event_id": {
+      "type": "string",
+      "description": "The CalendarEvent this pulse response came from"
+    },
     "event_label": {
       "type": "string",
       "description": "Optional label for this specific delivery (e.g. 'May 2026 All-Hands')"

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
@@ -36,6 +36,7 @@ function ConfidenceScale({ value, onChange }) {
 
 export default function AttendeeForm() {
   const [searchParams] = useSearchParams();
+  const token = searchParams.get('t');
   const serviceIdFromUrl = searchParams.get('service_id');
   const clientIdFromUrl = searchParams.get('client_id');
 
@@ -48,47 +49,79 @@ export default function AttendeeForm() {
     enps_score: null,
   });
   const [submitted, setSubmitted] = useState(false);
+  // null = not resolved yet, 'error' = resolution failed (fail open), object = resolved
+  const [tokenResolved, setTokenResolved] = useState(null);
+
+  // Resolve the invite token (pulse email link). Fail open: on error, fall back
+  // to the anonymous form using the URL params (the in-room link path).
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    base44.functions.invoke('resolveSurveyToken', { token })
+      .then(res => { if (!cancelled) setTokenResolved(res.data); })
+      .catch(() => { if (!cancelled) setTokenResolved('error'); });
+    return () => { cancelled = true; };
+  }, [token]);
+
+  const tokenMode = !!token;
+  const resolved = tokenResolved && tokenResolved !== 'error' ? tokenResolved : null;
+
+  // In token mode use the resolved ids when available; on failure fall back to URL params.
+  const effectiveServiceId = (tokenMode && resolved) ? resolved.service_id : serviceIdFromUrl;
+  const effectiveClientId = (tokenMode && resolved) ? resolved.client_id : clientIdFromUrl;
+  const effectiveEventId = (tokenMode && resolved) ? (resolved.event_id || null) : null;
+
+  // Pre-fill attendee_email from the token (read-only in token mode)
+  useEffect(() => {
+    if (resolved?.email) {
+      setForm(f => f.attendee_email ? f : { ...f, attendee_email: resolved.email });
+    }
+  }, [resolved?.email]);
 
   const { data: service } = useQuery({
-    queryKey: ['attendee-service', serviceIdFromUrl],
+    queryKey: ['attendee-service', effectiveServiceId],
     queryFn: async () => {
-      if (!serviceIdFromUrl) return null;
-      const res = await base44.entities.Service.filter({ id: serviceIdFromUrl });
+      if (!effectiveServiceId) return null;
+      const res = await base44.entities.Service.filter({ id: effectiveServiceId });
       return res[0] || null;
     },
-    enabled: !!serviceIdFromUrl
+    enabled: !!effectiveServiceId
   });
 
   const { data: client } = useQuery({
-    queryKey: ['attendee-client', clientIdFromUrl],
+    queryKey: ['attendee-client', effectiveClientId],
     queryFn: async () => {
-      if (!clientIdFromUrl) return null;
-      const res = await base44.entities.Client.filter({ id: clientIdFromUrl });
+      if (!effectiveClientId) return null;
+      const res = await base44.entities.Client.filter({ id: effectiveClientId });
       return res[0] || null;
     },
-    enabled: !!clientIdFromUrl
+    enabled: !!effectiveClientId
   });
 
-  // Fetch matching CalendarEvent to capture presenter + delivery_format
+  // Fetch matching CalendarEvent to capture presenter + delivery_format (+ event_id in anonymous mode)
   const { data: calendarEvent } = useQuery({
-    queryKey: ['attendee-event', serviceIdFromUrl, clientIdFromUrl],
+    queryKey: ['attendee-event', effectiveServiceId, effectiveClientId, effectiveEventId],
     queryFn: async () => {
-      if (!serviceIdFromUrl) return null;
-      const filter = { service_id: serviceIdFromUrl };
-      if (clientIdFromUrl) filter.client_id = clientIdFromUrl;
+      if (effectiveEventId) {
+        const res = await base44.entities.CalendarEvent.filter({ id: effectiveEventId });
+        return res[0] || null;
+      }
+      if (!effectiveServiceId) return null;
+      const filter = { service_id: effectiveServiceId };
+      if (effectiveClientId) filter.client_id = effectiveClientId;
       const res = await base44.entities.CalendarEvent.filter(filter, '-start_date', 1);
       return res[0] || null;
     },
-    enabled: !!serviceIdFromUrl
+    enabled: !!effectiveEventId || !!effectiveServiceId
   });
 
   const submitMutation = useMutation({
     mutationFn: async () => {
       const res = await base44.functions.invoke('submitFeedbackResponse', {
-        service_id: serviceIdFromUrl || '',
+        service_id: effectiveServiceId || '',
         service_name: service?.name || '',
         service_category: service?.category || undefined,
-        client_id: clientIdFromUrl || '',
+        client_id: effectiveClientId || '',
         company_name: client?.company || '',
         presenter: calendarEvent?.presenter || undefined,
         delivery_format: calendarEvent?.delivery_format || undefined,
@@ -97,11 +130,15 @@ export default function AttendeeForm() {
         expected_impact: form.expected_impact.length > 0 ? form.expected_impact : undefined,
         attendee_name: form.attendee_name.trim() || undefined,
         attendee_email: form.attendee_email.trim() || undefined,
+        event_id: effectiveEventId || calendarEvent?.id || undefined,
         nps_score: form.enps_score,
         submitted_at: new Date().toISOString(),
       });
-      // res is an Axios response — data is in res.data
       if (res.data?.error) throw new Error(res.data.error);
+      // Mark the invite as submitted so the reminder pass knows they responded.
+      if (token) {
+        try { await base44.functions.invoke('resolveSurveyToken', { token, mark_submitted: true }); } catch {}
+      }
       return res.data;
     },
     onSuccess: () => setSubmitted(true),
@@ -154,8 +191,11 @@ function ImpactCheckboxes({ value, onChange }) {
   );
 }
 
-  const showEnps = !service || !service.included_assessments || service.included_assessments.length === 0 || service.included_assessments.includes('enps');
+  const showEnps = true;
   const canSubmit = form.behavior_intent.trim().length > 0 && form.fit_confidence !== null && (!showEnps || form.enps_score !== null);
+
+  const alreadySubmitted = tokenMode && resolved?.already_submitted;
+  const emailReadOnly = tokenMode && !!resolved;
 
   if (submitted) {
     return (
@@ -164,6 +204,18 @@ function ImpactCheckboxes({ value, onChange }) {
           <CheckCircle2 className="w-20 h-20 mx-auto mb-5 text-[#264d44]" />
           <h2 className="text-2xl font-bold text-[#013f7c] mb-2">Thank you!</h2>
           <p className="text-gray-500 text-sm">Your response helps us understand the real impact of this program.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (alreadySubmitted) {
+    return (
+      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow-xl p-10 max-w-sm w-full text-center">
+          <CheckCircle2 className="w-20 h-20 mx-auto mb-5 text-[#264d44]" />
+          <h2 className="text-2xl font-bold text-[#013f7c] mb-2">You've already shared your feedback — thank you!</h2>
+          <p className="text-gray-500 text-sm">We appreciate you taking the time to reflect on this session.</p>
         </div>
       </div>
     );
@@ -270,7 +322,9 @@ function ImpactCheckboxes({ value, onChange }) {
               type="email"
               placeholder="Email (Optional)"
               value={form.attendee_email}
+              readOnly={emailReadOnly}
               onChange={e => setForm(f => ({ ...f, attendee_email: e.target.value }))}
+              className={emailReadOnly ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}
             />
           </div>
 

@@ -18,10 +18,15 @@
       "type": "string",
       "description": "Service ID this invite is scoped to"
     },
+    "event_id": {
+      "type": "string",
+      "description": "CalendarEvent ID this invite was generated for (post-session pulse / cohort_end). Used to attribute FeedbackResponse rows back to the session."
+    },
     "survey_type": {
       "type": "string",
       "enum": [
         "enps_post_session",
+        "post_session_pulse",
         "cohort_end",
         "cohort_1mo"
       ],

@@ -33,6 +33,7 @@ Deno.serve(async (req) => {
       survey_type: invite.survey_type,
       instruments: invite.instruments || [],
       service_name: serviceName,
+      event_id: invite.event_id || null,
       already_submitted: !!invite.submitted_at
     });
   } catch (error) {

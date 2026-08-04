@@ -5,7 +5,7 @@ const ENPS_FLOOR_MIN = 15;
 const ENPS_OFFSET_MIN = 10;
 const ENPS_TYPICAL_DURATION_MIN = 60;
 
-function computeEnpsSendTime(event, startTime) {
+function computePulseSendTime(event, startTime) {
   const floor = new Date(startTime.getTime() + ENPS_FLOOR_MIN * 60 * 1000);
   if (event.end_date) {
     const candidate = new Date(new Date(event.end_date).getTime() - ENPS_OFFSET_MIN * 60 * 1000);
@@ -23,7 +23,7 @@ Deno.serve(async (req) => {
 
     const now = new Date();
     const allPending = await base44.entities.ScheduledSurveySend.filter({
-      send_type: 'enps_post_session', status: 'pending'
+      send_type: 'post_session_pulse', status: 'pending'
     }, '-send_at', 200);
 
     let retimed = 0;
@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       if (!event.start_date) { skipped++; continue; }
 
       const startTime = new Date(event.start_date);
-      const newSendAt = computeEnpsSendTime(event, startTime);
+      const newSendAt = computePulseSendTime(event, startTime);
       const oldSendAt = new Date(send.send_at);
 
       // Only update if the new time differs by more than 1 minute

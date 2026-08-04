@@ -84,6 +84,7 @@ async function processSend(base44, send) {
     await base44.asServiceRole.entities.SurveyInvite.create({
       token, email, client_id: send.client_id, service_id: send.service_id,
       survey_type: send.send_type, instruments,
+      event_id: send.event_id || undefined,
       scheduled_send_id: send.id, created_at: new Date().toISOString()
     });
     try {
@@ -104,7 +105,7 @@ async function processSend(base44, send) {
 async function computeRecipients(base44, send) {
   let candidates = [];
 
-  if (send.send_type === 'enps_post_session') {
+  if (send.send_type === 'enps_post_session' || send.send_type === 'post_session_pulse') {
     const checkins = await base44.asServiceRole.entities.EventCheckin.filter({ event_id: send.event_id });
     candidates = checkins.filter(c => !c.is_demo).map(c => (c.email || '').toLowerCase().trim()).filter(Boolean);
   } else {
@@ -145,6 +146,7 @@ async function computeRecipients(base44, send) {
 
 async function getInstruments(base44, send) {
   if (send.send_type === 'enps_post_session') return ['enps'];
+  if (send.send_type === 'post_session_pulse') return [];
   const services = send.service_id ? await base44.asServiceRole.entities.Service.filter({ id: send.service_id }) : [];
   const service = services[0];
   if (service?.included_assessments?.length) return service.included_assessments;
@@ -152,29 +154,35 @@ async function getInstruments(base44, send) {
 }
 
 async function sendSurveyEmail(to, sendType, token) {
-  const surveyLink = `${APP_URL}/CohortAssessment?t=${token}`;
+  const surveyLink = sendType === 'post_session_pulse'
+    ? `${APP_URL}/AttendeeForm?t=${token}`
+    : `${APP_URL}/CohortAssessment?t=${token}`;
   const unsubLink = `${APP_URL}/Unsubscribe?email=${encodeURIComponent(to)}`;
 
   const subjects = {
     enps_post_session: 'One question about today\u2019s session',
+    post_session_pulse: 'How was today\u2019s session?',
     cohort_end: 'How did your wellness program go?',
     cohort_1mo: 'How are things 30 days on?'
   };
 
   const intros = {
     enps_post_session: 'Thank you for attending today\u2019s session. We\u2019d love one quick piece of feedback.',
+    post_session_pulse: 'Thank you for joining today\u2019s session. One quick reflection while it\u2019s fresh.',
     cohort_end: 'Your wellness program has wrapped up. We\u2019d value your input on the experience.',
     cohort_1mo: 'It\u2019s been about a month since your wellness program. We\u2019d love to check in.'
   };
 
   const durations = {
     enps_post_session: 'It\u2019s one question and takes about 10 seconds.',
+    post_session_pulse: 'It takes about 30 seconds.',
     cohort_end: 'It takes less than 2 minutes.',
     cohort_1mo: 'It takes less than 2 minutes.'
   };
 
   const buttons = {
     enps_post_session: 'Answer one question',
+    post_session_pulse: 'Share your takeaway',
     cohort_end: 'Take the survey',
     cohort_1mo: 'Take the survey'
   };
@@ -205,14 +213,21 @@ async function sendSurveyEmail(to, sendType, token) {
 }
 
 async function processReminders(base44) {
-  const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+  const DAY = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  // cohort_end reminds at 3 days; post_session_pulse reminds at 2 days.
+  await processReminderBatch(base44, 'cohort_end', new Date(now - 3 * DAY));
+  await processReminderBatch(base44, 'post_session_pulse', new Date(now - 2 * DAY));
+}
+
+async function processReminderBatch(base44, sendType, cutoff) {
   const sentSends = await base44.asServiceRole.entities.ScheduledSurveySend.filter({
-    send_type: 'cohort_end', status: 'sent', reminder_sent: false
+    send_type: sendType, status: 'sent', reminder_sent: false
   }, '-sent_at', 50);
 
   for (const send of sentSends) {
     if (send.is_demo) continue;
-    if (!send.sent_at || new Date(send.sent_at) > threeDaysAgo) continue;
+    if (!send.sent_at || new Date(send.sent_at) > cutoff) continue;
 
     // Find non-responders
     const invites = await base44.asServiceRole.entities.SurveyInvite.filter({ scheduled_send_id: send.id });
@@ -220,7 +235,7 @@ async function processReminders(base44) {
 
     for (const invite of nonResponders) {
       try {
-        await sendReminderEmail(invite.email, invite.token);
+        await sendReminderEmail(invite.email, invite.token, sendType);
       } catch (err) { /* continue */ }
     }
 
@@ -229,16 +244,24 @@ async function processReminders(base44) {
   }
 }
 
-async function sendReminderEmail(to, token) {
-  const surveyLink = `${APP_URL}/CohortAssessment?t=${token}`;
+async function sendReminderEmail(to, token, sendType = 'cohort_end') {
+  const isPulse = sendType === 'post_session_pulse';
+  const surveyLink = isPulse
+    ? `${APP_URL}/AttendeeForm?t=${token}`
+    : `${APP_URL}/CohortAssessment?t=${token}`;
   const unsubLink = `${APP_URL}/Unsubscribe?email=${encodeURIComponent(to)}`;
+  const subject = isPulse ? 'One quick reflection on your session' : 'Reminder: How did your wellness program go?';
+  const intro = isPulse
+    ? 'Just a friendly reminder \u2014 we\u2019d still love your quick reflection on your session.'
+    : 'Just a friendly reminder \u2014 we\u2019d still love your feedback on your wellness program.';
+  const buttonText = isPulse ? 'Share your takeaway' : 'Take the survey';
   const body = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto">
     <div style="background:linear-gradient(135deg,#013f7c,#264d44);padding:24px;border-radius:12px 12px 0 0;text-align:center">
       <h1 style="color:#fff;margin:0;font-size:20px">SKMS Wellness</h1>
     </div>
     <div style="background:#f9f9f9;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb">
-      <p style="color:#374151;font-size:15px;line-height:1.6">Just a friendly reminder \u2014 we\u2019d still love your feedback on your wellness program.</p>
-      <a href="${surveyLink}" style="display:inline-block;background:#264d44;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;margin:16px 0">Take the survey</a>
+      <p style="color:#374151;font-size:15px;line-height:1.6">${intro}</p>
+      <a href="${surveyLink}" style="display:inline-block;background:#264d44;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;margin:16px 0">${buttonText}</a>
       <p style="color:#9ca3af;font-size:12px;margin-top:24px"><a href="${unsubLink}" style="color:#9ca3af">Unsubscribe</a></p>
     </div>
   </div>`;
@@ -249,7 +272,7 @@ async function sendReminderEmail(to, token) {
     body: JSON.stringify({
       personalizations: [{ to: [{ email: to }] }],
       from: { email: FROM_EMAIL, name: FROM_NAME },
-      subject: 'Reminder: How did your wellness program go?',
+      subject,
       content: [{ type: 'text/html', value: body }]
     })
   });

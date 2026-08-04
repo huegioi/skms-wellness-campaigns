@@ -7,6 +7,7 @@ import { Mail, Clock, CheckCircle2, SkipForward, AlertCircle } from 'lucide-reac
 
 const TYPE_LABELS = {
   enps_post_session: 'Post-Session eNPS',
+  post_session_pulse: 'Post-Session Pulse',
   cohort_end: 'Cohort End',
   cohort_1mo: '30-Day Follow-Up',
   journey_organizer_reminder: 'Journey Organizer Reminder',

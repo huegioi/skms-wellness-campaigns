@@ -6,6 +6,7 @@
       "type": "string",
       "enum": [
         "enps_post_session",
+        "post_session_pulse",
         "cohort_end",
         "cohort_1mo",
         "journey_organizer_reminder"
@@ -68,7 +69,7 @@
     "reminder_sent": {
       "type": "boolean",
       "default": false,
-      "description": "Whether the single allowed reminder (cohort_end only, 3 days later) has been sent"
+      "description": "Whether the single allowed reminder (cohort_end 3 days later, post_session_pulse 2 days later) has been sent"
     },
     "is_demo": {
       "type": "boolean",
