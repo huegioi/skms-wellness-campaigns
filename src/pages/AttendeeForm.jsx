@@ -227,7 +227,7 @@ function ImpactCheckboxes({ value, onChange }) {
       <div className="bg-[#013f7c] text-white px-4 py-6 text-center">
         <img
           src="https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/1272f92b7_SKMSLogoShieldWhite.png"
-          alt="SKMS Wellness"
+          alt="SkillfulMeans"
           className="h-10 mx-auto mb-3"
         />
         <h1 className="text-xl font-bold">Quick Pulse Check</h1>

@@ -25,7 +25,7 @@ export default function Unsubscribe() {
       <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
         <img
           src="https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/1272f92b7_SKMSLogoShieldWhite.png"
-          alt="SKMS Wellness"
+          alt="SkillfulMeans"
           className="h-10 mx-auto mb-6"
         />
         {status === 'loading' && <Loader2 className="w-12 h-12 text-[#264d44] mx-auto mb-4 animate-spin" />}
@@ -35,7 +35,7 @@ export default function Unsubscribe() {
         {status === 'done' && (
           <>
             <h1 className="text-xl font-bold text-gray-800 mb-2">You're unsubscribed</h1>
-            <p className="text-gray-600">{email} will no longer receive survey emails from SKMS Wellness.</p>
+            <p className="text-gray-600">{email} will no longer receive survey emails from SkillfulMeans.</p>
           </>
         )}
         {status === 'error' && (
