@@ -18,6 +18,20 @@ function buildInstrumentStats(rows, startType, endType) {
   }).filter(s => s.stats);
 }
 
+// Shown in place of an InstrumentResultCard when n < 5 (portal min-N suppression).
+function InstrumentSuppressedCard({ instrumentKey, n }) {
+  const label = INSTRUMENT_META[instrumentKey]?.label || instrumentKey;
+  return (
+    <div className="border rounded-lg p-3">
+      <div className="flex justify-between items-center mb-1">
+        <p className="text-sm font-medium text-gray-800">{label}</p>
+        <span className="text-xs text-gray-400">n={n}</span>
+      </div>
+      <p className="text-xs text-gray-400 italic">Collecting data (n={n})</p>
+    </div>
+  );
+}
+
 export default function Who5ResultsPanel({ cohortAssessments = [], acceptedProposalId, services = [] }) {
   const cohortRows = cohortAssessments;
 
@@ -56,12 +70,9 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
           {cohortInstrumentStats.length > 0 ? (
             <div className="grid gap-3">
               {cohortInstrumentStats.map(({ key, stats }) => (
-                <InstrumentResultCard
-                  key={key}
-                  instrumentKey={key}
-                  stats={stats}
-                  evidenceTier="Matched comparison"
-                />
+                stats.n < 5
+                  ? <InstrumentSuppressedCard key={key} instrumentKey={key} n={stats.n} />
+                  : <InstrumentResultCard key={key} instrumentKey={key} stats={stats} evidenceTier="Matched comparison" />
               ))}
             </div>
           ) : (
@@ -80,12 +91,9 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
         {challengeInstrumentStats.length > 0 ? (
           <div className="grid gap-3">
             {challengeInstrumentStats.map(({ key, stats }) => (
-              <InstrumentResultCard
-                key={key}
-                instrumentKey={key}
-                stats={stats}
-                evidenceTier="Program effect — uncontrolled pre/post"
-              />
+              stats.n < 5
+                ? <InstrumentSuppressedCard key={key} instrumentKey={key} n={stats.n} />
+                : <InstrumentResultCard key={key} instrumentKey={key} stats={stats} evidenceTier="Program effect — uncontrolled pre/post" />
             ))}
           </div>
         ) : (
