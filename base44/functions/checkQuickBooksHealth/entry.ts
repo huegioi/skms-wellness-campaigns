@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
       // Send email alert to admin
       try {
         await base44.asServiceRole.integrations.Core.SendEmail({
-          from_name: 'SKMS Wellness CRM',
+          from_name: 'SkillfulMeans CRM',
           to: user.email,
           subject: '🚨 QuickBooks Connection Failed',
           body: `
