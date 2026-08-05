@@ -9,9 +9,9 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await req.json();
-    console.log('[PARSE] Request body:', body);
-    const { file_url } = body;
+    const reqBody = await req.json();
+    console.log('[PARSE] Request body:', reqBody);
+    const { file_url } = reqBody;
 
     if (!file_url) {
       console.log('[PARSE] ERROR: No file_url provided');
@@ -68,8 +68,6 @@ Deno.serve(async (req) => {
 
       console.log('[PARSE] Body set to length:', body.length);
       console.log('[PARSE] Body preview:', body.substring(0, 200));
-    } else {
-      console.log('[PARSE] NOT IN EML BRANCH - file type not matched');
     }
     // Parse text files
     else if (file_url.endsWith('.txt') || contentType?.includes('text/plain')) {
