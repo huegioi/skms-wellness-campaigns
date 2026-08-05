@@ -14,12 +14,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, RefreshCw, Mail, Wand2, Check, Loader2, Activity } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Mail, Wand2, Check, Loader2, Activity, Reply } from 'lucide-react';
 import { toast } from 'sonner';
 import { TagChips } from '@/components/ui/TagChips';
 import { useDraftGeneration } from '@/components/campaign/useDraftGeneration';
 import CampaignRecipientList from '@/components/campaign/CampaignRecipientList';
 import CampaignDraftReview from '@/components/campaign/CampaignDraftReview';
+import FollowUpRoundDialog from '@/components/campaign/FollowUpRoundDialog';
 
 const CAMPAIGN_STATUS_STYLES = {
   draft: 'bg-gray-100 text-gray-600',
@@ -42,6 +43,7 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
   const syncCalledRef = useRef(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
   const [bulkError, setBulkError] = useState(null);
+  const [showFollowUp, setShowFollowUp] = useState(false);
 
   const { data: campaign, isLoading: campaignLoading } = useQuery({
     queryKey: ['outreach_campaign', campaignId],
@@ -198,6 +200,17 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             Refresh Audience
           </Button>
+          {recipients.some(r => r.status === 'sent') && (
+            <Button
+              variant="outline"
+              onClick={() => setShowFollowUp(true)}
+              disabled={generating || bulkApproving || syncing}
+              className="gap-1.5 text-sm border-[#770142] text-[#770142] hover:bg-[#770142]/5"
+            >
+              <Reply className="w-4 h-4" />
+              Follow-Up Round
+            </Button>
+          )}
           {eligibleRecipients.length > 0 && (
             <Button
               onClick={() => generate(recipients)}
@@ -339,6 +352,18 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
             )}
           </div>
         </div>
+      )}
+
+      {showFollowUp && campaign && (
+        <FollowUpRoundDialog
+          campaign={campaign}
+          onClose={() => setShowFollowUp(false)}
+          onLaunched={() => {
+            queryClient.invalidateQueries({ queryKey: ['campaign_recipients_detail', campaignId] });
+            queryClient.invalidateQueries({ queryKey: ['campaign_recipients', campaignId] });
+            queryClient.invalidateQueries({ queryKey: ['outreach_campaign', campaignId] });
+          }}
+        />
       )}
     </div>
   );

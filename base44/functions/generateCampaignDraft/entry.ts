@@ -56,8 +56,43 @@ Deno.serve(async (req) => {
     const firstName = contactName.split(' ')[0] || 'there';
     const companyName = recipient.company || '';
 
-    // ── Calls-to-action snapshot (campaign.selected_ctas) ──
-    // When empty/absent, ctaBlock is '' and the prompt is byte-identical to before.
+    // ── Follow-up round detection ──
+    // Rows with followup_round >= 1 get a short 2-4 sentence bump instead of
+    // the full skeleton draft. Context: the original (latest sent) email's
+    // subject + body + sent date, the round number, the launch's guidance,
+    // and the launch's selected_ctas.
+    const isFollowup = (recipient.followup_round || 0) >= 1;
+    let originalEmail = null;
+    let launch = null;
+    if (isFollowup) {
+      if (recipient.launch_id) {
+        try {
+          launch = await base44.entities.CampaignFollowUpLaunch.get(recipient.launch_id);
+        } catch (e) { /* missing launch record — continue without it */ }
+      }
+      // Find the latest SENT row for this email — the message being bumped.
+      const siblings = await base44.entities.CampaignRecipient.filter(
+        { campaign_id },
+        '-created_date',
+        500
+      );
+      const emailKey = (recipient.email || '').toLowerCase().trim();
+      const sentSiblings = siblings
+        .filter(s =>
+          (s.email || '').toLowerCase().trim() === emailKey &&
+          s.status === 'sent' &&
+          s.id !== recipient.id
+        )
+        .sort((a, b) =>
+          ((b.followup_round || 0) - (a.followup_round || 0)) ||
+          (new Date(b.sent_at || 0).getTime() - new Date(a.sent_at || 0).getTime())
+        );
+      originalEmail = sentSiblings[0] || null;
+    }
+
+    // ── Calls-to-action snapshot ──
+    // Round 1 uses campaign.selected_ctas; follow-up rounds use the launch's
+    // selected_ctas snapshot.
     const selectedCtas = Array.isArray(campaign.selected_ctas) ? campaign.selected_ctas : [];
     const ctaBlock = selectedCtas.length > 0
       ? `CALLS TO ACTION (selected for this campaign — weave in at most two):
@@ -69,14 +104,81 @@ ${selectedCtas.map(c => `- "${c.label || ''}" → ${c.url || ''}${c.guidance ? `
 `
       : '';
 
-    // ── 3. Build LLM prompt: SKELETON + PERSONAL TOUCHES ──
+    // ── 3. Build LLM prompt ──
     const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     const systemPrompt = `[SYSTEM NOTE: Today's date is ${currentDate}.]
 
 ${MAYA_PERSONA}`;
 
-    const userMessage = `CAMPAIGN EMAIL SKELETON (preserve structure, key points, and call-to-action):
+    let userMessage;
+
+    if (isFollowup) {
+      // ── Follow-up bump prompt (2-4 sentence thread reply) ──
+      const origSubject = originalEmail?.draft_subject || '';
+      const origBody = originalEmail?.draft_body || '';
+      const origDate = originalEmail?.sent_at
+        ? new Date(originalEmail.sent_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+        : 'recently';
+      const roundNum = recipient.followup_round || 1;
+      const launchGuidance = launch?.guidance || '';
+      const launchCtas = Array.isArray(launch?.selected_ctas) ? launch.selected_ctas : [];
+      const ctaBlockFu = launchCtas.length > 0
+        ? `CALLS TO ACTION (selected for this follow-up round — weave in AT MOST ONE):
+${launchCtas.map(c => `- "${c.label || ''}" → ${c.url || ''}${c.guidance ? ` (guidance: ${c.guidance})` : ''}`).join('\n')}
+- Weave in AT MOST ONE CTA, as a natural sentence with the URL as a plain link.
+- If none fit naturally, end with a soft open question instead.
+
+`
+        : '';
+      const senderName = campaign.sender_mode === 'heather' ? 'Heather'
+        : campaign.sender_mode === 'william' ? 'William'
+        : ((recipient.owner || '').toLowerCase().includes('heather') ? 'Heather' : 'William');
+
+      userMessage = `FOLLOW-UP EMAIL — Round ${roundNum}. This is a gentle bump to someone who received your previous email but did not reply.
+
+ORIGINAL EMAIL SENT (the message being bumped):
+Subject: ${origSubject}
+Sent: ${origDate}
+Body:
+${origBody}
+
+FOLLOW-UP GUIDANCE (from the campaign operator for this round):
+${launchGuidance || '(none)'}
+
+${ctaBlockFu}CONTACT CONTEXT (record data, email history, interactions, meeting notes):
+${recordText}
+
+KNOWLEDGE BASE:
+${knowledgeText}
+
+CONTACT DETAILS:
+Name: ${contactName}
+First name: ${firstName}
+Email: ${recipient.email || bd.recipientEmail || ''}
+Company: ${companyName}
+
+TASK: Write a short follow-up email to ${contactName}.
+
+STYLE CONTRACT (CRITICAL):
+- 2 to 4 sentences only. No longer.
+- Reference the original email's topic WITHOUT repeating its content.
+- Add ONE new angle or gentle nudge (a useful resource, a relevant observation, a quick question). Open with something of value — do NOT open with "just bumping this" or "following up" as the whole message.
+- AT MOST ONE CTA from the selected CTAs above, woven in naturally. If none selected, end with a soft open question.
+- Sign off as ${senderName} (matching the campaign's sender_mode).
+- Subject MUST be "Re: " + the original subject (this will be a thread reply). Keep the same subject otherwise.
+
+${thinContext
+  ? 'THIN CONTEXT: This contact has NO interactions and NO email history in our system. Keep the bump grounded in the original email and light company-level detail only. Do NOT invent a shared history.'
+  : 'THIN CONTEXT: This contact has rich context available above. Personalize naturally using the real history.'}
+
+HARD RULES:
+1. Never invent meetings, conversations, or facts not present in the provided context.
+2. No bullet points, numbered lists, or hyphens used as dashes. Write normal paragraphs.
+3. Output STRICTLY as a JSON object: {"subject": "...", "body": "..."}. No markdown, no code fences, no commentary.`;
+    } else {
+      // ── Round-1 original outreach prompt (unchanged) ──
+      userMessage = `CAMPAIGN EMAIL SKELETON (preserve structure, key points, and call-to-action):
 Subject template: ${campaign.subject_template || ''}
 Body template:
 ${campaign.body_template || ''}
@@ -120,6 +222,7 @@ ${ctaBlock}HARD RULES:
 3. End with exactly ONE clear call-to-action (from the skeleton).
 4. Keep Maya's warm, professional, direct voice.
 5. Output STRICTLY as a JSON object: {"subject": "...", "body": "..."}. No markdown, no code fences, no commentary.`;
+    }
 
     // ── Call LLM with one retry on parse failure ──
     let subject = '';

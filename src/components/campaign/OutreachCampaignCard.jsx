@@ -44,6 +44,18 @@ export default function OutreachCampaignCard({ campaign, onClick, onArchive }) {
     replied: recipients.filter(r => r.status === 'replied').length,
   };
 
+  // Per-round funnel: Original (round 0) + Bump 1..3. A reply on any round
+  // counts once per person (only one row per email can be 'replied', since a
+  // reply permanently excludes that email from later rounds).
+  const roundMap = {};
+  for (const r of recipients) {
+    const round = r.followup_round || 0;
+    if (!roundMap[round]) roundMap[round] = { sent: 0, replied: 0 };
+    if (r.status === 'sent') roundMap[round].sent++;
+    if (r.status === 'replied') roundMap[round].replied++;
+  }
+  const roundEntries = Object.keys(roundMap).map(Number).sort((a, b) => a - b);
+
   // Approved-but-unsent drafts need manual sending — surface which mailbox they live in.
   const approvedUnsent = recipients.filter(r => r.status === 'approved');
   const mailboxGroups = {};
@@ -140,19 +152,24 @@ export default function OutreachCampaignCard({ campaign, onClick, onArchive }) {
 
       {counts.total > 0 && (
         <div className="flex items-center justify-between">
-          <div
-            className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs"
-            title="Campaign progress: recipients → drafted → approved → sent → replied"
-          >
-            <span className="text-gray-600 font-medium">{counts.total} recipients</span>
-            <ChevronRight className="w-3 h-3 text-gray-300" />
-            <span className="text-amber-600 font-medium">{counts.drafted} drafted</span>
-            <ChevronRight className="w-3 h-3 text-gray-300" />
-            <span className="text-green-600 font-medium">{counts.approved} approved</span>
-            <ChevronRight className="w-3 h-3 text-gray-300" />
-            <span className="text-purple-600 font-medium">{counts.sent} sent</span>
-            <ChevronRight className="w-3 h-3 text-gray-300" />
-            <span className="text-teal-600 font-medium">{counts.replied} replied</span>
+          <div className="flex flex-col gap-0.5 text-xs">
+            {roundEntries.length > 0 ? (
+              roundEntries.map(round => (
+                <div key={round} className="flex items-center gap-1">
+                  <span className={`font-medium ${round === 0 ? 'text-gray-700' : 'text-[#770142]'}`}>
+                    {round === 0 ? 'Original' : `Bump ${round}`}:
+                  </span>
+                  <span className="text-purple-600 font-medium">{roundMap[round].sent} sent</span>
+                  <span className="text-gray-300">·</span>
+                  <span className="text-teal-600 font-medium">{roundMap[round].replied} replied</span>
+                </div>
+              ))
+            ) : (
+              <span className="text-gray-600 font-medium">{counts.total} recipients</span>
+            )}
+            {counts.drafted > 0 && (
+              <span className="text-amber-600 font-medium">{counts.drafted} drafted</span>
+            )}
           </div>
           <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
         </div>

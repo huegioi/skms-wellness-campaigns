@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
@@ -19,12 +19,13 @@ import { toast } from 'sonner';
  * ({ label, url, guidance }[]) so later library edits don't mutate the
  * in-flight campaign.
  */
-export default function CtaLibrarySection({ onSelectedCtasChange }) {
+export default function CtaLibrarySection({ onSelectedCtasChange, initialCtas = [] }) {
   const queryClient = useQueryClient();
   const [selectedIds, setSelectedIds] = useState([]);
   const [newCta, setNewCta] = useState({ label: '', url: '', guidance: '' });
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({ label: '', url: '', guidance: '' });
+  const initializedRef = useRef(false);
 
   const { data: ctas = [], isLoading } = useQuery({
     queryKey: ['campaign_ctas'],
@@ -38,6 +39,22 @@ export default function CtaLibrarySection({ onSelectedCtasChange }) {
     onSelectedCtasChange(records.map(c => ({ label: c.label, url: c.url, guidance: c.guidance || '' })));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIds, ctas]);
+
+  // Pre-select library records that match the initialCtas snapshot (by
+  // label+url). Runs once when the library first loads. Records that were
+  // deactivated since the snapshot was taken simply won't match (and are
+  // dropped from selection). Used by the follow-up launch dialog to default
+  // to the campaign's original selected_ctas.
+  useEffect(() => {
+    if (initializedRef.current || ctas.length === 0) return;
+    initializedRef.current = true;
+    if (initialCtas.length === 0) return;
+    const matches = ctas.filter(c =>
+      initialCtas.some(ic => ic.label === c.label && ic.url === c.url)
+    );
+    if (matches.length > 0) setSelectedIds(matches.map(c => c.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctas]);
 
   const nextSortOrder = ctas.length > 0 ? Math.max(...ctas.map(c => c.sort_order ?? 0)) + 1 : 0;
 

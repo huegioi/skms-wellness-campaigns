@@ -137,6 +137,8 @@ Deno.serve(async (req) => {
       referral_partner_id,
       campaign_id,
       campaign_name,
+      thread_id,
+      rfc_message_id,
     } = body;
 
     if (!sender || !to || subject == null || emailBody == null) {
@@ -224,8 +226,13 @@ Deno.serve(async (req) => {
     if (ccArray.length > 0) {
       mimeLines.push(`Cc: ${ccArray.join(', ')}`);
     }
+    mimeLines.push(`Subject: ${encodeSubjectHeader(subject)}`);
+    // Follow-up drafts reply on the original thread: add In-Reply-To and
+    // References headers so the draft threads correctly in Gmail.
+    if (rfc_message_id) {
+      mimeLines.push(`In-Reply-To: ${rfc_message_id}`, `References: ${rfc_message_id}`);
+    }
     mimeLines.push(
-      `Subject: ${encodeSubjectHeader(subject)}`,
       `MIME-Version: 1.0`,
       `Content-Type: text/html; charset="UTF-8"`,
       ``,
@@ -243,7 +250,7 @@ Deno.serve(async (req) => {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ message: { raw } }),
+      body: JSON.stringify({ message: { raw, ...(thread_id ? { threadId: thread_id } : {}) } }),
     });
 
     if (!gmailRes.ok) {

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { InlineText } from '@/components/shared/inline/InlineText';
-import { Check, SkipForward, RefreshCw, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import { Check, SkipForward, RefreshCw, ArrowLeft, Loader2, AlertCircle, Reply, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import CampaignContextPanel from './CampaignContextPanel';
 
@@ -24,6 +24,24 @@ export default function CampaignDraftReview({ recipient, campaign, onBack }) {
   const [approving, setApproving] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [showOriginal, setShowOriginal] = useState(false);
+
+  // Follow-up round: load the sent email being bumped (the latest sent row
+  // for this email, i.e. the immediately-preceding touch — the message this
+  // bump replies to on the same thread).
+  const isFollowup = (recipient.followup_round || 0) >= 1;
+  const { data: originalEmail } = useQuery({
+    queryKey: ['campaign_recipient_bumped', recipient.campaign_id, (recipient.email || '').toLowerCase(), recipient.followup_round],
+    queryFn: async () => {
+      const all = await base44.entities.CampaignRecipient.filter({ campaign_id: recipient.campaign_id }, '-created_date', 500);
+      const emailKey = (recipient.email || '').toLowerCase().trim();
+      const sentSiblings = all
+        .filter(s => (s.email || '').toLowerCase().trim() === emailKey && s.status === 'sent' && s.id !== recipient.id)
+        .sort((a, b) => ((b.followup_round || 0) - (a.followup_round || 0)) || (new Date(b.sent_at || 0) - new Date(a.sent_at || 0)));
+      return sentSiblings[0] || null;
+    },
+    enabled: isFollowup,
+  });
 
   // Resolve sender
   const sender = campaign?.sender_mode === 'heather' ? 'heather'
@@ -120,6 +138,11 @@ export default function CampaignDraftReview({ recipient, campaign, onBack }) {
           <Badge className={`text-xs border-0 ${STATUS_STYLES[recipient.status] || 'bg-gray-100'}`}>
             {recipient.status}
           </Badge>
+          {isFollowup && (
+            <Badge className="text-xs border-0 bg-[#770142] text-white gap-1">
+              <Reply className="w-3 h-3" /> Round {recipient.followup_round}
+            </Badge>
+          )}
           {recipient.thin_context && (
             <Badge className="text-xs border-0 bg-orange-100 text-orange-700">thin context</Badge>
           )}
@@ -163,6 +186,30 @@ export default function CampaignDraftReview({ recipient, campaign, onBack }) {
         <div className="px-4 py-2 bg-red-50 border-b border-red-100 flex items-start gap-2">
           <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
           <span className="text-xs text-red-600">{recipient.error_message}</span>
+        </div>
+      )}
+
+      {/* Original email being bumped (follow-up rounds only) */}
+      {isFollowup && originalEmail && (
+        <div className="px-4 py-2 border-b border-gray-100">
+          <button
+            onClick={() => setShowOriginal(s => !s)}
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700"
+          >
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showOriginal ? 'rotate-180' : ''}`} />
+            Original email being bumped
+            <span className="text-gray-400 font-normal">
+              (sent {originalEmail.sent_at ? new Date(originalEmail.sent_at).toLocaleDateString() : '—'})
+            </span>
+          </button>
+          {showOriginal && (
+            <div className="mt-2 rounded-lg bg-gray-50 border border-gray-100 p-3 space-y-1.5">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Subject</p>
+              <p className="text-sm text-gray-700">{originalEmail.draft_subject || '(no subject)'}</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mt-2">Body</p>
+              <p className="text-sm text-gray-600 whitespace-pre-wrap">{originalEmail.draft_body || '(no body)'}</p>
+            </div>
+          )}
         </div>
       )}
 

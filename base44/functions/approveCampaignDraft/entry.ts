@@ -53,7 +53,10 @@ Deno.serve(async (req) => {
     else if (recipient.record_type === 'lead') linkage.lead_id = recipient.record_id;
     else if (recipient.record_type === 'referral_partner') linkage.referral_partner_id = recipient.record_id;
 
-    // ── Invoke gmailCreateDraft (creates Gmail draft + EmailLog row) ──
+    // Follow-up rounds (>= 1) with a captured thread_id create an in-thread
+    // Gmail draft (Re: …, with In-Reply-To/References). Missing thread_id →
+    // standalone draft + a feedback_note so the reviewer knows. Drafts only.
+    const isFollowup = (recipient.followup_round || 0) >= 1;
     const _ik = Deno.env.get('MAYA_INTERNAL_KEY');
     const draftRes = await base44.functions.invoke('gmailCreateDraft', {
       internal_key: _ik,
@@ -65,6 +68,7 @@ Deno.serve(async (req) => {
       ...linkage,
       campaign_id: campaign.id,
       campaign_name: campaign.name,
+      ...(isFollowup && recipient.thread_id ? { thread_id: recipient.thread_id, rfc_message_id: recipient.rfc_message_id } : {}),
     });
 
     if (draftRes.status !== 200 || draftRes.data?.error) {
@@ -96,6 +100,7 @@ Deno.serve(async (req) => {
       draft_mailbox: draft_mailbox || undefined,
       interaction_id: interaction.id,
       error_message: null,
+      ...(isFollowup && !recipient.thread_id ? { feedback_note: 'thread id missing — sent as fresh email' } : {}),
     });
 
     // ── Set campaign status to 'active' (at least one approved) ──

@@ -72,6 +72,9 @@ export default function CampaignRecipientList({ recipients, selectedId, onSelect
                   <p className="text-xs text-gray-500 truncate">{r.company || '-'}</p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  {(r.followup_round || 0) >= 1 && (
+                    <Badge className="text-[10px] border-0 bg-[#770142]/10 text-[#770142] px-1.5">R{r.followup_round}</Badge>
+                  )}
                   {r.thin_context && (
                     <Badge className="text-[10px] border-0 bg-orange-100 text-orange-700 px-1.5">thin</Badge>
                   )}

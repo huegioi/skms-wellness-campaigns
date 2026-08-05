@@ -57,6 +57,22 @@ async function getMessageDate(accessToken, messageId) {
   }
 }
 
+async function getMessageIdHeader(accessToken, messageId) {
+  try {
+    const res = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${messageId}?format=metadata&metadataHeaders=Message-ID`,
+      { headers: { 'Authorization': `Bearer ${accessToken}` } }
+    );
+    if (!res.ok) return '';
+    const data = await res.json();
+    const h = data.payload?.headers?.find(h => h.name === 'Message-ID')
+      || data.payload?.headers?.find(h => h.name === 'Message-Id');
+    return h?.value || '';
+  } catch (e) {
+    return '';
+  }
+}
+
 async function fetchProfileEmail(accessToken) {
   try {
     const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
@@ -200,15 +216,48 @@ Deno.serve(async (req) => {
 
             if (sentMsg) {
               const msgDate = await getMessageDate(accessToken, sentMsg.id);
-              await base44.entities.CampaignRecipient.update(r.id, {
-                status: 'sent',
-                sent_at: msgDate,
-              });
+              const updateFields = { status: 'sent', sent_at: msgDate };
+              // Backfill thread_id + rfc_message_id so this recipient can be
+              // bumped in a follow-up round. sentMsg already carries threadId;
+              // we fetch the Message-ID header separately. Additive only —
+              // does NOT change the existing sent/replied detection logic.
+              if (!r.thread_id || !r.rfc_message_id) {
+                if (!r.thread_id && sentMsg.threadId) updateFields.thread_id = sentMsg.threadId;
+                if (!r.rfc_message_id) {
+                  const rfc = await getMessageIdHeader(accessToken, sentMsg.id);
+                  if (rfc) updateFields.rfc_message_id = rfc;
+                }
+              }
+              await base44.entities.CampaignRecipient.update(r.id, updateFields);
               updatedSent++;
             }
           } else if (r.status === 'sent' && r.sent_at) {
-            // Check for inbound reply
             const sentTs = Math.floor(new Date(r.sent_at).getTime() / 1000);
+
+            // Backfill thread_id + rfc_message_id for already-sent recipients
+            // (past campaigns) so they become follow-up-able. One-time per
+            // recipient: once both are set, this block is skipped. Does NOT
+            // change the existing reply detection below.
+            if (!r.thread_id || !r.rfc_message_id) {
+              const sentMsg2 = await searchMessages(accessToken, `to:${r.email} after:${sentTs} in:sent`);
+              if (sentMsg2) {
+                const update2 = {};
+                if (!r.thread_id && sentMsg2.threadId) update2.thread_id = sentMsg2.threadId;
+                if (!r.rfc_message_id) {
+                  const rfc2 = await getMessageIdHeader(accessToken, sentMsg2.id);
+                  if (rfc2) update2.rfc_message_id = rfc2;
+                }
+                if (Object.keys(update2).length > 0) {
+                  try {
+                    await base44.entities.CampaignRecipient.update(r.id, update2);
+                  } catch (e) {
+                    console.error(`[syncCampaignSendStatus] thread backfill error for ${r.id}:`, e.message);
+                  }
+                }
+              }
+            }
+
+            // Check for inbound reply
             const replyMsg = await searchMessages(accessToken, `from:${r.email} after:${sentTs}`);
 
             if (replyMsg) {

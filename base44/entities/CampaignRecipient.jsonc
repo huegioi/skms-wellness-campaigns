@@ -117,6 +117,27 @@
       "type": "string",
       "format": "date-time",
       "description": "When a reply was detected"
+    },
+    "followup_round": {
+      "type": "integer",
+      "default": 0,
+      "description": "0 = original outreach; 1-3 = a follow-up bump descended from a round-0 recipient. Capped at 3 (4 total touches per person)."
+    },
+    "parent_recipient_id": {
+      "type": "string",
+      "description": "The round-0 CampaignRecipient row this bump descends from (set on follow-up rows only)."
+    },
+    "thread_id": {
+      "type": "string",
+      "description": "Gmail threadId of the sent message, so a follow-up draft can be created on the same thread. Backfilled by syncCampaignSendStatus when a sent message is found."
+    },
+    "rfc_message_id": {
+      "type": "string",
+      "description": "RFC 822 Message-ID header of the sent message, used for the In-Reply-To/References headers of a follow-up draft. Backfilled by syncCampaignSendStatus."
+    },
+    "launch_id": {
+      "type": "string",
+      "description": "CampaignFollowUpLaunch ID that created this follow-up row (set on bump rows only)."
     }
   },
   "required": [
