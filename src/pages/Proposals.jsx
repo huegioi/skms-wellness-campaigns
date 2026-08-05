@@ -142,7 +142,7 @@ export default function Proposals() {
     .total-box{background:linear-gradient(135deg,#770142,#441d37);color:white;padding:25px;border-radius:12px;text-align:center}
     .total-amount{font-size:36px;font-weight:700;margin:10px 0}
     @media print{body{padding:20px}.section{page-break-inside:avoid}}</style></head><body>
-    <div class="header"><h1>Mental Fitness Campaign Proposal</h1><div class="subtitle">Prepared by SKMS Wellness</div></div>
+    <div class="header"><h1>Mental Fitness Campaign Proposal</h1><div class="subtitle">Prepared by SkillfulMeans</div></div>
     <div class="contact-info">
       <div class="contact-row"><span class="contact-label">Prepared For:</span>${proposal.client_name}</div>
       ${proposal.company ? `<div class="contact-row"><span class="contact-label">Company:</span>${proposal.company}</div>` : ''}

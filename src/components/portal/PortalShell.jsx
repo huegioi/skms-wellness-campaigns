@@ -89,7 +89,7 @@ export function PortalShell({
         >
           <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
             <div className="flex items-center gap-2">
-              {logo && <img src={LOGO_URL} alt="SKMS" className="h-7 w-auto" />}
+              {logo && <img src={LOGO_URL} alt="SkillfulMeans" className="h-7 w-auto" />}
               <span className="text-white font-bold text-sm">{title}</span>
             </div>
             <button
@@ -110,7 +110,7 @@ export function PortalShell({
             style={{ backgroundColor: accentColor }}
           >
             <div className="flex items-center gap-2">
-              {logo && <img src={LOGO_URL} alt="SKMS" className="h-7 w-auto" />}
+              {logo && <img src={LOGO_URL} alt="SkillfulMeans" className="h-7 w-auto" />}
               <span className="text-white font-bold text-sm">{title}</span>
             </div>
             <button

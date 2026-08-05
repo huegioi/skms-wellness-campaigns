@@ -95,7 +95,7 @@ export default function ReferralPortal() {
     return (
       <PortalError
         heading="Portal Not Found"
-        message="This portal link is invalid or has expired. Please contact your SKMS Wellness representative."
+        message="This portal link is invalid or has expired. Please contact your SkillfulMeans representative."
       />
     );
   }
@@ -167,7 +167,7 @@ export default function ReferralPortal() {
     const dateStr = format(new Date(), 'yyyy-MM-dd');
     const a = document.createElement('a');
     a.href = url;
-    a.download = `skms-commissions-${safeName}-${dateStr}.csv`;
+    a.download = `skillfulmeans-commissions-${safeName}-${dateStr}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -435,7 +435,7 @@ export default function ReferralPortal() {
               </Card>
             )}
 
-            <p className="text-center text-xs text-gray-400 pb-4">SKMS Wellness · Referral Partner Portal</p>
+            <p className="text-center text-xs text-gray-400 pb-4">SkillfulMeans · Referral Partner Portal</p>
           </>
         )}
 
@@ -451,7 +451,7 @@ export default function ReferralPortal() {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-brand-navy">Welcome to Your Partner Portal, {partner.name.split(' ')[0]}!</h2>
-                    <p className="text-gray-600 text-sm mt-1">Everything you need to track referrals, view client ROI, and grow your partnership with SKMS Wellness — all in one place.</p>
+                    <p className="text-gray-600 text-sm mt-1">Everything you need to track referrals, view client ROI, and grow your partnership with SkillfulMeans — all in one place.</p>
                   </div>
                 </div>
               </CardContent>
@@ -525,7 +525,7 @@ export default function ReferralPortal() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-500 mb-4">These are the core programs your referred clients can access through SKMS Wellness:</p>
+                <p className="text-sm text-gray-500 mb-4">These are the core programs your referred clients can access through SkillfulMeans:</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {[
                     { name: 'Interactive Workshops', desc: '60–90 minute live sessions on stress, resilience, sleep, and mental performance. Virtual or in-person.' },
@@ -668,7 +668,7 @@ export default function ReferralPortal() {
                     </table>
                   </div>
                 )}
-                <p className="text-xs text-gray-400 mt-4">Revenue and commission amounts are populated by SKMS when a referral is reviewed and invoiced. Contact your SKMS representative with questions.</p>
+                <p className="text-xs text-gray-400 mt-4">Revenue and commission amounts are populated by SkillfulMeans when a referral is reviewed and invoiced. Contact your SkillfulMeans representative with questions.</p>
               </CardContent>
             </Card>
 

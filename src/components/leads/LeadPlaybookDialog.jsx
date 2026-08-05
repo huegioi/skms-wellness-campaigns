@@ -37,7 +37,7 @@ const LEAD_PLAYBOOKS = {
     description: 'They\'re responding. Move toward a meeting while interest is warm.',
     steps: [
       'Propose a 15-minute discovery call with a clear, low-friction ask.',
-      'Share a one-pager PDF or link to the SKMS overview.',
+      'Share a one-pager PDF or link to the SkillfulMeans overview.',
       'Ask about their renewal calendar — when are clients up for renewal?',
       'If no response after 5 days: send a "breakup" email communicating you won\'t keep following up.',
       'Final touch — brief, low-pressure, future-focused; offer a simple resource.',
@@ -48,7 +48,7 @@ const LEAD_PLAYBOOKS = {
     label: 'Meeting Scheduled',
     description: 'Prepare thoroughly so the meeting makes a strong impression.',
     steps: [
-      'Prepare a 10-minute overview of SKMS services tailored to their client base.',
+      'Prepare a 10-minute overview of SkillfulMeans services tailored to their client base.',
       'Bring printed materials: one-pager, sample proposal, ROI case study.',
       'Ask about their top 3–5 clients who might benefit from mental wellness programs.',
       'Discuss their renewal calendar — when are clients up for renewal?',

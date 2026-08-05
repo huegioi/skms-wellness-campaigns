@@ -124,7 +124,7 @@ export default function FeedbackForm() {
         <div className="text-center mb-8">
           <img
             src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6911f6f4a9d8505805b51a3b/abfb649ad_SkillfulMeansWebsiteHero.png"
-            alt="SKMS Wellness"
+            alt="SkillfulMeans"
             className="mx-auto mb-4"
             style={{ maxWidth: '280px', width: '100%' }}
           />

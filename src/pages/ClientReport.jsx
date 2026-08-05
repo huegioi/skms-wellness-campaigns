@@ -156,7 +156,7 @@ export default function ClientReport() {
           <div>
             <img
               src="https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/1272f92b7_SKMSLogoShieldWhite.png"
-              alt="SKMS"
+              alt="SkillfulMeans"
               className="h-8 mb-3 invert"
               style={{ filter: 'invert(20%) sepia(90%) saturate(1000%) hue-rotate(195deg)' }}
             />

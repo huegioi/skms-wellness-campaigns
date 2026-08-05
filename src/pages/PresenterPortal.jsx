@@ -37,7 +37,7 @@ export default function PresenterPortal() {
         icon={AlertCircle}
         iconClass="w-10 h-10 text-amber-400"
         heading="No portal ID provided."
-        message="Please use the link provided to you by SKMS Wellness."
+        message="Please use the link provided to you by SkillfulMeans."
       />
     );
   }
@@ -52,7 +52,7 @@ export default function PresenterPortal() {
         icon={AlertCircle}
         iconClass="w-10 h-10 text-red-400"
         heading="Portal not found."
-        message="This link may be invalid or expired. Please contact SKMS Wellness."
+        message="This link may be invalid or expired. Please contact SkillfulMeans."
       />
     );
   }

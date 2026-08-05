@@ -39,12 +39,12 @@ const ACTION_STEPS = {
   'Active & Engaged': [
     'Monthly check-in call or email.',
     'Share new case studies and ROI data quarterly.',
-    'Invite to SKMS webinars and events.',
+    'Invite to SkillfulMeans webinars and events.',
     'Send Mental Health Month co-marketing materials in April.',
     'Celebrate their referrals — thank them within 24 hours of each one.',
   ],
   'In-Person Meeting': [
-    'Prepare a 10-minute overview of SKMS services tailored to their client base.',
+    'Prepare a 10-minute overview of SkillfulMeans services tailored to their client base.',
     'Bring printed materials: one-pager, sample proposal, ROI case study.',
     'Ask about their top 3–5 clients who might benefit from mental wellness programs.',
     'Discuss their renewal calendar — when are clients up for renewal?',
@@ -53,7 +53,7 @@ const ACTION_STEPS = {
   'In-Person Lunch': [
     'Choose a restaurant they\'ll enjoy — this is relationship-building, not a sales pitch.',
     'Ask about their business, their challenges, and what\'s working for their clients.',
-    'Mention SKMS naturally when relevant, but don\'t dominate the conversation.',
+    'Mention SkillfulMeans naturally when relevant, but don\'t dominate the conversation.',
     'Learn what they value in vendor relationships.',
     'Send a thank-you note same day. Schedule next touchpoint before the lunch ends.',
   ],
@@ -62,7 +62,7 @@ const ACTION_STEPS = {
     'Share ROI data from their referred clients\' programs.',
     'Discuss upcoming renewal seasons for their clients.',
     'Plan the next quarter\'s collaboration.',
-    'Ask: "Who else in your network should know about SKMS?"',
+    'Ask: "Who else in your network should know about SkillfulMeans?"',
   ],
   'Renewal Season Outreach': [
     'Identify which of their clients are renewing in the next 90 days.',
