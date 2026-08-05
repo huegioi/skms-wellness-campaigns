@@ -25,6 +25,28 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     queryFn: () => base44.entities.Service.list('sort_order')
   });
 
+  // NOTE: formData must be declared BEFORE the hooks below that reference it
+  // (the client-events-planyear query key reads formData.client_id) — declaring
+  // it lower caused a "Cannot access before initialization" crash wherever this
+  // dialog was mounted eagerly (e.g. the Dashboard Clients tab).
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    event_type: 'meeting',
+    start_date: selectedDate ? format(selectedDate, "yyyy-MM-dd'T'09:00") : '',
+    end_date: selectedDate ? format(selectedDate, "yyyy-MM-dd'T'10:00") : '',
+    all_day: false,
+    client_id: '',
+    lead_id: '',
+    client_name: '',
+    proposal_id: '',
+    location: '',
+    presenter_id: '',
+    service_id: '',
+    assessment_timing: 'none',
+    color: ''
+  });
+
   // Fetch active presenters for dropdown
   const { data: activePresenters = [] } = useQuery({
     queryKey: ['presenters-active'],
@@ -75,24 +97,6 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     });
     setFormData(prev => ({ ...prev, assessment_timing: smart }));
   }, [formData.service_id, formData.client_id, formData.start_date, clientEvents, clients]);
-
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    event_type: 'meeting',
-    start_date: selectedDate ? format(selectedDate, "yyyy-MM-dd'T'09:00") : '',
-    end_date: selectedDate ? format(selectedDate, "yyyy-MM-dd'T'10:00") : '',
-    all_day: false,
-    client_id: '',
-    lead_id: '',
-    client_name: '',
-    proposal_id: '',
-    location: '',
-    presenter_id: '',
-    service_id: '',
-    assessment_timing: 'none',
-    color: ''
-  });
 
   // Prefill a lead when opened from outside the scheduler (e.g., follow-up queue "Book Call")
   useEffect(() => {
