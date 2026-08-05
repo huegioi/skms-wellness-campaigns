@@ -634,10 +634,6 @@ export default function SchedulingHub() {
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-3 sm:p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-4">
-          <SurveySendsCard />
-        </div>
-
         {/* Header */}
         <div className="flex flex-col gap-4 mb-8">
           <div>
@@ -942,6 +938,11 @@ export default function SchedulingHub() {
             )}
           </div>
         )}
+
+        {/* Survey Sends — collapsed summary below the calendar; auto-expands on errors */}
+        <div className="mb-6">
+          <SurveySendsCard />
+        </div>
 
         {/* Company Search Section */}
         <CompanySearch sheets={sheets} onAddToCalendar={addSheetEventToAppCalendar} addingToCalendar={addingToCalendar} />
