@@ -644,7 +644,7 @@ export default function SchedulingHub() {
             <div className="flex items-center gap-3 mb-2">
               <Calendar className="w-7 h-7" style={{ color: '#013f7c' }} />
               <h1 className="text-2xl sm:text-3xl font-bold" style={{ color: '#013f7c' }}>
-                {spreadsheetTitle}
+                Scheduling Hub
               </h1>
             </div>
             <p className="text-gray-600 text-sm">
