@@ -40,3 +40,28 @@ export function isNewQuickBuilderInquiry(l) {
     (l.status || 'cold') === 'cold' &&
     !l.last_contacted_date;
 }
+
+/**
+ * Parse "Composite: NN/100 · Projected annual savings: $X" from Mental Fitness
+ * Score / Journey lead notes. Returns { score, savings } or null when the
+ * pattern is absent or unparseable.
+ */
+export function parseCompositeAndSavings(notes) {
+  if (!notes) return null;
+  const m = String(notes).match(/Composite:\s*(\d+)\s*\/\s*100\s*·\s*Projected annual savings:\s*\$?([\d,]+)/i);
+  if (!m) return null;
+  const score = parseInt(m[1], 10);
+  const savings = parseInt(m[2].replace(/,/g, ''), 10);
+  if (isNaN(score) || isNaN(savings)) return null;
+  return { score, savings };
+}
+
+/**
+ * Lowercased domain of an email address, or '' if not parseable.
+ * Used as a display fallback for leads missing a company name.
+ */
+export function emailDomainOf(email) {
+  if (!email) return '';
+  const at = email.indexOf('@');
+  return at === -1 ? '' : email.slice(at + 1).toLowerCase();
+}

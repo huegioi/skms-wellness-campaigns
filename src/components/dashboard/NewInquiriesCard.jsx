@@ -1,9 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { User, Users, ArrowRight, Sparkles, Package, Gift, Handshake, ClipboardCheck } from 'lucide-react';
-import { parseQuickBuilderGoals, parseWellnessBoxesPreference, timeSince, isNewQuickBuilderInquiry } from '@/lib/quickbuilderUtils';
+import { User, Users, ArrowRight, Sparkles, Package, Gift, Handshake, ClipboardCheck, BarChart3, DollarSign } from 'lucide-react';
+import { parseQuickBuilderGoals, parseWellnessBoxesPreference, timeSince, isNewQuickBuilderInquiry, parseCompositeAndSavings, emailDomainOf } from '@/lib/quickbuilderUtils';
+import NewInquiriesReviewDialog from '@/components/dashboard/NewInquiriesReviewDialog';
 
 export default function NewInquiriesCard() {
   const { data: rawLeads = [] } = useQuery({
@@ -87,9 +88,17 @@ export default function NewInquiriesCard() {
     return map;
   }, [recentReferrals]);
 
+  const [reviewLead, setReviewLead] = useState(null);
+
   if (newInquiries.length === 0) return null;
 
   const top5 = newInquiries.slice(0, 5);
+
+  const reviewAssessment = reviewLead ? leadToAssessment[reviewLead.id] : null;
+  const reviewJourney = reviewLead ? journeyByLeadId[reviewLead.id] : null;
+  const reviewResponseClientId = reviewAssessment?.client_id || reviewJourney?.client_id;
+  const reviewResponseCount = reviewResponseClientId ? (responseCountByClient[reviewResponseClientId] || 0) : 0;
+  const reviewParsed = reviewLead ? parseCompositeAndSavings(reviewLead.notes) : null;
 
   return (
     <div className="bg-white rounded-2xl border border-[#013f7c]/15 shadow-sm p-5 mb-6">
@@ -101,7 +110,7 @@ export default function NewInquiriesCard() {
           <div>
             <h2 className="font-bold text-gray-800 text-base leading-tight">New Inquiries</h2>
             <p className="text-xs text-gray-400">
-              {newInquiries.length} new inquiry{newInquiries.length !== 1 ? 's' : ''} awaiting review
+              {newInquiries.length} new {newInquiries.length !== 1 ? 'inquiries' : 'inquiry'} awaiting review
             </p>
           </div>
         </div>
@@ -117,6 +126,7 @@ export default function NewInquiriesCard() {
         {top5.map(lead => {
           const goals = parseQuickBuilderGoals(lead.notes);
           const wantsBoxes = parseWellnessBoxesPreference(lead.notes);
+          const parsed = parseCompositeAndSavings(lead.notes);
           const selCount = lead.quickbuilder_selections?.length || 0;
           const isMfs = (lead.source || '').startsWith('Mental Fitness Score');
           const isJourney = (lead.source || '').startsWith('Mental Fitness Journey');
@@ -132,7 +142,7 @@ export default function NewInquiriesCard() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-sm text-gray-800 truncate">
-                    {lead.company || 'Unknown company'}
+                    {lead.company || emailDomainOf(lead.email) || 'Unknown company'}
                   </span>
                   <span className="text-xs text-gray-400 flex items-center gap-0.5">
                     <User className="w-3 h-3" />{lead.name}
@@ -177,6 +187,20 @@ export default function NewInquiriesCard() {
                       ~${lead.estimated_investment.toLocaleString()}
                     </span>
                   )}
+                  {parsed && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5 ${
+                      parsed.score < 40 ? 'bg-red-100 text-red-700'
+                        : parsed.score <= 60 ? 'bg-amber-100 text-amber-700'
+                        : 'bg-green-100 text-green-700'
+                    }`}>
+                      <BarChart3 className="w-2.5 h-2.5" />{parsed.score}/100
+                    </span>
+                  )}
+                  {parsed && (
+                    <span className="text-[10px] bg-[#264d44]/10 text-[#264d44] px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
+                      <DollarSign className="w-2.5 h-2.5" />${parsed.savings.toLocaleString()} savings
+                    </span>
+                  )}
                   {isMfs && (
                     <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full font-medium flex items-center gap-0.5">
                       <ClipboardCheck className="w-2.5 h-2.5" />Assessment · {responseCount} response{responseCount !== 1 ? 's' : ''}
@@ -189,16 +213,28 @@ export default function NewInquiriesCard() {
                   )}
                 </div>
               </div>
-              <Link
-                to={`/Leads?leadId=${lead.id}&filter=quick_builder`}
+              <button
+                type="button"
+                onClick={() => setReviewLead(lead)}
                 className="flex-shrink-0 text-sm font-semibold text-[#770142] hover:underline flex items-center gap-1"
               >
                 Review <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+              </button>
             </div>
           );
         })}
       </div>
+
+      <NewInquiriesReviewDialog
+        open={!!reviewLead}
+        lead={reviewLead}
+        assessment={reviewAssessment}
+        journey={reviewJourney}
+        responseCount={reviewResponseCount}
+        parsedScore={reviewParsed?.score ?? null}
+        parsedSavings={reviewParsed?.savings ?? null}
+        onClose={() => setReviewLead(null)}
+      />
     </div>
   );
 }
