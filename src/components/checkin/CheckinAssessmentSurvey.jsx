@@ -80,6 +80,15 @@ export default function CheckinAssessmentSurvey({ token, name, email, surveyData
         <p className="text-blue-200 text-sm mt-1">{kiosk ? 'Quick check-in survey before you head in.' : "Then you'll join the call"}</p>
       </div>
 
+      {/* Confidentiality note */}
+      <div className="max-w-xl mx-auto px-4 pt-4">
+        <div className="bg-white border border-[#013f7c]/15 rounded-xl p-4 text-sm text-gray-700">
+          <p className="font-semibold text-[#013f7c] mb-1">Help Us Measure Our Impact</p>
+          <p className="mb-2">Your feedback helps SkillfulMeans evaluate the effectiveness of our wellness programs and understand their overall impact on your organization.</p>
+          <p className="text-gray-600">All survey responses are confidential. Individual responses are never shared with your employer. Results are reported only in aggregate, ensuring your privacy while helping us improve our programs and demonstrate their value.</p>
+        </div>
+      </div>
+
       {/* Progress bar */}
       <div className="max-w-xl mx-auto px-4 pt-4">
         <div className="flex items-center justify-between mb-1.5">
