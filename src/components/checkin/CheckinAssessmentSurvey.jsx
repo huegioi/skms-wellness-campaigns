@@ -65,7 +65,7 @@ export default function CheckinAssessmentSurvey({ token, name, email, surveyData
     </button>
   );
 
-  const progress = ((stepIndex + 1) / (instruments.length + 1)) * 100;
+  const progress = ((stepIndex + 1) / instruments.length) * 100;
 
   return (
     <div className="min-h-screen bg-[#f4f0e9]">

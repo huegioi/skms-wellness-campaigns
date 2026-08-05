@@ -20,7 +20,6 @@ const FORMAT_LABELS = {
 
 const INSTRUMENT_OPTIONS = [
   { value: 'all', label: 'All Instruments' },
-  { value: 'pulse', label: 'Pulse' },
   { value: 'who5', label: 'WHO-5' },
   { value: 'uwes3', label: 'UWES-3' },
   { value: 'pss4', label: 'PSS-4' },
@@ -31,7 +30,6 @@ const INSTRUMENT_OPTIONS = [
 
 const TOUCHPOINT_OPTIONS = [
   { value: 'all', label: 'All Touchpoints' },
-  { value: 'session_pulse', label: 'Session Pulse' },
   { value: 'day0', label: 'Day 0' },
   { value: 'day14', label: 'Day 14' },
   { value: 'cohort_start', label: 'Cohort Start' },
@@ -39,7 +37,7 @@ const TOUCHPOINT_OPTIONS = [
   { value: 'cohort_1mo', label: '30-Day Follow-Up' },
 ];
 
-export default function FeedbackFilterBar({ filters, onChange, companies, speakers }) {
+export default function FeedbackFilterBar({ filters, onChange, companies, speakers, activeView }) {
   const set = (key, val) => onChange({ ...filters, [key]: val });
   const hasActive = Object.entries(filters).some(([k, v]) => v && v !== 'all' && k !== 'startDate' && k !== 'endDate') || filters.startDate || filters.endDate;
 
@@ -111,7 +109,8 @@ export default function FeedbackFilterBar({ filters, onChange, companies, speake
           </Select>
         </div>
 
-        {/* By Instrument */}
+        {/* By Instrument — only relevant on the Instruments (assessment) tab */}
+        {activeView !== 'pulse' && (
         <div className="min-w-[160px]">
           <label className="text-xs text-gray-400 font-semibold uppercase mb-1 block">Instrument</label>
           <Select value={filters.instrument || 'all'} onValueChange={v => set('instrument', v)}>
@@ -125,8 +124,10 @@ export default function FeedbackFilterBar({ filters, onChange, companies, speake
             </SelectContent>
           </Select>
         </div>
+        )}
 
-        {/* By Touchpoint */}
+        {/* By Touchpoint — only relevant on the Instruments (assessment) tab */}
+        {activeView !== 'pulse' && (
         <div className="min-w-[160px]">
           <label className="text-xs text-gray-400 font-semibold uppercase mb-1 block">Touchpoint</label>
           <Select value={filters.touchpoint || 'all'} onValueChange={v => set('touchpoint', v)}>
@@ -140,8 +141,10 @@ export default function FeedbackFilterBar({ filters, onChange, companies, speake
             </SelectContent>
           </Select>
         </div>
+        )}
 
-        {/* By Speaker */}
+        {/* By Speaker — only relevant on the Pulse tab */}
+        {activeView === 'pulse' && (
         <div className="min-w-[160px]">
           <label className="text-xs text-gray-400 font-semibold uppercase mb-1 block">Speaker</label>
           <Select value={filters.speaker} onValueChange={v => set('speaker', v)}>
@@ -156,8 +159,10 @@ export default function FeedbackFilterBar({ filters, onChange, companies, speake
             </SelectContent>
           </Select>
         </div>
+        )}
 
-        {/* By Format */}
+        {/* By Format — only relevant on the Pulse tab */}
+        {activeView === 'pulse' && (
         <div className="min-w-[150px]">
           <label className="text-xs text-gray-400 font-semibold uppercase mb-1 block">Delivery Format</label>
           <Select value={filters.format} onValueChange={v => set('format', v)}>
@@ -172,6 +177,7 @@ export default function FeedbackFilterBar({ filters, onChange, companies, speake
             </SelectContent>
           </Select>
         </div>
+        )}
 
         {/* Date Range */}
         <div className="min-w-[130px]">

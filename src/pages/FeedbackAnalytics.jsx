@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, TrendingUp, MessageSquare, Heart, BarChart2, Loader2, Activity } from 'lucide-react';
 import FeedbackFilterBar from '@/components/feedback/FeedbackFilterBar';
 import Who5Analytics from '@/components/feedback/Who5Analytics';
+import { computeEnps } from '@/components/feedback/instrumentMeta';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,43 @@ function ConfidenceBar({ value, max = 10 }) {
         <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
       </div>
       <span className="text-xs font-semibold w-8 text-right" style={{ color }}>{value}/10</span>
+    </div>
+  );
+}
+
+function EnpsCard({ scores }) {
+  const { enps, n, promoters, passives, detractors } = computeEnps(scores);
+  const pct = (c) => n > 0 ? Math.round((c / n) * 100) : 0;
+  const sign = enps != null && enps >= 0 ? '+' : '';
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-5">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#770142' }}>
+          <TrendingUp className="w-5 h-5 text-white" />
+        </div>
+        <span className="text-sm text-gray-500">eNPS (Pulse){n > 0 ? ` · n=${n}` : ''}</span>
+      </div>
+      {n === 0 ? (
+        <p className="text-2xl font-bold text-gray-400">No eNPS responses yet</p>
+      ) : (
+        <>
+          <p className="text-2xl font-bold" style={{ color: enps >= 0 ? '#264d44' : '#ef4444' }}>{sign}{enps}</p>
+          <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+            <div className="text-center">
+              <p className="font-semibold text-[#264d44]">{promoters}</p>
+              <p className="text-gray-400">Promoters ({pct(promoters)}%)</p>
+            </div>
+            <div className="text-center">
+              <p className="font-semibold text-gray-500">{passives}</p>
+              <p className="text-gray-400">Passives ({pct(passives)}%)</p>
+            </div>
+            <div className="text-center">
+              <p className="font-semibold text-[#ef4444]">{detractors}</p>
+              <p className="text-gray-400">Detractors ({pct(detractors)}%)</p>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -158,24 +196,31 @@ export default function FeedbackAnalytics() {
     queryFn: () => base44.entities.CalendarEvent.list('-start_date', 500),
   });
 
-  // Build a lookup: service_id → { presenter, delivery_format } from most recent event
+  // Build a lookup: event_id → { presenter, delivery_format }. Enrichment is
+  // strictly by a response's OWN event_id — we never donate one event's
+  // presenter/format to a response from a different (or no) event.
   const eventLookup = useMemo(() => {
     const map = {};
     for (const ev of calendarEvents) {
-      if (!ev.service_id) continue;
-      if (!map[ev.service_id]) {
-        map[ev.service_id] = { presenter: ev.presenter, delivery_format: ev.delivery_format };
-      }
+      if (!ev.id) continue;
+      map[ev.id] = { presenter: ev.presenter, delivery_format: ev.delivery_format };
     }
     return map;
   }, [calendarEvents]);
 
-  // Enrich responses with event data for missing fields
-  const enriched = useMemo(() => responses.map(r => ({
-    ...r,
-    presenter: r.presenter || eventLookup[r.service_id]?.presenter || '',
-    delivery_format: r.delivery_format || eventLookup[r.service_id]?.delivery_format || '',
-  })), [responses, eventLookup]);
+  const UNATTRIBUTED = '(unattributed)';
+
+  // Enrich responses with their own event's presenter/format only. Responses
+  // with no event_id (or whose event isn't loaded) keep blank presenter/format
+  // and surface under the "(unattributed)" speaker filter option.
+  const enriched = useMemo(() => responses.map(r => {
+    const ev = r.event_id ? eventLookup[r.event_id] : null;
+    return {
+      ...r,
+      presenter: r.presenter || ev?.presenter || '',
+      delivery_format: r.delivery_format || ev?.delivery_format || '',
+    };
+  }), [responses, eventLookup]);
 
   // Universal Pulse responses (have at least one Phase 1 field)
   const pulseResponses = useMemo(
@@ -189,17 +234,22 @@ export default function FeedbackAnalytics() {
     [pulseResponses]
   );
 
-  const speakers = useMemo(() =>
-    [...new Set(pulseResponses.map(r => r.presenter).filter(Boolean))].sort(),
-    [pulseResponses]
-  );
+  const speakers = useMemo(() => {
+    const named = [...new Set(pulseResponses.map(r => r.presenter).filter(Boolean))].sort();
+    const hasUnattributed = pulseResponses.some(r => !r.presenter);
+    return hasUnattributed ? [...named, UNATTRIBUTED] : named;
+  }, [pulseResponses]);
 
   // ── Apply filters ─────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     return pulseResponses.filter(r => {
       if (filters.company !== 'all' && r.company_name !== filters.company) return false;
       if (filters.category !== 'all' && r.service_category !== filters.category) return false;
-      if (filters.speaker !== 'all' && r.presenter !== filters.speaker) return false;
+      if (filters.speaker !== 'all') {
+        if (filters.speaker === UNATTRIBUTED) {
+          if (r.presenter) return false;
+        } else if (r.presenter !== filters.speaker) return false;
+      }
       if (filters.format !== 'all' && r.delivery_format !== filters.format) return false;
       if (filters.cohortYear !== 'all') {
         const year = r.submitted_at ? new Date(r.submitted_at).getFullYear() : null;
@@ -289,6 +339,7 @@ export default function FeedbackAnalytics() {
           onChange={setFilters}
           companies={companies}
           speakers={speakers}
+          activeView={assessmentType}
         />
 
         {/* WHO-5 view */}
@@ -302,8 +353,13 @@ export default function FeedbackAnalytics() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <StatCard icon={Users} label="Responses" value={filtered.length} color="#013f7c" />
           <StatCard icon={TrendingUp} label="Avg Fit Confidence" value={avg ? `${avg.toFixed(1)}/10` : '—'} color="#264d44" />
-          <StatCard icon={Heart} label="Top Impact Area" value={impactEntries[0]?.[0]?.split(' ').slice(0,2).join(' ') + '…' || '—'} color="#770142" />
+          <StatCard icon={Heart} label="Top Impact Area" value={impactEntries.length > 0 ? (impactEntries[0][0].split(' ').slice(0,2).join(' ') + '…') : 'No responses yet'} color="#770142" />
           <StatCard icon={MessageSquare} label="Intent Statements" value={intentCount} color="#ff9878" />
+        </div>
+
+        {/* eNPS card (true promoters − detractors, via shared computeEnps) */}
+        <div className="mb-8">
+          <EnpsCard scores={filtered.map(r => r.nps_score)} />
         </div>
 
         {isLoading ? (

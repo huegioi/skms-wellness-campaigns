@@ -19,7 +19,7 @@ export default function MethodologyNote() {
       </button>
       {open && (
         <div className="px-5 pb-4 text-xs text-gray-600 leading-relaxed space-y-2">
-          <p><strong>Leading indicators</strong> (participation, session pulse, eNPS, completion rate) measure engagement and immediate reaction &mdash; they turn early and predict downstream change.</p>
+          <p><strong>Leading indicators</strong> (participation, session pulse, eNPS, completion rate) measure engagement and immediate reaction &mdash; they turn early and predict downstream change. <strong>eNPS</strong> is collected automatically after every session via the Pulse, not separately per selected service.</p>
           <p><strong>Lagging indicators</strong> (WHO-5, UWES-3, PSS-4, UCLA-3, CBI) are validated wellbeing instruments that move more slowly. They are shown as pre&rarr;post deltas across matched participants.</p>
           <p><strong>Direction of good:</strong> WHO-5, UWES-3, and eNPS are &ldquo;higher is better.&rdquo; PSS-4, UCLA-3, and CBI are &ldquo;lower is better&rdquo; &mdash; a drop is colored green.</p>
           <p><strong>Matching:</strong> Pre/post pairs are matched by normalized participant email. Completion rate = distinct end responders &divide; distinct starters.</p>

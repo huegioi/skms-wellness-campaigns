@@ -200,7 +200,7 @@ export default function CohortAssessmentPage() {
     );
   }
 
-  const progress = (stepIndex / (instruments.length + 1)) * 100;
+  const progress = (stepIndex / instruments.length) * 100;
 
   return (
     <div className="min-h-screen bg-[#f4f0e9]">

@@ -181,7 +181,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
       <div className="rounded-xl p-5 border border-[#e6e1d8] border-l-4 border-l-brand-navy" style={{ backgroundColor: '#f9f8f5' }}>
         <p className="font-semibold text-brand-navy mb-1.5">How to read this</p>
         <p className="text-sm text-gray-600 leading-relaxed">
-          This dashboard shows how your team is responding to your wellness programs. After each session, participants complete a quick, anonymous 90-second pulse; for challenges, they also complete a short validated wellbeing check-in before and after. Everything below is aggregated across your programs — no individual is ever identified. In general, higher numbers are better.
+          This dashboard shows how your team is responding to your wellness programs. After each session, participants complete a quick, anonymous 90-second pulse; for challenges, they also complete a short validated wellbeing check-in before and after. Everything below is aggregated across your programs — no individual is ever identified. For wellbeing and engagement scores, higher is better; for stress (PSS-4), loneliness (UCLA-3), and burnout (CBI), lower is better, so a drop is marked green.
         </p>
       </div>
 

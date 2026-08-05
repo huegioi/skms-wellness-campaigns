@@ -18,14 +18,16 @@ export default function FacilitationChecklist({
   day14Count = 0,
   baselineCount,
   endpointCount,
+  sessionCount,
   checkinCount = 0,
   hasRecording = false,
   compact = false,
 }) {
   const marks = [];
+  const isSession = sessionCount !== undefined;
 
   // Challenge marks (day0 / day14) — shown when day0Count or day14Count is explicitly provided
-  if (day0Count > 0 || day14Count > 0 || (baselineCount === undefined && endpointCount === undefined)) {
+  if (!isSession && (day0Count > 0 || day14Count > 0 || (baselineCount === undefined && endpointCount === undefined))) {
     marks.push({
       label: 'Day-0 assessment',
       done: day0Count >= 1,
@@ -43,7 +45,7 @@ export default function FacilitationChecklist({
   }
 
   // Non-challenge baseline/endpoint marks — shown when baselineCount or endpointCount is provided
-  if (baselineCount !== undefined) {
+  if (!isSession && baselineCount !== undefined) {
     marks.push({
       label: 'Baseline assessment',
       done: baselineCount >= 1,
@@ -52,13 +54,26 @@ export default function FacilitationChecklist({
         : baselineCount > 0 ? `${baselineCount} response${baselineCount !== 1 ? 's' : ''}` : 'No responses yet',
     });
   }
-  if (endpointCount !== undefined) {
+  if (!isSession && endpointCount !== undefined) {
     marks.push({
       label: 'Endpoint assessment',
       done: endpointCount >= 1,
       sub: checkinCount > 0
         ? `${endpointCount} of ${checkinCount} checked-in gave endpoint`
         : endpointCount > 0 ? `${endpointCount} response${endpointCount !== 1 ? 's' : ''}` : 'No responses yet',
+    });
+  }
+
+  // Session-timing: a single "Session check-in survey" mark (done when ≥1
+  // session_check assessment exists for this event). Does NOT show the
+  // permanently-red baseline item.
+  if (isSession) {
+    marks.push({
+      label: 'Session check-in survey',
+      done: sessionCount >= 1,
+      sub: checkinCount > 0
+        ? `${sessionCount} of ${checkinCount} checked-in gave session feedback`
+        : sessionCount > 0 ? `${sessionCount} response${sessionCount !== 1 ? 's' : ''}` : 'No responses yet',
     });
   }
 

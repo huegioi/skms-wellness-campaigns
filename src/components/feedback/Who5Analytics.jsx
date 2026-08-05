@@ -181,6 +181,28 @@ export default function Who5Analytics({ filters }) {
     return { completion, distinctStarters, distinctEnds: completers };
   }, [allRows]);
 
+  // ── 30-Day Durability (cohort_start → cohort_1mo) ─────────────────────────────
+  // cohort_1mo rows are invisible to the existing cohort arc and completion
+  // math; they're included HERE ONLY for this dedicated matched-pair view.
+  const durabilityStats = useMemo(() => {
+    const rows = filteredAssessments.filter(r =>
+      (r.survey_type === 'cohort_start' || r.survey_type === 'cohort_1mo') &&
+      (!instrumentFilter || getInstrumentKey(r) === filters.instrument)
+    );
+    const byInstrument = {};
+    for (const r of rows) {
+      const key = getInstrumentKey(r);
+      if (!byInstrument[key]) byInstrument[key] = [];
+      byInstrument[key].push(r);
+    }
+    return Object.entries(byInstrument).map(([key, instRows]) => {
+      const result = matchPairs(instRows, 'cohort_start', ['cohort_1mo']);
+      const meta = INSTRUMENT_META[key];
+      const stats = calcStats(result.pairs, result.distinctStarts, meta?.directionOfGood || 'higher');
+      return { key, stats };
+    }).filter(s => s.stats);
+  }, [filteredAssessments, instrumentFilter, filters.instrument]);
+
   // ── Session pulse summary ────────────────────────────────────────────────────
   const pulseSummary = useMemo(() => {
     const filtered = pulseResponses.filter(r => {
@@ -276,6 +298,28 @@ export default function Who5Analytics({ filters }) {
                 instrumentKey={key}
                 stats={stats}
                 evidenceTier="Program effect — uncontrolled pre/post"
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 30-Day Durability */}
+      {durabilityStats.length > 0 && (
+        <div>
+          <SectionHeader
+            icon={TrendingUp}
+            title="30-Day Durability"
+            subtitle="Matched pre → 30-day follow-up — does the change stick?"
+            color="#770142"
+          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {durabilityStats.map(({ key, stats }) => (
+              <InstrumentResultCard
+                key={key}
+                instrumentKey={key}
+                stats={stats}
+                evidenceTier="Durability — uncontrolled pre/follow-up"
               />
             ))}
           </div>

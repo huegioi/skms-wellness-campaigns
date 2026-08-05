@@ -130,7 +130,7 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
         <div className="rounded-xl border border-[#e6e1d8] border-l-4 border-l-brand-navy p-4" style={{ backgroundColor: '#f9f8f5' }}>
           <p className="font-semibold text-brand-navy mb-1">How to read this</p>
           <p className="text-sm text-gray-600 leading-relaxed">
-            This shows how the companies you&rsquo;ve referred are responding to their wellness programs, combined across your whole book of business. The numbers are aggregated and anonymous — no individual employee is identified. In general, higher is better, and you&rsquo;re welcome to share these results with your clients.
+            This shows how the companies you&rsquo;ve referred are responding to their wellness programs, combined across your whole book of business. The numbers are aggregated and anonymous — no individual employee is identified. For most scores, higher is better; for stress (PSS-4), loneliness (UCLA-3), and burnout (CBI), lower is better, so a drop is marked green. You&rsquo;re welcome to share these results with your clients.
           </p>
         </div>
 

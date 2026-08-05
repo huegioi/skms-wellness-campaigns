@@ -146,8 +146,9 @@ export default function DeliveryEventRow({ event, allServices, getEventAssessmen
           {isCalendar && !isChallenge && event.assessment_timing && event.assessment_timing !== 'none' && (
             <div className="mt-2 pt-2 border-t border-gray-100">
               <FacilitationChecklist
-                baselineCount={getEventAssessmentCounts(event).baseline}
-                endpointCount={getEventAssessmentCounts(event).endpoint}
+                {...(event.assessment_timing === 'session'
+                  ? { sessionCount: getEventAssessmentCounts(event).session }
+                  : { baselineCount: getEventAssessmentCounts(event).baseline, endpointCount: getEventAssessmentCounts(event).endpoint })}
                 checkinCount={checkinCount}
                 hasRecording={!!event.recording_link}
                 compact

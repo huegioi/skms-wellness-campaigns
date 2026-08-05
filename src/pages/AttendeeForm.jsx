@@ -340,7 +340,7 @@ function ImpactCheckboxes({ value, onChange }) {
           </Button>
 
           {!canSubmit && (
-            <p className="text-center text-xs text-gray-400">Please answer questions 1 and 2 to submit.</p>
+            <p className="text-center text-xs text-gray-400">Please answer questions 1, 2, and 4 (the recommendation rating) to submit.</p>
           )}
 
           {submitMutation.isError && (

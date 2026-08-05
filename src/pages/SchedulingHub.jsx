@@ -150,33 +150,34 @@ export default function SchedulingHub() {
   const { data: cohortAssessments = [] } = useQuery({
     queryKey: ['cohort-assessments-all'],
     queryFn: async () => {
-      const [day0, day14, cStart, cEnd] = await Promise.all([
+      const [day0, day14, cStart, cEnd, sessionChecks] = await Promise.all([
         base44.entities.CohortAssessment.filter({ survey_type: 'challenge_day0' }, '-submitted_at', 500),
         base44.entities.CohortAssessment.filter({ survey_type: 'challenge_day14' }, '-submitted_at', 500),
         base44.entities.CohortAssessment.filter({ survey_type: 'cohort_start' }, '-submitted_at', 500),
         base44.entities.CohortAssessment.filter({ survey_type: 'cohort_end' }, '-submitted_at', 500),
+        base44.entities.CohortAssessment.filter({ survey_type: 'session_check' }, '-submitted_at', 500),
       ]);
-      return [...day0, ...day14, ...cStart, ...cEnd];
+      return [...day0, ...day14, ...cStart, ...cEnd, ...sessionChecks];
     },
   });
 
-  // Build assessment count map: client_id|service_id|survey_type → count
-  const assessmentCountMap = {};
+  // Build assessment count map keyed by event_id|survey_type — scoped to THIS
+  // event's check-ins so the "N of M checked in" numerator never exceeds the
+  // event's own check-in count (fixes the misleading "14 of 3" reading).
+  const eventAssessmentCountMap = {};
   for (const a of cohortAssessments) {
-    const key = `${a.client_id}|${a.service_id}|${a.survey_type}`;
-    assessmentCountMap[key] = (assessmentCountMap[key] || 0) + 1;
+    if (!a.event_id) continue;
+    const key = `${a.event_id}|${a.survey_type}`;
+    eventAssessmentCountMap[key] = (eventAssessmentCountMap[key] || 0) + 1;
   }
   const getEventAssessmentCounts = (event) => {
-    if (!event.client_id || !event.service_id) return { day0: 0, day14: 0, baseline: 0, endpoint: 0 };
-    const svc = allServices.find(s => s.id === event.service_id);
-    const isChallenge = event.event_type === 'challenge' || svc?.category === 'challenge';
-    const baselineType = isChallenge ? 'challenge_day0' : 'cohort_start';
-    const endpointType = isChallenge ? 'challenge_day14' : 'cohort_end';
+    if (!event.id) return { day0: 0, day14: 0, baseline: 0, endpoint: 0, session: 0 };
     return {
-      day0: assessmentCountMap[`${event.client_id}|${event.service_id}|challenge_day0`] || 0,
-      day14: assessmentCountMap[`${event.client_id}|${event.service_id}|challenge_day14`] || 0,
-      baseline: assessmentCountMap[`${event.client_id}|${event.service_id}|${baselineType}`] || 0,
-      endpoint: assessmentCountMap[`${event.client_id}|${event.service_id}|${endpointType}`] || 0,
+      day0: eventAssessmentCountMap[`${event.id}|challenge_day0`] || 0,
+      day14: eventAssessmentCountMap[`${event.id}|challenge_day14`] || 0,
+      baseline: eventAssessmentCountMap[`${event.id}|cohort_start`] || 0,
+      endpoint: eventAssessmentCountMap[`${event.id}|cohort_end`] || 0,
+      session: eventAssessmentCountMap[`${event.id}|session_check`] || 0,
     };
   };
 
