@@ -21,6 +21,7 @@ const INITIAL_FORM = {
   sender_mode: 'record_owner',
   cc_emails: [],
   template_source_id: '',
+  selected_ctas: [],
 };
 
 export default function NewCampaignWizard({ open, onOpenChange, onCreated }) {
@@ -63,6 +64,7 @@ export default function NewCampaignWizard({ open, onOpenChange, onCreated }) {
         sender_mode: form.sender_mode,
         cc_emails: form.cc_emails,
         ...(form.template_source_id ? { template_source_id: form.template_source_id } : {}),
+        selected_ctas: form.selected_ctas || [],
         status: 'draft',
       });
 

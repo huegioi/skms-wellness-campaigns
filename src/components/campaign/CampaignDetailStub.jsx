@@ -166,6 +166,16 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
               {campaign?.audience_type?.replace('_', ' ')}s - {activeRecipients.length} recipients
               {skippedRecipients.length > 0 && ` (${skippedRecipients.length} skipped)`}
             </p>
+            {campaign?.selected_ctas && campaign.selected_ctas.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                <span className="text-[10px] text-gray-400 uppercase tracking-wide">CTAs:</span>
+                {campaign.selected_ctas.map((cta, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 text-[10px] font-medium text-[#770142] bg-[#770142]/10 rounded-full px-2 py-0.5">
+                    {cta.label}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

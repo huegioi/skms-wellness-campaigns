@@ -127,6 +127,17 @@ export default function OutreachCampaignCard({ campaign, onClick, onArchive }) {
         )}
       </div>
 
+      {campaign.selected_ctas && campaign.selected_ctas.length > 0 && (
+        <div className="mb-2 flex flex-wrap items-center gap-1">
+          <span className="text-[10px] text-gray-400 uppercase tracking-wide">CTAs:</span>
+          {campaign.selected_ctas.map((cta, i) => (
+            <span key={i} className="inline-flex items-center gap-1 text-[10px] font-medium text-[#770142] bg-[#770142]/10 rounded-full px-2 py-0.5">
+              {cta.label}
+            </span>
+          ))}
+        </div>
+      )}
+
       {counts.total > 0 && (
         <div className="flex items-center justify-between">
           <div

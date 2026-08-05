@@ -94,6 +94,24 @@
       "type": "string",
       "format": "date-time",
       "description": "When syncCampaignSendStatus last refreshed send/reply counts for this campaign"
+    },
+    "selected_ctas": {
+      "type": "array",
+      "description": "Snapshot of the CTAs selected for this campaign at creation time. Each entry: { label, url, guidance }. Later library edits do not mutate existing campaigns.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "guidance": {
+            "type": "string"
+          }
+        }
+      }
     }
   },
   "required": [

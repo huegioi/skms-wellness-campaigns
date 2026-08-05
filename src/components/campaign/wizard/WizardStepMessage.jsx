@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FileText, Save, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import CtaLibrarySection from '@/components/campaign/wizard/CtaLibrarySection';
 
 function htmlToPlainText(html) {
   if (!html) return '';
@@ -159,6 +160,9 @@ export default function WizardStepMessage({ form, updateForm }) {
           onChange={e => updateForm('personalization_notes', e.target.value)}
         />
       </div>
+
+      {/* Calls to action */}
+      <CtaLibrarySection onSelectedCtasChange={(snapshot) => updateForm('selected_ctas', snapshot)} />
     </div>
   );
 }

@@ -56,6 +56,19 @@ Deno.serve(async (req) => {
     const firstName = contactName.split(' ')[0] || 'there';
     const companyName = recipient.company || '';
 
+    // ── Calls-to-action snapshot (campaign.selected_ctas) ──
+    // When empty/absent, ctaBlock is '' and the prompt is byte-identical to before.
+    const selectedCtas = Array.isArray(campaign.selected_ctas) ? campaign.selected_ctas : [];
+    const ctaBlock = selectedCtas.length > 0
+      ? `CALLS TO ACTION (selected for this campaign — weave in at most two):
+${selectedCtas.map(c => `- "${c.label || ''}" → ${c.url || ''}${c.guidance ? ` (guidance: ${c.guidance})` : ''}`).join('\n')}
+- Weave in AT MOST TWO of the above CTAs, chosen for fit with this recipient's context.
+- Each CTA should read as a natural sentence with the URL as a plain link (no link dumps, no bullet list of links).
+- If a demo-call or scheduling CTA is selected, it should usually be the closing ask.
+
+`
+      : '';
+
     // ── 3. Build LLM prompt: SKELETON + PERSONAL TOUCHES ──
     const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -101,7 +114,7 @@ ${thinContext
   ? 'THIN CONTEXT: This contact has NO interactions and NO email history in our system. Keep the skeleton intact with light company-level personalization only (company name, industry if known). Do NOT invent a shared history.'
   : 'THIN CONTEXT: This contact has rich context available above. Personalize naturally using the real history.'}
 
-HARD RULES:
+${ctaBlock}HARD RULES:
 1. Never invent meetings, conversations, or facts not present in the provided context.
 2. No bullet points, numbered lists, or hyphens used as dashes. Write normal paragraphs.
 3. End with exactly ONE clear call-to-action (from the skeleton).
