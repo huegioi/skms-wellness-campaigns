@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart2, Users, Loader2, AlertCircle, ChevronDown, Activity } from 'lucide-react';
 import HeroMetricCard from './HeroMetricCard';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
-import { getInstrumentKey, getScore, matchPairs, calcStats } from '@/components/feedback/instrumentMeta';
+import { getInstrumentKey, getScore, matchPairs, calcStats, computeEnps } from '@/components/feedback/instrumentMeta';
 
 // Direction-of-good color for a delta.
 function deltaColor(delta, directionOfGood = 'higher') {
@@ -24,17 +24,12 @@ function who5StatsForRows(rows) {
   return calcStats(allPairs, allDistinct, 'higher');
 }
 
-// Compute average eNPS (with pulse fallback) and the count of non-null responses.
-function avgEnpsForRows(cohortRows, pulseRows) {
+// True eNPS (promoters − detractors) with pulse fallback.
+function enpsForRows(cohortRows, pulseRows) {
   const enpsRows = cohortRows.filter(r => getInstrumentKey(r) === 'enps');
-  const enpsScores = enpsRows.map(r => getScore(r)).filter(s => s != null);
-  if (enpsScores.length) {
-    return { avg: enpsScores.reduce((s, v) => s + v, 0) / enpsScores.length, count: enpsScores.length };
-  }
-  const npsScores = pulseRows.filter(r => r.nps_score != null).map(r => r.nps_score);
-  return npsScores.length
-    ? { avg: npsScores.reduce((s, v) => s + v, 0) / npsScores.length, count: npsScores.length }
-    : { avg: null, count: 0 };
+  let scores = enpsRows.map(r => getScore(r)).filter(s => s != null);
+  if (!scores.length) scores = pulseRows.filter(r => r.nps_score != null).map(r => r.nps_score);
+  return computeEnps(scores);
 }
 
 export default function BrokerFeedbackRollup({ clientCompanies = [], services = [], portalId }) {
@@ -78,11 +73,11 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
   const aggregateWho5N = aggregateWho5Stats?.n ?? 0;
 
   const enpsInfo = useMemo(
-    () => avgEnpsForRows(allCohortAssessments, allResponses),
+    () => enpsForRows(allCohortAssessments, allResponses),
     [allCohortAssessments, allResponses]
   );
-  const avgEnps = enpsInfo.avg;
-  const enpsCount = enpsInfo.count;
+  const enpsValue = enpsInfo.enps;
+  const enpsCount = enpsInfo.n;
 
   // ── Per-client breakdown ────────────────────────────────────────────────────
   const clientBreakdown = useMemo(() => {
@@ -96,9 +91,9 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
       const who5Stats = who5StatsForRows(cohortRows);
       const who5Delta = who5Stats?.avgDelta ?? null;
       const who5N = who5Stats?.n ?? 0;
-      const enpsInfo = avgEnpsForRows(cohortRows, responses);
-      const enps = enpsInfo.avg;
-      const enpsCount = enpsInfo.count;
+      const enpsInfo = enpsForRows(cohortRows, responses);
+      const enps = enpsInfo.enps;
+      const enpsCount = enpsInfo.n;
 
       const impactTally = {};
       for (const r of responses) {
@@ -200,9 +195,9 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
                 color="#264d44"
               />
               <HeroMetricCard
-                label="Avg eNPS"
-                value={avgEnps != null && enpsCount >= 5 ? `${avgEnps.toFixed(1)}/10` : 'Collecting data'}
-                caption="Likelihood to recommend the program."
+                label="eNPS"
+                value={enpsValue != null && enpsCount >= 5 ? `${enpsValue >= 0 ? '+' : ''}${enpsValue}` : 'Collecting data'}
+                caption={enpsValue != null && enpsCount >= 5 ? `employee Net Promoter Score · ${enpsCount} responses` : 'Likelihood to recommend the program.'}
                 evidenceTier="Advocacy"
                 color="#013f7c"
               />
@@ -258,7 +253,7 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
                           <div>
                             <p className="text-xs text-gray-400 mb-0.5">eNPS</p>
                             <p className="text-sm font-semibold text-gray-700">
-                              {c.enps != null && c.enpsCount >= 5 ? `${c.enps.toFixed(1)}/10` : 'Collecting data'}
+                              {c.enps != null && c.enpsCount >= 5 ? `${c.enps >= 0 ? '+' : ''}${c.enps}` : 'Collecting data'}
                             </p>
                           </div>
                           <div>

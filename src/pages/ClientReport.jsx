@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Printer, ArrowLeft, ShieldAlert } from 'lucide-react';
 import ReportWellbeingOutcomes from '@/components/feedback/ReportWellbeingOutcomes';
+import { computeEnps } from '@/components/feedback/instrumentMeta';
 
 function avg(arr, key) {
   const vals = arr.map(r => r[key]).filter(v => v != null && !isNaN(v));
@@ -70,14 +71,8 @@ export default function ClientReport() {
     }))
     .sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
 
-  // eNPS — promoters/detractors/denominator from ONLY rows with a non-null nps_score.
-  // (null <= 6 is true in JS, so the old formula counted non-resolvers as detractors.)
-  const withNPS = useMemo(() => responses.filter(r => r.nps_score != null), [responses]);
-  const promoters = useMemo(() => withNPS.filter(r => r.nps_score >= 9).length, [withNPS]);
-  const detractors = useMemo(() => withNPS.filter(r => r.nps_score <= 6).length, [withNPS]);
-  const npsScore = withNPS.length
-    ? Math.round(((promoters - detractors) / withNPS.length) * 100)
-    : null;
+  // eNPS — true promoters (>=9) − detractors (<=6) via the shared helper.
+  const npsScore = useMemo(() => computeEnps(responses.map(r => r.nps_score)).enps, [responses]);
 
   // Distinct sessions covered by pulse responses
   const distinctSessions = useMemo(
@@ -212,7 +207,7 @@ export default function ClientReport() {
                   const svc = serviceMap[key];
                   const name = svc?.name || recs[0]?.service_name || key;
                   const sConf = avg(recs, 'fit_confidence');
-                  const sNPS = avg(recs, 'nps_score');
+                  const sEnps = computeEnps(recs.map(r => r.nps_score));
                   const impacts = topImpacts(recs, 3);
                   const progSessions = new Set(recs.map(r => r.event_id).filter(Boolean)).size;
                   return (
@@ -229,10 +224,10 @@ export default function ClientReport() {
                               <p className="font-bold text-lg text-[#770142]">{sConf.toFixed(1)}/10</p>
                             </div>
                           )}
-                          {sNPS != null && (
+                          {sEnps.enps != null && sEnps.n >= 5 && (
                             <div>
-                              <p className="text-xs text-gray-400">Avg eNPS</p>
-                              <p className="font-bold text-lg text-[#013f7c]">{sNPS.toFixed(1)}/10</p>
+                              <p className="text-xs text-gray-400">eNPS</p>
+                              <p className="font-bold text-lg text-[#013f7c]">{sEnps.enps >= 0 ? '+' : ''}{sEnps.enps}</p>
                             </div>
                           )}
                         </div>

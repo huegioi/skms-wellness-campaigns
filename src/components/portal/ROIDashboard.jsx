@@ -11,7 +11,7 @@ import EngagementTrendChart from './EngagementTrendChart';
 import AdminLinkSection from './AdminLinkSection';
 import MethodologyNote from '@/components/feedback/MethodologyNote';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
-import { getInstrumentKey, getScore, matchPairs, calcStats } from '@/components/feedback/instrumentMeta';
+import { getInstrumentKey, getScore, matchPairs, calcStats, computeEnps } from '@/components/feedback/instrumentMeta';
 
 function ConfidenceBar({ value, max = 10 }) {
   const pct = Math.round((value / max) * 100);
@@ -107,19 +107,13 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
     return entries.length > 0 ? entries[0][0].split(' ').slice(0, 2).join(' ') + '…' : null;
   }, [pulseResponses]);
 
-  // ── Hero metric: eNPS ────────────────────────────────────────────────────────
-  const { avgEnps, enpsCount } = useMemo(() => {
-    // Prefer CohortAssessment enps data
+  // ── Hero metric: eNPS (true promoters − detractors) ─────────────────────────
+  // Source preference unchanged: CohortAssessment enps rows first, else pulse nps_score.
+  const { enps: enpsValue, n: enpsCount } = useMemo(() => {
     const enpsRows = cohortAssessments.filter(r => getInstrumentKey(r) === 'enps');
-    const enpsScores = enpsRows.map(r => getScore(r)).filter(s => s != null);
-    if (enpsScores.length) {
-      return { avgEnps: enpsScores.reduce((s, v) => s + v, 0) / enpsScores.length, enpsCount: enpsScores.length };
-    }
-    // Fall back to FeedbackResponse nps_score
-    const npsScores = pulseResponses.filter(r => r.nps_score != null).map(r => r.nps_score);
-    return npsScores.length
-      ? { avgEnps: npsScores.reduce((s, v) => s + v, 0) / npsScores.length, enpsCount: npsScores.length }
-      : { avgEnps: null, enpsCount: 0 };
+    let scores = enpsRows.map(r => getScore(r)).filter(s => s != null);
+    if (!scores.length) scores = pulseResponses.filter(r => r.nps_score != null).map(r => r.nps_score);
+    return computeEnps(scores);
   }, [cohortAssessments, pulseResponses]);
 
   // ── Narrative year ───────────────────────────────────────────────────────────
@@ -267,8 +261,8 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
             />
             <HeroMetricCard
               label="eNPS"
-              value={avgEnps != null && enpsCount >= 5 ? `${avgEnps.toFixed(1)}/10` : 'Collecting data'}
-              caption="Likelihood to recommend the program."
+              value={enpsValue != null && enpsCount >= 5 ? `${enpsValue >= 0 ? '+' : ''}${enpsValue}` : 'Collecting data'}
+              caption={enpsValue != null && enpsCount >= 5 ? `employee Net Promoter Score · ${enpsCount} responses` : 'Likelihood to recommend the program.'}
               evidenceTier="Advocacy"
               color="#013f7c"
             />

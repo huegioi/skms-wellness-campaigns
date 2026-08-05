@@ -10,8 +10,8 @@ export const INSTRUMENT_META = {
   },
   uwes3: {
     label: 'UWES-3 Work Engagement',
-    scale: '0–18 · higher is better',
-    interpretation: 'Three-item work engagement scale. Higher means more energy, enthusiasm, and immersion at work.',
+    scale: '0–6 · higher is better',
+    interpretation: 'Three-item work engagement scale — the score is the MEAN of the three 0–6 items, so it ranges 0–6. Higher means more energy, enthusiasm, and immersion at work.',
     directionOfGood: 'higher',
   },
   pss4: {
@@ -28,8 +28,8 @@ export const INSTRUMENT_META = {
   },
   cbi: {
     label: 'CBI Burnout',
-    scale: '0–24 · lower is better',
-    interpretation: 'A 6-item burnout scale. Lower means less burnout.',
+    scale: '0–100 · lower is better',
+    interpretation: 'A 6-item burnout scale using the standard CBI 0–100 scoring (each 0–4 item rescaled ×25 and averaged). Lower means less burnout.',
     directionOfGood: 'lower',
   },
   enps: {
@@ -107,10 +107,10 @@ export function calcStats(pairs, distinctStarts, directionOfGood = 'higher') {
 // invert: true for "lower is better" instruments so "up" always reads as better.
 export const NORM_RANGES = {
   who5:  { min: 0, max: 100, invert: false },
-  uwes3: { min: 0, max: 18, invert: false },
+  uwes3: { min: 0, max: 6, invert: false },
   pss4:  { min: 0, max: 16, invert: true },
   ucla3: { min: 3, max: 9, invert: true },
-  cbi:   { min: 0, max: 24, invert: true },
+  cbi:   { min: 0, max: 100, invert: true },
   enps:  { min: 0, max: 10, invert: false },
 };
 
@@ -122,4 +122,18 @@ export function normalizeScore(score, instrumentKey) {
   const pct = ((score - range.min) / (range.max - range.min)) * 100;
   const clamped = Math.max(0, Math.min(100, pct));
   return range.invert ? 100 - clamped : clamped;
+}
+
+// True eNPS: promoters (>=9) minus detractors (<=6), ÷ n, ×100.
+// Single shared definition everywhere the label says "eNPS".
+// Returns { enps, n, promoters, passives, detractors }; enps is null when n === 0.
+export function computeEnps(scores) {
+  const valid = (scores || []).filter(s => s != null && !isNaN(s));
+  const n = valid.length;
+  if (n === 0) return { enps: null, n: 0, promoters: 0, passives: 0, detractors: 0 };
+  const promoters = valid.filter(s => s >= 9).length;
+  const detractors = valid.filter(s => s <= 6).length;
+  const passives = n - promoters - detractors;
+  const enps = Math.round(((promoters - detractors) / n) * 100);
+  return { enps, n, promoters, passives, detractors };
 }

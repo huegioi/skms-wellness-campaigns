@@ -53,6 +53,7 @@ Deno.serve(async (req) => {
     client_id,
     service_id,
     proposal_id,
+    event_id,
     participant_email,
     participant_phone,
     survey_type,
@@ -78,8 +79,17 @@ Deno.serve(async (req) => {
   }
 
   const normalizedEmail = participant_email.toLowerCase().trim();
-  const cohort_year = new Date().getFullYear();
   const submitted_at = new Date().toISOString();
+
+  // cohort_year: stamp from the linked CalendarEvent's start_date year when an
+  // event_id is available (matching the check-in path); else fall back to now.
+  let cohort_year = new Date().getFullYear();
+  if (event_id) {
+    try {
+      const events = await base44.asServiceRole.entities.CalendarEvent.filter({ id: event_id });
+      if (events[0]?.start_date) cohort_year = new Date(events[0].start_date).getFullYear();
+    } catch { /* fall back to submission year */ }
+  }
 
   // ── Determine path: new generic instrument OR legacy WHO-5 fields ──
 
@@ -153,6 +163,7 @@ Deno.serve(async (req) => {
     client_id: client_id || null,
     service_id: service_id || null,
     proposal_id: proposal_id || null,
+    event_id: event_id || null,
     participant_email: normalizedEmail,
     participant_phone: participant_phone || null,
     survey_type,
@@ -163,7 +174,36 @@ Deno.serve(async (req) => {
     cohort_year,
     submitted_at,
     assessment_phase,
+    is_demo: false,
   };
+
+  // ── Dedup (update-in-place on duplicate) ────────────────────────────────────
+  // baseline types (cohort_start, challenge_day0): email + client_id + survey_type + cohort_year
+  // end/session types WITH event_id: email + event_id + survey_type
+  // end types WITHOUT event_id: email + client_id + survey_type + cohort_year
+  const isBaseline = survey_type === 'cohort_start' || survey_type === 'challenge_day0';
+  const dedupFilter = { participant_email: normalizedEmail, survey_type };
+  if (isBaseline || !event_id) {
+    dedupFilter.cohort_year = cohort_year;
+    if (client_id) dedupFilter.client_id = client_id;
+  } else {
+    dedupFilter.event_id = event_id;
+  }
+
+  const existing = await base44.asServiceRole.entities.CohortAssessment.filter(dedupFilter);
+  if (existing.length > 0) {
+    const existingRow = existing[0];
+    await base44.asServiceRole.entities.CohortAssessment.update(existingRow.id, {
+      instrument_total,
+      item_responses: finalItemResponses,
+      ...who5Fields,
+      cohort_year,
+      event_id: event_id || existingRow.event_id || null,
+      submitted_at,
+      assessment_phase,
+    });
+    return Response.json({ success: true, id: existingRow.id, updated: true, instrument: effectiveInstrument, instrument_total, cohort_year });
+  }
 
   const created = await base44.asServiceRole.entities.CohortAssessment.create(record);
 

@@ -148,7 +148,7 @@ export default function FeedbackAnalytics() {
   // ── Data fetching ─────────────────────────────────────────────────────────
   const { data: responses = [], isLoading } = useQuery({
     queryKey: ['feedback-responses-all'],
-    queryFn: () => base44.entities.FeedbackResponse.list('-submitted_at', 1000),
+    queryFn: () => base44.entities.FeedbackResponse.filter({ is_demo: { $ne: true } }, '-submitted_at', 1000),
   });
 
   // Fetch calendar events to enrich responses with presenter + delivery_format

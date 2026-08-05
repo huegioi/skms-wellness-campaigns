@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CheckCircle2, ChevronLeft, ChevronRight, Loader2, Lock } from 'lucide-react';
@@ -19,10 +19,12 @@ const TIMING_MAP = {
 
 export default function CohortAssessmentPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const token = searchParams.get('t');
   const service_id = searchParams.get('service_id') || '';
   const client_id = searchParams.get('client_id') || '';
   const proposal_id = searchParams.get('proposal_id') || '';
+  const event_id = searchParams.get('event_id') || '';
   const timing = searchParams.get('timing') || 'day0';
 
   // ── Token resolution ──
@@ -80,6 +82,15 @@ export default function CohortAssessmentPage() {
     if (tokenData?.email) setEmail(tokenData.email);
   }, [tokenData]);
 
+  // Legacy enps_post_session tokens predate the Pulse form — redirect them to the
+  // working AttendeeForm (which submits via submitFeedbackResponse) so old email
+  // links land on a functioning survey instead of a 400 from submitCohortAssessment.
+  useEffect(() => {
+    if (tokenData?.survey_type === 'enps_post_session' && token) {
+      navigate(`/AttendeeForm?t=${encodeURIComponent(token)}`, { replace: true });
+    }
+  }, [tokenData, token, navigate]);
+
   const currentInstrument = stepIndex > 0 ? instruments[stepIndex - 1] : null;
   const instrumentAnswers = currentInstrument ? (answers[currentInstrument.key] || {}) : {};
   const allCurrentAnswered = currentInstrument
@@ -106,6 +117,7 @@ export default function CohortAssessmentPage() {
             client_id: effectiveClientId,
             service_id: effectiveServiceId,
             proposal_id,
+            event_id: tokenData?.event_id || event_id || undefined,
             participant_email: email.trim(),
             participant_phone: phone.trim() || undefined,
             survey_type: effectiveSurveyType,

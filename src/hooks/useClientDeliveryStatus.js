@@ -204,7 +204,7 @@ export function useClientDeliveryStatus(clients) {
 
   const { data: feedback = [] } = useQuery({
     queryKey: ['delivery-feedback'],
-    queryFn: () => base44.entities.FeedbackResponse.list('-submitted_at', 500),
+    queryFn: () => base44.entities.FeedbackResponse.filter({ is_demo: { $ne: true } }, '-submitted_at', 500),
     enabled,
   });
 

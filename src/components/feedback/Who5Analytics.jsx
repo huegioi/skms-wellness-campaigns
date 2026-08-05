@@ -74,8 +74,8 @@ function buildCombinedStats(rows) {
 
 export default function Who5Analytics({ filters }) {
   const { data: allAssessments = [], isLoading: loadingA } = useQuery({
-    queryKey: ['cohort-assessments-all'],
-    queryFn: () => base44.entities.CohortAssessment.list('-submitted_at', 2000),
+    queryKey: ['cohort-assessments-analytics'],
+    queryFn: () => base44.entities.CohortAssessment.filter({ is_demo: { $ne: true }, survey_type: { $ne: 'mfs' } }, '-submitted_at', 2000),
   });
 
   const { data: clients = [] } = useQuery({
@@ -85,7 +85,7 @@ export default function Who5Analytics({ filters }) {
 
   const { data: pulseResponses = [] } = useQuery({
     queryKey: ['feedback-responses-all'],
-    queryFn: () => base44.entities.FeedbackResponse.list('-submitted_at', 1000),
+    queryFn: () => base44.entities.FeedbackResponse.filter({ is_demo: { $ne: true } }, '-submitted_at', 1000),
   });
 
   // ── Apply filters to assessments ────────────────────────────────────────────
@@ -113,7 +113,7 @@ export default function Who5Analytics({ filters }) {
 
   const cohortRows = useMemo(() =>
     filteredAssessments.filter(r =>
-      (r.survey_type === 'cohort_start' || r.survey_type === 'cohort_end') &&
+      (r.survey_type === 'cohort_start' || r.survey_type === 'cohort_end' || r.survey_type === 'session_check') &&
       (!instrumentFilter || getInstrumentKey(r) === filters.instrument)
     ),
     [filteredAssessments, instrumentFilter, filters.instrument]
