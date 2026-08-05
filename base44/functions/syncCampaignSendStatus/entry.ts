@@ -190,10 +190,11 @@ Deno.serve(async (req) => {
               }
             }
 
-            // Check if draft was sent: draft gone AND sent message exists
-            const draftExists = await checkDraftExists(accessToken, r.gmail_draft_id);
-            if (draftExists) continue; // Still in drafts, not sent yet
-
+            // Check if a matching message was sent. We deliberately do NOT require
+            // the draft to be gone first: Gmail keeps the draft resource retrievable
+            // by its original id after Schedule Send delivers the message (verified
+            // empirically 2026-08-05 — drafts.get returned 200 for four drafts whose
+            // messages were already in Sent). A found sent-message always wins.
             const approvedTs = Math.floor(new Date(r.approved_at).getTime() / 1000);
             const sentMsg = await searchMessages(accessToken, `to:${r.email} after:${approvedTs} in:sent`);
 
