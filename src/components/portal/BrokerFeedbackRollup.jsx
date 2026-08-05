@@ -14,24 +14,27 @@ function deltaColor(delta, directionOfGood = 'higher') {
   return isGood ? '#264d44' : '#dc2626';
 }
 
-// Compute WHO-5 matched-pair delta for a set of cohort assessment rows.
-function who5DeltaForRows(rows) {
+// Compute WHO-5 matched-pair stats for a set of cohort assessment rows.
+function who5StatsForRows(rows) {
   const who5Rows = rows.filter(r => getInstrumentKey(r) === 'who5');
   const cohortResult = matchPairs(who5Rows, 'cohort_start', ['cohort_end', 'session_check']);
   const challengeResult = matchPairs(who5Rows, 'challenge_day0', 'challenge_day14');
   const allPairs = [...cohortResult.pairs, ...challengeResult.pairs];
   const allDistinct = cohortResult.distinctStarts + challengeResult.distinctStarts;
-  const stats = calcStats(allPairs, allDistinct, 'higher');
-  return stats?.avgDelta ?? null;
+  return calcStats(allPairs, allDistinct, 'higher');
 }
 
-// Compute average eNPS for a set of cohort assessment rows (with pulse fallback).
+// Compute average eNPS (with pulse fallback) and the count of non-null responses.
 function avgEnpsForRows(cohortRows, pulseRows) {
   const enpsRows = cohortRows.filter(r => getInstrumentKey(r) === 'enps');
   const enpsScores = enpsRows.map(r => getScore(r)).filter(s => s != null);
-  if (enpsScores.length) return enpsScores.reduce((s, v) => s + v, 0) / enpsScores.length;
+  if (enpsScores.length) {
+    return { avg: enpsScores.reduce((s, v) => s + v, 0) / enpsScores.length, count: enpsScores.length };
+  }
   const npsScores = pulseRows.filter(r => r.nps_score != null).map(r => r.nps_score);
-  return npsScores.length ? npsScores.reduce((s, v) => s + v, 0) / npsScores.length : null;
+  return npsScores.length
+    ? { avg: npsScores.reduce((s, v) => s + v, 0) / npsScores.length, count: npsScores.length }
+    : { avg: null, count: 0 };
 }
 
 export default function BrokerFeedbackRollup({ clientCompanies = [], services = [], portalId }) {
@@ -67,15 +70,19 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
     return allEmails.size > 0 ? allEmails.size : allResponses.length;
   }, [allResponses, allCohortAssessments, allCheckins]);
 
-  const aggregateWho5Delta = useMemo(
-    () => who5DeltaForRows(allCohortAssessments),
+  const aggregateWho5Stats = useMemo(
+    () => who5StatsForRows(allCohortAssessments),
     [allCohortAssessments]
   );
+  const aggregateWho5Delta = aggregateWho5Stats?.avgDelta ?? null;
+  const aggregateWho5N = aggregateWho5Stats?.n ?? 0;
 
-  const avgEnps = useMemo(
+  const enpsInfo = useMemo(
     () => avgEnpsForRows(allCohortAssessments, allResponses),
     [allCohortAssessments, allResponses]
   );
+  const avgEnps = enpsInfo.avg;
+  const enpsCount = enpsInfo.count;
 
   // ── Per-client breakdown ────────────────────────────────────────────────────
   const clientBreakdown = useMemo(() => {
@@ -86,8 +93,12 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
       const withConf = responses.filter(r => r.fit_confidence != null);
       const avgConf = withConf.length ? withConf.reduce((s, r) => s + r.fit_confidence, 0) / withConf.length : null;
 
-      const who5Delta = who5DeltaForRows(cohortRows);
-      const enps = avgEnpsForRows(cohortRows, responses);
+      const who5Stats = who5StatsForRows(cohortRows);
+      const who5Delta = who5Stats?.avgDelta ?? null;
+      const who5N = who5Stats?.n ?? 0;
+      const enpsInfo = avgEnpsForRows(cohortRows, responses);
+      const enps = enpsInfo.avg;
+      const enpsCount = enpsInfo.count;
 
       const impactTally = {};
       for (const r of responses) {
@@ -105,7 +116,7 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
         .map(id => services.find(s => s.id === id))
         .filter(Boolean);
 
-      return { ...c, responseCount: responses.length, avgConf, who5Delta, enps, topImpact, clientServices };
+      return { ...c, responseCount: responses.length, avgConf, who5Delta, who5N, enps, enpsCount, topImpact, clientServices };
     }).sort((a, b) => b.responseCount - a.responseCount);
   }, [allResponses, allCohortAssessments, clientCompanies, services]);
 
@@ -177,14 +188,20 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
               />
               <HeroMetricCard
                 label="Wellbeing Change"
-                value={aggregateWho5Delta != null ? `${aggregateWho5Delta >= 0 ? '+' : ''}${aggregateWho5Delta.toFixed(0)}` : '—'}
-                caption={aggregateWho5Delta != null ? 'WHO-5 pre→post delta (matched participants).' : 'Awaiting pre/post data.'}
+                value={aggregateWho5Delta != null && aggregateWho5N >= 5 ? `${aggregateWho5Delta >= 0 ? '+' : ''}${aggregateWho5Delta.toFixed(0)}` : '—'}
+                caption={
+                  aggregateWho5Delta != null && aggregateWho5N >= 5
+                    ? 'WHO-5 pre→post delta (matched participants).'
+                    : aggregateWho5Delta != null
+                      ? `Awaiting pre/post data (collecting — n=${aggregateWho5N} of 5).`
+                      : 'Awaiting pre/post data.'
+                }
                 evidenceTier="Uncontrolled pre/post"
                 color="#264d44"
               />
               <HeroMetricCard
                 label="Avg eNPS"
-                value={avgEnps != null ? `${avgEnps.toFixed(1)}/10` : '—'}
+                value={avgEnps != null && enpsCount >= 5 ? `${avgEnps.toFixed(1)}/10` : 'Collecting data'}
                 caption="Likelihood to recommend the program."
                 evidenceTier="Advocacy"
                 color="#013f7c"
@@ -216,7 +233,7 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
                         <div className="flex items-center gap-4 text-right shrink-0">
                           <div className="text-right">
                             <p className="text-xs text-gray-400">WHO-5</p>
-                            {c.who5Delta != null ? (
+                            {c.who5Delta != null && c.who5N >= 5 ? (
                               <p className="text-sm font-bold" style={{ color: deltaColor(c.who5Delta, 'higher') }}>
                                 {c.who5Delta >= 0 ? '+' : ''}{c.who5Delta.toFixed(0)}
                               </p>
@@ -241,7 +258,7 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
                           <div>
                             <p className="text-xs text-gray-400 mb-0.5">eNPS</p>
                             <p className="text-sm font-semibold text-gray-700">
-                              {c.enps != null ? `${c.enps.toFixed(1)}/10` : '—'}
+                              {c.enps != null && c.enpsCount >= 5 ? `${c.enps.toFixed(1)}/10` : 'Collecting data'}
                             </p>
                           </div>
                           <div>

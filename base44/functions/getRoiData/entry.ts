@@ -15,7 +15,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
  * Returned rows are projected to portal-rendered fields only.
  */
 
-const PORTAL_FEEDBACK_FIELDS = [
+// Full projections — authenticated admin path only (keeps PII + item-level data).
+const FULL_FEEDBACK_FIELDS = [
   'id', 'client_id', 'service_id', 'service_name', 'service_category', 'event_id',
   'event_label', 'attendee_name', 'attendee_email', 'company_name',
   'email_address', 'submitted_at', 'presenter', 'delivery_format',
@@ -23,7 +24,7 @@ const PORTAL_FEEDBACK_FIELDS = [
   'nps_score', 'is_demo'
 ];
 
-const PORTAL_COHORT_FIELDS = [
+const FULL_COHORT_FIELDS = [
   'id', 'client_id', 'service_id', 'proposal_id', 'event_id',
   'participant_email', 'survey_type', 'instrument',
   'instrument_total', 'instrument_subscores', 'item_responses',
@@ -31,6 +32,54 @@ const PORTAL_COHORT_FIELDS = [
   'who5_interested', 'who5_total', 'cohort_year', 'submitted_at',
   'assessment_phase', 'is_demo'
 ];
+
+// Portal projections — client_token / portal_id paths. No attendee PII, no
+// item-level responses; participant_email is replaced with a salted SHA-256
+// pseudonym (see pseudonymizeEmail) so matchPairs grouping still works.
+const PORTAL_FEEDBACK_FIELDS = [
+  'id', 'client_id', 'service_id', 'service_name', 'service_category', 'event_id',
+  'event_label', 'company_name',
+  'submitted_at', 'presenter', 'delivery_format',
+  'behavior_intent', 'fit_confidence', 'expected_impact',
+  'nps_score', 'is_demo'
+];
+
+const PORTAL_COHORT_FIELDS = [
+  'id', 'client_id', 'service_id', 'proposal_id', 'event_id',
+  'participant_email', 'survey_type', 'instrument',
+  'instrument_total', 'who5_total', 'cohort_year', 'submitted_at',
+  'assessment_phase', 'is_demo'
+];
+
+const PORTAL_HASH_SALT = Deno.env.get('PORTAL_HASH_SALT') || Deno.env.get('BASE44_APP_ID') || 'portal-pid-salt-v1';
+
+// pid = first 12 hex chars of SHA-256(lowercased email + server-side salt).
+// Deterministic + stable across calls/paths so cross-row pairing by
+// participant_email (matchPairs tests equality only) keeps working.
+async function pseudonymizeEmail(email) {
+  if (!email) return '';
+  const normalized = String(email).toLowerCase().trim();
+  if (!normalized) return '';
+  const data = new TextEncoder().encode(normalized + PORTAL_HASH_SALT);
+  const hashBuf = await crypto.subtle.digest('SHA-256', data);
+  const hex = [...new Uint8Array(hashBuf)].map(b => b.toString(16).padStart(2, '0')).join('');
+  return hex.slice(0, 12);
+}
+
+// Replace the email field on each row with its pseudonym (in place).
+// Cached so repeat emails within one response are hashed once.
+async function pseudonymizeField(rows, field, cache) {
+  for (const r of rows) {
+    const raw = r[field];
+    if (!raw) continue;
+    const key = String(raw).toLowerCase().trim();
+    if (!key) continue;
+    let pid = cache.get(key);
+    if (!pid) { pid = await pseudonymizeEmail(raw); cache.set(key, pid); }
+    r[field] = pid;
+  }
+  return rows;
+}
 
 function projectRow(row, fields) {
   const out = {};
@@ -43,9 +92,11 @@ function projectRow(row, fields) {
 /**
  * Fetches check-in rows for the given client IDs' CalendarEvents.
  * Excludes demo events and demo check-ins.
- * Returns projected rows: { event_id, email, checked_in_at }
+ * When stripPii is true (portal/broker paths), projects to
+ *   { id, event_id, client_id, checked_in_at }  — no name, no email.
+ * When false (admin path), keeps email for the people-engaged count.
  */
-async function fetchCheckinsForClients(base44, clientIds) {
+async function fetchCheckinsForClients(base44, clientIds, stripPii = false) {
   if (!clientIds || clientIds.length === 0) return [];
   const events = await base44.asServiceRole.entities.CalendarEvent.filter(
     { client_id: { $in: clientIds }, is_demo: { $ne: true } },
@@ -59,6 +110,14 @@ async function fetchCheckinsForClients(base44, clientIds) {
     '-checked_in_at',
     2000
   );
+  if (stripPii) {
+    return checkins.map(c => ({
+      id: c.id,
+      event_id: c.event_id,
+      client_id: c.client_id,
+      checked_in_at: c.checked_in_at,
+    }));
+  }
   return checkins.map(c => ({
     event_id: c.event_id,
     email: c.email,
@@ -103,7 +162,9 @@ Deno.serve(async (req) => {
 
       const feedback = feedbackResults.flat().map(r => projectRow(r, PORTAL_FEEDBACK_FIELDS));
       const cohorts = cohortResults.flat().map(r => projectRow(r, PORTAL_COHORT_FIELDS));
-      const checkins = await fetchCheckinsForClients(base44, validIds);
+      const pidCache = new Map();
+      await pseudonymizeField(cohorts, 'participant_email', pidCache);
+      const checkins = await fetchCheckinsForClients(base44, validIds, true);
       return Response.json({ allowed: true, feedback_responses: feedback, cohort_assessments: cohorts, checkins });
     }
 
@@ -154,12 +215,23 @@ Deno.serve(async (req) => {
       base44.asServiceRole.entities.CohortAssessment.filter({ client_id, is_demo: { $ne: true }, survey_type: { $ne: 'mfs' } }, '-submitted_at', 500),
     ]);
 
-    const checkins = await fetchCheckinsForClients(base44, [client_id]);
+    // Portal paths (client_token or portal_id) strip PII + pseudonymize;
+    // the authenticated-admin path keeps full fields.
+    const isPortalPath = !!(client_token || portal_id);
+    const feedbackFields = isPortalPath ? PORTAL_FEEDBACK_FIELDS : FULL_FEEDBACK_FIELDS;
+    const cohortFields = isPortalPath ? PORTAL_COHORT_FIELDS : FULL_COHORT_FIELDS;
+    const projectedFeedback = feedback.map(r => projectRow(r, feedbackFields));
+    const projectedCohorts = cohorts.map(r => projectRow(r, cohortFields));
+    if (isPortalPath) {
+      const pidCache = new Map();
+      await pseudonymizeField(projectedCohorts, 'participant_email', pidCache);
+    }
+    const checkins = await fetchCheckinsForClients(base44, [client_id], isPortalPath);
 
     return Response.json({
       allowed: true,
-      feedback_responses: feedback.map(r => projectRow(r, PORTAL_FEEDBACK_FIELDS)),
-      cohort_assessments: cohorts.map(r => projectRow(r, PORTAL_COHORT_FIELDS)),
+      feedback_responses: projectedFeedback,
+      cohort_assessments: projectedCohorts,
       checkins,
     });
   } catch (error) {

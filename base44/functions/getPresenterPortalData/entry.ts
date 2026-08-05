@@ -15,35 +15,21 @@ Deno.serve(async (req) => {
     }
     const presenter = presenters[0];
     const presenterFullName = (presenter.name || '').trim();
-    const presenterFirstName = presenterFullName.split(' ')[0];
 
-    // Check if first name is unique among all presenters (to avoid ambiguous matches)
-    let firstNameIsUnique = false;
-    if (presenterFirstName && presenterFirstName !== presenterFullName) {
-      const allPresenters = await base44.asServiceRole.entities.Presenter.list('name', 500);
-      const matchingFirst = allPresenters.filter(p =>
-        (p.name || '').trim().split(' ')[0].toLowerCase() === presenterFirstName.toLowerCase()
-      );
-      firstNameIsUnique = matchingFirst.length === 1;
-    }
-
-    // Fetch events by presenter_id, full name, and (if unique) first name — in parallel
+    // Match by presenter_id first (authoritative), then exact full-name fallback.
     const queries = [
       base44.asServiceRole.entities.CalendarEvent.filter({ presenter_id: presenter.id }, 'start_date', 500),
       presenterFullName
         ? base44.asServiceRole.entities.CalendarEvent.filter({ presenter: presenterFullName }, 'start_date', 500)
         : Promise.resolve([]),
-      firstNameIsUnique
-        ? base44.asServiceRole.entities.CalendarEvent.filter({ presenter: presenterFirstName }, 'start_date', 500)
-        : Promise.resolve([])
     ];
 
-    const [byId, byFullName, byFirstName] = await Promise.all(queries);
+    const [byId, byFullName] = await Promise.all(queries);
 
     // Merge and deduplicate by event id
     const seen = new Set();
     const allEvents = [];
-    for (const e of [...byId, ...byFullName, ...byFirstName]) {
+    for (const e of [...byId, ...byFullName]) {
       if (!seen.has(e.id)) {
         seen.add(e.id);
         allEvents.push(e);
@@ -99,12 +85,16 @@ Deno.serve(async (req) => {
       cohortEndCounts.set(k, (cohortEndCounts.get(k) || 0) + 1);
     }
 
-    // Fetch check-in counts per event
+    // Fetch check-in counts per event (scoped to matched events only)
     const eventIds = allEvents.map(e => e.id).filter(Boolean);
     const checkinCountMap = new Map();
     if (eventIds.length > 0) {
-      const allCheckins = await base44.asServiceRole.entities.EventCheckin.filter({}, '-checked_in_at', 500);
-      for (const c of allCheckins) {
+      const matchedCheckins = await base44.asServiceRole.entities.EventCheckin.filter(
+        { event_id: { $in: eventIds } },
+        '-checked_in_at',
+        2000
+      );
+      for (const c of matchedCheckins) {
         if (c.event_id) {
           checkinCountMap.set(c.event_id, (checkinCountMap.get(c.event_id) || 0) + 1);
         }
@@ -167,7 +157,6 @@ Deno.serve(async (req) => {
           company: client.company,
           company_size: client.company_size,
           industry: client.industry,
-          notes: client.notes,
         } : null,
         materials: service?.resources?.map(r => ({ title: r.title, file_url: r.file_url, resource_type: r.resource_type })) || [],
         presenter_materials: service?.presenter_materials || [],

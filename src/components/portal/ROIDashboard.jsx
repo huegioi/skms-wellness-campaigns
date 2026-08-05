@@ -82,15 +82,16 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
   }, [pulseResponses, cohortAssessments, checkins]);
 
   // ── Hero metric: Wellbeing change (WHO-5 delta) ────────────────────────────
-  const who5Delta = useMemo(() => {
+  const who5Stats = useMemo(() => {
     const who5Rows = cohortAssessments.filter(r => getInstrumentKey(r) === 'who5');
     const cohortResult = matchPairs(who5Rows, 'cohort_start', ['cohort_end', 'session_check']);
     const challengeResult = matchPairs(who5Rows, 'challenge_day0', 'challenge_day14');
     const allPairs = [...cohortResult.pairs, ...challengeResult.pairs];
     const allDistinct = cohortResult.distinctStarts + challengeResult.distinctStarts;
-    const stats = calcStats(allPairs, allDistinct, 'higher');
-    return stats?.avgDelta ?? null;
+    return calcStats(allPairs, allDistinct, 'higher');
   }, [cohortAssessments]);
+  const who5Delta = who5Stats?.avgDelta ?? null;
+  const who5N = who5Stats?.n ?? 0;
 
   // ── Hero metric: Top impact area ────────────────────────────────────────────
   const topImpact = useMemo(() => {
@@ -107,14 +108,18 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
   }, [pulseResponses]);
 
   // ── Hero metric: eNPS ────────────────────────────────────────────────────────
-  const avgEnps = useMemo(() => {
+  const { avgEnps, enpsCount } = useMemo(() => {
     // Prefer CohortAssessment enps data
     const enpsRows = cohortAssessments.filter(r => getInstrumentKey(r) === 'enps');
     const enpsScores = enpsRows.map(r => getScore(r)).filter(s => s != null);
-    if (enpsScores.length) return enpsScores.reduce((s, v) => s + v, 0) / enpsScores.length;
+    if (enpsScores.length) {
+      return { avgEnps: enpsScores.reduce((s, v) => s + v, 0) / enpsScores.length, enpsCount: enpsScores.length };
+    }
     // Fall back to FeedbackResponse nps_score
     const npsScores = pulseResponses.filter(r => r.nps_score != null).map(r => r.nps_score);
-    return npsScores.length ? npsScores.reduce((s, v) => s + v, 0) / npsScores.length : null;
+    return npsScores.length
+      ? { avgEnps: npsScores.reduce((s, v) => s + v, 0) / npsScores.length, enpsCount: npsScores.length }
+      : { avgEnps: null, enpsCount: 0 };
   }, [cohortAssessments, pulseResponses]);
 
   // ── Narrative year ───────────────────────────────────────────────────────────
@@ -242,8 +247,14 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
             />
             <HeroMetricCard
               label="Wellbeing Change"
-              value={who5Delta != null ? `${who5Delta >= 0 ? '+' : ''}${who5Delta.toFixed(0)}` : '—'}
-              caption={who5Delta != null ? "WHO-5 pre→post delta (matched participants)." : 'Awaiting pre/post data.'}
+              value={who5Delta != null && who5N >= 5 ? `${who5Delta >= 0 ? '+' : ''}${who5Delta.toFixed(0)}` : '—'}
+              caption={
+                who5Delta != null && who5N >= 5
+                  ? "WHO-5 pre→post delta (matched participants)."
+                  : who5Delta != null
+                    ? `Awaiting pre/post data (collecting — n=${who5N} of 5).`
+                    : 'Awaiting pre/post data.'
+              }
               evidenceTier="Uncontrolled pre/post"
               color="#264d44"
             />
@@ -256,7 +267,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
             />
             <HeroMetricCard
               label="eNPS"
-              value={avgEnps != null ? `${avgEnps.toFixed(1)}/10` : '—'}
+              value={avgEnps != null && enpsCount >= 5 ? `${avgEnps.toFixed(1)}/10` : 'Collecting data'}
               caption="Likelihood to recommend the program."
               evidenceTier="Advocacy"
               color="#013f7c"
@@ -347,7 +358,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
                 )}
 
                 {/* Voices */}
-                {voiceQuotes.length > 0 && (
+                {pulseResponses.length >= 5 && voiceQuotes.length > 0 && (
                   <div className="bg-white rounded-xl shadow-sm p-5">
                     <div className="flex items-center gap-2 mb-3">
                       <MessageSquare className="w-4 h-4 text-brand-navy" />
