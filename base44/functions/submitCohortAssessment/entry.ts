@@ -182,7 +182,10 @@ Deno.serve(async (req) => {
   // end/session types WITH event_id: email + event_id + survey_type
   // end types WITHOUT event_id: email + client_id + survey_type + cohort_year
   const isBaseline = survey_type === 'cohort_start' || survey_type === 'challenge_day0';
-  const dedupFilter = { participant_email: normalizedEmail, survey_type };
+  // instrument MUST be in the dedup key: a baseline battery submits one row PER
+  // instrument (who5, uwes3, ...) sharing email+survey_type+cohort_year — without
+  // it, the second instrument would overwrite the first's row.
+  const dedupFilter = { participant_email: normalizedEmail, survey_type, instrument: effectiveInstrument };
   if (isBaseline || !event_id) {
     dedupFilter.cohort_year = cohort_year;
     if (client_id) dedupFilter.client_id = client_id;
