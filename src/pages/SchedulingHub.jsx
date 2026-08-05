@@ -1113,7 +1113,7 @@ export default function SchedulingHub() {
                   <SelectContent>
                     {invoices.map(invoice => (
                       <SelectItem key={invoice.id} value={invoice.id}>
-                        {invoice.invoice_number || `Invoice #${invoice.id.slice(0, 8)}`} — {invoice.client_name || invoice.company} — ${invoice.total_amount?.toLocaleString()}
+                        {invoice.invoice_number || `Invoice #${invoice.id.slice(0, 8)}`} — {invoice.client_name || invoice.company} — ${invoice.total_amount?.toLocaleString()}{invoice.created_date ? ` — ${new Date(invoice.created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1126,7 +1126,7 @@ export default function SchedulingHub() {
                   <SelectContent>
                     {proposals.map(proposal => (
                       <SelectItem key={proposal.id} value={proposal.id}>
-                        {proposal.client_name} {proposal.company ? `— ${proposal.company}` : ''} — ${proposal.total_amount?.toLocaleString()}
+                        {proposal.client_name} {proposal.company ? `— ${proposal.company}` : ''} — ${proposal.total_amount?.toLocaleString()}{proposal.created_date ? ` — ${new Date(proposal.created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
