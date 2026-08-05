@@ -286,6 +286,7 @@ Deno.serve(async (req) => {
               all_day: !event.start?.dateTime,
               event_type: 'meeting',
               google_event_id: event.id || undefined,
+              checkin_token: crypto.randomUUID(),
               source_calendar: cal.id,
               ingested: true,
               referral_partner_id: matchedPartner?.id || undefined,

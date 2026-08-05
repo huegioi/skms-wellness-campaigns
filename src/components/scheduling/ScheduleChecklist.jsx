@@ -119,6 +119,7 @@ export default function ScheduleChecklist({ clientId, proposalId, proposals, cal
         client_id: clientId,
         service_id: svc.id,
         proposal_id: svc.proposalId || proposalId || '',
+        checkin_token: crypto.randomUUID(),
         color: '#264d44',
       });
       await queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });

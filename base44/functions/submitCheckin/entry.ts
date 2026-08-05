@@ -25,15 +25,18 @@ Deno.serve(async (req) => {
     }
     const event = events[0];
 
-    // Rate limit: max 30 check-ins per event per minute
+    // Rate limit: max 150 check-ins per event per minute. Kept as an abuse guard,
+    // but sized for real workshop load (60–100 people can scan the QR at the top
+    // of the hour). The frontend retries on 429 so genuine attendees are never
+    // locked out of the meeting link.
     const recentCheckins = await base44.asServiceRole.entities.EventCheckin.filter(
-      { event_id: event.id }, '-checked_in_at', 30
+      { event_id: event.id }, '-checked_in_at', 150
     );
     const oneMinuteAgo = Date.now() - 60000;
     const recentCount = recentCheckins.filter(
       c => new Date(c.checked_in_at).getTime() > oneMinuteAgo
     ).length;
-    if (recentCount >= 30) {
+    if (recentCount >= 150) {
       return Response.json({ error: 'Too many check-ins. Please try again in a moment.' }, { status: 429 });
     }
 

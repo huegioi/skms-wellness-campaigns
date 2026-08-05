@@ -328,6 +328,7 @@ Deno.serve(async (req) => {
           all_day: isAllDay,
           event_type: eventType,
           google_event_id: gEvent.id,
+          checkin_token: crypto.randomUUID(),
           color: '#013f7c',
           referral_partner_id: referral_partner_id || undefined,
           client_id: client_id || undefined,

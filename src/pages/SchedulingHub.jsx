@@ -217,6 +217,7 @@ export default function SchedulingHub() {
         presenter_email: eventData.presenter_email || '',
         proposal_id: eventData.proposal_id || '',
         assessment_timing: eventData.assessment_timing || 'none',
+        checkin_token: crypto.randomUUID(),
         color: '#264d44'
       });
 
@@ -483,6 +484,7 @@ export default function SchedulingHub() {
         event_type: 'other',
         client_name: event.client || '',
         presenter: event.presenter || '',
+        checkin_token: crypto.randomUUID(),
         color: '#264d44'
       });
 

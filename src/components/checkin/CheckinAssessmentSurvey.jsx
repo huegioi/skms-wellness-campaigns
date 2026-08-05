@@ -10,7 +10,7 @@ import { base44 } from '@/api/base44Client';
  * Uses the same InstrumentStep component as the CohortAssessment page.
  * Always allows skipping — the redirect to the call is never blocked.
  */
-export default function CheckinAssessmentSurvey({ token, name, email, surveyData, onDone, onSkip }) {
+export default function CheckinAssessmentSurvey({ token, name, email, surveyData, onDone, onSkip, kiosk = false }) {
   const { instruments: instrumentKeys, skipped_instruments, service_name, total_questions, meeting_link } = surveyData;
   const instruments = useMemo(() => getOrderedInstruments(instrumentKeys), [instrumentKeys]);
 
@@ -61,7 +61,7 @@ export default function CheckinAssessmentSurvey({ token, name, email, surveyData
       className={`inline-flex items-center gap-2 text-sm font-semibold text-[#013f7c] hover:text-[#012d5a] transition-colors ${className}`}
     >
       <Video className="w-4 h-4" />
-      Join the session now →
+      {kiosk ? 'Skip survey' : 'Join the session now →'}
     </button>
   );
 
@@ -77,7 +77,7 @@ export default function CheckinAssessmentSurvey({ token, name, email, surveyData
           className="h-9 mx-auto mb-2"
         />
         <h1 className="text-lg font-bold">A few quick questions while you wait</h1>
-        <p className="text-blue-200 text-sm mt-1">Then you'll join the call</p>
+        <p className="text-blue-200 text-sm mt-1">{kiosk ? 'Quick check-in survey before you head in.' : "Then you'll join the call"}</p>
       </div>
 
       {/* Progress bar */}
@@ -134,7 +134,7 @@ export default function CheckinAssessmentSurvey({ token, name, email, surveyData
                   >
                     {submitting
                       ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Submitting…</>
-                      : <><CheckCircle2 className="w-5 h-5 mr-2" /> Submit & Join Call</>}
+                      : <><CheckCircle2 className="w-5 h-5 mr-2" /> {kiosk ? 'Submit' : 'Submit & Join Call'}</>}
                   </Button>
                 ) : (
                   <Button

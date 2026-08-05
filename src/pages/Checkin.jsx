@@ -16,6 +16,8 @@ export default function Checkin() {
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [retrying, setRetrying] = useState(false);
+  const [showRetryButton, setShowRetryButton] = useState(false);
   const [meetingLink, setMeetingLink] = useState(null);
   const [checkedInNoLink, setCheckedInNoLink] = useState(false);
   const [kiosk, setKiosk] = useState(false);
@@ -79,46 +81,82 @@ export default function Checkin() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!name.trim() || !email.trim()) return;
     setSubmitting(true);
     setSubmitError('');
-    try {
-      const res = await base44.functions.invoke('submitCheckin', { token, name, email });
-      const link = res.data?.meeting_link || null;
+    setShowRetryButton(false);
 
-      // Check if assessment survey is needed — call the backend for any non-none
-      // timing and let it decide (it returns needs_survey:false when there's
-      // nothing to collect). Keep fail-open behavior on error.
-      const timing = eventInfo?.assessment_timing || 'none';
+    const is429 = (err) =>
+      err?.response?.status === 429 ||
+      err?.status === 429 ||
+      /too many check-ins/i.test(err?.response?.data?.error || err?.message || '');
+    const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
-      if (timing !== 'none') {
-        try {
-          const checkRes = await base44.functions.invoke('checkCheckinAssessment', { token, email });
-          if (checkRes.data?.needs_survey) {
-            setSurveyData(checkRes.data);
-            setSubmitting(false);
-            return; // Show survey — don't redirect yet
-          }
-        } catch {
-          // If check fails, fail open to the call
+    // submitCheckin may 429 under burst load (a large workshop scanning the QR
+    // at the top of the hour). Retry up to 2× so a real attendee is never
+    // locked out of the meeting link by the rate limiter.
+    let res = null;
+    let lastErr = null;
+    for (let attempt = 0; attempt <= 2; attempt++) {
+      try {
+        res = await base44.functions.invoke('submitCheckin', { token, name, email });
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err;
+        if (is429(err) && attempt < 2) {
+          setRetrying(true);
+          const base = attempt === 0 ? 1500 : 3000;
+          await wait(base + Math.floor(Math.random() * 400));
+          setRetrying(false);
+          continue;
         }
+        break;
       }
-
-      // No survey needed — proceed to call
-      if (kiosk) {
-        resetForKiosk();
-      } else if (link) {
-        goToVideoHandoff(link);
-      } else {
-        // No meeting link — show "checked in, host will share link" state
-        setCheckedInNoLink(true);
-      }
-    } catch (err) {
-      setSubmitError(err.response?.data?.error || 'Something went wrong. Please try again.');
-    } finally {
-      setSubmitting(false);
     }
+
+    if (lastErr) {
+      if (is429(lastErr)) {
+        setSubmitError('The room is busy right now. Please try again in a moment.');
+        setShowRetryButton(true);
+      } else {
+        setSubmitError(lastErr.response?.data?.error || 'Something went wrong. Please try again.');
+      }
+      setSubmitting(false);
+      return;
+    }
+
+    const link = res.data?.meeting_link || null;
+
+    // Check if assessment survey is needed — call the backend for any non-none
+    // timing and let it decide (it returns needs_survey:false when there's
+    // nothing to collect). Keep fail-open behavior on error.
+    const timing = eventInfo?.assessment_timing || 'none';
+
+    if (timing !== 'none') {
+      try {
+        const checkRes = await base44.functions.invoke('checkCheckinAssessment', { token, email });
+        if (checkRes.data?.needs_survey) {
+          setSurveyData(checkRes.data);
+          setSubmitting(false);
+          return; // Show survey — don't redirect yet
+        }
+      } catch {
+        // If check fails, fail open to the call
+      }
+    }
+
+    // No survey needed — proceed to call
+    if (kiosk) {
+      resetForKiosk();
+    } else if (link) {
+      goToVideoHandoff(link);
+    } else {
+      // No meeting link — show "checked in, host will share link" state
+      setCheckedInNoLink(true);
+    }
+    setSubmitting(false);
   };
 
   const fmtDate = (d) => {
@@ -158,6 +196,7 @@ export default function Checkin() {
         surveyData={surveyData}
         onDone={handleSurveyDone}
         onSkip={handleSurveySkip}
+        kiosk={kiosk}
       />
     );
   }
@@ -236,9 +275,20 @@ export default function Checkin() {
             <label className="text-sm font-medium text-gray-700 block mb-1">Work email</label>
             <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@company.com" required />
           </div>
-          {submitError && <p className="text-sm text-red-500">{submitError}</p>}
-          <Button type="submit" disabled={submitting} className="w-full bg-[#013f7c] hover:bg-[#012d5a] text-white">
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Join session'}
+          {submitError && (
+            <div className="space-y-2">
+              <p className="text-sm text-red-500">{submitError}</p>
+              {showRetryButton && (
+                <Button type="button" onClick={handleSubmit} className="w-full bg-[#013f7c] hover:bg-[#012d5a] text-white">
+                  Try again
+                </Button>
+              )}
+            </div>
+          )}
+          <Button type="submit" disabled={submitting || retrying} className="w-full bg-[#013f7c] hover:bg-[#012d5a] text-white">
+            {submitting || retrying
+              ? <><Loader2 className="w-4 h-4 animate-spin" />{retrying ? ' The room is busy — retrying…' : ''}</>
+              : 'Join session'}
           </Button>
         </form>
       </div>
