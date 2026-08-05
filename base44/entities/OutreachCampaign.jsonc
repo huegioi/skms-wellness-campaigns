@@ -89,6 +89,11 @@
       ],
       "default": "draft",
       "description": "Campaign lifecycle status"
+    },
+    "last_status_sync_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When syncCampaignSendStatus last refreshed send/reply counts for this campaign"
     }
   },
   "required": [

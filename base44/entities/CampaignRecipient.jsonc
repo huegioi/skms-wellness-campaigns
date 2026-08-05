@@ -86,6 +86,10 @@
       "type": "string",
       "description": "Gmail draft ID after being pushed to Gmail Drafts"
     },
+    "draft_mailbox": {
+      "type": "string",
+      "description": "Email address of the Gmail account where the outreach draft was created"
+    },
     "email_log_id": {
       "type": "string",
       "description": "Associated EmailLog ID"

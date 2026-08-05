@@ -57,6 +57,19 @@ async function getMessageDate(accessToken, messageId) {
   }
 }
 
+async function fetchProfileEmail(accessToken) {
+  try {
+    const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.emailAddress || null;
+  } catch (e) {
+    return null;
+  }
+}
+
 async function getAccessToken(base44, sender) {
   if (sender === 'heather') {
     const clientId = Deno.env.get('HEATHER_GMAIL_CLIENT_ID');
@@ -125,6 +138,7 @@ Deno.serve(async (req) => {
     const recipients = allRecipients.filter(r => r.status === 'approved' || r.status === 'sent');
 
     if (recipients.length === 0) {
+      await base44.entities.OutreachCampaign.update(campaign_id, { last_status_sync_at: new Date().toISOString() });
       return Response.json({ success: true, checked: 0, sent: 0, replied: 0 });
     }
 
@@ -138,6 +152,7 @@ Deno.serve(async (req) => {
     let updatedSent = 0;
     let updatedReplied = 0;
     const notes = [];
+    const profileCache = {};
 
     for (const sender of ['william', 'heather']) {
       const senderRecipients = bySender[sender];
@@ -160,6 +175,21 @@ Deno.serve(async (req) => {
       for (const r of senderRecipients) {
         try {
           if (r.status === 'approved' && r.approved_at) {
+            // Backfill draft_mailbox if missing (one profile fetch per sender, cached)
+            if (!r.draft_mailbox) {
+              if (!(sender in profileCache)) {
+                profileCache[sender] = await fetchProfileEmail(accessToken);
+              }
+              const mb = profileCache[sender];
+              if (mb) {
+                try {
+                  await base44.entities.CampaignRecipient.update(r.id, { draft_mailbox: mb });
+                } catch (e) {
+                  console.error(`[syncCampaignSendStatus] mailbox backfill error for ${r.id}:`, e.message);
+                }
+              }
+            }
+
             // Check if draft was sent: draft gone AND sent message exists
             const draftExists = await checkDraftExists(accessToken, r.gmail_draft_id);
             if (draftExists) continue; // Still in drafts, not sent yet
@@ -195,6 +225,8 @@ Deno.serve(async (req) => {
         }
       }
     }
+
+    await base44.entities.OutreachCampaign.update(campaign_id, { last_status_sync_at: new Date().toISOString() });
 
     return Response.json({
       success: true,

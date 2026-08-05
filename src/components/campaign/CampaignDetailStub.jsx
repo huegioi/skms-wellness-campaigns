@@ -64,8 +64,9 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
         toast.success(`${res.data.sent} sent, ${res.data.replied} replied status updated`);
       }
       queryClient.invalidateQueries({ queryKey: ['campaign_recipients_detail', campaignId] });
+      queryClient.invalidateQueries({ queryKey: ['outreach_campaign', campaignId] });
     } catch (e) {
-      // Silent fail on auto-call
+      toast.error(`Couldn't refresh send status for ${campaign?.name || 'campaign'}`);
     } finally {
       setSyncing(false);
     }
@@ -99,11 +100,13 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
     setBulkProgress({ done: 0, total: drafted.length });
 
     let error = null;
+    const mailboxes = new Set();
     for (let i = 0; i < drafted.length; i++) {
       const r = drafted[i];
       try {
         const res = await base44.functions.invoke('approveCampaignDraft', { recipient_id: r.id });
         if (res.data?.error) throw new Error(res.data.error);
+        if (res.data?.draft_mailbox) mailboxes.add(res.data.draft_mailbox);
         setBulkProgress({ done: i + 1, total: drafted.length });
         queryClient.invalidateQueries({ queryKey: ['campaign_recipients_detail', campaignId] });
         queryClient.invalidateQueries({ queryKey: ['outreach_campaign', campaignId] });
@@ -118,7 +121,9 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
     if (error) {
       toast.error(`Stopped: ${error}`);
     } else {
-      toast.success(`Approved ${drafted.length} drafts — Gmail drafts created`);
+      const mbList = [...mailboxes];
+      const where = mbList.length === 1 ? ` in ${mbList[0]}` : ` in ${mbList.length} Gmail accounts`;
+      toast.success(`Approved ${drafted.length} drafts — Gmail drafts created${where}`);
     }
   };
 

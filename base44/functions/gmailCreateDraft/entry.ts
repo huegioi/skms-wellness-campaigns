@@ -90,6 +90,25 @@ async function fetchGmailSignature(accessToken, fromEmail) {
   }
 }
 
+// Fetch the authenticated account's emailAddress via the Gmail profile endpoint.
+// Returns null on any failure — never blocks draft creation.
+async function fetchGmailProfileAddress(accessToken) {
+  try {
+    const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/profile', {
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+    });
+    if (!res.ok) {
+      console.error('[gmailCreateDraft] profile fetch failed:', res.status, await res.text());
+      return null;
+    }
+    const data = await res.json();
+    return data.emailAddress || null;
+  } catch (e) {
+    console.error('[gmailCreateDraft] profile fetch error:', e.message);
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -183,6 +202,9 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Record the actual mailbox the draft will land in ──
+    const draft_mailbox = await fetchGmailProfileAddress(accessToken);
+
     // ── Fetch sender's Gmail signature (graceful fallback) ──
     const signature = await fetchGmailSignature(accessToken, fromEmail);
 
@@ -260,6 +282,7 @@ Deno.serve(async (req) => {
     return Response.json({
       gmail_draft_id: gmailDraftId,
       email_log_id: emailLogRecord.id,
+      draft_mailbox: draft_mailbox || fromEmail,
       signature_appended: !!signature,
     });
 

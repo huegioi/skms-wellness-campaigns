@@ -5,7 +5,7 @@ import { TagChips } from '@/components/ui/TagChips';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { MoreVertical, Archive, ChevronRight, CheckCircle } from 'lucide-react';
+import { MoreVertical, Archive, ChevronRight, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 const STATUS_STYLES = {
@@ -16,6 +16,18 @@ const STATUS_STYLES = {
   completed: 'bg-purple-100 text-purple-700',
   archived: 'bg-gray-100 text-gray-400',
 };
+
+function relativeTime(iso) {
+  if (!iso) return null;
+  const diff = Date.now() - new Date(iso).getTime();
+  if (isNaN(diff) || diff < 0) return null;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
 
 export default function OutreachCampaignCard({ campaign, onClick, onArchive }) {
   const queryClient = useQueryClient();
@@ -31,6 +43,17 @@ export default function OutreachCampaignCard({ campaign, onClick, onArchive }) {
     sent: recipients.filter(r => r.status === 'sent').length,
     replied: recipients.filter(r => r.status === 'replied').length,
   };
+
+  // Approved-but-unsent drafts need manual sending — surface which mailbox they live in.
+  const approvedUnsent = recipients.filter(r => r.status === 'approved');
+  const mailboxGroups = {};
+  for (const r of approvedUnsent) {
+    if (r.draft_mailbox) {
+      mailboxGroups[r.draft_mailbox] = (mailboxGroups[r.draft_mailbox] || 0) + 1;
+    }
+  }
+  const mailboxKeys = Object.keys(mailboxGroups);
+  const syncRelative = relativeTime(campaign.last_status_sync_at);
 
   const handleMarkCompleted = async (e) => {
     e?.stopPropagation();
@@ -121,6 +144,34 @@ export default function OutreachCampaignCard({ campaign, onClick, onArchive }) {
             <span className="text-teal-600 font-medium">{counts.replied} replied</span>
           </div>
           <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+        </div>
+      )}
+
+      {approvedUnsent.length > 0 && (
+        <div className="mt-2 px-2.5 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium flex items-start gap-1.5">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          <span>
+            {mailboxKeys.length > 0 ? (
+              <>
+                <span className="font-semibold">{approvedUnsent.length} drafts awaiting send</span> in{' '}
+                {mailboxKeys.map((mb, i) => (
+                  <span key={mb}>
+                    {i > 0 && ', '}
+                    <span className="font-semibold">{mb}</span>
+                    {mailboxKeys.length > 1 ? ` (${mailboxGroups[mb]})` : ''}
+                  </span>
+                ))}
+              </>
+            ) : (
+              <>{approvedUnsent.length} drafts awaiting send in the sender's Gmail — open campaign to sync</>
+            )}
+          </span>
+        </div>
+      )}
+
+      {syncRelative && (
+        <div className="mt-1.5 text-[11px] text-gray-400 flex items-center gap-1">
+          <RefreshCw className="w-3 h-3" /> Status checked {syncRelative}
         </div>
       )}
     </div>

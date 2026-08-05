@@ -50,7 +50,8 @@ export default function CampaignDraftReview({ recipient, campaign, onBack }) {
     try {
       const res = await base44.functions.invoke('approveCampaignDraft', { recipient_id: recipient.id });
       if (res.data?.error) throw new Error(res.data.error);
-      toast.success('Draft approved — Gmail draft created');
+      const mailbox = res.data?.draft_mailbox;
+      toast.success(mailbox ? `Draft created in ${mailbox}` : 'Draft approved — Gmail draft created');
       invalidate();
     } catch (e) {
       toast.error(e?.data?.error || e.message || 'Failed to approve');

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,25 @@ export default function OutreachCampaignsTab() {
     queryKey: ['outreach_campaigns'],
     queryFn: () => base44.entities.OutreachCampaign.list('-created_date'),
   });
+
+  // Auto-sync send/reply status for active campaigns on mount (cap 5, sequential).
+  const syncRunRef = useRef(false);
+  useEffect(() => {
+    if (syncRunRef.current || isLoading || campaigns.length === 0) return;
+    syncRunRef.current = true;
+    (async () => {
+      const active = campaigns.filter(c => c.status === 'active').slice(0, 5);
+      for (const c of active) {
+        try {
+          await base44.functions.invoke('syncCampaignSendStatus', { campaign_id: c.id });
+        } catch (e) {
+          toast.error(`Couldn't refresh send status for ${c.name}`);
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ['campaign_recipients'] });
+      queryClient.invalidateQueries({ queryKey: ['outreach_campaigns'] });
+    })();
+  }, [campaigns, isLoading]);
 
   const archiveMutation = useMutation({
     mutationFn: (id) => base44.entities.OutreachCampaign.update(id, { status: 'archived' }),

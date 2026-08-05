@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
       return Response.json({ error: errMsg }, { status: draftRes.status || 500 });
     }
 
-    const { gmail_draft_id, email_log_id } = draftRes.data;
+    const { gmail_draft_id, email_log_id, draft_mailbox } = draftRes.data;
 
     // ── Create ClientInteraction ──
     const interaction = await base44.entities.ClientInteraction.create({
@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
       approved_at: new Date().toISOString(),
       gmail_draft_id,
       email_log_id,
+      draft_mailbox: draft_mailbox || undefined,
       interaction_id: interaction.id,
       error_message: null,
     });
@@ -107,6 +108,7 @@ Deno.serve(async (req) => {
       recipient_id,
       gmail_draft_id,
       email_log_id,
+      draft_mailbox,
       interaction_id: interaction.id,
     });
   } catch (error) {
