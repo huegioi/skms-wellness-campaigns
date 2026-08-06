@@ -290,10 +290,12 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     if (!formData.title || !formData.start_date) return;
     
     setSaving(true);
+    const linkedClient = formData.client_id ? clients.find(c => c.id === formData.client_id) : null;
     const eventData = {
       ...formData,
       checkin_token: crypto.randomUUID(),
-      color: formData.color || eventTypeConfig[formData.event_type]?.color
+      color: formData.color || eventTypeConfig[formData.event_type]?.color,
+      is_demo: linkedClient?.is_demo === true,
     };
     
     const newEvent = await base44.entities.CalendarEvent.create(eventData);
@@ -328,11 +330,21 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     if (!formData.title || !formData.start_date) return;
     
     setSaving(true);
+    const linkedClient = formData.client_id ? clients.find(c => c.id === formData.client_id) : null;
     const eventData = {
       ...formData,
       checkin_token: crypto.randomUUID(),
-      color: formData.color || eventTypeConfig[formData.event_type]?.color
+      color: formData.color || eventTypeConfig[formData.event_type]?.color,
+      is_demo: linkedClient?.is_demo === true,
     };
+
+    // Demo events never sync to Google Calendar — they're test data.
+    if (linkedClient?.is_demo) {
+      setSaving(false);
+      onSaved?.();
+      onOpenChange(false);
+      return;
+    }
     
     const newEvent = await base44.entities.CalendarEvent.create(eventData);
     

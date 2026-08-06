@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
+import { clientIsDemoOrInternal } from '../../shared/demoClient.ts';
 
 const DEFAULT_TASKS = [
   { description: 'Client Profile: Create a profile with all necessary demographic and organizational information', order: 1 },
@@ -54,6 +55,10 @@ Deno.serve(async (req) => {
     const proposal = data;
     const hasChallenge = (proposal.selections?.challengePrograms?.length || 0) > 0;
 
+    // Stamp is_demo when the owning client is demo or internal so test tasks
+    // never pollute the dashboard task lists.
+    const stampIsDemo = await clientIsDemoOrInternal(base44, proposal.client_id);
+
     // On CREATE: create all default tasks (+ challenge tasks if applicable)
     if (event?.type === 'create') {
       const existing = await base44.asServiceRole.entities.ClientTask.filter({ proposal_id: proposal.id });
@@ -72,6 +77,7 @@ Deno.serve(async (req) => {
           status: 'pending',
           auto_generated: true,
           source_event: 'proposal_created',
+          is_demo: stampIsDemo,
         })
       ));
 
@@ -99,6 +105,7 @@ Deno.serve(async (req) => {
           status: 'pending',
           auto_generated: true,
           source_event: 'challenge_added',
+          is_demo: stampIsDemo,
         })
       ));
 

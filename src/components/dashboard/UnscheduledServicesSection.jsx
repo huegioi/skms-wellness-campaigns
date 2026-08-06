@@ -13,8 +13,9 @@ export default function UnscheduledServicesSection() {
     queryFn: () => base44.entities.Client.list()
   });
 
-  // Exclude demo/broker-demo records from dashboard metrics
-  const clients = rawClients.filter(c => !c.is_demo);
+  // Exclude demo/broker-demo + internal clients (internal clients are excluded
+  // from services-to-schedule — their real sessions stay in Scheduling Hub).
+  const clients = rawClients.filter(c => !c.is_demo && !c.is_internal);
 
   const snapshots = useClientDeliveryStatus(clients);
 

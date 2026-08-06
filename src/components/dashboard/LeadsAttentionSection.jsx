@@ -64,8 +64,15 @@ export default function LeadsAttentionSection() {
     queryFn: () => base44.entities.CalendarEvent.list('start_date', 200)
   });
 
-  // Exclude demo/broker-demo records from dashboard metrics
-  const leads = rawLeads.filter(l => !l.is_demo);
+  const { data: rawClients = [] } = useQuery({
+    queryKey: ['clients-lead-attention'],
+    queryFn: () => base44.entities.Client.list(),
+    staleTime: 60_000,
+  });
+
+  // Exclude demo/broker-demo records + leads converted to an internal client
+  const internalIds = new Set(rawClients.filter(c => c.is_internal === true).map(c => c.id));
+  const leads = rawLeads.filter(l => !l.is_demo && !internalIds.has(l.converted_client_id));
   const calendarEvents = rawCalendarEvents.filter(e => !e.is_demo);
 
   // Latest interaction per lead_id

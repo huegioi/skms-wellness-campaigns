@@ -277,12 +277,14 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
 
   const handleSave = async () => {
     const { subtotal, tax_amount, total } = calculateTotals();
+    const linkedClient = formData.client_id ? clients.find(c => c.id === formData.client_id) : null;
     const invoiceData = {
       ...formData,
       subtotal,
       tax_amount,
       total_amount: total,
-      status: 'draft'
+      status: 'draft',
+      is_demo: linkedClient?.is_demo === true,
     };
 
     if (mode === 'create') {

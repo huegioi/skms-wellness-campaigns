@@ -15,6 +15,11 @@ Deno.serve(async (req) => {
     const event = events[0];
     if (!event) return Response.json({ error: 'Event not found' }, { status: 404 });
 
+    // Demo events never send real calendar invites — they're test data.
+    if (event.is_demo) {
+      return Response.json({ error: 'Demo events cannot send calendar invites' }, { status: 403 });
+    }
+
     const startDate = new Date(event.start_date);
     const endDate = event.end_date ? new Date(event.end_date) : new Date(startDate.getTime() + 60 * 60 * 1000);
 

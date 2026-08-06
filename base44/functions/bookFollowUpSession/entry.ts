@@ -135,7 +135,8 @@ Deno.serve(async (req) => {
       location: checkinUrl,
       checkin_token,
       google_event_id: gcalEvent.id,
-      completed: false
+      completed: false,
+      is_demo: client?.is_demo === true,
     });
 
     // PATCH the Google event so its description + location point at the check-in page.

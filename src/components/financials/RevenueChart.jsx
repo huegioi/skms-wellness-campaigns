@@ -7,6 +7,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TrendingUp, DollarSign, FileCheck, CalendarRange } from 'lucide-react';
 import { INVOICE_STATUS_CONFIG as STATUS_CONFIG, INVOICE_STATUSES as STATUSES } from '@/lib/statusConfig';
+import { internalClientIdSet, filterRealInvoices } from '@/lib/demoFilter';
 
 const MONTH_ORDER = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTH_NAMES_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -60,8 +61,14 @@ export default function RevenueChart() {
     queryFn: () => base44.entities.Invoice.list('-created_date', 10000),
   });
 
-  // Exclude demo/broker-demo records from dashboard metrics
-  const invoices = rawInvoices.filter(i => !i.is_demo && !i.out_of_scope);
+  const { data: rawClients = [] } = useQuery({
+    queryKey: ['clients-for-chart'],
+    queryFn: () => base44.entities.Client.list(),
+    staleTime: 60_000,
+  });
+
+  // Exclude demo/broker-demo records AND invoices belonging to internal clients
+  const invoices = filterRealInvoices(rawInvoices, internalClientIdSet(rawClients));
 
   const { chartData, totalRevenue, invoiceCount } = useMemo(() => {
     const fromDate = new Date(fromYear, fromMonth, 1);

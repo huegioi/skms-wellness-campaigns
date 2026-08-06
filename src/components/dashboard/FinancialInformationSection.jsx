@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useDashInvoices, useDashServices } from './useDashboardData';
+import { useDashInvoices, useDashServices, useDashClients } from './useDashboardData';
 import { buildServiceMatcher } from '@/lib/serviceMatching';
+import { internalClientIdSet, filterRealInvoices } from '@/lib/demoFilter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -19,9 +20,10 @@ export default function FinancialInformationSection() {
 
   const { data: rawInvoices = [], isLoading: loadingInvoices, refetch: refetchInvoices } = useDashInvoices();
   const { data: services = [] } = useDashServices();
+  const { data: rawClients = [] } = useDashClients();
 
-  // Exclude demo/broker-demo records from dashboard metrics
-  const invoices = rawInvoices.filter(i => !i.is_demo && !i.out_of_scope);
+  // Exclude demo/broker-demo records AND invoices belonging to internal clients
+  const invoices = filterRealInvoices(rawInvoices, internalClientIdSet(rawClients));
 
   if (loadingInvoices) {
     return (

@@ -654,7 +654,10 @@ async function buildGlobalContext(base44) {
     safeFilter(base44, 'Lead', { lead_type: 'company_inquiry', is_archived: { $ne: true } }),
   ]);
 
-  const clients = allClients.filter(c => !c.is_demo && !c.is_assessment_lead);
+  // Exclude demo + internal clients from Maya's briefing/pipeline context.
+  // Internal clients (SkillfulMeans test client) are real sessions but never
+  // appear in business counts or follow-up items.
+  const clients = allClients.filter(c => !c.is_demo && !c.is_internal && !c.is_assessment_lead);
   const leads = allLeads.filter(l => !l.is_demo);
   const partners = allPartners.filter(p => !p.is_demo);
   const qbInquiries = qbInquiryLeads.filter(l => !l.is_demo);
@@ -846,7 +849,8 @@ async function buildDeliveryContext(base44) {
     safeFilter(base44, 'Proposal', {}, '-created_date', 200),
   ]);
 
-  const clients = allClients.filter(c => !c.is_demo && !c.is_assessment_lead);
+  // Exclude demo + internal clients from delivery intelligence.
+  const clients = allClients.filter(c => !c.is_demo && !c.is_internal && !c.is_assessment_lead);
   const cleanServices = services.filter(s => !s.is_demo);
   const cleanEvents = events.filter(e => !e.is_demo);
   const recentProposals = recentProposalsRaw.filter(p => !p.is_demo);

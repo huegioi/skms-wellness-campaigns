@@ -7,6 +7,7 @@ import { ListTodo, AlertCircle, Users, FileText, Send, CheckCircle2, Eye, UserPl
 import { formatCurrency } from '@/lib/dashboardStyle';
 import DashboardSkeleton from './DashboardSkeleton';
 import DashboardEmptyState from './DashboardEmptyState';
+import { internalClientIdSet, filterRealInvoices, filterRealProposals } from '@/lib/demoFilter';
 import { format, isPast, addDays } from 'date-fns';
 import ClientTaskCard from '@/components/tasks/ClientTaskCard';
 import TaskList from '@/components/tasks/TaskList';
@@ -22,11 +23,13 @@ export default function ClientInformationSection() {
   const { data: rawCalendarEvents = [] } = useDashCalendarEvents();
   const { data: rawReferrals = [] } = useDashReferrals();
 
-  // Exclude demo/broker-demo records from all dashboard metrics
-  const clients = rawClients.filter(c => !c.is_demo && !c.is_assessment_lead);
-  const proposals = rawProposals.filter(p => !p.is_demo);
-  const invoices = rawInvoices.filter(i => !i.is_demo);
-  const allTasks = rawAllTasks.filter(t => !t.is_demo);
+  // Exclude demo/broker-demo + internal-client records from all dashboard metrics.
+  // Internal clients are excluded from Open Clients, activity feed, and rollups.
+  const internalIds = internalClientIdSet(rawClients);
+  const clients = rawClients.filter(c => !c.is_demo && !c.is_internal && !c.is_assessment_lead);
+  const proposals = filterRealProposals(rawProposals, internalIds);
+  const invoices = filterRealInvoices(rawInvoices, internalIds);
+  const allTasks = rawAllTasks.filter(t => !t.is_demo && !internalIds.has(t.client_id));
   const leads = rawLeads.filter(l => !l.is_demo);
   const calendarEvents = rawCalendarEvents.filter(e => !e.is_demo);
   const referrals = rawReferrals.filter(r => !r.is_demo);

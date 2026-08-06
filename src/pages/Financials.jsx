@@ -18,6 +18,7 @@ import FinancialInformationSection from '@/components/dashboard/FinancialInforma
 import QuickBooksActionsPanel from '@/components/invoices/QuickBooksActionsPanel';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { INVOICE_STATUS_CONFIG as statusConfig } from '@/lib/statusConfig';
+import { internalClientIdSet, filterRealInvoices } from '@/lib/demoFilter';
 
 const TABS = [
   { id: 'dashboard', label: 'Revenue Chart', icon: BarChart2 },
@@ -93,9 +94,10 @@ function InvoicesPanel() {
     queryFn: () => base44.entities.Client.list()
   });
 
-  // Exclude demo/broker-demo records from dashboard metrics
-  const invoices = rawInvoices.filter(i => !i.is_demo && !i.out_of_scope);
-  const clients = rawClients.filter(c => !c.is_demo);
+  // Exclude demo/broker-demo records AND invoices belonging to internal clients
+  const internalIds = internalClientIdSet(rawClients);
+  const invoices = filterRealInvoices(rawInvoices, internalIds);
+  const clients = rawClients.filter(c => !c.is_demo && !c.is_internal);
 
   const syncStatusMutation = useMutation({
     mutationFn: async (invoiceId) => {

@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink, Plus, Pencil, Check, X, FileText, FileSpreadsheet, CheckCircle2, LayoutGrid, List, Filter } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { DemoBadge } from '@/components/shared/DemoBadge';
 import MonthlyCalendar from '@/components/scheduling/MonthlyCalendar';
 import WeeklyCalendar from '@/components/scheduling/WeeklyCalendar';
 import CompanySearch from '@/components/scheduling/CompanySearch';
@@ -81,6 +83,7 @@ export default function SchedulingHub() {
   const [filterType, setFilterType] = useState('all');
   const [filterPresenter, setFilterPresenter] = useState('all');
   const [eventRange, setEventRange] = useState('30');   // days forward
+  const [showDemo, setShowDemo] = useState(false);      // demo events hidden by default
   const queryClient = useQueryClient();
 
   const eventTypeConfig = {
@@ -201,6 +204,10 @@ export default function SchedulingHub() {
         ? matchedService.category
         : 'other';
 
+      // Auto-tag is_demo when the linked client is a demo client.
+      const linkedClientId = eventData.client_id || resolvedClientId;
+      const linkedClient = linkedClientId ? allClients.find(c => c.id === linkedClientId) : null;
+
       // Create event in CalendarEvent entity only
       const calendarEvent = await base44.entities.CalendarEvent.create({
         title: eventData.title,
@@ -211,7 +218,7 @@ export default function SchedulingHub() {
         all_day: eventData.all_day,
         event_type: derivedEventType,
         client_name: eventData.client_name || '',
-        client_id: eventData.client_id || resolvedClientId,
+        client_id: linkedClientId,
         service_id: eventData.service_id || null,
         presenter: eventData.presenter || '',
         presenter_id: eventData.presenter_id || null,
@@ -219,7 +226,8 @@ export default function SchedulingHub() {
         proposal_id: eventData.proposal_id || '',
         assessment_timing: eventData.assessment_timing || 'none',
         checkin_token: crypto.randomUUID(),
-        color: '#264d44'
+        color: '#264d44',
+        is_demo: linkedClient?.is_demo === true,
       });
 
       return calendarEvent;
@@ -283,6 +291,7 @@ export default function SchedulingHub() {
     const startToday = new Date();
     startToday.setHours(0, 0, 0, 0);
     const filtered = (calendarEvents || []).filter(event => {
+      if (!showDemo && event.is_demo) return false;
       const typeMatch = filterType === 'all' || event.event_type === filterType;
       const presenterMatch = filterPresenter === 'all' || event.presenter === filterPresenter;
       return typeMatch && presenterMatch;
@@ -352,9 +361,10 @@ export default function SchedulingHub() {
     .map(e => e.presenter)
   )];
   
-  // Filter events based on selected filters
+  // Filter events based on selected filters (demo events hidden unless toggle is on)
   const filteredCalendarEvents = (calendarEvents || [])
     .filter(event => {
+      if (!showDemo && event.is_demo) return false;
       const typeMatch = filterType === 'all' || event.event_type === filterType;
       const presenterMatch = filterPresenter === 'all' || event.presenter === filterPresenter;
       return typeMatch && presenterMatch;
@@ -851,6 +861,11 @@ export default function SchedulingHub() {
                   </SelectContent>
                 </Select>
               )}
+
+              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer ml-auto">
+                <Switch checked={showDemo} onCheckedChange={setShowDemo} />
+                Show demo
+              </label>
             </div>
           </div>
         </Card>
@@ -888,6 +903,7 @@ export default function SchedulingHub() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2 mb-1">
                               <div className="font-semibold text-gray-800">{event.title}</div>
+                              {event.is_demo && <DemoBadge />}
                               {event.google_event_id && (
                                 <CheckCircle2 className="w-4 h-4 text-green-600" />
                               )}

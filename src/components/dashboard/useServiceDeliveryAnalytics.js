@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
-import { useDashInvoices, useDashServices, useDashCalendarEvents } from './useDashboardData';
+import { useDashInvoices, useDashServices, useDashCalendarEvents, useDashClients } from './useDashboardData';
 import { buildServiceMatcher, categoryCountLabel } from '@/lib/serviceMatching';
+import { internalClientIdSet, filterRealInvoices } from '@/lib/demoFilter';
 
 /**
  * Extracted from ServicesAnalytics — the full service-delivery analytics
@@ -11,8 +12,9 @@ export function useServiceDeliveryAnalytics() {
   const { data: rawInvoices = [], isLoading: loadingInvoices } = useDashInvoices();
   const { data: services = [], isLoading: loadingServices } = useDashServices();
   const { data: rawEvents = [], isLoading: loadingEvents } = useDashCalendarEvents();
+  const { data: rawClients = [] } = useDashClients();
 
-  const invoices = useMemo(() => rawInvoices.filter(i => !i.is_demo), [rawInvoices]);
+  const invoices = useMemo(() => filterRealInvoices(rawInvoices, internalClientIdSet(rawClients)), [rawInvoices, rawClients]);
   const events = useMemo(() => rawEvents.filter(e => !e.is_demo), [rawEvents]);
 
   const serviceMap = useMemo(() => {

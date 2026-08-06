@@ -1,16 +1,18 @@
 import React from 'react';
-import { useDashInvoices } from './useDashboardData';
+import { useDashInvoices, useDashClients } from './useDashboardData';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import { formatCurrency } from '@/lib/dashboardStyle';
 import DashboardSkeleton from './DashboardSkeleton';
+import { internalClientIdSet, filterRealInvoices } from '@/lib/demoFilter';
 
 export default function FinancialSummary() {
   const { data: rawInvoices = [], isLoading: loadingInvoices } = useDashInvoices();
+  const { data: rawClients = [] } = useDashClients();
 
-  // Exclude demo/broker-demo records from dashboard metrics
-  const invoices = rawInvoices.filter(i => !i.is_demo);
+  // Exclude demo/broker-demo records AND invoices belonging to internal clients
+  const invoices = filterRealInvoices(rawInvoices, internalClientIdSet(rawClients));
 
   // Two stat tiles: revenue (paid), outstanding
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + (i.total_amount || 0), 0);

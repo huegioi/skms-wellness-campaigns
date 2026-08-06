@@ -95,6 +95,10 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'createEvent') {
+      // Demo events never sync to Google Calendar — they're test data.
+      if (eventData?.is_demo) {
+        return Response.json({ success: false, skipped: 'demo event' });
+      }
       const checkinUrl = buildCheckinUrl(eventData.checkin_token);
       const googleEvent = {
         summary: eventData.title,
