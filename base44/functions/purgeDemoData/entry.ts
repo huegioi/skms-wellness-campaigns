@@ -1,21 +1,49 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 const DEMO_TAG = 'Demo';
-const BATCH = 5;
 
-// Delete every record flagged is_demo, plus any tasks belonging to demo clients
-// (automation-created tasks may carry is_demo=false but reference a demo client_id).
-// deleteMany is unreliable here, so we delete by ID in parallel batches instead.
-async function deleteByEntity(base44, entityName, records) {
-  const ids = [...new Set(records.map((r) => r.id).filter(Boolean))];
-  const errors = [];
-  for (let i = 0; i < ids.length; i += BATCH) {
-    const batch = ids.slice(i, i + BATCH);
-    await Promise.all(batch.map((id) =>
-      base44.asServiceRole.entities[entityName].delete(id).catch((e) => errors.push(e.message))
-    ));
+// Every entity the seed writes is_demo records into. deleteMany({ is_demo: true })
+// removes all matches in a single call per entity (vs hundreds of delete-by-ID
+// calls that rate-limit on large seeds). We loop + verify because deleteMany
+// may be internally capped, and because some automation-created ClientTasks
+// can reference a demo client_id without carrying is_demo themselves.
+const ENTITIES = [
+  'ClientTask', 'CohortAssessment', 'FeedbackResponse', 'EventCheckin', 'CalendarEvent',
+  'Invoice', 'Proposal', 'ReferralActivity', 'Referral', 'MfsAssessment', 'MfsJourney',
+  'Lead', 'Client', 'ReferralPartner',
+];
+
+async function purgeEntity(base44, entityName) {
+  // Count what's there first (reported back to the caller).
+  const before = await base44.asServiceRole.entities[entityName]
+    .filter({ is_demo: true }, '-created_date', 1000)
+    .catch(() => []);
+  const total = before.length;
+  if (!total) return 0;
+  // deleteMany rounds until no is_demo records remain (handles internal caps).
+  for (let attempt = 0; attempt < 6; attempt++) {
+    await base44.asServiceRole.entities[entityName].deleteMany({ is_demo: true }).catch(() => {});
+    const after = await base44.asServiceRole.entities[entityName]
+      .filter({ is_demo: true }, '-created_date', 1)
+      .catch(() => []);
+    if (!after.length) break;
   }
-  return { found: ids.length, deleted: ids.length - errors.length, errors };
+  return total;
+}
+
+// ClientTasks: automation-created tasks may carry is_demo:false but reference a
+// demo client_id. Sweep those by client_id so nothing demo-owned survives.
+async function purgeStrayTasks(base44) {
+  const demoClients = await base44.asServiceRole.entities.Client.filter({ is_demo: true }, '-created_date', 1000).catch(() => []);
+  let removed = 0;
+  for (const c of demoClients) {
+    const tasks = await base44.asServiceRole.entities.ClientTask.filter({ client_id: c.id }, '-created_date', 1000).catch(() => []);
+    for (const t of tasks) {
+      await base44.asServiceRole.entities.ClientTask.delete(t.id).catch(() => {});
+      removed++;
+    }
+  }
+  return removed;
 }
 
 Deno.serve(async (req) => {
@@ -26,43 +54,26 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Unauthorized — admin only' }, { status: 403 });
     }
 
-    const entities = [
-      'ClientTask', 'CohortAssessment', 'FeedbackResponse', 'CalendarEvent',
-      'Proposal', 'ReferralActivity', 'Referral', 'MfsAssessment', 'MfsJourney', 'Lead', 'Client', 'ReferralPartner',
-    ];
-
-    // ── Parallel reads: demo clients (for task lookup) + every entity's is_demo records ──
-    const demoClients = await base44.asServiceRole.entities.Client.filter({ is_demo: true }, '-created_date', 1000);
-    const demoClientIds = demoClients.map((c) => c.id);
-
-    // Tasks: per demo client (catches automation-created tasks) + any is_demo tasks
-    const taskFetches = demoClientIds.map((cid) =>
-      base44.asServiceRole.entities.ClientTask.filter({ client_id: cid }, '-created_date', 1000).catch(() => [])
-    );
-    const taskResults = await Promise.all([
-      ...taskFetches,
-      base44.asServiceRole.entities.ClientTask.filter({ is_demo: true }, '-created_date', 1000).catch(() => []),
-    ]);
-    const taskRecords = taskResults.flat();
-
-    // Fetch the remaining entities' demo records in parallel
-    const restEntities = entities.filter((e) => e !== 'ClientTask');
-    const restRecs = await Promise.all(
-      restEntities.map((e) => base44.asServiceRole.entities[e].filter({ is_demo: true }, '-created_date', 1000).catch(() => []))
-    );
-    const recordsByEntity = { ClientTask: taskRecords };
-    restEntities.forEach((e, i) => { recordsByEntity[e] = restRecs[i]; });
-
-    // ── Sequential per-entity delete-by-ID (parallel within each batch) ──
     const counts = {};
     const errors = [];
-    for (const e of entities) {
-      const res = await deleteByEntity(base44, e, recordsByEntity[e] || []);
-      counts[e] = res.deleted;
-      if (res.errors.length) errors.push(e + ': ' + res.errors[0] + (res.errors.length > 1 ? ' (+' + (res.errors.length - 1) + ' more)' : ''));
+    for (const e of ENTITIES) {
+      try {
+        counts[e] = await purgeEntity(base44, e);
+      } catch (err) {
+        errors.push(e + ': ' + err.message);
+        counts[e] = 0;
+      }
     }
 
-    // ── Demo tag ──
+    // Stray non-is_demo tasks owned by demo clients (caught after clients are known).
+    try {
+      const stray = await purgeStrayTasks(base44);
+      if (stray) counts.ClientTask = (counts.ClientTask || 0) + stray;
+    } catch (err) {
+      errors.push('ClientTask(stray): ' + err.message);
+    }
+
+    // Demo tag.
     let tagDeleted = 0;
     try {
       const demoTags = await base44.asServiceRole.entities.Tag.filter({ name: DEMO_TAG });

@@ -25,6 +25,7 @@ export default function DemoInventoryTable({ counts }) {
           <Row label="Referral Partners" value={counts.referralPartners} />
           <Row label="Referrals" value={counts.referrals} />
           <Row label="Proposals" value={counts.proposals} />
+          <Row label="Invoices" value={counts.invoices} />
           <Row
             label="Calendar Events"
             value={counts.calendarEventsDelivered + counts.calendarEventsUpcoming}

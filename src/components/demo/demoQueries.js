@@ -1,11 +1,12 @@
 import { base44 } from '@/api/base44Client';
 
 export async function fetchDemoCounts() {
-  const [clients, partners, referrals, proposals, events, feedback, cohorts, tasks, activities, mfsAssessments] = await Promise.all([
+  const [clients, partners, referrals, proposals, invoices, events, feedback, cohorts, tasks, activities, mfsAssessments] = await Promise.all([
     base44.entities.Client.filter({ is_demo: true }, '-created_date', 1000),
     base44.entities.ReferralPartner.filter({ is_demo: true }, '-created_date', 1000),
     base44.entities.Referral.filter({ is_demo: true }, '-created_date', 1000),
     base44.entities.Proposal.filter({ is_demo: true }, '-created_date', 1000),
+    base44.entities.Invoice.filter({ is_demo: true }, '-created_date', 1000),
     base44.entities.CalendarEvent.filter({ is_demo: true }, '-created_date', 1000),
     base44.entities.FeedbackResponse.filter({ is_demo: true }, '-created_date', 1000),
     base44.entities.CohortAssessment.filter({ is_demo: true }, '-created_date', 1000),
@@ -20,6 +21,7 @@ export async function fetchDemoCounts() {
     referralPartners: partners.length,
     referrals: referrals.length,
     proposals: proposals.length,
+    invoices: invoices.length,
     calendarEventsDelivered: events.filter(e => e.completed).length,
     calendarEventsUpcoming: events.filter(e => !e.completed).length,
     feedbackResponses: feedback.length,
@@ -33,7 +35,7 @@ export async function fetchDemoCounts() {
     referralActivities: activities.length,
   };
   counts.total =
-    counts.clients + counts.referralPartners + counts.referrals + counts.proposals +
+    counts.clients + counts.referralPartners + counts.referrals + counts.proposals + counts.invoices +
     counts.calendarEventsDelivered + counts.calendarEventsUpcoming + counts.feedbackResponses +
     counts.cohortDay0 + counts.cohortDay14 + counts.cohortStart + counts.cohortEnd +
     counts.clientTasks + counts.referralActivities + counts.mfsAssessments + counts.mfsResponses;

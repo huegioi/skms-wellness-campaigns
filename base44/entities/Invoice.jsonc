@@ -123,6 +123,11 @@
       "type": "boolean",
       "default": false,
       "description": "Invoice belongs to a different business in the shared QuickBooks file. Excluded from all SkillfulMeans revenue and financial reporting."
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if this record is demo/broker-demo sample data. Excluded from all financial dashboards and revenue rollups (filterRealInvoices drops is_demo)."
     }
   },
   "required": [
