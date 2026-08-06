@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { format, parseISO } from 'date-fns';
 import SourceBadge from './SourceBadge';
+import { DemoBadge } from '@/components/shared/DemoBadge';
 import { getSourceCalendarLabel } from './eventLenses';
 
 /**
@@ -54,6 +55,7 @@ export default function MeetingsEventRow({ event, onSelectEvent, onMoveLens }) {
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <div className={`font-semibold ${isPast ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{event.title}</div>
+            {event.is_demo && <DemoBadge />}
             <SourceBadge source={event.sourceBadge} />
             {isPast && <span className="text-xs px-2 py-0.5 rounded bg-gray-200 text-gray-500">Past</span>}
           </div>

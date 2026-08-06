@@ -20,6 +20,7 @@ import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 import { PROPOSAL_STATUS_CONFIG as statusConfig } from '@/lib/statusConfig';
 import { htmlToPdfDownload, proposalFilename } from '@/lib/proposalPdf';
 import { customBoxUnitPrice } from '@/lib/wellnessBoxes';
+import { DemoBadge } from '@/components/shared/DemoBadge';
 
 export default function Proposals() {
   const [sortBy, setSortBy] = useState('date');
@@ -325,6 +326,7 @@ export default function Proposals() {
                           <h3 className="text-xl font-bold" style={{ color: '#264d44' }}>
                             {proposal.client_name}
                           </h3>
+                          {proposal.is_demo && <DemoBadge />}
                           <Badge className={status.color}>
                             <StatusIcon className="w-3 h-3 mr-1" />
                             {status.label}

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { format, parseISO } from 'date-fns';
 import SourceBadge from './SourceBadge';
+import { DemoBadge } from '@/components/shared/DemoBadge';
 import PresenterStatusIcon, { getPresenterStatus } from './PresenterStatusIcon';
 import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
 import { isChallengeEvent, getChallengeDayProgress } from '@/lib/challengeUtils';
@@ -77,6 +78,7 @@ export default function DeliveryEventRow({ event, allServices, getEventAssessmen
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <div className={`font-semibold ${isPast ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{event.title}</div>
+            {event.is_demo && <DemoBadge />}
             <SourceBadge source={event.sourceBadge} />
             {isCalendar && (() => {
               const status = getPresenterStatus(event);
