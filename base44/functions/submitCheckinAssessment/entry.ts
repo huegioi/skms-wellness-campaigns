@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import { clientIsDemoOrInternal } from '../../shared/demoClient.ts';
 
 // Creates CohortAssessment rows from a check-in survey submission.
 // CRITICAL: Fails open — always returns the meeting_link so the attendee
@@ -105,6 +106,10 @@ Deno.serve(async (req) => {
         ? (isChallenge ? 'challenge_day14' : 'cohort_end')
         : 'session_check';
 
+    // Stamp is_demo when the owning client is demo or internal, so test survey
+    // runs never pollute admin analytics.
+    const stampIsDemo = await clientIsDemoOrInternal(base44, event.client_id);
+
     // cohort_year from the EVENT's start_date (not submission time) so a late
     // submission doesn't land in the wrong plan year.
     const cohort_year = event.start_date ? new Date(event.start_date).getFullYear() : new Date().getFullYear();
@@ -119,13 +124,13 @@ Deno.serve(async (req) => {
         client_id: event.client_id || null,
         survey_type: surveyType,
         cohort_year,
-        is_demo: false,
+        is_demo: stampIsDemo,
       };
     } else {
       dedupFilter = {
         participant_email: normalizedEmail,
         event_id: event.id || null,
-        is_demo: false,
+        is_demo: stampIsDemo,
       };
     }
     const existing = await base44.asServiceRole.entities.CohortAssessment.filter(dedupFilter);
@@ -168,7 +173,7 @@ Deno.serve(async (req) => {
         cohort_year,
         submitted_at,
         assessment_phase: 'Phase 2',
-        is_demo: false,
+        is_demo: stampIsDemo,
       };
 
       // Populate legacy WHO-5 columns for back-compat

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { shouldExcludeDemo, demoExclusion } from '../../shared/demoPortal.ts';
 
 /**
  * Validates access to a client report and returns the data the report needs.
@@ -78,20 +79,26 @@ Deno.serve(async (req) => {
       return Response.json({ allowed: false });
     }
 
+    // ── Resolve the owning client first so a demo client's own portal shows
+    // its demo rows (real client → demo rows excluded). ──
+    const clients = await base44.asServiceRole.entities.Client.filter({ id: client_id });
+    const ownerClient = clients[0] || null;
+    const excludeDemo = shouldExcludeDemo(ownerClient);
+    const demoFrag = demoExclusion(excludeDemo);
+
     // ── Fetch client + feedback data (service role, filtered to this client) ──
-    const [clients, responses, services, events, cohortAssessments] = await Promise.all([
-      base44.asServiceRole.entities.Client.filter({ id: client_id }),
-      base44.asServiceRole.entities.FeedbackResponse.filter({ client_id, is_demo: { $ne: true } }, '-submitted_at', 500),
+    const [responses, services, events, cohortAssessments] = await Promise.all([
+      base44.asServiceRole.entities.FeedbackResponse.filter({ client_id, ...demoFrag }, '-submitted_at', 500),
       base44.asServiceRole.entities.Service.list('sort_order'),
-      base44.asServiceRole.entities.CalendarEvent.filter({ client_id, is_demo: { $ne: true } }, '-start_date', 500),
-      base44.asServiceRole.entities.CohortAssessment.filter({ client_id, is_demo: { $ne: true }, survey_type: { $ne: 'mfs' } }, '-submitted_at', 500),
+      base44.asServiceRole.entities.CalendarEvent.filter({ client_id, ...demoFrag }, '-start_date', 500),
+      base44.asServiceRole.entities.CohortAssessment.filter({ client_id, ...demoFrag, survey_type: { $ne: 'mfs' } }, '-submitted_at', 500),
     ]);
 
     // Fetch check-ins for this client's events
     const eventIds = events.map(e => e.id);
     const checkins = eventIds.length > 0
       ? await base44.asServiceRole.entities.EventCheckin.filter(
-          { event_id: { $in: eventIds }, is_demo: { $ne: true } },
+          { event_id: { $in: eventIds }, ...demoFrag },
           '-checked_in_at',
           2000
         )

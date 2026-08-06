@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { clientIsDemoOrInternal } from '../../shared/demoClient.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -28,6 +29,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'behavior_intent and fit_confidence are required' }, { status: 400 });
     }
 
+    // Stamp is_demo when the owning client is demo or internal, so test
+    // feedback runs never pollute admin analytics.
+    const stampIsDemo = await clientIsDemoOrInternal(base44, client_id);
+
     const record = await base44.asServiceRole.entities.FeedbackResponse.create({
       service_id: service_id || '',
       service_name: service_name || '',
@@ -45,6 +50,7 @@ Deno.serve(async (req) => {
       advocacy_referral: advocacy_referral || undefined,
       nps_score: nps_score != null ? nps_score : undefined,
       submitted_at: submitted_at || new Date().toISOString(),
+      is_demo: stampIsDemo,
     });
 
     return Response.json({ success: true, id: record.id });

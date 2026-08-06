@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { shouldExcludeDemo, demoExclusion, filterDemoRows } from '../../shared/demoPortal.ts';
 
 /**
  * Single data source for the client portal.
@@ -39,14 +40,19 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Client not found' }, { status: 404 });
     }
 
+    // A seeded DEMO client's own portal must show its demo rows; a real
+    // client's portal keeps them excluded.
+    const excludeDemo = shouldExcludeDemo(client);
+    const demoFrag = demoExclusion(excludeDemo);
+
     // ── Fetch all data in parallel ──────────────────────────────────────
     const [proposals, allEvents, emailTemplates, services, feedbackResponses, cohortAssessments] = await Promise.all([
       base44.asServiceRole.entities.Proposal.filter({ client_id: client.id }, '-created_date'),
       base44.asServiceRole.entities.CalendarEvent.list('start_date'),
       base44.asServiceRole.entities.EmailTemplate.list(),
       base44.asServiceRole.entities.Service.list('sort_order'),
-      base44.asServiceRole.entities.FeedbackResponse.filter({ client_id: client.id, is_demo: { $ne: true } }, '-submitted_at', 200),
-      base44.asServiceRole.entities.CohortAssessment.filter({ client_id: client.id, is_demo: { $ne: true }, survey_type: { $ne: 'mfs' } }, '-submitted_at', 500),
+      base44.asServiceRole.entities.FeedbackResponse.filter({ client_id: client.id, ...demoFrag }, '-submitted_at', 200),
+      base44.asServiceRole.entities.CohortAssessment.filter({ client_id: client.id, ...demoFrag, survey_type: { $ne: 'mfs' } }, '-submitted_at', 500),
     ]);
 
     // Build service name lookup
@@ -66,17 +72,17 @@ Deno.serve(async (req) => {
     });
 
     // ── Fetch check-ins for this client's events + by client_id ─────────
-    const matchedEventIds = matchedEvents.filter(e => !e.is_demo).map(e => e.id);
+    const matchedEventIds = filterDemoRows(matchedEvents, excludeDemo).map(e => e.id);
     const checkinsByEvent = matchedEventIds.length > 0
       ? await base44.asServiceRole.entities.EventCheckin.filter(
-          { event_id: { $in: matchedEventIds }, is_demo: { $ne: true } },
+          { event_id: { $in: matchedEventIds }, ...demoFrag },
           '-checked_in_at',
           2000
         )
       : [];
     // Also fetch by client_id (new-style check-ins with direct attribution)
     const checkinsByClient = await base44.asServiceRole.entities.EventCheckin.filter(
-      { client_id: client.id, is_demo: { $ne: true } },
+      { client_id: client.id, ...demoFrag },
       '-checked_in_at',
       2000
     );
@@ -102,7 +108,7 @@ Deno.serve(async (req) => {
     const peopleEngaged = new Set([...pulseEmails, ...cohortEmails, ...checkinEmails]).size;
 
     // ── Project events to only portal-rendered fields ───────────────────
-    const portalEvents = matchedEvents.filter(e => !e.is_demo).map(e => ({
+    const portalEvents = filterDemoRows(matchedEvents, excludeDemo).map(e => ({
       id: e.id,
       title: e.title,
       start_date: e.start_date,

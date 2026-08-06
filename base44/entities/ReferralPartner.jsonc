@@ -164,6 +164,11 @@
       "type": "boolean",
       "default": false,
       "description": "True if this record is demo/broker-demo sample data. Excluded from all syncs (Sheets, Kajabi), Maya briefings, and dashboard/analytics metrics."
+    },
+    "is_internal": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for the internal SkillfulMeans test broker. Visible in Scheduling Hub / calendars (real internal sessions) but excluded from Financials, pipeline rollups, Follow-Up Queue, Maya briefings, and dashboard counts. Referrals/records created under this broker are stamped is_demo."
     }
   },
   "required": [

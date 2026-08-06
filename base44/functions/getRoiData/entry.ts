@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import { shouldExcludeDemo, demoExclusion } from '../../shared/demoPortal.ts';
 
 /**
  * Returns a client's FeedbackResponse + CohortAssessment rows for portal rendering.
@@ -96,29 +97,33 @@ function projectRow(row, fields) {
  *   { id, event_id, client_id, checked_in_at }  — no name, no email.
  * When false (admin path), keeps email for the people-engaged count.
  */
-async function fetchCheckinsForClients(base44, clientIds, stripPii = false) {
+async function fetchCheckinsForClients(base44, clientIds, stripPii = false, demoClientIds = new Set()) {
   if (!clientIds || clientIds.length === 0) return [];
+  // Fetch events for all clients (no is_demo filter at DB level — partition in
+  // memory so demo clients' demo events flow through while real clients' don't).
   const events = await base44.asServiceRole.entities.CalendarEvent.filter(
-    { client_id: { $in: clientIds }, is_demo: { $ne: true } },
+    { client_id: { $in: clientIds } },
     '-start_date',
     1000
   );
-  const eventIds = events.map(e => e.id);
+  const keptEvents = events.filter(e => !e.is_demo || demoClientIds.has(e.client_id));
+  const eventIds = keptEvents.map(e => e.id);
   if (eventIds.length === 0) return [];
   const checkins = await base44.asServiceRole.entities.EventCheckin.filter(
-    { event_id: { $in: eventIds }, is_demo: { $ne: true } },
+    { event_id: { $in: eventIds } },
     '-checked_in_at',
     2000
   );
+  const keptCheckins = checkins.filter(c => !c.is_demo || demoClientIds.has(c.client_id));
   if (stripPii) {
-    return checkins.map(c => ({
+    return keptCheckins.map(c => ({
       id: c.id,
       event_id: c.event_id,
       client_id: c.client_id,
       checked_in_at: c.checked_in_at,
     }));
   }
-  return checkins.map(c => ({
+  return keptCheckins.map(c => ({
     event_id: c.event_id,
     email: c.email,
     checked_in_at: c.checked_in_at,
@@ -150,21 +155,32 @@ Deno.serve(async (req) => {
         return Response.json({ allowed: false });
       }
 
+      // Per-client demo flag: a demo broker's portfolio includes demo clients'
+      // demo rows (so the demo broker portal shows the product). Real clients'
+      // demo rows stay excluded.
+      const demoClientIds = new Set(partnerClients.filter(c => c.is_demo === true).map(c => c.id));
+
       // Fetch feedback + cohort data for all owned clients in parallel
       const [feedbackResults, cohortResults] = await Promise.all([
-        Promise.all(validIds.map(id =>
-          base44.asServiceRole.entities.FeedbackResponse.filter({ client_id: id, is_demo: { $ne: true } }, '-submitted_at', 200)
-        )),
-        Promise.all(validIds.map(id =>
-          base44.asServiceRole.entities.CohortAssessment.filter({ client_id: id, is_demo: { $ne: true }, survey_type: { $ne: 'mfs' } }, '-submitted_at', 500)
-        )),
+        Promise.all(validIds.map(id => {
+          const exclude = !demoClientIds.has(id);
+          return base44.asServiceRole.entities.FeedbackResponse.filter(
+            { client_id: id, ...demoExclusion(exclude) }, '-submitted_at', 200
+          );
+        })),
+        Promise.all(validIds.map(id => {
+          const exclude = !demoClientIds.has(id);
+          return base44.asServiceRole.entities.CohortAssessment.filter(
+            { client_id: id, ...demoExclusion(exclude), survey_type: { $ne: 'mfs' } }, '-submitted_at', 500
+          );
+        })),
       ]);
 
       const feedback = feedbackResults.flat().map(r => projectRow(r, PORTAL_FEEDBACK_FIELDS));
       const cohorts = cohortResults.flat().map(r => projectRow(r, PORTAL_COHORT_FIELDS));
       const pidCache = new Map();
       await pseudonymizeField(cohorts, 'participant_email', pidCache);
-      const checkins = await fetchCheckinsForClients(base44, validIds, true);
+      const checkins = await fetchCheckinsForClients(base44, validIds, true, demoClientIds);
       return Response.json({ allowed: true, feedback_responses: feedback, cohort_assessments: cohorts, checkins });
     }
 
@@ -209,10 +225,17 @@ Deno.serve(async (req) => {
       return Response.json({ allowed: false });
     }
 
+    // Resolve the owning client so a demo client's own portal shows its demo
+    // rows (real client → demo rows excluded).
+    const ownerClients = await base44.asServiceRole.entities.Client.filter({ id: client_id });
+    const ownerClient = ownerClients[0] || null;
+    const excludeDemo = shouldExcludeDemo(ownerClient);
+    const demoFrag = demoExclusion(excludeDemo);
+
     // Fetch feedback + cohort data for this client
     const [feedback, cohorts] = await Promise.all([
-      base44.asServiceRole.entities.FeedbackResponse.filter({ client_id, is_demo: { $ne: true } }, '-submitted_at', 500),
-      base44.asServiceRole.entities.CohortAssessment.filter({ client_id, is_demo: { $ne: true }, survey_type: { $ne: 'mfs' } }, '-submitted_at', 500),
+      base44.asServiceRole.entities.FeedbackResponse.filter({ client_id, ...demoFrag }, '-submitted_at', 500),
+      base44.asServiceRole.entities.CohortAssessment.filter({ client_id, ...demoFrag, survey_type: { $ne: 'mfs' } }, '-submitted_at', 500),
     ]);
 
     // Portal paths (client_token or portal_id) strip PII + pseudonymize;
@@ -226,7 +249,7 @@ Deno.serve(async (req) => {
       const pidCache = new Map();
       await pseudonymizeField(projectedCohorts, 'participant_email', pidCache);
     }
-    const checkins = await fetchCheckinsForClients(base44, [client_id], isPortalPath);
+    const checkins = await fetchCheckinsForClients(base44, [client_id], isPortalPath, excludeDemo ? new Set() : new Set([client_id]));
 
     return Response.json({
       allowed: true,

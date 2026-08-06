@@ -401,6 +401,11 @@
       "default": false,
       "description": "Demo data flag."
     },
+    "is_internal": {
+      "type": "boolean",
+      "default": false,
+      "description": "True for the internal SkillfulMeans test client. Visible in Scheduling Hub / calendars (real internal sessions) but excluded from Financials, pipeline rollups, Follow-Up Queue, Open Clients cards, useClientDeliveryStatus, and Maya briefings. Records created under this client are stamped is_demo."
+    },
     "quickbooks_customer_id": {
       "type": "string",
       "description": "QuickBooks Customer ID. When set, qbInvoiceBuild uses it directly \u2014 skipping all customer search API calls and token rotation. Written by qbCustomerCreate on successful customer creation, and by the similar-customer selection flow in CustomerNotFoundState."

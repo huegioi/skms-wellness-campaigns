@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { clientIsDemoOrInternal } from '../../shared/demoClient.ts';
 
 // ── Scoring helpers ──────────────────────────────────────────────
 
@@ -80,6 +81,10 @@ Deno.serve(async (req) => {
 
   const normalizedEmail = participant_email.toLowerCase().trim();
   const submitted_at = new Date().toISOString();
+
+  // Stamp is_demo when the owning client is demo or internal, so test survey
+  // runs never pollute admin analytics.
+  const stampIsDemo = await clientIsDemoOrInternal(base44, client_id);
 
   // cohort_year: stamp from the linked CalendarEvent's start_date year when an
   // event_id is available (matching the check-in path); else fall back to now.
@@ -174,7 +179,7 @@ Deno.serve(async (req) => {
     cohort_year,
     submitted_at,
     assessment_phase,
-    is_demo: false,
+    is_demo: stampIsDemo,
   };
 
   // ── Dedup (update-in-place on duplicate) ────────────────────────────────────

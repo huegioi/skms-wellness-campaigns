@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { shouldExcludeDemo } from '../../shared/demoPortal.ts';
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
@@ -14,8 +15,9 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'Partner not found' }, { status: 404 });
   }
   const partner = partners[0];
-
-  // Get all referrals for this partner only
+  // A demo broker's portal shows its demo rows (referrals/clients already flow
+  // through — only the brokerage-aggregate query below filtered is_demo).
+  const partnerIsDemo = shouldExcludeDemo(partner) === false;
   const referrals = await base44.asServiceRole.entities.Referral.filter({ referral_partner_id: partner.id });
 
   // Get the 15 most recent activities for the partner's in-portal feed
@@ -57,7 +59,9 @@ Deno.serve(async (req) => {
       brokerage = await base44.asServiceRole.entities.Brokerage.get(partner.brokerage_id);
       if (brokerage) {
         const brokeragePartners = await base44.asServiceRole.entities.ReferralPartner.filter(
-          { brokerage_id: partner.brokerage_id, is_demo: false },
+          partnerIsDemo
+            ? { brokerage_id: partner.brokerage_id }
+            : { brokerage_id: partner.brokerage_id, is_demo: { $ne: true } },
           '-created_date', 500
         );
         brokerageAggregateYtd = brokeragePartners.reduce((sum, p) => sum + (p.ytd_revenue || 0), 0);
