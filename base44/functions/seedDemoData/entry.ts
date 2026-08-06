@@ -100,7 +100,7 @@ function who5Record(clientId, proposalId, serviceId, p, surveyType, targetTotal,
     participant_email: p.email, survey_type: surveyType, instrument: 'who5', instrument_total: total,
     item_responses: { q1: items[0], q2: items[1], q3: items[2], q4: items[3], q5: items[4] },
     who5_cheerful: items[0], who5_calm: items[1], who5_active: items[2], who5_rested: items[3], who5_interested: items[4],
-    who5_total: total, cohort_year: new Date(submittedAt).getFullYear(), submitted_at: submittedAt, is_demo: true,
+    who5_total: total, cohort_year: new Date().getFullYear() /* one plan-year key for the whole seeded arc — matchPairs is year-scoped, and a Sep→Aug plan year must not split at Jan 1 */, submitted_at: submittedAt, is_demo: true,
   };
 }
 function uwes3Record(clientId, proposalId, serviceId, p, surveyType, targetMean, submittedAt) {
@@ -111,7 +111,7 @@ function uwes3Record(clientId, proposalId, serviceId, p, surveyType, targetMean,
     client_id: clientId, service_id: serviceId || undefined, proposal_id: proposalId,
     participant_email: p.email, survey_type: surveyType, instrument: 'uwes3', instrument_total: mean,
     item_responses: { q1: items[0], q2: items[1], q3: items[2] },
-    cohort_year: new Date(submittedAt).getFullYear(), submitted_at: submittedAt, is_demo: true,
+    cohort_year: new Date().getFullYear() /* one plan-year key for the whole seeded arc — matchPairs is year-scoped, and a Sep→Aug plan year must not split at Jan 1 */, submitted_at: submittedAt, is_demo: true,
   };
 }
 function pss4Record(clientId, proposalId, serviceId, p, surveyType, targetTotal, submittedAt) {
@@ -121,7 +121,7 @@ function pss4Record(clientId, proposalId, serviceId, p, surveyType, targetTotal,
     client_id: clientId, service_id: serviceId || undefined, proposal_id: proposalId,
     participant_email: p.email, survey_type: surveyType, instrument: 'pss4', instrument_total: sum,
     item_responses: { q1: items[0], q2: items[1], q3: items[2], q4: items[3] },
-    cohort_year: new Date(submittedAt).getFullYear(), submitted_at: submittedAt, is_demo: true,
+    cohort_year: new Date().getFullYear() /* one plan-year key for the whole seeded arc — matchPairs is year-scoped, and a Sep→Aug plan year must not split at Jan 1 */, submitted_at: submittedAt, is_demo: true,
   };
 }
 function ucla3Record(clientId, proposalId, serviceId, p, surveyType, targetTotal, submittedAt) {
@@ -131,7 +131,7 @@ function ucla3Record(clientId, proposalId, serviceId, p, surveyType, targetTotal
     client_id: clientId, service_id: serviceId || undefined, proposal_id: proposalId,
     participant_email: p.email, survey_type: surveyType, instrument: 'ucla3', instrument_total: sum,
     item_responses: { q1: items[0], q2: items[1], q3: items[2] },
-    cohort_year: new Date(submittedAt).getFullYear(), submitted_at: submittedAt, is_demo: true,
+    cohort_year: new Date().getFullYear() /* one plan-year key for the whole seeded arc — matchPairs is year-scoped, and a Sep→Aug plan year must not split at Jan 1 */, submitted_at: submittedAt, is_demo: true,
   };
 }
 function cbiRecord(clientId, proposalId, serviceId, p, surveyType, targetTotal, submittedAt) {
@@ -142,7 +142,7 @@ function cbiRecord(clientId, proposalId, serviceId, p, surveyType, targetTotal, 
     client_id: clientId, service_id: serviceId || undefined, proposal_id: proposalId,
     participant_email: p.email, survey_type: surveyType, instrument: 'cbi', instrument_total: Math.round(targetTotal),
     item_responses: { personal, work, colleague },
-    cohort_year: new Date(submittedAt).getFullYear(), submitted_at: submittedAt, is_demo: true,
+    cohort_year: new Date().getFullYear() /* one plan-year key for the whole seeded arc — matchPairs is year-scoped, and a Sep→Aug plan year must not split at Jan 1 */, submitted_at: submittedAt, is_demo: true,
   };
 }
 
@@ -542,7 +542,7 @@ Deno.serve(async (req) => {
             client_id: clientId, survey_type: 'mfs', instrument: key,
             participant_email: '', instrument_subscores: { _sid: sid },
             instrument_total: raw, item_responses: resp,
-            cohort_year: new Date(submittedAt).getFullYear(), submitted_at: submittedAt, is_demo: true,
+            cohort_year: new Date().getFullYear() /* one plan-year key for the whole seeded arc — matchPairs is year-scoped, and a Sep→Aug plan year must not split at Jan 1 */, submitted_at: submittedAt, is_demo: true,
           };
           if (key === 'who5') {
             record.who5_cheerful = resp.q1; record.who5_calm = resp.q2; record.who5_active = resp.q3;
