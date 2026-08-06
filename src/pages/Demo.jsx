@@ -151,6 +151,35 @@ export default function Demo() {
       <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 space-y-6">
         <DemoStatusBanner counts={counts} isLoading={isLoading} />
 
+        <p className="text-sm text-gray-600 bg-purple-50 border border-purple-200 rounded-lg px-3 py-2">
+          Demo data is invisible to your real numbers: it is excluded from financials, analytics,
+          scheduling views, Maya's briefing, and every real client or broker portal. Demo records
+          show a purple <span className="font-bold text-purple-700">DEMO</span> badge wherever they appear.
+        </p>
+
+        {/* Internal test sandbox — SkillfulMeans (Internal) client + Test Broker */}
+        <div>
+          <h2 className="text-lg font-bold mb-3 flex items-center gap-2" style={{ color: '#264d44' }}>
+            <FlaskConical className="w-5 h-5" /> Internal Test Sandbox
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <DemoLinkCard
+              name="William"
+              company="SkillfulMeans (Internal) — Test Client"
+              url={`${window.location.origin}/ClientPortal?token=22dd335a-a61e-48c8-a2b6-cbf9317e65bb`}
+              description="Your standing test client. Events stay visible in the Scheduling Hub, but everything here is excluded from financials, analytics, and nag lists — and any surveys you submit against it are auto-stamped demo."
+              type="client"
+            />
+            <DemoLinkCard
+              name="SkillfulMeans Test Broker"
+              company="SkillfulMeans (Internal) — Test Broker"
+              url={`${window.location.origin}/ReferralPortal?id=c6c1c859-fa6d-4366-b18f-912c4c03ebe7`}
+              description="Your standing test broker for trying the broker portal end-to-end. Excluded from commission and pipeline stats."
+              type="broker"
+            />
+          </div>
+        </div>
+
         {lastResult && (
           <div className={`rounded-xl p-4 ${lastResult.type === 'seed' ? 'bg-green-50 border border-green-200' : 'bg-blue-50 border border-blue-200'}`}>
             <p className="font-semibold text-sm">
