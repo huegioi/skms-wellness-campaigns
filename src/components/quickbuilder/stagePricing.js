@@ -10,8 +10,8 @@
  *   · Workshop sessions scale PER TOPIC: $1,500 first + $1,200 each extra.
  *   · Leadership EQ uses the scaled formula, not the old flat $10,000.
  *   · Wellness boxes are included in the tier price at the $100 blended rate.
- *   · Two $300 adjustments: new-client welcome, or returning-client materials
- *     credit (the recording + materials are only ever sent once).
+ *   · One $300 adjustment: a flat first-time-client welcome discount off the
+ *     quote total, independent of the materials math.
  */
 
 // ── Rate card (Proforma → Rate Card tab) ───────────────────────────────────
@@ -40,8 +40,7 @@ export const RATE_CARD = {
   wellnessBox: 100,             // blended average (brochure range $40–$300)
 
   // Adjustments
-  newClientWelcome: 300,
-  returningClientMaterialsCredit: 300,
+  newClientWelcome: 300,      // flat, off the total, first-time clients only
 
   // Quoted separately, never auto-added (Proforma: "NOT included in the package math")
   inPersonTravelAddOn: 500,
@@ -223,10 +222,9 @@ export function leadershipEqPrice(headcount, { coachingBlocks = 1, lcpRounds = 1
  * @param {object} opts
  * @param {number}  opts.headcount     — exact employee count
  * @param {number}  opts.stage         — 1–6
- * @param {boolean} opts.isNewClient   — apply the $300 welcome discount
- * @param {boolean} opts.isReturningClient — apply the $300 materials credit
+ * @param {boolean} opts.isNewClient   — apply the $300 first-time welcome discount
  */
-export function computeQuote({ headcount, stage = 1, isNewClient = false, isReturningClient = false }) {
+export function computeQuote({ headcount, stage = 1, isNewClient = false }) {
   const hc = Number(headcount) || 0;
   const tier = CAMPAIGN_STAGES.find(s => s.stage === stage) || CAMPAIGN_STAGES[0];
 
@@ -253,9 +251,6 @@ export function computeQuote({ headcount, stage = 1, isNewClient = false, isRetu
   const discounts = [];
   if (isNewClient) {
     discounts.push({ label: 'First-time client welcome', amount: RATE_CARD.newClientWelcome });
-  }
-  if (isReturningClient) {
-    discounts.push({ label: 'Returning client — materials already sent', amount: RATE_CARD.returningClientMaterialsCredit });
   }
   const discountTotal = discounts.reduce((sum, d) => sum + d.amount, 0);
 
