@@ -4,10 +4,10 @@ import { TrendingUp, ExternalLink, Info } from 'lucide-react';
 import { ROI_CALCULATOR_URL, RATE_CARD } from '@/components/quickbuilder/stagePricing';
 
 /**
- * Line-itemed quote with the two $300 adjustments.
+ * Line-itemed quote with the $300 first-time-client discount.
  * `quote` comes from computeQuote() in stagePricing.js.
  */
-export default function QuoteBreakdown({ quote, isNewClient, isReturningClient, onToggleNew, onToggleReturning }) {
+export default function QuoteBreakdown({ quote, isNewClient, onToggleNew }) {
   if (!quote) return null;
 
   return (
@@ -59,9 +59,7 @@ export default function QuoteBreakdown({ quote, isNewClient, isReturningClient, 
       </div>
 
       {/* Adjustments */}
-      <div className="bg-brand-cream rounded-xl p-4 space-y-3">
-        <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Anything apply to you?</p>
-
+      <div className="bg-brand-cream rounded-xl p-4">
         <label className="flex items-start gap-3 cursor-pointer">
           <input
             type="checkbox"
@@ -72,23 +70,7 @@ export default function QuoteBreakdown({ quote, isNewClient, isReturningClient, 
           <span className="text-sm text-gray-700">
             This is our first time working with SkillfulMeans
             <span className="block text-xs text-gray-400">
-              Welcome discount — ${RATE_CARD.newClientWelcome} off
-            </span>
-          </span>
-        </label>
-
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isReturningClient}
-            onChange={onToggleReturning}
-            className="mt-0.5 w-4 h-4 rounded accent-brand-navy flex-shrink-0"
-          />
-          <span className="text-sm text-gray-700">
-            We've run a SkillfulMeans campaign before
-            <span className="block text-xs text-gray-400">
-              Materials credit — ${RATE_CARD.returningClientMaterialsCredit} off, since your recordings and printed
-              materials are already with you
+              Takes ${RATE_CARD.newClientWelcome} off your total
             </span>
           </span>
         </label>
