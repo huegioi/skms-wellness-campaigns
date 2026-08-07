@@ -5,7 +5,17 @@ import { INSTRUMENT_META } from './instrumentMeta';
 // One reusable result card per instrument.
 // Shows: plain-language name, scale, interpretation, pre→post delta with
 // direction-aware coloring, n / completion, and an evidence-tier badge.
-export default function InstrumentResultCard({ instrumentKey, stats, evidenceTier }) {
+// startLabel / endLabel let each section name its own before/after explicitly
+// ("Program Start" → "1 Month After") instead of the generic Pre/Post, so a
+// follow-up survey is never read as an end-of-program one. Defaults preserve
+// the original wording for existing callers.
+export default function InstrumentResultCard({
+  instrumentKey,
+  stats,
+  evidenceTier,
+  startLabel = 'Pre',
+  endLabel = 'Post',
+}) {
   const meta = INSTRUMENT_META[instrumentKey];
   if (!meta || !stats) return null;
 
@@ -26,11 +36,11 @@ export default function InstrumentResultCard({ instrumentKey, stats, evidenceTie
       <p className="text-xs text-gray-500 mb-3 leading-relaxed">{meta.interpretation}</p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="text-center">
-          <p className="text-xs text-gray-400 mb-0.5">Pre</p>
+          <p className="text-xs text-gray-400 mb-0.5">{startLabel}</p>
           <p className="text-lg font-bold text-gray-700">{stats.avgStart.toFixed(1)}</p>
         </div>
         <div className="text-center">
-          <p className="text-xs text-gray-400 mb-0.5">Post</p>
+          <p className="text-xs text-gray-400 mb-0.5">{endLabel}</p>
           <p className="text-lg font-bold text-gray-700">{stats.avgEnd.toFixed(1)}</p>
         </div>
         <div className="text-center">
