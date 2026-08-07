@@ -667,6 +667,13 @@ Deno.serve(async (req) => {
     });
     const cedarMfsRecords = generateMfsResponses(cedarClient.id, 28, { who5: 3.3, pss4: 1.5, uwes3: 4.5, ucla3: 1.6 }, 10);
     if (cedarMfsRecords.length) await base44.asServiceRole.entities.CohortAssessment.bulkCreate(cedarMfsRecords);
+
+    // Lakeside also took the MFS team assessment at the top of its plan year.
+    // The other three MFS companies are lead-gen demos with no delivered
+    // programming, so without this the client-portal MFS panel has no populated
+    // portal to appear on and the feature is invisible in the demo.
+    const lakesideMfsRecords = generateMfsResponses(lakeside.id, 12, { who5: 3.1, pss4: 1.9, uwes3: 3.6, ucla3: 2.0 }, 330);
+    if (lakesideMfsRecords.length) await base44.asServiceRole.entities.CohortAssessment.bulkCreate(lakesideMfsRecords);
     const cedarMfsReferral = await base44.asServiceRole.entities.Referral.create({
       referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan', contact_name: 'Maria Santos',
       contact_email: 'maria.santos@cedarvine-demo.com', company_name: 'Cedar & Vine Hospitality',
@@ -686,7 +693,7 @@ Deno.serve(async (req) => {
     await base44.asServiceRole.entities.ReferralActivity.bulkCreate(mfsActivities);
 
     const salesCohortCount = cohortRecords.length;
-    const mfsCohortCount = harborviewMfsRecords.length + brightwaterMfsRecords.length + cedarMfsRecords.length;
+    const mfsCohortCount = harborviewMfsRecords.length + brightwaterMfsRecords.length + cedarMfsRecords.length + lakesideMfsRecords.length;
 
     return Response.json({
       success: true,
