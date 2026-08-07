@@ -81,6 +81,28 @@ Deno.serve(async (req) => {
       matched = matched.filter(r => !(r.tags && r.tags.some(t => excludeTags.includes(t))));
     }
 
+    // ── Owner filter (same position as frontend: after demo/inactive/tag, before dedupe) ──
+    // Inlined from src/lib/partnerAudienceFilter.js — the Deno function cannot import
+    // from src/. Keep character-for-character identical to the shared version.
+    const normalizeOwner = (owner) => {
+      const o = (owner || '').trim().toLowerCase();
+      if (!o) return 'unassigned';
+      if (o.includes('heather')) return 'heather';
+      if (o.includes('william')) return 'william';
+      return 'other';
+    };
+    const matchesOwnerFilter = (record, ownerFilterVal) => {
+      if (!ownerFilterVal || ownerFilterVal === 'all') return true;
+      return normalizeOwner(record.owner) === ownerFilterVal;
+    };
+    const ownerFilter = campaign.owner_filter || 'all';
+    const ownerExcludedCount = ownerFilter !== 'all'
+      ? matched.filter(r => !matchesOwnerFilter(r, ownerFilter)).length
+      : 0;
+    if (ownerFilter !== 'all') {
+      matched = matched.filter(r => matchesOwnerFilter(r, ownerFilter));
+    }
+
     // ── Apply user exclusions ──
     const excludedSet = new Set(excluded_record_ids);
     const included = matched.filter(r => !excludedSet.has(r.id));
@@ -180,6 +202,7 @@ Deno.serve(async (req) => {
       created: newRecipients.length,
       skipped: newSkipped.length,
       total_recipients: existing.length + allNew.length,
+      owner_excluded: ownerExcludedCount,
     });
   } catch (error) {
     console.error('[buildCampaignAudience] Error:', error.message, error.stack);

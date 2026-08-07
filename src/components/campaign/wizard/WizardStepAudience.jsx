@@ -7,7 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TagSelector } from '@/components/ui/TagSelector';
 import { Users, AlertCircle, Minus } from 'lucide-react';
-import { isExcludedFromAllPartners } from '@/lib/partnerAudienceFilter';
+import { isExcludedFromAllPartners, matchesOwnerFilter, normalizeOwner } from '@/lib/partnerAudienceFilter';
 
 const AUDIENCE_TYPES = [
   { value: 'client', label: 'Clients', entities: ['Client'] },
@@ -17,6 +17,13 @@ const AUDIENCE_TYPES = [
 const SCOPE_OPTIONS = [
   { value: 'all', label: 'All {type}' },
   { value: 'tags', label: 'By tag' },
+];
+
+const OWNER_OPTIONS = [
+  { value: 'all', label: 'All owners' },
+  { value: 'william', label: 'William' },
+  { value: 'heather', label: 'Heather' },
+  { value: 'unassigned', label: 'Unassigned' },
 ];
 
 export default function WizardStepAudience({ form, updateForm, excludedIds, toggleExclude }) {
@@ -59,7 +66,12 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
     return basePool.filter(r => (r.tags || []).some(t => excludeTagIds.includes(t))).length;
   })();
 
-  const matchedRecords = (() => {
+  const ownerFilter = form.owner_filter || 'all';
+
+  // Pool after demo + inactive + tag filters, BEFORE owner filter + dedupe.
+  // Owner filter is applied here so dedupe operates on the already-filtered pool
+  // (same position as buildCampaignAudience backend).
+  const preOwnerPool = (() => {
     if (!isAllScope && tagIds.length === 0) return [];
     let pool = allRecords.filter(r => !r.is_demo);
     // For "All Partners" scope, exclude dead/inactive records (shared filter)
@@ -73,6 +85,22 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
     if (excludeTagIds.length > 0) {
       pool = pool.filter(r => !(r.tags || []).some(t => excludeTagIds.includes(t)));
     }
+    return pool;
+  })();
+
+  const ownerActive = ownerFilter !== 'all';
+  const ownerExcludedCount = ownerActive
+    ? preOwnerPool.filter(r => !matchesOwnerFilter(r, ownerFilter)).length
+    : 0;
+  // Unassigned records that drop out when filtering to a named owner.
+  const unassignedExcludedCount = (ownerActive && ownerFilter !== 'unassigned')
+    ? preOwnerPool.filter(r => normalizeOwner(r.owner) === 'unassigned').length
+    : 0;
+
+  const matchedRecords = (() => {
+    let pool = ownerActive
+      ? preOwnerPool.filter(r => matchesOwnerFilter(r, ownerFilter))
+      : preOwnerPool;
     if (form.audience_type !== 'partner') return pool;
     // Partner: dedupe by email, prefer ReferralPartner over Lead
     const byEmail = new Map();
@@ -167,6 +195,30 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
         </RadioGroup>
       </div>
 
+      {/* Audience owner filter */}
+      <div>
+        <Label className="text-sm font-medium text-gray-700 mb-2 block">Audience Owner</Label>
+        <RadioGroup
+          value={ownerFilter}
+          onValueChange={v => updateForm('owner_filter', v)}
+          className="grid grid-cols-4 gap-2"
+        >
+          {OWNER_OPTIONS.map(opt => (
+            <div key={opt.value} className="flex items-center gap-2 border rounded-lg px-3 py-2 cursor-pointer hover:bg-gray-50">
+              <RadioGroupItem value={opt.value} id={`owner-${opt.value}`} />
+              <label htmlFor={`owner-${opt.value}`} className="text-sm cursor-pointer flex-1">{opt.label}</label>
+            </div>
+          ))}
+        </RadioGroup>
+        {ownerActive && (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mt-1.5">
+            {ownerFilter === 'unassigned'
+              ? `Only records with no owner are included.`
+              : `${unassignedExcludedCount} record${unassignedExcludedCount === 1 ? '' : 's'} in this pool have no owner and are excluded by this filter.`}
+          </p>
+        )}
+      </div>
+
       {/* Tags — only when scope is 'tags' */}
       {!isAllScope && (
         <div>
@@ -220,6 +272,7 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
               {finalCount} included{noEmailCount > 0 && ` - ${noEmailCount} will be skipped (no email)`}
               {tagExcludedCount > 0 && ` - ${tagExcludedCount} excluded by tag`}
               {inactiveExcludedCount > 0 && ` - ${inactiveExcludedCount} inactive/old excluded`}
+              {ownerExcludedCount > 0 && ` - ${ownerExcludedCount} excluded by owner`}
             </span>
           </div>
 

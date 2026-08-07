@@ -44,6 +44,17 @@
       "default": [],
       "description": "Tag IDs \u2014 any record with ANY of these tags is excluded from the audience, regardless of scope. Exclude wins over include if a tag appears in both."
     },
+    "owner_filter": {
+      "type": "string",
+      "enum": [
+        "all",
+        "william",
+        "heather",
+        "unassigned"
+      ],
+      "default": "all",
+      "description": "Restricts the audience to records whose owner matches. 'all' applies no filter and includes records with no owner. 'unassigned' selects only records with a null or empty owner. Distinct from sender_mode, which controls who the email is sent from."
+    },
     "subject_template": {
       "type": "string",
       "description": "Email subject skeleton; may contain merge hints like {{first_name}}"

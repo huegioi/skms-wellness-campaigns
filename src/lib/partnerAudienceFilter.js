@@ -56,3 +56,27 @@ export function isExcludedFromAllPartners(r) {
   if (r._sourceType === 'referral_partner') return isInactiveReferralPartner(r);
   return false;
 }
+
+/**
+ * Normalizes a free-text owner field to one of: 'heather', 'william',
+ * 'unassigned', or 'other'. 'other' ensures a third name never silently
+ * falls into William's bucket. Mirrored (inlined) in buildCampaignAudience —
+ * keep character-for-character identical.
+ */
+export function normalizeOwner(owner) {
+  const o = (owner || '').trim().toLowerCase();
+  if (!o) return 'unassigned';
+  if (o.includes('heather')) return 'heather';
+  if (o.includes('william')) return 'william';
+  return 'other';
+}
+
+/**
+ * Returns true if a record passes the owner_filter. 'all' passes everything
+ * (including records with no owner). Otherwise the record's normalized owner
+ * must equal the filter value.
+ */
+export function matchesOwnerFilter(record, ownerFilter) {
+  if (!ownerFilter || ownerFilter === 'all') return true;
+  return normalizeOwner(record.owner) === ownerFilter;
+}
