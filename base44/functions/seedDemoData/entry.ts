@@ -146,6 +146,16 @@ function cbiRecord(clientId, proposalId, serviceId, p, surveyType, targetTotal, 
   };
 }
 
+// eNPS is a single-point advocacy measure (0–10), not a pre/post instrument.
+function enpsRecord(clientId, proposalId, serviceId, p, surveyType, score, submittedAt) {
+  return {
+    client_id: clientId, service_id: serviceId || undefined, proposal_id: proposalId,
+    participant_email: p.email, survey_type: surveyType, instrument: 'enps', instrument_total: score,
+    item_responses: { q1: score },
+    cohort_year: new Date().getFullYear(), submitted_at: submittedAt, is_demo: true,
+  };
+}
+
 // per-participant trajectory: baseline → mid → end → month1, with ~15% improvement
 function trajectory() {
   const who5b = clamp(Math.round(jitter(52, 0.10)), 34, 70);
