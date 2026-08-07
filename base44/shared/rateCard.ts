@@ -52,6 +52,12 @@ export const RATE_CARD = {
   leqLcpPerLeader: 1250,        // LCP assessment + individual session
   leqLeaderRate: 0.005,         // 0.50% of headcount are leaders
 
+  // Leadership EQ — individual components.
+  // The $10,000 series is a bundle: sold separately the three workshops come
+  // to $10,500, so the series carries a $500 bundle discount. Both are real.
+  leqSingleWorkshop: 3500,      // one of the three series workshops, sold alone
+  leqCoachingSession: 450,      // Leadership EQ Coaching Program, per session
+
   // Wellness boxes
   wellnessBox: 100,             // blended average across the brochure range
 
@@ -99,19 +105,53 @@ export const SMOOTH_CHALLENGE_BANDS = true;
 // quoting; these are the individual SKUs used when a specific box is chosen.
 export const WELLNESS_BOX_PRICES: Record<string, number> = {
   reduceStress: 65,
-  buildResilience: 65,
-  boostFocus: 100,
-  largeEmotional: 120,
-  digitalWellness: 50,
-  largeStressReduction: 100,
-  sleepRecovery: 100,
-  teamConnection: 100,
-  leadershipReset: 100,
+  relaxationSleep: 65,
+  largeEmotional: 100,
+  largeStressReduction: 120,
+  stressReductionDigital: 50,
+  beyondBurnoutDigital: 100,
+  emotionalWellness: 100,
+  wintertimeHealthy: 100,
+  newYearFreshStart: 100,
+};
+
+/** Box key → wellness_box Service record name, for live price lookup. */
+export const BOX_KEY_TO_SERVICE_NAME: Record<string, string> = {
+  reduceStress: 'Reduce Stress Wellness Box',
+  relaxationSleep: 'Relaxation & Sleep Wellness Box',
+  largeEmotional: 'Large Emotional Wellness Box',
+  largeStressReduction: 'Large Stress Reduction Wellness Box',
+  stressReductionDigital: 'Stress Reduction Digital Wellness Box',
+  beyondBurnoutDigital: 'Beyond Burnout Digital Wellness Box',
+  emotionalWellness: 'Emotional Wellness Box',
+  wintertimeHealthy: 'Wintertime Stay Healthy Box',
+  newYearFreshStart: 'New Year Fresh Start Box',
+};
+
+/** Presentation labels. NOT Service record names — don't derive one from the other. */
+export const BOX_DISPLAY_NAMES: Record<string, string> = {
+  reduceStress: 'Reduce Stress Box',
+  relaxationSleep: 'Relaxation & Sleep Box',
+  largeEmotional: 'Large Emotional Wellness Box',
+  largeStressReduction: 'Large Stress Reduction Box',
+  stressReductionDigital: 'Stress Reduction Digital Box',
+  beyondBurnoutDigital: 'Beyond Burnout Digital Box',
+  emotionalWellness: 'Emotional Wellness Box',
+  wintertimeHealthy: 'Wintertime Stay Healthy Box',
+  newYearFreshStart: 'New Year Fresh Start Box',
+};
+
+// ── Movement & mindfulness classes ────────────────────────────────────────
+// Flat per-series prices; these do not scale with headcount.
+export const CLASS_PRICES: Record<string, number> = {
+  mindfulMovement: 2000,
+  yogaStress: 2000,
+  mindfulnessClasses: 1800,
 };
 
 export const MIN_PHYSICAL_BOX_PRICE = 65;
 export const MIN_DIGITAL_BOX_PRICE = 50;
-export const DIGITAL_BOX_KEYS = ['digitalWellness'];
+export const DIGITAL_BOX_KEYS = ['stressReductionDigital', 'beyondBurnoutDigital'];
 
 /** Never let a box price fall below its floor, whatever the source. */
 export function applyBoxFloor(key: string, price: number): number {
@@ -409,6 +449,45 @@ export function headcountToBand(headcount: number): string {
  * SIZE" and "2 · PER-CLIENT ECONOMICS" tables. Returns [] when everything
  * matches. Any change to a price above must be reflected here.
  */
+export function priceForCatalogItem(
+  category: string,
+  key: string,
+  headcount: number,
+): number | null {
+  const hc = Number(headcount) || 0;
+
+  // Headcount-dependent items cannot be priced without a headcount. Returning
+  // null forces the caller to ask for one instead of quoting a wrong default —
+  // this is exactly how the old $1,500 challenge fallback slipped into
+  // customer-facing proposals.
+  const NEEDS_HEADCOUNT = ['workshops', 'challenges', 'challengePrograms'];
+  if (hc <= 0 && (NEEDS_HEADCOUNT.includes(category) ||
+      (category === 'leadership' && key === 'leadershipProgram'))) {
+    return null;
+  }
+
+  switch (category) {
+    case 'workshops':
+      return workshopTopicPrice(hc);
+    case 'challenges':
+    case 'challengePrograms':
+      return challengePrice(hc);
+    case 'leadership':
+      if (key === 'leadershipProgram') return leadershipEqPrice(hc).total;
+      if (key === 'coachingProgram') return RATE_CARD.leqCoachingSession;
+      if (/^workshop[123]$/.test(key)) return RATE_CARD.leqSingleWorkshop;
+      return null;
+    case 'movementClasses':
+    case 'classes':
+      return CLASS_PRICES[key] ?? null;
+    case 'wellnessBoxes':
+    case 'boxes':
+      return key in WELLNESS_BOX_PRICES ? applyBoxFloor(key, WELLNESS_BOX_PRICES[key]) : null;
+    default:
+      return null;
+  }
+}
+
 export function verifyRateCard(): string[] {
   const failures: string[] = [];
 
