@@ -40,6 +40,93 @@ export const INSTRUMENT_META = {
   },
 };
 
+// ── Plain-language narration of a pre/post change ───────────────────────────
+// Turns the numbers on an instrument card into a sentence a non-clinical HR
+// reader can act on. Deliberately descriptive, never causal: we say "this group
+// reported", not "the program improved", because these are uncontrolled or
+// matched pre/post comparisons with no control group. The section subtitle and
+// the "How we measured this" block carry the study-design caveat, so the
+// narration stays about what the numbers say.
+//
+// `meaningful` / `modest` are absolute point thresholds on each instrument's
+// own scale, drawn from commonly cited change bands (e.g. ~10 points on the
+// 0–100 WHO-5). Below `modest`, the honest read is "essentially unchanged" —
+// small movements on small samples are noise, and dressing them up as wins is
+// how a wellbeing dashboard loses an HR team's trust.
+const CHANGE_NARRATION = {
+  who5: {
+    noun: 'wellbeing',
+    meaningful: 10, modest: 5,
+    better: 'People rated their day-to-day mood, energy, and rest higher than they did at the start.',
+    worse: 'People rated their day-to-day mood, energy, and rest lower than they did at the start.',
+  },
+  uwes3: {
+    noun: 'work engagement',
+    meaningful: 0.5, modest: 0.25,
+    better: 'People reported more energy and enthusiasm for their work.',
+    worse: 'People reported less energy and enthusiasm for their work.',
+  },
+  pss4: {
+    noun: 'perceived stress',
+    meaningful: 2, modest: 1,
+    better: 'People felt less overwhelmed by day-to-day demands.',
+    worse: 'People felt more overwhelmed by day-to-day demands.',
+  },
+  ucla3: {
+    noun: 'loneliness',
+    meaningful: 1, modest: 0.5,
+    better: 'People felt more connected to the people around them.',
+    worse: 'People felt less connected to the people around them.',
+  },
+  cbi: {
+    noun: 'burnout',
+    meaningful: 10, modest: 5,
+    better: 'People reported feeling less exhausted and depleted by work.',
+    worse: 'People reported feeling more exhausted and depleted by work.',
+  },
+  enps: {
+    noun: 'advocacy',
+    meaningful: 1, modest: 0.5,
+    better: 'People became more likely to recommend the program to a colleague.',
+    worse: 'People became less likely to recommend the program to a colleague.',
+  },
+};
+
+/**
+ * Build a plain-language sentence describing an instrument's pre/post change.
+ * Returns null when the instrument or stats are unknown, so callers can simply
+ * skip rendering rather than branch.
+ *
+ * @param {string} key   instrument key (who5, pss4, ...)
+ * @param {object} stats { avgStart, avgEnd, avgDelta, isGood }
+ * @param {object} opts  { startLabel, endLabel } to name the two time points
+ */
+export function describeChange(key, stats, opts = {}) {
+  const n = CHANGE_NARRATION[key];
+  const meta = INSTRUMENT_META[key];
+  if (!n || !meta || !stats) return null;
+  if (stats.avgStart == null || stats.avgEnd == null || stats.avgDelta == null) return null;
+
+  const startLabel = (opts.startLabel || 'the start').toLowerCase();
+  const endLabel = (opts.endLabel || 'the end').toLowerCase();
+  const size = Math.abs(stats.avgDelta);
+  const from = `${stats.avgStart.toFixed(1)} at ${startLabel} to ${stats.avgEnd.toFixed(1)} at ${endLabel}`;
+
+  // Too small to call in either direction.
+  if (size < n.modest) {
+    return `Average ${n.noun} was essentially unchanged (${from}). A movement this small is within normal fluctuation and shouldn't be read as a result either way.`;
+  }
+
+  const magnitude = size >= n.meaningful ? 'a meaningful' : 'a modest';
+  // isGood already accounts for instruments where lower is better, so a PSS-4
+  // drop reads as an improvement rather than a decline.
+  const direction = stats.isGood ? 'improvement' : 'decline';
+  const movement = stats.avgDelta > 0 ? 'rose' : 'fell';
+  const meaning = stats.isGood ? n.better : n.worse;
+
+  return `Average ${n.noun} ${movement} from ${from} — ${magnitude} ${direction}. ${meaning}`;
+}
+
 // Resolve the composite score for a row, with legacy WHO-5 fallback.
 export function getScore(row) {
   if (row.instrument_total != null) return row.instrument_total;
