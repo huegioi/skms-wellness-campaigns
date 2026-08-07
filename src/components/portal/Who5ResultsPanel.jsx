@@ -36,7 +36,7 @@ function InstrumentSuppressedCard({ instrumentKey, n }) {
 }
 
 // One section of matched-pair instrument cards, with a shared empty state.
-function InstrumentSection({ icon: Icon, iconClass, title, subtitle, stats, evidenceTier, emptyText }) {
+function InstrumentSection({ icon: Icon, iconClass, title, subtitle, stats, evidenceTier, emptyText, startLabel, endLabel }) {
   return (
     <div>
       <div className="flex items-center gap-2 mb-1">
@@ -49,7 +49,7 @@ function InstrumentSection({ icon: Icon, iconClass, title, subtitle, stats, evid
           {stats.map(({ key, stats: s }) => (
             s.n < MIN_N
               ? <InstrumentSuppressedCard key={key} instrumentKey={key} n={s.n} />
-              : <InstrumentResultCard key={key} instrumentKey={key} stats={s} evidenceTier={evidenceTier} />
+              : <InstrumentResultCard key={key} instrumentKey={key} stats={s} evidenceTier={evidenceTier} startLabel={startLabel} endLabel={endLabel} />
           ))}
         </div>
       ) : (
@@ -120,6 +120,8 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
           title="Wellbeing — This Plan Year"
           subtitle="Year arc — matched comparison of program start vs. program end"
           stats={cohortInstrumentStats}
+          startLabel="Before"
+          endLabel="After"
           evidenceTier="Matched comparison"
           emptyText="Cohort results appear once Cohort Start and Cohort End responses come in."
         />
@@ -133,6 +135,8 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
           title="Sustained — One Month Later"
           subtitle="Follow-up arc — program start vs. one month after the program ended"
           stats={sustainInstrumentStats}
+          startLabel="Before"
+          endLabel="1 Month After"
           evidenceTier="Matched comparison — 1-month follow-up"
           emptyText="Sustain results appear once one-month follow-up responses come in."
         />
@@ -145,6 +149,8 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
         title="Challenge Wellbeing — By Program"
         subtitle="Program effect — uncontrolled pre/post (Day 0 vs. Day 14)"
         stats={challengeInstrumentStats}
+        startLabel="Day 0"
+        endLabel="Day 14"
         evidenceTier="Program effect — uncontrolled pre/post"
         emptyText="Challenge results appear once Day 0 and Day 14 responses come in."
       />
