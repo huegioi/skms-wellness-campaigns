@@ -62,13 +62,19 @@ export async function fetchPortalLinks() {
     description: 'Active broker partner with placed clients, commission ledger, and a pending referral in the pipeline.',
     type: 'broker',
   } : null;
-  const clientLinks = clients.map(c => ({
-    name: c.name,
-    company: c.company,
-    url: `${origin}/ClientPortal?token=${c.portal_token}`,
-    description: CLIENT_DESCRIPTIONS[c.company] || 'Demo client portal with program details and resources.',
-    type: 'client',
-  }));
+  // Only clients that actually have a portal token get a card. Without this a
+  // tokenless demo client renders a ?token=undefined link that looks live and
+  // dead-ends on click — which is exactly how the MFS demo clients were
+  // showing up alongside the three real portal clients.
+  const clientLinks = clients
+    .filter(c => !!c.portal_token)
+    .map(c => ({
+      name: c.name,
+      company: c.company,
+      url: `${origin}/ClientPortal?token=${c.portal_token}`,
+      description: CLIENT_DESCRIPTIONS[c.company] || 'Demo client portal with program details and resources.',
+      type: 'client',
+    }));
 
   // MFS assessment links with intake details and response counts
   const mfsAssessments = await base44.entities.MfsAssessment.filter({ is_demo: true }, '-created_date', 10);
