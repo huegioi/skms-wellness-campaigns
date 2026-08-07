@@ -229,6 +229,23 @@ Deno.serve(async (req) => {
                 }
               }
               await base44.entities.CampaignRecipient.update(r.id, updateFields);
+
+              // Flip the linked EmailLog from draft → sent so profile timelines
+              // show the true state. Point gmail_message_id at the real sent
+              // message (it previously held the draft id) so "Open in Gmail"
+              // works and the historical-email scanner dedupes against this row.
+              if (r.email_log_id) {
+                try {
+                  await base44.asServiceRole.entities.EmailLog.update(r.email_log_id, {
+                    is_draft: false,
+                    gmail_message_id: sentMsg.id,
+                    date: msgDate,
+                  });
+                } catch (e) {
+                  console.error(`[syncCampaignSendStatus] EmailLog update error for ${r.email_log_id}:`, e.message);
+                }
+              }
+
               updatedSent++;
             }
           } else if (r.status === 'sent' && r.sent_at) {
