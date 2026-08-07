@@ -1,32 +1,29 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
-const TIERS = [
-  { min: 40,   max: 49,   price: 27 },
-  { min: 50,   max: 59,   price: 25 },
-  { min: 60,   max: 99,   price: 24 },
-  { min: 100,  max: 149,  price: 22 },
-  { min: 150,  max: 199,  price: 20 },
-  { min: 200,  max: 249,  price: 18 },
-  { min: 250,  max: 299,  price: 15 },
-  { min: 300,  max: 349,  price: 14 },
-  { min: 350,  max: 399,  price: 13 },
-  { min: 400,  max: 499,  price: 12 },
-  { min: 500,  max: 999,  price: 10 },
-  { min: 1000, max: Infinity, price: 9 },
-];
+// Bands, engagement rate and pricing all come from the rate card. This
+// component renders them; it must never define them.
+import {
+  CHALLENGE_TIERS as TIERS,
+  RATE_CARD,
+  challengeSlots,
+  challengeRatePerPerson,
+  challengePrice,
+} from '@/lib/rateCard';
 
-const ENGAGEMENT_RATE = 0.20;   // expected participation as a share of headcount
+const ENGAGEMENT_RATE = RATE_CARD.challengeEngagementRate;
 
 function calcPricing(headcount) {
   if (!headcount || headcount <= 0) return null;
   const baseSlots = Math.round(headcount * ENGAGEMENT_RATE);
-  const minimumApplied = baseSlots < 40;
-  const targetSlots = minimumApplied ? 40 : baseSlots;
-  const tier = TIERS.find(t => targetSlots >= t.min && targetSlots <= t.max);
-  const pricePerPerson = tier ? tier.price : 9;
-  const totalCost = targetSlots * pricePerPerson;
-  return { targetSlots, minimumApplied, pricePerPerson, totalCost };
+  const minimumApplied = baseSlots < RATE_CARD.challengeMinSlots;
+  const targetSlots = challengeSlots(headcount);
+  const pricePerPerson = challengeRatePerPerson(targetSlots);
+  const totalCost = challengePrice(headcount);
+  // challengePrice caps the total at the cheapest entry price of any larger
+  // band, so a bigger company can never be quoted less than a smaller one.
+  const bandCapApplied = totalCost !== targetSlots * pricePerPerson;
+  return { targetSlots, minimumApplied, pricePerPerson, totalCost, bandCapApplied };
 }
 
 function tierLabel(tier) {
@@ -81,6 +78,9 @@ export default function ChallengePricingEstimator({ initialHeadcount }) {
             <div className="rounded-xl p-4 border border-gray-200" style={{ background: 'linear-gradient(135deg, #013f7c10, #013f7c05)' }}>
               <p className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: '#013f7c' }}>Total Challenge Investment</p>
               <p className="text-3xl font-bold" style={{ color: '#013f7c' }}>${result.totalCost.toLocaleString()}</p>
+              {result.bandCapApplied && (
+                <p className="text-xs text-gray-500 italic mt-1">Capped at the next volume band</p>
+              )}
             </div>
           </div>
         ) : (

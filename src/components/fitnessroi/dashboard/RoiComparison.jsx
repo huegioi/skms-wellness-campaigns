@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { runRoi, STAGES, CHALLENGE_TIERS, LEQ_PER_LEADER, LEADER_FRACTION, WORKSHOP_WEBINAR_CAP, CHALLENGE_RUN_CAP } from '@/lib/roiModel';
+import { runRoi, STAGES } from '@/lib/roiModel';
+import {
+  RATE_CARD, CAMPAIGN_STAGES, sessionsPerWorkshop, challengeSlots, leadershipEqPrice,
+} from '@/lib/rateCard';
 import SavingsChart, { DRIVERS } from '@/components/fitnessroi/dashboard/SavingsChart';
 
 const CALENDLY_URL = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
@@ -20,36 +23,44 @@ function niceMax(rawMax) {
   return niceMaxVal;
 }
 
-// Build stage line items paired with actual breakdown costs from the roiModel
+// Build stage line items paired with actual breakdown costs from the model.
+// Every count here is derived from the rate card, so the "~N attendees" text
+// always describes the same delivery the price was calculated from.
 function stageLineItems(stage, roiInputs, breakdown) {
   if (!roiInputs || !stage || !breakdown) return [];
   const N = roiInputs.employees || 0;
-  const participRate = roiInputs.participRate || 0.25;
+  const tier = CAMPAIGN_STAGES.find(s => s.stage === stage.num) || CAMPAIGN_STAGES[0];
 
-  const wsAttendees = Math.max(1, Math.round(N * participRate));
-  const participatingN = Math.max(40, Math.round(N * participRate));
-  const leaders = Math.max(1, Math.round(N * LEADER_FRACTION));
-  const cohorts = Math.ceil((N * 0.16) / 12);
-  const indivPeople = Math.round(N * 0.05);
-
-  // Wellness box count (mirrors calcInvestment logic)
-  const wsSessions = Math.ceil(wsAttendees / WORKSHOP_WEBINAR_CAP);
-  const challengeRuns = stage.challenges * Math.ceil(participatingN / CHALLENGE_RUN_CAP);
-  const wsBoxes = stage.workshops * wsSessions * 3;
-  const chBoxes = challengeRuns * 3;
-  let boxCount = 0;
-  if (stage.incentiveStage === 1) boxCount = stage.challenges > 0 ? chBoxes : wsBoxes;
-  else if (stage.incentiveStage === 2) boxCount = chBoxes + wsBoxes;
-  else if (stage.incentiveStage === 3) boxCount = N;
+  const sessions = sessionsPerWorkshop(N);
+  const wsAttendees = Math.max(1, Math.round(N * RATE_CARD.attendanceRate));
+  const slots = challengeSlots(N);
+  const leq = tier.leadershipEQ
+    ? leadershipEqPrice(N, { coachingBlocks: tier.coachingBlocks, lcpRounds: tier.lcpRounds })
+    : null;
+  const boxCount = tier.wellnessBoxes;
 
   const meta = {
-    'Workshops & Webinars': { label: `${stage.workshops} workshop${stage.workshops > 1 ? 's' : ''}`, participants: `~${wsAttendees} attendees` },
-    'Challenges': { label: `${stage.challenges} challenge${stage.challenges > 1 ? 's' : ''}`, participants: `~${participatingN} participants` },
-    'Leader EQ Training': { label: 'Leader EQ Training', participants: `~${leaders} leaders` },
-    'Group Coaching': { label: 'Group Coaching', participants: `~${cohorts} cohort${cohorts !== 1 ? 's' : ''}` },
-    'Individual Coaching': { label: '1:1 Coaching', participants: `~${indivPeople} people` },
-    'Consultant': { label: 'Consultant', participants: '' },
-    'Wellness Boxes': { label: 'Wellness Boxes', participants: boxCount > 0 ? `~${boxCount} boxes` : '' },
+    'Workshops & Webinars': {
+      label: `${tier.workshops} workshop${tier.workshops > 1 ? 's' : ''}`,
+      participants: sessions > 1
+        ? `~${wsAttendees} attendees over ${sessions} sessions each`
+        : `~${wsAttendees} attendees`,
+    },
+    'Challenges': {
+      label: `${tier.challenges} challenge${tier.challenges > 1 ? 's' : ''}`,
+      participants: `~${slots} participants`,
+    },
+    'Leader EQ Training': {
+      label: 'Leader EQ Training',
+      participants: leq
+        ? `~${leq.leaders} leader${leq.leaders !== 1 ? 's' : ''} in ${leq.groups} group${leq.groups !== 1 ? 's' : ''}`
+        : '',
+    },
+    'Consultant': { label: 'Consultant', participants: 'included' },
+    'Wellness Boxes': {
+      label: 'Wellness Boxes',
+      participants: boxCount > 0 ? `${boxCount} boxes` : '',
+    },
   };
 
   return breakdown.map((b) => {
