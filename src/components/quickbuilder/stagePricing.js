@@ -49,9 +49,8 @@ export const RATE_CARD = {
 
 export const ROI_CALCULATOR_URL = 'https://skillfulmeans-roi-production.up.railway.app/';
 
-// TODO(William): point this at the public brochure PDF. Falls back to the
-// in-app service catalog until then.
-export const BROCHURE_URL = '/ServiceCatalog';
+// Public brochure (Canva), supplied by William 2026-08-07.
+export const BROCHURE_URL = 'https://canva.link/74cztlpziuaeqfs';
 
 // ── Challenge volume tiers (Proforma → Rate Card, mirrors ChallengePricingEstimator) ──
 export const CHALLENGE_TIERS = [
