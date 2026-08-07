@@ -1,6 +1,6 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { INSTRUMENT_META } from './instrumentMeta';
+import { INSTRUMENT_META, describeChange } from './instrumentMeta';
 
 // One reusable result card per instrument.
 // Shows: plain-language name, scale, interpretation, pre→post delta with
@@ -21,6 +21,9 @@ export default function InstrumentResultCard({
 
   const deltaColor = stats.isGood ? '#264d44' : '#ef4444';
   const sign = stats.avgDelta >= 0 ? '+' : '';
+  // Plain-language read of the delta, phrased with this section's own time-point
+  // labels so "1 month after" never reads as "end of program".
+  const narrative = describeChange(instrumentKey, stats, { startLabel, endLabel });
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-5">
@@ -56,6 +59,12 @@ export default function InstrumentResultCard({
           </p>
         </div>
       </div>
+      {narrative && (
+        <p className="text-xs text-gray-600 leading-relaxed mt-3 pt-3 border-t">
+          <span className="font-semibold text-gray-700">What this means: </span>
+          {narrative}
+        </p>
+      )}
     </div>
   );
 }
