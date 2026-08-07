@@ -274,6 +274,22 @@ Deno.serve(async (req) => {
               }
             }
 
+            // Backfill: recipients marked sent before EmailLog syncing existed
+            // may still have their EmailLog flagged is_draft. Fix idempotently.
+            if (r.email_log_id) {
+              try {
+                const log = await base44.asServiceRole.entities.EmailLog.get(r.email_log_id);
+                if (log && log.is_draft) {
+                  await base44.asServiceRole.entities.EmailLog.update(r.email_log_id, {
+                    is_draft: false,
+                    date: r.sent_at,
+                  });
+                }
+              } catch (e) {
+                console.error(`[syncCampaignSendStatus] EmailLog backfill error for ${r.email_log_id}:`, e.message);
+              }
+            }
+
             // Check for inbound reply
             const replyMsg = await searchMessages(accessToken, `from:${r.email} after:${sentTs}`);
 
