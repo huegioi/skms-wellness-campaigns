@@ -4,7 +4,8 @@ Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     const body = await req.json();
-    const { company_name, contact_name, email, team_size, goals, selected_service_ids, wants_wellness_boxes, ref, estimated_investment, matched_stage } = body;
+    const { company_name, contact_name, email, team_size, goals, selected_service_ids, wants_wellness_boxes, ref, estimated_investment, matched_stage,
+            headcount, company_size_band, selected_tier, is_new_client, is_returning_client, discount_applied } = body;
 
     // ── Validate required fields ──
     if (!company_name || !contact_name || !email || !team_size) {
@@ -43,6 +44,9 @@ Deno.serve(async (req) => {
 
     // ── Build notes ──
     const notesLines = [];
+    if (headcount != null) {
+      notesLines.push(`Headcount: ${Number(headcount).toLocaleString()} employees${company_size_band ? ` (${company_size_band})` : ''}`);
+    }
     if (goals && goals.length > 0) {
       notesLines.push(`Goals: ${goals.join(', ')}`);
     }
@@ -50,7 +54,11 @@ Deno.serve(async (req) => {
       notesLines.push(`Selected services:\n${serviceNames.map(n => `- ${n}`).join('\n')}`);
     }
     notesLines.push(`Wellness boxes: ${wants_wellness_boxes ? 'yes' : 'no'}`);
-    if (matched_stage) notesLines.push(`Matched stage: ${matched_stage}`);
+    if (selected_tier) notesLines.push(`Tier chosen: ${selected_tier}`);
+    if (matched_stage && matched_stage !== selected_tier) notesLines.push(`Matched stage: ${matched_stage}`);
+    if (is_new_client) notesLines.push('First-time client — $300 welcome discount applied');
+    if (is_returning_client) notesLines.push('Returning client — $300 materials credit applied');
+    if (discount_applied) notesLines.push(`Total discount applied: $${Number(discount_applied).toLocaleString()}`);
     if (estimated_investment != null) notesLines.push(`Estimated investment: $${estimated_investment.toLocaleString()}`);
     const notes = notesLines.join('\n\n');
 
