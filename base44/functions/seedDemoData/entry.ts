@@ -406,40 +406,61 @@ Deno.serve(async (req) => {
     // ── 8. Cohort assessments (full plan-year arc, all 5 instruments) ──
     const cohortRecords = [];
 
-    // Lakeside — 8 named participants, full arc: cohort_start (5) → session_check (who5) → cohort_end (5) → cohort_1mo (5, 6 of 8)
+    // Lakeside — 8 named participants, full arc:
+    //   cohort_start (5 instruments) → session_check (who5) → cohort_end (5) →
+    //   enps_post_session → cohort_1mo (5, 6 of 8 sustain responders)
+    // Each participant keeps ONE trajectory across every phase, so the 1-month
+    // sustain rows are a real continuation of that person's own arc rather than
+    // a fresh random draw (which previously made sustain deltas meaningless).
     (function lakesideCohort() {
       const named = lakesidePool.slice(0, 8);
+      const tjByEmail = new Map();
       for (const p of named) {
         const tj = trajectory();
+        tjByEmail.set(p.email, tj);
         cohortRecords.push(...phaseRecords(lakeside.id, lakesideProposal.id, undefined, p, 'cohort_start', ALL_INSTRUMENTS, tj.baseline, isoAt(-330, 9)));
         cohortRecords.push(...phaseRecords(lakeside.id, lakesideProposal.id, undefined, p, 'session_check', ['who5'], tj.mid, isoAt(-180, 11)));
         cohortRecords.push(...phaseRecords(lakeside.id, lakesideProposal.id, undefined, p, 'cohort_end', ALL_INSTRUMENTS, tj.end, isoAt(-35, 10)));
+        cohortRecords.push(enpsRecord(lakeside.id, lakesideProposal.id, undefined, p, 'enps_post_session', genNps('high'), isoAt(-33, 12)));
       }
       const month1Cohort = named.slice(0, 6);
       for (const p of month1Cohort) {
-        const tj = trajectory();
+        const tj = tjByEmail.get(p.email);
         cohortRecords.push(...phaseRecords(lakeside.id, lakesideProposal.id, undefined, p, 'cohort_1mo', ALL_INSTRUMENTS, tj.month1, isoAt(-5, 10)));
       }
     })();
 
-    // Brightpath — 6 named participants: cohort_start (5) → session_check (who5, 3 of 6) → challenge_day0 (7) / day14 (2)
+    // Brightpath — 6 named participants, full arc:
+    //   cohort_start (5) → session_check (who5, 5 of 6) → cohort_end (5, all 6)
+    //   → enps_post_session, plus a challenge: day0 (7) → day14 (6 of 7).
+    // Every "after" survey clears the portal's n≥5 privacy threshold so the HR
+    // view renders real matched-pair numbers instead of "Collecting data".
     (function brightpathCohort() {
       const named = brightpathPool.slice(0, 6);
+      const tjByEmail = new Map();
       for (const p of named) {
         const tj = trajectory();
+        tjByEmail.set(p.email, tj);
         cohortRecords.push(...phaseRecords(brightpath.id, brightpathProposal.id, undefined, p, 'cohort_start', ALL_INSTRUMENTS, tj.baseline, isoAt(-105, 9)));
       }
-      for (const p of named.slice(0, 3)) {
-        const tj = trajectory();
+      for (const p of named.slice(0, 5)) {
+        const tj = tjByEmail.get(p.email);
         cohortRecords.push(...phaseRecords(brightpath.id, brightpathProposal.id, undefined, p, 'session_check', ['who5'], tj.mid, isoAt(-50, 11)));
       }
+      for (const p of named) {
+        const tj = tjByEmail.get(p.email);
+        cohortRecords.push(...phaseRecords(brightpath.id, brightpathProposal.id, undefined, p, 'cohort_end', ALL_INSTRUMENTS, tj.end, isoAt(-14, 10)));
+        cohortRecords.push(enpsRecord(brightpath.id, brightpathProposal.id, undefined, p, 'enps_post_session', genNps('mid'), isoAt(-13, 12)));
+      }
       const challenge = brightpathPool.slice(0, 7);
+      const challengeTj = new Map();
       for (const p of challenge) {
         const tj = trajectory();
+        challengeTj.set(p.email, tj);
         cohortRecords.push(who5Record(brightpath.id, brightpathProposal.id, challengeSvc.id, p, 'challenge_day0', tj.baseline.who5, isoAt(-9, 10)));
       }
-      for (const p of challenge.slice(0, 2)) {
-        const tj = trajectory();
+      for (const p of challenge.slice(0, 6)) {
+        const tj = challengeTj.get(p.email);
         cohortRecords.push(who5Record(brightpath.id, brightpathProposal.id, challengeSvc.id, p, 'challenge_day14', tj.end.who5, isoAt(-2, 10)));
       }
     })();
