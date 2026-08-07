@@ -7,7 +7,7 @@ import { ROI_CALCULATOR_URL, RATE_CARD } from '@/components/quickbuilder/stagePr
  * Line-itemed quote with the $300 first-time-client discount.
  * `quote` comes from computeQuote() in stagePricing.js.
  */
-export default function QuoteBreakdown({ quote, isNewClient, onToggleNew, includeBoxes, onToggleBoxes }) {
+export default function QuoteBreakdown({ quote, isNewClient, onToggleNew }) {
   if (!quote) return null;
 
   return (
@@ -59,23 +59,7 @@ export default function QuoteBreakdown({ quote, isNewClient, onToggleNew, includ
       </div>
 
       {/* Adjustments */}
-      <div className="bg-brand-cream rounded-xl p-4 space-y-3">
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={includeBoxes}
-            onChange={onToggleBoxes}
-            className="mt-0.5 w-4 h-4 rounded accent-brand-navy flex-shrink-0"
-          />
-          <span className="text-sm text-gray-700">
-            Include wellness boxes
-            <span className="block text-xs text-gray-400">
-              {quote.tier.wellnessBoxes} boxes at ${RATE_CARD.wellnessBox} each. They're what carries the campaign
-              between sessions &mdash; we recommend keeping them.
-            </span>
-          </span>
-        </label>
-
+      <div className="bg-brand-cream rounded-xl p-4">
         <label className="flex items-start gap-3 cursor-pointer">
           <input
             type="checkbox"
