@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Send, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { toast } from 'sonner';
 import { productCatalog } from '@/components/curriculum/catalogData';
-import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
+import { priceForCatalogItem, resolveHeadcount } from '@/lib/rateCard';
+import { WELLNESS_BOX_PRICES, BOX_DISPLAY_NAMES, applyBoxFloor } from '@/lib/wellnessBoxes';
 
 export default function SendProposalDialog({ proposal, open, onOpenChange, onSent }) {
   const [email, setEmail] = useState(proposal?.client_email || '');
@@ -25,65 +27,67 @@ SkillfulMeans Team`);
 
   const generateProposalHTML = () => {
     const sel = proposal.selections || {};
+    const headcount = resolveHeadcount(sel.assessmentData?.companySize);
+
+    // Price precedence, highest first:
+    //   1. an explicit override — a human decided this number
+    //   2. the price snapshotted when the proposal was built (a sent proposal
+    //      must never silently re-price itself later)
+    //   3. the rate card, computed for this company's headcount
+    // Returns null when it cannot be priced, so the caller can flag it rather
+    // than quietly emailing a $0 line.
     const getPrice = (category, key) => {
       const overrideKey = `${category}_${key}`;
       if (sel.priceOverrides?.[overrideKey] !== undefined) return sel.priceOverrides[overrideKey];
-      if (category === 'workshops') return productCatalog.workshops[key]?.price || 0;
-      if (category === 'challenges') {
-        // Use saved challenge price or calculate from company size
-        const savedPrice = sel.challengePrice;
-        if (savedPrice) return savedPrice;
-        const companySize = sel.assessmentData?.companySize;
-        return calculateChallengePrice(companySize);
-      }
-      if (category === 'leadership') return productCatalog.leadership[key]?.price || 0;
-      if (category === 'movementClasses') return productCatalog.movementClasses[key]?.price || 0;
-      return 0;
+      if (category === 'challenges' && sel.challengePrice) return sel.challengePrice;
+      return priceForCatalogItem(category, key, headcount);
     };
 
     const items = [];
+    const unpriced = [];   // lines the rate card could not price (usually no headcount)
     let subtotal = 0;
 
     if (sel.workshops?.length > 0) {
       sel.workshops.forEach(k => {
         const price = getPrice('workshops', k);
-        subtotal += price;
+        subtotal += price ?? 0;
+        if (price === null) unpriced.push(productCatalog.workshops[k]?.name || k);
         items.push({ category: 'Workshops', name: productCatalog.workshops[k]?.name, price });
       });
     }
     if (sel.challengePrograms?.length > 0) {
       sel.challengePrograms.forEach(k => {
         const price = getPrice('challenges', k);
-        subtotal += price;
+        subtotal += price ?? 0;
+        if (price === null) unpriced.push(productCatalog.challenges[k]?.name || k);
         items.push({ category: '14-Day Challenges', name: productCatalog.challenges[k]?.name, price });
       });
     }
     if (sel.leadership?.length > 0) {
       sel.leadership.forEach(k => {
         const price = getPrice('leadership', k);
-        subtotal += price;
+        subtotal += price ?? 0;
+        if (price === null) unpriced.push(productCatalog.leadership[k]?.name || k);
         items.push({ category: 'Leadership Programs', name: productCatalog.leadership[k]?.name, price });
       });
     }
     if (sel.movementClasses?.length > 0) {
       sel.movementClasses.forEach(k => {
         const price = getPrice('movementClasses', k);
-        subtotal += price;
+        subtotal += price ?? 0;
+        if (price === null) unpriced.push(productCatalog.movementClasses[k]?.name || k);
         items.push({ category: 'Classes', name: productCatalog.movementClasses[k]?.name, price });
       });
     }
     // Add wellness boxes - check both wellnessBoxes and sampleBoxQuantities
     const boxData = sel.wellnessBoxes || sel.sampleBoxQuantities || {};
-    const boxPrices = sel.wellnessBoxPrices || { reduceStress: 65, relaxationSleep: 65, largeEmotional: 100, largeStressReduction: 100 };
-    const boxNames = {
-      reduceStress: 'Reduce Stress Box',
-      relaxationSleep: 'Relaxation & Sleep Box',
-      largeEmotional: 'Large Emotional Wellness Box',
-      largeStressReduction: 'Large Stress Reduction Box'
-    };
+    // All nine box types, snapshot-first then the rate card. The old inline map
+    // covered only four keys, so the other five were emailed to clients at $0.
+    const boxPrices = { ...WELLNESS_BOX_PRICES, ...(sel.wellnessBoxPrices || {}) };
+    const boxNames = BOX_DISPLAY_NAMES;
     Object.entries(boxData).forEach(([key, qty]) => {
       if (qty > 0) {
-        const boxPrice = boxPrices[key] || 0;
+        const boxPrice = applyBoxFloor(key, boxPrices[key] ?? 0);
         const totalBoxPrice = boxPrice * qty;
         subtotal += totalBoxPrice;
         items.push({ 
@@ -94,7 +98,7 @@ SkillfulMeans Team`);
       }
     });
 
-    return `
+    const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h2 style="color: #013f7c; text-align: center; margin-bottom: 5px;">Mental Fitness Campaign Proposal</h2>
         <p style="text-align: center; color: #666; margin-top: 0;"><strong>Prepared for:</strong> ${proposal.client_name}${proposal.company ? ` | ${proposal.company}` : ''}</p>
@@ -120,7 +124,7 @@ SkillfulMeans Team`);
                   <span style="color: #666; font-size: 12px;">${item.category}</span><br>
                   <span style="color: #333;">${item.name}</span>
                 </td>
-                <td style="padding: 10px 12px; text-align: right; border-bottom: 1px solid #eee; color: #333;">$${item.price.toLocaleString()}</td>
+                <td style="padding: 10px 12px; text-align: right; border-bottom: 1px solid #eee; color: #333;">${item.price === null ? 'Quoted on request' : '$' + item.price.toLocaleString()}</td>
               </tr>
             `).join('')}
             <tr style="background: #f0f0f0; font-weight: bold;">
@@ -136,6 +140,8 @@ SkillfulMeans Team`);
         </div>
       </div>
     `;
+
+    return { html, unpriced };
   };
 
   const handleSend = async () => {
@@ -144,7 +150,13 @@ SkillfulMeans Team`);
     
     // Build the public URL for the proposal viewer - use production URL
     const portalLink = `https://curriculum-designer-05b51a3b.base44.app/ViewProposal?id=${proposal.id}`;
-    const proposalHTML = generateProposalHTML();
+    const { html: proposalHTML, unpriced } = generateProposalHTML();
+    if (unpriced.length > 0) {
+      toast.warning(
+        `${unpriced.length} item${unpriced.length > 1 ? 's' : ''} could not be priced (${unpriced.join(', ')}). ` +
+        `They will read "Quoted on request" — add the client's employee count to price them.`
+      );
+    }
     
     const emailBody = `<!DOCTYPE html>
 <html>

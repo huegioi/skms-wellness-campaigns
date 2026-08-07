@@ -107,7 +107,11 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
     setSampleBoxQuantities(prev => ({ ...prev, [id]: Math.max(0, (prev[id] || 0) + delta) }));
   };
 
+  // null when no headcount has been entered — challenges cannot be priced
+  // without one. Surfaced in the UI rather than defaulted to a guess.
   const challengePrice = calculateChallengePrice(assessmentData.companySize);
+  const challengePriceUnknown =
+    challengePrice === null && (selections.challengePrograms || []).length > 0;
 
   const calculateTotal = () => {
     let total = 0;
@@ -117,7 +121,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
       total += price * getQty(`w_${key}`);
     });
     (selections.challengePrograms || []).filter(k => !removedItems.has(`c_${k}`)).forEach(key => {
-      total += challengePrice * getQty(`c_${key}`);
+      total += (challengePrice ?? 0) * getQty(`c_${key}`);
     });
     (selections.leadership || []).filter(k => !removedItems.has(`l_${k}`)).forEach(key => {
       const snap = (selections.leadershipData || []).find(x => x.id === key);

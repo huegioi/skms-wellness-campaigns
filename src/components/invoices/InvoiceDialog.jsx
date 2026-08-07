@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Trash2, Save } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
-import { BOX_DISPLAY_NAMES, WELLNESS_BOX_PRICES } from '@/lib/wellnessBoxes';
+import { BOX_DISPLAY_NAMES, WELLNESS_BOX_PRICES, applyBoxFloor } from '@/lib/wellnessBoxes';
+import { priceForCatalogItem, resolveHeadcount } from '@/lib/rateCard';
 
 export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clients, preselectedProposalId }) {
   const [formData, setFormData] = useState({
@@ -109,6 +110,22 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
     const selections = proposal.selections || {};
     const invoicedItems = proposal.invoiced_items || [];
     const priceOverrides = selections.priceOverrides || {};
+    const headcount = resolveHeadcount(selections.assessmentData?.companySize);
+
+    // An invoice must bill what was QUOTED, so a snapshot wins over a fresh
+    // calculation. Service.price is deliberately NOT used for workshops,
+    // challenges or leadership: it is a single stored number and those prices
+    // depend on headcount. For challenges it is a PER-PARTICIPANT rate, which
+    // is how a $1,500+ program could invoice as $30 — the same trap
+    // base44/shared/quickbooksInvoiceBuilder.ts explicitly guards against.
+    const resolvePrice = (category, serviceId, snapshotList) => {
+      if (priceOverrides[serviceId] !== undefined) return priceOverrides[serviceId];
+      const snap = (snapshotList || []).find(x => x.id === serviceId);
+      if (snap && snap.price > 0) return snap.price;
+      if (category === 'challenges' && selections.challengePrice > 0) return selections.challengePrice;
+      const key = serviceMap[serviceId]?.qb_item_name || serviceId;
+      return priceForCatalogItem(category, key, headcount) ?? 0;
+    };
     
     // Build service lookup map
     const serviceMap = {};
@@ -120,7 +137,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
         const service = serviceMap[serviceId];
         if (service) {
           const itemId = `workshop_${serviceId}`;
-          const price = priceOverrides[serviceId] ?? service.price ?? 0;
+          const price = resolvePrice('workshops', serviceId, selections.workshopsData);
           lineItems.push({
             name: service.name,
             description: service.description || '',
@@ -141,7 +158,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
         const service = serviceMap[serviceId];
         if (service) {
           const itemId = `challenge_${serviceId}`;
-          const price = priceOverrides[serviceId] ?? service.price ?? 0;
+          const price = resolvePrice('challenges', serviceId, selections.challengeProgramsData);
           lineItems.push({
             name: service.name,
             description: service.description || '',
@@ -162,7 +179,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
         const service = serviceMap[serviceId];
         if (service) {
           const itemId = `leadership_${serviceId}`;
-          const price = priceOverrides[serviceId] ?? service.price ?? 0;
+          const price = resolvePrice('leadership', serviceId, selections.leadershipData);
           lineItems.push({
             name: service.name,
             description: service.description || '',
@@ -183,7 +200,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
         const service = serviceMap[serviceId];
         if (service) {
           const itemId = `class_${serviceId}`;
-          const price = priceOverrides[serviceId] ?? service.price ?? 0;
+          const price = resolvePrice('movementClasses', serviceId, selections.movementClassesData);
           lineItems.push({
             name: service.name,
             description: service.description || '',
@@ -206,7 +223,7 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
       Object.entries(selections.sampleBoxQuantities).forEach(([key, quantity]) => {
         if (quantity > 0) {
           const itemId = `box_${key}`;
-          const price = WELLNESS_BOX_PRICES[key] || 0;
+          const price = applyBoxFloor(key, (selections.sampleBoxPrices?.[key] ?? WELLNESS_BOX_PRICES[key]) || 0);
           lineItems.push({
             name: BOX_DISPLAY_NAMES[key] || key,
             description: '',
