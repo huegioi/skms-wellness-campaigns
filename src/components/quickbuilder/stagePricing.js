@@ -72,11 +72,14 @@ export const CHALLENGE_TIERS = [
 // ── The 6 tiers ────────────────────────────────────────────────────────────
 // Composition mirrors the Proforma's Packages tab and the ROI Engine's stages.
 //
-// leaderRate: stages 1–4 use the Proforma's 0.50%. Stages 5 and 6 sell a wider
-// cascade ("group coaching across the organization", "individual + group
-// coaching") which the Proforma does not price separately, so they scale the
-// leader rate instead — 1.0% and 1.5%. Approved by William 2026-08-07 as
-// working numbers; revisit once those two tiers are defined in the Proforma.
+// Leader participation is the Proforma's 0.50% on every tier. What tiers 5 and
+// 6 add is more DELIVERY per leader, priced off the same rate-card lines
+// (William, 2026-08-07):
+//   coachingBlocks — how many 3-hour group coaching blocks each group of 12
+//                    receives. Tier 5 adds a second block (+$3,600 per group).
+//   lcpRounds      — how many LCP assessment + 1:1 rounds each leader gets.
+//                    Tier 6 adds a second round (+$1,250 per leader).
+// Tiers 3 and 4 use one of each, which is exactly the Proforma's figure.
 export const CAMPAIGN_STAGES = [
   {
     stage: 1,
@@ -104,7 +107,7 @@ export const CAMPAIGN_STAGES = [
     workshops: 2, challenges: 2, leadershipEQ: true,
     groupCoaching: false, individualCoaching: false,
     wellnessBoxes: 12,
-    leaderRate: 0.005,
+    coachingBlocks: 1, lcpRounds: 1,
   },
   {
     stage: 4,
@@ -114,7 +117,7 @@ export const CAMPAIGN_STAGES = [
     workshops: 4, challenges: 2, leadershipEQ: true,
     groupCoaching: false, individualCoaching: false,
     wellnessBoxes: 18,
-    leaderRate: 0.005,
+    coachingBlocks: 1, lcpRounds: 1,
   },
   {
     stage: 5,
@@ -124,7 +127,7 @@ export const CAMPAIGN_STAGES = [
     workshops: 4, challenges: 2, leadershipEQ: true,
     groupCoaching: true, individualCoaching: false,
     wellnessBoxes: 18,
-    leaderRate: 0.010, // 2× the Proforma rate — the cascade reaches more leaders
+    coachingBlocks: 2, lcpRounds: 1, // second 3-hr group coaching block
   },
   {
     stage: 6,
@@ -134,7 +137,7 @@ export const CAMPAIGN_STAGES = [
     workshops: 4, challenges: 4, leadershipEQ: true,
     groupCoaching: true, individualCoaching: true,
     wellnessBoxes: 24,
-    leaderRate: 0.015, // 3× the Proforma rate — individual + group coaching org-wide
+    coachingBlocks: 2, lcpRounds: 2, // second coaching block + second 1:1 round
   },
 ];
 
@@ -195,14 +198,22 @@ export function challengePrice(headcount) {
   return Math.min(raw, ...cheaperUpBand.length ? cheaperUpBand : [raw]);
 }
 
-/** Leadership EQ program price + its moving parts, scaled to headcount. */
-export function leadershipEqPrice(headcount, leaderRate = RATE_CARD.leqLeaderRate) {
+/**
+ * Leadership EQ program price + its moving parts, scaled to headcount.
+ * Defaults (1 coaching block, 1 LCP round) reproduce the Proforma exactly.
+ */
+export function leadershipEqPrice(headcount, { coachingBlocks = 1, lcpRounds = 1 } = {}) {
   const hc = Number(headcount) || 0;
-  const leaders = Math.max(1, Math.ceil(hc * leaderRate));
+  const leaders = Math.max(1, Math.ceil(hc * RATE_CARD.leqLeaderRate));
   const groups = Math.max(1, Math.ceil(leaders / RATE_CARD.leqMaxLeadersPerGroup));
-  const coaching = RATE_CARD.leqCoachingRatePerHour * RATE_CARD.leqCoachingHours * groups;
-  const lcp = RATE_CARD.leqLcpPerLeader * leaders;
-  return { total: RATE_CARD.leqSeries + coaching + lcp, leaders, groups, series: RATE_CARD.leqSeries, coaching, lcp };
+  const coachingHours = RATE_CARD.leqCoachingHours * coachingBlocks;
+  const coaching = RATE_CARD.leqCoachingRatePerHour * coachingHours * groups;
+  const lcp = RATE_CARD.leqLcpPerLeader * leaders * lcpRounds;
+  return {
+    total: RATE_CARD.leqSeries + coaching + lcp,
+    leaders, groups, coachingBlocks, lcpRounds, coachingHours,
+    series: RATE_CARD.leqSeries, coaching, lcp,
+  };
 }
 
 // ── Full quote ─────────────────────────────────────────────────────────────
@@ -231,7 +242,9 @@ export function computeQuote({ headcount, stage = 1, isNewClient = false, isRetu
   const perChallenge = challengePrice(hc);
   const challengeTotal = tier.challenges * perChallenge;
 
-  const leq = tier.leadershipEQ ? leadershipEqPrice(hc, tier.leaderRate) : null;
+  const leq = tier.leadershipEQ
+    ? leadershipEqPrice(hc, { coachingBlocks: tier.coachingBlocks, lcpRounds: tier.lcpRounds })
+    : null;
   const leadershipTotal = leq ? leq.total : 0;
 
   const boxTotal = tier.wellnessBoxes * RATE_CARD.wellnessBox;
@@ -272,7 +285,7 @@ export function computeQuote({ headcount, stage = 1, isNewClient = false, isRetu
       ...(leq ? [{
         key: 'leadership',
         label: 'Leadership EQ program',
-        detail: `$${leq.series.toLocaleString()} series + $${leq.coaching.toLocaleString()} group coaching (${leq.groups} group${leq.groups !== 1 ? 's' : ''} × ${RATE_CARD.leqCoachingHours} hrs) + $${leq.lcp.toLocaleString()} LCP assessments (${leq.leaders} leader${leq.leaders !== 1 ? 's' : ''})`,
+        detail: `$${leq.series.toLocaleString()} series + $${leq.coaching.toLocaleString()} group coaching (${leq.groups} group${leq.groups !== 1 ? 's' : ''} × ${leq.coachingHours} hrs) + $${leq.lcp.toLocaleString()} LCP${leq.lcpRounds > 1 ? ` ×${leq.lcpRounds} rounds` : ''} (${leq.leaders} leader${leq.leaders !== 1 ? 's' : ''})`,
         amount: leadershipTotal,
       }] : []),
       {
