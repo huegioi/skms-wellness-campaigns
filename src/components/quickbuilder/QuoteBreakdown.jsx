@@ -5,7 +5,7 @@ import { ROI_CALCULATOR_URL, RATE_CARD } from '@/lib/rateCard';
 
 /**
  * Line-itemed quote with the $300 first-time-client discount.
- * `quote` comes from computeQuote() in stagePricing.js.
+ * `quote` comes from computeQuote() in the rate card.
  */
 export default function QuoteBreakdown({ quote, isNewClient, onToggleNew }) {
   if (!quote) return null;
