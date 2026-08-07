@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/AuthContext';
 import { TrendingUp, MessageSquare, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Who5ResultsPanel from './Who5ResultsPanel';
+import PulseFeedbackRollup from './PulseFeedbackRollup';
 import HeroMetricCard from './HeroMetricCard';
 import NarrativeSummary from './NarrativeSummary';
 import EngagementTrendChart from './EngagementTrendChart';
@@ -299,6 +300,10 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
                   acceptedProposalId={acceptedProposalId}
                   services={services}
                 />
+
+                {/* Post-session pulse survey — single-point experience measure,
+                    kept separate from the pre/post instrument cards above. */}
+                <PulseFeedbackRollup pulseResponses={pulseResponses} />
 
                 {/* Per-service breakdown */}
                 {serviceStats.length > 0 && (
