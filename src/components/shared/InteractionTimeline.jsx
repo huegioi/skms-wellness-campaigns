@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mail, Phone, MessageSquare, Linkedin, Video, StickyNote, Plus, Loader2, X, Send, Inbox, FileWarning } from 'lucide-react';
+import { Mail, Phone, MessageSquare, Linkedin, Video, StickyNote, Plus, Loader2, X, Send, Inbox, FileWarning, PencilLine, FilePen } from 'lucide-react';
 import { isInternalOrganizer } from '@/lib/meetingNoteAccess';
 import { FullEmailModal } from '@/components/clients/GmailHistory';
 import { useSaveBadge } from '@/components/shared/SaveBadge';
@@ -130,6 +130,38 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
     enabled: !!calFilter,
   });
 
+  // In-tool campaign drafts for this contact — emails written in the campaign
+  // tool that have NOT yet been approved into Gmail. Shown as clearly-labeled
+  // "Campaign draft" rows so they're never mistaken for Gmail drafts or sends.
+  const recordType = lead_id ? 'lead' : client_id ? 'client' : 'referral_partner';
+  const recordId = lead_id || client_id || referral_partner_id;
+
+  const { data: campaignDrafts = [] } = useQuery({
+    queryKey: [...scopeKey, 'campaign-drafts'],
+    queryFn: async () => {
+      const rows = await base44.entities.CampaignRecipient.filter(
+        { record_type: recordType, record_id: recordId },
+        '-updated_date',
+        50
+      );
+      return rows.filter(r => r.status === 'drafting' || r.status === 'drafted');
+    },
+    enabled: !!recordId,
+  });
+
+  // Campaign names for draft rows
+  const { data: campaigns = [] } = useQuery({
+    queryKey: ['outreachCampaigns', 'names'],
+    queryFn: () => base44.entities.OutreachCampaign.list('-created_date', 100),
+    enabled: campaignDrafts.length > 0,
+    staleTime: 5 * 60 * 1000,
+  });
+  const campaignNameById = useMemo(() => {
+    const m = new Map();
+    campaigns.forEach(c => m.set(c.id, c.name));
+    return m;
+  }, [campaigns]);
+
   // Inaccessible meeting notes scoped to this contact — surfaced on the timeline
   // (attached to the matching meeting row, or rendered standalone) so the missing
   // notes aren't silently hidden. processMeetingArtifacts copies lead_id /
@@ -176,14 +208,40 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
   );
 
   const merged = useMemo(() => {
+    // An approved campaign/Maya email creates BOTH a ClientInteraction and an
+    // EmailLog row. When the EmailLog row is present, hide the linked
+    // interaction so the email doesn't appear twice — but keep its
+    // "[Campaign: …]" context as a chip on the email row.
+    const emailLogIds = new Set(emailLogs.map(e => e.id));
+    const interactionByLogId = new Map();
+    interactions.forEach(it => {
+      if (it.email_log_id) interactionByLogId.set(it.email_log_id, it);
+    });
+
+    const visibleInteractions = interactions.filter(
+      it => !(it.email_log_id && emailLogIds.has(it.email_log_id))
+    );
+
+    const emailRows = emailLogs.map(e => {
+      const linked = interactionByLogId.get(e.id);
+      const m = linked?.subject?.match(/^\[Campaign:\s*([^\]]+)\]/);
+      return { ...e, _type: 'email', _date: e.date, _campaignLabel: m ? m[1].trim() : null };
+    });
+
     const items = [
-      ...interactions.map(it => ({ ...it, _type: 'interaction', _date: it.date })),
-      ...emailLogs.map(e => ({ ...e, _type: 'email', _date: e.date })),
+      ...visibleInteractions.map(it => ({ ...it, _type: 'interaction', _date: it.date })),
+      ...emailRows,
+      ...campaignDrafts.map(r => ({
+        ...r,
+        _type: 'campaign_draft',
+        _date: r.updated_date || r.created_date,
+        _campaignLabel: campaignNameById.get(r.campaign_id) || null,
+      })),
       ...calendarEvents.map(ev => ({ ...ev, _type: 'calendar', _date: ev.start_date })),
       ...standaloneNotes.map(n => ({ ...n, _type: 'note', _date: n.meeting_date })),
     ];
     return items.sort((a, b) => new Date(b._date) - new Date(a._date));
-  }, [interactions, emailLogs, calendarEvents, standaloneNotes]);
+  }, [interactions, emailLogs, campaignDrafts, campaignNameById, calendarEvents, standaloneNotes]);
 
   const [selectedEmail, setSelectedEmail] = useState(null);
   const { show: showSaved, trigger: triggerSaved } = useSaveBadge();
@@ -302,17 +360,58 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
       ) : (
         <div className="space-y-2">
           {merged.map(item => {
+            if (item._type === 'campaign_draft') {
+              return (
+                <div
+                  key={`cdraft-${item.id}`}
+                  className="flex gap-3 bg-gray-50 border border-dashed border-gray-300 rounded-lg p-3"
+                >
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-200">
+                    <FilePen className="w-4 h-4 text-gray-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-medium text-gray-700 truncate flex items-center gap-1.5">
+                        {item.draft_subject || (item.status === 'drafting' ? 'Drafting…' : '(no subject yet)')}
+                      </p>
+                      <span className="text-xs text-gray-400 flex-shrink-0">{relDate(item._date)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className="text-[10px] font-medium uppercase tracking-wide bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded">
+                        Campaign draft — not in Gmail yet
+                      </span>
+                      {item._campaignLabel && (
+                        <span className="text-[10px] font-medium bg-white border border-gray-200 text-gray-500 px-1.5 py-0.5 rounded">
+                          {item._campaignLabel}
+                        </span>
+                      )}
+                    </div>
+                    {item.draft_body && (
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-1">{item.draft_body}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            }
             if (item._type === 'email') {
               const isOutbound = item.direction === 'outbound';
+              const isDraft = !!item.is_draft;
+              const iconBg = isDraft ? 'bg-amber-50' : isOutbound ? 'bg-blue-50' : 'bg-green-50';
               return (
                 <button
                   type="button"
                   key={`email-${item.id}`}
                   onClick={() => setSelectedEmail(item)}
-                  className="w-full flex gap-3 bg-white border rounded-lg p-3 text-left hover:border-blue-300 hover:shadow-sm transition-all"
+                  className={`w-full flex gap-3 border rounded-lg p-3 text-left hover:shadow-sm transition-all ${
+                    isDraft ? 'bg-amber-50/40 border-amber-200 hover:border-amber-300' : 'bg-white hover:border-blue-300'
+                  }`}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isOutbound ? 'bg-blue-50' : 'bg-green-50'}`}>
-                    {isOutbound ? <Send className="w-4 h-4 text-blue-500" /> : <Inbox className="w-4 h-4 text-green-600" />}
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+                    {isDraft
+                      ? <PencilLine className="w-4 h-4 text-amber-600" />
+                      : isOutbound
+                        ? <Send className="w-4 h-4 text-blue-500" />
+                        : <Inbox className="w-4 h-4 text-green-600" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
@@ -321,6 +420,24 @@ export default function InteractionTimeline({ lead_id, client_id, referral_partn
                         {item.subject || '(no subject)'}
                       </p>
                       <span className="text-xs text-gray-400 flex-shrink-0">{relDate(item.date)}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      {isDraft ? (
+                        <span className="text-[10px] font-medium uppercase tracking-wide bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                          In Gmail Drafts — not sent
+                        </span>
+                      ) : (
+                        <span className={`text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                          isOutbound ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
+                        }`}>
+                          {isOutbound ? 'Sent' : 'Received'}
+                        </span>
+                      )}
+                      {item._campaignLabel && (
+                        <span className="text-[10px] font-medium bg-white border border-gray-200 text-gray-500 px-1.5 py-0.5 rounded">
+                          {item._campaignLabel}
+                        </span>
+                      )}
                     </div>
                     {(item.snippet || item.body_preview) && (
                       <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{item.snippet || item.body_preview}</p>
