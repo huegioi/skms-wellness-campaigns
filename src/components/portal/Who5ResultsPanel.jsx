@@ -114,45 +114,71 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
     <div className="space-y-4">
       {/* ── Section 1: Cohort arc ───────────────────────────────────────────── */}
       {cohortRows_.length > 0 && (
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <Activity className="w-4 h-4 text-brand-plum" />
-            <p className="text-sm font-semibold text-gray-700">Wellbeing — This Plan Year</p>
-          </div>
-          <p className="text-xs text-gray-400 mb-3">Year arc — matched comparison</p>
-          {cohortInstrumentStats.length > 0 ? (
-            <div className="grid gap-3">
-              {cohortInstrumentStats.map(({ key, stats }) => (
-                stats.n < 5
-                  ? <InstrumentSuppressedCard key={key} instrumentKey={key} n={stats.n} />
-                  : <InstrumentResultCard key={key} instrumentKey={key} stats={stats} evidenceTier="Matched comparison" />
-              ))}
-            </div>
-          ) : (
-            <p className="text-xs text-gray-400 italic py-3">Cohort results appear once Cohort Start and Cohort End responses come in.</p>
-          )}
-        </div>
+        <InstrumentSection
+          icon={Activity}
+          iconClass="text-brand-plum"
+          title="Wellbeing — This Plan Year"
+          subtitle="Year arc — matched comparison of program start vs. program end"
+          stats={cohortInstrumentStats}
+          evidenceTier="Matched comparison"
+          emptyText="Cohort results appear once Cohort Start and Cohort End responses come in."
+        />
+      )}
+
+      {/* 1-month sustain — baseline vs. one month after the program ended */}
+      {hasSustainResponses && (
+        <InstrumentSection
+          icon={CalendarCheck}
+          iconClass="text-brand-navy"
+          title="Sustained — One Month Later"
+          subtitle="Follow-up arc — program start vs. one month after the program ended"
+          stats={sustainInstrumentStats}
+          evidenceTier="Matched comparison — 1-month follow-up"
+          emptyText="Sustain results appear once one-month follow-up responses come in."
+        />
       )}
 
       {/* ── Section 2: By challenge ─────────────────────────────────────────── */}
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <Activity className="w-4 h-4 text-brand-green" />
-          <p className="text-sm font-semibold text-gray-700">Challenge Wellbeing — By Program</p>
-        </div>
-        <p className="text-xs text-gray-400 mb-3">Program effect — uncontrolled pre/post</p>
-        {challengeInstrumentStats.length > 0 ? (
-          <div className="grid gap-3">
-            {challengeInstrumentStats.map(({ key, stats }) => (
-              stats.n < 5
-                ? <InstrumentSuppressedCard key={key} instrumentKey={key} n={stats.n} />
-                : <InstrumentResultCard key={key} instrumentKey={key} stats={stats} evidenceTier="Program effect — uncontrolled pre/post" />
-            ))}
+      <InstrumentSection
+        icon={Activity}
+        iconClass="text-brand-green"
+        title="Challenge Wellbeing — By Program"
+        subtitle="Program effect — uncontrolled pre/post (Day 0 vs. Day 14)"
+        stats={challengeInstrumentStats}
+        evidenceTier="Program effect — uncontrolled pre/post"
+        emptyText="Challenge results appear once Day 0 and Day 14 responses come in."
+      />
+
+      {/* Advocacy — eNPS (single-point, not a before/after pair) */}
+      {enpsBreakdown.n > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <ThumbsUp className="w-4 h-4 text-brand-navy" />
+            <p className="text-sm font-semibold text-gray-700">Advocacy — eNPS</p>
           </div>
-        ) : (
-          <p className="text-xs text-gray-400 italic py-3">Challenge results appear once Day 0 and Day 14 responses come in.</p>
-        )}
-      </div>
+          <p className="text-xs text-gray-400 mb-3">Post-session advocacy — single-point measure, not a before/after comparison</p>
+          <div className="border rounded-lg p-3">
+            <div className="flex justify-between items-center mb-2">
+              <p className="text-sm font-medium text-gray-800">eNPS Advocacy</p>
+              <span className="text-xs text-gray-400">n={enpsBreakdown.n}</span>
+            </div>
+            {enpsBreakdown.n < MIN_N ? (
+              <p className="text-xs text-gray-400 italic">Collecting data (n={enpsBreakdown.n})</p>
+            ) : (
+              <>
+                <p className="text-2xl font-bold text-brand-navy mb-2">
+                  {enpsBreakdown.enps >= 0 ? '+' : ''}{enpsBreakdown.enps}
+                </p>
+                <div className="flex gap-4 text-xs text-gray-500">
+                  <span><span className="font-semibold text-brand-green">{enpsBreakdown.promoters}</span> promoters</span>
+                  <span><span className="font-semibold text-gray-600">{enpsBreakdown.passives}</span> passives</span>
+                  <span><span className="font-semibold text-red-500">{enpsBreakdown.detractors}</span> detractors</span>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
