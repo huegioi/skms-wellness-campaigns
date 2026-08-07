@@ -46,7 +46,6 @@ export default function QuickBuilder() {
   const [goals, setGoals] = useState([]);
   const [selectedStage, setSelectedStage] = useState(null);
   const [isNewClient, setIsNewClient] = useState(false);
-  const [includeBoxes, setIncludeBoxes] = useState(true);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [emailError, setEmailError] = useState('');
@@ -81,7 +80,6 @@ export default function QuickBuilder() {
   };
 
   const toggleNewClient = () => setIsNewClient(v => !v);
-  const toggleBoxes = () => setIncludeBoxes(v => !v);
 
   const step1Valid =
     form.company_name.trim() &&
@@ -92,8 +90,8 @@ export default function QuickBuilder() {
 
   const quote = useMemo(() => {
     if (!headcount || !selectedStage) return null;
-    return computeQuote({ headcount, stage: selectedStage, isNewClient, includeBoxes });
-  }, [headcount, selectedStage, isNewClient, includeBoxes]);
+    return computeQuote({ headcount, stage: selectedStage, isNewClient });
+  }, [headcount, selectedStage, isNewClient]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -107,7 +105,7 @@ export default function QuickBuilder() {
         company_size_band: headcountToBand(headcount),
         goals,
         selected_service_ids: [],
-        wants_wellness_boxes: includeBoxes,
+        wants_wellness_boxes: true,
         selected_tier: quote ? formatStageLabel(quote.tier) : undefined,
         is_new_client: isNewClient,
         discount_applied: quote?.discountTotal || 0,
@@ -357,8 +355,6 @@ export default function QuickBuilder() {
             quote={quote}
             isNewClient={isNewClient}
             onToggleNew={toggleNewClient}
-            includeBoxes={includeBoxes}
-            onToggleBoxes={toggleBoxes}
           />
 
           <p className="text-sm text-gray-500 text-center">
