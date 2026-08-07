@@ -1,7 +1,10 @@
 import React, { useMemo } from 'react';
-import { Activity } from 'lucide-react';
+import { Activity, CalendarCheck, ThumbsUp } from 'lucide-react';
 import InstrumentResultCard from '@/components/feedback/InstrumentResultCard';
-import { INSTRUMENT_META, getInstrumentKey, matchPairs, calcStats } from '@/components/feedback/instrumentMeta';
+import { INSTRUMENT_META, getInstrumentKey, getScore, matchPairs, calcStats, computeEnps } from '@/components/feedback/instrumentMeta';
+
+// Portal privacy rule: never render a result built on fewer than 5 people.
+const MIN_N = 5;
 
 function buildInstrumentStats(rows, startType, endType) {
   const byInstrument = {};
@@ -28,6 +31,30 @@ function InstrumentSuppressedCard({ instrumentKey, n }) {
         <span className="text-xs text-gray-400">n={n}</span>
       </div>
       <p className="text-xs text-gray-400 italic">Collecting data (n={n})</p>
+    </div>
+  );
+}
+
+// One section of matched-pair instrument cards, with a shared empty state.
+function InstrumentSection({ icon: Icon, iconClass, title, subtitle, stats, evidenceTier, emptyText }) {
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-1">
+        <Icon className={`w-4 h-4 ${iconClass}`} />
+        <p className="text-sm font-semibold text-gray-700">{title}</p>
+      </div>
+      <p className="text-xs text-gray-400 mb-3">{subtitle}</p>
+      {stats.length > 0 ? (
+        <div className="grid gap-3">
+          {stats.map(({ key, stats: s }) => (
+            s.n < MIN_N
+              ? <InstrumentSuppressedCard key={key} instrumentKey={key} n={s.n} />
+              : <InstrumentResultCard key={key} instrumentKey={key} stats={s} evidenceTier={evidenceTier} />
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400 italic py-3">{emptyText}</p>
+      )}
     </div>
   );
 }
