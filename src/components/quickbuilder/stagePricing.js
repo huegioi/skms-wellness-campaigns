@@ -9,7 +9,8 @@
  * Confirmed with William 2026-08-07:
  *   · Workshop sessions scale PER TOPIC: $1,500 first + $1,200 each extra.
  *   · Leadership EQ uses the scaled formula, not the old flat $10,000.
- *   · Wellness boxes are included in the tier price at the $100 blended rate.
+ *   · Wellness boxes default ON at the tier's count × the $100 blended rate,
+ *     but the buyer can switch them off.
  *   · One $300 adjustment: a flat first-time-client welcome discount off the
  *     quote total, independent of the materials math.
  */
@@ -223,8 +224,9 @@ export function leadershipEqPrice(headcount, { coachingBlocks = 1, lcpRounds = 1
  * @param {number}  opts.headcount     — exact employee count
  * @param {number}  opts.stage         — 1–6
  * @param {boolean} opts.isNewClient   — apply the $300 first-time welcome discount
+ * @param {boolean} opts.includeBoxes  — include the tier's wellness boxes (default true)
  */
-export function computeQuote({ headcount, stage = 1, isNewClient = false }) {
+export function computeQuote({ headcount, stage = 1, isNewClient = false, includeBoxes = true }) {
   const hc = Number(headcount) || 0;
   const tier = CAMPAIGN_STAGES.find(s => s.stage === stage) || CAMPAIGN_STAGES[0];
 
@@ -244,7 +246,7 @@ export function computeQuote({ headcount, stage = 1, isNewClient = false }) {
     : null;
   const leadershipTotal = leq ? leq.total : 0;
 
-  const boxTotal = tier.wellnessBoxes * RATE_CARD.wellnessBox;
+  const boxTotal = includeBoxes ? tier.wellnessBoxes * RATE_CARD.wellnessBox : 0;
 
   const subtotal = workshopTotal + challengeTotal + leadershipTotal + boxTotal;
 
@@ -282,13 +284,14 @@ export function computeQuote({ headcount, stage = 1, isNewClient = false }) {
         detail: `$${leq.series.toLocaleString()} series + $${leq.coaching.toLocaleString()} group coaching (${leq.groups} group${leq.groups !== 1 ? 's' : ''} × ${leq.coachingHours} hrs) + $${leq.lcp.toLocaleString()} LCP${leq.lcpRounds > 1 ? ` ×${leq.lcpRounds} rounds` : ''} (${leq.leaders} leader${leq.leaders !== 1 ? 's' : ''})`,
         amount: leadershipTotal,
       }] : []),
-      {
+      ...(includeBoxes ? [{
         key: 'boxes',
         label: `${tier.wellnessBoxes} wellness box${tier.wellnessBoxes !== 1 ? 'es' : ''}`,
         detail: `$${RATE_CARD.wellnessBox} each (blended average)`,
         amount: boxTotal,
-      },
+      }] : []),
     ],
+    includeBoxes,
     meta: { sessionsPerWorkshop: sessions, workshopTopicPrice: perTopic, challengeSlots: slots, challengeRatePerPerson: perPerson, challengePrice: perChallenge, leq },
   };
 }
