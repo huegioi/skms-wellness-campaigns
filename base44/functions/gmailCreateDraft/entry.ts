@@ -283,6 +283,7 @@ Deno.serve(async (req) => {
     }
     if (client_id) emailLogData.matched_client_id = client_id;
     if (lead_id) emailLogData.matched_lead_id = lead_id;
+    if (referral_partner_id) emailLogData.matched_referral_partner_id = referral_partner_id;
 
     const emailLogRecord = await base44.asServiceRole.entities.EmailLog.create(emailLogData);
 
