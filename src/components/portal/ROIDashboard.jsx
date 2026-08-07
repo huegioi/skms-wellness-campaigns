@@ -6,6 +6,7 @@ import { TrendingUp, MessageSquare, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Who5ResultsPanel from './Who5ResultsPanel';
 import PulseFeedbackRollup from './PulseFeedbackRollup';
+import MfsResultsPanel from './MfsResultsPanel';
 import HeroMetricCard from './HeroMetricCard';
 import NarrativeSummary from './NarrativeSummary';
 import EngagementTrendChart from './EngagementTrendChart';
@@ -47,6 +48,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
 
   const rawResponses = roiData?.feedback_responses || [];
   const rawAssessments = roiData?.cohort_assessments || [];
+  const mfsAssessments = roiData?.mfs_assessments || [];
   const checkins = roiData?.checkins || [];
 
   const cutoffDate = useMemo(() => {
@@ -304,6 +306,11 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
                 {/* Post-session pulse survey — single-point experience measure,
                     kept separate from the pre/post instrument cards above. */}
                 <PulseFeedbackRollup pulseResponses={pulseResponses} />
+
+                {/* Mental Fitness Score — anonymous single-point team snapshot.
+                    Deliberately NOT date-filtered: it's one assessment event,
+                    so a 90-day window would silently blank it out. */}
+                <MfsResultsPanel mfsAssessments={mfsAssessments} />
 
                 {/* Per-service breakdown */}
                 {serviceStats.length > 0 && (
