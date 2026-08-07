@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, ArrowLeft, BookOpen, ExternalLink, Award, Dumbbell, Crown, Activity, Package } from 'lucide-react';
 import ServiceImage from '@/components/quickbuilder/ServiceImage';
-import { BROCHURE_URL } from '@/components/quickbuilder/stagePricing';
+import { BROCHURE_URL } from '@/lib/rateCard';
 
 const GROUPS = [
   { cat: 'workshop',   label: 'Workshops',         icon: Award,    blurb: 'Live, facilitated sessions. Your tier includes a set number — you choose the topics later with us.' },

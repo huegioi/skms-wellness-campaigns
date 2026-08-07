@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check, Sparkles } from 'lucide-react';
-import { computeQuote } from '@/components/quickbuilder/stagePricing';
+import { computeQuote } from '@/lib/rateCard';
 
 /**
  * One selectable campaign tier. Price is live for the entered headcount.

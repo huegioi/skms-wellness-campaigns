@@ -16,7 +16,7 @@ import {
   computeQuote,
   formatStageLabel,
   headcountToBand,
-} from '@/components/quickbuilder/stagePricing';
+} from '@/lib/rateCard';
 
 const CALENDLY_LINK = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
 

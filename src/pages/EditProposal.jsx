@@ -12,7 +12,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { enumToApproxCount } from '@/components/curriculum/pricingUtils';
 import { calcPricing } from '@/components/curriculum/ChallengePricingEstimator';
-import { findMatchedStage, formatStageLabel } from '@/components/quickbuilder/stagePricing';
+import { findMatchedStage, formatStageLabel } from '@/lib/rateCard';
 import { WELLNESS_BOX_PRICES, BOX_KEY_TO_SERVICE_NAME, BOX_DISPLAY_NAMES, resolveBoxPrices, applyBoxFloor, customBoxUnitPrice } from '@/lib/wellnessBoxes';
 
 // Snapshot-first box price lookup: proposal snapshot → live Service → constant → 0

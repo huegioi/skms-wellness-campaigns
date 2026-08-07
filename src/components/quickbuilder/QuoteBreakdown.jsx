@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { TrendingUp, ExternalLink, Info } from 'lucide-react';
-import { ROI_CALCULATOR_URL, RATE_CARD } from '@/components/quickbuilder/stagePricing';
+import { ROI_CALCULATOR_URL, RATE_CARD } from '@/lib/rateCard';
 
 /**
  * Line-itemed quote with the $300 first-time-client discount.
