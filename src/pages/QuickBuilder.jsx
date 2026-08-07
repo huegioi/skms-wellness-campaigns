@@ -46,7 +46,6 @@ export default function QuickBuilder() {
   const [goals, setGoals] = useState([]);
   const [selectedStage, setSelectedStage] = useState(null);
   const [isNewClient, setIsNewClient] = useState(false);
-  const [isReturningClient, setIsReturningClient] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [emailError, setEmailError] = useState('');
@@ -80,19 +79,7 @@ export default function QuickBuilder() {
     setEmailError(val && !regex.test(val) ? 'Please enter a valid work email address.' : '');
   };
 
-  // A company is new or returning, never both — checking one clears the other.
-  const toggleNewClient = () => {
-    setIsNewClient(v => {
-      if (!v) setIsReturningClient(false);
-      return !v;
-    });
-  };
-  const toggleReturningClient = () => {
-    setIsReturningClient(v => {
-      if (!v) setIsNewClient(false);
-      return !v;
-    });
-  };
+  const toggleNewClient = () => setIsNewClient(v => !v);
 
   const step1Valid =
     form.company_name.trim() &&
@@ -103,8 +90,8 @@ export default function QuickBuilder() {
 
   const quote = useMemo(() => {
     if (!headcount || !selectedStage) return null;
-    return computeQuote({ headcount, stage: selectedStage, isNewClient, isReturningClient });
-  }, [headcount, selectedStage, isNewClient, isReturningClient]);
+    return computeQuote({ headcount, stage: selectedStage, isNewClient });
+  }, [headcount, selectedStage, isNewClient]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -121,7 +108,6 @@ export default function QuickBuilder() {
         wants_wellness_boxes: true,
         selected_tier: quote ? formatStageLabel(quote.tier) : undefined,
         is_new_client: isNewClient,
-        is_returning_client: isReturningClient,
         discount_applied: quote?.discountTotal || 0,
         ref,
         estimated_investment: quote?.total,
@@ -368,9 +354,7 @@ export default function QuickBuilder() {
           <QuoteBreakdown
             quote={quote}
             isNewClient={isNewClient}
-            isReturningClient={isReturningClient}
             onToggleNew={toggleNewClient}
-            onToggleReturning={toggleReturningClient}
           />
 
           <p className="text-sm text-gray-500 text-center">
