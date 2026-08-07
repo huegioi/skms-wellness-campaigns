@@ -75,6 +75,22 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
   );
 
   // ── Section 2: By challenge ────────────────────────────────────────────────
+  // Section: 1-month sustain. Baseline vs. one month AFTER the program ended.
+  // Kept separate from the year arc so the follow-up survey is never confused
+  // with the end-of-program one.
+  const sustainRows = useMemo(() =>
+    cohortRows.filter(r => r.survey_type === 'cohort_start' || r.survey_type === 'cohort_1mo'),
+    [cohortRows]
+  );
+  const sustainInstrumentStats = useMemo(
+    () => buildInstrumentStats(sustainRows, 'cohort_start', ['cohort_1mo']),
+    [sustainRows]
+  );
+  const hasSustainResponses = useMemo(
+    () => cohortRows.some(r => r.survey_type === 'cohort_1mo'),
+    [cohortRows]
+  );
+
   const challengeRows = useMemo(() =>
     cohortRows.filter(r => r.survey_type === 'challenge_day0' || r.survey_type === 'challenge_day14'),
     [cohortRows]
@@ -83,6 +99,16 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
     () => buildInstrumentStats(challengeRows, 'challenge_day0', 'challenge_day14'),
     [challengeRows]
   );
+
+  // Section: Advocacy (eNPS). Single-point measure, not a pre/post pair, so it
+  // gets its own breakdown rather than an InstrumentResultCard.
+  const enpsBreakdown = useMemo(() => {
+    const scores = cohortRows
+      .filter(r => getInstrumentKey(r) === 'enps')
+      .map(r => getScore(r))
+      .filter(s => s != null);
+    return computeEnps(scores);
+  }, [cohortRows]);
 
   return (
     <div className="space-y-4">
