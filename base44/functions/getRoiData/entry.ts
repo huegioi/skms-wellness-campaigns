@@ -234,10 +234,14 @@ Deno.serve(async (req) => {
     const excludeDemo = shouldExcludeDemo(ownerClient);
     const demoFrag = demoExclusion(excludeDemo);
 
-    // Fetch feedback + cohort data for this client
-    const [feedback, cohorts] = await Promise.all([
+    // Fetch feedback + cohort data for this client.
+    // MFS rows are fetched SEPARATELY rather than by lifting the $ne filter:
+    // one MFS respondent produces 4 rows, so a large team assessment would
+    // otherwise crowd the cohort arc out of the shared 500-row limit.
+    const [feedback, cohorts, mfsRows] = await Promise.all([
       base44.asServiceRole.entities.FeedbackResponse.filter({ client_id, ...demoFrag }, '-submitted_at', 500),
       base44.asServiceRole.entities.CohortAssessment.filter({ client_id, ...demoFrag, survey_type: { $ne: 'mfs' } }, '-submitted_at', 500),
+      base44.asServiceRole.entities.CohortAssessment.filter({ client_id, ...demoFrag, survey_type: 'mfs' }, '-submitted_at', 2000),
     ]);
 
     // Portal paths (client_token or portal_id) strip PII + pseudonymize;
@@ -247,6 +251,9 @@ Deno.serve(async (req) => {
     const cohortFields = isPortalPath ? PORTAL_COHORT_FIELDS : FULL_COHORT_FIELDS;
     const projectedFeedback = feedback.map(r => projectRow(r, feedbackFields));
     const projectedCohorts = cohorts.map(r => projectRow(r, cohortFields));
+    // MFS is anonymous by design (participant_email is always empty) and is a
+    // single-point team measure, so it never needs pseudonymizing or pairing.
+    const projectedMfs = mfsRows.map(r => projectRow(r, cohortFields));
     if (isPortalPath) {
       const pidCache = new Map();
       await pseudonymizeField(projectedCohorts, 'participant_email', pidCache);
@@ -257,6 +264,7 @@ Deno.serve(async (req) => {
       allowed: true,
       feedback_responses: projectedFeedback,
       cohort_assessments: projectedCohorts,
+      mfs_assessments: projectedMfs,
       checkins,
     });
   } catch (error) {
