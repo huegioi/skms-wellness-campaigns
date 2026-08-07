@@ -107,10 +107,13 @@ export function describeChange(key, stats, opts = {}) {
   if (!n || !meta || !stats) return null;
   if (stats.avgStart == null || stats.avgEnd == null || stats.avgDelta == null) return null;
 
-  const startLabel = (opts.startLabel || 'the start').toLowerCase();
-  const endLabel = (opts.endLabel || 'the end').toLowerCase();
+  // Parenthesised rather than "at ${label}" so any caller's wording reads as
+  // English — "8.9 (Before)", "59.5 (1 Month After)", "51.5 (Day 0)" all work,
+  // where "8.9 at before" does not.
+  const startLabel = opts.startLabel || 'Before';
+  const endLabel = opts.endLabel || 'After';
   const size = Math.abs(stats.avgDelta);
-  const from = `${stats.avgStart.toFixed(1)} at ${startLabel} to ${stats.avgEnd.toFixed(1)} at ${endLabel}`;
+  const from = `${stats.avgStart.toFixed(1)} (${startLabel}) to ${stats.avgEnd.toFixed(1)} (${endLabel})`;
 
   // Too small to call in either direction.
   if (size < n.modest) {
