@@ -117,7 +117,7 @@ export function describeChange(key, stats, opts = {}) {
 
   // Too small to call in either direction.
   if (size < n.modest) {
-    return `Average ${n.noun} was essentially unchanged (${from}). A movement this small is within normal fluctuation and shouldn't be read as a result either way.`;
+    return `Average ${n.noun} was essentially unchanged — ${from}. A movement this small is within normal fluctuation and shouldn't be read as a result either way.`;
   }
 
   const magnitude = size >= n.meaningful ? 'a meaningful' : 'a modest';
