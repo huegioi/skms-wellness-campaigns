@@ -22,7 +22,7 @@ const FULL_FEEDBACK_FIELDS = [
   'event_label', 'attendee_name', 'attendee_email', 'company_name',
   'email_address', 'submitted_at', 'presenter', 'delivery_format',
   'behavior_intent', 'fit_confidence', 'expected_impact',
-  'nps_score', 'is_demo'
+  'overall_rating', 'nps_score', 'is_demo'
 ];
 
 const FULL_COHORT_FIELDS = [
@@ -40,9 +40,11 @@ const FULL_COHORT_FIELDS = [
 const PORTAL_FEEDBACK_FIELDS = [
   'id', 'client_id', 'service_id', 'service_name', 'service_category', 'event_id',
   'event_label', 'company_name',
+  // overall_rating is an aggregate 1–5 session score with no PII — safe for the
+  // portal, and needed for the pulse rollup's average-rating tile.
   'submitted_at', 'presenter', 'delivery_format',
   'behavior_intent', 'fit_confidence', 'expected_impact',
-  'nps_score', 'is_demo'
+  'overall_rating', 'nps_score', 'is_demo'
 ];
 
 const PORTAL_COHORT_FIELDS = [
