@@ -4,27 +4,21 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PortalShell } from '@/components/portal/PortalShell';
 import { toast } from 'sonner';
-import { Award, Dumbbell, Activity, Crown, Package, Check, ArrowRight, ArrowLeft, CheckCircle, CalendarPlus, ExternalLink } from 'lucide-react';
+import { Check, ArrowRight, ArrowLeft, CheckCircle, CalendarPlus, ExternalLink, Users } from 'lucide-react';
 import { PreventativeBand, QuickBuilderEducation } from '@/components/quickbuilder/QuickBuilderIntro';
-import ReviewEstimateCard from '@/components/quickbuilder/ReviewEstimateCard';
-import { computeEstimate, teamSizeToHeadcount } from '@/components/quickbuilder/stagePricing';
-import QuickBuilderCategoryStep from '@/components/quickbuilder/QuickBuilderCategoryStep';
-import QuickBuilderWellnessBoxStep from '@/components/quickbuilder/QuickBuilderWellnessBoxStep';
-import ServiceImage from '@/components/quickbuilder/ServiceImage';
+import TierCard from '@/components/quickbuilder/TierCard';
+import QuoteBreakdown from '@/components/quickbuilder/QuoteBreakdown';
+import ProgramGallery from '@/components/quickbuilder/ProgramGallery';
+import {
+  CAMPAIGN_STAGES,
+  computeQuote,
+  formatStageLabel,
+  headcountToBand,
+} from '@/components/quickbuilder/stagePricing';
 
 const CALENDLY_LINK = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
-
-const TEAM_SIZES = [
-  { value: '1-50', label: '1–50' },
-  { value: '51-200', label: '51–200' },
-  { value: '201-500', label: '201–500' },
-  { value: '501-1000', label: '501–1,000' },
-  { value: '1001-5000', label: '1,001–5,000' },
-  { value: '5000+', label: '5,000+' },
-];
 
 const GOALS = [
   'Reduce burnout & stress',
@@ -34,22 +28,25 @@ const GOALS = [
   'Retention & culture',
 ];
 
-const CATEGORY_CONFIG = {
-  workshop: { label: 'Workshops', icon: Award },
-  challenge: { label: '14-Day Challenges', icon: Dumbbell },
-  class: { label: 'Classes', icon: Activity },
-  leadership: { label: 'Leadership', icon: Crown },
-  wellness_box: { label: 'Wellness Boxes', icon: Package },
-};
+const STEPS = [
+  { num: 1, label: 'About your team' },
+  { num: 2, label: 'Pick your tier' },
+  { num: 3, label: "What's included" },
+  { num: 4, label: 'Your quote' },
+];
+
+const RECOMMENDED_STAGE = 2;
 
 export default function QuickBuilder() {
   const [searchParams] = useSearchParams();
   const ref = searchParams.get('ref');
+
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ company_name: '', contact_name: '', email: '', team_size: '' });
+  const [form, setForm] = useState({ company_name: '', contact_name: '', email: '', headcount: '' });
   const [goals, setGoals] = useState([]);
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [wantsWellnessBoxes, setWantsWellnessBoxes] = useState(null);
+  const [selectedStage, setSelectedStage] = useState(null);
+  const [isNewClient, setIsNewClient] = useState(false);
+  const [isReturningClient, setIsReturningClient] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [emailError, setEmailError] = useState('');
@@ -59,32 +56,16 @@ export default function QuickBuilder() {
     queryFn: () => base44.entities.Service.list('sort_order'),
   });
 
-  const publicServices = services.filter(s => s.is_active !== false && s.public_visible !== false);
+  const publicServices = useMemo(
+    () => services.filter(s => s.is_active !== false && s.public_visible !== false),
+    [services]
+  );
 
-  const visibleSteps = useMemo(() => {
-    const allSteps = [
-      { num: 1, label: 'About your team' },
-      { num: 2, label: 'Workshops', cat: 'workshop' },
-      { num: 3, label: '14-Day Challenges', cat: 'challenge' },
-      { num: 4, label: 'Leadership', cat: 'leadership' },
-      { num: 5, label: 'Wellness Boxes' },
-      { num: 6, label: 'Review & submit' },
-    ];
-    if (isLoading) return allSteps;
-    return allSteps.filter(s => !s.cat || publicServices.some(svc => svc.category === s.cat));
-  }, [publicServices, isLoading]);
+  const headcount = parseInt(String(form.headcount).replace(/[^\d]/g, ''), 10) || 0;
 
-  const currentVisibleIndex = visibleSteps.findIndex(s => s.num === step);
-  const totalVisibleSteps = visibleSteps.length;
-
-  const goNextStep = () => {
-    const next = visibleSteps[currentVisibleIndex + 1];
-    if (next) setStep(next.num);
-  };
-  const goPrevStep = () => {
-    const prev = visibleSteps[currentVisibleIndex - 1];
-    if (prev) setStep(prev.num);
-  };
+  const currentIndex = STEPS.findIndex(s => s.num === step);
+  const goNext = () => setStep(s => Math.min(4, s + 1));
+  const goPrev = () => setStep(s => Math.max(1, s - 1));
 
   const toggleGoal = (goal) => {
     setGoals(prev =>
@@ -94,25 +75,23 @@ export default function QuickBuilder() {
     );
   };
 
-  const toggleService = (id) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
   const validateEmail = (val) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (val && !regex.test(val)) {
-      setEmailError('Please enter a valid work email address.');
-    } else {
-      setEmailError('');
-    }
+    setEmailError(val && !regex.test(val) ? 'Please enter a valid work email address.' : '');
+  };
+
+  // A company is new or returning, never both — checking one clears the other.
+  const toggleNewClient = () => {
+    setIsNewClient(v => {
+      if (!v) setIsReturningClient(false);
+      return !v;
+    });
+  };
+  const toggleReturningClient = () => {
+    setIsReturningClient(v => {
+      if (!v) setIsNewClient(false);
+      return !v;
+    });
   };
 
   const step1Valid =
@@ -120,24 +99,12 @@ export default function QuickBuilder() {
     form.contact_name.trim() &&
     form.email.trim() &&
     !emailError &&
-    form.team_size;
+    headcount > 0;
 
-  const selectedServices = publicServices.filter(s => selectedIds.has(s.id));
-  const hasWorkshop = selectedServices.some(s => s.category === 'workshop');
-  const hasChallenge = selectedServices.some(s => s.category === 'challenge');
-  const hasBox = wantsWellnessBoxes === true;
-  const isFullCampaign = hasWorkshop && hasChallenge && hasBox;
-
-  const estimate = useMemo(() => {
-    if (!form.team_size) return null;
-    return computeEstimate({
-      headcount: teamSizeToHeadcount(form.team_size),
-      workshopCount: selectedServices.filter(s => s.category === 'workshop').length,
-      challengeCount: selectedServices.filter(s => s.category === 'challenge').length,
-      hasLeadership: selectedServices.some(s => s.category === 'leadership'),
-      wantsBoxes: wantsWellnessBoxes === true,
-    });
-  }, [form.team_size, selectedServices, wantsWellnessBoxes]);
+  const quote = useMemo(() => {
+    if (!headcount || !selectedStage) return null;
+    return computeQuote({ headcount, stage: selectedStage, isNewClient, isReturningClient });
+  }, [headcount, selectedStage, isNewClient, isReturningClient]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -146,13 +113,19 @@ export default function QuickBuilder() {
         company_name: form.company_name.trim(),
         contact_name: form.contact_name.trim(),
         email: form.email.trim(),
-        team_size: form.team_size,
+        team_size: String(headcount),
+        headcount,
+        company_size_band: headcountToBand(headcount),
         goals,
-        selected_service_ids: Array.from(selectedIds),
-        wants_wellness_boxes: wantsWellnessBoxes === true,
+        selected_service_ids: [],
+        wants_wellness_boxes: true,
+        selected_tier: quote ? formatStageLabel(quote.tier) : undefined,
+        is_new_client: isNewClient,
+        is_returning_client: isReturningClient,
+        discount_applied: quote?.discountTotal || 0,
         ref,
-        estimated_investment: estimate?.estimatedInvestment,
-        matched_stage: estimate?.stageLabel,
+        estimated_investment: quote?.total,
+        matched_stage: quote ? formatStageLabel(quote.tier) : undefined,
       });
       setSubmitted(true);
     } catch (err) {
@@ -172,7 +145,7 @@ export default function QuickBuilder() {
       <PortalShell
         accentColor="#013f7c"
         title="Quick Builder"
-        subtitle="Design your wellness campaign in minutes"
+        subtitle="Build your wellness campaign in minutes"
         maxWidth="max-w-2xl"
       >
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-12 text-center">
@@ -181,8 +154,8 @@ export default function QuickBuilder() {
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Thank you!</h2>
           <p className="text-gray-500 leading-relaxed max-w-md mx-auto">
-            Your campaign selections have been received. Our team will review and send a tailored proposal
-            with pricing within 2 business days.
+            We've got your {quote?.tier?.name} estimate of ${quote?.total?.toLocaleString()}. Our team will review and
+            send a tailored proposal within 2 business days.
           </p>
           <div className="mt-8">
             <p className="text-sm font-semibold text-gray-700 mb-3">Want to talk sooner?</p>
@@ -203,28 +176,26 @@ export default function QuickBuilder() {
     <PortalShell
       accentColor="#013f7c"
       title="Quick Builder"
-      subtitle="Design your wellness campaign in minutes"
+      subtitle="Build your wellness campaign in minutes"
       maxWidth="max-w-4xl"
     >
       {/* Step indicator — mobile */}
       <div className="sm:hidden mb-6 flex items-center justify-between">
-        <span className="text-sm font-bold text-brand-navy">Step {currentVisibleIndex + 1} of {totalVisibleSteps}</span>
-        <span className="text-sm text-gray-500">{visibleSteps[currentVisibleIndex]?.label}</span>
+        <span className="text-sm font-bold text-brand-navy">Step {currentIndex + 1} of {STEPS.length}</span>
+        <span className="text-sm text-gray-500">{STEPS[currentIndex]?.label}</span>
       </div>
 
       {/* Step indicator — desktop */}
       <div className="hidden sm:flex items-center gap-2 mb-6">
-        {visibleSteps.map((s, idx) => {
+        {STEPS.map((s, idx) => {
           const isActive = step === s.num;
-          const isComplete = currentVisibleIndex > idx;
+          const isComplete = currentIndex > idx;
           return (
             <React.Fragment key={s.num}>
               <div className="flex items-center gap-2">
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                    isActive || isComplete
-                      ? 'bg-brand-navy text-white'
-                      : 'bg-gray-200 text-gray-500'
+                    isActive || isComplete ? 'bg-brand-navy text-white' : 'bg-gray-200 text-gray-500'
                   }`}
                 >
                   {isComplete ? <Check className="w-4 h-4" /> : idx + 1}
@@ -233,8 +204,8 @@ export default function QuickBuilder() {
                   {s.label}
                 </span>
               </div>
-              {idx < visibleSteps.length - 1 && (
-                <div className={`flex-1 h-px mx-2 ${currentVisibleIndex > idx ? 'bg-brand-navy' : 'bg-gray-200'}`} />
+              {idx < STEPS.length - 1 && (
+                <div className={`flex-1 h-px mx-2 ${currentIndex > idx ? 'bg-brand-navy' : 'bg-gray-200'}`} />
               )}
             </React.Fragment>
           );
@@ -280,18 +251,29 @@ export default function QuickBuilder() {
               {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Team size *</label>
-              <Select value={form.team_size} onValueChange={v => setForm({ ...form, team_size: v })}>
-                <SelectTrigger><SelectValue placeholder="Select size" /></SelectTrigger>
-                <SelectContent>
-                  {TEAM_SIZES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                Exactly how many employees? *
+              </label>
+              <div className="relative">
+                <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <Input
+                  type="number"
+                  min="1"
+                  inputMode="numeric"
+                  className="pl-9"
+                  value={form.headcount}
+                  onChange={e => setForm({ ...form, headcount: e.target.value })}
+                  placeholder="e.g. 250"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Your exact number — every price on the next step is calculated from it.
+              </p>
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-2">
-              Goals <span className="text-gray-400 font-normal">(up to 3)</span>
+              Goals <span className="text-gray-400 font-normal">(up to 3, optional)</span>
             </label>
             <div className="flex flex-wrap gap-2">
               {GOALS.map(goal => {
@@ -318,9 +300,43 @@ export default function QuickBuilder() {
             </div>
           </div>
           <div className="flex justify-end pt-2">
+            <Button disabled={!step1Valid} onClick={goNext} className="bg-brand-navy hover:bg-brand-navy-dark gap-2">
+              Next <ArrowRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 2: Pick your tier ── */}
+      {step === 2 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-5">
+          <div>
+            <h2 className="text-lg font-bold text-gray-800">Pick your tier</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Priced for your {headcount.toLocaleString()} employees. Each tier builds on the one before it.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {CAMPAIGN_STAGES.map(stage => (
+              <TierCard
+                key={stage.stage}
+                stage={stage}
+                headcount={headcount}
+                selected={selectedStage === stage.stage}
+                onSelect={setSelectedStage}
+                recommended={stage.stage === RECOMMENDED_STAGE}
+              />
+            ))}
+          </div>
+
+          <div className="flex justify-between pt-2">
+            <Button variant="outline" onClick={goPrev} className="gap-2">
+              <ArrowLeft className="w-4 h-4" /> Back
+            </Button>
             <Button
-              disabled={!step1Valid}
-              onClick={goNextStep}
+              disabled={!selectedStage}
+              onClick={goNext}
               className="bg-brand-navy hover:bg-brand-navy-dark gap-2"
             >
               Next <ArrowRight className="w-4 h-4" />
@@ -329,132 +345,48 @@ export default function QuickBuilder() {
         </div>
       )}
 
-      {/* ── Step 2: Workshops ── */}
-      {step === 2 && (
-        <QuickBuilderCategoryStep
-          title="Workshops"
-          subtitle="Tap to select. Optional — pick what interests you."
-          services={publicServices.filter(s => s.category === 'workshop')}
-          selectedIds={selectedIds}
-          onToggle={toggleService}
-          onBack={goPrevStep}
-          onNext={goNextStep}
-          isLoading={isLoading}
-        />
-      )}
-
-      {/* ── Step 3: 14-Day Challenges ── */}
+      {/* ── Step 3: What's included (browse only) ── */}
       {step === 3 && (
-        <QuickBuilderCategoryStep
-          title="14-Day Challenges"
-          subtitle="Tap to select. Optional — pick what interests you."
-          services={publicServices.filter(s => s.category === 'challenge')}
-          selectedIds={selectedIds}
-          onToggle={toggleService}
-          onBack={goPrevStep}
-          onNext={goNextStep}
+        <ProgramGallery
+          services={publicServices}
           isLoading={isLoading}
+          onBack={goPrev}
+          onNext={goNext}
         />
       )}
 
-      {/* ── Step 4: Leadership ── */}
+      {/* ── Step 4: Your quote ── */}
       {step === 4 && (
-        <QuickBuilderCategoryStep
-          title="Leadership"
-          subtitle="Tap to select. Optional — pick what interests you."
-          services={publicServices.filter(s => s.category === 'leadership')}
-          selectedIds={selectedIds}
-          onToggle={toggleService}
-          onBack={goPrevStep}
-          onNext={goNextStep}
-          isLoading={isLoading}
-        />
-      )}
-
-      {/* ── Step 5: Wellness Boxes ── */}
-      {step === 5 && (
-        <QuickBuilderWellnessBoxStep
-          value={wantsWellnessBoxes}
-          onChange={setWantsWellnessBoxes}
-          onBack={goPrevStep}
-          onNext={goNextStep}
-        />
-      )}
-
-      {/* ── Step 6: Review & submit ── */}
-      {step === 6 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-5">
-          <h2 className="text-lg font-bold text-gray-800">Review your selections</h2>
-          <div className="space-y-2">
-            {selectedServices.map(svc => (
-              <div key={svc.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                {svc.images?.[0]?.url ? (
-                  <ServiceImage src={svc.images[0].url} alt="" className="w-12 h-12 rounded-lg flex-shrink-0" />
-                ) : (
-                  <div className="w-12 h-12 rounded-lg bg-brand-navy/10 flex items-center justify-center flex-shrink-0">
-                    {(() => {
-                      const Icon = CATEGORY_CONFIG[svc.category]?.icon || Package;
-                      return <Icon className="w-5 h-5 text-brand-navy" />;
-                    })()}
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-gray-800">{svc.name}</p>
-                  <p className="text-xs text-gray-400">{CATEGORY_CONFIG[svc.category]?.label}</p>
-                </div>
-              </div>
-            ))}
+          <div>
+            <h2 className="text-lg font-bold text-gray-800">Your quote</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              {form.company_name} · {headcount.toLocaleString()} employees
+            </p>
           </div>
 
-          {/* Wellness box incentives row */}
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <span className="text-sm font-medium text-gray-700">Wellness box incentives</span>
-            <span className={`text-sm font-semibold ${hasBox ? 'text-green-600' : 'text-gray-400'}`}>
-              {hasBox ? 'Yes' : 'No'}
-            </span>
-          </div>
-
-          {/* Campaign pillars nudge */}
-          <div className="bg-brand-cream rounded-xl p-4">
-            <div className="flex items-center gap-4 justify-center flex-wrap">
-              {[
-                { label: 'Workshop', covered: hasWorkshop },
-                { label: 'Challenge', covered: hasChallenge },
-                { label: 'Wellness boxes', covered: hasBox },
-              ].map(p => (
-                <div key={p.label} className="flex items-center gap-1.5">
-                  {p.covered ? (
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <div className="w-4 h-4 rounded-full border-2 border-gray-300" />
-                  )}
-                  <span className={`text-sm font-medium ${p.covered ? 'text-gray-800' : 'text-gray-400'}`}>{p.label}</span>
-                </div>
-              ))}
-            </div>
-            {!isFullCampaign && (
-              <p className="text-xs text-gray-500 text-center mt-3">
-                A full campaign (workshop + challenge + wellness boxes) reinforces learning and builds lasting habits.
-              </p>
-            )}
-          </div>
-
-          {estimate && <ReviewEstimateCard estimate={estimate} />}
+          <QuoteBreakdown
+            quote={quote}
+            isNewClient={isNewClient}
+            isReturningClient={isReturningClient}
+            onToggleNew={toggleNewClient}
+            onToggleReturning={toggleReturningClient}
+          />
 
           <p className="text-sm text-gray-500 text-center">
-            We'll send a tailored proposal with pricing within 2 business days.
+            Send this over and we'll come back with a tailored proposal within 2 business days.
           </p>
 
           <div className="flex justify-between pt-2">
-            <Button variant="outline" onClick={goPrevStep} className="gap-2">
+            <Button variant="outline" onClick={goPrev} className="gap-2">
               <ArrowLeft className="w-4 h-4" /> Back
             </Button>
             <Button
-              disabled={submitting}
+              disabled={submitting || !quote}
               onClick={handleSubmit}
               className="bg-brand-plum hover:bg-brand-plum-dark gap-2"
             >
-              {submitting ? 'Submitting...' : 'Submit Inquiry'}
+              {submitting ? 'Submitting...' : 'Send my quote'}
             </Button>
           </div>
         </div>
