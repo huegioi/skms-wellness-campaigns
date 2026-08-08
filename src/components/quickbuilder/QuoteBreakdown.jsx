@@ -22,7 +22,7 @@ export default function QuoteBreakdown({ quote, isNewClient, onToggleNew }) {
         </div>
         <p className="text-4xl font-bold">${quote.total.toLocaleString()}</p>
         <p className="text-xs text-white/70 mt-1">
-          For {quote.headcount.toLocaleString()} employees, over one year
+          For {quote.headcount.toLocaleString()} employees, for the full campaign
         </p>
       </div>
 
@@ -68,9 +68,9 @@ export default function QuoteBreakdown({ quote, isNewClient, onToggleNew }) {
             className="mt-0.5 w-4 h-4 rounded accent-brand-navy flex-shrink-0"
           />
           <span className="text-sm text-gray-700">
-            This is our first time working with SkillfulMeans
+            This is our first campaign with SkillfulMeans
             <span className="block text-xs text-gray-400">
-              Takes ${RATE_CARD.newClientWelcome} off your total
+              Welcome discount — ${RATE_CARD.newClientWelcome} off your total
             </span>
           </span>
         </label>

@@ -7,14 +7,19 @@ import { computeQuote } from '@/lib/rateCard';
  */
 export default function TierCard({ stage, headcount, selected, onSelect, recommended }) {
   const quote = computeQuote({ headcount, stage: stage.stage });
+  const sections = quote.meta.sessionsPerWorkshop;
 
   const features = [
-    `${stage.workshops} workshop${stage.workshops !== 1 ? 's' : ''}`,
+    // A company big enough to need several sections is buying several
+    // sittings of each topic — say so on the card, not just in the quote.
+    sections > 1
+      ? `${stage.workshops} workshops, run ${sections}× each so everyone can attend`
+      : `${stage.workshops} workshop${stage.workshops !== 1 ? 's' : ''}`,
     `${stage.challenges} 14-day challenge${stage.challenges !== 1 ? 's' : ''}`,
     ...(stage.leadershipEQ ? ['Leadership EQ program'] : []),
     ...(stage.groupCoaching ? ['Group coaching cascade'] : []),
     ...(stage.individualCoaching ? ['Individual leader coaching'] : []),
-    `${stage.wellnessBoxes} wellness box${stage.wellnessBoxes !== 1 ? 'es' : ''}`,
+    `${quote.meta.boxCount} wellness box${quote.meta.boxCount !== 1 ? 'es' : ''}`,
   ];
 
   return (
@@ -51,7 +56,7 @@ export default function TierCard({ stage, headcount, selected, onSelect, recomme
 
       <p className="text-2xl font-bold text-brand-navy mt-3">
         ${quote.total.toLocaleString()}
-        <span className="text-sm font-normal text-gray-400"> / year</span>
+        <span className="text-sm font-normal text-gray-400"> / campaign</span>
       </p>
 
       <ul className="mt-3 space-y-1.5">

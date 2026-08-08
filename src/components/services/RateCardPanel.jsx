@@ -19,7 +19,7 @@ import { invalidateRateCard } from '@/lib/useRateCard';
 const LABELS = {
   workshopFirstSession: ['First workshop session', 'Includes the recording and materials'],
   workshopExtraSession: ['Each repeat session', 'Same topic run again for a bigger company'],
-  materialsComponent: ['Recording + materials', 'The part of the first session that only ships once'],
+  materialsComponent: ['Recording + materials', 'Produced once per topic — why each extra section is $300 less. Not a discount.'],
   attendanceRate: ['Expected attendance', 'Share of employees who show up (0.25 = 25%)'],
   maxAttendeesPerSession: ['Max attendees per session', 'The engagement cap'],
   challengeEngagementRate: ['Challenge sign-up rate', 'Share of headcount given slots (0.20 = 20%)'],
@@ -33,7 +33,7 @@ const LABELS = {
   leqSingleWorkshop: ['One leadership workshop', 'Sold outside the series'],
   leqCoachingSession: ['Coaching session', 'Leadership EQ Coaching Program, per session'],
   wellnessBox: ['Wellness box (blended)', 'Used when quoting a tier'],
-  newClientWelcome: ['First-time client discount', 'Comes off the total once'],
+  newClientWelcome: ['First-campaign welcome discount', 'Off the total once, for a new client. Separate from materials above.'],
   inPersonTravelAddOn: ['In-person travel', 'Per trip. Never added automatically'],
 };
 

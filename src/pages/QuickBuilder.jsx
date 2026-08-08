@@ -16,6 +16,7 @@ import {
   computeQuote,
   formatStageLabel,
   headcountToBand,
+  sessionsPerWorkshop,
 } from '@/lib/rateCard';
 
 const CALENDLY_LINK = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
@@ -61,6 +62,7 @@ export default function QuickBuilder() {
   );
 
   const headcount = parseInt(String(form.headcount).replace(/[^\d]/g, ''), 10) || 0;
+  const sectionsPerWorkshop = headcount ? sessionsPerWorkshop(headcount) : 1;
 
   const currentIndex = STEPS.findIndex(s => s.num === step);
   const goNext = () => setStep(s => Math.min(4, s + 1));
@@ -302,6 +304,22 @@ export default function QuickBuilder() {
               Priced for your {headcount.toLocaleString()} employees. Each tier builds on the one before it.
             </p>
           </div>
+
+          {/* A company needing more than one section is buying more delivery,
+              not paying a size surcharge. Say so before they see the price. */}
+          {sectionsPerWorkshop > 1 && (
+            <div className="rounded-xl border border-brand-navy/20 bg-brand-navy/[0.04] p-4">
+              <p className="text-sm font-semibold text-brand-navy">
+                At {headcount.toLocaleString()} employees, every workshop runs {sectionsPerWorkshop} times
+              </p>
+              <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                We cap sessions so they stay interactive, and we schedule each topic {sectionsPerWorkshop} times
+                across different days and hours so shift workers and busy teams can all attend. The prices below
+                cover all {sectionsPerWorkshop} sittings of each workshop, plus wellness boxes for every one of
+                them. Repeat sittings cost less — the recording and printed materials are produced once.
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {CAMPAIGN_STAGES.map(stage => (

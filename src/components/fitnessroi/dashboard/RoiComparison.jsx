@@ -37,7 +37,7 @@ function stageLineItems(stage, roiInputs, breakdown) {
   const leq = tier.leadershipEQ
     ? leadershipEqPrice(N, { coachingBlocks: tier.coachingBlocks, lcpRounds: tier.lcpRounds })
     : null;
-  const boxCount = tier.wellnessBoxes;
+  const boxCount = tier.wellnessBoxesPerSection * sessions;
 
   const meta = {
     'Workshops & Webinars': {
