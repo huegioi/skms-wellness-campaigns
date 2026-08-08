@@ -2,8 +2,11 @@ import React from 'react';
 import { ExternalLink, LayoutDashboard, BarChart3, Mail, TrendingDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ProgramJourney from '@/components/quickbuilder/ProgramJourney';
+import { ROI_CALCULATOR_URL } from '@/lib/rateCard';
 
-export const ROI_CALCULATOR_URL = 'https://skillfulmeans-roi-production.up.railway.app/';
+// Re-exported for older importers. The URL itself is defined once, in the
+// rate card — it was duplicated here and would have drifted.
+export { ROI_CALCULATOR_URL };
 
 const IMPACT_STATS = ['Absenteeism ↓', 'Presenteeism ↓', 'Turnover ↓', 'Medical claims ↓'];
 
