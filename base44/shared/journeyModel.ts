@@ -16,6 +16,7 @@ import {
   RATE_CARD,
   CAMPAIGN_STAGES,
   workshopTopicPrice,
+  sessionsPerWorkshop,
   challengePrice,
   leadershipEqPrice,
 } from './rateCard.ts';
@@ -89,9 +90,10 @@ export function calcInvestment(
   // Stage 6 includes a consultant at no charge — shown so the value is visible.
   if (stage.consultant) breakdown.push({ label: 'Consultant', cost: 0 });
 
+  // Boxes scale with sections delivered — same rule as computeQuote.
   breakdown.push({
     label: 'Wellness Boxes',
-    cost: tier.wellnessBoxes * RATE_CARD.wellnessBox,
+    cost: tier.wellnessBoxesPerSection * sessionsPerWorkshop(N) * RATE_CARD.wellnessBox,
   });
 
   const total = breakdown.reduce((sum, b) => sum + b.cost, 0);

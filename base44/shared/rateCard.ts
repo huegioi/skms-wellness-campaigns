@@ -26,9 +26,25 @@
  *   · Workshop sessions scale PER TOPIC, one session per 1,000 employees.
  *   · Leadership EQ scales with headcount; it is NOT a flat $10,000.
  *   · Wellness boxes are included in a tier's price at the blended rate.
- *   · The $300 goes to FIRST-TIME clients as a welcome discount. The
- *     Proforma's own logic would give it to repeat clients (materials ship
- *     once) — the departure is deliberate and is a sales decision.
+ *
+ * ── TWO DIFFERENT $300s. DO NOT CONFLATE THEM ─────────────────────────────
+ * They are the same number by coincidence and were confused once already.
+ *
+ *   1. materialsComponent ($300) — NOT a discount, and nothing to do with
+ *      the client. The recording and printed materials are produced once per
+ *      workshop TOPIC, so the first section costs $1,500 and every extra
+ *      section of that same topic costs $1,200. A large company running
+ *      Beyond Burnout across 4 sections, so staff have a choice of times,
+ *      pays $1,500 + $1,200 x 3 — not $1,500 x 4. Already expressed by
+ *      workshopExtraSession; never apply it as a separate line.
+ *
+ *   2. newClientWelcome ($300) — a real sales discount, taken off the total
+ *      once, for a company's FIRST campaign with SkillfulMeans. Confirmed by
+ *      William 2026-08-08.
+ *
+ *   There is NO "materials credit" for returning clients. That idea was
+ *   removed on 2026-08-08 as incoherent — returning clients do not get $300
+ *   off for having worked with us before.
  */
 
 // ── Prices ────────────────────────────────────────────────────────────────
@@ -42,7 +58,9 @@ export const RATE_CARD_DEFAULTS = {
   // Workshops
   workshopFirstSession: 1500,   // includes recording + materials
   workshopExtraSession: 1200,   // = first session − the $300 materials component
-  materialsComponent: 300,      // sent once only
+  // Produced once per workshop TOPIC — this is why an extra section is
+  // $1,200 rather than $1,500. It is not a discount. See the header note.
+  materialsComponent: 300,
   attendanceRate: 0.25,         // share of employees who show up
   maxAttendeesPerSession: 250,  // engagement cap → 1,000 employees per session
 
@@ -68,7 +86,9 @@ export const RATE_CARD_DEFAULTS = {
   wellnessBox: 100,             // blended average across the brochure range
 
   // Adjustments
-  newClientWelcome: 300,        // flat, off the total, first-time clients only
+  // A genuine sales discount: a company's first campaign with us. Distinct
+  // from materialsComponent above, which happens to be the same amount.
+  newClientWelcome: 300,
 
   // Quoted separately, never auto-added
   // (Proforma: "NOT included in the package math — add manually when it applies")
@@ -177,6 +197,11 @@ export function applyBoxFloor(key: string, price: number): number {
 // ── The six campaign tiers ────────────────────────────────────────────────
 // Composition mirrors the Proforma's Packages tab.
 //
+// wellnessBoxesPerSection is PER WORKSHOP SECTION, not per campaign. A
+// company large enough to need 4 sections of each topic gets 4x the boxes,
+// because the boxes are handed out at the sessions. Corrected 2026-08-08
+// (William): a flat 3 boxes spread across 4 sections was far too few.
+//
 // Leader participation is 0.50% on every tier. Tiers 5 and 6 add more
 // DELIVERY per leader rather than more leaders:
 //   coachingBlocks — 3-hour group coaching blocks per group of 12.
@@ -191,7 +216,7 @@ export interface CampaignStage {
   leadershipEQ: boolean;
   groupCoaching: boolean;
   individualCoaching: boolean;
-  wellnessBoxes: number;
+  wellnessBoxesPerSection: number;
   coachingBlocks?: number;
   lcpRounds?: number;
 }
@@ -204,7 +229,7 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
     intent: 'Establish shared mental fitness language and lock initial skills into daily habit.',
     workshops: 2, challenges: 1, leadershipEQ: false,
     groupCoaching: false, individualCoaching: false,
-    wellnessBoxes: 3,
+    wellnessBoxesPerSection: 3,
   },
   {
     stage: 2,
@@ -213,7 +238,7 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
     intent: 'Deepen practice with more workshops and challenges to build lasting habits across the team.',
     workshops: 4, challenges: 2, leadershipEQ: false,
     groupCoaching: false, individualCoaching: false,
-    wellnessBoxes: 18,
+    wellnessBoxesPerSection: 18,
   },
   {
     stage: 3,
@@ -222,7 +247,7 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
     intent: 'Add Leadership EQ to build team resilience and emotional intelligence.',
     workshops: 2, challenges: 2, leadershipEQ: true,
     groupCoaching: false, individualCoaching: false,
-    wellnessBoxes: 12,
+    wellnessBoxesPerSection: 12,
     coachingBlocks: 1, lcpRounds: 1,
   },
   {
@@ -232,7 +257,7 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
     intent: 'Scale up workshops with Leadership EQ to align teams and culture.',
     workshops: 4, challenges: 2, leadershipEQ: true,
     groupCoaching: false, individualCoaching: false,
-    wellnessBoxes: 18,
+    wellnessBoxesPerSection: 18,
     coachingBlocks: 1, lcpRounds: 1,
   },
   {
@@ -242,7 +267,7 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
     intent: 'Add group coaching to cascade skills across the entire organization.',
     workshops: 4, challenges: 2, leadershipEQ: true,
     groupCoaching: true, individualCoaching: false,
-    wellnessBoxes: 18,
+    wellnessBoxesPerSection: 18,
     coachingBlocks: 2, lcpRounds: 1,
   },
   {
@@ -252,7 +277,7 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
     intent: 'Full-spectrum support with individual and group coaching for organization-wide transformation.',
     workshops: 4, challenges: 4, leadershipEQ: true,
     groupCoaching: true, individualCoaching: true,
-    wellnessBoxes: 24,
+    wellnessBoxesPerSection: 24,
     coachingBlocks: 2, lcpRounds: 2,
   },
 ];
@@ -348,7 +373,9 @@ export function computeQuote(
     : null;
   const leadershipTotal = leq ? leq.total : 0;
 
-  const boxTotal = tier.wellnessBoxes * RATE_CARD.wellnessBox;
+  // Boxes scale with the number of sections actually delivered.
+  const boxCount = tier.wellnessBoxesPerSection * sessions;
+  const boxTotal = boxCount * RATE_CARD.wellnessBox;
 
   const subtotal = workshopTotal + challengeTotal + leadershipTotal + boxTotal;
 
@@ -363,8 +390,8 @@ export function computeQuote(
       key: 'workshops',
       label: `${tier.workshops} workshop${tier.workshops !== 1 ? 's' : ''}`,
       detail: sessions > 1
-        ? `${sessions} sessions each (1 per 1,000 employees) — $${RATE_CARD.workshopFirstSession.toLocaleString()} first + $${RATE_CARD.workshopExtraSession.toLocaleString()} × ${sessions - 1} = $${perTopic.toLocaleString()} per topic`
-        : `$${perTopic.toLocaleString()} each, one session covers your team`,
+        ? `${sessions} sections each so staff have a choice of times — $${RATE_CARD.workshopFirstSession.toLocaleString()} for the first, then $${RATE_CARD.workshopExtraSession.toLocaleString()} × ${sessions - 1} (materials and the recording are produced once, so each extra section is $${RATE_CARD.materialsComponent} less) = $${perTopic.toLocaleString()} per topic`
+        : `$${perTopic.toLocaleString()} each, one section covers your team`,
       amount: workshopTotal,
     },
     {
@@ -381,8 +408,10 @@ export function computeQuote(
     }] : []),
     {
       key: 'boxes',
-      label: `${tier.wellnessBoxes} wellness box${tier.wellnessBoxes !== 1 ? 'es' : ''}`,
-      detail: `$${RATE_CARD.wellnessBox} each (blended average)`,
+      label: `${boxCount} wellness box${boxCount !== 1 ? 'es' : ''}`,
+      detail: sessions > 1
+        ? `${tier.wellnessBoxesPerSection} per section × ${sessions} sections, $${RATE_CARD.wellnessBox} each (blended average)`
+        : `$${RATE_CARD.wellnessBox} each (blended average)`,
       amount: boxTotal,
     },
   ];
@@ -394,7 +423,7 @@ export function computeQuote(
     meta: {
       sessionsPerWorkshop: sessions, workshopTopicPrice: perTopic,
       challengeSlots: slots, challengeRatePerPerson: perPerson,
-      challengePrice: perChallenge, leq,
+      challengePrice: perChallenge, leq, boxCount,
     },
   };
 }
@@ -430,7 +459,7 @@ export function formatComposition(stage: CampaignStage | null | undefined): stri
   if (stage.leadershipEQ) parts.push('Leadership EQ');
   if (stage.groupCoaching) parts.push('group coaching');
   if (stage.individualCoaching) parts.push('individual coaching');
-  parts.push(`${stage.wellnessBoxes} wellness box${stage.wellnessBoxes !== 1 ? 'es' : ''}`);
+  parts.push(`${stage.wellnessBoxesPerSection} wellness box${stage.wellnessBoxesPerSection !== 1 ? 'es' : ''} per section`);
   return parts.join(' · ');
 }
 
@@ -530,8 +559,12 @@ export function verifyRateCard(): string[] {
     200:  { 1: 4380,  2: 9960,  4: 24810 },
     500:  { 1: 5500,  2: 12200, 4: 29550 },
     1000: { 1: 6900,  2: 15000, 4: 34850 },
-    2000: { 1: 10500, 2: 22200, 4: 48300 },
-    4000: { 1: 18500, 2: 38200, 4: 80400 },
+    // 2,000 and 4,000 depart from the Proforma deliberately: boxes now scale
+    // per section (William 2026-08-08). 1,000 and under are unchanged.
+    //   2,000 s1 10,500->10,800 | s2 22,200->24,000 | s4 48,300->50,100
+    //   4,000 s1 18,500->19,400 | s2 38,200->43,600 | s4 80,400->85,800
+    2000: { 1: 10800, 2: 24000, 4: 50100 },
+    4000: { 1: 19400, 2: 43600, 4: 85800 },
   };
   for (const hc of Object.keys(packages)) {
     for (const st of Object.keys(packages[Number(hc)])) {
