@@ -91,7 +91,6 @@ Deno.serve(async (req) => {
         leadershipEQ: s.leadershipEQ,
         groupCoaching: s.groupCoaching,
         individualCoaching: s.individualCoaching,
-        wellnessBoxesPerSection: s.wellnessBoxesPerSection,
       })),
       derived: headcount > 0 ? {
         sectionsPerWorkshop: sessionsPerWorkshop(headcount),

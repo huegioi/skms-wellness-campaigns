@@ -33,6 +33,8 @@ const LABELS = {
   leqSingleWorkshop: ['One leadership workshop', 'Sold outside the series'],
   leqCoachingSession: ['Coaching session', 'Leadership EQ Coaching Program, per session'],
   wellnessBox: ['Wellness box (blended)', 'Used when quoting a tier'],
+  boxesPerWorkshopSection: ['Boxes per workshop section', 'Every sitting of every workshop gets this many'],
+  boxesPerChallenge: ['Boxes per challenge', 'One challenge covers everyone, so this does not multiply by sections'],
   newClientWelcome: ['First-campaign welcome discount', 'Off the total once, for a new client. Separate from materials above.'],
   inPersonTravelAddOn: ['In-person travel', 'Per trip. Never added automatically'],
 };

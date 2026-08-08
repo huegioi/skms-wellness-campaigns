@@ -84,6 +84,13 @@ export const RATE_CARD_DEFAULTS = {
 
   // Wellness boxes
   wellnessBox: 100,             // blended average across the brochure range
+  // Boxes are handed out at each delivery, so the count is DERIVED, not a
+  // number typed per tier: 3 for every workshop section and 3 for every
+  // challenge. Confirmed by William 2026-08-08. Five of the six tiers already
+  // matched this exactly; Foundation had 3 where the rule gives 9, which was
+  // a slip in the Proforma.
+  boxesPerWorkshopSection: 3,
+  boxesPerChallenge: 3,
 
   // Adjustments
   // A genuine sales discount: a company's first campaign with us. Distinct
@@ -197,10 +204,11 @@ export function applyBoxFloor(key: string, price: number): number {
 // ── The six campaign tiers ────────────────────────────────────────────────
 // Composition mirrors the Proforma's Packages tab.
 //
-// wellnessBoxesPerSection is PER WORKSHOP SECTION, not per campaign. A
-// company large enough to need 4 sections of each topic gets 4x the boxes,
-// because the boxes are handed out at the sessions. Corrected 2026-08-08
-// (William): a flat 3 boxes spread across 4 sections was far too few.
+// Wellness box counts are NOT listed per tier — they are derived from what
+// the tier delivers: RATE_CARD.boxesPerWorkshopSection for every workshop
+// section, plus RATE_CARD.boxesPerChallenge for every challenge. Workshops
+// multiply by sections; challenges do not, because one challenge covers the
+// whole company through its slot count. See boxCountFor() below.
 //
 // Leader participation is 0.50% on every tier. Tiers 5 and 6 add more
 // DELIVERY per leader rather than more leaders:
@@ -216,7 +224,6 @@ export interface CampaignStage {
   leadershipEQ: boolean;
   groupCoaching: boolean;
   individualCoaching: boolean;
-  wellnessBoxesPerSection: number;
   coachingBlocks?: number;
   lcpRounds?: number;
 }
@@ -229,7 +236,6 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
     intent: 'Establish shared mental fitness language and lock initial skills into daily habit.',
     workshops: 2, challenges: 1, leadershipEQ: false,
     groupCoaching: false, individualCoaching: false,
-    wellnessBoxesPerSection: 3,
   },
   {
     stage: 2,
@@ -238,7 +244,6 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
     intent: 'Deepen practice with more workshops and challenges to build lasting habits across the team.',
     workshops: 4, challenges: 2, leadershipEQ: false,
     groupCoaching: false, individualCoaching: false,
-    wellnessBoxesPerSection: 18,
   },
   {
     stage: 3,
@@ -247,7 +252,6 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
     intent: 'Add Leadership EQ to build team resilience and emotional intelligence.',
     workshops: 2, challenges: 2, leadershipEQ: true,
     groupCoaching: false, individualCoaching: false,
-    wellnessBoxesPerSection: 12,
     coachingBlocks: 1, lcpRounds: 1,
   },
   {
@@ -257,7 +261,6 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
     intent: 'Scale up workshops with Leadership EQ to align teams and culture.',
     workshops: 4, challenges: 2, leadershipEQ: true,
     groupCoaching: false, individualCoaching: false,
-    wellnessBoxesPerSection: 18,
     coachingBlocks: 1, lcpRounds: 1,
   },
   {
@@ -267,7 +270,6 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
     intent: 'Add group coaching to cascade skills across the entire organization.',
     workshops: 4, challenges: 2, leadershipEQ: true,
     groupCoaching: true, individualCoaching: false,
-    wellnessBoxesPerSection: 18,
     coachingBlocks: 2, lcpRounds: 1,
   },
   {
@@ -277,7 +279,6 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
     intent: 'Full-spectrum support with individual and group coaching for organization-wide transformation.',
     workshops: 4, challenges: 4, leadershipEQ: true,
     groupCoaching: true, individualCoaching: true,
-    wellnessBoxesPerSection: 24,
     coachingBlocks: 2, lcpRounds: 2,
   },
 ];
@@ -319,6 +320,19 @@ export function challengePrice(headcount: number): number {
   if (!SMOOTH_CHALLENGE_BANDS) return raw;
   const cheaperUpBand = CHALLENGE_TIERS.filter(t => t.min > slots).map(t => t.min * t.price);
   return cheaperUpBand.length ? Math.min(raw, ...cheaperUpBand) : raw;
+}
+
+/**
+ * Wellness boxes for a tier at a given headcount.
+ * 3 per workshop SECTION + 3 per challenge.
+ */
+export function boxCountFor(
+  tier: { workshops: number; challenges: number },
+  headcount: number,
+): number {
+  const sections = sessionsPerWorkshop(headcount);
+  return RATE_CARD.boxesPerWorkshopSection * tier.workshops * sections
+       + RATE_CARD.boxesPerChallenge * tier.challenges;
 }
 
 export interface LeadershipEqBreakdown {
@@ -373,8 +387,7 @@ export function computeQuote(
     : null;
   const leadershipTotal = leq ? leq.total : 0;
 
-  // Boxes scale with the number of sections actually delivered.
-  const boxCount = tier.wellnessBoxesPerSection * sessions;
+  const boxCount = boxCountFor(tier, hc);
   const boxTotal = boxCount * RATE_CARD.wellnessBox;
 
   const subtotal = workshopTotal + challengeTotal + leadershipTotal + boxTotal;
@@ -410,8 +423,8 @@ export function computeQuote(
       key: 'boxes',
       label: `${boxCount} wellness box${boxCount !== 1 ? 'es' : ''}`,
       detail: sessions > 1
-        ? `${tier.wellnessBoxesPerSection} per section × ${sessions} sections, $${RATE_CARD.wellnessBox} each (blended average)`
-        : `$${RATE_CARD.wellnessBox} each (blended average)`,
+        ? `${RATE_CARD.boxesPerWorkshopSection} per workshop section (${tier.workshops} × ${sessions}) + ${RATE_CARD.boxesPerChallenge} per challenge, $${RATE_CARD.wellnessBox} each`
+        : `${RATE_CARD.boxesPerWorkshopSection} per workshop + ${RATE_CARD.boxesPerChallenge} per challenge, $${RATE_CARD.wellnessBox} each`,
       amount: boxTotal,
     },
   ];
@@ -459,7 +472,7 @@ export function formatComposition(stage: CampaignStage | null | undefined): stri
   if (stage.leadershipEQ) parts.push('Leadership EQ');
   if (stage.groupCoaching) parts.push('group coaching');
   if (stage.individualCoaching) parts.push('individual coaching');
-  parts.push(`${stage.wellnessBoxesPerSection} wellness box${stage.wellnessBoxesPerSection !== 1 ? 'es' : ''} per section`);
+  parts.push(`${RATE_CARD.boxesPerWorkshopSection} wellness boxes per workshop section + ${RATE_CARD.boxesPerChallenge} per challenge`);
   return parts.join(' · ');
 }
 
@@ -556,15 +569,15 @@ export function verifyRateCard(): string[] {
 
   // Proforma section 2 — Light / Core / Full = stages 1 / 2 / 4
   const packages: Record<number, Record<number, number>> = {
-    200:  { 1: 4380,  2: 9960,  4: 24810 },
-    500:  { 1: 5500,  2: 12200, 4: 29550 },
-    1000: { 1: 6900,  2: 15000, 4: 34850 },
+    200:  { 1: 4980,  2: 9960,  4: 24810 },
+    500:  { 1: 6100,  2: 12200, 4: 29550 },
+    1000: { 1: 7500,  2: 15000, 4: 34850 },
     // 2,000 and 4,000 depart from the Proforma deliberately: boxes now scale
     // per section (William 2026-08-08). 1,000 and under are unchanged.
     //   2,000 s1 10,500->10,800 | s2 22,200->24,000 | s4 48,300->50,100
     //   4,000 s1 18,500->19,400 | s2 38,200->43,600 | s4 80,400->85,800
-    2000: { 1: 10800, 2: 24000, 4: 50100 },
-    4000: { 1: 19400, 2: 43600, 4: 85800 },
+    2000: { 1: 11700, 2: 23400, 4: 49500 },
+    4000: { 1: 20900, 2: 41800, 4: 84000 },
   };
   for (const hc of Object.keys(packages)) {
     for (const st of Object.keys(packages[Number(hc)])) {

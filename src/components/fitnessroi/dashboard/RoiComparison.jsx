@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { runRoi, STAGES } from '@/lib/roiModel';
 import {
-  RATE_CARD, CAMPAIGN_STAGES, sessionsPerWorkshop, challengeSlots, leadershipEqPrice,
+  RATE_CARD, CAMPAIGN_STAGES, sessionsPerWorkshop, challengeSlots, leadershipEqPrice, boxCountFor,
 } from '@/lib/rateCard';
 import SavingsChart, { DRIVERS } from '@/components/fitnessroi/dashboard/SavingsChart';
 
@@ -37,7 +37,7 @@ function stageLineItems(stage, roiInputs, breakdown) {
   const leq = tier.leadershipEQ
     ? leadershipEqPrice(N, { coachingBlocks: tier.coachingBlocks, lcpRounds: tier.lcpRounds })
     : null;
-  const boxCount = tier.wellnessBoxesPerSection * sessions;
+  const boxCount = boxCountFor(tier, N);
 
   const meta = {
     'Workshops & Webinars': {
