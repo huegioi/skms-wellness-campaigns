@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PortalShell } from '@/components/portal/PortalShell';
 import { toast } from 'sonner';
-import { Check, ArrowRight, ArrowLeft, CheckCircle, CalendarPlus, ExternalLink, Users } from 'lucide-react';
+import { Check, ArrowRight, ArrowLeft, CheckCircle, CalendarPlus, ExternalLink, Users, TrendingUp } from 'lucide-react';
 import { PreventativeBand, QuickBuilderEducation } from '@/components/quickbuilder/QuickBuilderIntro';
 import TierCard from '@/components/quickbuilder/TierCard';
 import QuoteBreakdown from '@/components/quickbuilder/QuoteBreakdown';
@@ -17,6 +17,7 @@ import {
   formatStageLabel,
   headcountToBand,
   sessionsPerWorkshop,
+  ROI_CALCULATOR_URL,
 } from '@/lib/rateCard';
 
 const CALENDLY_LINK = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
@@ -333,6 +334,26 @@ export default function QuickBuilder() {
               />
             ))}
           </div>
+
+          {/* Deciding between tiers is exactly where the return matters, so
+              offer the ROI calculator here as well as on the final quote. */}
+          <a
+            href={ROI_CALCULATOR_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-4 rounded-xl border border-brand-plum/25 bg-brand-plum/[0.04] hover:bg-brand-plum/[0.08] transition-colors"
+          >
+            <div className="w-10 h-10 rounded-lg bg-brand-plum/10 flex items-center justify-center flex-shrink-0">
+              <TrendingUp className="w-5 h-5 text-brand-plum" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-gray-800">Not sure which tier is worth it?</p>
+              <p className="text-xs text-gray-500">
+                Our ROI calculator projects the 3-year return for a company your size
+              </p>
+            </div>
+            <ExternalLink className="w-4 h-4 text-brand-plum flex-shrink-0" />
+          </a>
 
           <div className="flex justify-between pt-2">
             <Button variant="outline" onClick={goPrev} className="gap-2">
