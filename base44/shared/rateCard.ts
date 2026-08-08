@@ -226,12 +226,20 @@ export interface CampaignStage {
   individualCoaching: boolean;
   coachingBlocks?: number;
   lcpRounds?: number;
+  /**
+   * Shown on the PUBLIC Quick Builder. The top three tiers are deliberately
+   * not self-serve — they are large enough that William wants a conversation
+   * rather than a number on a screen (2026-08-08). Every tier still exists
+   * everywhere else: proposals, invoices, the Journey and the ROI dashboard.
+   */
+  publicInBuilder: boolean;
 }
 
 export const CAMPAIGN_STAGES: CampaignStage[] = [
   {
     stage: 1,
     name: 'Foundation',
+    publicInBuilder: true,
     tagline: 'Get everyone speaking the same language.',
     intent: 'Establish shared mental fitness language and lock initial skills into daily habit.',
     workshops: 2, challenges: 1, leadershipEQ: false,
@@ -240,6 +248,7 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
   {
     stage: 2,
     name: 'Habit',
+    publicInBuilder: true,
     tagline: 'Turn the language into daily practice.',
     intent: 'Deepen practice with more workshops and challenges to build lasting habits across the team.',
     workshops: 4, challenges: 2, leadershipEQ: false,
@@ -248,6 +257,7 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
   {
     stage: 3,
     name: 'Resilience',
+    publicInBuilder: true,
     tagline: 'Bring leaders into it.',
     intent: 'Add Leadership EQ to build team resilience and emotional intelligence.',
     workshops: 2, challenges: 2, leadershipEQ: true,
@@ -257,6 +267,7 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
   {
     stage: 4,
     name: 'Alignment',
+    publicInBuilder: false,
     tagline: 'Align the whole organization.',
     intent: 'Scale up workshops with Leadership EQ to align teams and culture.',
     workshops: 4, challenges: 2, leadershipEQ: true,
@@ -266,6 +277,7 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
   {
     stage: 5,
     name: 'Culture Shift',
+    publicInBuilder: false,
     tagline: 'Cascade the skills through every layer.',
     intent: 'Add group coaching to cascade skills across the entire organization.',
     workshops: 4, challenges: 2, leadershipEQ: true,
@@ -275,6 +287,7 @@ export const CAMPAIGN_STAGES: CampaignStage[] = [
   {
     stage: 6,
     name: 'Ecosystem',
+    publicInBuilder: false,
     tagline: 'Full-spectrum support, top to bottom.',
     intent: 'Full-spectrum support with individual and group coaching for organization-wide transformation.',
     workshops: 4, challenges: 4, leadershipEQ: true,
@@ -442,6 +455,9 @@ export function computeQuote(
 }
 
 // ── Labels and helpers ────────────────────────────────────────────────────
+
+/** The tiers a prospect can pick from unaided. */
+export const PUBLIC_STAGES = () => CAMPAIGN_STAGES.filter(s => s.publicInBuilder);
 
 /** Lowest tier whose composition covers the given selections. */
 export function findMatchedStage(

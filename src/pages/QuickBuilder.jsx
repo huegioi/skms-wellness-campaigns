@@ -12,7 +12,7 @@ import TierCard from '@/components/quickbuilder/TierCard';
 import QuoteBreakdown from '@/components/quickbuilder/QuoteBreakdown';
 import ProgramGallery from '@/components/quickbuilder/ProgramGallery';
 import {
-  CAMPAIGN_STAGES,
+  PUBLIC_STAGES,
   computeQuote,
   formatStageLabel,
   headcountToBand,
@@ -323,7 +323,7 @@ export default function QuickBuilder() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {CAMPAIGN_STAGES.map(stage => (
+            {PUBLIC_STAGES().map(stage => (
               <TierCard
                 key={stage.stage}
                 stage={stage}
@@ -334,6 +334,12 @@ export default function QuickBuilder() {
               />
             ))}
           </div>
+
+          <p className="text-xs text-gray-500 leading-relaxed px-1">
+            Running something larger — a multi-year programme, coaching cascaded through every
+            layer, or a dedicated consultant? We build those too. Mention it when you get in touch
+            and we'll shape one around you.
+          </p>
 
           {/* Deciding between tiers is exactly where the return matters, so
               offer the ROI calculator here as well as on the final quote. */}
