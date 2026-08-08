@@ -66,6 +66,7 @@ import Proposals from './pages/Proposals';
 import QuickBooksOAuth from './pages/QuickBooksOAuth';
 import SchedulingHub from './pages/SchedulingHub';
 import ServiceCatalog from './pages/ServiceCatalog';
+import RateCard from './pages/RateCard';
 import UserAgreement from './pages/UserAgreement';
 import ViewProposal from './pages/ViewProposal';
 import WellnessBoxes from './pages/WellnessBoxes';
@@ -93,6 +94,7 @@ export const PAGES = {
     "QuickBooksOAuth": QuickBooksOAuth,
     "SchedulingHub": SchedulingHub,
     "ServiceCatalog": ServiceCatalog,
+    "RateCard": RateCard,
     "UserAgreement": UserAgreement,
     "ViewProposal": ViewProposal,
     "WellnessBoxes": WellnessBoxes,
