@@ -32,7 +32,13 @@
  */
 
 // ── Prices ────────────────────────────────────────────────────────────────
-export const RATE_CARD = {
+//
+// RATE_CARD_DEFAULTS is what ships in the code. RATE_CARD below starts as a
+// copy and is the object everything actually reads. The Rate Card admin page
+// saves overrides to the RateCardSetting record; applyRateCardOverrides()
+// merges them in at startup, so a saved price takes effect everywhere without
+// anything having to re-import.
+export const RATE_CARD_DEFAULTS = {
   // Workshops
   workshopFirstSession: 1500,   // includes recording + materials
   workshopExtraSession: 1200,   // = first session − the $300 materials component
@@ -67,15 +73,12 @@ export const RATE_CARD = {
   // Quoted separately, never auto-added
   // (Proforma: "NOT included in the package math — add manually when it applies")
   inPersonTravelAddOn: 500,
-} as const;
+};
 
-export const ROI_CALCULATOR_URL = 'https://skillfulmeans-roi-production.up.railway.app/';
-export const BROCHURE_URL = 'https://canva.link/74cztlpziuaeqfs';
+/** The live rate card. Mutated in place by applyRateCardOverrides(). */
+export const RATE_CARD: Record<string, number> = { ...RATE_CARD_DEFAULTS };
 
-// ── Challenge volume bands ────────────────────────────────────────────────
-export interface ChallengeTier { min: number; max: number; price: number }
-
-export const CHALLENGE_TIERS: ChallengeTier[] = [
+export const CHALLENGE_TIER_DEFAULTS = () => ([
   { min: 40,   max: 49,       price: 27 },
   { min: 50,   max: 59,       price: 25 },
   { min: 60,   max: 99,       price: 24 },
@@ -88,7 +91,33 @@ export const CHALLENGE_TIERS: ChallengeTier[] = [
   { min: 400,  max: 499,      price: 12 },
   { min: 500,  max: 999,      price: 10 },
   { min: 1000, max: Infinity, price: 9  },
-];
+]);
+
+export const WELLNESS_BOX_DEFAULTS = {
+  reduceStress: 65,
+  relaxationSleep: 65,
+  largeEmotional: 100,
+  largeStressReduction: 120,
+  stressReductionDigital: 50,
+  beyondBurnoutDigital: 100,
+  emotionalWellness: 100,
+  wintertimeHealthy: 100,
+  newYearFreshStart: 100,
+};
+
+export const CLASS_PRICE_DEFAULTS = {
+  mindfulMovement: 2000,
+  yogaStress: 2000,
+  mindfulnessClasses: 1800,
+};
+
+export const ROI_CALCULATOR_URL = 'https://skillfulmeans-roi-production.up.railway.app/';
+export const BROCHURE_URL = 'https://canva.link/74cztlpziuaeqfs';
+
+// ── Challenge volume bands ────────────────────────────────────────────────
+export interface ChallengeTier { min: number; max: number; price: number }
+
+export const CHALLENGE_TIERS: ChallengeTier[] = CHALLENGE_TIER_DEFAULTS();
 
 /**
  * The banded table above is NOT monotonic on its own: at the top of every
@@ -103,17 +132,7 @@ export const SMOOTH_CHALLENGE_BANDS = true;
 // ── Wellness box SKUs ─────────────────────────────────────────────────────
 // Per-box prices. RATE_CARD.wellnessBox is the BLENDED average used for tier
 // quoting; these are the individual SKUs used when a specific box is chosen.
-export const WELLNESS_BOX_PRICES: Record<string, number> = {
-  reduceStress: 65,
-  relaxationSleep: 65,
-  largeEmotional: 100,
-  largeStressReduction: 120,
-  stressReductionDigital: 50,
-  beyondBurnoutDigital: 100,
-  emotionalWellness: 100,
-  wintertimeHealthy: 100,
-  newYearFreshStart: 100,
-};
+export const WELLNESS_BOX_PRICES: Record<string, number> = { ...WELLNESS_BOX_DEFAULTS };
 
 /** Box key → wellness_box Service record name, for live price lookup. */
 export const BOX_KEY_TO_SERVICE_NAME: Record<string, string> = {
@@ -143,11 +162,7 @@ export const BOX_DISPLAY_NAMES: Record<string, string> = {
 
 // ── Movement & mindfulness classes ────────────────────────────────────────
 // Flat per-series prices; these do not scale with headcount.
-export const CLASS_PRICES: Record<string, number> = {
-  mindfulMovement: 2000,
-  yogaStress: 2000,
-  mindfulnessClasses: 1800,
-};
+export const CLASS_PRICES: Record<string, number> = { ...CLASS_PRICE_DEFAULTS };
 
 export const MIN_PHYSICAL_BOX_PRICE = 65;
 export const MIN_DIGITAL_BOX_PRICE = 50;
