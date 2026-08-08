@@ -1,8 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { loadRateCard } from '../../shared/loadRateCard.ts';
 
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    await loadRateCard(base44);   // saved rate card overrides, before anything is priced
     const body = await req.json();
     const { company_name, contact_name, email, team_size, goals, selected_service_ids, wants_wellness_boxes, ref, estimated_investment, matched_stage,
             headcount, company_size_band, selected_tier, is_new_client, is_returning_client, discount_applied } = body;

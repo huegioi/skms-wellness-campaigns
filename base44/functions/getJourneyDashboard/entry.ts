@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import { loadRateCard } from '../../shared/loadRateCard.ts';
 
 const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') || 'https://app.skillfulmeans.life').replace(/\/+$/, '');
 
@@ -107,6 +108,7 @@ async function sendSendGrid(to, subject, html) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    await loadRateCard(base44);   // saved rate card overrides, before anything is priced
     const body = await req.json().catch(() => ({}));
     const { magic_key } = body;
 

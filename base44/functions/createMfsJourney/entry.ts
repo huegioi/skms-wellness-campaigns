@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import { loadRateCard } from '../../shared/loadRateCard.ts';
 import { getOrgDomain, deriveCompanyFromEmail } from '../../shared/emailDomain.ts';
 
 const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') || 'https://app.skillfulmeans.life').replace(/\/+$/, '');
@@ -47,6 +48,7 @@ async function sendSendGrid(to, subject, html) {
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    await loadRateCard(base44);   // saved rate card overrides, before anything is priced
     const body = await req.json();
     const { contact_name, email, company_name, industry, headcount, avg_salary, turnover_rate, quick_answers, ref } = body;
 

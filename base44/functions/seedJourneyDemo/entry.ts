@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import { loadRateCard } from '../../shared/loadRateCard.ts';
 import { getOrgDomain } from '../../shared/emailDomain.ts';
 
 const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') || 'https://app.skillfulmeans.life').replace(/\/+$/, '');
@@ -65,6 +66,7 @@ const RESPONDENTS = [
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    await loadRateCard(base44);   // saved rate card overrides, before anything is priced
     const user = await base44.auth.me();
     if (!user || user.role !== 'admin') {
       return Response.json({ error: 'Unauthorized — admin only' }, { status: 403 });
