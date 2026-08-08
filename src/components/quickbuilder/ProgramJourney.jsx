@@ -1,80 +1,99 @@
 import React from 'react';
-import { ChevronRight, ChevronDown } from 'lucide-react';
 
+/**
+ * The four building blocks of a SkillfulMeans campaign.
+ *
+ * Rebuilt 2026-08-08 to William's process graphic: arch-topped photo, a
+ * coloured pill carrying the name, then the stage and a one-line description.
+ *
+ * Built as components rather than dropping in the 1080p export, so the type
+ * stays crisp at every size, reads on a phone, is selectable and screen-
+ * readable, and the page doesn't carry a ~130KB raster. The photos are the
+ * ones already hosted for this app; the pill colours are the brand accents.
+ *
+ * Order follows the graphic. Note it opens on Coaching rather than Workshops
+ * — worth a look if this is meant to read as a sequence.
+ */
 const PILLARS = [
   {
+    label: 'Coaching & Leadership EQ',
+    stage: ['DEEPEN', '& EMBODY'],
+    body: 'Deepen skills. Support leaders in modeling behaviors.',
+    pill: '#E8866A',   // coral
+    image: 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/90dfcddd2_generated_image.png',
+  },
+  {
     label: 'Workshops',
-    subLabel: 'INTRODUCE SKILLS',
+    stage: ['INTRODUCE', 'SKILLS'],
     body: 'Introduce core mental fitness skills. Build awareness and a shared language.',
-    badgeClass: 'bg-brand-journey-blue',
+    pill: '#A8BCEA',   // periwinkle
     image: 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/b34ca7b7f_generated_image.png',
   },
   {
     label: 'Challenges',
-    subLabel: 'PRACTICE & INTEGRATION',
+    stage: ['PRACTICE', '& INTEGRATION'],
     body: 'Turn skills into daily habits. Practice in real work-life contexts.',
-    badgeClass: 'bg-brand-journey-rose',
+    pill: '#EFCBD8',   // mauve
     image: 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/aeb3b45a5_generated_image.png',
   },
   {
-    label: 'Coaching & Leadership EQ',
-    subLabel: 'DEEPEN & EMBODY',
-    body: 'Deepen skills. Support leaders in modeling behaviors.',
-    badgeClass: 'bg-brand-journey-amber',
-    image: 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/90dfcddd2_generated_image.png',
-  },
-  {
     label: 'Incentives',
-    subLabel: 'MOTIVATE & REINFORCE',
+    stage: ['MOTIVATE', '& REINFORCE'],
     body: 'Reward participation and progress. Reinforce a culture of care.',
-    badgeClass: 'bg-brand-journey-sage',
+    pill: '#DCEE7C',   // yellow-green
     image: 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/f5dacc01f_generated_image.png',
   },
 ];
 
+const PLUM = '#441D37';
+
 export default function ProgramJourney() {
   return (
-    <div className="mt-6 rounded-2xl p-4 md:p-6 bg-brand-cream">
-      {/* Section header */}
-      <div className="flex items-baseline gap-2 mb-4">
+    <div className="mt-6">
+      <div className="flex items-baseline gap-2 mb-5">
         <h4 className="font-bold text-sm text-brand-bark">A structured journey</h4>
         <span className="text-xs text-brand-bark">from learning to long-term behavior change</span>
       </div>
 
-      {/* Four pillars */}
-      <div className="flex flex-col lg:flex-row lg:items-stretch gap-2">
-        {PILLARS.map((p, idx) => (
-          <React.Fragment key={p.label}>
-            <div className="flex-1 bg-white rounded-2xl overflow-hidden shadow-sm border border-brand-bark/10 flex flex-col">
-              {/* Arch-topped image */}
-              <div className="relative h-28 md:h-32 overflow-hidden rounded-t-[60px] md:rounded-t-[80px] rounded-b-none">
-                <img src={p.image} alt={p.label} className="w-full h-full object-cover" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
+        {PILLARS.map(p => (
+          <div key={p.label} className="flex flex-col">
+            {/* Arch-topped photo with the name pill sitting over its base */}
+            <div className="relative">
+              <div className="overflow-hidden rounded-t-full rounded-b-2xl aspect-square">
+                <img
+                  src={p.image}
+                  alt=""
+                  loading="lazy"
+                  className="w-full h-full object-cover"
+                />
               </div>
-              {/* Badge bar */}
-              <div className="px-4 pt-3">
-                <span className={`block h-2 w-12 rounded-full ${p.badgeClass}`} />
-              </div>
-              {/* Text */}
-              <div className="px-4 pb-4 pt-2 flex-1">
-                <h4 className="font-bold text-sm leading-tight text-brand-bark">{p.label}</h4>
-                <p className="text-[10px] font-bold uppercase tracking-wider mt-1 text-brand-bark">{p.subLabel}</p>
-                <p className="text-xs text-gray-600 leading-relaxed mt-1.5">{p.body}</p>
+              <div
+                className="absolute inset-x-1 -bottom-4 rounded-full px-3 py-3 shadow-sm"
+                style={{ backgroundColor: p.pill }}
+              >
+                <p
+                  className="text-center font-serif font-semibold leading-tight text-[13px] lg:text-sm"
+                  style={{ color: PLUM }}
+                >
+                  {p.label}
+                </p>
               </div>
             </div>
-            {/* Connector */}
-            {idx < PILLARS.length - 1 && (
-              <div className="flex items-center justify-center flex-shrink-0">
-                <div className="hidden lg:flex items-center">
-                  <div className="border-t-2 border-dashed w-4 border-brand-bark" />
-                  <ChevronRight className="w-4 h-4 text-brand-bark" />
-                </div>
-                <ChevronDown className="w-4 h-4 lg:hidden text-brand-bark" />
-              </div>
-            )}
-          </React.Fragment>
+
+            {/* Stage + description */}
+            <div className="pt-9 text-center">
+              <p className="font-bold text-sm tracking-wide leading-tight" style={{ color: PLUM }}>
+                {p.stage[0]}<br />{p.stage[1]}
+              </p>
+              <hr className="my-3 mx-auto w-4/5 border-0 border-t" style={{ borderColor: PLUM }} />
+              <p className="text-xs leading-relaxed px-1" style={{ color: PLUM }}>
+                {p.body}
+              </p>
+            </div>
+          </div>
         ))}
       </div>
-
     </div>
   );
 }
