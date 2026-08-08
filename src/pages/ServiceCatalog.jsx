@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import RateCardPanel from '@/components/services/RateCardPanel';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { 
@@ -200,6 +201,14 @@ export default function ServiceCatalog() {
                 </TabsTrigger>
               );
             })}
+            {/* Prices are not a service category — they drive every category. */}
+            <TabsTrigger
+              value="__rateCard"
+              className="flex items-center gap-2 data-[state=active]:bg-[#770142] data-[state=active]:text-white"
+            >
+              <DollarSign className="w-4 h-4" />
+              <span className="hidden sm:inline">Rate Card</span>
+            </TabsTrigger>
           </TabsList>
 
           {Object.keys(categoryConfig).map(cat => (
@@ -304,6 +313,10 @@ export default function ServiceCatalog() {
               )}
             </TabsContent>
           ))}
+
+          <TabsContent value="__rateCard">
+            <RateCardPanel />
+          </TabsContent>
         </Tabs>
 
         {/* Service Edit Dialog */}

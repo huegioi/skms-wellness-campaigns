@@ -10,7 +10,6 @@ const navItems = [
   { name: 'Partners', page: 'Leads', icon: Mail },
   { name: 'Clients', page: 'Clients', icon: Users, altPages: ['ManageClientPortals', 'Proposals', 'EditProposal', 'EmailTemplateManager'] },
   { name: 'Services', page: 'ServiceCatalog', icon: Package, altPages: ['RateCard'] },
-  { name: 'Rate Card', page: 'RateCard', icon: Landmark },
   { name: 'Schedule', page: 'SchedulingHub', icon: Calendar },
   { name: 'Financials', page: 'Financials', icon: Landmark },
   { name: 'Feedback', page: 'FeedbackAnalytics', icon: ClipboardList },
