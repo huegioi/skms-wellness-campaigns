@@ -556,3 +556,160 @@ export function verifyRateCard(): string[] {
 
   return failures;
 }
+
+// ── Runtime overrides (the Rate Card admin page) ──────────────────────────
+
+export interface RateCardOverrides {
+  rates?: Record<string, number>;
+  challengeTiers?: { min: number; max: number; price: number }[];
+  boxPrices?: Record<string, number>;
+  classPrices?: Record<string, number>;
+}
+
+/** Everything currently in effect — what the admin page loads for editing. */
+export function currentRateCard(): Required<RateCardOverrides> {
+  return {
+    rates: { ...RATE_CARD },
+    challengeTiers: CHALLENGE_TIERS.map(t => ({ ...t })),
+    boxPrices: { ...WELLNESS_BOX_PRICES },
+    classPrices: { ...CLASS_PRICES },
+  };
+}
+
+/** The shipped defaults — what "Reset to default" restores. */
+export function defaultRateCard(): Required<RateCardOverrides> {
+  return {
+    rates: { ...RATE_CARD_DEFAULTS },
+    challengeTiers: CHALLENGE_TIER_DEFAULTS(),
+    boxPrices: { ...WELLNESS_BOX_DEFAULTS },
+    classPrices: { ...CLASS_PRICE_DEFAULTS },
+  };
+}
+
+/**
+ * Merge saved overrides into the live rate card, in place, so every module
+ * that already imported RATE_CARD sees the new values.
+ *
+ * Unknown keys and non-finite numbers are ignored rather than trusted — a
+ * malformed record must not be able to zero out a price.
+ */
+export function applyRateCardOverrides(overrides: RateCardOverrides | null | undefined): string[] {
+  const applied: string[] = [];
+  if (!overrides) return applied;
+  const num = (v: unknown) => (typeof v === 'number' && isFinite(v) && v >= 0 ? v : null);
+
+  for (const [k, v] of Object.entries(overrides.rates || {})) {
+    if (!(k in RATE_CARD_DEFAULTS)) continue;
+    const n = num(v); if (n === null) continue;
+    RATE_CARD[k] = n; applied.push(`rates.${k}`);
+  }
+  for (const [k, v] of Object.entries(overrides.boxPrices || {})) {
+    if (!(k in WELLNESS_BOX_DEFAULTS)) continue;
+    const n = num(v); if (n === null) continue;
+    WELLNESS_BOX_PRICES[k] = n; applied.push(`box.${k}`);
+  }
+  for (const [k, v] of Object.entries(overrides.classPrices || {})) {
+    if (!(k in CLASS_PRICE_DEFAULTS)) continue;
+    const n = num(v); if (n === null) continue;
+    CLASS_PRICES[k] = n; applied.push(`class.${k}`);
+  }
+  const tiers = overrides.challengeTiers;
+  if (Array.isArray(tiers) && tiers.length > 0) {
+    const clean = tiers
+      .map(t => ({ min: Number(t.min), max: t.max === null ? Infinity : Number(t.max), price: Number(t.price) }))
+      .filter(t => isFinite(t.min) && t.min >= 0 && t.price >= 0)
+      .sort((a, b) => a.min - b.min);
+    if (clean.length > 0) {
+      CHALLENGE_TIERS.length = 0; CHALLENGE_TIERS.push(...clean); applied.push('challengeTiers');
+    }
+  }
+  return applied;
+}
+
+/** Restore the shipped defaults. */
+export function resetRateCard(): void {
+  Object.assign(RATE_CARD, RATE_CARD_DEFAULTS);
+  Object.assign(WELLNESS_BOX_PRICES, WELLNESS_BOX_DEFAULTS);
+  Object.assign(CLASS_PRICES, CLASS_PRICE_DEFAULTS);
+  CHALLENGE_TIERS.length = 0;
+  CHALLENGE_TIERS.push(...CHALLENGE_TIER_DEFAULTS());
+}
+
+/**
+ * Checks the RAW input from the admin page before it is merged.
+ * applyRateCardOverrides deliberately ignores anything malformed, but
+ * silently dropping a value the user typed would be worse than refusing it.
+ */
+export function validateRateCardInput(overrides: RateCardOverrides | null | undefined): string[] {
+  const problems: string[] = [];
+  if (!overrides) return problems;
+  const check = (scope: string, obj: Record<string, unknown> | undefined, known: object) => {
+    for (const [k, v] of Object.entries(obj || {})) {
+      if (!(k in known)) { problems.push(`${scope}: "${k}" is not a known price`); continue; }
+      if (typeof v !== 'number' || !isFinite(v)) { problems.push(`${scope}: "${k}" must be a number`); continue; }
+      if (v < 0) problems.push(`${scope}: "${k}" cannot be negative`);
+    }
+  };
+  check('Prices', overrides.rates, RATE_CARD_DEFAULTS);
+  check('Wellness boxes', overrides.boxPrices, WELLNESS_BOX_DEFAULTS);
+  check('Classes', overrides.classPrices, CLASS_PRICE_DEFAULTS);
+  for (const [i, t] of (overrides.challengeTiers || []).entries()) {
+    if (!isFinite(Number(t?.min)) || Number(t?.min) < 0) problems.push(`Challenge band ${i + 1}: "from" must be 0 or more`);
+    if (!(Number(t?.price) > 0)) problems.push(`Challenge band ${i + 1}: price must be above 0`);
+  }
+  return problems;
+}
+
+/**
+ * Rules that must hold for ANY valid rate card, whatever the prices are.
+ * Distinct from verifyRateCard(), which checks agreement with the CURRENT
+ * Proforma and is expected to fail the moment you deliberately change a price.
+ * The admin page refuses to save when this returns anything.
+ */
+export function verifyRateCardIntegrity(candidate?: RateCardOverrides): string[] {
+  const problems: string[] = [];
+  const snapshot = currentRateCard();
+  if (candidate) applyRateCardOverrides(candidate);
+  try {
+    for (const [k, v] of Object.entries(RATE_CARD)) {
+      if (!isFinite(v) || v < 0) problems.push(`${k} must be a number of 0 or more`);
+    }
+    if (RATE_CARD.attendanceRate <= 0 || RATE_CARD.attendanceRate > 1) problems.push('attendanceRate must be between 0 and 1 (0.25 = 25%)');
+    if (RATE_CARD.challengeEngagementRate <= 0 || RATE_CARD.challengeEngagementRate > 1) problems.push('challengeEngagementRate must be between 0 and 1');
+    if (RATE_CARD.leqLeaderRate <= 0 || RATE_CARD.leqLeaderRate > 1) problems.push('leqLeaderRate must be between 0 and 1 (0.005 = 0.5%)');
+    if (RATE_CARD.maxAttendeesPerSession < 1) problems.push('maxAttendeesPerSession must be at least 1');
+    if (RATE_CARD.leqMaxLeadersPerGroup < 1) problems.push('leqMaxLeadersPerGroup must be at least 1');
+    if (RATE_CARD.workshopExtraSession > RATE_CARD.workshopFirstSession) problems.push('a repeat session costs more than the first session — check the workshop prices');
+
+    for (let i = 1; i < CHALLENGE_TIERS.length; i++) {
+      if (CHALLENGE_TIERS[i].min <= CHALLENGE_TIERS[i - 1].min) { problems.push(`challenge bands are out of order at band ${i + 1}`); break; }
+    }
+    for (const t of CHALLENGE_TIERS) {
+      if (!(t.price > 0)) { problems.push('every challenge band needs a price above 0'); break; }
+    }
+    // Volume discount table: per-person price must fall as the group grows.
+    for (let i = 1; i < CHALLENGE_TIERS.length; i++) {
+      if (CHALLENGE_TIERS[i].price > CHALLENGE_TIERS[i - 1].price) {
+        problems.push(`challenge band ${i + 1} (${CHALLENGE_TIERS[i].min}+ slots) costs more per person than the smaller band above it — volume pricing should go down, not up`);
+        break;
+      }
+    }
+    for (const stage of CAMPAIGN_STAGES) {
+      let prev = -1;
+      for (let hc = 1; hc <= 6000; hc += 1) {
+        const total = computeQuote({ headcount: hc, stage: stage.stage }).total;
+        if (total < prev) { problems.push(`${stage.name}: a company of ${hc} would be quoted less than a smaller one`); break; }
+        prev = total;
+      }
+    }
+    for (const hc of [150, 500, 2000, 5000]) {
+      const totals = CAMPAIGN_STAGES.map(s => computeQuote({ headcount: hc, stage: s.stage }).total);
+      for (let i = 1; i < totals.length; i++) {
+        if (totals[i] <= totals[i - 1]) { problems.push(`at ${hc} employees, ${CAMPAIGN_STAGES[i].name} costs no more than ${CAMPAIGN_STAGES[i - 1].name}`); break; }
+      }
+    }
+  } finally {
+    if (candidate) { resetRateCard(); applyRateCardOverrides(snapshot); }
+  }
+  return [...new Set(problems)];
+}
