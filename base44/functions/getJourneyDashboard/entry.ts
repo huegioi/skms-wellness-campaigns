@@ -178,6 +178,27 @@ Deno.serve(async (req) => {
     const roiInputs = j.roi_snapshot?.inputs || {};
     const teamRoi = runRoi({ ...roiInputs, stressRate: stressRateReal });
 
+    // The "initial estimate" chart is RECOMPUTED from the stored inputs, not
+    // read from the stored outputs.
+    //
+    // Fixed 2026-08-10. The dashboard shows two charts side by side and says
+    // the difference between them is estimate vs measured. That was only true
+    // while one model existed. Snapshots written before the rebuild carry the
+    // OLD model's outputs -- 0.75x salary replacement cost, a workers' comp
+    // driver, no reach decay -- so the left chart was running old maths and the
+    // right chart new maths, and the gap between them was mostly the rebuild
+    // rather than anything about the client's team. It made measured data look
+    // far worse than the leader's guess for reasons that had nothing to do with
+    // the team.
+    //
+    // Recomputing from the same inputs means the ONLY difference between the
+    // two charts is the stress rate, which is what the comparison claims. The
+    // original snapshot is still stored on the journey if we ever need to audit
+    // what a client was first shown.
+    const preliminaryRoi = roiInputs.employees
+      ? runRoi(roiInputs)
+      : (j.roi_snapshot?.outputs || null);
+
     // Domain opportunity
     const domainOpportunity = computeDomainOpportunity(teamScores, teamRoi.drivers);
 
@@ -230,7 +251,10 @@ Deno.serve(async (req) => {
       ...baseResponse,
       team_scores: teamScores,
       stress_rate_real: stressRateReal,
-      preliminary_roi: j.roi_snapshot?.outputs || null,
+      preliminary_roi: preliminaryRoi,
+      /** What the client was originally shown, kept for audit only. Do not
+       *  chart this -- it may have been produced by a superseded model. */
+      preliminary_roi_as_first_shown: j.roi_snapshot?.outputs || null,
       team_roi: teamRoi,
       domain_opportunity: domainOpportunity,
       services: serviceList,
