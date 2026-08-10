@@ -269,6 +269,24 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
           </a>
         </div>
       </div>
+
+      {/* ── Scenario range (internal: includes Conservative) ── */}
+      {reactiveRoi?.scenarios && (
+        <div className="mt-6 pt-5 border-t border-stone-100">
+          <ScenarioRangeChart scenarios={reactiveRoi.scenarios} headcount={roiInputs?.employees} />
+        </div>
+      )}
+
+      {/* ── Published benchmarks and the ceiling ── */}
+      {reactiveRoi?.scenarios && (
+        <div className="mt-6 pt-5 border-t border-stone-100">
+          <BenchmarkChart scenarios={reactiveRoi.scenarios} />
+          <p className="text-[10px] text-stone-400 mt-3">
+            Hover a benchmark for its caveat. Full coefficients and sources live in
+            <span className="font-mono text-[10px]"> base44/shared/journeyModel.ts → RESEARCH_MODEL</span>.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
