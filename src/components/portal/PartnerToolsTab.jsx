@@ -1,22 +1,11 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, TrendingUp, Calculator, Copy, Share2, ExternalLink, CheckCircle, Sparkles } from 'lucide-react';
+import { TrendingUp, Calculator, Copy, Share2, ExternalLink, CheckCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { copyToClipboard } from '@/lib/copyToClipboard';
 
 const TOOLS = [
-  {
-    key: 'mfs',
-    icon: Brain,
-    color: '#770142',
-    bg: 'rgba(119,1,66,0.06)',
-    title: 'The Mental Fitness Score',
-    url: (ref) => `https://app.skillfulmeans.life/MentalFitnessScore?ref=${ref}`,
-    credited: true,
-    description: 'A free, anonymous team assessment — one link, three minutes per employee, and your client gets a live dashboard scoring their team\u2019s wellbeing, stress, engagement, and connection against research norms.',
-    howToUse: 'The door-opener. Send it to a client who\u2019s lukewarm on wellness spend \u2014 \u201Crun this free with your team, then let\u2019s look at the results together.\u201D The Score gives you a concrete number to build the renewal or benefits conversation around, and you\u2019ll see their results in your book of business here.',
-  },
   {
     key: 'journey',
     icon: TrendingUp,
@@ -147,7 +136,7 @@ export default function PartnerToolsTab({ refCode }) {
     <div className="space-y-5">
       <div className="text-center">
         <h2 className="text-xl font-bold text-brand-navy">Partner Tools</h2>
-        <p className="text-sm text-stone-500 mt-1">Four tools to open doors, close deals, and make the CFO math easy. Share them with your clients — the first three credit you automatically.</p>
+        <p className="text-sm text-stone-500 mt-1">Three tools to open doors, close deals, and make the CFO math easy. Share them with your clients — the first two credit you automatically.</p>
       </div>
 
       {TOOLS.map(tool => (
