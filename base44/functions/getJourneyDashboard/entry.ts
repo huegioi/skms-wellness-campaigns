@@ -13,7 +13,10 @@ const DOMAIN_WEIGHTS = {
   absenteeism:  { stress: 0.25, wellbeing: 0.20, engagement: 0.20, connection: 0.35 },
   presenteeism: { stress: 0.35, wellbeing: 0.25, engagement: 0.30, connection: 0.10 },
   turnover:     { stress: 0.15, wellbeing: 0.15, engagement: 0.45, connection: 0.25 },
-  workersComp:  { stress: 0.30, wellbeing: 0.25, engagement: 0.35, connection: 0.10 },
+  // workersComp removed 2026-08-08. The model no longer pays out on it -- there
+  // is no defensible published coefficient -- so runRoi() returns 0 for it and
+  // this row contributed nothing. Numerically a no-op; removed so nobody reads
+  // the matrix and assumes we still claim it.
 };
 const DOMAIN_TO_INSTRUMENT = { stress: 'pss4', wellbeing: 'who5', engagement: 'uwes3', connection: 'ucla3' };
 const DOMAIN_LABELS = { stress: 'Stress', wellbeing: 'Wellbeing', engagement: 'Engagement', connection: 'Connection' };
