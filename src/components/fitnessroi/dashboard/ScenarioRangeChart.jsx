@@ -1,26 +1,29 @@
 import React from 'react';
 
 /**
- * Internal scenario range — all four cases, ascending by effect size.
+ * Internal scenario range — all four cases, ascending.
  *
- * Conservative is shown here and nowhere else. Expected is drawn outlined
- * because it is the only case that varies DELIVERY rather than effect size:
- * same Base Case coefficients, every design condition met, reach held through
- * year three, and capacity bought to match — which is why its investment is
- * higher than the others. From a low starting participation it can outrank
- * Optimistic, and that is the point.
+ * Each step changes exactly one more thing than the step below it, so the
+ * ladder is strictly increasing and the labels mean what they say:
+ *
+ *   Conservative  floor effects,  client's participation   (internal only)
+ *   Base Case     mid effects,    client's participation
+ *   Expected      mid effects,    every condition met + capacity bought
+ *   Optimistic    upper effects,  every condition met + capacity bought
+ *
+ * Conservative is shown here and nowhere else.
  */
 const fmtUSD = (v) => '$' + Math.round(v).toLocaleString();
 
 const FILL = {
   conservative: '#a8a29e',
   base: '#0f766e',
-  expected: 'rgba(74,32,64,0.10)',
-  optimistic: '#14b8a6',
+  expected: '#14b8a6',
+  optimistic: '#4a2040',
 };
 
 export default function ScenarioRangeChart({ scenarios, headcount = 0 }) {
-  const rows = scenarios?.all || [];
+  const rows = (scenarios?.all || []).slice().sort((a, b) => a.annualSavings - b.annualSavings);
   if (!rows.length) return null;
 
   const max = Math.max(...rows.map(r => r.annualSavings)) || 1;
@@ -29,18 +32,19 @@ export default function ScenarioRangeChart({ scenarios, headcount = 0 }) {
     <div>
       <div className="flex items-baseline justify-between mb-1">
         <h3 className="text-sm font-semibold text-[#4a2040]">Scenario range</h3>
-        <span className="text-[10px] text-stone-400">ascending by effect size</span>
+        <span className="text-[10px] text-stone-400">ascending</span>
       </div>
       <p className="text-xs text-stone-500 leading-relaxed mb-4">
-        Expected holds Base Case effect sizes and varies delivery only — the four no-cost conditions met,
-        reach sustained, capacity purchased to match — which is why it is outlined and why its investment
-        is higher. Conservative is internal only; clients see Base Case, Expected and Optimistic.
+        Each step changes one more thing than the step below it. <b>Expected</b> holds Base Case effect
+        sizes and varies delivery — the four no-cost conditions met, reach sustained, capacity purchased
+        to match, which is why its investment is higher. <b>Optimistic</b> is that same delivery with
+        upper-range effect sizes, so it is the top of the range by construction. Conservative is internal
+        only; clients see Base Case, Expected and Optimistic.
       </p>
 
       <div className="space-y-3">
         {rows.map((r) => {
           const pct = Math.max(2, (r.annualSavings / max) * 100);
-          const outlined = r.scenario === 'expected';
           const reached = headcount ? Math.round(headcount * r.reach) : null;
           return (
             <div key={r.scenario}>
@@ -50,6 +54,11 @@ export default function ScenarioRangeChart({ scenarios, headcount = 0 }) {
                   {!r.clientFacing && (
                     <span className="ml-1.5 text-[10px] font-normal uppercase tracking-wider text-stone-400">
                       internal
+                    </span>
+                  )}
+                  {r.capacityBought && (
+                    <span className="ml-1.5 text-[10px] font-normal text-[#0f766e] bg-teal-50 px-1.5 py-0.5 rounded-full">
+                      capacity bought
                     </span>
                   )}
                 </span>
@@ -64,11 +73,7 @@ export default function ScenarioRangeChart({ scenarios, headcount = 0 }) {
                 <div className="flex-1 h-3 rounded-full bg-stone-100 overflow-hidden">
                   <div
                     className="h-full rounded-full"
-                    style={{
-                      width: `${pct}%`,
-                      background: FILL[r.scenario],
-                      border: outlined ? '1.5px dashed #4a2040' : 'none',
-                    }}
+                    style={{ width: `${pct}%`, background: FILL[r.scenario] }}
                   />
                 </div>
                 <span className="text-xs font-bold text-[#4a2040] tabular-nums w-24 text-right shrink-0">
