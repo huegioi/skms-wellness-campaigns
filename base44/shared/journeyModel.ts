@@ -574,14 +574,43 @@ export function runScenario(inputs: ScenarioInputs, scenario: ScenarioKey) {
     medical:      distressed * reach * cb.routeRate * cb.benefitPerRoutedPerson,
   };
 
-  const drivers = {
+  const rawDrivers = {
     presenteeism: bases.presenteeism * eff.presenteeism[eKey] * k,
     absenteeism:  bases.absenteeism  * eff.absenteeism[eKey]  * k,
     turnover:     bases.turnover     * eff.turnover[eKey]     * k,
     medical:      bases.medical      * eff.medical[eKey]      * k,
   };
+  const rawAnnual = Object.values(rawDrivers).reduce((a, b) => a + b, 0);
 
-  const annualSavings = Object.values(drivers).reduce((a, b) => a + b, 0);
+  // ── The Optimistic bound ────────────────────────────────────────────────
+  // Optimistic stacks full delivery on upper-range effect sizes, and that
+  // combination runs past RESEARCH_MODEL.ceiling in roughly a third of real
+  // input sets. It is the only scenario that is BOUNDED, and the reason is
+  // specific: the upper-range coefficients were read off studies at ordinary
+  // participation, so applying them at 38% reach uses them outside the range
+  // anyone has measured. Rather than print a figure no published source
+  // supports, the top of the range stops at the highest one that does.
+  //
+  // This is NOT the old soft cap coming back. That cap bent EVERY figure,
+  // silently, through a knee function, so a wrong coefficient produced a
+  // plausible-looking number and nobody found out. This bounds ONE scenario,
+  // at a published value, sets `bounded` so every surface can say so, and
+  // leaves Conservative, Base Case and Expected completely untouched -- they
+  // still flag exceedsCeiling loudly, because if THEY breach it the
+  // coefficients are wrong and we want to know.
+  const ceiling = RESEARCH_MODEL.ceiling;
+  const rawPerDollar = investment > 0 ? rawAnnual / investment : 0;
+  const bounded = scenario === 'optimistic' && rawPerDollar > ceiling;
+  const scale = bounded ? (ceiling * investment) / rawAnnual : 1;
+
+  const drivers = {
+    presenteeism: rawDrivers.presenteeism * scale,
+    absenteeism:  rawDrivers.absenteeism  * scale,
+    turnover:     rawDrivers.turnover     * scale,
+    medical:      rawDrivers.medical      * scale,
+  };
+
+  const annualSavings = rawAnnual * scale;
 
   // Full-delivery scenarios assume the re-engagement mechanism Robroek 2012
   // shows is needed to hold reach, so they do not pay the decay penalty.
@@ -618,8 +647,16 @@ export function runScenario(inputs: ScenarioInputs, scenario: ScenarioKey) {
     overCapacity: !fullDelivery && reach > capacity + 1e-9,
     capacityBought: fullDelivery,
     /** Above this there is no published support for a whole-population
-     *  workplace programme. See RESEARCH_MODEL.ceiling. */
-    exceedsCeiling: perDollar > RESEARCH_MODEL.ceiling,
+     *  workplace programme. See RESEARCH_MODEL.ceiling. Never true for
+     *  Optimistic, which is bounded instead -- see `bounded`. */
+    exceedsCeiling: perDollar > RESEARCH_MODEL.ceiling + 1e-9,
+    /** True when this figure was held down TO the ceiling. Surfaces must say
+     *  so rather than presenting it as an unconstrained estimate. */
+    bounded,
+    /** What the coefficients produced before bounding. Internal use: a large
+     *  gap here means the upper-range effect sizes need revisiting. */
+    unboundedAnnualSavings: rawAnnual,
+    unboundedPerDollar: rawPerDollar,
   };
 }
 
