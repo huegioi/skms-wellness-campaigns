@@ -15,7 +15,11 @@
 import {
   RATE_CARD,
   CAMPAIGN_STAGES,
+  CHALLENGE_TIERS,
   workshopTopicPrice,
+  sessionsPerWorkshop,
+  challengeSlots,
+  challengeRatePerPerson,
   boxCountFor,
   challengePrice,
   leadershipEqPrice,
