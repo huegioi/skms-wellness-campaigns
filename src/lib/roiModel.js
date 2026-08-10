@@ -27,6 +27,7 @@ export {
   participationAtFullDelivery,
   pricedCapacity,
   investmentAt,
+  deliveryAt,
 } from '../../base44/shared/journeyModel.ts';
 
 export { SCORE_ZONES, getZone } from '@/lib/mfsScore';
