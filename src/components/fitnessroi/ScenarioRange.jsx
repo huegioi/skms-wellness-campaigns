@@ -92,14 +92,18 @@ export default function ScenarioRange({ scenarios, showInvestment = false }) {
         </p>
       )}
 
-      {byKey.base && byKey.expected && byKey.optimistic && (
+      {byKey.base && byKey.expected && (
         <p className="text-xs text-stone-500 leading-relaxed mt-4">
           <b className="text-stone-700">{fmtUSD(byKey.base.annualSavings)}</b> is the number we&rsquo;d
           hold ourselves to.{' '}
           <b className="text-stone-700">{fmtUSD(byKey.expected.annualSavings)}</b> is what we&rsquo;d
-          expect with all four commitments in place.{' '}
-          <b className="text-stone-700">{fmtUSD(byKey.optimistic.annualSavings)}</b> is the work landing
-          about as well as it does anywhere.
+          expect with all four commitments in place.
+          {byKey.optimistic && (
+            <>
+              {' '}<b className="text-stone-700">{fmtUSD(byKey.optimistic.annualSavings)}</b> is the work
+              landing about as well as it does anywhere.
+            </>
+          )}
         </p>
       )}
 
