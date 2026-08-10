@@ -108,8 +108,8 @@ export default function ScenarioRange({ scenarios, showInvestment = false }) {
       )}
 
       <p className="text-xs text-stone-500 leading-relaxed mt-3">
-        All three move with the choices above — those decide how many of your people the programme
-        actually reaches, and reach decides everything after it.
+        {rows.length > 2 ? 'All three' : 'Both'} move with the choices above — those decide how many of
+        your people the programme actually reaches, and reach decides everything after it.
       </p>
     </div>
   );
