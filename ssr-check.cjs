@@ -95462,7 +95462,7 @@ var require_react_router_development = __commonJS({
         } = _ref2;
         return useRoutesImpl(routes, void 0, state, future);
       }
-      function MemoryRouter(_ref3) {
+      function MemoryRouter2(_ref3) {
         let {
           basename,
           children,
@@ -95894,7 +95894,7 @@ var require_react_router_development = __commonJS({
         }
       });
       exports3.Await = Await;
-      exports3.MemoryRouter = MemoryRouter;
+      exports3.MemoryRouter = MemoryRouter2;
       exports3.Navigate = Navigate;
       exports3.Outlet = Outlet;
       exports3.Route = Route;
@@ -99976,6 +99976,7 @@ function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stressRateReal, lea
 }
 
 // ssr-check.jsx
+var import_react_router_dom2 = __toESM(require_main2(), 1);
 var import_jsx_runtime16 = __toESM(require_jsx_runtime(), 1);
 var inputs = {
   employees: 1e3,
@@ -100002,7 +100003,7 @@ function tryRender(name, el) {
   }
 }
 console.log("SSR smoke test");
-var a = tryRender("ResultsView", /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(ResultsView, { data }));
+var a = tryRender("ResultsView", /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(import_react_router_dom2.MemoryRouter, { children: /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(ResultsView, { data }) }));
 var b = tryRender("RoiComparison", /* @__PURE__ */ (0, import_jsx_runtime16.jsx)(
   RoiComparison,
   {

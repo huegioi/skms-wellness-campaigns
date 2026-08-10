@@ -3,6 +3,7 @@ import { renderToString } from 'react-dom/server';
 import ResultsView from '@/components/fitnessroi/ResultsView';
 import RoiComparison from '@/components/fitnessroi/dashboard/RoiComparison';
 import { runRoi, participationFrom } from '@/lib/roiModel';
+import { MemoryRouter } from 'react-router-dom';
 
 const inputs = {
   employees: 1000, avgSalary: 75000, stressRate: 0.35, turnoverRate: 0.15,
@@ -23,7 +24,7 @@ function tryRender(name, el) {
 }
 
 console.log('SSR smoke test');
-const a = tryRender('ResultsView', <ResultsView data={data} />);
+const a = tryRender('ResultsView', <MemoryRouter><ResultsView data={data} /></MemoryRouter>);
 const b = tryRender('RoiComparison', <RoiComparison
   preliminaryRoi={runRoi(inputs)} teamRoi={runRoi({ ...inputs, stressRate: 0.41 })}
   roiInputs={inputs} stressRateReal={0.41}
