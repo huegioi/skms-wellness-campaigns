@@ -469,6 +469,109 @@ function dosePoints(stage: JourneyStage): number {
        + (stage.indivCoaching ? d.individualCoaching : 0);
 }
 
+export function runScenario(inputs: ScenarioInputs, scenario: ScenarioKey) {
+  const stage = STAGES[Math.max(0, Math.min(5, (inputs.stageNum || 2) - 1))];
+  const N = inputs.employees;
+  const isExpected = scenario === 'expected';
+
+  const reach = isExpected
+    ? participationAtFullDelivery(inputs.participBase)
+    : inputs.participRate;
+
+  // Expected buys the capacity it needs. The others are priced from the rate
+  // card as-is and flagged separately when they exceed it.
+  const investment = isExpected
+    ? investmentAt(stage, N, reach)
+    : calcInvestment(stage, N).total;
+
+  // Depth saturates, so a bigger programme shows diminishing rather than
+  // linear returns. The working-conditions uplift is JD-R: training leaders
+  // lifts job resources for everyone they manage, not only the leader.
+  const D = 1 - Math.exp(-dosePoints(stage) / RESEARCH_MODEL.dose.saturation);
+  const WC = 1 + (stage.leq ? RESEARCH_MODEL.dose.wcLeadershipEq : 0)
+               + (stage.groupCoaching ? RESEARCH_MODEL.dose.wcGroupCoaching : 0);
+  const k = D * WC;
+
+  // Expected uses Base Case effect sizes. It varies delivery, not science.
+  const eKey: 'conservative' | 'base' | 'optimistic' =
+    scenario === 'expected' ? 'base' : scenario;
+  const eff = RESEARCH_MODEL.effects;
+  const cb = RESEARCH_MODEL.costBases;
+  const daily = inputs.avgSalary / cb.workDaysPerYear;
+  const distressed = N * inputs.stressRate;
+
+  const bases = {
+    presenteeism: distressed * reach * inputs.avgSalary * cb.presenteeismLossFraction,
+    absenteeism:  N * reach * inputs.absDays * daily,
+    turnover:     N * reach * inputs.turnoverRate * inputs.avgSalary * cb.replacementCostMultiple,
+    medical:      distressed * reach * cb.routeRate * cb.benefitPerRoutedPerson,
+  };
+
+  const drivers = {
+    presenteeism: bases.presenteeism * eff.presenteeism[eKey] * k,
+    absenteeism:  bases.absenteeism  * eff.absenteeism[eKey]  * k,
+    turnover:     bases.turnover     * eff.turnover[eKey]     * k,
+    medical:      bases.medical      * eff.medical[eKey]      * k,
+  };
+
+  const annualSavings = Object.values(drivers).reduce((a, b) => a + b, 0);
+
+  // Expected assumes the re-engagement mechanism Robroek 2012 shows is needed
+  // to hold reach, so it does not pay the decay penalty the others do.
+  const ramp = RESEARCH_MODEL.ramp;
+  const ret = RESEARCH_MODEL.reachRetention;
+  const y1 = annualSavings * ramp.y1;
+  const y2 = annualSavings * ramp.y2 * (isExpected ? 1 : ret.y2);
+  const y3 = annualSavings * ramp.y3 * (isExpected ? 1 : ret.y3);
+  const three = y1 + y2 + y3;
+
+  const capacity = pricedCapacity(stage, N);
+  const perDollar = investment > 0 ? annualSavings / investment : 0;
+
+  return {
+    scenario,
+    label: SCENARIO_META[scenario].label,
+    clientFacing: SCENARIO_META[scenario].clientFacing,
+    varies: SCENARIO_META[scenario].varies,
+    note: SCENARIO_META[scenario].note,
+    reach,
+    investment,
+    annualSavings,
+    drivers,
+    depthFactor: D,
+    workingConditionsUplift: WC,
+    yearProjection: { y1, y2, y3, total3yr: three },
+    perDollar,
+    year1PerDollar: investment > 0 ? y1 / investment : 0,
+    threeYearPerDollar: investment > 0 ? three / (investment * 3) : 0,
+    paybackMonths: y1 > 0 ? Math.max(1, Math.round(investment / (y1 / 12))) : Infinity,
+    pricedCapacity: capacity,
+    /** True when this scenario credits savings for people nobody bought
+     *  capacity for. Expected buys its own, so it is never over. */
+    overCapacity: !isExpected && reach > capacity + 1e-9,
+    capacityBought: isExpected,
+    /** Above this there is no published support for a whole-population
+     *  workplace programme. See RESEARCH_MODEL.ceiling. */
+    exceedsCeiling: perDollar > RESEARCH_MODEL.ceiling,
+  };
+}
+
+/** All four scenarios for one company, ascending by effect. */
+export function runScenarios(inputs: ScenarioInputs) {
+  const keys: ScenarioKey[] = ['conservative', 'base', 'expected', 'optimistic'];
+  const all = keys.map(k => runScenario(inputs, k));
+  const byKey = {} as Record<ScenarioKey, ReturnType<typeof runScenario>>;
+  for (const s of all) byKey[s.scenario] = s;
+  return {
+    all,
+    byKey,
+    /** Base Case, Expected, Optimistic. Conservative stays internal. */
+    clientFacing: all.filter(s => s.clientFacing),
+    benchmarks: RESEARCH_MODEL.benchmarks,
+    ceiling: RESEARCH_MODEL.ceiling,
+  };
+}
+
 // ── Quick perception scoring ──────────────────────────────────────────────
 const QUICK_MAP = [10, 25, 50, 75, 90];
 
