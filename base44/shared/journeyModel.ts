@@ -582,25 +582,35 @@ export function runScenario(inputs: ScenarioInputs, scenario: ScenarioKey) {
   };
   const rawAnnual = Object.values(rawDrivers).reduce((a, b) => a + b, 0);
 
-  // ── The Optimistic bound ────────────────────────────────────────────────
-  // Optimistic stacks full delivery on upper-range effect sizes, and that
-  // combination runs past RESEARCH_MODEL.ceiling in roughly a third of real
-  // input sets. It is the only scenario that is BOUNDED, and the reason is
-  // specific: the upper-range coefficients were read off studies at ordinary
-  // participation, so applying them at 38% reach uses them outside the range
-  // anyone has measured. Rather than print a figure no published source
-  // supports, the top of the range stops at the highest one that does.
+  // ── The published-evidence bound ────────────────────────────────────
+  // No client-facing figure goes out above RESEARCH_MODEL.ceiling -- the
+  // highest ROI any credible published source reports for a whole-population
+  // workplace programme. Where the coefficients produce more, the figure stops
+  // at the ceiling and `bounded` is set so the surface says so.
   //
-  // This is NOT the old soft cap coming back. That cap bent EVERY figure,
-  // silently, through a knee function, so a wrong coefficient produced a
-  // plausible-looking number and nobody found out. This bounds ONE scenario,
-  // at a published value, sets `bounded` so every surface can say so, and
-  // leaves Conservative, Base Case and Expected completely untouched -- they
-  // still flag exceedsCeiling loudly, because if THEY breach it the
-  // coefficients are wrong and we want to know.
+  // It binds most often on Optimistic, which stacks full delivery on
+  // upper-range effect sizes -- coefficients that were read off studies at
+  // ordinary participation, so using them at 38% reach applies them outside
+  // the range anyone has measured. But it MUST apply to Expected and Base Case
+  // too, and not only for consistency: bounding just the top of the ladder
+  // pushed Optimistic BELOW Expected in every input set where Expected was
+  // itself over the ceiling (24% of a 3,150-case sweep -- small headcount,
+  // high distress, high salary, cheap stage). A range whose top step is lower
+  // than the step beneath it is worse than no range at all.
+  //
+  // Two scenarios can therefore tie at the ceiling. That tie is information,
+  // not a glitch: at those inputs the published evidence cannot separate
+  // running the programme well from running it well AND everything landing at
+  // the top of its range. Surfaces should say that rather than hide it.
+  //
+  // This is NOT the old soft cap. That bent EVERY figure, silently, through a
+  // knee function, so a wrong coefficient produced a plausible-looking number
+  // and nobody found out. This clamps at a published value, only for figures a
+  // client will see, flags itself, and leaves Conservative -- the internal
+  // floor -- completely alone.
   const ceiling = RESEARCH_MODEL.ceiling;
   const rawPerDollar = investment > 0 ? rawAnnual / investment : 0;
-  const bounded = scenario === 'optimistic' && rawPerDollar > ceiling;
+  const bounded = SCENARIO_META[scenario].clientFacing && rawPerDollar > ceiling;
   const scale = bounded ? (ceiling * investment) / rawAnnual : 1;
 
   const drivers = {
