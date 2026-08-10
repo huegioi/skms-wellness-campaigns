@@ -38,7 +38,7 @@ const CONDITIONS = [
 ];
 
 export default function ParticipationBuilder({
-  conditions = {}, onChange, headcount = 0, boxCount, compact = false,
+  conditions = {}, onChange, headcount = 0, delivery, compact = false,
 }) {
   const rate = participationFrom(conditions);
   const ceilingRate = participationAtFullDelivery();
@@ -90,17 +90,24 @@ export default function ParticipationBuilder({
         })}
       </div>
 
-      {/* Standard delivery — not a client option, so not a toggle. */}
+      {/* Standard delivery — not a client option, so not a toggle. The box
+       *  count MOVES with the toggles above: more people means more sections,
+       *  and boxes are handed out per section. See deliveryAt(). */}
       <div className="mt-3 rounded-xl bg-amber-50/70 border border-amber-100 p-3 flex gap-3">
         <Gift className="w-4 h-4 text-[#b8860b] shrink-0 mt-0.5" />
         <div>
           <p className="text-sm font-semibold text-[#4a2040]">
-            Included either way{boxCount ? ` — ${boxCount} wellness boxes` : ' — wellness boxes'}, raffled
-            among the people who take part
+            Included either way{delivery?.boxes ? ` — ${delivery.boxes} wellness boxes` : ' — wellness boxes'},
+            raffled among the people who take part
           </p>
           <p className="text-xs text-stone-500 leading-relaxed mt-0.5">
-            Three per workshop session and three per challenge. A draw motivates better than giving
-            everyone the same thing, so it&rsquo;s how we run every campaign. Already in your price.
+            Three per workshop section and three per challenge. A draw motivates better than giving
+            everyone the same thing, so it&rsquo;s how we run every campaign.
+            {delivery?.sessionsPerTopic > 1 && (
+              <> At this level of take-up each workshop runs{' '}
+                <b className="text-stone-700">{delivery.sessionsPerTopic} times</b>, so people have a
+                choice of when to attend — which is also why the box count goes up.</>
+            )}
           </p>
         </div>
       </div>
