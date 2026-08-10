@@ -59,10 +59,10 @@ export default function RoiProjection({ roiResult, stageNum, onStageChange, head
       </div>
       <p className="text-xs text-stone-500 mb-5 leading-relaxed">
         Against an investment of <b className="text-stone-700">{fmt(roiResult.investment)}</b>
-        {reached != null && (
-          <> , reaching about <b className="text-stone-700">{reached.toLocaleString()}</b> of your people</>
-        )}
-        . This is the number we&rsquo;d plan against, not the best case.
+        {reached != null
+          ? <>, reaching about <b className="text-stone-700">{reached.toLocaleString()}</b> of your people. </>
+          : '. '}
+        This is the number we&rsquo;d plan against, not the best case.
       </p>
 
       <RoiRampChart drivers={roiResult.drivers} />
