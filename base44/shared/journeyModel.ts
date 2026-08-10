@@ -485,7 +485,7 @@ export function investmentAt(stage: JourneyStage, N: number, participation: numb
 export type ScenarioKey = 'conservative' | 'base' | 'expected' | 'optimistic';
 
 export const SCENARIO_META: Record<ScenarioKey, {
-  label: string; clientFacing: boolean; varies: 'effect' | 'delivery'; note: string;
+  label: string; clientFacing: boolean; varies: 'effect' | 'delivery' | 'both'; note: string;
 }> = {
   conservative: {
     label: 'Conservative', clientFacing: false, varies: 'effect',
@@ -500,8 +500,8 @@ export const SCENARIO_META: Record<ScenarioKey, {
     note: 'Base Case effect sizes with every design condition met, reach held through year three by re-prompting, and capacity bought to match — so the investment rises with it.',
   },
   optimistic: {
-    label: 'Optimistic', clientFacing: true, varies: 'effect',
-    note: 'Upper-range effect sizes, delivery unchanged. The work landing at the top of what the research supports.',
+    label: 'Optimistic', clientFacing: true, varies: 'both',
+    note: 'Expected delivery AND upper-range effect sizes — the programme run as well as it can be run, landing at the top of what the research supports. The ceiling of the range by construction.',
   },
 };
 
