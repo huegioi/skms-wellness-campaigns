@@ -52,8 +52,28 @@ export const STAGES: JourneyStage[] = CAMPAIGN_STAGES.map((s, i) => ({
   consultantFree: s.stage === 6,
 }));
 
-/** Expected participation by company size — savings model only, not pricing. */
-export function partForSize(N: number): number {
+/**
+ * Default participation for a company that has not told us how they will run
+ * the programme.
+ *
+ * WAS a size curve (25% at <=250 down to 10% above 5,000) with no evidence
+ * behind it — participation does not track headcount, it tracks delivery.
+ * Now returns the model's floor: the base rate with the standard wellness-box
+ * raffle applied and no client commitments, which is ~11.8%.
+ *
+ * As soon as a surface collects the design conditions, call participationFrom()
+ * with them instead. This is only the value to assume when nobody has said.
+ *
+ * The old curve is kept below for reference because several stored
+ * roi_snapshot records were produced with it, and their inputs will not match
+ * a freshly computed default.
+ */
+export function partForSize(_N?: number): number {
+  return participationFrom({});
+}
+
+/** The pre-2026-08 size curve. Retained only to explain historic snapshots. */
+export function legacyPartForSize(N: number): number {
   if (N <= 250) return 0.25;
   if (N <= 500) return 0.20;
   if (N <= 2000) return 0.15;
