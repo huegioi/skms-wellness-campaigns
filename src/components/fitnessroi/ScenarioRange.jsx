@@ -20,7 +20,17 @@ const FILL = {
 };
 
 export default function ScenarioRange({ scenarios, showInvestment = false }) {
-  const rows = (scenarios?.clientFacing || []).slice().sort((a, b) => a.annualSavings - b.annualSavings);
+  const eligible = scenarios?.clientFacing || [];
+  // A scenario above the ceiling of research-based effect has no published
+  // support, so it does not go in front of a buyer. This happens in real cases
+  // -- a high measured distress rate can push Optimistic over 6.3:1 -- and
+  // quietly capping it would be the same dishonesty the soft cap was removed
+  // for. We drop it and say we dropped it.
+  const withheld = eligible.filter(s => s.exceedsCeiling);
+  const rows = eligible
+    .filter(s => !s.exceedsCeiling)
+    .slice()
+    .sort((a, b) => a.annualSavings - b.annualSavings);
   if (!rows.length) return null;
 
   const max = Math.max(...rows.map(r => r.annualSavings)) || 1;
@@ -73,6 +83,14 @@ export default function ScenarioRange({ scenarios, showInvestment = false }) {
           );
         })}
       </div>
+
+      {withheld.length > 0 && (
+        <p className="text-xs text-stone-500 leading-relaxed mt-4">
+          There is a more optimistic case, and we&rsquo;ve left it out. At your numbers it lands above
+          anything published for a programme run across a whole workforce, so we don&rsquo;t think
+          it&rsquo;s a number you should plan around.
+        </p>
+      )}
 
       {byKey.base && byKey.expected && byKey.optimistic && (
         <p className="text-xs text-stone-500 leading-relaxed mt-4">
