@@ -527,15 +527,26 @@ function dosePoints(stage: JourneyStage): number {
 export function runScenario(inputs: ScenarioInputs, scenario: ScenarioKey) {
   const stage = STAGES[Math.max(0, Math.min(5, (inputs.stageNum || 2) - 1))];
   const N = inputs.employees;
-  const isExpected = scenario === 'expected';
 
-  const reach = isExpected
+  // The ladder has to be monotonic or the labels lie: Optimistic is the top of
+  // the range, so it cannot come out below Expected. It does that by inheriting
+  // Expected's delivery and ALSO taking the upper-range effect sizes -- run as
+  // well as it can be run, landing as well as the research says it can land.
+  //
+  // Before 2026-08-10 Optimistic varied effect size only, which meant that from
+  // a low starting participation Expected overtook it: delivery moves the
+  // number more than effect size does. That was arithmetically right and
+  // presentationally indefensible -- nobody reading a four-step range expects
+  // step four to be lower than step three.
+  const fullDelivery = scenario === 'expected' || scenario === 'optimistic';
+
+  const reach = fullDelivery
     ? participationAtFullDelivery(inputs.participBase)
     : inputs.participRate;
 
-  // Expected buys the capacity it needs. The others are priced from the rate
-  // card as-is and flagged separately when they exceed it.
-  const investment = isExpected
+  // Full-delivery scenarios buy the capacity they need. The others are priced
+  // from the rate card as-is and flagged separately when they exceed it.
+  const investment = fullDelivery
     ? investmentAt(stage, N, reach)
     : calcInvestment(stage, N).total;
 
@@ -547,7 +558,8 @@ export function runScenario(inputs: ScenarioInputs, scenario: ScenarioKey) {
                + (stage.groupCoaching ? RESEARCH_MODEL.dose.wcGroupCoaching : 0);
   const k = D * WC;
 
-  // Expected uses Base Case effect sizes. It varies delivery, not science.
+  // Expected uses Base Case effect sizes -- it varies delivery, not science.
+  // Optimistic varies both, which is what makes it the top of the range.
   const eKey: 'conservative' | 'base' | 'optimistic' =
     scenario === 'expected' ? 'base' : scenario;
   const eff = RESEARCH_MODEL.effects;
@@ -571,13 +583,13 @@ export function runScenario(inputs: ScenarioInputs, scenario: ScenarioKey) {
 
   const annualSavings = Object.values(drivers).reduce((a, b) => a + b, 0);
 
-  // Expected assumes the re-engagement mechanism Robroek 2012 shows is needed
-  // to hold reach, so it does not pay the decay penalty the others do.
+  // Full-delivery scenarios assume the re-engagement mechanism Robroek 2012
+  // shows is needed to hold reach, so they do not pay the decay penalty.
   const ramp = RESEARCH_MODEL.ramp;
   const ret = RESEARCH_MODEL.reachRetention;
   const y1 = annualSavings * ramp.y1;
-  const y2 = annualSavings * ramp.y2 * (isExpected ? 1 : ret.y2);
-  const y3 = annualSavings * ramp.y3 * (isExpected ? 1 : ret.y3);
+  const y2 = annualSavings * ramp.y2 * (fullDelivery ? 1 : ret.y2);
+  const y3 = annualSavings * ramp.y3 * (fullDelivery ? 1 : ret.y3);
   const three = y1 + y2 + y3;
 
   const capacity = pricedCapacity(stage, N);
@@ -602,9 +614,9 @@ export function runScenario(inputs: ScenarioInputs, scenario: ScenarioKey) {
     paybackMonths: y1 > 0 ? Math.max(1, Math.round(investment / (y1 / 12))) : Infinity,
     pricedCapacity: capacity,
     /** True when this scenario credits savings for people nobody bought
-     *  capacity for. Expected buys its own, so it is never over. */
-    overCapacity: !isExpected && reach > capacity + 1e-9,
-    capacityBought: isExpected,
+     *  capacity for. Full-delivery scenarios buy their own, so are never over. */
+    overCapacity: !fullDelivery && reach > capacity + 1e-9,
+    capacityBought: fullDelivery,
     /** Above this there is no published support for a whole-population
      *  workplace programme. See RESEARCH_MODEL.ceiling. */
     exceedsCeiling: perDollar > RESEARCH_MODEL.ceiling,
