@@ -377,6 +377,60 @@ export function pricedCapacity(stage: JourneyStage, N: number): number {
 }
 
 /**
+ * The DELIVERY a given participation actually requires: how many sections of
+ * each workshop, how many challenge slots, how many wellness boxes, and what
+ * that costs.
+ *
+ * This is the reconciliation of a discrepancy worth writing down. The rate card
+ * prices the 25%-attendance world -- maxAttendeesPerSession / attendanceRate
+ * works out to exactly 1,000 employees per session, so Stage 1 at 1,000 is one
+ * section per workshop, 9 boxes, $7,500, and verifyRateCard() asserts it.
+ * William quoted 15 boxes for the same Stage 1 at 1,000: "2 workshops x2 and
+ * 1 challenge". Both are right. 15 boxes is what you need at 37.9%
+ * participation -- full delivery -- because 379 attendees need TWO sections per
+ * workshop, and 3 boxes per section x 2 workshops x 2 sections + 3 per
+ * challenge = 15 exactly.
+ *
+ * So the rate card is not wrong and neither is he: they describe different
+ * participation. Anything shown to a buyer should follow the participation
+ * THEY chose, which is what this returns.
+ */
+export interface Delivery {
+  /** People the campaign actually reaches. */
+  reached: number;
+  /** Sections of each workshop topic needed to seat them. */
+  sessionsPerTopic: number;
+  /** Challenge slots bought. */
+  challengeSlots: number;
+  /** Wellness boxes raffled: 3 per workshop section, 3 per challenge. */
+  boxes: number;
+  /** Cost of delivering exactly this. */
+  cost: number;
+  /** Cost at the rate card's priced default, for comparison. */
+  pricedCost: number;
+}
+
+export function deliveryAt(stage: JourneyStage, N: number, participation: number): Delivery {
+  const tier = CAMPAIGN_STAGES.find(s => s.stage === stage.num) || CAMPAIGN_STAGES[0];
+  const reached = Math.max(0, Math.round(N * participation));
+  const sessions = tier.workshops > 0
+    ? Math.max(1, Math.ceil(reached / RATE_CARD.maxAttendeesPerSession))
+    : 0;
+  const slots = tier.challenges > 0
+    ? Math.max(RATE_CARD.challengeMinSlots, reached)
+    : 0;
+  return {
+    reached,
+    sessionsPerTopic: sessions,
+    challengeSlots: slots,
+    boxes: RATE_CARD.boxesPerWorkshopSection * tier.workshops * Math.max(1, sessions)
+         + RATE_CARD.boxesPerChallenge * tier.challenges,
+    cost: investmentAt(stage, N, participation),
+    pricedCost: calcInvestment(stage, N).total,
+  };
+}
+
+/**
  * What the campaign costs once capacity is bought to match real participation.
  * Uses the same band and smoothing rules as challengePrice(), so a campaign
  * sized this way is still priced off the rate card rather than beside it.
