@@ -18291,7 +18291,7 @@ var require_react_is_development = __commonJS({
         var ContextProvider = REACT_PROVIDER_TYPE;
         var Element2 = REACT_ELEMENT_TYPE;
         var ForwardRef = REACT_FORWARD_REF_TYPE;
-        var Fragment4 = REACT_FRAGMENT_TYPE;
+        var Fragment5 = REACT_FRAGMENT_TYPE;
         var Lazy = REACT_LAZY_TYPE;
         var Memo = REACT_MEMO_TYPE;
         var Portal = REACT_PORTAL_TYPE;
@@ -18359,7 +18359,7 @@ var require_react_is_development = __commonJS({
         exports2.ContextProvider = ContextProvider;
         exports2.Element = Element2;
         exports2.ForwardRef = ForwardRef;
-        exports2.Fragment = Fragment4;
+        exports2.Fragment = Fragment5;
         exports2.Lazy = Lazy;
         exports2.Memo = Memo;
         exports2.Portal = Portal;
@@ -40492,7 +40492,7 @@ var require_react_is_development2 = __commonJS({
         var ContextProvider = REACT_PROVIDER_TYPE;
         var Element2 = REACT_ELEMENT_TYPE;
         var ForwardRef = REACT_FORWARD_REF_TYPE;
-        var Fragment4 = REACT_FRAGMENT_TYPE;
+        var Fragment5 = REACT_FRAGMENT_TYPE;
         var Lazy = REACT_LAZY_TYPE;
         var Memo = REACT_MEMO_TYPE;
         var Portal = REACT_PORTAL_TYPE;
@@ -40551,7 +40551,7 @@ var require_react_is_development2 = __commonJS({
         exports2.ContextProvider = ContextProvider;
         exports2.Element = Element2;
         exports2.ForwardRef = ForwardRef;
-        exports2.Fragment = Fragment4;
+        exports2.Fragment = Fragment5;
         exports2.Lazy = Lazy;
         exports2.Memo = Memo;
         exports2.Portal = Portal;
@@ -50315,7 +50315,7 @@ var require_react_dom_development = __commonJS({
         var HostPortal = 4;
         var HostComponent = 5;
         var HostText = 6;
-        var Fragment4 = 7;
+        var Fragment5 = 7;
         var Mode = 8;
         var ContextConsumer = 9;
         var ContextProvider = 10;
@@ -51472,7 +51472,7 @@ var require_react_dom_development = __commonJS({
               return "DehydratedFragment";
             case ForwardRef:
               return getWrappedName$1(type, type.render, "ForwardRef");
-            case Fragment4:
+            case Fragment5:
               return "Fragment";
             case HostComponent:
               return type;
@@ -59901,7 +59901,7 @@ var require_react_dom_development = __commonJS({
             }
           }
           function updateFragment2(returnFiber, current2, fragment, lanes, key) {
-            if (current2 === null || current2.tag !== Fragment4) {
+            if (current2 === null || current2.tag !== Fragment5) {
               var created = createFiberFromFragment(fragment, returnFiber.mode, lanes, key);
               created.return = returnFiber;
               return created;
@@ -60304,7 +60304,7 @@ var require_react_dom_development = __commonJS({
               if (child.key === key) {
                 var elementType = element.type;
                 if (elementType === REACT_FRAGMENT_TYPE) {
-                  if (child.tag === Fragment4) {
+                  if (child.tag === Fragment5) {
                     deleteRemainingChildren(returnFiber, child.sibling);
                     var existing = useFiber(child, element.props.children);
                     existing.return = returnFiber;
@@ -65780,7 +65780,7 @@ var require_react_dom_development = __commonJS({
               var _resolvedProps2 = workInProgress2.elementType === type ? _unresolvedProps2 : resolveDefaultProps(type, _unresolvedProps2);
               return updateForwardRef(current2, workInProgress2, type, _resolvedProps2, renderLanes2);
             }
-            case Fragment4:
+            case Fragment5:
               return updateFragment(current2, workInProgress2, renderLanes2);
             case Mode:
               return updateMode(current2, workInProgress2, renderLanes2);
@@ -66052,7 +66052,7 @@ var require_react_dom_development = __commonJS({
             case SimpleMemoComponent:
             case FunctionComponent:
             case ForwardRef:
-            case Fragment4:
+            case Fragment5:
             case Mode:
             case Profiler:
             case ContextConsumer:
@@ -70313,7 +70313,7 @@ var require_react_dom_development = __commonJS({
           return fiber;
         }
         function createFiberFromFragment(elements, mode, lanes, key) {
-          var fiber = createFiber(Fragment4, elements, key, mode);
+          var fiber = createFiber(Fragment5, elements, key, mode);
           fiber.lanes = lanes;
           return fiber;
         }
@@ -99202,7 +99202,9 @@ var FILL = {
   expected: "transparent"
 };
 function ScenarioRange({ scenarios, showInvestment = false }) {
-  const rows = (scenarios?.clientFacing || []).slice().sort((a2, b2) => a2.annualSavings - b2.annualSavings);
+  const eligible = scenarios?.clientFacing || [];
+  const withheld = eligible.filter((s) => s.exceedsCeiling);
+  const rows = eligible.filter((s) => !s.exceedsCeiling).slice().sort((a2, b2) => a2.annualSavings - b2.annualSavings);
   if (!rows.length) return null;
   const max = Math.max(...rows.map((r) => r.annualSavings)) || 1;
   const byKey = Object.fromEntries(rows.map((r) => [r.scenario, r]));
@@ -99240,15 +99242,18 @@ function ScenarioRange({ scenarios, showInvestment = false }) {
         ) })
       ] }, r.scenario);
     }) }),
-    byKey.base && byKey.expected && byKey.optimistic && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("p", { className: "text-xs text-stone-500 leading-relaxed mt-4", children: [
+    withheld.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("p", { className: "text-xs text-stone-500 leading-relaxed mt-4", children: "There is a more optimistic case, and we\u2019ve left it out. At your numbers it lands above anything published for a programme run across a whole workforce, so we don\u2019t think it\u2019s a number you should plan around." }),
+    byKey.base && byKey.expected && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)("p", { className: "text-xs text-stone-500 leading-relaxed mt-4", children: [
       /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("b", { className: "text-stone-700", children: fmtUSD(byKey.base.annualSavings) }),
       " is the number we\u2019d hold ourselves to.",
       " ",
       /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("b", { className: "text-stone-700", children: fmtUSD(byKey.expected.annualSavings) }),
       " is what we\u2019d expect with all four commitments in place.",
-      " ",
-      /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("b", { className: "text-stone-700", children: fmtUSD(byKey.optimistic.annualSavings) }),
-      " is the work landing about as well as it does anywhere."
+      byKey.optimistic && /* @__PURE__ */ (0, import_jsx_runtime7.jsxs)(import_jsx_runtime7.Fragment, { children: [
+        " ",
+        /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("b", { className: "text-stone-700", children: fmtUSD(byKey.optimistic.annualSavings) }),
+        " is the work landing about as well as it does anywhere."
+      ] })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime7.jsx)("p", { className: "text-xs text-stone-500 leading-relaxed mt-3", children: "All three move with the choices above \u2014 those decide how many of your people the programme actually reaches, and reach decides everything after it." })
   ] });
@@ -99691,14 +99696,15 @@ function ScenarioRangeChart({ scenarios, headcount = 0 }) {
           ) }),
           /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("span", { className: "text-xs font-bold text-[#4a2040] tabular-nums w-24 text-right shrink-0", children: fmtUSD2(r.annualSavings) })
         ] }),
-        r.overCapacity && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("p", { className: "text-[10px] text-[#b45309] mt-1", children: [
-          "\u26A0 credits savings for more people than the rate card pays to serve (",
-          Math.round(r.pricedCapacity * 100),
-          "% priced capacity)"
-        ] }),
-        r.exceedsCeiling && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("p", { className: "text-[10px] text-[#b45309] mt-1", children: "\u26A0 above the ceiling of research-based effect \u2014 check the coefficients" })
+        r.exceedsCeiling && /* @__PURE__ */ (0, import_jsx_runtime13.jsx)("p", { className: "text-[10px] text-[#b45309] mt-1", children: "\u26A0 above the ceiling of research-based effect \u2014 withheld from the client view" })
       ] }, r.scenario);
-    }) })
+    }) }),
+    rows.some((r) => r.overCapacity) && /* @__PURE__ */ (0, import_jsx_runtime13.jsxs)("p", { className: "text-[11px] text-[#b45309] mt-3 leading-relaxed", children: [
+      "\u26A0 This stage is priced to serve about",
+      " ",
+      Math.round((rows.find((r) => r.overCapacity)?.pricedCapacity || 0) * 100),
+      "% of the workforce. Every case except Expected credits savings above that \u2014 buy the extra capacity, or quote Expected, which prices its own."
+    ] })
   ] });
 }
 
@@ -99714,62 +99720,62 @@ function BenchmarkChart({ scenarios }) {
     dim: !s.clientFacing
   }));
   if (!marks.length) return null;
-  const max = Math.max(ceiling, ...marks.map((m) => m.v), ...ours.map((o) => o.v)) * 1.08;
+  const max = Math.max(ceiling, ...marks.map((m) => m.v), ...ours.map((o) => o.v)) * 1.18;
   const x = (v) => v / max * 100;
   return /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { children: [
     /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("h3", { className: "text-sm font-semibold text-[#4a2040] mb-1", children: "Against published benchmarks" }),
     /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("p", { className: "text-xs text-stone-500 leading-relaxed mb-4", children: "Year-one return per dollar. The dashed line is the ceiling of research-based effect \u2014 the highest ROI any credible published source reports for a whole-population workplace programme." }),
-    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "space-y-1.5 mb-4", children: marks.map((m, i) => /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "group", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "flex items-baseline justify-between gap-3", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { className: "text-[11px] text-stone-500", children: m.label }),
-        /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("span", { className: "text-[11px] text-stone-400 tabular-nums shrink-0", children: [
-          m.v.toFixed(2),
-          ":1"
-        ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "h-1.5 rounded-full bg-stone-100 overflow-hidden", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "h-full rounded-full bg-stone-300", style: { width: `${x(m.v)}%` } }) }),
-      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("p", { className: "text-[10px] text-stone-400 leading-snug mt-0.5 hidden group-hover:block", children: m.note })
-    ] }, i)) }),
-    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "pt-3 border-t border-stone-100 space-y-1.5", children: ours.map((o, i) => /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "flex items-baseline justify-between gap-3", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("span", { className: `text-[11px] font-semibold ${o.dim ? "text-stone-400" : "text-[#4a2040]"}`, children: [
-          o.label,
-          o.dim && " \xB7 internal"
-        ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("span", { className: "text-[11px] tabular-nums shrink-0 font-semibold text-[#0f766e]", children: [
-          o.v.toFixed(2),
-          ":1"
-        ] })
-      ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "relative h-1.5 rounded-full bg-stone-100 overflow-hidden", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
-        "div",
-        {
-          className: "h-full rounded-full",
-          style: { width: `${x(o.v)}%`, background: o.dim ? "#a8a29e" : "#0f766e" }
-        }
-      ) })
-    ] }, i)) }),
-    /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "relative h-6 mt-1", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "relative", children: [
       /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
         "div",
         {
-          className: "absolute top-0 bottom-0 border-l-2 border-dashed border-[#4a2040]",
+          className: "absolute top-0 bottom-0 border-l-2 border-dashed border-[#4a2040] pointer-events-none z-10",
           style: { left: `${x(ceiling)}%` }
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
-        "span",
-        {
-          className: "absolute top-1 text-[10px] text-[#4a2040] font-medium whitespace-nowrap",
-          style: { left: `${x(ceiling)}%`, transform: "translateX(-100%)", paddingRight: 6 },
-          children: [
-            "Ceiling of research-based effect \xB7 ",
-            ceiling.toFixed(2),
+      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "space-y-1.5 mb-4", children: marks.map((m, i) => /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "group", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "flex items-baseline justify-between gap-3", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("span", { className: "text-[11px] text-stone-500", children: m.label }),
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("span", { className: "text-[11px] text-stone-400 tabular-nums shrink-0", children: [
+            m.v.toFixed(2),
             ":1"
-          ]
-        }
-      )
-    ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "h-1.5 rounded-full bg-stone-100 overflow-hidden", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "h-full rounded-full bg-stone-300", style: { width: `${x(m.v)}%` } }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("p", { className: "text-[10px] text-stone-400 leading-snug mt-0.5 hidden group-hover:block", children: m.note })
+      ] }, i)) }),
+      /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "pt-3 border-t border-stone-100 space-y-1.5", children: ours.map((o, i) => /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("div", { className: "flex items-baseline justify-between gap-3", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("span", { className: `text-[11px] font-semibold ${o.dim ? "text-stone-400" : "text-[#4a2040]"}`, children: [
+            o.label,
+            o.dim && " \xB7 internal"
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)("span", { className: "text-[11px] tabular-nums shrink-0 font-semibold text-[#0f766e]", children: [
+            o.v.toFixed(2),
+            ":1"
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "relative h-1.5 rounded-full bg-stone-100 overflow-hidden", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsx)(
+          "div",
+          {
+            className: "h-full rounded-full",
+            style: { width: `${x(o.v)}%`, background: o.dim ? "#a8a29e" : "#0f766e" }
+          }
+        ) })
+      ] }, i)) })
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime14.jsx)("div", { className: "relative h-4 mt-1.5", children: /* @__PURE__ */ (0, import_jsx_runtime14.jsxs)(
+      "span",
+      {
+        className: "absolute top-0 text-[10px] text-[#4a2040] font-medium whitespace-nowrap",
+        style: { left: `${x(ceiling)}%`, transform: "translateX(-100%)", paddingRight: 6 },
+        children: [
+          "Ceiling of research-based effect \xB7 ",
+          ceiling.toFixed(2),
+          ":1 \u2192"
+        ]
+      }
+    ) })
   ] });
 }
 
