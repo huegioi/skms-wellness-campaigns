@@ -1,21 +1,37 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
+import { RESEARCH_MODEL } from '@/lib/roiModel';
 
+/**
+ * The four cost drivers the model actually pays out on, in plain language.
+ *
+ * Workers' comp was removed in the 2026-08-08 rebuild. runRoi() still returns
+ * drivers.workersComp = 0 so the DOMAIN_WEIGHTS matrix in getJourneyDashboard
+ * keeps its shape, but there is no defensible coefficient for it, so it is not
+ * charted and not claimed.
+ *
+ * Ordered by evidential weight: presenteeism is the best-evidenced driver and
+ * the largest, so it sits at the base of the stack.
+ */
 export const DRIVERS = [
-  { key: 'medical', label: 'Medical', color: '#0f766e' },
-  { key: 'absenteeism', label: 'Absenteeism', color: '#4a2040' },
-  { key: 'presenteeism', label: 'Presenteeism', color: '#b8860b' },
-  { key: 'turnover', label: 'Turnover', color: '#7c3aed' },
-  { key: 'workersComp', label: "Workers' Comp", color: '#6b7280' },
+  { key: 'presenteeism', label: 'Recovered working time', color: '#0f766e' },
+  { key: 'absenteeism', label: 'Reduced absence', color: '#4a2040' },
+  { key: 'turnover', label: 'Retention', color: '#b8860b' },
+  { key: 'medical', label: 'Healthcare pathway', color: '#7c3aed' },
 ];
 
-const RAMP = [0.45, 0.80, 1.00];
+/** Effects ramp up as the programme matures; reach decays without re-prompting.
+ *  Both live in RESEARCH_MODEL so this chart cannot drift from the model. */
+const RAMP = (() => {
+  const { ramp, reachRetention } = RESEARCH_MODEL;
+  return [ramp.y1, ramp.y2 * reachRetention.y2, ramp.y3 * reachRetention.y3];
+})();
 
 const fmtK = (v) => '$' + (v / 1000).toFixed(0) + 'k';
 
 // Total label above each stacked bar
 function TotalLabel({ x, y, width, payload }) {
-  if (!payload?.total) return null;
+  if (!payload?.total || y == null) return null;
   return (
     <text x={x + width / 2} y={y - 6} textAnchor="middle" fontSize={10} fill="#78716c">
       {fmtK(payload.total)}
@@ -23,8 +39,9 @@ function TotalLabel({ x, y, width, payload }) {
   );
 }
 
-export default function SavingsChart({ drivers, globalMax }) {
-  const data = RAMP.map((f, i) => {
+export default function SavingsChart({ drivers, globalMax, ramp }) {
+  const factors = ramp || RAMP;
+  const data = factors.map((f, i) => {
     const row = { year: `Year ${i + 1}`, total: 0 };
     for (const d of DRIVERS) {
       const val = Math.round((drivers[d.key] || 0) * f);
@@ -69,7 +86,7 @@ export default function SavingsChart({ drivers, globalMax }) {
             animationEasing="ease"
           >
             {i === DRIVERS.length - 1 && (
-              <LabelList dataKey="workersComp" content={<TotalLabel />} position="top" />
+              <LabelList dataKey={d.key} content={<TotalLabel />} position="top" />
             )}
           </Bar>
         ))}
