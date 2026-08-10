@@ -62,7 +62,7 @@ export default function SavingsChart({ drivers, globalMax, ramp }) {
           interval={0}
         />
         <YAxis
-          domain={[0, globalMax]}
+          domain={[0, globalMax ?? 'auto']}
           tick={{ fontSize: 10, fill: '#78716c' }}
           axisLine={false}
           tickLine={false}
