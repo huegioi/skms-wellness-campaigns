@@ -190,10 +190,9 @@ export function runRoi({
  *  RESEARCH_MODEL — every coefficient in the savings model, with its source.
  * ══════════════════════════════════════════════════════════════════════════
  *
- * Added 2026-08-08 ALONGSIDE runRoi(), which is unchanged and still live.
- * Nothing reads this block yet; surfaces migrate one at a time so a bad
- * coefficient cannot take down the Journey, the dashboard and the outreach
- * drafter in one go.
+ * Added 2026-08-08. This block is now the ONLY source of every coefficient in
+ * the model: runRoi(), runScenario(), runScenarios(), the Journey, the team
+ * dashboard, the outreach drafter and every chart read from here.
  *
  * The rule: a number lives here or it does not exist. If you find a
  * coefficient inline in a component, that is a bug — route it through here.
