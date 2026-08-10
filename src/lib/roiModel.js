@@ -13,9 +13,20 @@ export {
   ROI_CAP_PER_DOLLAR,
   ROI_CAP_KNEE,
   partForSize,
+  legacyPartForSize,
   calcInvestment,
   runRoi,
   quickScoreFromAnswers,
+
+  // The rebuilt model (2026-08-08). Every coefficient carries its source.
+  RESEARCH_MODEL,
+  SCENARIO_META,
+  runScenario,
+  runScenarios,
+  participationFrom,
+  participationAtFullDelivery,
+  pricedCapacity,
+  investmentAt,
 } from '../../base44/shared/journeyModel.ts';
 
 export { SCORE_ZONES, getZone } from '@/lib/mfsScore';
