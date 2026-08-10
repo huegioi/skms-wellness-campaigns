@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { runRoi, participationFrom } from '@/lib/roiModel';
-import { CAMPAIGN_STAGES, boxCountFor } from '@/lib/rateCard';
+import { runRoi, participationFrom, deliveryAt, STAGES } from '@/lib/roiModel';
 import JourneyScoreDial from '@/components/fitnessroi/JourneyScoreDial';
 import JourneyScoreBars from '@/components/fitnessroi/JourneyScoreBars';
 import RoiProjection from '@/components/fitnessroi/RoiProjection';
@@ -26,10 +25,16 @@ export default function ResultsView({ data, hideCta }) {
   );
 
   const headcount = roiInputs.employees || roi_snapshot.inputs.employees || 0;
-  const boxCount = useMemo(() => {
-    const tier = CAMPAIGN_STAGES.find(s => s.stage === (roiInputs.stageNum || 2)) || CAMPAIGN_STAGES[0];
-    return boxCountFor(tier, headcount);
-  }, [roiInputs.stageNum, headcount]);
+
+  // Sections, boxes and cost all follow the participation the buyer just chose.
+  // At 1,000 people and every commitment made this is 2 sections per workshop
+  // and 15 boxes at Stage 1 -- the figure William quoted -- where the rate
+  // card's priced default is 1 section and 9 boxes. Both are correct; they
+  // describe different take-up. See deliveryAt().
+  const delivery = useMemo(
+    () => deliveryAt(STAGES[(roiInputs.stageNum || 2) - 1], headcount, participRate),
+    [roiInputs.stageNum, headcount, participRate],
+  );
 
   return (
     <div className="space-y-6">
@@ -52,7 +57,7 @@ export default function ResultsView({ data, hideCta }) {
         conditions={conditions}
         onChange={setConditions}
         headcount={headcount}
-        boxCount={boxCount}
+        delivery={delivery}
       />
 
       <RoiProjection
