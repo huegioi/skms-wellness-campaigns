@@ -75,21 +75,26 @@ export default function ScenarioRangeChart({ scenarios, headcount = 0 }) {
                   {fmtUSD(r.annualSavings)}
                 </span>
               </div>
-              {r.overCapacity && (
-                <p className="text-[10px] text-[#b45309] mt-1">
-                  ⚠ credits savings for more people than the rate card pays to serve
-                  ({Math.round(r.pricedCapacity * 100)}% priced capacity)
-                </p>
-              )}
               {r.exceedsCeiling && (
                 <p className="text-[10px] text-[#b45309] mt-1">
-                  ⚠ above the ceiling of research-based effect — check the coefficients
+                  ⚠ above the ceiling of research-based effect — withheld from the client view
                 </p>
               )}
             </div>
           );
         })}
       </div>
+
+      {/* One capacity note for the whole group — every non-Expected scenario
+       *  shares the same participation, so it is one fact, not four. */}
+      {rows.some(r => r.overCapacity) && (
+        <p className="text-[11px] text-[#b45309] mt-3 leading-relaxed">
+          ⚠ This stage is priced to serve about{' '}
+          {Math.round((rows.find(r => r.overCapacity)?.pricedCapacity || 0) * 100)}% of the workforce.
+          Every case except Expected credits savings above that — buy the extra capacity, or quote
+          Expected, which prices its own.
+        </p>
+      )}
     </div>
   );
 }
