@@ -410,6 +410,65 @@ export function investmentAt(stage: JourneyStage, N: number, participation: numb
        + (boxes * RATE_CARD.wellnessBox);
 }
 
+/* ── The four scenarios ───────────────────────────────────────────────────
+ * Two axes, not four points on one.
+ *
+ *   Conservative / Base Case / Optimistic vary the EFFECT SIZES — how well the
+ *   programme works, which is a question about the science.
+ *
+ *   Expected varies DELIVERY — how well it is run — holding Base Case effect
+ *   sizes fixed. It is the only scenario a client moves by their own choices,
+ *   and the only one that buys the capacity its participation requires.
+ *
+ * That separation is what stops the fourth case being wishful thinking: it is
+ * not a bigger guess about the research, it is the same research delivered
+ * properly.
+ *
+ * CLIENT-FACING: Base Case, Expected, Optimistic.
+ * INTERNAL ONLY: Conservative — the floor we hold ourselves to.
+ */
+export type ScenarioKey = 'conservative' | 'base' | 'expected' | 'optimistic';
+
+export const SCENARIO_META: Record<ScenarioKey, {
+  label: string; clientFacing: boolean; varies: 'effect' | 'delivery'; note: string;
+}> = {
+  conservative: {
+    label: 'Conservative', clientFacing: false, varies: 'effect',
+    note: 'The Illinois and Fleming nulls taken seriously — a small presenteeism effect and nothing else. Internal floor.',
+  },
+  base: {
+    label: 'Base Case', clientFacing: true, varies: 'effect',
+    note: 'Mid-range effect sizes at this client’s participation. The figure we plan against.',
+  },
+  expected: {
+    label: 'Expected', clientFacing: true, varies: 'delivery',
+    note: 'Base Case effect sizes with every design condition met, reach held through year three by re-prompting, and capacity bought to match — so the investment rises with it.',
+  },
+  optimistic: {
+    label: 'Optimistic', clientFacing: true, varies: 'effect',
+    note: 'Upper-range effect sizes, delivery unchanged. The work landing at the top of what the research supports.',
+  },
+};
+
+export interface ScenarioInputs {
+  employees: number; avgSalary: number; stressRate: number;
+  turnoverRate: number; absDays: number;
+  /** Participation for the three effect-size scenarios. Expected derives its own. */
+  participRate: number;
+  stageNum: number;
+  /** Base rate the design conditions multiply up from. Defaults to the model. */
+  participBase?: number;
+}
+
+function dosePoints(stage: JourneyStage): number {
+  const d = RESEARCH_MODEL.dose;
+  return stage.workshops * d.workshop
+       + stage.challenges * d.challenge
+       + (stage.leq ? d.leadershipEq : 0)
+       + (stage.groupCoaching ? d.groupCoaching : 0)
+       + (stage.indivCoaching ? d.individualCoaching : 0);
+}
+
 // ── Quick perception scoring ──────────────────────────────────────────────
 const QUICK_MAP = [10, 25, 50, 75, 90];
 
