@@ -26,7 +26,14 @@ import {
 } from './rateCard.ts';
 
 // ── ROI presentation caps (not prices) ────────────────────────────────────
+/**
+ * @deprecated Nothing reads these. The soft cap was removed 2026-08-08: it bent
+ * an implausible number into a plausible-looking one instead of fixing the
+ * coefficient producing it. RESEARCH_MODEL.ceiling now FLAGS that condition
+ * rather than hiding it. Kept only so an old import cannot break a build.
+ */
 export const ROI_CAP_PER_DOLLAR = 8;
+/** @deprecated See ROI_CAP_PER_DOLLAR. */
 export const ROI_CAP_KNEE = 5;
 
 /** Engagement factor per stage, used by the savings model. */
