@@ -124,90 +124,65 @@ export function calcInvestment(
   return { total, breakdown };
 }
 
-// ── Full ROI run ──────────────────────────────────────────────────────────
+/* -- Full ROI run ----------------------------------------------------------
+ * Returns the BASE CASE from runScenario(), in the return shape this function
+ * has always had, so every existing caller keeps working unchanged.
+ *
+ * Rewritten 2026-08-08. The model this replaced returned 7.11:1 on a 1,000
+ * person Tier 3 campaign -- above the 6.30:1 ceiling, which no published
+ * source for a whole-population workplace programme exceeds. Two inputs drove
+ * that:
+ *
+ *   - a turnover replacement cost of 0.75x salary, traceable only to an
+ *     uncited sentence in a 2019 Gallup article, against a measured ~0.20x; and
+ *   - a soft cap (ROI_CAP_KNEE / ROI_CAP_PER_DOLLAR) that bent an implausible
+ *     raw number down to a merely implausible one rather than fixing its cause.
+ *
+ * The cap is gone. If a figure needs capping, the coefficient producing it is
+ * wrong. RESEARCH_MODEL.ceiling now flags that condition instead of hiding it.
+ *
+ * New work should call runScenarios() and show the range.
+ */
 export function runRoi({
   employees, avgSalary, healthPrem, stressRate, turnoverRate,
   absDays, wellnessFund, participRate, stageNum,
 }: {
-  employees: number; avgSalary: number; healthPrem: number; stressRate: number;
-  turnoverRate: number; absDays: number; wellnessFund: number;
+  employees: number; avgSalary: number; healthPrem?: number; stressRate: number;
+  turnoverRate: number; absDays: number; wellnessFund?: number;
   participRate: number; stageNum: number;
 }) {
   const stage = STAGES[Math.max(0, Math.min(5, (stageNum || 2) - 1))];
   const investResult = calcInvestment(stage, employees);
-  const investment = investResult.total;
 
-  // Participation factor
-  let pf = participRate * stage.engagement;
-  if (stage.challenges > 0) pf *= 1.10;
-  if (stage.leq && !stage.groupCoaching) pf *= 1.05;
-  if (stage.groupCoaching) pf *= 1.30;
-  if (stage.indivCoaching) pf *= 1.25;
-  pf = Math.min(pf, 1.0);
-
-  const stressedEmp = employees * stressRate;
-  const totalPayroll = employees * avgSalary;
-
-  // MEDICAL
-  const medA = stressedEmp * healthPrem * 1.40 * 0.43 * Math.min(pf * 0.5, 0.12);
-  const medB = employees * pf * 358;
-  const medC = stressedEmp * pf * (3363 / 4) * 0.05;
-  const medical = medA * 0.50 + medB * 0.30 + medC * 0.20;
-
-  // ABSENTEEISM
-  const absA = employees * pf * absDays * (avgSalary / 250) * 0.40 * 0.28;
-  const absB = employees * pf * 603 * 0.30 * 0.10;
-  const absenteeism = absA * 0.60 + absB * 0.40;
-
-  // PRESENTEEISM
-  const pressBase = stressedEmp * pf * avgSalary * 0.075;
-  const presenteeism =
-    pressBase * 0.15 * 0.45 + pressBase * 0.12 * 0.30 +
-    pressBase * 0.10 * 0.15 + pressBase * 0.12 * 0.10;
-
-  // TURNOVER
-  const turnover = employees * turnoverRate * (avgSalary * 0.75) * Math.min(0.12, pf * 0.15);
-
-  // WORKERS COMP
-  const workersComp = totalPayroll * 0.015 * 0.25 * 0.50 * Math.min(pf, 1.0);
-
-  // SOFT CAP
-  const rawAnnual = medical + absenteeism + presenteeism + turnover + workersComp;
-  const rawPerDollar = rawAnnual / investment;
-  let capFactor = 1.0;
-  if (rawPerDollar > ROI_CAP_KNEE) {
-    const eff = ROI_CAP_PER_DOLLAR -
-      ((ROI_CAP_PER_DOLLAR - ROI_CAP_KNEE) ** 2) /
-      ((rawPerDollar - ROI_CAP_KNEE) + (ROI_CAP_PER_DOLLAR - ROI_CAP_KNEE));
-    capFactor = eff / rawPerDollar;
-  }
-
-  const drivers = {
-    medical: medical * capFactor,
-    absenteeism: absenteeism * capFactor,
-    presenteeism: presenteeism * capFactor,
-    turnover: turnover * capFactor,
-    workersComp: workersComp * capFactor,
+  const inputs = {
+    employees, avgSalary, stressRate, turnoverRate, absDays, participRate, stageNum,
   };
-
-  const annualSavings = Object.values(drivers).reduce((a, b) => a + b, 0);
-  const netROI = (annualSavings - investment) / investment * 100;
-  const y1 = annualSavings * 0.45;
-  const y2 = annualSavings * 0.80;
-  const y3 = annualSavings * 1.00;
+  const s = runScenario(inputs, 'base');
 
   return {
-    investment,
+    investment: s.investment,
     investmentBreakdown: investResult.breakdown,
-    annualSavings,
-    netROI,
-    paybackMonths: Math.max(1, Math.round(investment / (annualSavings / 12))),
-    drivers,
-    yearProjection: { y1, y2, y3, total3yr: y1 + y2 + y3 },
-    fundAbsorbedAnnual: Math.min(wellnessFund, investment),
-    pf,
-    rawPerDollar,
-    capFactor,
+    annualSavings: s.annualSavings,
+    netROI: s.investment > 0 ? (s.annualSavings - s.investment) / s.investment * 100 : 0,
+    paybackMonths: s.paybackMonths,
+    // workersComp retained at 0 so callers that read it keep their shape --
+    // notably the DOMAIN_WEIGHTS matrix in getJourneyDashboard. There is no
+    // defensible coefficient for it, so it contributes nothing rather than an
+    // invented amount.
+    drivers: { ...s.drivers, workersComp: 0 },
+    yearProjection: s.yearProjection,
+    fundAbsorbedAnnual: Math.min(wellnessFund || 0, s.investment),
+    pf: s.reach,
+    rawPerDollar: s.perDollar,
+    /** Always 1. The soft cap was removed -- see the note above. */
+    capFactor: 1,
+    /** All four cases, for surfaces ready to show the range. */
+    scenarios: runScenarios(inputs),
+    /** True when this figure has no published support. Should never be true. */
+    exceedsCeiling: s.exceedsCeiling,
+    /** True when participation exceeds what the rate card pays to serve. */
+    overCapacity: s.overCapacity,
+    pricedCapacity: s.pricedCapacity,
   };
 }
 
