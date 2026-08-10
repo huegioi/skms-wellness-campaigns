@@ -13,6 +13,7 @@ export default function ResultsView({ data, hideCta }) {
 
   return (
     <div className="space-y-6">
+      {!hideCta && <PrimaryCta magicKey={magic_key} />}
       <div className="bg-white rounded-2xl border border-stone-200 border-l-4 border-l-[#0f766e] p-6 shadow-sm">
         <h2 className="text-lg font-bold text-[#4a2040] mb-1">Your Mental Fitness Snapshot</h2>
         <p className="text-xs text-stone-500 mb-5 leading-relaxed">
@@ -29,7 +30,6 @@ export default function ResultsView({ data, hideCta }) {
       <RoiProjection roiResult={roiResult} stageNum={roiInputs.stageNum}
         onStageChange={(stageNum) => setRoiInputs(prev => ({ ...prev, stageNum }))} />
       <AssumptionsPanel inputs={roiInputs} onChange={setRoiInputs} headcount={roi_snapshot.inputs.employees} />
-      {!hideCta && <PrimaryCta magicKey={magic_key} />}
     </div>
   );
 }
