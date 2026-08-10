@@ -21,17 +21,15 @@ const FILL = {
 
 export default function ScenarioRange({ scenarios, showInvestment = false }) {
   const eligible = scenarios?.clientFacing || [];
-  // A scenario above the ceiling of research-based effect has no published
-  // support, so it does not go in front of a buyer. This happens in real cases
-  // -- a high measured distress rate can push Optimistic over 6.3:1 -- and
-  // quietly capping it would be the same dishonesty the soft cap was removed
-  // for. We drop it and say we dropped it.
-  const withheld = eligible.filter(s => s.exceedsCeiling);
-  const rows = eligible
-    .filter(s => !s.exceedsCeiling)
-    .slice()
-    .sort((a, b) => a.annualSavings - b.annualSavings);
+  // Nothing is withheld any more: the model bounds client-facing figures at
+  // the highest published ROI rather than letting them run past it, so every
+  // case is safe to show. Where the bound bit, we say so instead of quietly
+  // presenting a clamped number as an estimate.
+  const rows = eligible.slice().sort((a, b) => a.annualSavings - b.annualSavings);
   if (!rows.length) return null;
+  const anyBounded = rows.some(r => r.bounded);
+  const allSame = rows.length > 1
+    && Math.abs(rows[rows.length - 1].annualSavings - rows[0].annualSavings) < 1;
 
   const max = Math.max(...rows.map(r => r.annualSavings)) || 1;
   const byKey = Object.fromEntries(rows.map(r => [r.scenario, r]));
@@ -84,15 +82,22 @@ export default function ScenarioRange({ scenarios, showInvestment = false }) {
         })}
       </div>
 
-      {withheld.length > 0 && (
+      {allSame ? (
         <p className="text-xs text-stone-500 leading-relaxed mt-4">
-          There is a more optimistic case, and we&rsquo;ve left it out. At your numbers it lands above
-          anything published for a programme run across a whole workforce, so we don&rsquo;t think
-          it&rsquo;s a number you should plan around.
+          At your numbers these come out the same, and we&rsquo;d rather show you that than manufacture a
+          spread. A workforce this size, with this much reported distress and these salaries, is one
+          where the published evidence stops being able to tell the cases apart — so we hold all of them
+          to the highest figure anyone has published and plan against the first one.
+        </p>
+      ) : anyBounded && (
+        <p className="text-xs text-stone-500 leading-relaxed mt-4">
+          The top of this range is held at the highest return any published study reports for a programme
+          run across a whole workforce. Our own maths came out higher. We don&rsquo;t print that number,
+          because nobody has demonstrated it.
         </p>
       )}
 
-      {byKey.base && byKey.expected && (
+      {!allSame && byKey.base && byKey.expected && (
         <p className="text-xs text-stone-500 leading-relaxed mt-4">
           <b className="text-stone-700">{fmtUSD(byKey.base.annualSavings)}</b> is the number we&rsquo;d
           hold ourselves to.{' '}
