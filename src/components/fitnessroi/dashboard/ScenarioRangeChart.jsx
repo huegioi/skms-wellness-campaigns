@@ -61,6 +61,11 @@ export default function ScenarioRangeChart({ scenarios, headcount = 0 }) {
                       capacity bought
                     </span>
                   )}
+                  {r.bounded && (
+                    <span className="ml-1.5 text-[10px] font-normal text-[#b45309] bg-amber-50 px-1.5 py-0.5 rounded-full">
+                      held at ceiling
+                    </span>
+                  )}
                 </span>
                 <span className="text-[11px] text-stone-400 tabular-nums shrink-0">
                   {Math.round(r.reach * 100)}% reach
@@ -80,15 +85,31 @@ export default function ScenarioRangeChart({ scenarios, headcount = 0 }) {
                   {fmtUSD(r.annualSavings)}
                 </span>
               </div>
+              {r.bounded && (
+                <p className="text-[10px] text-stone-400 mt-1">
+                  coefficients gave {fmtUSD(r.unboundedAnnualSavings)} ({r.unboundedPerDollar.toFixed(2)}:1);
+                  held to the highest published figure
+                </p>
+              )}
               {r.exceedsCeiling && (
                 <p className="text-[10px] text-[#b45309] mt-1">
-                  ⚠ above the ceiling of research-based effect — withheld from the client view
+                  ⚠ above the ceiling of research-based effect — check the coefficients
                 </p>
               )}
             </div>
           );
         })}
       </div>
+
+      {/* When two client-facing cases tie at the ceiling, say why rather than
+       *  leave two identical bars looking like a rendering fault. */}
+      {rows.filter(r => r.bounded).length > 1 && (
+        <p className="text-[11px] text-[#b45309] mt-3 leading-relaxed">
+          Two or more cases are held at the ceiling of research-based effect, so they read the same. At
+          these inputs — a small, high-distress, well-paid workforce on an inexpensive stage — the
+          published evidence cannot separate them. Quote the Base Case and treat the range as flat.
+        </p>
+      )}
 
       {/* One capacity note for the whole group — every non-Expected scenario
        *  shares the same participation, so it is one fact, not four. */}
