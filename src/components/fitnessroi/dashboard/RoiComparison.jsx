@@ -4,6 +4,8 @@ import {
   RATE_CARD, CAMPAIGN_STAGES, sessionsPerWorkshop, challengeSlots, leadershipEqPrice, boxCountFor,
 } from '@/lib/rateCard';
 import SavingsChart, { DRIVERS } from '@/components/fitnessroi/dashboard/SavingsChart';
+import ScenarioRangeChart from '@/components/fitnessroi/dashboard/ScenarioRangeChart';
+import BenchmarkChart from '@/components/fitnessroi/dashboard/BenchmarkChart';
 
 const CALENDLY_URL = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
 
@@ -237,6 +239,22 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
         <p className="text-[10px] text-stone-400 italic mt-3">
           Only the right chart updates — your original estimate stays fixed for comparison.
         </p>
+
+        {/* Capacity check — the rate card is not participation-neutral. */}
+        {reactiveRoi?.overCapacity && (
+          <p className="text-[11px] text-[#b45309] mt-2 leading-relaxed">
+            ⚠ This stage is priced to serve about{' '}
+            {Math.round((reactiveRoi.pricedCapacity || 0) * 100)}% of the workforce, but the projection
+            credits savings at {Math.round((reactiveRoi.pf || 0) * 100)}% participation. Either buy the
+            extra capacity or quote the Expected case, which prices its own.
+          </p>
+        )}
+        {reactiveRoi?.exceedsCeiling && (
+          <p className="text-[11px] text-[#b45309] mt-2 leading-relaxed">
+            ⚠ This figure sits above the ceiling of research-based effect. Do not send it out — check the
+            coefficients under Model.
+          </p>
+        )}
 
         {/* Book a Call — filled teal button */}
         <div className="mt-3">
