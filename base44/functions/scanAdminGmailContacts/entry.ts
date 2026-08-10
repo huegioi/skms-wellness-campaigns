@@ -408,21 +408,25 @@ Deno.serve(async (req) => {
       }
     }
 
-    for (const lead of leads) {
-      if (lead.email && !emailMap[lead.email.toLowerCase()]) {
-        emailMap[lead.email.toLowerCase()] = { entityType: 'Lead', record: lead };
-      }
-      if (lead.email2 && !emailMap[lead.email2.toLowerCase()]) {
-        emailMap[lead.email2.toLowerCase()] = { entityType: 'Lead', record: lead };
-      }
-    }
-
+    // Order matters: ReferralPartner is inserted BEFORE Lead so that a broker
+    // who exists as both a broker_lead Lead AND a ReferralPartner is matched to
+    // the partner relationship (the canonical record). Otherwise the Lead
+    // shadows the partner and partner last_contacted_date never updates.
     for (const p of referralPartners) {
       if (p.email && !emailMap[p.email.toLowerCase()]) {
         emailMap[p.email.toLowerCase()] = { entityType: 'ReferralPartner', record: p };
       }
       if (p.email2 && !emailMap[p.email2.toLowerCase()]) {
         emailMap[p.email2.toLowerCase()] = { entityType: 'ReferralPartner', record: p };
+      }
+    }
+
+    for (const lead of leads) {
+      if (lead.email && !emailMap[lead.email.toLowerCase()]) {
+        emailMap[lead.email.toLowerCase()] = { entityType: 'Lead', record: lead };
+      }
+      if (lead.email2 && !emailMap[lead.email2.toLowerCase()]) {
+        emailMap[lead.email2.toLowerCase()] = { entityType: 'Lead', record: lead };
       }
     }
 
