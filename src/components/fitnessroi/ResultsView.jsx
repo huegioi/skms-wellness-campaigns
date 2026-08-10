@@ -1,15 +1,35 @@
 import React, { useState, useMemo } from 'react';
-import { runRoi } from '@/lib/roiModel';
+import { runRoi, participationFrom } from '@/lib/roiModel';
+import { CAMPAIGN_STAGES, boxCountFor } from '@/lib/rateCard';
 import JourneyScoreDial from '@/components/fitnessroi/JourneyScoreDial';
 import JourneyScoreBars from '@/components/fitnessroi/JourneyScoreBars';
 import RoiProjection from '@/components/fitnessroi/RoiProjection';
+import ParticipationBuilder from '@/components/fitnessroi/ParticipationBuilder';
 import AssumptionsPanel from '@/components/fitnessroi/AssumptionsPanel';
 import PrimaryCta from '@/components/fitnessroi/PrimaryCta';
 
 export default function ResultsView({ data, hideCta }) {
   const { quick_scores, roi_snapshot, magic_key } = data;
   const [roiInputs, setRoiInputs] = useState(roi_snapshot.inputs);
-  const roiResult = useMemo(() => runRoi(roiInputs), [roiInputs]);
+
+  // The design conditions the buyer says they could commit to. Participation is
+  // derived from these, never typed in and never guessed from headcount — see
+  // RESEARCH_MODEL.participation. Snapshots taken before this existed simply
+  // start with nothing committed, which is the observed floor.
+  const [conditions, setConditions] = useState(roi_snapshot.inputs?.participConditions || {});
+
+  const participRate = useMemo(() => participationFrom(conditions), [conditions]);
+
+  const roiResult = useMemo(
+    () => runRoi({ ...roiInputs, participRate, participConditions: conditions }),
+    [roiInputs, participRate, conditions],
+  );
+
+  const headcount = roiInputs.employees || roi_snapshot.inputs.employees || 0;
+  const boxCount = useMemo(() => {
+    const tier = CAMPAIGN_STAGES.find(s => s.stage === (roiInputs.stageNum || 2)) || CAMPAIGN_STAGES[0];
+    return boxCountFor(tier, headcount);
+  }, [roiInputs.stageNum, headcount]);
 
   return (
     <div className="space-y-6">
@@ -27,9 +47,27 @@ export default function ResultsView({ data, hideCta }) {
           <JourneyScoreBars scores={quick_scores} />
         </div>
       </div>
-      <RoiProjection roiResult={roiResult} stageNum={roiInputs.stageNum}
-        onStageChange={(stageNum) => setRoiInputs(prev => ({ ...prev, stageNum }))} />
-      <AssumptionsPanel inputs={roiInputs} onChange={setRoiInputs} headcount={roi_snapshot.inputs.employees} />
+
+      <ParticipationBuilder
+        conditions={conditions}
+        onChange={setConditions}
+        headcount={headcount}
+        boxCount={boxCount}
+      />
+
+      <RoiProjection
+        roiResult={roiResult}
+        stageNum={roiInputs.stageNum}
+        headcount={headcount}
+        onStageChange={(stageNum) => setRoiInputs(prev => ({ ...prev, stageNum }))}
+      />
+
+      <AssumptionsPanel
+        inputs={{ ...roiInputs, participRate }}
+        onChange={setRoiInputs}
+        headcount={headcount}
+        conditionCount={Object.values(conditions).filter(Boolean).length}
+      />
     </div>
   );
 }
