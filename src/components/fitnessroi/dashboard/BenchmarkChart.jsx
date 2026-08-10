@@ -19,7 +19,8 @@ export default function BenchmarkChart({ scenarios }) {
   }));
   if (!marks.length) return null;
 
-  const max = Math.max(ceiling, ...marks.map(m => m.v), ...ours.map(o => o.v)) * 1.08;
+  // Headroom on the right so the ceiling label has somewhere to sit.
+  const max = Math.max(ceiling, ...marks.map(m => m.v), ...ours.map(o => o.v)) * 1.18;
   const x = (v) => (v / max) * 100;
 
   return (
@@ -29,6 +30,13 @@ export default function BenchmarkChart({ scenarios }) {
         Year-one return per dollar. The dashed line is the ceiling of research-based effect — the highest
         ROI any credible published source reports for a whole-population workplace programme.
       </p>
+
+      <div className="relative">
+      {/* Ceiling — one line across the whole plot, not a row of its own. */}
+      <div
+        className="absolute top-0 bottom-0 border-l-2 border-dashed border-[#4a2040] pointer-events-none z-10"
+        style={{ left: `${x(ceiling)}%` }}
+      />
 
       {/* Published benchmarks */}
       <div className="space-y-1.5 mb-4">
@@ -68,17 +76,15 @@ export default function BenchmarkChart({ scenarios }) {
         ))}
       </div>
 
-      {/* Ceiling marker */}
-      <div className="relative h-6 mt-1">
-        <div
-          className="absolute top-0 bottom-0 border-l-2 border-dashed border-[#4a2040]"
-          style={{ left: `${x(ceiling)}%` }}
-        />
+      </div>
+
+      {/* Ceiling label, anchored under the line */}
+      <div className="relative h-4 mt-1.5">
         <span
-          className="absolute top-1 text-[10px] text-[#4a2040] font-medium whitespace-nowrap"
+          className="absolute top-0 text-[10px] text-[#4a2040] font-medium whitespace-nowrap"
           style={{ left: `${x(ceiling)}%`, transform: 'translateX(-100%)', paddingRight: 6 }}
         >
-          Ceiling of research-based effect · {ceiling.toFixed(2)}:1
+          Ceiling of research-based effect · {ceiling.toFixed(2)}:1 →
         </span>
       </div>
     </div>
