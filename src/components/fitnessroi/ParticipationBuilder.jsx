@@ -49,8 +49,9 @@ export default function ParticipationBuilder({
   const toggle = (key) => onChange?.({ ...conditions, [key]: !conditions[key] });
 
   return (
-    <div className="mf-card border-l-4 border-l-mf-coral p-6 shadow-sm">
-      <h2 className="text-lg font-bold text-mf-plum mb-1">
+    <div className="mf-card p-6">
+      <p className="mf-eyebrow mb-2">The Mental Fitness Journey</p>
+      <h2 className="mf-serif text-[26px] leading-tight text-mf-plum mb-2 max-w-[20ch]">
         How you run it matters more than what you buy
       </h2>
       <p className="text-xs text-mf-ink-2 mb-5 leading-relaxed">
@@ -66,17 +67,9 @@ export default function ParticipationBuilder({
               key={c.key}
               type="button"
               onClick={() => toggle(c.key)}
-              className={`w-full text-left flex gap-3 rounded-xl border p-3 transition-colors ${
-                on
-                  ? 'border-mf-plum bg-mf-cream'
-                  : 'border-mf-rule bg-white hover:border-mf-rule'
-              }`}
+              className={`mf-opt w-full text-left flex gap-3 p-4 ${on ? 'is-on' : ''}`}
             >
-              <span
-                className={`mt-0.5 shrink-0 w-5 h-5 rounded-md flex items-center justify-center border ${
-                  on ? 'bg-mf-plum border-mf-plum text-white' : 'border-mf-rule bg-white'
-                }`}
-              >
+              <span className="mf-box mt-0.5">
                 {on && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
               </span>
               <span>
@@ -113,14 +106,16 @@ export default function ParticipationBuilder({
       </div>
 
       {/* Live readout */}
-      <div className="mt-4 pt-4 border-t border-mf-rule flex items-start gap-5">
+      <div className="mt-6 pt-5 border-t border-mf-rule flex items-end gap-8 flex-wrap">
         <div className="shrink-0">
-          <p className="text-[10px] uppercase tracking-widest text-mf-ink-3 mb-0.5">
+          <p className="text-[11px] uppercase tracking-[0.06em] text-mf-ink-3 mb-1.5">
             People likely to take part
           </p>
-          <p className="text-3xl font-bold text-mf-plum tabular-nums">{Math.round(rate * 100)}%</p>
+          <p className="mf-serif text-[46px] leading-none text-mf-plum tabular-nums">
+            {Math.round(rate * 100)}%
+          </p>
         </div>
-        <p className="text-xs text-mf-ink-2 leading-relaxed pt-4">
+        <p className="text-[13px] text-mf-ink-2 leading-relaxed max-w-[38ch]">
           {headcount > 0 && (
             <>
               Around <b className="text-mf-ink">{reached.toLocaleString()}</b> of your{' '}
