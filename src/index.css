@@ -1,10 +1,12 @@
+/* @import must precede every other rule, so both live at the very top.
+   Mental Fitness Journey theme is scoped to .mf — see that file's header for
+   why the chart palette is not the one in the approved mockup. */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:wght@500;600;700&display=swap');
+@import './styles/journeyTheme.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* Mental Fitness Journey theme. Scoped to .mf — see the file header for why
-   the chart palette is not the mockup's. */
-@import './styles/journeyTheme.css';
 
 /* Save badge — green check + "Saved" that fades out */
 @keyframes save-badge-fade {
