@@ -41,15 +41,15 @@ export default function FitnessRoi() {
     <div className="min-h-screen bg-[#fdfbf7]" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
       {step === 0 && (
         <div className="max-w-2xl mx-auto px-5 pt-8 pb-2">
-          <h1 className="text-2xl md:text-3xl font-bold text-[#4a2040] mb-3 leading-tight">The Mental Fitness Journey</h1>
-          <p className="text-sm text-stone-600 leading-relaxed mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-mf-plum mb-3 leading-tight">The Mental Fitness Journey</h1>
+          <p className="text-sm text-mf-ink-2 leading-relaxed mb-6">
             See your team's mental fitness the way the data sees it. Start with your own two-minute read on your team — then let their anonymous responses show you where you're right, where you're off, and what the gap is costing you.
           </p>
           <JourneyProcessStrip />
           <div className="text-center">
             <button
               onClick={scrollToStart}
-              className="inline-flex items-center gap-2 bg-[#4a2040] hover:bg-[#3a1830] text-white font-semibold text-sm px-6 py-3 rounded-full shadow-sm transition-colors"
+              className="inline-flex items-center gap-2 bg-mf-plum hover:bg-[#3a1830] text-white font-semibold text-sm px-6 py-3 rounded-full shadow-sm transition-colors"
             >
               Start your Journey ↓
             </button>
@@ -62,10 +62,10 @@ export default function FitnessRoi() {
           <>
             <JourneyStepMarker activeStep={activeJourneyStep} />
             <JourneyProgressBar step={step} total={5} />
-            <p className="text-xs uppercase tracking-widest text-stone-400 mt-2 mb-6">about 3 minutes</p>
-            <h1 className="text-2xl font-bold text-[#4a2040] mb-4">{PART_HEADERS[step]}</h1>
+            <p className="text-xs uppercase tracking-widest text-mf-ink-3 mt-2 mb-6">about 3 minutes</p>
+            <h1 className="text-2xl font-bold text-mf-plum mb-4">{PART_HEADERS[step]}</h1>
             {step === 0 && (
-              <p className="text-sm text-stone-500 mb-6 leading-relaxed">
+              <p className="text-sm text-mf-ink-2 mb-6 leading-relaxed">
                 This is step one: a 3-minute snapshot of your team's mental fitness as you see it, plus a projection of what improving it is worth — then, if you want the real picture, a free anonymous assessment for your whole team.
               </p>
             )}
@@ -78,7 +78,7 @@ export default function FitnessRoi() {
             {step === 0 && (
               <div className="flex items-center justify-center gap-1.5 text-xs text-gray-400 mt-4 text-center flex-wrap">
                 <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                <span>Anonymous team responses · you see team-level results only · questions? <a href="mailto:admin@skillfulmeans.life" className="text-[#0f766e] font-medium underline">admin@skillfulmeans.life</a></span>
+                <span>Anonymous team responses · you see team-level results only · questions? <a href="mailto:admin@skillfulmeans.life" className="text-mf-plum font-medium underline">admin@skillfulmeans.life</a></span>
               </div>
             )}
           </>
@@ -91,19 +91,19 @@ export default function FitnessRoi() {
           <>
             {resultsData.email_sent ? (
               <div className="bg-[#fce7f3] rounded-xl p-3 mb-4 text-center">
-                <p className="text-xs text-[#4a2040] font-medium">We've emailed you a private link so you can return any time.</p>
+                <p className="text-xs text-mf-plum font-medium">We've emailed you a private link so you can return any time.</p>
               </div>
             ) : (
               <div className="bg-amber-50 rounded-xl p-3 mb-4 text-center">
-                <p className="text-xs text-stone-600 font-medium">Save this page's link to return any time:</p>
-                <p className="text-xs text-[#0f766e] font-mono mt-1 break-all">{window.location.origin}/FitnessRoi/dashboard?k={resultsData.magic_key}</p>
+                <p className="text-xs text-mf-ink-2 font-medium">Save this page's link to return any time:</p>
+                <p className="text-xs text-mf-plum font-mono mt-1 break-all">{window.location.origin}/FitnessRoi/dashboard?k={resultsData.magic_key}</p>
               </div>
             )}
             <ResultsView data={resultsData} />
           </>
         ) : null}
         {step > 0 && step < 6 && (
-          <button onClick={() => setStep(s => s - 1)} className="mt-4 flex items-center gap-1 text-sm text-stone-400 hover:text-stone-600 transition-colors">
+          <button onClick={() => setStep(s => s - 1)} className="mt-4 flex items-center gap-1 text-sm text-mf-ink-3 hover:text-mf-ink-2 transition-colors">
             <ChevronLeft className="w-4 h-4" /> Back
           </button>
         )}

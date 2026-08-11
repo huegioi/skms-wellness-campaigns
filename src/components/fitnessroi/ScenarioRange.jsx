@@ -14,7 +14,7 @@ import React from 'react';
 const fmtUSD = (v) => '$' + Math.round(v).toLocaleString();
 
 const FILL = {
-  base: '#0f766e',
+  base: '#441D37',
   optimistic: '#14b8a6',
   expected: 'transparent',
 };
@@ -71,8 +71,8 @@ export default function ScenarioRange({ scenarios, showInvestment = false }) {
                   className="h-full rounded-full"
                   style={{
                     width: `${pct}%`,
-                    background: FILL[r.scenario] || '#0f766e',
-                    border: outlined ? '1.5px dashed #4a2040' : 'none',
+                    background: FILL[r.scenario] || '#441D37',
+                    border: outlined ? '1.5px dashed #441D37' : 'none',
                     backgroundColor: outlined ? 'rgba(74,32,64,0.08)' : undefined,
                   }}
                 />

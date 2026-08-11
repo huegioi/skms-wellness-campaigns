@@ -26,11 +26,11 @@ export default function JourneyScoreBars({ scores }) {
         const zone = getZone(d.key, score);
         return (
           <div key={d.key}>
-            <div className="flex justify-between text-sm text-stone-600 mb-1">
+            <div className="flex justify-between text-sm text-mf-ink-2 mb-1">
               <span className="font-medium">{d.label}</span>
-              <span className="font-semibold" style={{ color: COLOR_MAP[d.key] || '#4a2040' }}>
+              <span className="font-semibold" style={{ color: COLOR_MAP[d.key] || '#441D37' }}>
                 {score != null ? Math.round(score) : '—'}
-                {zone && <span className={`ml-1.5 text-xs font-medium ${ZONE_LABEL_COLORS[zone] || 'text-stone-400'}`}>· {zone}</span>}
+                {zone && <span className={`ml-1.5 text-xs font-medium ${ZONE_LABEL_COLORS[zone] || 'text-mf-ink-3'}`}>· {zone}</span>}
               </span>
             </div>
 
@@ -52,7 +52,7 @@ export default function JourneyScoreBars({ scores }) {
               {score != null && (
                 <div
                   className="absolute top-1/2 -translate-y-1/2 w-1 h-4 rounded-full border border-white shadow-sm"
-                  style={{ left: `calc(${Math.max(0, Math.min(100, score))}% - 2px)`, backgroundColor: COLOR_MAP[d.key] || '#4a2040' }}
+                  style={{ left: `calc(${Math.max(0, Math.min(100, score))}% - 2px)`, backgroundColor: COLOR_MAP[d.key] || '#441D37' }}
                 />
               )}
             </div>
@@ -61,7 +61,7 @@ export default function JourneyScoreBars({ scores }) {
           </div>
         );
       })}
-      <p className="text-[10px] text-stone-400 italic mt-2">Zones based on published research norms for each instrument.</p>
+      <p className="text-[10px] text-mf-ink-3 italic mt-2">Zones based on published research norms for each instrument.</p>
     </div>
   );
 }

@@ -13,20 +13,20 @@ export default function JourneyStepMarker({ activeStep }) {
               <div
                 className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-colors ${
                   isActive
-                    ? 'bg-[#4a2040] border-[#4a2040] text-white'
+                    ? 'bg-mf-plum border-mf-plum text-white'
                     : isPast
-                      ? 'bg-[#0f766e] border-[#0f766e] text-white'
+                      ? 'bg-mf-plum border-mf-plum text-white'
                       : 'bg-white border-gray-200 text-gray-300'
                 }`}
               >
                 <step.icon className="w-3.5 h-3.5" />
               </div>
-              <p className={`text-[9px] mt-1 leading-tight text-center ${isActive ? 'font-semibold text-[#4a2040]' : 'text-gray-400'}`}>
+              <p className={`text-[9px] mt-1 leading-tight text-center ${isActive ? 'font-semibold text-mf-plum' : 'text-gray-400'}`}>
                 {step.label}
               </p>
             </div>
             {i < JOURNEY_STEPS.length - 1 && (
-              <div className={`flex-1 h-px ${isPast ? 'bg-[#0f766e]' : 'bg-gray-200'}`} style={{ marginTop: -10 }} />
+              <div className={`flex-1 h-px ${isPast ? 'bg-mf-plum' : 'bg-gray-200'}`} style={{ marginTop: -10 }} />
             )}
           </React.Fragment>
         );

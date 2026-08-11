@@ -5,7 +5,7 @@ export default function JourneyProgressBar({ step, total }) {
   return (
     <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
       <div
-        className="h-full bg-[#0f766e] rounded-full transition-all duration-300"
+        className="h-full bg-mf-plum rounded-full transition-all duration-300"
         style={{ width: `${pct}%` }}
       />
     </div>

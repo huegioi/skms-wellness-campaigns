@@ -30,16 +30,16 @@ export default function ReminderButton({ magicKey, reminderSentAt }) {
 
   if (result) {
     return (
-      <div className="bg-white rounded-2xl border border-stone-200 border-l-4 border-l-[#0f766e] p-4 shadow-sm text-center">
-        <CheckCircle className="w-5 h-5 text-[#0f766e] mx-auto mb-1" />
-        <p className="text-sm font-semibold text-[#0f766e]">Link sent to your email</p>
+      <div className="mf-card border-l-4 border-l-mf-plum p-4 shadow-sm text-center">
+        <CheckCircle className="w-5 h-5 text-mf-plum mx-auto mb-1" />
+        <p className="text-sm font-semibold text-mf-plum">Link sent to your email</p>
       </div>
     );
   }
 
   return (
     <button onClick={handleSend} disabled={!canSend || sending}
-      className="w-full bg-white border-2 border-[#0f766e] text-[#0f766e] rounded-2xl py-3 font-semibold text-sm hover:bg-[#0f766e] hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+      className="w-full bg-white border-2 border-mf-plum text-mf-plum rounded-2xl py-3 font-semibold text-sm hover:bg-mf-plum hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
       {sending ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</>
        : !canSend ? <><Clock className="w-4 h-4" /> {nextText}</>
        : <><Mail className="w-4 h-4" /> Email me my link</>}

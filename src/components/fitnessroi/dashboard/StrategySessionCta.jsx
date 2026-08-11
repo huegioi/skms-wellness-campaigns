@@ -5,7 +5,7 @@ const CALENDLY_URL = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy
 
 export default function StrategySessionCta() {
   return (
-    <div className="bg-[#0f766e] rounded-2xl p-6 text-center shadow-sm">
+    <div className="bg-mf-plum rounded-2xl p-6 text-center shadow-sm">
       <h2 className="text-xl font-bold text-white mb-2">Book your free strategy session</h2>
       <p className="text-sm text-white/80 mb-4 max-w-md mx-auto leading-relaxed">
         We'll walk through your team's results, the gap analysis, and a concrete program plan — no obligation.

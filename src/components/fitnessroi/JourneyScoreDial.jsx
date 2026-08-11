@@ -6,7 +6,7 @@ export default function JourneyScoreDial({ score, size = 180, ringColor }) {
   const circumference = 2 * Math.PI * radius;
   const clamped = Math.max(0, Math.min(100, score ?? 0));
   const offset = circumference - (clamped / 100) * circumference;
-  const color = ringColor || (clamped >= 70 ? '#0f766e' : clamped >= 50 ? '#4a2040' : '#b8860b');
+  const color = ringColor || (clamped >= 70 ? '#441D37' : clamped >= 50 ? '#441D37' : '#E8866A');
   const zones = SCORE_ZONES.composite.zones;
   const zoneLabel = getZone('composite', score);
   let cumulative = 0;
@@ -30,9 +30,9 @@ export default function JourneyScoreDial({ score, size = 180, ringColor }) {
           className="transition-all duration-700" />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-4xl font-bold text-stone-800">{score != null ? Math.round(score) : '—'}</span>
-        <span className="text-xs text-stone-400 mt-0.5">out of 100</span>
-        {zoneLabel && <span className="text-[10px] text-stone-400 mt-0.5">{zoneLabel} zone</span>}
+        <span className="text-4xl font-bold text-mf-ink">{score != null ? Math.round(score) : '—'}</span>
+        <span className="text-xs text-mf-ink-3 mt-0.5">out of 100</span>
+        {zoneLabel && <span className="text-[10px] text-mf-ink-3 mt-0.5">{zoneLabel} zone</span>}
       </div>
     </div>
   );

@@ -17,10 +17,10 @@ export default function JourneyProcessStrip() {
           <React.Fragment key={step.num}>
             <div className="flex flex-col items-center text-center" style={{ width: '20%' }}>
               <div className="relative">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center bg-[#4a2040] text-white font-bold text-base">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center bg-mf-plum text-white font-bold text-base">
                   {step.num}
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#0f766e] flex items-center justify-center border-2 border-white">
+                <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-mf-plum flex items-center justify-center border-2 border-white">
                   <step.icon className="w-3 h-3 text-white" />
                 </div>
               </div>
@@ -41,10 +41,10 @@ export default function JourneyProcessStrip() {
         {JOURNEY_STEPS.map((step) => (
           <div key={step.num} className="flex flex-col items-center text-center">
             <div className="relative">
-              <div className="w-11 h-11 rounded-full flex items-center justify-center bg-[#4a2040] text-white font-bold text-sm">
+              <div className="w-11 h-11 rounded-full flex items-center justify-center bg-mf-plum text-white font-bold text-sm">
                 {step.num}
               </div>
-              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#0f766e] flex items-center justify-center border-2 border-white">
+              <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-mf-plum flex items-center justify-center border-2 border-white">
                 <step.icon className="w-2.5 h-2.5 text-white" />
               </div>
             </div>

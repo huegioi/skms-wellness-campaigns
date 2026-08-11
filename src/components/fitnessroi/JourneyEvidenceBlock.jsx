@@ -18,7 +18,7 @@ export default function JourneyEvidenceBlock({ instrumentKey, score }) {
 
   const band = getScoreBand(instrumentKey, score);
   const inst = MFS_INSTRUMENTS.find(i => i.key === instrumentKey);
-  const accentColor = inst?.color || '#4a2040';
+  const accentColor = inst?.color || '#441D37';
 
   const bodyFirst = getFirstSentence(block.body);
   const ctaFirst = getFirstSentence(block.cta);
@@ -27,7 +27,7 @@ export default function JourneyEvidenceBlock({ instrumentKey, score }) {
     <div className="mt-2 pl-0.5">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1 text-xs text-stone-500 hover:text-stone-700 transition-colors mb-1"
+        className="flex items-center gap-1 text-xs text-mf-ink-2 hover:text-mf-ink transition-colors mb-1"
       >
         <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
         Learn more about this score
@@ -37,10 +37,10 @@ export default function JourneyEvidenceBlock({ instrumentKey, score }) {
         style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
       >
         <div className="overflow-hidden">
-      <p className="text-xs font-bold text-stone-700 mb-0.5">What this measures — and why it matters</p>
-      <p className="text-xs text-stone-500 leading-relaxed">{bodyFirst}</p>
+      <p className="text-xs font-bold text-mf-ink mb-0.5">What this measures — and why it matters</p>
+      <p className="text-xs text-mf-ink-2 leading-relaxed">{bodyFirst}</p>
 
-      <p className="text-xs font-bold text-stone-700 mb-0.5 mt-3">What moves this score</p>
+      <p className="text-xs font-bold text-mf-ink mb-0.5 mt-3">What moves this score</p>
       <div
         className="px-3 py-2 rounded-r-md text-sm leading-relaxed"
         style={{
@@ -49,17 +49,17 @@ export default function JourneyEvidenceBlock({ instrumentKey, score }) {
         }}
       >
         {band && (
-          <p className="font-semibold mb-0.5 text-xs" style={{ color: band === 'low' ? '#b45309' : '#15803d' }}>
+          <p className="font-semibold mb-0.5 text-xs" style={{ color: band === 'low' ? '#B4531F' : '#15803d' }}>
             {band === 'low' ? block.low : block.strong}
           </p>
         )}
-        <p className="text-xs text-stone-600">{ctaFirst}</p>
+        <p className="text-xs text-mf-ink-2">{ctaFirst}</p>
       </div>
 
       <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
         {block.sources.slice(0, 3).map((src, i) => (
           <a key={i} href={src.url} target="_blank" rel="noopener noreferrer"
-            className="text-[10px] text-[#0f766e] hover:underline inline-flex items-center gap-0.5">
+            className="text-[10px] text-mf-plum hover:underline inline-flex items-center gap-0.5">
             {src.label}<ExternalLink className="w-2 h-2" />
           </a>
         ))}
