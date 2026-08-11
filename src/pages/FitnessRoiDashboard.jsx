@@ -34,7 +34,7 @@ export default function FitnessRoiDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#fdfbf7] flex items-center justify-center" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="mf mf-screen min-h-screen flex items-center justify-center">
         <Loader2 className="w-6 h-6 text-mf-plum animate-spin" />
       </div>
     );
@@ -42,7 +42,7 @@ export default function FitnessRoiDashboard() {
 
   if (!magicKey || !data) {
     return (
-      <div className="min-h-screen bg-[#fdfbf7] flex items-center justify-center px-5" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="mf mf-screen min-h-screen flex items-center justify-center px-5">
         <div className="max-w-md text-center">
           <AlertCircle className="w-12 h-12 text-stone-300 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-mf-plum mb-2">Check your email for your private link</h1>
@@ -65,7 +65,7 @@ export default function FitnessRoiDashboard() {
     const leaderComposite = data.quick_scores?.composite;
     const teamComposite = data.team_scores?.composite;
     return (
-      <div className="min-h-screen bg-[#fdfbf7]" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div className="mf mf-screen min-h-screen">
         <div className="max-w-2xl mx-auto px-5 py-8 space-y-6">
           <Header />
           <DashboardControlsBar
@@ -111,7 +111,7 @@ export default function FitnessRoiDashboard() {
 
   // ── Pre-results state ──
   return (
-    <div className="min-h-screen bg-[#fdfbf7]" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div className="mf mf-screen min-h-screen">
       <div className="max-w-2xl mx-auto px-5 py-8 space-y-6">
         <Header />
         <DashboardControlsBar

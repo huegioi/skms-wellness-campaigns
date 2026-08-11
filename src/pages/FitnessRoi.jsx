@@ -38,7 +38,7 @@ export default function FitnessRoi() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fdfbf7]" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
+    <div className="mf mf-screen min-h-screen">
       {step === 0 && (
         <div className="max-w-2xl mx-auto px-5 pt-8 pb-2">
           <h1 className="text-2xl md:text-3xl font-bold text-mf-plum mb-3 leading-tight">The Mental Fitness Journey</h1>
