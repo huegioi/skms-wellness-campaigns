@@ -14,8 +14,8 @@ function Row({ label, note, children }) {
   return (
     <div className="flex justify-between items-center gap-4">
       <div>
-        <span className="text-stone-600">{label}</span>
-        <span className="block text-[10px] text-stone-400">{note}</span>
+        <span className="text-mf-ink-2">{label}</span>
+        <span className="block text-[10px] text-mf-ink-3">{note}</span>
       </div>
       {children}
     </div>
@@ -26,18 +26,18 @@ export default function AssumptionsPanel({ inputs, onChange, headcount, conditio
   const [open, setOpen] = useState(false);
   const update = (field, value) => onChange(prev => ({ ...prev, [field]: Number(value) }));
   const pct = (v) => Math.round((v || 0) * 100);
-  const numCls = 'w-28 px-2 py-1.5 rounded-lg border border-stone-200 text-right text-stone-700';
+  const numCls = 'w-28 px-2 py-1.5 rounded-lg border border-mf-rule text-right text-mf-ink';
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-sm">
+    <div className="mf-card p-4 shadow-sm">
       <button onClick={() => setOpen(!open)} className="w-full flex items-center justify-between">
-        <span className="text-sm font-semibold text-stone-700">Our assumptions</span>
-        <ChevronDown className={`w-4 h-4 text-stone-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <span className="text-sm font-semibold text-mf-ink">Our assumptions</span>
+        <ChevronDown className={`w-4 h-4 text-mf-ink-3 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
         <div className="mt-4 space-y-3 text-sm">
           <Row label="Employees" note="From your inputs">
-            <span className="text-stone-700 font-medium">{(headcount || 0).toLocaleString()}</span>
+            <span className="text-mf-ink font-medium">{(headcount || 0).toLocaleString()}</span>
           </Row>
 
           <Row label="Average salary" note="Drives every time-based driver">
@@ -51,11 +51,11 @@ export default function AssumptionsPanel({ inputs, onChange, headcount, conditio
           </Row>
 
           <Row label="Annual turnover" note="Only the share we could plausibly influence is counted">
-            <span className="text-stone-700 font-medium">{pct(inputs.turnoverRate)}%</span>
+            <span className="text-mf-ink font-medium">{pct(inputs.turnoverRate)}%</span>
           </Row>
 
           <Row label="Share reporting distress" note="From your team's responses">
-            <span className="text-stone-700 font-medium">{pct(inputs.stressRate)}%</span>
+            <span className="text-mf-ink font-medium">{pct(inputs.stressRate)}%</span>
           </Row>
 
           <Row
@@ -66,7 +66,7 @@ export default function AssumptionsPanel({ inputs, onChange, headcount, conditio
                 : 'The observed floor with no design commitments — change this above, not here'
             }
           >
-            <span className="text-stone-700 font-medium">{pct(inputs.participRate)}%</span>
+            <span className="text-mf-ink font-medium">{pct(inputs.participRate)}%</span>
           </Row>
 
           <Row label="Wellness fund" note="Offsets your investment. Default: $0">
@@ -74,7 +74,7 @@ export default function AssumptionsPanel({ inputs, onChange, headcount, conditio
               className={numCls} />
           </Row>
 
-          <p className="text-[10px] text-stone-400 leading-relaxed pt-2 border-t border-stone-100">
+          <p className="text-[10px] text-mf-ink-3 leading-relaxed pt-2 border-t border-mf-rule">
             Savings are counted only for the people the programme actually reaches, only for the four
             drivers we can evidence, and only at effect sizes reported in peer-reviewed work. Year one is
             partial and later years account for reach falling away.

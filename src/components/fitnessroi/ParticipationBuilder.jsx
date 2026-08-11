@@ -49,11 +49,11 @@ export default function ParticipationBuilder({
   const toggle = (key) => onChange?.({ ...conditions, [key]: !conditions[key] });
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 border-l-4 border-l-[#4a2040] p-6 shadow-sm">
-      <h2 className="text-lg font-bold text-[#4a2040] mb-1">
+    <div className="mf-card border-l-4 border-l-mf-coral p-6 shadow-sm">
+      <h2 className="text-lg font-bold text-mf-plum mb-1">
         How you run it matters more than what you buy
       </h2>
-      <p className="text-xs text-stone-500 mb-5 leading-relaxed">
+      <p className="text-xs text-mf-ink-2 mb-5 leading-relaxed">
         Most of what decides whether a programme works is set before it starts — and it&rsquo;s yours to
         choose. Tell us what you could commit to.
       </p>
@@ -68,21 +68,21 @@ export default function ParticipationBuilder({
               onClick={() => toggle(c.key)}
               className={`w-full text-left flex gap-3 rounded-xl border p-3 transition-colors ${
                 on
-                  ? 'border-[#0f766e] bg-teal-50/60'
-                  : 'border-stone-200 bg-white hover:border-stone-300'
+                  ? 'border-mf-plum bg-mf-cream'
+                  : 'border-mf-rule bg-white hover:border-mf-rule'
               }`}
             >
               <span
                 className={`mt-0.5 shrink-0 w-5 h-5 rounded-md flex items-center justify-center border ${
-                  on ? 'bg-[#0f766e] border-[#0f766e] text-white' : 'border-stone-300 bg-white'
+                  on ? 'bg-mf-plum border-mf-plum text-white' : 'border-mf-rule bg-white'
                 }`}
               >
                 {on && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
               </span>
               <span>
-                <span className="block text-sm font-semibold text-[#4a2040]">{c.title}</span>
+                <span className="block text-sm font-semibold text-mf-plum">{c.title}</span>
                 {!compact && (
-                  <span className="block text-xs text-stone-500 leading-relaxed mt-0.5">{c.detail}</span>
+                  <span className="block text-xs text-mf-ink-2 leading-relaxed mt-0.5">{c.detail}</span>
                 )}
               </span>
             </button>
@@ -94,18 +94,18 @@ export default function ParticipationBuilder({
        *  count MOVES with the toggles above: more people means more sections,
        *  and boxes are handed out per section. See deliveryAt(). */}
       <div className="mt-3 rounded-xl bg-amber-50/70 border border-amber-100 p-3 flex gap-3">
-        <Gift className="w-4 h-4 text-[#b8860b] shrink-0 mt-0.5" />
+        <Gift className="w-4 h-4 text-mf-coral shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-semibold text-[#4a2040]">
+          <p className="text-sm font-semibold text-mf-plum">
             Included either way{delivery?.boxes ? ` — ${delivery.boxes} wellness boxes` : ' — wellness boxes'},
             raffled among the people who take part
           </p>
-          <p className="text-xs text-stone-500 leading-relaxed mt-0.5">
+          <p className="text-xs text-mf-ink-2 leading-relaxed mt-0.5">
             Three per workshop section and three per challenge. A draw motivates better than giving
             everyone the same thing, so it&rsquo;s how we run every campaign.
             {delivery?.sessionsPerTopic > 1 && (
               <> At this level of take-up each workshop runs{' '}
-                <b className="text-stone-700">{delivery.sessionsPerTopic} times</b>, so people have a
+                <b className="text-mf-ink">{delivery.sessionsPerTopic} times</b>, so people have a
                 choice of when to attend — which is also why the box count goes up.</>
             )}
           </p>
@@ -113,17 +113,17 @@ export default function ParticipationBuilder({
       </div>
 
       {/* Live readout */}
-      <div className="mt-4 pt-4 border-t border-stone-100 flex items-start gap-5">
+      <div className="mt-4 pt-4 border-t border-mf-rule flex items-start gap-5">
         <div className="shrink-0">
-          <p className="text-[10px] uppercase tracking-widest text-stone-400 mb-0.5">
+          <p className="text-[10px] uppercase tracking-widest text-mf-ink-3 mb-0.5">
             People likely to take part
           </p>
-          <p className="text-3xl font-bold text-[#0f766e] tabular-nums">{Math.round(rate * 100)}%</p>
+          <p className="text-3xl font-bold text-mf-plum tabular-nums">{Math.round(rate * 100)}%</p>
         </div>
-        <p className="text-xs text-stone-500 leading-relaxed pt-4">
+        <p className="text-xs text-mf-ink-2 leading-relaxed pt-4">
           {headcount > 0 && (
             <>
-              Around <b className="text-stone-700">{reached.toLocaleString()}</b> of your{' '}
+              Around <b className="text-mf-ink">{reached.toLocaleString()}</b> of your{' '}
               {headcount.toLocaleString()} people, staying with it — not just signing up.{' '}
             </>
           )}

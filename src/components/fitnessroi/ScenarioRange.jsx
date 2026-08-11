@@ -36,8 +36,8 @@ export default function ScenarioRange({ scenarios, showInvestment = false }) {
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-[#4a2040] mb-1">Three numbers, not one</h3>
-      <p className="text-xs text-stone-500 leading-relaxed mb-4">
+      <h3 className="text-sm font-semibold text-mf-plum mb-1">Three numbers, not one</h3>
+      <p className="text-xs text-mf-ink-2 leading-relaxed mb-4">
         Most wellbeing programmes are sold with a single confident figure. We&rsquo;d rather show you what
         we&rsquo;d plan against, what we&rsquo;d expect, and where the ceiling sits.
       </p>
@@ -49,24 +49,24 @@ export default function ScenarioRange({ scenarios, showInvestment = false }) {
           return (
             <div key={r.scenario}>
               <div className="flex items-baseline justify-between mb-1">
-                <span className="text-xs font-semibold text-[#4a2040]">
+                <span className="text-xs font-semibold text-mf-plum">
                   {r.label}
                   {outlined && (
-                    <span className="ml-1.5 font-normal text-[10px] text-stone-400">
+                    <span className="ml-1.5 font-normal text-[10px] text-mf-ink-3">
                       with every commitment in place
                     </span>
                   )}
                 </span>
-                <span className="text-xs font-bold text-[#0f766e] tabular-nums">
+                <span className="text-xs font-bold text-mf-plum tabular-nums">
                   {fmtUSD(r.annualSavings)}
                   {showInvestment && (
-                    <span className="ml-1.5 font-normal text-stone-400">
+                    <span className="ml-1.5 font-normal text-mf-ink-3">
                       on {fmtUSD(r.investment)}
                     </span>
                   )}
                 </span>
               </div>
-              <div className="h-2.5 rounded-full bg-stone-100 overflow-hidden">
+              <div className="h-2.5 rounded-full bg-mf-cream overflow-hidden">
                 <div
                   className="h-full rounded-full"
                   style={{
@@ -83,14 +83,14 @@ export default function ScenarioRange({ scenarios, showInvestment = false }) {
       </div>
 
       {allSame ? (
-        <p className="text-xs text-stone-500 leading-relaxed mt-4">
+        <p className="text-xs text-mf-ink-2 leading-relaxed mt-4">
           At your numbers these come out the same, and we&rsquo;d rather show you that than manufacture a
           spread. A workforce this size, with this much reported distress and these salaries, is one
           where the published evidence stops being able to tell the cases apart — so we hold all of them
           to the highest figure anyone has published and plan against the first one.
         </p>
       ) : anyBounded && (
-        <p className="text-xs text-stone-500 leading-relaxed mt-4">
+        <p className="text-xs text-mf-ink-2 leading-relaxed mt-4">
           The top of this range is held at the highest return any published study reports for a programme
           run across a whole workforce. Our own maths came out higher. We don&rsquo;t print that number,
           because nobody has demonstrated it.
@@ -98,21 +98,21 @@ export default function ScenarioRange({ scenarios, showInvestment = false }) {
       )}
 
       {!allSame && byKey.base && byKey.expected && (
-        <p className="text-xs text-stone-500 leading-relaxed mt-4">
-          <b className="text-stone-700">{fmtUSD(byKey.base.annualSavings)}</b> is the number we&rsquo;d
+        <p className="text-xs text-mf-ink-2 leading-relaxed mt-4">
+          <b className="text-mf-ink">{fmtUSD(byKey.base.annualSavings)}</b> is the number we&rsquo;d
           hold ourselves to.{' '}
-          <b className="text-stone-700">{fmtUSD(byKey.expected.annualSavings)}</b> is what we&rsquo;d
+          <b className="text-mf-ink">{fmtUSD(byKey.expected.annualSavings)}</b> is what we&rsquo;d
           expect with all four commitments in place.
           {byKey.optimistic && (
             <>
-              {' '}<b className="text-stone-700">{fmtUSD(byKey.optimistic.annualSavings)}</b> is the work
+              {' '}<b className="text-mf-ink">{fmtUSD(byKey.optimistic.annualSavings)}</b> is the work
               landing about as well as it does anywhere.
             </>
           )}
         </p>
       )}
 
-      <p className="text-xs text-stone-500 leading-relaxed mt-3">
+      <p className="text-xs text-mf-ink-2 leading-relaxed mt-3">
         {rows.length > 2 ? 'All three' : 'Both'} move with the choices above — those decide how many of
         your people the programme actually reaches, and reach decides everything after it.
       </p>

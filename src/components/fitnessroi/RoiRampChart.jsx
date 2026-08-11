@@ -15,11 +15,11 @@ export default function RoiRampChart({ drivers }) {
         {DRIVERS.map((d) => (
           <div key={d.key} className="flex items-center gap-1.5">
             <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-            <span className="text-[11px] text-stone-600">{d.label}</span>
+            <span className="text-[11px] text-mf-ink-2">{d.label}</span>
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-stone-400 italic text-center mt-2">
+      <p className="text-[10px] text-mf-ink-3 italic text-center mt-2">
         Year one is partial — effects build as the programme matures, while reach falls away without
         re-prompting. Both are in the figures.
       </p>

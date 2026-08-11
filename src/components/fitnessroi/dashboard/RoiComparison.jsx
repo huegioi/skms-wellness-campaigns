@@ -112,15 +112,15 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
   const teamTotal3yr = reactiveRoi?.yearProjection?.total3yr;
 
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 border-l-4 border-l-[#0f766e] p-6 shadow-sm">
+    <div className="mf-card border-l-4 border-l-mf-plum p-6 shadow-sm">
       {/* ── Section header ── */}
-      <h2 className="text-lg font-bold text-[#4a2040] mb-0.5">
+      <h2 className="text-lg font-bold text-mf-plum mb-0.5">
         Projected ROI Savings
       </h2>
-      <p className="text-sm text-stone-600 mb-1">
+      <p className="text-sm text-mf-ink-2 mb-1">
         from Implementing SkillfulMeans Mental Fitness Campaigns
       </p>
-      <p className="text-xs text-stone-500 mb-5">
+      <p className="text-xs text-mf-ink-2 mb-5">
         One based on your estimates, one based on your team's real data.
       </p>
       {/* ── Two charts with savings headings ── */}
@@ -129,9 +129,9 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
         <div>
           <div className="mb-3 mt-10">
             <div className="text-center">
-              <p className="text-[13px] font-semibold text-[#4a2040]">Initial Estimated Savings</p>
+              <p className="text-[13px] font-semibold text-mf-plum">Initial Estimated Savings</p>
               {estTotal3yr != null && (
-                <p className="text-lg font-bold text-[#0f766e]">{fmtK(estTotal3yr)} over 3 years</p>
+                <p className="text-lg font-bold text-mf-plum">{fmtK(estTotal3yr)} over 3 years</p>
               )}
             </div>
           </div>
@@ -144,9 +144,9 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
         <div>
           <div className="mb-3 mt-10">
             <div className="text-center">
-              <p className="text-[13px] font-semibold text-[#4a2040]">Savings from Your Team's Real Data</p>
+              <p className="text-[13px] font-semibold text-mf-plum">Savings from Your Team's Real Data</p>
               {teamTotal3yr != null && (
-                <p className="text-lg font-bold text-[#0f766e]">{fmtK(teamTotal3yr)} over 3 years</p>
+                <p className="text-lg font-bold text-mf-plum">{fmtK(teamTotal3yr)} over 3 years</p>
               )}
             </div>
           </div>
@@ -161,21 +161,21 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
         {DRIVERS.map((d) => (
           <div key={d.key} className="flex items-center gap-1.5">
             <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-            <span className="text-[11px] text-stone-600">{d.label}</span>
+            <span className="text-[11px] text-mf-ink-2">{d.label}</span>
           </div>
         ))}
       </div>
 
       {/* ── Program Stage panel ── */}
-      <div className="bg-teal-50/50 rounded-xl p-4 border border-teal-100">
+      <div className="bg-mf-cream rounded-xl p-4 border border-mf-rule">
         <div className="flex justify-between items-center mb-3">
           <div className="flex items-center gap-2">
-            <h3 className="text-sm font-semibold text-[#0f766e]">Program Stage</h3>
-            <span className="text-[10px] text-[#0f766e] bg-teal-100 px-2 py-0.5 rounded-full font-medium">
+            <h3 className="text-sm font-semibold text-mf-plum">Program Stage</h3>
+            <span className="text-[10px] text-mf-plum bg-mf-cream px-2 py-0.5 rounded-full font-medium">
               controls the right chart →
             </span>
           </div>
-          <span className="text-sm font-semibold text-[#0f766e]">
+          <span className="text-sm font-semibold text-mf-plum">
             Stage {stage.num} — {stage.name}
           </span>
         </div>
@@ -186,62 +186,62 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
           step="1"
           value={stageNum}
           onChange={(e) => setStageNum(parseInt(e.target.value))}
-          className="w-full accent-[#0f766e] cursor-pointer"
+          className="w-full accent-mf-plum cursor-pointer"
           style={{ height: '10px' }}
         />
-        <div className="flex justify-between text-[10px] text-stone-400 mt-1">
+        <div className="flex justify-between text-[10px] text-mf-ink-3 mt-1">
           {STAGES.map((s) => (
-            <span key={s.num} className={s.num === stageNum ? 'font-bold text-[#0f766e]' : ''}>
+            <span key={s.num} className={s.num === stageNum ? 'font-bold text-mf-plum' : ''}>
               {s.num}
             </span>
           ))}
         </div>
 
         {/* Included in Program Stage */}
-        <h4 className="text-sm font-semibold text-[#0f766e] mt-4 mb-2">Included in Program Stage</h4>
+        <h4 className="text-sm font-semibold text-mf-plum mt-4 mb-2">Included in Program Stage</h4>
 
         {/* Stage line items — name + participants left, cost right-aligned */}
         {lineItems.length > 0 && (
           <div className="space-y-1.5">
             {lineItems.map((item, i) => (
               <div key={i} className="flex items-baseline justify-between text-xs gap-2">
-                <span className="text-stone-600">
-                  <span className="font-medium text-stone-700">{item.label}</span>
-                  {item.participants && <span className="text-stone-400"> · {item.participants}</span>}
+                <span className="text-mf-ink-2">
+                  <span className="font-medium text-mf-ink">{item.label}</span>
+                  {item.participants && <span className="text-mf-ink-3"> · {item.participants}</span>}
                 </span>
-                <span className="font-medium text-stone-700 tabular-nums shrink-0">{fmtYearly(item.cost)}</span>
+                <span className="font-medium text-mf-ink tabular-nums shrink-0">{fmtYearly(item.cost)}</span>
               </div>
             ))}
           </div>
         )}
 
         {/* Subtotal / wellness fund / net */}
-        <div className="mt-3 pt-2 border-t border-teal-100 space-y-1">
-          <div className="flex justify-end text-xs text-stone-600 gap-1">
+        <div className="mt-3 pt-2 border-t border-mf-rule space-y-1">
+          <div className="flex justify-end text-xs text-mf-ink-2 gap-1">
             <span>Yearly Investment Subtotal:</span>
-            <span className="font-medium text-stone-700 tabular-nums">{fmtUSD(investmentTotal)}</span>
+            <span className="font-medium text-mf-ink tabular-nums">{fmtUSD(investmentTotal)}</span>
           </div>
           {hasWellnessFund && (
             <>
-              <div className="flex justify-end text-xs text-stone-600 gap-1">
+              <div className="flex justify-end text-xs text-mf-ink-2 gap-1">
                 <span>− Wellness fund:</span>
-                <span className="font-medium text-stone-700 tabular-nums">{fmtUSD(fundAbsorbed)}</span>
+                <span className="font-medium text-mf-ink tabular-nums">{fmtUSD(fundAbsorbed)}</span>
               </div>
               <div className="flex justify-end text-sm gap-1">
-                <span className="font-bold text-[#0f766e]">Net Yearly Investment:</span>
-                <span className="font-bold text-[#0f766e] tabular-nums">{fmtUSD(netInvestment)}</span>
+                <span className="font-bold text-mf-plum">Net Yearly Investment:</span>
+                <span className="font-bold text-mf-plum tabular-nums">{fmtUSD(netInvestment)}</span>
               </div>
             </>
           )}
         </div>
 
-        <p className="text-[10px] text-stone-400 italic mt-3">
+        <p className="text-[10px] text-mf-ink-3 italic mt-3">
           Only the right chart updates — your original estimate stays fixed for comparison.
         </p>
 
         {/* Capacity check — the rate card is not participation-neutral. */}
         {reactiveRoi?.overCapacity && (
-          <p className="text-[11px] text-[#b45309] mt-2 leading-relaxed">
+          <p className="text-[11px] text-mf-warn mt-2 leading-relaxed">
             ⚠ This stage is priced to serve about{' '}
             {Math.round((reactiveRoi.pricedCapacity || 0) * 100)}% of the workforce, but the projection
             credits savings at {Math.round((reactiveRoi.pf || 0) * 100)}% participation. Either buy the
@@ -249,7 +249,7 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
           </p>
         )}
         {reactiveRoi?.exceedsCeiling && (
-          <p className="text-[11px] text-[#b45309] mt-2 leading-relaxed">
+          <p className="text-[11px] text-mf-warn mt-2 leading-relaxed">
             ⚠ This figure sits above the ceiling of research-based effect. Do not send it out — check the
             coefficients under Model.
           </p>
@@ -257,12 +257,12 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
 
         {/* Book a Call — filled teal button */}
         <div className="mt-3">
-          <p className="text-xs text-stone-500 mb-2">Want this tailored to your team?</p>
+          <p className="text-xs text-mf-ink-2 mb-2">Want this tailored to your team?</p>
           <a
             href={CALENDLY_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-[#0f766e] text-white text-xs font-semibold hover:bg-[#0d625a] transition-colors"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-mf-plum text-white text-xs font-semibold hover:bg-mf-plum-dark transition-colors"
           >
             Book a Call — Build Your Tailored Program
           </a>
@@ -271,7 +271,7 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
 
       {/* ── Scenario range (internal: includes Conservative) ── */}
       {reactiveRoi?.scenarios && (
-        <div className="mt-6 pt-5 border-t border-stone-100">
+        <div className="mt-6 pt-5 border-t border-mf-rule">
           <ScenarioRangeChart scenarios={reactiveRoi.scenarios} headcount={roiInputs?.employees} />
         </div>
       )}
