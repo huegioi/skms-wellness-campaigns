@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mental Fitness Journey theme. Scoped to .mf — see the file header for why
+   the chart palette is not the mockup's. */
+@import './styles/journeyTheme.css';
+
 /* Save badge — green check + "Saved" that fades out */
 @keyframes save-badge-fade {
   0%   { opacity: 0; transform: translateY(2px); }
