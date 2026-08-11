@@ -15,11 +15,15 @@ import React from 'react';
  */
 const fmtUSD = (v) => '$' + Math.round(v).toLocaleString();
 
+// SEQUENTIAL, not categorical. The scenarios are ordered, so the encoding is
+// one hue getting darker -- Conservative is drained grey because it is the
+// internal floor and should not compete. Giving these four distinct hues would
+// say they are different kinds of thing rather than four points on a range.
 const FILL = {
-  conservative: '#a8a29e',
-  base: '#0f766e',
-  expected: '#14b8a6',
-  optimistic: '#4a2040',
+  conservative: '#B9B2AC',
+  base: '#C39CB4',
+  expected: '#8E5379',
+  optimistic: '#52223F',
 };
 
 export default function ScenarioRangeChart({ scenarios, headcount = 0 }) {
@@ -31,10 +35,10 @@ export default function ScenarioRangeChart({ scenarios, headcount = 0 }) {
   return (
     <div>
       <div className="flex items-baseline justify-between mb-1">
-        <h3 className="text-sm font-semibold text-[#4a2040]">Scenario range</h3>
-        <span className="text-[10px] text-stone-400">ascending</span>
+        <h3 className="text-[15px] font-semibold text-mf-plum mf-serif">Scenario range</h3>
+        <span className="text-[10px] text-mf-ink-3">ascending</span>
       </div>
-      <p className="text-xs text-stone-500 leading-relaxed mb-4">
+      <p className="text-xs text-mf-ink-2 leading-relaxed mb-4">
         Each step changes one more thing than the step below it. <b>Expected</b> holds Base Case effect
         sizes and varies delivery — the four no-cost conditions met, reach sustained, capacity purchased
         to match, which is why its investment is higher. <b>Optimistic</b> is that same delivery with
@@ -49,50 +53,50 @@ export default function ScenarioRangeChart({ scenarios, headcount = 0 }) {
           return (
             <div key={r.scenario}>
               <div className="flex items-baseline justify-between gap-3 mb-1">
-                <span className="text-xs font-semibold text-[#4a2040]">
+                <span className="text-xs font-semibold text-mf-plum">
                   {r.label}
                   {!r.clientFacing && (
-                    <span className="ml-1.5 text-[10px] font-normal uppercase tracking-wider text-stone-400">
+                    <span className="ml-1.5 text-[10px] font-normal uppercase tracking-wider text-mf-ink-3">
                       internal
                     </span>
                   )}
                   {r.capacityBought && (
-                    <span className="ml-1.5 text-[10px] font-normal text-[#0f766e] bg-teal-50 px-1.5 py-0.5 rounded-full">
+                    <span className="ml-1.5 text-[10px] font-normal text-mf-plum bg-mf-cream px-1.5 py-0.5 rounded-full">
                       capacity bought
                     </span>
                   )}
                   {r.bounded && (
-                    <span className="ml-1.5 text-[10px] font-normal text-[#b45309] bg-amber-50 px-1.5 py-0.5 rounded-full">
+                    <span className="ml-1.5 text-[10px] font-normal text-mf-warn bg-orange-50 px-1.5 py-0.5 rounded-full">
                       held at ceiling
                     </span>
                   )}
                 </span>
-                <span className="text-[11px] text-stone-400 tabular-nums shrink-0">
+                <span className="text-[11px] text-mf-ink-3 tabular-nums shrink-0">
                   {Math.round(r.reach * 100)}% reach
                   {reached != null && ` · ${reached.toLocaleString()} people`}
                   {' · '}{fmtUSD(r.investment)} invested
-                  {' · '}<b className="text-stone-600">{r.perDollar.toFixed(2)}:1</b>
+                  {' · '}<b className="text-mf-ink-2">{r.perDollar.toFixed(2)}:1</b>
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-3 rounded-full bg-stone-100 overflow-hidden">
+                <div className="flex-1 h-3 rounded-full overflow-hidden" style={{ background: 'rgba(68,29,55,0.07)' }}>
                   <div
                     className="h-full rounded-full"
                     style={{ width: `${pct}%`, background: FILL[r.scenario] }}
                   />
                 </div>
-                <span className="text-xs font-bold text-[#4a2040] tabular-nums w-24 text-right shrink-0">
+                <span className="text-xs font-bold text-mf-plum tabular-nums w-24 text-right shrink-0">
                   {fmtUSD(r.annualSavings)}
                 </span>
               </div>
               {r.bounded && (
-                <p className="text-[10px] text-stone-400 mt-1">
+                <p className="text-[10px] text-mf-ink-3 mt-1">
                   coefficients gave {fmtUSD(r.unboundedAnnualSavings)} ({r.unboundedPerDollar.toFixed(2)}:1);
                   held to the highest published figure
                 </p>
               )}
               {r.exceedsCeiling && (
-                <p className="text-[10px] text-[#b45309] mt-1">
+                <p className="text-[10px] text-mf-warn mt-1">
                   ⚠ above the ceiling of research-based effect — check the coefficients
                 </p>
               )}
@@ -104,7 +108,7 @@ export default function ScenarioRangeChart({ scenarios, headcount = 0 }) {
       {/* When two client-facing cases tie at the ceiling, say why rather than
        *  leave two identical bars looking like a rendering fault. */}
       {rows.filter(r => r.bounded).length > 1 && (
-        <p className="text-[11px] text-[#b45309] mt-3 leading-relaxed">
+        <p className="text-[11px] text-mf-warn mt-3 leading-relaxed">
           Two or more cases are held at the ceiling of research-based effect, so they read the same. At
           these inputs — a small, high-distress, well-paid workforce on an inexpensive stage — the
           published evidence cannot separate them. Quote the Base Case and treat the range as flat.
@@ -114,7 +118,7 @@ export default function ScenarioRangeChart({ scenarios, headcount = 0 }) {
       {/* One capacity note for the whole group — every non-Expected scenario
        *  shares the same participation, so it is one fact, not four. */}
       {rows.some(r => r.overCapacity) && (
-        <p className="text-[11px] text-[#b45309] mt-3 leading-relaxed">
+        <p className="text-[11px] text-mf-warn mt-3 leading-relaxed">
           ⚠ This stage is priced to serve about{' '}
           {Math.round((rows.find(r => r.overCapacity)?.pricedCapacity || 0) * 100)}% of the workforce.
           Every case except Expected credits savings above that — buy the extra capacity, or quote
