@@ -24,11 +24,20 @@ const STAGE_SUMMARY = {
   6: '4 workshops · 4 challenges · Leader EQ · Group · 1:1 Coaching · Consultant',
 };
 
-export default function RoiProjection({ roiResult, stageNum, onStageChange, headcount }) {
+export default function RoiProjection({ roiResult, stageNum, onStageChange, headcount, delivery }) {
   const fmt = (n) => '$' + Math.round(n).toLocaleString();
   const stage = STAGES[stageNum - 1];
-  const reached = headcount ? Math.round(headcount * (roiResult.pf || 0)) : null;
-  const perDollar = roiResult.rawPerDollar || 0;
+  const reached = delivery?.reached ?? (headcount ? Math.round(headcount * (roiResult.pf || 0)) : null);
+
+  // The quoted investment is what it costs to SERVE the participation we are
+  // claiming savings for, not the rate card's default. The rate card seats a
+  // quarter of a workforce; the commitments above can take turnout past that,
+  // which needs a second section of every workshop and more boxes. Quoting the
+  // lower price beside the higher savings is the mistake the old participation
+  // slider made -- a numerator that moves while the denominator stands still.
+  const investment = delivery?.cost ?? roiResult.investment;
+  const capacityUplift = delivery ? Math.max(0, delivery.cost - delivery.pricedCost) : 0;
+  const perDollar = investment > 0 ? roiResult.annualSavings / investment : 0;
 
   return (
     <div className="mf-card p-6">
@@ -47,9 +56,8 @@ export default function RoiProjection({ roiResult, stageNum, onStageChange, head
         <p className="text-[11px] uppercase tracking-[0.07em] opacity-60">Estimated annual value</p>
         <p className="mf-serif text-[46px] leading-none tabular-nums my-2">{fmt(roiResult.annualSavings)}</p>
         <p className="text-[13px] leading-relaxed opacity-80">
-          against an investment of {fmt(roiResult.investment)} — a return of about{' '}
-          {perDollar.toFixed(2)} for every dollar
-          {Number.isFinite(roiResult.paybackMonths) && <>, reached in month {roiResult.paybackMonths}</>}.
+          against an investment of {fmt(investment)} — a return of about{' '}
+          {perDollar.toFixed(2)} for every dollar.
         </p>
         <div className="mt-5 pt-4 border-t border-white/20 space-y-1.5">
           {reached != null && (
@@ -108,9 +116,21 @@ export default function RoiProjection({ roiResult, stageNum, onStageChange, head
               <p className="text-[10px] text-mf-ink-3">{BREAKDOWN_EXPLANATIONS[item.label] || ''}</p>
             </div>
           ))}
+          {capacityUplift > 0 && (
+            <div>
+              <div className="flex justify-between text-sm">
+                <span className="text-mf-ink-2">Capacity for {reached?.toLocaleString()} participants</span>
+                <span className="text-mf-ink font-medium">+{fmt(capacityUplift)}</span>
+              </div>
+              <p className="text-[10px] text-mf-ink-3">
+                The commitments you chose take turnout past what a standard campaign seats, so each
+                workshop runs {delivery.sessionsPerTopic} times and there are more boxes to raffle
+              </p>
+            </div>
+          )}
           <div className="flex justify-between text-sm font-bold pt-1 border-t border-mf-rule mt-1">
             <span className="text-mf-plum">Total Investment</span>
-            <span className="text-mf-plum">{fmt(roiResult.investment)}</span>
+            <span className="text-mf-plum">{fmt(investment)}</span>
           </div>
         </div>
       </div>
