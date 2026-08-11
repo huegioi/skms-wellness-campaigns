@@ -3,6 +3,7 @@ import RoiRampChart from '@/components/fitnessroi/RoiRampChart';
 import EscalationInfographic from '@/components/fitnessroi/EscalationInfographic';
 import ScenarioRange from '@/components/fitnessroi/ScenarioRange';
 import { STAGES } from '@/lib/roiModel';
+import { DRIVERS as DRIVER_ROWS } from '@/components/fitnessroi/dashboard/SavingsChart';
 
 const BREAKDOWN_EXPLANATIONS = {
   'Workshops & Webinars': 'Live expert-led sessions on stress, resilience, and mental fitness',
@@ -30,8 +31,9 @@ export default function RoiProjection({ roiResult, stageNum, onStageChange, head
   const perDollar = roiResult.rawPerDollar || 0;
 
   return (
-    <div className="mf-card border-l-4 border-l-mf-plum p-6 shadow-sm">
-      <h2 className="text-lg font-bold text-mf-plum mb-2">What a year of this could return</h2>
+    <div className="mf-card p-6">
+      <p className="mf-eyebrow mb-2">Your projection</p>
+      <h2 className="mf-serif text-[26px] leading-tight text-mf-plum mb-3">What a year of this could return</h2>
       <p className="text-xs text-mf-ink-2 mb-4 leading-relaxed">
         Estimated annual value from a SkillfulMeans mental fitness programme across four cost drivers we
         can evidence: recovered working time, reduced absence, retention, and the healthcare pathway.
@@ -41,27 +43,30 @@ export default function RoiProjection({ roiResult, stageNum, onStageChange, head
       <EscalationInfographic />
 
       {/* ── Headline ── */}
-      <div className="grid grid-cols-3 gap-3 mb-2">
-        <div>
-          <p className="text-xs uppercase tracking-widest text-mf-ink-3 mb-1">Annual Value</p>
-          <p className="text-xl font-bold text-mf-plum">{fmt(roiResult.annualSavings)}</p>
-        </div>
-        <div>
-          <p className="text-xs uppercase tracking-widest text-mf-ink-3 mb-1">Return per $1</p>
-          <p className="text-xl font-bold text-mf-plum">{perDollar.toFixed(2)}:1</p>
-        </div>
-        <div>
-          <p className="text-xs uppercase tracking-widest text-mf-ink-3 mb-1">Payback</p>
-          <p className="text-xl font-bold text-mf-plum">
-            {Number.isFinite(roiResult.paybackMonths) ? `${roiResult.paybackMonths} mo` : '—'}
-          </p>
+      <div className="mf-figbox p-7 mb-5">
+        <p className="text-[11px] uppercase tracking-[0.07em] opacity-60">Estimated annual value</p>
+        <p className="mf-serif text-[46px] leading-none tabular-nums my-2">{fmt(roiResult.annualSavings)}</p>
+        <p className="text-[13px] leading-relaxed opacity-80">
+          against an investment of {fmt(roiResult.investment)} — a return of about{' '}
+          {perDollar.toFixed(2)} for every dollar
+          {Number.isFinite(roiResult.paybackMonths) && <>, reached in month {roiResult.paybackMonths}</>}.
+        </p>
+        <div className="mt-5 pt-4 border-t border-white/20 space-y-1.5">
+          {reached != null && (
+            <div className="flex justify-between text-[13px]">
+              <span className="opacity-70">People reached</span>
+              <b className="tabular-nums">{reached.toLocaleString()}</b>
+            </div>
+          )}
+          {DRIVER_ROWS.map(d => (
+            <div key={d.key} className="flex justify-between text-[13px]">
+              <span className="opacity-70">{d.label}</span>
+              <b className="tabular-nums">{fmt(roiResult.drivers[d.key] || 0)}</b>
+            </div>
+          ))}
         </div>
       </div>
       <p className="text-xs text-mf-ink-2 mb-5 leading-relaxed">
-        Against an investment of <b className="text-mf-ink">{fmt(roiResult.investment)}</b>
-        {reached != null
-          ? <>, reaching about <b className="text-mf-ink">{reached.toLocaleString()}</b> of your people. </>
-          : '. '}
         This is the number we&rsquo;d plan against, not the best case.
       </p>
 
