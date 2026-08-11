@@ -9,7 +9,36 @@ module.exports = {
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		},
+  		fontFamily: {
+  			serif: ['"Playfair Display"', 'Georgia', 'serif'],
+  			sans: ['"DM Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+  		},
   		colors: {
+  			// Mental Fitness Journey. Values mirror the CSS custom properties in
+  			// src/styles/journeyTheme.css — change them THERE and here together.
+  			// The four driver hues are a validated categorical palette; see that
+  			// file's header before substituting any of them.
+  			mf: {
+  				plum: '#441D37',
+  				'plum-dark': '#35162B',
+  				cream: '#F0EDE6',
+  				coral: '#E8866A',
+  				forest: '#2D4A3E',
+  				ink: '#241019',
+  				'ink-2': '#5A4A52',
+  				'ink-3': '#8A7B82',
+  				rule: 'rgba(68,29,55,0.12)',
+  				grid: '#E4DFD7',
+  				warn: '#B4531F',
+  				presenteeism: '#8E3F72',
+  				absenteeism: '#EB6834',
+  				turnover: '#1BAF7A',
+  				medical: '#2A78D6',
+  				'ord-0': '#B9B2AC',
+  				'ord-1': '#C39CB4',
+  				'ord-2': '#8E5379',
+  				'ord-3': '#52223F',
+  			},
   			brand: {
   				navy: '#013f7c',
   				green: '#264d44',
