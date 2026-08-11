@@ -9,10 +9,11 @@ module.exports = {
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		},
-  		fontFamily: {
-  			serif: ['"Playfair Display"', 'Georgia', 'serif'],
-  			sans: ['"DM Sans"', 'system-ui', '-apple-system', 'sans-serif'],
-  		},
+  		// NOTE: deliberately NOT overriding fontFamily.sans / .serif here.
+  		// Doing so repoints Tailwind's preflight `html { font-family: ... }` and
+  		// changes the typeface for the ENTIRE app, not just the Journey. The
+  		// Journey's fonts are set inside the `.mf` scope in
+  		// src/styles/journeyTheme.css, which cannot leak.
   		colors: {
   			// Mental Fitness Journey. Values mirror the CSS custom properties in
   			// src/styles/journeyTheme.css — change them THERE and here together.
