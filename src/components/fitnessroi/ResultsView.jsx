@@ -64,6 +64,7 @@ export default function ResultsView({ data, hideCta }) {
         roiResult={roiResult}
         stageNum={roiInputs.stageNum}
         headcount={headcount}
+        delivery={delivery}
         onStageChange={(stageNum) => setRoiInputs(prev => ({ ...prev, stageNum }))}
       />
 
