@@ -1,0 +1,142 @@
+/* ══════════════════════════════════════════════════════════════════════════
+ *  MENTAL FITNESS JOURNEY — theme tokens
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Scoped to `.mf` so it cannot leak into the rest of the app. Wrap a Journey
+ * or dashboard screen in <div className="mf"> and everything inside picks it up.
+ *
+ * ── The chart palette is NOT the mockup's ────────────────────────────────
+ * The approved mockup used soft pastels for the four cost drivers — coral,
+ * sky, mauve, forest. They look right and they fail as a categorical palette:
+ * mauve and sky sit ΔE 7.8 apart for normal vision (a hard fail; the floor is
+ * 15) and 3.6 apart under deuteranopia, where red and green collapse. Roughly
+ * one man in twelve would have seen two of your four drivers as the same
+ * colour.
+ *
+ * The palette below was derived instead and validated on both surfaces:
+ *   worst adjacent pair ΔE 9.2 (deuteranopia), 23.7 (normal vision)
+ *   all four inside the lightness band, all above the chroma floor
+ * It keeps the brand's plum and coral; the aqua and blue are the separation.
+ *
+ * Two of the four fall below 3:1 contrast against cream, which is acceptable
+ * ONLY because every driver is directly labelled with its name and value in
+ * text — colour never carries identity alone. If you remove those labels, the
+ * palette has to be re-derived. All chrome (plum, ink, coral) is well above
+ * the text-contrast threshold.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=Playfair+Display:wght@500;600;700&display=swap');
+
+.mf {
+  /* Brand */
+  --mf-plum: #441D37;
+  --mf-cream: #F0EDE6;
+  --mf-coral: #E8866A;
+  --mf-forest: #2D4A3E;
+
+  /* Ink */
+  --mf-ink: #241019;
+  --mf-ink-2: #5A4A52;
+  --mf-ink-3: #8A7B82;
+
+  /* Structure */
+  --mf-rule: rgba(68, 29, 55, 0.12);
+  --mf-grid: #E4DFD7;
+  --mf-surface: #FFFFFF;
+
+  /* Categorical — the four cost drivers, in stack order.
+     Fixed assignment: a driver keeps its hue whatever else is on screen. */
+  --mf-driver-presenteeism: #8E3F72; /* recovered working time */
+  --mf-driver-absenteeism:  #EB6834; /* reduced absence        */
+  --mf-driver-turnover:     #1BAF7A; /* retention              */
+  --mf-driver-medical:      #2A78D6; /* healthcare pathway     */
+
+  /* Sequential — the scenario ladder. One hue, light to dark, monotonic in
+     luminance (0.387 → 0.133 → 0.033), because the scenarios are ORDERED.
+     Never give these four categorical hues; the order is the meaning. */
+  --mf-ord-0: #B9B2AC;  /* Conservative — internal, deliberately drained */
+  --mf-ord-1: #C39CB4;
+  --mf-ord-2: #8E5379;
+  --mf-ord-3: #52223F;
+
+  /* Status — reserved. Never reused as a series colour. */
+  --mf-warn: #B4531F;
+
+  font-family: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color: var(--mf-ink);
+}
+
+/* ── Type ─────────────────────────────────────────────────────────────── */
+.mf-serif {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.mf h1, .mf h2, .mf h3 { color: var(--mf-plum); }
+
+.mf-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mf-ink-3);
+}
+
+/* ── Surfaces ─────────────────────────────────────────────────────────── */
+.mf-screen { background: var(--mf-cream); }
+
+.mf-card {
+  background: var(--mf-surface);
+  border: 1px solid var(--mf-rule);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(36, 16, 25, 0.05), 0 12px 30px rgba(36, 16, 25, 0.05);
+}
+
+.mf-figbox {
+  background: var(--mf-plum);
+  color: #fff;
+  border-radius: 16px;
+}
+.mf-figbox .mf-rowlabel { opacity: 0.72; }
+
+/* ── Controls ─────────────────────────────────────────────────────────── */
+.mf-opt {
+  border: 1px solid var(--mf-rule);
+  border-radius: 13px;
+  background: var(--mf-surface);
+  transition: border-color 0.13s, background 0.13s;
+}
+.mf-opt:hover { border-color: rgba(68, 29, 55, 0.3); }
+.mf-opt.is-on {
+  border-color: var(--mf-plum);
+  background: color-mix(in srgb, var(--mf-plum) 4%, #fff);
+}
+.mf-box {
+  width: 20px; height: 20px; border-radius: 6px;
+  border: 1.5px solid rgba(68, 29, 55, 0.28);
+  display: grid; place-items: center;
+  color: #fff; flex: none;
+}
+.mf-opt.is-on .mf-box { background: var(--mf-plum); border-color: var(--mf-plum); }
+
+.mf-btn {
+  background: var(--mf-plum);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 13px 26px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.mf-btn:hover { background: #35162B; }
+
+.mf input[type='range'] { accent-color: var(--mf-plum); }
+
+/* ── Chart furniture ──────────────────────────────────────────────────── */
+.mf-tick { font-size: 11px; fill: var(--mf-ink-3); }
+.mf-gridline { stroke: var(--mf-grid); stroke-width: 1; }
+
+/* A 2px surface gap between stacked segments, so adjacent fills never touch. */
+.mf-stack-gap { stroke: var(--mf-surface); stroke-width: 2; }
