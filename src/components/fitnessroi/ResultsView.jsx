@@ -39,8 +39,8 @@ export default function ResultsView({ data, hideCta }) {
   return (
     <div className="space-y-6">
       {!hideCta && <PrimaryCta magicKey={magic_key} />}
-      <div className="mf-card border-l-4 border-l-mf-plum p-6 shadow-sm">
-        <h2 className="text-lg font-bold text-mf-plum mb-1">Your Mental Fitness Snapshot</h2>
+      <div className="mf-card p-6">
+        <h2 className="mf-serif text-[24px] text-mf-plum mb-1.5">Your Mental Fitness Snapshot</h2>
         <p className="text-xs text-mf-ink-2 mb-5 leading-relaxed">
           Each domain is scored 0–100 (higher is better). The shaded bands show Low, Typical, and High ranges from published research norms — the marker is where you placed your team.
         </p>

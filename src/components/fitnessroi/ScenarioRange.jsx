@@ -13,11 +13,8 @@ import React from 'react';
  */
 const fmtUSD = (v) => '$' + Math.round(v).toLocaleString();
 
-const FILL = {
-  base: '#441D37',
-  optimistic: '#14b8a6',
-  expected: 'transparent',
-};
+// Sequential — one hue, light to dark, because the scenarios are ORDERED.
+const FILL = { base: '#C39CB4', expected: '#8E5379', optimistic: '#52223F' };
 
 export default function ScenarioRange({ scenarios, showInvestment = false }) {
   const eligible = scenarios?.clientFacing || [];
@@ -36,7 +33,7 @@ export default function ScenarioRange({ scenarios, showInvestment = false }) {
 
   return (
     <div>
-      <h3 className="text-sm font-semibold text-mf-plum mb-1">Three numbers, not one</h3>
+      <h3 className="mf-serif text-[19px] text-mf-plum mb-1.5">Three numbers, not one</h3>
       <p className="text-xs text-mf-ink-2 leading-relaxed mb-4">
         Most wellbeing programmes are sold with a single confident figure. We&rsquo;d rather show you what
         we&rsquo;d plan against, what we&rsquo;d expect, and where the ceiling sits.
@@ -66,15 +63,10 @@ export default function ScenarioRange({ scenarios, showInvestment = false }) {
                   )}
                 </span>
               </div>
-              <div className="h-2.5 rounded-full bg-mf-cream overflow-hidden">
+              <div className="h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(68,29,55,0.07)' }}>
                 <div
                   className="h-full rounded-full"
-                  style={{
-                    width: `${pct}%`,
-                    background: FILL[r.scenario] || '#441D37',
-                    border: outlined ? '1.5px dashed #441D37' : 'none',
-                    backgroundColor: outlined ? 'rgba(74,32,64,0.08)' : undefined,
-                  }}
+                  style={{ width: `${pct}%`, background: FILL[r.scenario] || '#8E5379' }}
                 />
               </div>
             </div>

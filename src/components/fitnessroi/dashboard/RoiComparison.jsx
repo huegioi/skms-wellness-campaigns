@@ -114,9 +114,7 @@ export default function RoiComparison({ preliminaryRoi, teamRoi, roiInputs, stre
   return (
     <div className="mf-card border-l-4 border-l-mf-plum p-6 shadow-sm">
       {/* ── Section header ── */}
-      <h2 className="text-lg font-bold text-mf-plum mb-0.5">
-        Projected ROI Savings
-      </h2>
+      <h2 className="mf-serif text-[24px] text-mf-plum mb-1">Projected ROI Savings</h2>
       <p className="text-sm text-mf-ink-2 mb-1">
         from Implementing SkillfulMeans Mental Fitness Campaigns
       </p>
