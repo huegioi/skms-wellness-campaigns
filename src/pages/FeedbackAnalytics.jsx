@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, TrendingUp, MessageSquare, Heart, BarChart2, Loader2, Activity } from 'lucide-react';
+import AnalyticsTabs from '@/components/analytics/AnalyticsTabs';
 import FeedbackFilterBar from '@/components/feedback/FeedbackFilterBar';
 import Who5Analytics from '@/components/feedback/Who5Analytics';
 import { computeEnps } from '@/components/feedback/instrumentMeta';
@@ -310,6 +311,8 @@ export default function FeedbackAnalytics() {
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
+
+        <AnalyticsTabs current="FeedbackAnalytics" />
 
         <div className="mb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>

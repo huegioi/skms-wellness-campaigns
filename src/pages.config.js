@@ -55,6 +55,7 @@ import Dashboard from './pages/Dashboard';
 import EditProposal from './pages/EditProposal';
 import EmailTemplateManager from './pages/EmailTemplateManager';
 import FeedbackAnalytics from './pages/FeedbackAnalytics';
+import RoiTestBed from './pages/RoiTestBed';
 import FeedbackForm from './pages/FeedbackForm';
 import Financials from './pages/Financials';
 import Home from './pages/Home';
@@ -83,6 +84,7 @@ export const PAGES = {
     "EditProposal": EditProposal,
     "EmailTemplateManager": EmailTemplateManager,
     "FeedbackAnalytics": FeedbackAnalytics,
+    "RoiTestBed": RoiTestBed,
     "FeedbackForm": FeedbackForm,
     "Financials": Financials,
     "Home": Home,

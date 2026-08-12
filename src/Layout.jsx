@@ -12,7 +12,7 @@ const navItems = [
   { name: 'Services', page: 'ServiceCatalog', icon: Package, altPages: ['RateCard'] },
   { name: 'Schedule', page: 'SchedulingHub', icon: Calendar },
   { name: 'Financials', page: 'Financials', icon: Landmark },
-  { name: 'Feedback', page: 'FeedbackAnalytics', icon: ClipboardList },
+  { name: 'Analytics', page: 'FeedbackAnalytics', icon: ClipboardList, altPages: ['RoiTestBed'] },
   { name: 'Campaigns', page: 'CampaignCalendar', icon: CalendarDays },
   { name: 'Presenters', page: 'Presenters', icon: Users },
   { name: 'Quick Builder', page: 'QuickBuilder', icon: Sparkles, external: true, url: '/QuickBuilder' },
