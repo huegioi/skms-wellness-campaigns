@@ -11,17 +11,12 @@ import React from 'react';
  * readable, and the page doesn't carry a ~130KB raster. The photos are the
  * ones already hosted for this app; the pill colours are the brand accents.
  *
- * Order follows the graphic. Note it opens on Coaching rather than Workshops
- * — worth a look if this is meant to read as a sequence.
+ * Reads left to right as the actual sequence: workshops introduce the skills,
+ * challenges turn them into practice, coaching deepens and embeds them, and
+ * incentives reinforce throughout. The source graphic led with Coaching,
+ * which put "deepen" before "introduce" — corrected 2026-08-08.
  */
 const PILLARS = [
-  {
-    label: 'Coaching & Leadership EQ',
-    stage: ['DEEPEN', '& EMBODY'],
-    body: 'Deepen skills. Support leaders in modeling behaviors.',
-    pill: '#E8866A',   // coral
-    image: 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/90dfcddd2_generated_image.png',
-  },
   {
     label: 'Workshops',
     stage: ['INTRODUCE', 'SKILLS'],
@@ -35,6 +30,13 @@ const PILLARS = [
     body: 'Turn skills into daily habits. Practice in real work-life contexts.',
     pill: '#EFCBD8',   // mauve
     image: 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/aeb3b45a5_generated_image.png',
+  },
+  {
+    label: 'Coaching & Leadership EQ',
+    stage: ['DEEPEN', '& EMBODY'],
+    body: 'Deepen skills. Support leaders in modeling behaviors.',
+    pill: '#E8866A',   // coral
+    image: 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/90dfcddd2_generated_image.png',
   },
   {
     label: 'Incentives',
