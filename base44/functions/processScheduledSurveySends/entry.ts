@@ -125,9 +125,10 @@ async function computeRecipients(base44, send) {
 
   candidates = [...new Set(candidates)];
 
-  // Exclude suppressed
-  const suppressions = await base44.asServiceRole.entities.EmailSuppression.list();
-  const suppressedSet = new Set(suppressions.map(s => (s.email || '').toLowerCase().trim()));
+  // Exclude suppressed. Records with cleared_at were reinstated by an admin —
+  // the row is kept as an audit trail of the original unsubscribe, not as an
+  // active suppression, so it must not filter anyone out.
+  const suppressedSet = await loadSuppressedSet(base44);
   candidates = candidates.filter(e => !suppressedSet.has(e));
 
   // Exclude already-submitted for this timing.
@@ -154,6 +155,20 @@ async function computeRecipients(base44, send) {
   }
 
   return candidates;
+}
+
+// Single source of truth for "who must not be emailed". Used by both the initial
+// send and the reminder pass — the reminder pass previously skipped this check
+// entirely, which meant anyone who unsubscribed from a send still received its
+// follow-up reminder two days later.
+async function loadSuppressedSet(base44) {
+  const suppressions = await base44.asServiceRole.entities.EmailSuppression.list();
+  return new Set(
+    suppressions
+      .filter(s => !s.cleared_at)
+      .map(s => (s.email || '').toLowerCase().trim())
+      .filter(Boolean)
+  );
 }
 
 async function getInstruments(base44, send) {
@@ -237,13 +252,19 @@ async function processReminderBatch(base44, sendType, cutoff) {
     send_type: sendType, status: 'sent', reminder_sent: false
   }, '-sent_at', 50);
 
+  // Re-read per batch so an unsubscribe made after the initial send is honoured
+  // by the reminder that follows it.
+  const suppressedSet = await loadSuppressedSet(base44);
+
   for (const send of sentSends) {
     if (send.is_demo) continue;
     if (!send.sent_at || new Date(send.sent_at) > cutoff) continue;
 
-    // Find non-responders
+    // Find non-responders who are still eligible to be emailed.
     const invites = await base44.asServiceRole.entities.SurveyInvite.filter({ scheduled_send_id: send.id });
-    const nonResponders = invites.filter(i => !i.submitted_at);
+    const nonResponders = invites.filter(
+      i => !i.submitted_at && !suppressedSet.has((i.email || '').toLowerCase().trim())
+    );
 
     for (const invite of nonResponders) {
       try {
