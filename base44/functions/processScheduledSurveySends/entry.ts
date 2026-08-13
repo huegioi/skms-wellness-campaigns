@@ -359,10 +359,28 @@ async function processReminderBatch(base44, sendType, cutoff) {
     const nonResponders = invites.filter(
       i => !i.submitted_at && !suppressedSet.has((i.email || '').toLowerCase().trim())
     );
+    if (nonResponders.length === 0) {
+      await base44.asServiceRole.entities.ScheduledSurveySend.update(send.id, { reminder_sent: true });
+      continue;
+    }
+
+    // Same session block and greeting as the original send, so the reminder is
+    // recognisable rather than a context-free nudge. Names come from the
+    // check-ins on the event, matched back to each invite by email.
+    const sessionCtx = await buildSessionContext(base44, send);
+    const nameByEmail = {};
+    if (send.event_id) {
+      const checkins = await base44.asServiceRole.entities.EventCheckin.filter({ event_id: send.event_id });
+      for (const c of checkins) {
+        const e = (c.email || '').toLowerCase().trim();
+        if (e && c.name && !nameByEmail[e]) nameByEmail[e] = c.name;
+      }
+    }
 
     for (const invite of nonResponders) {
       try {
-        await sendReminderEmail(invite.email, invite.token, sendType);
+        const name = firstNameFrom(nameByEmail[(invite.email || '').toLowerCase().trim()]);
+        await sendReminderEmail(invite.email, invite.token, sendType, { ...sessionCtx, name });
       } catch (err) { /* continue */ }
     }
 
@@ -371,7 +389,7 @@ async function processReminderBatch(base44, sendType, cutoff) {
   }
 }
 
-async function sendReminderEmail(to, token, sendType = 'cohort_end') {
+async function sendReminderEmail(to, token, sendType = 'cohort_end', ctx = {}) {
   const isPulse = sendType === 'post_session_pulse';
   const surveyLink = isPulse
     ? `${APP_URL}/AttendeeForm?t=${token}`
@@ -387,6 +405,8 @@ async function sendReminderEmail(to, token, sendType = 'cohort_end') {
       <h1 style="color:#fff;margin:0;font-size:20px">skillfulmeans</h1>
     </div>
     <div style="background:#f9f9f9;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb">
+      ${greetingHtml(ctx.name)}
+      ${sessionBlockHtml(ctx)}
       <p style="color:#374151;font-size:15px;line-height:1.6">${intro}</p>
       <a href="${surveyLink}" style="display:inline-block;background:#264d44;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;margin:16px 0">${buttonText}</a>
       <p style="color:#9ca3af;font-size:12px;margin-top:24px"><a href="${unsubLink}" style="color:#9ca3af">Unsubscribe</a></p>
