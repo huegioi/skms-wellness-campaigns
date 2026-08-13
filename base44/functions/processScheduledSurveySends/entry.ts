@@ -5,6 +5,76 @@ const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY');
 const FROM_EMAIL = 'admin@skillfulmeans.life';
 const FROM_NAME = 'SkillfulMeans';
 
+// Session times are rendered in this zone rather than the server's (UTC).
+// Without it a noon-Eastern workshop prints as "4:00 PM" in the email, because
+// the function runs in UTC and toLocaleString defaults to the host zone.
+const DISPLAY_TZ = 'America/New_York';
+
+// Matches the check-in page's fmtDate exactly, so the date a person sees in the
+// email is the one they saw when they checked in.
+function formatSessionWhen(startDate) {
+  if (!startDate) return '';
+  const dt = new Date(startDate);
+  if (isNaN(dt.getTime())) return '';
+  const day = dt.toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: DISPLAY_TZ,
+  });
+  const time = dt.toLocaleTimeString('en-US', {
+    hour: 'numeric', minute: '2-digit', timeZone: DISPLAY_TZ,
+  });
+  return `${day} at ${time}`;
+}
+
+// First name for the greeting. Returns null when there is nothing usable, so the
+// caller falls back to "Hey there," — check-in records sometimes carry an email
+// address in the name field, and "Hey heather@skillfulmeans.life," reads broken.
+function firstNameFrom(raw) {
+  const s = (raw || '').trim();
+  if (!s || s.includes('@')) return null;
+  const first = s.split(/\s+/)[0];
+  if (!first) return null;
+  return first.charAt(0).toUpperCase() + first.slice(1);
+}
+
+function escapeHtml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Event title / time / client company for the session block. Best-effort: any
+// piece that is missing is simply omitted rather than printed blank.
+async function buildSessionContext(base44, send) {
+  const ctx = { title: '', when: '', company: '' };
+  if (send.event_id) {
+    const events = await base44.asServiceRole.entities.CalendarEvent.filter({ id: send.event_id });
+    const ev = events[0];
+    if (ev) {
+      ctx.title = ev.title || '';
+      ctx.when = formatSessionWhen(ev.start_date);
+    }
+  }
+  if (send.client_id) {
+    const clients = await base44.asServiceRole.entities.Client.filter({ id: send.client_id });
+    ctx.company = clients[0]?.company || '';
+  }
+  return ctx;
+}
+
+function sessionBlockHtml(ctx) {
+  if (!ctx || (!ctx.title && !ctx.when && !ctx.company)) return '';
+  const rows = [];
+  if (ctx.title) rows.push(`<p style="margin:0 0 4px;font-size:16px;font-weight:bold;color:#013f7c;line-height:1.35">${escapeHtml(ctx.title)}</p>`);
+  if (ctx.when) rows.push(`<p style="margin:0;font-size:13px;color:#6b7280">${escapeHtml(ctx.when)}</p>`);
+  if (ctx.company) rows.push(`<p style="margin:3px 0 0;font-size:13px;color:#9ca3af">Hosted for ${escapeHtml(ctx.company)}</p>`);
+  return `<div style="border-left:3px solid #013f7c;padding:2px 0 2px 14px;margin:0 0 18px">${rows.join('')}</div>`;
+}
+
+function greetingHtml(name) {
+  const who = name ? `${escapeHtml(name)}` : 'there';
+  return `<p style="margin:0 0 16px;color:#374151;font-size:15px">Hey ${who},</p>`;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
