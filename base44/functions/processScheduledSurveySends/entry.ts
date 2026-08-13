@@ -286,8 +286,8 @@ async function sendSurveyEmail(to, sendType, token, ctx = {}) {
   };
 
   const intros = {
-    enps_post_session: 'Thank you for attending today\u2019s session. We\u2019d love one quick piece of feedback.',
-    post_session_pulse: 'Thank you for joining today\u2019s session. One quick reflection while it\u2019s fresh.',
+    enps_post_session: 'Thank you for attending this session. We\u2019d love one quick piece of feedback.',
+    post_session_pulse: 'Thank you for joining this session. One quick reflection while it\u2019s fresh.',
     cohort_end: 'Your wellness program has wrapped up. We\u2019d value your input on the experience.',
     cohort_1mo: 'It\u2019s been about a month since your wellness program. We\u2019d love to check in.'
   };
