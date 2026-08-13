@@ -8,6 +8,38 @@ import {
 import { downloadICS } from '@/lib/ics';
 import { format, subDays, differenceInDays, isPast, isToday } from 'date-fns';
 
+// Events ingested from Google Calendar carry the invite body verbatim, which is
+// HTML — Google wraps pasted content in nested <table> scaffolding. Rendered as
+// plain text on the client's timeline that shows up as a wall of raw tags, so
+// strip markup down to readable prose before display.
+//
+// Also drops the bookkeeping lines the sheet mirror writes into descriptions
+// ("[Removed from sheet — client link preserved]", "Source: Events"). Those are
+// internal provenance notes and mean nothing to a client.
+function cleanEventDescription(raw) {
+  if (!raw) return '';
+  let text = String(raw);
+  if (/<[a-z][\s\S]*>/i.test(text)) {
+    text = text
+      .replace(/<\s*(br|\/p|\/div|\/tr|\/li)\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;/gi, "'");
+  }
+  const INTERNAL_LINE = /^\s*(\[Removed from sheet[^\]]*\]|Source:|Client:)/i;
+  return text
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l && !INTERNAL_LINE.test(l))
+    .join(' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 export default function ClientTimeline({ events, proposal }) {
   const [pastExpanded, setPastExpanded] = useState(false);
   const eventTypeConfig = {
@@ -80,7 +112,7 @@ export default function ClientTimeline({ events, proposal }) {
         date: eventDate,
         type: 'event',
         title: event.title,
-        description: event.description || `${config.label} event`,
+        description: cleanEventDescription(event.description) || `${config.label} event`,
         event: event,
         icon: config.icon,
         color: config.color,
