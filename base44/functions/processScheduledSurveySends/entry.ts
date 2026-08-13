@@ -175,9 +175,22 @@ async function processSend(base44, send) {
 async function computeRecipients(base44, send) {
   let candidates = [];
 
+  // Names are collected alongside emails so the email can greet people by name.
+  // Keyed by email because that stays the dedup key; last non-empty name wins.
+  const nameByEmail = {};
+  const remember = (email, name) => {
+    if (email && name && !nameByEmail[email]) nameByEmail[email] = name;
+  };
+
   if (send.send_type === 'enps_post_session' || send.send_type === 'post_session_pulse') {
     const checkins = await base44.asServiceRole.entities.EventCheckin.filter({ event_id: send.event_id });
-    candidates = checkins.filter(c => !c.is_demo).map(c => (c.email || '').toLowerCase().trim()).filter(Boolean);
+    for (const c of checkins) {
+      if (c.is_demo) continue;
+      const e = (c.email || '').toLowerCase().trim();
+      if (!e) continue;
+      candidates.push(e);
+      remember(e, c.name);
+    }
   } else {
     // cohort_end / cohort_1mo: all distinct emails across engagement for client + service
     const events = await base44.asServiceRole.entities.CalendarEvent.filter({ client_id: send.client_id });
@@ -185,7 +198,13 @@ async function computeRecipients(base44, send) {
 
     for (const eid of matchingEventIds) {
       const checkins = await base44.asServiceRole.entities.EventCheckin.filter({ event_id: eid });
-      candidates.push(...checkins.filter(c => !c.is_demo).map(c => (c.email || '').toLowerCase().trim()).filter(Boolean));
+      for (const c of checkins) {
+        if (c.is_demo) continue;
+        const e = (c.email || '').toLowerCase().trim();
+        if (!e) continue;
+        candidates.push(e);
+        remember(e, c.name);
+      }
     }
 
     const assessments = await base44.asServiceRole.entities.CohortAssessment.filter({ client_id: send.client_id });
@@ -224,7 +243,7 @@ async function computeRecipients(base44, send) {
     candidates = candidates.filter(e => !submittedSet.has(e));
   }
 
-  return candidates;
+  return candidates.map(email => ({ email, name: firstNameFrom(nameByEmail[email]) }));
 }
 
 // Single source of truth for "who must not be emailed". Used by both the initial
