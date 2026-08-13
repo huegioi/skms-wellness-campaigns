@@ -147,9 +147,12 @@ async function processSend(base44, send) {
   // Determine instrument set
   const instruments = await getInstruments(base44, send);
 
+  // Session name / date / company shown in the email, matching the check-in page.
+  const sessionCtx = await buildSessionContext(base44, send);
+
   // Create SurveyInvites + send emails
   let sentCount = 0;
-  for (const email of recipients) {
+  for (const { email, name } of recipients) {
     const token = crypto.randomUUID();
     await base44.asServiceRole.entities.SurveyInvite.create({
       token, email, client_id: send.client_id, service_id: send.service_id,
@@ -158,7 +161,7 @@ async function processSend(base44, send) {
       scheduled_send_id: send.id, created_at: new Date().toISOString()
     });
     try {
-      await sendSurveyEmail(email, send.send_type, token);
+      await sendSurveyEmail(email, send.send_type, token, { ...sessionCtx, name });
       sentCount++;
     } catch (err) {
       // Continue with other recipients
@@ -269,7 +272,7 @@ async function getInstruments(base44, send) {
   return ['who5', 'enps'];
 }
 
-async function sendSurveyEmail(to, sendType, token) {
+async function sendSurveyEmail(to, sendType, token, ctx = {}) {
   const surveyLink = sendType === 'post_session_pulse'
     ? `${APP_URL}/AttendeeForm?t=${token}`
     : `${APP_URL}/CohortAssessment?t=${token}`;
@@ -308,6 +311,8 @@ async function sendSurveyEmail(to, sendType, token) {
       <h1 style="color:#fff;margin:0;font-size:20px">skillfulmeans</h1>
     </div>
     <div style="background:#f9f9f9;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb">
+      ${greetingHtml(ctx.name)}
+      ${sessionBlockHtml(ctx)}
       <p style="color:#374151;font-size:15px;line-height:1.6">${intros[sendType]}</p>
       <p style="color:#374151;font-size:15px;line-height:1.6">${durations[sendType]}</p>
       <a href="${surveyLink}" style="display:inline-block;background:#264d44;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;margin:16px 0">${buttons[sendType]}</a>
