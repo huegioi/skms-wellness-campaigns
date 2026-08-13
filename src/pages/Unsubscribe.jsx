@@ -23,7 +23,10 @@ export default function Unsubscribe() {
   const handleUnsubscribe = async () => {
     setStatus('working');
     try {
-      await base44.functions.invoke('submitSurveyUnsubscribe', { email });
+      // `confirmed: true` is the server-side proof that a human pressed the
+      // button. It is sent ONLY from this onClick handler — never from an effect,
+      // a loader, or anything a link-scanner could reach by fetching the URL.
+      await base44.functions.invoke('submitSurveyUnsubscribe', { email, confirmed: true });
       setStatus('done');
     } catch (e) {
       setStatus('error');
