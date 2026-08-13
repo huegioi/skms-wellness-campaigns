@@ -293,6 +293,7 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     const linkedClient = formData.client_id ? clients.find(c => c.id === formData.client_id) : null;
     const eventData = {
       ...formData,
+      ...withZonedDates(formData),
       checkin_token: crypto.randomUUID(),
       color: formData.color || eventTypeConfig[formData.event_type]?.color,
       is_demo: linkedClient?.is_demo === true,
@@ -333,6 +334,7 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     const linkedClient = formData.client_id ? clients.find(c => c.id === formData.client_id) : null;
     const eventData = {
       ...formData,
+      ...withZonedDates(formData),
       checkin_token: crypto.randomUUID(),
       color: formData.color || eventTypeConfig[formData.event_type]?.color,
       is_demo: linkedClient?.is_demo === true,
