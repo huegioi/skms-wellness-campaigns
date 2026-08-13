@@ -13,6 +13,29 @@ import { useQuery } from '@tanstack/react-query';
 import { computeSmartAssessmentTiming } from '@/lib/checkinAssessmentUtils';
 import { ClipboardCheck } from 'lucide-react';
 
+// `<input type="datetime-local">` yields a NAIVE local string ("2026-08-13T12:00")
+// with no timezone. Stored verbatim, the backend parses it as UTC — so an event
+// booked for noon Eastern was read on the server as noon UTC, i.e. 8am Eastern.
+// Everything downstream that schedules off start/end (the post-session pulse most
+// visibly) then fired hours early, before the session had even happened.
+//
+// `new Date(naive)` in the BROWSER parses as local time, so .toISOString() gives
+// the correct absolute instant. All-day events keep their bare date — they're
+// genuinely calendar days, not instants, and shifting them would move the day.
+function withZonedDates(form) {
+  if (form.all_day) return {};
+  const out = {};
+  for (const key of ['start_date', 'end_date']) {
+    const raw = form[key];
+    if (!raw) continue;
+    // Already carries an offset or a Z (e.g. a Google-ingested value) — leave it.
+    if (/(Z|[+-]\d{2}:\d{2})$/.test(raw)) continue;
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) out[key] = d.toISOString();
+  }
+  return out;
+}
+
 export default function EventDialog({ open, onOpenChange, selectedDate, clients, proposals, eventTypeConfig, onSaved, prefillLeadId }) {
   const [saving, setSaving] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState(null);
