@@ -372,7 +372,7 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl w-[95vw] sm:w-full max-h-[92vh] overflow-y-auto">
         <SonnerToaster position="top-center" style={{ zIndex: 9999 }} />
         <DialogHeader>
           <DialogTitle>{service.id ? 'Edit Service' : 'Add New Service'}</DialogTitle>
