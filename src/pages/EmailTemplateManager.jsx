@@ -357,8 +357,9 @@ export default function EmailTemplateManager() {
       queryClient.invalidateQueries({ queryKey: ['portalClient'] });
       setAssigningTemplate(null);
       setSelectedClientIds([]);
+      toast.success('Portal assignments updated');
     } catch (error) {
-      alert('Failed to assign template: ' + error.message);
+      toast.error('Failed to assign template: ' + error.message);
     }
   };
 
