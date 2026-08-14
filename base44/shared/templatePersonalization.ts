@@ -128,15 +128,16 @@ export function resolvePortalTemplates(opts: {
   const result: PortalTemplate[] = [];
 
   for (const t of templates) {
-    // Never show another client's template.
-    if (t.client_id && t.client_id !== client.id) continue;
-
     const serviceId = resolveTemplateServiceId(t, services);
     const event = bestEventForService(serviceId, clientEvents);
 
     let reason: PortalTemplate['inclusion_reason'] | null = null;
-    if (t.client_id === client.id) reason = 'client_specific';
-    else if (manualIds.has(t.id)) reason = 'manual';
+    // Explicit admin assignment always wins — even over another client's
+    // client_id tag (the admin deliberately put it in THIS portal).
+    if (manualIds.has(t.id)) reason = 'manual';
+    // Otherwise never show another client's template.
+    else if (t.client_id && t.client_id !== client.id) continue;
+    else if (t.client_id === client.id) reason = 'client_specific';
     else if (serviceId && purchased.has(serviceId) && event) reason = 'service';
     if (!reason) continue;
 
