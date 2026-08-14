@@ -13,6 +13,11 @@ import { Mail, Download, FileText, Award, Dumbbell, Users, Package, Eye } from '
 // in the downloaded .eml/.doc. Clean before styling.
 function cleanEmailHtml(html) {
   let out = html || '';
+  // 0. De-proxy Gmail image URLs. Bodies imported from Gmail reference images
+  //    through googleusercontent.com/meips/...#<original-url> — the original
+  //    CDN address rides along after the '#'. Point straight at it so images
+  //    load reliably outside Gmail.
+  out = out.replace(/src="https?:\/\/ci\d*\.googleusercontent\.com\/[^"#]*#(https?:\/\/[^"]+)"/gi, 'src="$1"');
   // 1. Spacer/tracking pixels (by known spacer sources).
   out = out.replace(/<img[^>]*src="[^"]*(?:a\.kajabi\.com\/9\/|\/spacer|1x1\.(?:gif|png))[^"]*"[^>]*>/gi, '');
   // 2. Paragraphs / headings left completely empty by that removal.
