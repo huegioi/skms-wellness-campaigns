@@ -177,18 +177,30 @@ export default function ClientEmailTemplates({ proposal, templates = [], client,
       blob = new Blob([content], { type: 'message/rfc822' });
       fileName = `${sanitizedName}.eml`;
     } else if (format === 'doc') {
-      // Create HTML document that opens in Word
+      // Create HTML document that opens in Word — same cleanup as .eml so
+      // spacer pixels and dead links never reach the document, plus basic
+      // styles so spacing in Word matches the editor.
+      const docBody = linkifyBareUrls(cleanEmailHtml(template.body || ''));
       const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <title>${template.subject}</title>
+  <style>
+    body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; line-height: 1.5; color: #333; }
+    p { margin: 0 0 10pt 0; }
+    h1, h2, h3, h4 { margin: 14pt 0 6pt 0; line-height: 1.3; }
+    ul, ol { margin: 8pt 0; padding-left: 24pt; }
+    li { margin: 3pt 0; }
+    img { max-width: 480px; height: auto; }
+    a { color: #0066cc; }
+  </style>
 </head>
 <body>
   <h2>Subject: ${template.subject}</h2>
   <hr>
-  ${template.body || ''}
+  ${docBody}
 </body>
 </html>`;
       
