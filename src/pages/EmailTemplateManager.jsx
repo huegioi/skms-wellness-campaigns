@@ -387,21 +387,10 @@ export default function EmailTemplateManager() {
     setFormData({ ...formData, tags: formData.tags.filter(t => t !== tag) });
   };
 
-  // Get all available services from catalog
-  const getAllServices = () => {
-    const services = [];
-    Object.entries(productCatalog.workshops).forEach(([key, w]) => 
-      services.push({ key, name: w.name, category: 'workshop' }));
-    Object.entries(productCatalog.challenges).forEach(([key, c]) => 
-      services.push({ key, name: c.name, category: 'challenge' }));
-    Object.entries(productCatalog.leadership).forEach(([key, l]) => 
-      services.push({ key, name: l.name, category: 'leadership' }));
-    Object.entries(productCatalog.movementClasses).forEach(([key, m]) => 
-      services.push({ key, name: m.name, category: 'class' }));
-    return services;
-  };
-
-  const allServices = getAllServices();
+  // Services come from the live Service catalog (same records proposals and
+  // the calendar use) so template→portal matching is by service_id, never a
+  // hard-coded name list.
+  const allServices = catalogServices.filter(s => s.is_active !== false);
 
   const templateTypeLabels = {
     announcement: 'Announcement (2 weeks before)',
@@ -415,7 +404,8 @@ export default function EmailTemplateManager() {
     challenge: 'Challenges',
     leadership: 'Leadership',
     class: 'Classes',
-    wellness_box: 'Wellness Boxes'
+    wellness_box: 'Wellness Boxes',
+    other: 'Other / Campaigns'
   };
 
   // Filter templates based on search and type filter
@@ -429,13 +419,17 @@ export default function EmailTemplateManager() {
     });
   }, [templates, searchQuery, filterType]);
 
-  // Group filtered templates by category
+  // Group filtered templates by category. 'other' catches templates without
+  // a recognized category (e.g. saved from the Outreach Campaign wizard) so
+  // nothing is invisible on this page.
+  const KNOWN_CATEGORIES = ['workshop', 'challenge', 'leadership', 'class', 'wellness_box'];
   const templatesByCategory = {
     workshop: filteredTemplates.filter(t => t.service_category === 'workshop'),
     challenge: filteredTemplates.filter(t => t.service_category === 'challenge'),
     leadership: filteredTemplates.filter(t => t.service_category === 'leadership'),
     class: filteredTemplates.filter(t => t.service_category === 'class'),
-    wellness_box: filteredTemplates.filter(t => t.service_category === 'wellness_box')
+    wellness_box: filteredTemplates.filter(t => t.service_category === 'wellness_box'),
+    other: filteredTemplates.filter(t => !KNOWN_CATEGORIES.includes(t.service_category))
   };
 
   const clearFilters = () => {
@@ -603,7 +597,16 @@ export default function EmailTemplateManager() {
                              <Button size="icon" variant="ghost" onClick={() => handleEdit(template)}>
                                <Pencil className="w-4 h-4" />
                              </Button>
-                             <Button size="icon" variant="ghost" className="text-red-500" onClick={() => deleteMutation.mutate(template.id)}>
+                             <Button
+                               size="icon"
+                               variant="ghost"
+                               className="text-red-500"
+                               onClick={() => {
+                                 if (window.confirm(`Delete the template "${template.subject}"? This cannot be undone.`)) {
+                                   deleteMutation.mutate(template.id);
+                                 }
+                               }}
+                             >
                                <Trash2 className="w-4 h-4" />
                              </Button>
                              </div>
