@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, Pencil, Trash2, Mail, Upload, Send, FileText, Search, Filter, X, Eye, Copy, History, Tag, Users } from 'lucide-react';
-import { productCatalog } from '@/components/curriculum/catalogData';
+import { toast } from 'sonner';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
@@ -77,9 +77,9 @@ export default function EmailTemplateManager() {
     queryFn: () => base44.entities.EmailTemplate.list('service_category')
   });
 
-  const { data: proposals = [] } = useQuery({
-    queryKey: ['proposals'],
-    queryFn: () => base44.entities.Proposal.filter({ status: 'accepted' })
+  const { data: catalogServices = [] } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => base44.entities.Service.list('sort_order')
   });
 
   const { data: clients = [] } = useQuery({
@@ -95,7 +95,11 @@ export default function EmailTemplateManager() {
   const getPreviewData = () => {
     if (previewClientId) {
       const client = clients.find(c => c.id === previewClientId);
-      const clientEvent = events.find(e => e.client_id === previewClientId);
+      // Prefer the event for THIS template's service — mirrors how the portal
+      // personalizes — falling back to any of the client's events.
+      const clientEvent =
+        events.find(e => e.client_id === previewClientId && formData.service_id && e.service_id === formData.service_id) ||
+        events.find(e => e.client_id === previewClientId);
       
       return {
         client_name: client?.name || 'Jane Doe',
@@ -124,6 +128,7 @@ export default function EmailTemplateManager() {
   };
 
   const [formData, setFormData] = useState({
+    service_id: '',
     service_name: '',
     service_category: 'workshop',
     template_type: 'announcement',
@@ -194,6 +199,7 @@ export default function EmailTemplateManager() {
 
   const resetForm = () => {
     setFormData({
+      service_id: '',
       service_name: '',
       service_category: 'workshop',
       template_type: 'announcement',
@@ -209,7 +215,13 @@ export default function EmailTemplateManager() {
   };
 
   const handleEdit = (template) => {
+    // Legacy templates have no service_id — recover it by name so saving
+    // upgrades them to id-based matching.
+    const legacyMatch = !template.service_id && template.service_name
+      ? catalogServices.find(s => s.name.trim().toLowerCase() === template.service_name.trim().toLowerCase())
+      : null;
     setFormData({
+      service_id: template.service_id || legacyMatch?.id || '',
       service_name: template.service_name || '',
       service_category: template.service_category || 'workshop',
       template_type: template.template_type || 'announcement',
@@ -226,6 +238,7 @@ export default function EmailTemplateManager() {
 
   const handleDuplicate = (template) => {
     setFormData({
+      service_id: template.service_id || '',
       service_name: template.service_name || '',
       service_category: template.service_category || 'workshop',
       template_type: template.template_type || 'announcement',
