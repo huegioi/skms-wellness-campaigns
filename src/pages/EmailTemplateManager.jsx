@@ -298,47 +298,26 @@ export default function EmailTemplateManager() {
         // Parse the file to extract subject and body
         const parseResponse = await base44.functions.invoke('parseEmailFile', { file_url });
 
-        console.log('Parse response:', parseResponse);
-        console.log('Response data:', parseResponse.data);
-
         const parsedSubject = parseResponse.data?.subject || '';
         const parsedBody = parseResponse.data?.body || '';
 
-        console.log('Parsed subject:', parsedSubject);
-        console.log('Parsed body length:', parsedBody?.length || 0);
-        console.log('Parsed body preview:', parsedBody?.substring(0, 500));
-        console.log('parsedBody is truthy?', !!parsedBody);
-        console.log('parsedSubject is truthy?', !!parsedSubject);
-
         if (parsedSubject || parsedBody) {
-          // Update body first, then increment key
-          setFormData(prev => {
-            const newData = {
-              ...prev,
-              subject: parsedSubject || prev.subject,
-              body: parsedBody,
-              file_url
-            };
-            console.log('Setting new form data body length:', newData.body.length);
-            return newData;
-          });
-
-          // Wait a tick then force editor re-render
-          setTimeout(() => {
-            setEditorKey(prev => {
-              console.log('Incrementing editor key from', prev, 'to', prev + 1);
-              return prev + 1;
-            });
-          }, 50);
-
-          alert(`Content extracted!\nSubject: ${parsedSubject ? 'Yes' : 'No'}\nBody: ${parsedBody.length} characters`);
+          // Update body first, then force the editor to re-render
+          setFormData(prev => ({
+            ...prev,
+            subject: parsedSubject || prev.subject,
+            body: parsedBody,
+            file_url
+          }));
+          setTimeout(() => setEditorKey(prev => prev + 1), 50);
+          toast.success(`Content extracted — subject ${parsedSubject ? 'found' : 'not found'}, body ${parsedBody.length} characters`);
         } else {
           setFormData({ ...formData, file_url });
-          alert('File uploaded but no content could be extracted. You can manually enter the template content.');
+          toast.warning('File uploaded but no content could be extracted. You can enter the template content manually.');
         }
       } catch (error) {
         console.error('File upload error:', error);
-        alert(`Failed to parse file: ${error.message}`);
+        toast.error(`Failed to parse file: ${error.message}`);
       } finally {
         setUploadingFile(false);
       }
@@ -1018,6 +997,12 @@ export default function EmailTemplateManager() {
               <p className="text-sm text-gray-600">
                 Select which client portals should have access to "<strong>{assigningTemplate?.subject}</strong>"
               </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+                <strong>You usually don't need this.</strong> Templates appear in a client's portal automatically
+                once the client has purchased the template's service and an event for it is booked on the calendar,
+                with names, dates, and links filled in. Manual assignment is only for exceptions — a manually
+                assigned template shows even before an event is booked, with "[to be scheduled]" placeholders.
+              </div>
               <div className="border rounded-lg p-4 max-h-96 overflow-y-auto space-y-2">
                 {clients.map(client => {
                   const isSelected = selectedClientIds.includes(client.id);
