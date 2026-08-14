@@ -40,6 +40,85 @@ export const INSTRUMENT_META = {
   },
 };
 
+// ── Research-based score bands ("is this number high, low, or typical?") ───
+// Cutoffs come from each instrument's published norms. Used to color the
+// numbers on result cards and drive the click-to-expand "what does this
+// number mean" panel — same Low / Typical / High idea as the Mental Fitness
+// journey dashboard, kept deliberately simple.
+// tone: 'good' (green) | 'mid' (amber) | 'poor' (red) — direction-aware, so
+// "Low" stress is green while "Low" wellbeing is red.
+export const INSTRUMENT_BANDS = {
+  who5: {
+    source: 'WHO-5 published norms (Topp et al., 2015)',
+    moveTheNeedle: 'Stress & mood workshops, regular restorative practices (sleep, movement, breaks), and manager check-ins tend to move wellbeing most.',
+    bands: [
+      { max: 28, label: 'Low', tone: 'poor', meaning: 'Below 28 is the research screening threshold for possible depression — a clear signal this group needs support.' },
+      { max: 50, label: 'Below typical', tone: 'mid', meaning: '50 or below indicates reduced wellbeing relative to the general working population.' },
+      { max: 69, label: 'Typical', tone: 'mid', meaning: 'In line with the average working population (most workforces score in the 50s–60s).' },
+      { max: Infinity, label: 'High', tone: 'good', meaning: '70+ reflects thriving — strong day-to-day mood, energy, and rest.' },
+    ],
+  },
+  uwes3: {
+    source: 'UWES manual norms (Schaufeli et al.)',
+    moveTheNeedle: 'Strengths-based work, recognition, and connection programming are the strongest levers for engagement.',
+    bands: [
+      { max: 2.69, label: 'Low', tone: 'poor', meaning: 'Below ≈2.7 sits in the low range of published norms — people report little energy or enthusiasm at work.' },
+      { max: 4.6, label: 'Typical', tone: 'mid', meaning: '≈2.7–4.6 is the average range across working populations.' },
+      { max: Infinity, label: 'High', tone: 'good', meaning: 'Above ≈4.6 reflects a highly engaged group — energized, enthusiastic, and immersed.' },
+    ],
+  },
+  pss4: {
+    source: 'PSS-4 population norms (Cohen)',
+    moveTheNeedle: 'Mindfulness and stress-skills training, workload clarity, and real recovery time reliably bring perceived stress down.',
+    bands: [
+      { max: 4, label: 'Low stress', tone: 'good', meaning: '0–4 is comfortably below the population average — stress is well managed.' },
+      { max: 8, label: 'Typical', tone: 'mid', meaning: '5–8 brackets the population average (≈6) — a normal level of day-to-day stress.' },
+      { max: Infinity, label: 'High stress', tone: 'poor', meaning: '9+ is elevated — this group is feeling more stress than most and it’s worth acting on.' },
+    ],
+  },
+  ucla3: {
+    source: 'UCLA-3 cutoff (Hughes et al., 2004)',
+    moveTheNeedle: 'Connection challenges, team events, and peer groups are the direct levers for loneliness.',
+    bands: [
+      { max: 5, label: 'Connected', tone: 'good', meaning: '3–5 is below the research cutoff — this group generally feels connected.' },
+      { max: Infinity, label: 'Elevated', tone: 'poor', meaning: '6+ is the standard research cutoff for loneliness — a meaningful share of this group feels isolated.' },
+    ],
+  },
+  cbi: {
+    source: 'CBI thresholds (Kristensen et al., 2005)',
+    moveTheNeedle: 'Workload/recovery balance, boundary-setting skills, and visible leadership support move burnout most.',
+    bands: [
+      { max: 24, label: 'Low', tone: 'good', meaning: 'Below 25 — burnout symptoms are rare in this group.' },
+      { max: 49, label: 'Moderate', tone: 'mid', meaning: '25–49 — some fatigue and strain, common in most workforces but worth watching.' },
+      { max: Infinity, label: 'High', tone: 'poor', meaning: '50+ is the recognized threshold for burnout — this group is running on empty.' },
+    ],
+  },
+  enps: {
+    source: 'Standard NPS zones',
+    moveTheNeedle: 'Advocacy follows results people can feel — visible program wins and asking for (and acting on) feedback lift this score.',
+    bands: [
+      { max: 6.9, label: 'Low', tone: 'poor', meaning: 'Below 7 — people are unlikely to recommend the program yet.' },
+      { max: 8.9, label: 'Typical', tone: 'mid', meaning: '7–8 is the passive zone — satisfied, but not yet advocates.' },
+      { max: Infinity, label: 'High', tone: 'good', meaning: '9–10 is the promoter zone — people actively recommend the program.' },
+    ],
+  },
+};
+
+export const BAND_TONE_CLASSES = {
+  good: 'bg-green-100 text-green-800',
+  mid: 'bg-amber-100 text-amber-800',
+  poor: 'bg-red-100 text-red-700',
+};
+
+/** Returns { label, tone, meaning, source, moveTheNeedle } for a score, or null. */
+export function bandForScore(instrumentKey, score) {
+  const def = INSTRUMENT_BANDS[instrumentKey];
+  if (!def || score == null || Number.isNaN(score)) return null;
+  const band = def.bands.find(b => score <= b.max);
+  if (!band) return null;
+  return { ...band, source: def.source, moveTheNeedle: def.moveTheNeedle };
+}
+
 // ── Plain-language narration of a pre/post change ───────────────────────────
 // Turns the numbers on an instrument card into a sentence a non-clinical HR
 // reader can act on. Deliberately descriptive, never causal: we say "this group
