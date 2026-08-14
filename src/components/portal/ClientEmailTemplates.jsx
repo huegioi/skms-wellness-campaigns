@@ -5,6 +5,43 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Mail, Download, FileText, Award, Dumbbell, Users, Package, Eye } from 'lucide-react';
+// ── Download cleanup helpers ────────────────────────────────────────
+// Templates imported from real marketing emails drag along 1px spacer/tracking
+// images (Kajabi pixels, often proxied through googleusercontent) and
+// Gmail-internal links that are dead outside the original mailbox. Left in,
+// every spacer renders as a broken-image block with margins — huge empty gaps
+// in the downloaded .eml/.doc. Clean before styling.
+function cleanEmailHtml(html) {
+  let out = html || '';
+  // 1. Spacer/tracking pixels (by known spacer sources).
+  out = out.replace(/<img[^>]*src="[^"]*(?:a\.kajabi\.com\/9\/|\/spacer|1x1\.(?:gif|png))[^"]*"[^>]*>/gi, '');
+  // 2. Paragraphs / headings left completely empty by that removal.
+  //    (<p><br></p> and <p>&nbsp;</p> are intentional blank lines — kept.)
+  out = out.replace(/<(p|h[1-6])(\s[^>]*)?>\s*<\/\1>/gi, '');
+  // 3. Gmail-internal links are dead for anyone else — unwrap to plain text.
+  out = out.replace(/<a\b[^>]*href="https?:\/\/mail\.google\.com[^"]*"[^>]*>([\s\S]*?)<\/a>/gi, '$1');
+  return out;
+}
+
+// Make bare URLs clickable (e.g. the substituted {{event_link}} check-in URL).
+// Splits around existing anchors so nothing is double-wrapped; the lookbehind
+// keeps URLs inside src="..."/href="..." attributes untouched.
+function linkifyBareUrls(html) {
+  return (html || '').split(/(<a\b[^>]*>[\s\S]*?<\/a>)/gi).map((chunk, i) =>
+    i % 2 === 1 ? chunk : chunk.replace(
+      /(?<!["'=\/])(https?:\/\/[^\s<>"']+)/g,
+      '<a href="$1" style="color: #0066cc; text-decoration: underline; word-break: break-all;">$1<\/a>'
+    )
+  ).join('');
+}
+
+// RFC 2047 encoding for subjects with non-ASCII characters (em dashes, accents).
+function encodeMailHeader(value) {
+  return /^[\x00-\x7F]*$/.test(value || '')
+    ? (value || '')
+    : `=?UTF-8?B?${btoa(unescape(encodeURIComponent(value)))}?=`;
+}
+
 export default function ClientEmailTemplates({ proposal, templates = [], client, services = [] }) {
   const [viewingTemplate, setViewingTemplate] = useState(null);
 
@@ -81,7 +118,7 @@ export default function ClientEmailTemplates({ proposal, templates = [], client,
       const boundary = '----=_Part_0_' + Date.now();
       
       // Wrap body in email-friendly HTML with inline styles
-      let styledBody = template.body || '';
+      let styledBody = linkifyBareUrls(cleanEmailHtml(template.body || ''));
       
       // Add inline styles to common elements
       styledBody = styledBody
@@ -109,7 +146,8 @@ export default function ClientEmailTemplates({ proposal, templates = [], client,
 </body>
 </html>`;
 
-      content = `Subject: ${template.subject}\r\n`;
+      content = `Date: ${new Date().toUTCString()}\r\n`;
+      content += `Subject: ${encodeMailHeader(template.subject)}\r\n`;
       content += `From: SkillfulMeans <noreply@skillfulmeans.life>\r\n`;
       content += `To: \r\n`;
       content += `MIME-Version: 1.0\r\n`;
@@ -117,13 +155,20 @@ export default function ClientEmailTemplates({ proposal, templates = [], client,
       content += `\r\n`;
       content += `--${boundary}\r\n`;
       content += `Content-Type: text/plain; charset=UTF-8\r\n`;
-      content += `Content-Transfer-Encoding: 7bit\r\n`;
+      content += `Content-Transfer-Encoding: 8bit\r\n`;
       content += `\r\n`;
-      content += (template.body || '').replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim() + '\r\n';
+      content += cleanEmailHtml(template.body || '')
+        .replace(/<\/(p|h[1-6]|li|div)>/gi, '\n')
+        .replace(/<br[^>]*>/gi, '\n')
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim() + '\r\n';
       content += `\r\n`;
       content += `--${boundary}\r\n`;
       content += `Content-Type: text/html; charset=UTF-8\r\n`;
-      content += `Content-Transfer-Encoding: 7bit\r\n`;
+      content += `Content-Transfer-Encoding: 8bit\r\n`;
       content += `\r\n`;
       content += emailHtml;
       content += `\r\n`;
