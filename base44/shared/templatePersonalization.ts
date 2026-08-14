@@ -71,12 +71,18 @@ function bestEventForService(serviceId: string | null, clientEvents: AnyRecord[]
   return matched.sort((a, b) => new Date(b.start_date).getTime() - new Date(a.start_date).getTime())[0];
 }
 
+const APP_BASE_URL = 'https://app.skillfulmeans.life';
+
 function eventFields(event: AnyRecord | null): Record<string, string> {
   if (!event) return { ...TBD };
   const start = event.start_date ? new Date(event.start_date) : null;
-  const location = event.location || '';
-  const isUrl = typeof location === 'string' && /^https?:\/\//i.test(location);
-  const link = event.meeting_link || (isUrl ? location : '');
+  const location = (event.location || '').trim();
+  const isUrl = /^https?:\/\//i.test(location);
+  const directLink = event.meeting_link || (isUrl ? location : '');
+  // Mirrors the scheduling section's convention (syncCalendarEventToGoogle):
+  // the link attendees click is the CHECK-IN page — the video link appears
+  // after check-in — while the direct Meet/webinar link is the "location".
+  const checkinLink = event.checkin_token ? `${APP_BASE_URL}/Checkin?t=${event.checkin_token}` : '';
   return {
     event_date: start
       ? start.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/New_York' })
@@ -84,8 +90,10 @@ function eventFields(event: AnyRecord | null): Record<string, string> {
     event_time: start && !event.all_day
       ? start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: 'America/New_York', timeZoneName: 'short' })
       : (start ? 'All day' : TBD.event_time),
-    event_location: location && !isUrl ? location : (link ? 'Online' : TBD.event_location),
-    event_link: link || TBD.event_link,
+    // Physical events keep their address; virtual events use the direct link.
+    event_location: location && !isUrl ? location : (directLink || TBD.event_location),
+    // Check-in page first; direct link only as fallback when no token exists.
+    event_link: checkinLink || directLink || TBD.event_link,
   };
 }
 
