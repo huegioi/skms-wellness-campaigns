@@ -645,17 +645,23 @@ export default function EmailTemplateManager() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">Service</label>
-                  <Select value={formData.service_name} onValueChange={(v) => {
-                    const service = allServices.find(s => s.name === v);
-                    setFormData({ ...formData, service_name: v, service_category: service?.category || 'workshop' });
+                  <Select value={formData.service_id} onValueChange={(v) => {
+                    const service = allServices.find(s => s.id === v);
+                    setFormData({
+                      ...formData,
+                      service_id: v,
+                      service_name: service?.name || '',
+                      service_category: service?.category || 'workshop'
+                    });
                   }}>
-                    <SelectTrigger><SelectValue placeholder="Select service..." /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select service...">{formData.service_name || 'Select service...'}</SelectValue></SelectTrigger>
                     <SelectContent>
                       {allServices.map(s => (
-                        <SelectItem key={s.key} value={s.name}>{s.name}</SelectItem>
+                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  <p className="text-xs text-gray-400 mt-1">Templates show automatically in a client's portal once this service is purchased and booked on the calendar.</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-600 mb-1">Template Type</label>
@@ -730,12 +736,12 @@ export default function EmailTemplateManager() {
                       <label className="block text-sm font-medium text-gray-600 mb-1">
                         Preview with Client Data (Optional)
                       </label>
-                      <Select value={previewClientId} onValueChange={setPreviewClientId}>
+                      <Select value={previewClientId || '__sample__'} onValueChange={(v) => setPreviewClientId(v === '__sample__' ? '' : v)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Use sample data" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={null}>Sample Data</SelectItem>
+                          <SelectItem value="__sample__">Sample Data</SelectItem>
                           {clients.map(client => (
                             <SelectItem key={client.id} value={client.id}>
                               {client.name} {client.company ? `(${client.company})` : ''}
@@ -794,10 +800,10 @@ export default function EmailTemplateManager() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Client (Optional)</label>
-                <Select value={formData.client_id} onValueChange={(v) => setFormData({ ...formData, client_id: v })}>
+                <Select value={formData.client_id || '__none__'} onValueChange={(v) => setFormData({ ...formData, client_id: v === '__none__' ? '' : v })}>
                   <SelectTrigger><SelectValue placeholder="None - General template" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={null}>None - General template</SelectItem>
+                    <SelectItem value="__none__">None - General template</SelectItem>
                     {clients.map(client => (
                       <SelectItem key={client.id} value={client.id}>
                         {client.name} {client.company ? `(${client.company})` : ''}
