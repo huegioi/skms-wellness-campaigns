@@ -19,6 +19,49 @@ export default function InstrumentResultCard({
   const meta = INSTRUMENT_META[instrumentKey];
   if (!meta || !stats) return null;
 
+  // Baseline-only mode: starting numbers exist but no follow-up yet. Show the
+  // Before value immediately and leave After/Change as pending — an HR reader
+  // gets their starting picture without waiting for the end-of-program survey.
+  if (stats.baselineOnly) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm p-5">
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div>
+            <p className="text-sm font-semibold text-gray-800">{meta.label}</p>
+            <p className="text-xs text-gray-400">{meta.scale}</p>
+          </div>
+          <Badge variant="outline" className="text-xs border-gray-200 text-gray-500 whitespace-nowrap">
+            Baseline — awaiting follow-up
+          </Badge>
+        </div>
+        <p className="text-xs text-gray-500 mb-3 leading-relaxed">{meta.interpretation}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="text-center">
+            <p className="text-xs text-gray-400 mb-0.5">{startLabel}</p>
+            <p className="text-lg font-bold text-gray-700">{stats.avgStart.toFixed(1)}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-400 mb-0.5">{endLabel}</p>
+            <p className="text-lg font-bold text-gray-300">—</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-400 mb-0.5">Change</p>
+            <p className="text-lg font-bold text-gray-300">—</p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-400 mb-0.5">n</p>
+            <p className="text-lg font-bold text-gray-700">{stats.n}</p>
+          </div>
+        </div>
+        <p className="text-xs text-gray-600 leading-relaxed mt-3 pt-3 border-t">
+          <span className="font-semibold text-gray-700">What this means: </span>
+          This is the team's starting picture — the average before programming. Change will be
+          measured against this number once follow-up responses come in.
+        </p>
+      </div>
+    );
+  }
+
   const deltaColor = stats.isGood ? '#264d44' : '#ef4444';
   const sign = stats.avgDelta >= 0 ? '+' : '';
   // Plain-language read of the delta, phrased with this section's own time-point
