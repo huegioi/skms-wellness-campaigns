@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Activity, CalendarCheck, ThumbsUp } from 'lucide-react';
 import InstrumentResultCard from '@/components/feedback/InstrumentResultCard';
-import { INSTRUMENT_META, getInstrumentKey, getScore, matchPairs, calcStats, computeEnps } from '@/components/feedback/instrumentMeta';
+import { INSTRUMENT_META, getInstrumentKey, getScore, matchPairs, calcStats, calcBaseline, computeEnps } from '@/components/feedback/instrumentMeta';
 
 // Portal privacy rule: never render a result built on fewer than 5 people.
 const MIN_N = 5;
@@ -16,7 +16,11 @@ function buildInstrumentStats(rows, startType, endType) {
   return Object.entries(byInstrument).map(([key, rows]) => {
     const { pairs, distinctStarts } = matchPairs(rows, startType, endType);
     const meta = INSTRUMENT_META[key];
-    const stats = calcStats(pairs, distinctStarts, meta?.directionOfGood || 'higher');
+    // Matched pre/post stats when follow-ups exist; otherwise fall back to the
+    // baseline picture so clients see their starting numbers right away instead
+    // of an empty section until the end-of-program survey happens.
+    const stats = calcStats(pairs, distinctStarts, meta?.directionOfGood || 'higher')
+      || calcBaseline(rows, startType);
     return { key, stats };
   }).filter(s => s.stats);
 }
