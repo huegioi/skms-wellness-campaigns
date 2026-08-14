@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, ExternalLink, Upload, Loader2, FileText, File, BookOpen, Presentation, FolderOpen, Video, Music, Link2, Pencil, Check, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Trash2, ExternalLink, Upload, Loader2, FileText, File, BookOpen, Presentation, FolderOpen, Video, Music, Link2, Pencil, Check, X, ChevronUp, ChevronDown, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 const resourceTypeConfig = {
@@ -205,9 +205,9 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
                   {r.description && <p className="text-xs text-gray-500 truncate">{r.description}</p>}
                   <Badge className={`text-xs mt-1 ${config.color}`}>{config.label}</Badge>
                 </div>
-                <div className="flex gap-1 flex-shrink-0">
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => window.open(r.file_url, '_blank')}>
-                    <ExternalLink className="w-3 h-3" />
+                <div className="flex gap-1 flex-shrink-0 items-center">
+                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => window.open(r.file_url, '_blank')} title="Open this resource in a new tab">
+                    <Eye className="w-3 h-3 mr-1" /> View
                   </Button>
                   <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(i)}>
                     <Pencil className="w-3 h-3" />
