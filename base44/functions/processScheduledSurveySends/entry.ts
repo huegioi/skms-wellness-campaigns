@@ -308,7 +308,7 @@ async function sendSurveyEmail(to, sendType, token, ctx = {}) {
 
   const body = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto">
     <div style="background:linear-gradient(135deg,#013f7c,#264d44);padding:24px;border-radius:12px 12px 0 0;text-align:center">
-      <img src="${APP_URL}/email-assets/skms-full-logo-white.png" alt="SkillfulMeans" style="height:44px;max-width:280px" />
+      <img src="${APP_URL}/email-assets/skms-full-logo-white.png" alt="SkillfulMeans" style="width:260px;height:auto" />
     </div>
     <div style="background:#f9f9f9;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb">
       ${greetingHtml(ctx.name)}
@@ -402,7 +402,7 @@ async function sendReminderEmail(to, token, sendType = 'cohort_end', ctx = {}) {
   const buttonText = isPulse ? 'Share your takeaway' : 'Take the survey';
   const body = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto">
     <div style="background:linear-gradient(135deg,#013f7c,#264d44);padding:24px;border-radius:12px 12px 0 0;text-align:center">
-      <img src="${APP_URL}/email-assets/skms-full-logo-white.png" alt="SkillfulMeans" style="height:44px;max-width:280px" />
+      <img src="${APP_URL}/email-assets/skms-full-logo-white.png" alt="SkillfulMeans" style="width:260px;height:auto" />
     </div>
     <div style="background:#f9f9f9;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb">
       ${greetingHtml(ctx.name)}
