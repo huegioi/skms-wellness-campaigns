@@ -721,7 +721,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
                 <div>
                   <h4 className="font-semibold text-blue-900 mb-1">Email Template Access</h4>
                   <p className="text-sm text-blue-700">
-                    To assign email templates to this client's portal, go to <strong>Templates</strong> page and use the "Assign to Portals" button on any template.
+                    Email templates appear in this portal <strong>automatically</strong> when the client has purchased the template's service and an event for it is booked on the calendar — personalized with the company name, event date/time, and meeting link. For exceptions, use "Assign to Portals" on the <strong>Templates</strong> page.
                   </p>
                   <p className="text-sm text-blue-600 mt-2">
                     {client.portal_template_ids?.length || 0} template(s) currently assigned to this portal
