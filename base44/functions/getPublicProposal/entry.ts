@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { resolvePortalTemplates } from '../../shared/templatePersonalization.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -31,15 +32,22 @@ Deno.serve(async (req) => {
       events = await base44.asServiceRole.entities.CalendarEvent.filter({ client_id: proposal.client_id }, 'start_date');
     }
 
-    // Return only email templates explicitly linked to this client's portal
-    const templateIds = client?.portal_template_ids || [];
-    if (templateIds.length > 0) {
-      const allTemplates = await base44.asServiceRole.entities.EmailTemplate.list('service_category');
-      templates = allTemplates.filter(t => templateIds.includes(t.id));
-    }
-
     // Fetch services so the client portal can resolve service IDs to names/descriptions
     const services = await base44.asServiceRole.entities.Service.list('sort_order', 500);
+
+    // Same server-side matching + personalization as getClientPortalData:
+    // purchased service with a booked event, manual assignment, or
+    // client-specific — never the whole template library.
+    if (client) {
+      const allTemplates = await base44.asServiceRole.entities.EmailTemplate.list('service_category');
+      templates = resolvePortalTemplates({
+        client,
+        proposals: [proposal],
+        clientEvents: events,
+        templates: allTemplates,
+        services,
+      });
+    }
 
     return Response.json({ proposal, client, events, templates, services });
   } catch (error) {
