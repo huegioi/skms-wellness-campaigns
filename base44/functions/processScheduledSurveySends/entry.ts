@@ -312,8 +312,8 @@ async function sendSurveyEmail(to, sendType, token, ctx = {}) {
     </div>
     <div style="background:#f9f9f9;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb">
       ${greetingHtml(ctx.name)}
-      ${sessionBlockHtml(ctx)}
       <p style="color:#374151;font-size:15px;line-height:1.6">${intros[sendType]}</p>
+      ${sessionBlockHtml(ctx)}
       <p style="color:#374151;font-size:15px;line-height:1.6">${durations[sendType]}</p>
       <a href="${surveyLink}" style="display:inline-block;background:#264d44;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;margin:16px 0">${buttons[sendType]}</a>
       <p style="color:#9ca3af;font-size:12px;margin-top:24px"><a href="${unsubLink}" style="color:#9ca3af">Unsubscribe</a></p>
@@ -406,8 +406,8 @@ async function sendReminderEmail(to, token, sendType = 'cohort_end', ctx = {}) {
     </div>
     <div style="background:#f9f9f9;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb">
       ${greetingHtml(ctx.name)}
-      ${sessionBlockHtml(ctx)}
       <p style="color:#374151;font-size:15px;line-height:1.6">${intro}</p>
+      ${sessionBlockHtml(ctx)}
       <a href="${surveyLink}" style="display:inline-block;background:#264d44;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;margin:16px 0">${buttonText}</a>
       <p style="color:#9ca3af;font-size:12px;margin-top:24px"><a href="${unsubLink}" style="color:#9ca3af">Unsubscribe</a></p>
     </div>
