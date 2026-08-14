@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { shouldExcludeDemo, demoExclusion, filterDemoRows } from '../../shared/demoPortal.ts';
+import { resolvePortalTemplates } from '../../shared/templatePersonalization.ts';
 
 /**
  * Single data source for the client portal.
@@ -123,6 +124,18 @@ Deno.serve(async (req) => {
       updated_date: e.updated_date,
     }));
 
+    // ── Filter + personalize email templates server-side ────────────────
+    // Only templates for purchased services with a BOOKED calendar event
+    // (plus manual portal_template_ids assignments and client-specific
+    // templates) leave the server, with {{placeholders}} substituted.
+    const portalTemplates = resolvePortalTemplates({
+      client,
+      proposals,
+      clientEvents: filterDemoRows(matchedEvents, excludeDemo),
+      templates: emailTemplates,
+      services,
+    });
+
     const PORTAL_CLIENT_FIELDS = [
       'id', 'name', 'email', 'email2', 'company', 'phone', 'title',
       'company_address', 'company_website', 'company_size', 'employee_count',
@@ -138,7 +151,7 @@ Deno.serve(async (req) => {
       client: projectedClient,
       proposals,
       events: portalEvents,
-      email_templates: emailTemplates,
+      email_templates: portalTemplates,
       services,
       checkins,
       stats: { people_engaged: peopleEngaged },
