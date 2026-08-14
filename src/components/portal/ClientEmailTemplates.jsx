@@ -347,6 +347,55 @@ export default function ClientEmailTemplates({ proposal, templates = [], client,
         </Card>
       )}
 
+      {/* Additional templates assigned to this portal outside the service list */}
+      {extraTemplates.length > 0 && (
+        <Card className="border-l-4 border-l-[#770142]">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Mail className="w-5 h-5 text-[#770142]" />
+              Additional Templates
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {extraTemplates.map(template => (
+                <div key={template.id} className="border rounded-lg p-4 bg-gray-50">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <Badge variant="outline">
+                          {templateTypeLabels[template.template_type] || template.template_type}
+                        </Badge>
+                        {template.event_booked ? (
+                          <Badge className="bg-green-100 text-green-700">Personalized for your event</Badge>
+                        ) : (
+                          <Badge className="bg-amber-100 text-amber-700">Event dates TBD</Badge>
+                        )}
+                      </div>
+                      <p className="font-medium text-gray-800">{template.subject}</p>
+                      {template.service_name && (
+                        <p className="text-xs text-gray-500 mt-0.5">{template.service_name}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2 shrink-0 flex-wrap">
+                      <Button variant="outline" size="sm" onClick={() => setViewingTemplate(template)}>
+                        <Eye className="w-4 h-4 mr-2" /> View
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDownload(template, 'eml')}>
+                        <Download className="w-4 h-4 mr-2" /> .EML
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDownload(template, 'doc')}>
+                        <Download className="w-4 h-4 mr-2" /> .DOC
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Help Text */}
       <Card className="bg-teal-50 border-teal-200">
         <CardContent className="pt-6">
