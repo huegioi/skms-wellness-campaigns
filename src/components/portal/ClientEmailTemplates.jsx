@@ -10,31 +10,44 @@ export default function ClientEmailTemplates({ proposal, templates = [], client,
 
   const selections = proposal?.selections || {};
   
-  // Filter templates based on client's manual selection if available
-  const availableTemplates = client?.portal_template_ids?.length > 0
-    ? templates.filter(t => client.portal_template_ids.includes(t.id))
-    : templates;
+  // Templates arrive pre-filtered AND personalized from the server
+  // (getClientPortalData): only purchased services with a booked calendar
+  // event, manual assignments, and client-specific templates — with
+  // {{placeholders}} already substituted with this client's data.
+  const availableTemplates = templates;
 
-  // Get all services included in the proposal
+  // Get all services included in the proposal (plus directly purchased ones)
   const getProposalServices = () => {
     const serviceMap = {};
     services.forEach(s => { serviceMap[s.id] = s; });
 
     const result = [];
+    const seen = new Set();
     const addIfFound = (id, category) => {
       const service = serviceMap[id];
-      if (service) result.push({ key: id, name: service.name, category });
+      if (service && !seen.has(id)) {
+        seen.add(id);
+        result.push({ key: id, name: service.name, category: category || service.category });
+      }
     };
 
     selections.workshops?.forEach(id => addIfFound(id, 'workshop'));
     selections.challengePrograms?.forEach(id => addIfFound(id, 'challenge'));
     selections.leadership?.forEach(id => addIfFound(id, 'leadership'));
     selections.movementClasses?.forEach(id => addIfFound(id, 'class'));
+    (client?.purchased_services || []).forEach(id => addIfFound(id, null));
 
     return result;
   };
 
   const proposalServices = getProposalServices();
+
+  // Templates assigned to this portal whose service isn't in the list above
+  // (manual or client-specific assignments) still need a home.
+  const listedServiceIds = new Set(proposalServices.map(s => s.key));
+  const extraTemplates = availableTemplates.filter(t =>
+    !(t.matched_service_id && listedServiceIds.has(t.matched_service_id))
+  );
 
   const categoryIcons = {
     workshop: Award,
@@ -148,10 +161,13 @@ export default function ClientEmailTemplates({ proposal, templates = [], client,
     URL.revokeObjectURL(url);
   };
 
-  // Group templates by service
-  const getTemplatesForService = (serviceName) => {
-    return availableTemplates.filter(t => 
-      t.service_name?.toLowerCase() === serviceName?.toLowerCase()
+  // Group templates by service — match on service id (server resolves it),
+  // with a legacy name fallback for older templates.
+  const getTemplatesForService = (serviceId, serviceName) => {
+    return availableTemplates.filter(t =>
+      t.matched_service_id
+        ? t.matched_service_id === serviceId
+        : t.service_name?.toLowerCase() === serviceName?.toLowerCase()
     );
   };
 
@@ -225,7 +241,7 @@ export default function ClientEmailTemplates({ proposal, templates = [], client,
       {proposalServices.length > 0 ? (
         <Accordion type="single" collapsible className="space-y-4">
           {proposalServices.map(service => {
-            const serviceTemplates = getTemplatesForService(service.name);
+            const serviceTemplates = getTemplatesForService(service.key, service.name);
             const Icon = categoryIcons[service.category] || FileText;
             const color = categoryColors[service.category] || '#666';
 
@@ -264,10 +280,15 @@ export default function ClientEmailTemplates({ proposal, templates = [], client,
                         >
                           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
                             <div>
-                              <div className="flex items-center gap-2 mb-1">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <Badge variant="outline">
                                   {templateTypeLabels[template.template_type] || template.template_type}
                                 </Badge>
+                                {template.event_booked ? (
+                                  <Badge className="bg-green-100 text-green-700">Personalized for your event</Badge>
+                                ) : (
+                                  <Badge className="bg-amber-100 text-amber-700">Event dates TBD</Badge>
+                                )}
                               </div>
                               <p className="font-medium text-gray-800">{template.subject}</p>
                               {template.body && (
