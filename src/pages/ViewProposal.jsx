@@ -166,7 +166,7 @@ export default function ViewProposal() {
           </TabsContent>
 
           <TabsContent value="templates">
-            <ClientEmailTemplates proposal={proposal} templates={templates} />
+            <ClientEmailTemplates proposal={proposal} templates={templates} client={client} services={services} />
           </TabsContent>
         </Tabs>
       </div>
