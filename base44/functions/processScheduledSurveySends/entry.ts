@@ -5,6 +5,21 @@ const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY');
 const FROM_EMAIL = 'admin@skillfulmeans.life';
 const FROM_NAME = 'SkillfulMeans';
 
+// Full SkillfulMeans logo, shipped INSIDE each email as a CID inline attachment
+// rather than loaded from a URL. Remote images are blocked by default in Gmail/
+// Outlook until the recipient clicks "show images"; an inline attachment is part
+// of the message itself, so the logo renders immediately in every major client.
+// Kept to ~5KB (520px wide, quantized) so it adds negligible weight per send.
+const LOGO_CID = 'skms-logo';
+const LOGO_B64 = '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';
+const LOGO_ATTACHMENT = {
+  content: LOGO_B64,
+  filename: 'skillfulmeans-logo.png',
+  type: 'image/png',
+  disposition: 'inline',
+  content_id: LOGO_CID,
+};
+
 // Session times are rendered in this zone rather than the server's (UTC).
 // Without it a noon-Eastern workshop prints as "4:00 PM" in the email, because
 // the function runs in UTC and toLocaleString defaults to the host zone.
@@ -308,7 +323,7 @@ async function sendSurveyEmail(to, sendType, token, ctx = {}) {
 
   const body = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto">
     <div style="background:linear-gradient(135deg,#013f7c,#264d44);padding:24px;border-radius:12px 12px 0 0;text-align:center">
-      <img src="${APP_URL}/email-assets/skms-full-logo-white.png" alt="SkillfulMeans" style="width:260px;height:auto" />
+      <img src="cid:${LOGO_CID}" alt="SkillfulMeans" style="width:260px;height:auto" />
     </div>
     <div style="background:#f9f9f9;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb">
       ${greetingHtml(ctx.name)}
@@ -327,7 +342,8 @@ async function sendSurveyEmail(to, sendType, token, ctx = {}) {
       personalizations: [{ to: [{ email: to }] }],
       from: { email: FROM_EMAIL, name: FROM_NAME },
       subject: subjects[sendType],
-      content: [{ type: 'text/html', value: body }]
+      content: [{ type: 'text/html', value: body }],
+      attachments: [LOGO_ATTACHMENT]
     })
   });
   if (!resp.ok) throw new Error(`SendGrid ${resp.status}: ${await resp.text()}`);
@@ -402,7 +418,7 @@ async function sendReminderEmail(to, token, sendType = 'cohort_end', ctx = {}) {
   const buttonText = isPulse ? 'Share your takeaway' : 'Take the survey';
   const body = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto">
     <div style="background:linear-gradient(135deg,#013f7c,#264d44);padding:24px;border-radius:12px 12px 0 0;text-align:center">
-      <img src="${APP_URL}/email-assets/skms-full-logo-white.png" alt="SkillfulMeans" style="width:260px;height:auto" />
+      <img src="cid:${LOGO_CID}" alt="SkillfulMeans" style="width:260px;height:auto" />
     </div>
     <div style="background:#f9f9f9;padding:28px;border-radius:0 0 12px 12px;border:1px solid #e5e7eb">
       ${greetingHtml(ctx.name)}
@@ -420,7 +436,8 @@ async function sendReminderEmail(to, token, sendType = 'cohort_end', ctx = {}) {
       personalizations: [{ to: [{ email: to }] }],
       from: { email: FROM_EMAIL, name: FROM_NAME },
       subject,
-      content: [{ type: 'text/html', value: body }]
+      content: [{ type: 'text/html', value: body }],
+      attachments: [LOGO_ATTACHMENT]
     })
   });
   if (!resp.ok) throw new Error(`SendGrid ${resp.status}`);
