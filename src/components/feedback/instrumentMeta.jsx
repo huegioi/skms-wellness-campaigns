@@ -180,6 +180,28 @@ export function matchPairs(rows, startType, endTypes) {
   return { pairs, distinctStarts: distinctStartEmails.size };
 }
 
+// Baseline-only stats: average of each person's EARLIEST start-type response,
+// grouped by (email, cohort_year) exactly like matchPairs so the two views
+// count the same people. Used when a cohort has baseline data but no end-type
+// responses yet — the portal shows the Before picture immediately instead of
+// hiding everything until the follow-up survey exists.
+export function calcBaseline(rows, startType) {
+  const groups = {};
+  for (const r of rows) {
+    if (r.survey_type !== startType) continue;
+    const email = (r.participant_email || '').toLowerCase().trim();
+    if (!email) continue;
+    const year = r.cohort_year || (r.submitted_at ? new Date(r.submitted_at).getFullYear() : null);
+    if (year == null) continue;
+    const gk = `${email}|${year}`;
+    if (!groups[gk] || new Date(r.submitted_at) < new Date(groups[gk].submitted_at)) groups[gk] = r;
+  }
+  const scores = Object.values(groups).map(getScore).filter(s => s != null);
+  if (!scores.length) return null;
+  const avgStart = scores.reduce((s, v) => s + v, 0) / scores.length;
+  return { baselineOnly: true, n: scores.length, avgStart };
+}
+
 // Generalized stats with direction-of-good awareness.
 // For "lower is better" instruments, a negative delta is good (green).
 export function calcStats(pairs, distinctStarts, directionOfGood = 'higher') {
