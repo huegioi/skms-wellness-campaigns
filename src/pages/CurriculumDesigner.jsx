@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { useSearchParams } from 'react-router-dom';
 import StepIndicator from '../components/curriculum/StepIndicator';
 import AssessmentStep from '../components/curriculum/AssessmentStep';
+import ImpactStep from '../components/curriculum/ImpactStep';
 import WorkshopStep from '../components/curriculum/WorkshopStep';
 import ChallengeStep from '../components/curriculum/ChallengeStep';
 import WellnessBoxStep from '../components/curriculum/WellnessBoxStep';
@@ -146,12 +147,13 @@ export default function CurriculumDesigner() {
 
   const steps = [
     { number: 1, name: 'Assessment' },
-    { number: 2, name: 'Workshops' },
-    { number: 3, name: 'Challenges' },
-    { number: 4, name: 'Classes' },
-    { number: 5, name: 'Leadership' },
-    { number: 6, name: 'Incentives' },
-    { number: 7, name: 'Review' }
+    { number: 2, name: 'Impact' },
+    { number: 3, name: 'Workshops' },
+    { number: 4, name: 'Challenges' },
+    { number: 5, name: 'Classes' },
+    { number: 6, name: 'Leadership' },
+    { number: 7, name: 'Incentives' },
+    { number: 8, name: 'Review' }
   ];
 
   const updateSelections = (key, value) => {
@@ -193,6 +195,16 @@ export default function CurriculumDesigner() {
         );
       case 2:
         return (
+          <ImpactStep
+            selections={selections}
+            updateSelections={updateSelections}
+            onNext={handleNext}
+            onBack={handleBack}
+            onStageChange={setMatchedStage}
+          />
+        );
+      case 3:
+        return (
           <WorkshopStep
             selections={selections}
             updateSelections={updateSelections}
@@ -201,7 +213,7 @@ export default function CurriculumDesigner() {
             catalogServices={workshopServices}
           />
         );
-      case 3:
+      case 4:
         return (
           <ChallengeStep
             selections={selections}
@@ -209,9 +221,10 @@ export default function CurriculumDesigner() {
             onNext={handleNext}
             onBack={handleBack}
             catalogServices={challengeServices}
+            allServices={allServices}
           />
         );
-      case 4:
+      case 5:
         return (
           <MovementStep
             selections={selections}
@@ -221,7 +234,7 @@ export default function CurriculumDesigner() {
             catalogServices={classServices}
           />
         );
-      case 5:
+      case 6:
         return (
           <LeadershipStep
             selections={selections}
@@ -231,7 +244,7 @@ export default function CurriculumDesigner() {
             catalogServices={leadershipServices}
           />
         );
-      case 6:
+      case 7:
         return (
           <WellnessBoxStep
             selections={selections}
@@ -240,7 +253,7 @@ export default function CurriculumDesigner() {
             onBack={handleBack}
           />
         );
-      case 7:
+      case 8:
         return (
           <ReviewStep
             selections={selections}
