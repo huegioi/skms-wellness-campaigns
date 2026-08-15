@@ -4,8 +4,9 @@ import SelectionCard from './SelectionCard';
 import StepNavigation from './StepNavigation';
 import { Sparkles } from 'lucide-react';
 import ChallengePricingEstimator, { calcPricing } from './ChallengePricingEstimator';
+import { resolveStaticKeys, staticKeyForService } from '@/lib/catalogServiceResolver';
 
-export default function ChallengeStep({ selections, updateSelections, onNext, onBack, catalogServices }) {
+export default function ChallengeStep({ selections, updateSelections, onNext, onBack, catalogServices, allServices }) {
   // Only use active services from catalog — no static fallback
   const challenges = (catalogServices || []).map(s => [
     s.id,
@@ -21,14 +22,19 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
   // Get suggested challenges based on:
   // 1. Selected workforce challenges from assessment
   // 2. Selected workshops (to reinforce their concepts)
+  //
+  // Both maps speak static catalog keys, while cards and stored selections
+  // use live Service IDs — so selected workshop IDs are walked BACK to their
+  // static key first, and the final suggestion set is resolved to Service IDs
+  // by name before any comparison.
   const getSuggestedChallenges = () => {
-    const suggested = new Set();
-    
+    const staticKeys = new Set();
+
     // From assessment challenges
     (selections.challenges || []).forEach(challengeId => {
       const solutions = challengeSolutionMap[challengeId];
       if (solutions && solutions.challenges) {
-        solutions.challenges.forEach(c => suggested.add(c));
+        solutions.challenges.forEach(c => staticKeys.add(c));
       }
     });
 
@@ -43,14 +49,15 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
       fosteringWellBeing: ['compassionateColleague']
     };
 
-    (selections.workshops || []).forEach(workshopKey => {
-      const relatedChallenges = workshopToChallengeMap[workshopKey];
+    (selections.workshops || []).forEach(workshopServiceId => {
+      const workshopKey = staticKeyForService(workshopServiceId, 'workshop', allServices || []);
+      const relatedChallenges = workshopKey ? workshopToChallengeMap[workshopKey] : null;
       if (relatedChallenges) {
-        relatedChallenges.forEach(c => suggested.add(c));
+        relatedChallenges.forEach(c => staticKeys.add(c));
       }
     });
 
-    return Array.from(suggested);
+    return resolveStaticKeys(Array.from(staticKeys), 'challenge', catalogServices);
   };
 
   const suggestedChallenges = getSuggestedChallenges();
