@@ -12,8 +12,31 @@ import MovementStep from '../components/curriculum/MovementStep';
 import LeadershipStep from '../components/curriculum/LeadershipStep';
 import ReviewStep from '../components/curriculum/ReviewStep';
 import { suggestServicesFromMfs } from '@/lib/mfsServiceMapping';
-import { Sparkles, X } from 'lucide-react';
+import { Sparkles, X, History } from 'lucide-react';
 import { enumToApproxCount } from '@/components/curriculum/pricingUtils';
+import { timeSince } from '@/lib/quickbuilderUtils';
+
+// Draft persistence: everything on this wizard lives in page state, so a
+// refresh mid-call used to lose the whole session. Drafts autosave locally
+// and a banner offers to resume the most recent one.
+const DRAFT_KEY = 'curriculumDesignerDraft.v1';
+const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+const draftHasContent = (sel) =>
+  !!(sel?.assessmentData?.companyName || sel?.assessmentData?.companySize ||
+     sel?.challenges?.length || sel?.workshops?.length || sel?.challengePrograms?.length ||
+     sel?.leadership?.length || sel?.movementClasses?.length || sel?.impact);
+
+function readDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const draft = JSON.parse(raw);
+    if (!draft?.ts || Date.now() - draft.ts > DRAFT_MAX_AGE_MS) return null;
+    if (!draftHasContent(draft.selections)) return null;
+    return draft;
+  } catch { return null; }
+}
 
 export default function CurriculumDesigner() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -32,7 +55,40 @@ export default function CurriculumDesigner() {
   const [pendingQbSelections, setPendingQbSelections] = useState([]);
   const [matchedStage, setMatchedStage] = useState('');
   const [mfsLabels, setMfsLabels] = useState([]);
+  const [availableDraft, setAvailableDraft] = useState(null);
   const [searchParams] = useSearchParams();
+
+  // Offer to resume a saved draft — but not when arriving with a client/lead
+  // prefill, which is a deliberate fresh start from that record.
+  React.useEffect(() => {
+    if (searchParams.get('clientId') || searchParams.get('leadId')) return;
+    const draft = readDraft();
+    if (draft) setAvailableDraft(draft);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Autosave whenever the session has real content. (Skipped while the resume
+  // banner is up, so an untouched page never overwrites the draft on offer.)
+  React.useEffect(() => {
+    if (availableDraft) return;
+    if (!draftHasContent(selections)) return;
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ selections, currentStep, matchedStage, ts: Date.now() }));
+    } catch { /* storage full/unavailable — non-fatal */ }
+  }, [selections, currentStep, matchedStage, availableDraft]);
+
+  const resumeDraft = () => {
+    if (!availableDraft) return;
+    setSelections(availableDraft.selections);
+    setCurrentStep(availableDraft.currentStep || 1);
+    setMatchedStage(availableDraft.matchedStage || '');
+    setAvailableDraft(null);
+  };
+
+  const discardDraft = () => {
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
+    setAvailableDraft(null);
+  };
 
   // Pre-load client data from URL param
   React.useEffect(() => {
@@ -155,6 +211,18 @@ export default function CurriculumDesigner() {
     { number: 7, name: 'Incentives' },
     { number: 8, name: 'Review' }
   ];
+
+  // Which steps already hold content — rendered as a small tick on the
+  // indicator so it's obvious at a glance what's been filled in.
+  const contentSteps = [
+    !!(selections.assessmentData?.companyName && selections.assessmentData?.companySize) && 1,
+    !!selections.impact?.stageNum && 2,
+    (selections.workshops || []).length > 0 && 3,
+    (selections.challengePrograms || []).length > 0 && 4,
+    (selections.movementClasses || []).length > 0 && 5,
+    (selections.leadership || []).length > 0 && 6,
+    ((selections.smallBoxes || 0) + (selections.largeBoxes || 0)) > 0 && 7,
+  ].filter(Boolean);
 
   const updateSelections = (key, value) => {
     setSelections(prev => ({
@@ -284,7 +352,25 @@ export default function CurriculumDesigner() {
           </p>
         </div>
 
-        <StepIndicator steps={steps} currentStep={currentStep} onStepClick={handleStepClick} />
+        {availableDraft && (
+          <div className="mb-6 rounded-xl border-l-4 border-l-[#013f7c] bg-white p-4 flex items-center gap-3 shadow-sm">
+            <History className="w-5 h-5 text-[#013f7c] shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-[#013f7c] text-sm">
+                Pick up where you left off{availableDraft.selections?.assessmentData?.companyName ? ` — ${availableDraft.selections.assessmentData.companyName}` : ''}
+              </p>
+              <p className="text-xs text-gray-500 mt-0.5">Saved {timeSince(new Date(availableDraft.ts).toISOString())}</p>
+            </div>
+            <button onClick={resumeDraft} className="px-4 py-1.5 rounded-lg text-sm font-semibold text-white bg-[#013f7c] hover:opacity-90 shrink-0">
+              Resume
+            </button>
+            <button onClick={discardDraft} className="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-700 shrink-0">
+              Discard
+            </button>
+          </div>
+        )}
+
+        <StepIndicator steps={steps} currentStep={currentStep} onStepClick={handleStepClick} contentSteps={contentSteps} />
 
         {mfsLabels.length > 0 && (
           <div className="mb-6 rounded-xl border-l-4 border-l-[#770142] bg-gradient-to-r from-[#f9f8f5] to-[#f0ebe0] p-4 flex items-start gap-3">
