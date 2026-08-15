@@ -109,7 +109,20 @@ export default function ImpactStep({ selections, updateSelections, onNext, onBac
   // participation as Base, year one is identical by construction — the
   // difference between them is reach held through years two and three.
   const clientRows = scenarios.clientFacing.slice().sort((a, b) => a.yearProjection.total3yr - b.yearProjection.total3yr);
-  const maxSavings = Math.max(...clientRows.map((r) => r.yearProjection.total3yr)) || 1;
+
+  // FIXED yardstick: bars are scaled against the best achievable outcome
+  // (every condition met), not against the current largest bar. Relative
+  // scaling made bars visually SHRINK as toggles were added — the top bar
+  // always filled the row, so a rising Base lost share of a rising max.
+  // Against a fixed ceiling, every added commitment grows every bar.
+  const fullOptimistic = useMemo(
+    () => runScenario({ ...inputs, conditions: undefined }, 'optimistic'),
+    [inputs],
+  );
+  const maxSavings = Math.max(
+    fullOptimistic.yearProjection.total3yr,
+    ...clientRows.map((r) => r.yearProjection.total3yr),
+  ) || 1;
 
   const inputCls = 'w-full px-3 py-2 rounded-lg border border-gray-200 text-gray-800 focus:border-[#013f7c] focus:outline-none bg-white';
   const labelCls = 'block text-[10.5px] font-bold uppercase tracking-widest text-gray-500 mb-1';
@@ -224,7 +237,9 @@ export default function ImpactStep({ selections, updateSelections, onNext, onBac
           <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
             <div className="flex items-baseline justify-between mb-4">
               <h3 className="text-xs font-bold uppercase tracking-widest text-gray-600">Projected savings</h3>
-              <span className="text-[10px] text-gray-400">3-year total</span>
+              <span className="text-[10px] text-gray-400">
+                3-year total · full width = all four conditions met ({usd(maxSavings)})
+              </span>
             </div>
             <div className="space-y-4">
               {clientRows.map((r) => (
