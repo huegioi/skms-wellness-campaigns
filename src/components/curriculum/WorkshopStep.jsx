@@ -3,14 +3,27 @@ import { productCatalog, challengeSolutionMap } from './catalogData';
 import SelectionCard from './SelectionCard';
 import StepNavigation from './StepNavigation';
 import { resolveStaticKeys } from '@/lib/catalogServiceResolver';
+import { workshopTopicPrice, sessionsPerWorkshop, CAMPAIGN_STAGES } from '@/lib/rateCard';
 import { Sparkles, Snowflake } from 'lucide-react';
 
 export default function WorkshopStep({ selections, updateSelections, onNext, onBack, catalogServices }) {
+  // Workshop price comes from the RATE CARD at this headcount, never from
+  // Service.price — a topic is $1,500 at 200 employees and $5,100 at 4,000,
+  // so one stored number can only ever be wrong for someone.
+  const employees = parseInt(selections.assessmentData?.companySize || '0', 10) || 0;
+  const topicPrice = employees > 0 ? workshopTopicPrice(employees) : null;
+  const sections = employees > 0 ? sessionsPerWorkshop(employees) : 1;
+
   // Only use active services from catalog — no static fallback
   const workshops = (catalogServices || []).map(s => [
     s.id,
-    { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Award', seasonal: false, image: s.images?.[0]?.url }
+    { name: s.name, description: s.short_description || s.description, price: topicPrice ?? undefined, icon: 'Award', seasonal: false, image: s.images?.[0]?.url }
   ]);
+
+  // The stage chosen on the Impact step sets how many workshops the campaign
+  // includes — surface that here so selections stay tied to the stage.
+  const chosenStage = CAMPAIGN_STAGES.find(s => s.stage === selections.impact?.stageNum);
+  const pickedCount = (selections.workshops || []).length;
 
   // Suggested workshops from the assessment's workforce challenges.
   // challengeSolutionMap speaks static catalog keys; the cards are keyed by
@@ -98,9 +111,26 @@ export default function WorkshopStep({ selections, updateSelections, onNext, onB
           Select Workshops
         </h2>
         <p className="text-lg" style={{ color: '#666' }}>
-          Choose the workshops that align with your team's needs. Each workshop is $1,500.
+          Choose the workshops that align with your team's needs.
+          {topicPrice != null && (
+            <> Each topic is ${topicPrice.toLocaleString()} for your {employees.toLocaleString()} employees
+            {sections > 1 ? ` — all ${sections} sections included` : ''}.</>
+          )}
         </p>
       </div>
+
+      {chosenStage && (
+        <div className="mb-6 rounded-xl border border-[#013f7c]/20 bg-[#013f7c]/[0.04] px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm font-semibold text-[#013f7c]">
+            {chosenStage.name} includes {chosenStage.workshops} workshop{chosenStage.workshops !== 1 ? 's' : ''} — you've selected {pickedCount}
+          </p>
+          {pickedCount > chosenStage.workshops && (
+            <p className="text-xs text-gray-500">
+              Extra topics beyond the stage are quoted à la carte on the review step.
+            </p>
+          )}
+        </div>
+      )}
 
       {suggestedWorkshops.length > 0 && (
         <div className="suggestion-banner">
