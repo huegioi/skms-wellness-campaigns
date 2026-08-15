@@ -8,6 +8,37 @@ import { getOrgDomain } from '@/lib/emailDomain';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { resolveBoxPrices, WELLNESS_BOX_PRICES, BOX_DISPLAY_NAMES, applyBoxFloor, customBoxUnitPrice } from '@/lib/wellnessBoxes';
+import { runScenarios } from '@/lib/roiModel';
+
+/**
+ * The impact designed on step 2, summarised beside the quote so the story
+ * closes: this participation, this stage, this return. Same model call the
+ * Impact step makes; renders nothing if that step was skipped.
+ */
+function designedImpact(selections) {
+  try {
+    const impact = selections.impact;
+    const employees = parseInt(selections.assessmentData?.companySize || '0', 10) || 0;
+    if (!impact || !impact.stageNum || !employees) return null;
+    const a = impact.assumptions || {};
+    const scen = runScenarios({
+      employees,
+      avgSalary: Number(a.avgSalary) || 75000,
+      stressRate: (Number(a.stressRate) || 35) / 100,
+      turnoverRate: (Number(a.turnoverRate) || 15) / 100,
+      absDays: Number(a.absDays) || 4.2,
+      participRate: impact.participRate || 0,
+      stageNum: impact.stageNum,
+      conditions: impact.conditions || {},
+    });
+    return {
+      participRate: impact.participRate || 0,
+      reached: Math.round(employees * (impact.participRate || 0)),
+      base: scen.byKey.base,
+      expected: scen.byKey.expected,
+    };
+  } catch { return null; }
+}
 
 // Snapshot-first box price lookup: proposal snapshot → live Service → constant → 0
 const getBoxPrice = (key, snapshot, livePrices) =>
@@ -894,6 +925,24 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
           Review your customized mental fitness program
         </p>
       </div>
+
+      {(() => {
+        const di = designedImpact(selections);
+        if (!di) return null;
+        const usd = (n) => '$' + Math.round(n).toLocaleString();
+        return (
+          <div className="mb-6 rounded-xl border border-[#013f7c]/20 bg-white px-4 py-3 shadow-sm">
+            <p className="text-[10.5px] font-bold uppercase tracking-widest text-gray-500 mb-1.5">
+              Designed impact{matchedStage ? ` — ${matchedStage}` : ''}
+            </p>
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-gray-700">
+              <span>Participation <b className="text-[#013f7c]">{(di.participRate * 100).toFixed(1)}%</b> ({di.reached.toLocaleString()} people)</span>
+              <span>Annual savings <b className="text-[#013f7c]">{usd(di.base.annualSavings)}</b></span>
+              <span>3-year outlook <b className="text-[#013f7c]">{usd(di.expected.yearProjection.total3yr)}</b></span>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Program Narrative */}
       {narrative && (
