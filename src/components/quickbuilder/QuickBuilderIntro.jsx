@@ -43,8 +43,7 @@ export function PreventativeBand() {
       </h2>
       <p className="text-gray-700 leading-relaxed max-w-3xl">
         Think of SkillfulMeans as a preventative intervention — building mental fitness across your entire
-        organization before stress becomes a crisis. Organizations use our campaigns to reduce absenteeism,
-        presenteeism, turnover, and medical claims — while building a culture people want to stay in.
+        organization before stress becomes a crisis.
       </p>
 
       <div className="flex flex-wrap gap-2 mt-4">
