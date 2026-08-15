@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check } from 'lucide-react';
 
-export default function StepIndicator({ steps, currentStep, onStepClick }) {
+export default function StepIndicator({ steps, currentStep, onStepClick, contentSteps = [] }) {
   const stepColors = [
     '#770142',  
     '#264d44',  
@@ -107,7 +107,8 @@ export default function StepIndicator({ steps, currentStep, onStepClick }) {
             const stepColor = stepColors[index] || '#441d37';
             const isCompleted = step.number < currentStep;
             const isCurrent = step.number === currentStep;
-            
+            const hasContent = contentSteps.includes(step.number);
+
             const isClickable = onStepClick && (isCompleted || isCurrent);
             return (
               <div
@@ -133,6 +134,16 @@ export default function StepIndicator({ steps, currentStep, onStepClick }) {
                     <Check className="w-3 h-3 md:w-5 md:h-5" />
                   ) : (
                     step.number
+                  )}
+                  {hasContent && !isCompleted && (
+                    <span
+                      title="Has selections"
+                      style={{
+                        position: 'absolute', top: -2, right: -2,
+                        width: 10, height: 10, borderRadius: '50%',
+                        background: '#264d44', border: '2px solid white',
+                      }}
+                    />
                   )}
                 </div>
                 <div 
