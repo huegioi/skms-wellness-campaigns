@@ -40,6 +40,13 @@ function designedImpact(selections) {
   } catch { return null; }
 }
 
+/** One sentence carrying the designed impact into narratives and proposals. */
+function impactSentence(di) {
+  if (!di) return '';
+  const usd = (n) => '$' + Math.round(n).toLocaleString();
+  return `Designed around a ${(di.participRate * 100).toFixed(1)}% participation commitment (${di.reached.toLocaleString()} employees reached), the program is projected to return ${usd(di.base.annualSavings)} in annual savings and ${usd(di.expected.yearProjection.total3yr)} over three years.`;
+}
+
 // Snapshot-first box price lookup: proposal snapshot → live Service → constant → 0
 const getBoxPrice = (key, snapshot, livePrices) =>
   applyBoxFloor(key,
@@ -227,6 +234,7 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
   };
 
   const narrative = generateNarrative();
+  const impactData = designedImpact(selections);
 
   const generatePDF = () => {
     const customBoxTotal = customBoxUnitPrice(customBoxItems);
@@ -384,12 +392,13 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
           <div class="contact-row"><span class="contact-label">Date:</span> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
         </div>
 
-        ${narrative ? `
+        ${(narrative || impactData) ? `
           <div class="narrative-box">
             <div class="narrative-title">How This Program Supports Your Team</div>
-            <p>Your team is currently facing challenges around <strong>${narrative.challenges.join(', ')}</strong>. 
-            This customized mental fitness program addresses these needs through <strong>${narrative.components.join(', ')}</strong>, 
-            creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.</p>
+            ${narrative ? `<p>Your team is currently facing challenges around <strong>${narrative.challenges.join(', ')}</strong>.
+            This customized mental fitness program addresses these needs through <strong>${narrative.components.join(', ')}</strong>,
+            creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.</p>` : ''}
+            ${impactData ? `<p style="margin-top: 10px;">${impactSentence(impactData)}</p>` : ''}
           </div>
         ` : ''}
 
@@ -691,7 +700,10 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
         company: companyName,
         matched_stage: matchedStage || undefined,
         total_amount: calculateTotal(),
-        narrative_summary: narrative ? `Your team is currently facing challenges around ${narrative.challenges.join(', ')}. This customized mental fitness program addresses these needs through ${narrative.components.join(', ')}, creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.` : null,
+        narrative_summary: [
+          narrative ? `Your team is currently facing challenges around ${narrative.challenges.join(', ')}. This customized mental fitness program addresses these needs through ${narrative.components.join(', ')}, creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.` : null,
+          impactData ? impactSentence(impactData) : null,
+        ].filter(Boolean).join(' ') || null,
         selections: {
           workshops: (selections.workshops || []).filter(k => !removedItems.has(`w_${k}`)),
           challengePrograms: (selections.challengePrograms || []).filter(k => !removedItems.has(`c_${k}`)),
@@ -699,6 +711,9 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
           movementClasses: (selections.movementClasses || []).filter(k => !removedItems.has(`m_${k}`)),
           itemQuantities,
           itemNotes,
+          // The impact designed on step 2 — stage, conditions, participation,
+          // assumptions — preserved so the proposal record carries the design.
+          impact: selections.impact || null,
           // Enriched data with names and descriptions
           workshopsData: buildServiceData((selections.workshops || []).filter(k => !removedItems.has(`w_${k}`)), 'workshops'),
           challengeProgramsData: buildServiceData((selections.challengePrograms || []).filter(k => !removedItems.has(`c_${k}`)), 'challenges'),
@@ -954,10 +969,15 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
             </h3>
           </div>
           <p className="narrative-text">
-            Your team is currently facing challenges around <strong>{narrative.challenges.join(', ')}</strong>. 
-            This customized mental fitness program addresses these needs through <strong>{narrative.components.join(', ')}</strong>, 
+            Your team is currently facing challenges around <strong>{narrative.challenges.join(', ')}</strong>.
+            This customized mental fitness program addresses these needs through <strong>{narrative.components.join(', ')}</strong>,
             creating a comprehensive approach to building resilience, improving communication, and fostering a healthier workplace culture.
           </p>
+          {impactData && (
+            <p className="narrative-text" style={{ marginTop: 10 }}>
+              {impactSentence(impactData)}
+            </p>
+          )}
         </div>
       )}
 
