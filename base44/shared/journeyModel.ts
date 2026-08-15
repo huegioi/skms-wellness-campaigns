@@ -513,6 +513,15 @@ export interface ScenarioInputs {
   stageNum: number;
   /** Base rate the design conditions multiply up from. Defaults to the model. */
   participBase?: number;
+  /**
+   * The design conditions the client has actually committed to. When provided,
+   * Expected and Optimistic run at the participation THESE conditions produce
+   * (capacity bought to match) — "your commitments, run properly" — so the
+   * whole range responds to choices made on screen. Omitted → legacy
+   * behaviour: full delivery, every condition assumed met. Added 2026-08-15
+   * because the Impact step's two biggest bars never reacted to the toggles.
+   */
+  conditions?: Partial<Record<ParticipationCondition, boolean>>;
 }
 
 function dosePoints(stage: JourneyStage): number {
@@ -541,13 +550,17 @@ export function runScenario(inputs: ScenarioInputs, scenario: ScenarioKey) {
   const fullDelivery = scenario === 'expected' || scenario === 'optimistic';
 
   const reach = fullDelivery
-    ? participationAtFullDelivery(inputs.participBase)
+    ? (inputs.conditions
+        ? participationFrom(inputs.conditions, inputs.participBase)
+        : participationAtFullDelivery(inputs.participBase))
     : inputs.participRate;
 
   // Full-delivery scenarios buy the capacity they need. The others are priced
   // from the rate card as-is and flagged separately when they exceed it.
+  // Capacity-matched cost is FLOORED at the rate-card price: a participation
+  // below the card's priced default is never a discount (pricing rules).
   const investment = fullDelivery
-    ? investmentAt(stage, N, reach)
+    ? Math.max(investmentAt(stage, N, reach), calcInvestment(stage, N).total)
     : calcInvestment(stage, N).total;
 
   // Depth saturates, so a bigger programme shows diminishing rather than
