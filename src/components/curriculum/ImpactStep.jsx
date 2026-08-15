@@ -47,9 +47,14 @@ const pct1 = (n) => (n * 100).toFixed(1) + '%';
 
 const DEFAULT_ASSUMPTIONS = { avgSalary: 75000, stressRate: 35, turnoverRate: 15, absDays: 4.2 };
 
+// Starting position for a fresh session: the three conditions that cost the
+// client nothing (opt-out enrolment, workday scheduling, employer-paid) are
+// on; team+leader enrolment — the one real ask — starts off.
+const DEFAULT_CONDITIONS = { optOut: true, workday: true, noCost: true };
+
 export default function ImpactStep({ selections, updateSelections, onNext, onBack, onStageChange }) {
   const saved = selections.impact || {};
-  const [conditions, setConditions] = useState(saved.conditions || {});
+  const [conditions, setConditions] = useState(saved.conditions || DEFAULT_CONDITIONS);
   const [stageNum, setStageNum] = useState(saved.stageNum || 3);
   const [assumptions, setAssumptions] = useState({ ...DEFAULT_ASSUMPTIONS, ...(saved.assumptions || {}) });
 
@@ -66,7 +71,10 @@ export default function ImpactStep({ selections, updateSelections, onNext, onBac
     absDays: Number(assumptions.absDays) || 0,
     participRate,
     stageNum,
-  }), [N, assumptions, participRate, stageNum]);
+    // Expected/Optimistic follow the commitments chosen here, so every bar
+    // and stage card reacts to the toggles.
+    conditions,
+  }), [N, assumptions, participRate, stageNum, conditions]);
 
   const scenarios = useMemo(() => runScenarios(inputs), [inputs]);
   const base = scenarios.byKey.base;
@@ -89,8 +97,19 @@ export default function ImpactStep({ selections, updateSelections, onNext, onBac
 
   const toggle = (key) => setConditions((c) => ({ ...c, [key]: !c[key] }));
 
-  const clientRows = scenarios.clientFacing.slice().sort((a, b) => a.annualSavings - b.annualSavings);
-  const maxSavings = Math.max(...clientRows.map((r) => r.annualSavings)) || 1;
+  // What each toggle is worth in Base-Case dollars: the savings gained by
+  // switching it on from here (off), or currently contributed by it (on).
+  const deltaFor = (key) => {
+    const flipped = { ...conditions, [key]: !conditions[key] };
+    const other = runScenario({ ...inputs, participRate: participationFrom(flipped), conditions: flipped }, 'base');
+    return Math.abs(base.annualSavings - other.annualSavings);
+  };
+
+  // Bars compare 3-YEAR totals: with Expected running at the same chosen
+  // participation as Base, year one is identical by construction — the
+  // difference between them is reach held through years two and three.
+  const clientRows = scenarios.clientFacing.slice().sort((a, b) => a.yearProjection.total3yr - b.yearProjection.total3yr);
+  const maxSavings = Math.max(...clientRows.map((r) => r.yearProjection.total3yr)) || 1;
 
   const inputCls = 'w-full px-3 py-2 rounded-lg border border-gray-200 text-gray-800 focus:border-[#013f7c] focus:outline-none bg-white';
   const labelCls = 'block text-[10.5px] font-bold uppercase tracking-widest text-gray-500 mb-1';
@@ -151,6 +170,7 @@ export default function ImpactStep({ selections, updateSelections, onNext, onBac
             <div className="space-y-2">
               {Object.entries(EVIDENCE).map(([key, ev]) => {
                 const on = !!conditions[key];
+                const delta = deltaFor(key);
                 return (
                   <div
                     key={key}
@@ -166,6 +186,11 @@ export default function ImpactStep({ selections, updateSelections, onNext, onBac
                         {on && <Check className="w-3.5 h-3.5 text-white" />}
                       </span>
                       <span className="flex-1 text-sm font-semibold text-gray-800">{ev.label}</span>
+                      {delta > 0 && (
+                        <span className="text-[11px] font-bold tabular-nums" style={{ color: on ? '#264d44' : '#8a8478' }}>
+                          {on ? '+' : ''}{usd(delta)}/yr
+                        </span>
+                      )}
                       <span className="text-xs font-bold px-2 py-0.5 rounded-lg" style={{ color: '#770142', background: 'rgba(119,1,66,0.07)' }}>
                         ×{RESEARCH_MODEL.participation.or[key].toFixed(2)}
                       </span>
@@ -197,7 +222,10 @@ export default function ImpactStep({ selections, updateSelections, onNext, onBac
         {/* ── Right: savings + drivers ── */}
         <div className="lg:col-span-7 space-y-5">
           <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-600 mb-4">Annual savings</h3>
+            <div className="flex items-baseline justify-between mb-4">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-gray-600">Projected savings</h3>
+              <span className="text-[10px] text-gray-400">3-year total</span>
+            </div>
             <div className="space-y-4">
               {clientRows.map((r) => (
                 <div key={r.scenario}>
@@ -216,16 +244,16 @@ export default function ImpactStep({ selections, updateSelections, onNext, onBac
                       )}
                     </span>
                     <span className="text-[11px] text-gray-400 tabular-nums">
-                      {Math.round(r.reach * 100)}% reach · {usd(r.investment)} · <b className="text-gray-600">{r.perDollar.toFixed(2)}:1</b>
+                      {Math.round(r.reach * 100)}% reach · {usd(r.investment)} invested · <b className="text-gray-600">{usd(r.annualSavings)}/yr</b>
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="flex-1 h-3 rounded-full overflow-hidden" style={{ background: 'rgba(68,29,55,0.07)' }}>
                       <div className="h-full rounded-full transition-all duration-300"
-                        style={{ width: `${Math.max(2, (r.annualSavings / maxSavings) * 100)}%`, background: SCENARIO_FILL[r.scenario] }} />
+                        style={{ width: `${Math.max(2, (r.yearProjection.total3yr / maxSavings) * 100)}%`, background: SCENARIO_FILL[r.scenario] }} />
                     </div>
                     <span className="text-sm font-extrabold tabular-nums w-24 text-right" style={{ color: '#441d37' }}>
-                      {usd(r.annualSavings)}
+                      {usd(r.yearProjection.total3yr)}
                     </span>
                   </div>
                 </div>
@@ -308,10 +336,10 @@ export default function ImpactStep({ selections, updateSelections, onNext, onBac
                   {usd(q.total)} <span className="text-[10px] font-normal text-gray-400">/ campaign</span>
                 </div>
                 <div className="border-t border-gray-100 mt-2 pt-1.5">
-                  <div className="text-[8.5px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">ROI in money saved</div>
+                  <div className="text-[8.5px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">ROI in money saved · 3 years</div>
                   <div className="flex justify-between text-[11px] text-gray-600 tabular-nums">
-                    <span>Base <b style={{ color: '#770142' }}>{usd(s.annualSavings)}</b></span>
-                    <span>Run well <b style={{ color: '#770142' }}>{usd(e.annualSavings)}</b></span>
+                    <span>Base <b style={{ color: '#770142' }}>{usd(s.yearProjection.total3yr)}</b></span>
+                    <span>Run well <b style={{ color: '#770142' }}>{usd(e.yearProjection.total3yr)}</b></span>
                   </div>
                 </div>
               </button>
