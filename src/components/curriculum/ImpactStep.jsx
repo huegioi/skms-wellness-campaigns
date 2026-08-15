@@ -307,9 +307,12 @@ export default function ImpactStep({ selections, updateSelections, onNext, onBac
                 <div className="text-sm font-extrabold text-gray-800 tabular-nums">
                   {usd(q.total)} <span className="text-[10px] font-normal text-gray-400">/ campaign</span>
                 </div>
-                <div className="flex justify-between text-[11px] text-gray-600 border-t border-gray-100 mt-2 pt-1.5 tabular-nums">
-                  <span>Base {usd(s.annualSavings)} · <b style={{ color: '#770142' }}>{s.perDollar.toFixed(2)}:1</b></span>
-                  <span>Run well <b style={{ color: '#770142' }}>{e.perDollar.toFixed(2)}:1</b></span>
+                <div className="border-t border-gray-100 mt-2 pt-1.5">
+                  <div className="text-[8.5px] font-bold uppercase tracking-widest text-gray-400 mb-0.5">ROI in money saved</div>
+                  <div className="flex justify-between text-[11px] text-gray-600 tabular-nums">
+                    <span>Base <b style={{ color: '#770142' }}>{usd(s.annualSavings)}</b></span>
+                    <span>Run well <b style={{ color: '#770142' }}>{usd(e.annualSavings)}</b></span>
+                  </div>
                 </div>
               </button>
             );
