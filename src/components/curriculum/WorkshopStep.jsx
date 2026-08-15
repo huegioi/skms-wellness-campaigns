@@ -2,6 +2,7 @@ import React from 'react';
 import { productCatalog, challengeSolutionMap } from './catalogData';
 import SelectionCard from './SelectionCard';
 import StepNavigation from './StepNavigation';
+import { resolveStaticKeys } from '@/lib/catalogServiceResolver';
 import { Sparkles, Snowflake } from 'lucide-react';
 
 export default function WorkshopStep({ selections, updateSelections, onNext, onBack, catalogServices }) {
@@ -11,16 +12,19 @@ export default function WorkshopStep({ selections, updateSelections, onNext, onB
     { name: s.name, description: s.short_description || s.description, price: s.price, icon: 'Award', seasonal: false, image: s.images?.[0]?.url }
   ]);
 
-  // Get suggested workshops based on selected challenges
+  // Suggested workshops from the assessment's workforce challenges.
+  // challengeSolutionMap speaks static catalog keys; the cards are keyed by
+  // live Service IDs, so resolve by name before comparing — an unresolved
+  // static key would otherwise never match anything.
   const getSuggestedWorkshops = () => {
-    const suggested = new Set();
+    const staticKeys = new Set();
     (selections.challenges || []).forEach(challengeId => {
       const solutions = challengeSolutionMap[challengeId];
       if (solutions && solutions.workshops) {
-        solutions.workshops.forEach(w => suggested.add(w));
+        solutions.workshops.forEach(w => staticKeys.add(w));
       }
     });
-    return Array.from(suggested);
+    return resolveStaticKeys(Array.from(staticKeys), 'workshop', catalogServices);
   };
 
   const suggestedWorkshops = getSuggestedWorkshops();
