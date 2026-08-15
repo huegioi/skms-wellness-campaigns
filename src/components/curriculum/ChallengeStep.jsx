@@ -5,6 +5,7 @@ import StepNavigation from './StepNavigation';
 import { Sparkles } from 'lucide-react';
 import ChallengePricingEstimator, { calcPricing } from './ChallengePricingEstimator';
 import { resolveStaticKeys, staticKeyForService } from '@/lib/catalogServiceResolver';
+import { CAMPAIGN_STAGES } from '@/lib/rateCard';
 
 export default function ChallengeStep({ selections, updateSelections, onNext, onBack, catalogServices, allServices }) {
   // Only use active services from catalog — no static fallback
@@ -119,6 +120,24 @@ export default function ChallengeStep({ selections, updateSelections, onNext, on
       </div>
 
       <ChallengePricingEstimator initialHeadcount={employees > 0 ? employees : undefined} />
+
+      {(() => {
+        const chosenStage = CAMPAIGN_STAGES.find(s => s.stage === selections.impact?.stageNum);
+        if (!chosenStage) return null;
+        const picked = (selections.challengePrograms || []).length;
+        return (
+          <div className="mb-6 rounded-xl border border-[#013f7c]/20 bg-[#013f7c]/[0.04] px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+            <p className="text-sm font-semibold text-[#013f7c]">
+              {chosenStage.name} includes {chosenStage.challenges} challenge{chosenStage.challenges !== 1 ? 's' : ''} — you've selected {picked}
+            </p>
+            {picked > chosenStage.challenges && (
+              <p className="text-xs text-gray-500">
+                Extra challenges beyond the stage are quoted à la carte on the review step.
+              </p>
+            )}
+          </div>
+        );
+      })()}
 
       {suggestedChallenges.length > 0 && (
         <div className="suggestion-banner">
