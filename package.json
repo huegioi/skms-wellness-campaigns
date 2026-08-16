@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "typecheck": "tsc -p ./jsconfig.json",
+    "check:claims": "node scripts/checkClaims.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
