@@ -1,0 +1,57 @@
+{
+  "name": "ClaimsBenchmarkSetting",
+  "type": "object",
+  "description": "Benchmark overrides for the Claims Insight calculator, edited on the Claims Insight page's Benchmarks tab. Exactly one record is active; the shipped defaults live in base44/shared/claimsBenchmarks.ts and this record holds only the values that differ. Superseded records are kept with is_active false as an audit trail. Same pattern as RateCardSetting.",
+  "properties": {
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Exactly one record is active; it is the one the app applies."
+    },
+    "overrides": {
+      "type": "object",
+      "description": "{ values: { adUtilizationBenchmark, underDetectionFactor, ... } } - only keys that differ from the shipped defaults."
+    },
+    "note": {
+      "type": "string",
+      "description": "Why this change was made (e.g. which real broker report drove the calibration) - shown in the history list."
+    },
+    "changed_summary": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Human-readable list of what changed vs the shipped defaults."
+    },
+    "updated_by": {
+      "type": "string",
+      "description": "Email of the person who saved this version."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this version was saved."
+    }
+  },
+  "required": [
+    "overrides"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "name": "ClaimsProfile",
+  "type": "object",
+  "description": "One scored Claims Insight analysis: the aggregate claims-report fields a broker/HR contact transcribed (blocks A-E), plus the computed Mental Health Risk Profile. Inputs live in a flexible JSON blob (NOT hard-coded columns) so field-list updates from broker feedback stay cheap; results are a snapshot so old profiles can be re-scored when benchmarks improve. Aggregate, de-identified data only - the intake accepts numbers and picklists, never names, member IDs, or claim-line files.",
+  "properties": {
+    "company_name": {
+      "type": "string",
+      "description": "Company the report describes, as entered."
+    },
+    "company_domain": {
+      "type": "string",
+      "description": "Organization email domain, lowercased - the ONLY company-matching key, consistent with the companies-are-the-client model. Never match on a name."
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Resolved Client record id, when the domain matched one at scoring time."
+    },
+    "broker_name": {
+      "type": "string",
+      "description": "Broker or HR contact who supplied the report (optional, for follow-up)."
+    },
+    "report_year": {
+      "type": "number",
+      "description": "Plan/report year the claims data covers - the key for year-over-year comparison."
+    },
+    "inputs": {
+      "type": "object",
+      "description": "Blocks A-E intake fields as entered, keyed per base44/shared/claimsScoring.ts ClaimsInputs (headcount, bhSpendShare, adUtilization, mskTop5, eapUtilization, ...). Blank = the report didn't have it."
+    },
+    "results": {
+      "type": "object",
+      "description": "Snapshot of scoreClaimsProfile() output at scoring time: subscores with bands, confidence, hiddenCost range, referralFlags - plus the campaign recommendation. Re-score from inputs to refresh."
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "Low",
+        "Moderate",
+        "High"
+      ],
+      "description": "Data-confidence rating copied from results for filtering/list display."
+    },
+    "benchmarks_used": {
+      "type": "object",
+      "description": "The full benchmark set in effect when this profile was scored - makes any historical score reproducible."
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Demo/fake-company profile - excluded from analytics and real pipelines."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-form context: which carrier report, what was missing, broker remarks."
+    },
+    "scored_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the current results snapshot was computed."
+    },
+    "scored_by": {
+      "type": "string",
+      "description": "Email of the person who ran the scoring."
+    }
+  },
+  "required": [
+    "company_name",
+    "inputs"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
