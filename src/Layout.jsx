@@ -14,6 +14,7 @@ const navItems = [
   { name: 'Financials', page: 'Financials', icon: Landmark },
   { name: 'Analytics', page: 'FeedbackAnalytics', icon: ClipboardList, altPages: ['RoiTestBed'] },
   { name: 'Campaigns', page: 'CampaignCalendar', icon: CalendarDays },
+  { name: 'Claims Insight', page: 'ClaimsInsight', icon: ScanText },
   { name: 'Presenters', page: 'Presenters', icon: Users },
   { name: 'Quick Builder', page: 'QuickBuilder', icon: Sparkles, external: true, url: '/QuickBuilder' },
 ];
