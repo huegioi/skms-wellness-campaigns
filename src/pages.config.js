@@ -48,6 +48,7 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import Analytics from './pages/Analytics';
+import ClaimsInsight from './pages/ClaimsInsight';
 import ClientPortal from './pages/ClientPortal';
 import Clients from './pages/Clients';
 import CurriculumDesigner from './pages/CurriculumDesigner';
@@ -79,6 +80,7 @@ export const PAGES = {
     "Analytics": Analytics,
     "ClientPortal": ClientPortal,
     "Clients": Clients,
+    "ClaimsInsight": ClaimsInsight,
     "CurriculumDesigner": CurriculumDesigner,
     "Dashboard": Dashboard,
     "EditProposal": EditProposal,
