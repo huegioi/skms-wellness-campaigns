@@ -10,7 +10,7 @@ import {
 import { computeQuote, CAMPAIGN_STAGES } from '@/lib/rateCard';
 import { useRateCard } from '@/lib/useRateCard';
 import { useClaimsBenchmarks } from '@/lib/useClaimsBenchmarks';
-import { scoreClaimsProfile, CLAIMS_BENCHMARKS } from '@/lib/claimsScoring';
+import { scoreClaimsProfile } from '@/lib/claimsScoring';
 import { CLAIMS_BENCHMARKS as LIVE_BENCHMARKS } from '@/lib/claimsBenchmarks';
 import { REFERRAL_BOUNDARY, SUBSCORE_EVIDENCE, HONESTY_RAILS } from './claimsFields';
 import { buildClaimsReportPages } from './claimsReportHtml';
