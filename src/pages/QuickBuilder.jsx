@@ -43,10 +43,21 @@ export default function QuickBuilder() {
   const [searchParams] = useSearchParams();
   const ref = searchParams.get('ref');
 
+  // Pre-fill support — the Claims Insight profile links here with
+  // ?headcount=&stage=&company= so the recommended campaign is one click
+  // from a quote. Only public tiers can be pre-selected.
+  const prefillStage = parseInt(searchParams.get('stage') || '', 10);
+  const prefillStageValid = PUBLIC_STAGES().some(s => s.stage === prefillStage);
+
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({ company_name: '', contact_name: '', email: '', headcount: '' });
+  const [form, setForm] = useState({
+    company_name: searchParams.get('company') || '',
+    contact_name: '',
+    email: '',
+    headcount: searchParams.get('headcount') || '',
+  });
   const [goals, setGoals] = useState([]);
-  const [selectedStage, setSelectedStage] = useState(null);
+  const [selectedStage, setSelectedStage] = useState(prefillStageValid ? prefillStage : null);
   const [isNewClient, setIsNewClient] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
