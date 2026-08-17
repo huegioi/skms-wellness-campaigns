@@ -292,7 +292,9 @@ export default function ClaimsLite() {
                 out-specifies Tailwind's text-white on a plum card. */}
             <h2 className="text-lg font-bold !text-white mb-2">Your full report — we'll open it together on the call</h2>
             <p className="text-sm text-white/75 mb-4 leading-relaxed">
-              Bring the renewal report and we'll complete the missing fields live. You'll see the whole five-page read on screen during the call, and leave with it:
+              {result.fields_provided >= result.fields_counted
+                ? "You've given the model everything it reads — what's left is the interpretation. On the call we'll open the whole five-page read on screen, and you leave with it:"
+                : "Bring the renewal report and we'll complete the missing fields live. You'll see the whole five-page read on screen during the call, and leave with it:"}
             </p>
             <ul className="text-sm text-white/90 space-y-1.5 mb-5">
               {[
