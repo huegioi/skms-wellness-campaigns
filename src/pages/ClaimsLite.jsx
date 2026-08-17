@@ -26,12 +26,35 @@ const CALENDLY_URL = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy
 const LOGO_URL = 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/bb0a43468_SKMSLogoShieldBrown.png';
 
 // The five that move the needle most, in the order a report presents them.
+// Findable in about two minutes by someone who has never opened the report.
 const FIELDS = [
   { key: 'bhSpendShare', label: 'Behavioral health % of total spend', hint: 'Usually its own line in the service-category breakdown', type: 'percent' },
   { key: 'adUtilization', label: 'Antidepressant utilization (% of members)', hint: 'From the top drug classes — the most complete proxy', type: 'percent' },
   { key: 'erVisitsPer1000', label: 'ER visits per 1,000 members', hint: 'From the utilization section', type: 'number' },
   { key: 'mskTop5', label: 'MSK / back pain in the top 5 diagnoses', hint: 'Yes or no', type: 'yn' },
   { key: 'sleepSignal', label: 'Sleep disorder or sleep-Rx signal', hint: 'Sleep diagnosis in top categories, or a sedative in top drug classes', type: 'yn' },
+];
+
+// Everything else the engine reads. Hidden behind an expander so the first
+// impression stays a two-minute ask — but someone with the renewal report open
+// is never capped at a partial profile. The gate on this tool is the
+// INTERPRETATION (the five-page report), never the data entry.
+//
+// The first six here are the remaining fields the confidence meter counts;
+// the rest sharpen the subscores without moving the meter.
+const MORE_FIELDS = [
+  { key: 'pmpm', label: 'Total paid claims PMPM', hint: 'Total paid ÷ member months — usually on the summary page', type: 'currency', counted: true },
+  { key: 'codedPrevalence', label: 'Diagnosed depression/anxiety prevalence', hint: 'Coded prevalence, if the report breaks it out — treated as a floor', type: 'percent', counted: true },
+  { key: 'anxiolyticUtilization', label: 'Anxiolytic/sedative utilization', hint: 'From the top drug classes', type: 'percent', counted: true },
+  { key: 'psychEvents', label: 'Psych inpatient or behavioral ER events', hint: 'A count. Any number above zero routes to the clinical referral section', type: 'number', counted: true },
+  { key: 'hccPctOfSpend', label: 'High-cost claimants: % of total spend', hint: "e.g. 'top 10 claimants = 31% of spend'", type: 'percent', counted: true },
+  { key: 'eapUtilization', label: 'EAP utilization', hint: 'From the EAP vendor report, if HR has it', type: 'percent', counted: true },
+  { key: 'migraineSignal', label: 'Migraine/headache signal', hint: 'In the top diagnosis categories', type: 'yn' },
+  { key: 'giSignal', label: 'GI/functional signal', hint: 'IBS, dyspepsia, functional GI in top categories', type: 'yn' },
+  { key: 'cardiometabolicTop5', label: 'Diabetes / cardiometabolic in the top 5', hint: 'Scored through its interaction with depression, not as disease burden', type: 'yn' },
+  { key: 'sudPresent', label: 'SUD-related claims present', hint: 'Routes to the referral section', type: 'yn' },
+  { key: 'hccBhCondition', label: 'Any high-cost claimant with a behavioral condition', hint: 'Primary or secondary — de-identified summaries usually say', type: 'yn' },
+  { key: 'mhDisability', label: 'MH-related STD/LTD claims', hint: 'If a disability report is available', type: 'yn' },
 ];
 
 const money = (n) => '$' + Math.round(n).toLocaleString();
@@ -81,7 +104,7 @@ export default function ClaimsLite() {
       avgSalary: Number(String(meta.avgSalary).replace(/[^\d.]/g, '')) || null,
       industry: meta.industry || null,
     };
-    for (const f of FIELDS) {
+    for (const f of [...FIELDS, ...MORE_FIELDS]) {
       const v = raw[f.key];
       if (v === undefined || v === '') continue;
       if (f.type === 'percent') {
@@ -102,7 +125,7 @@ export default function ClaimsLite() {
     try { return scoreClaimsProfile(inputs); } catch { return null; }
   }, [inputs]);
 
-  const filled = FIELDS.filter(f => raw[f.key] !== undefined && raw[f.key] !== '').length;
+  const filled = [...FIELDS, ...MORE_FIELDS].filter(f => raw[f.key] !== undefined && raw[f.key] !== '').length;
   const canSubmit = Number(meta.headcount) > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(meta.email) && filled > 0;
 
   const submit = async () => {
