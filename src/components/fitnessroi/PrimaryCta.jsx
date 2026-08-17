@@ -6,7 +6,9 @@ export default function PrimaryCta({ magicKey }) {
   return (
     <div className="space-y-4">
       <div className="bg-mf-plum rounded-2xl p-6 text-center shadow-sm">
-        <h2 className="text-lg font-bold text-white mb-2 leading-snug">
+        {/* !text-white — `.mf h1,h2,h3 { color: plum }` in journeyTheme.css beats
+            Tailwind's text-white, which was rendering this heading plum-on-plum. */}
+        <h2 className="text-lg font-bold !text-white mb-2 leading-snug">
           This score reflects your view. Get the real picture from your team — free.
         </h2>
         <p className="text-sm text-white/70 mb-4 leading-relaxed">
