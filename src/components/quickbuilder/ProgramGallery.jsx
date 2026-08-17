@@ -36,7 +36,14 @@ function subtitleFor(svc) {
  * the tier already sets the counts. This is here so people can see what
  * they'd be picking from before they commit.
  */
-export default function ProgramGallery({ services = [], isLoading, onBack, onNext }) {
+export default function ProgramGallery({
+  services = [],
+  isLoading,
+  onBack,
+  onNext,
+  nextLabel = 'See my quote',
+  isSubmitting = false,
+}) {
   const isExternalBrochure = /^https?:\/\//i.test(BROCHURE_URL);
   // The service images are the branded cards, which already carry the title —
   // so the grid stays clean and the words live in the dialog.
@@ -48,7 +55,8 @@ export default function ProgramGallery({ services = [], isLoading, onBack, onNex
         <h2 className="text-lg font-bold text-gray-800">What you can choose from</h2>
         <p className="text-sm text-gray-500 mt-1 leading-relaxed">
           Have a look around — nothing to pick right now. Your tier already sets how many of each you get, and we'll
-          choose the specific topics together once you're on board. Your quote is waiting on the next step.
+          choose the specific topics together once you're on board. When you're ready, send your details over and
+          we'll show you the quote.
         </p>
       </div>
 
@@ -151,12 +159,18 @@ export default function ProgramGallery({ services = [], isLoading, onBack, onNex
         </DialogContent>
       </Dialog>
 
-      <div className="flex justify-between pt-2">
-        <Button variant="outline" onClick={onBack} className="gap-2">
+      {/* This button now sends the inquiry as well as advancing, so it takes
+          the plum submit styling and says what it's about to do. */}
+      <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 pt-2">
+        <Button variant="outline" onClick={onBack} disabled={isSubmitting} className="gap-2">
           <ArrowLeft className="w-4 h-4" /> Back
         </Button>
-        <Button onClick={onNext} className="bg-brand-navy hover:bg-brand-navy-dark gap-2">
-          See my quote <ArrowRight className="w-4 h-4" />
+        <Button
+          onClick={onNext}
+          disabled={isSubmitting}
+          className="bg-brand-plum hover:bg-brand-plum-dark gap-2"
+        >
+          {isSubmitting ? 'Sending…' : <>{nextLabel} <ArrowRight className="w-4 h-4" /></>}
         </Button>
       </div>
     </div>
