@@ -4,10 +4,14 @@ import { TrendingUp, ExternalLink, Info } from 'lucide-react';
 import { ROI_CALCULATOR_URL, RATE_CARD } from '@/lib/rateCard';
 
 /**
- * Line-itemed quote with the $300 first-time-client discount.
- * `quote` comes from computeQuote() in the rate card.
+ * Line-itemed quote. `quote` comes from computeQuote() in the rate card.
+ *
+ * The "first campaign with us" checkbox used to live here, but the inquiry is
+ * now submitted from the gallery step — one screen earlier — so the discount
+ * has to be decided before that. It moved up to the tier step; this component
+ * just renders whatever discount the quote already carries.
  */
-export default function QuoteBreakdown({ quote, isNewClient, onToggleNew }) {
+export default function QuoteBreakdown({ quote }) {
   if (!quote) return null;
 
   return (
@@ -56,24 +60,6 @@ export default function QuoteBreakdown({ quote, isNewClient, onToggleNew }) {
           <span className="text-base font-bold text-gray-800">Total</span>
           <span className="text-xl font-bold text-brand-navy">${quote.total.toLocaleString()}</span>
         </div>
-      </div>
-
-      {/* Adjustments */}
-      <div className="bg-brand-cream rounded-xl p-4">
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isNewClient}
-            onChange={onToggleNew}
-            className="mt-0.5 w-4 h-4 rounded accent-brand-navy flex-shrink-0"
-          />
-          <span className="text-sm text-gray-700">
-            This is our first campaign with SkillfulMeans
-            <span className="block text-xs text-gray-400">
-              Welcome discount — ${RATE_CARD.newClientWelcome} off your total
-            </span>
-          </span>
-        </label>
       </div>
 
       {/* Notes */}
