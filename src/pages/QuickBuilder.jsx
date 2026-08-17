@@ -429,7 +429,10 @@ export default function QuickBuilder() {
         </div>
       )}
 
-      <QuickBuilderEducation />
+      {/* Step 1 is the form — keep it uncluttered so people get to a price.
+          "Why campaigns work" and "Every campaign includes" carry more weight
+          once someone is choosing a tier, so they appear from step 2 on. */}
+      {step > 1 && <QuickBuilderEducation />}
     </PortalShell>
   );
 }
