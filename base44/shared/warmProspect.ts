@@ -33,7 +33,11 @@ export interface WarmContactInput {
 }
 
 export interface WarmProspectResult {
-  /** TEMP diagnostic — why no client was created. Remove once stable. */
+  /**
+   * Why no Client was filed, when one wasn't. Written into the profile's notes
+   * so a silent filing failure is visible in the record rather than only in a
+   * log nobody reads — this is how the missing-`company` bug hid.
+   */
   debug?: string;
   client_id: string | null;
   /** True when the Client already existed — an established client or an
