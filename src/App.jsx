@@ -116,9 +116,12 @@ const AuthenticatedApp = () => {
       <Route path="/PresenterPortal" element={<PresenterPortal />} />
       <Route path="/QuickBuilder" element={<QuickBuilder />} />
       <Route path="/Checkin" element={<Checkin />} />
-      <Route path="/MentalFitnessScore" element={<MentalFitnessScore />} />
-      <Route path="/MfsSurvey" element={<MfsSurvey />} />
-      <Route path="/MfsResults" element={<MfsResults />} />
+      {/* The Mental Fitness Score is retired (William, 2026-08-17) — the Mental
+          Fitness Journey replaces it. These redirect rather than 404 because the
+          July conference QR codes and emailed links are still in the wild. */}
+      <Route path="/MentalFitnessScore" element={<Navigate to="/FitnessRoi" replace />} />
+      <Route path="/MfsSurvey" element={<Navigate to="/FitnessRoi" replace />} />
+      <Route path="/MfsResults" element={<Navigate to="/FitnessRoi" replace />} />
       <Route path="/FitnessRoi" element={<FitnessRoi />} />
       <Route path="/FitnessRoi/launch" element={<FitnessRoiLaunch />} />
       <Route path="/FitnessRoi/dashboard" element={<FitnessRoiDashboard />} />
