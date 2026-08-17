@@ -9,6 +9,7 @@ import PairedDomainBars from '@/components/fitnessroi/dashboard/PairedDomainBars
 import RoiComparison from '@/components/fitnessroi/dashboard/RoiComparison';
 import DomainOpportunityCards from '@/components/fitnessroi/dashboard/DomainOpportunityCards';
 import StrategySessionCta from '@/components/fitnessroi/dashboard/StrategySessionCta';
+import ClaimsHandoffCta from '@/components/warm/ClaimsHandoffCta';
 import ComparisonLegend from '@/components/fitnessroi/dashboard/ComparisonLegend';
 import MethodologyNote from '@/components/fitnessroi/dashboard/MethodologyNote';
 
@@ -102,7 +103,18 @@ export default function FitnessRoiDashboard() {
           />
           {/* Section 3: Campaign cards */}
           <DomainOpportunityCards domains={data.domain_opportunity} services={data.services} />
-          {/* Section 4: Single CTA */}
+          {/* Section 4: the hard-data second witness — perception → claims */}
+          <ClaimsHandoffCta
+            magicKey={magicKey}
+            companyName={data.company_name}
+            headcount={data.roi_snapshot?.inputs?.employees}
+            avgSalary={data.roi_snapshot?.inputs?.salary}
+            highlights={[
+              ...(leaderComposite != null ? [{ label: 'Your read', value: String(Math.round(leaderComposite)) }] : []),
+              ...(teamComposite != null ? [{ label: 'Your team', value: String(Math.round(teamComposite)) }] : []),
+            ]}
+          />
+          {/* Section 5: Single CTA */}
           <StrategySessionCta />
         </div>
       </div>
@@ -132,6 +144,16 @@ export default function FitnessRoiDashboard() {
             These are the scores and ROI projection from your quick assessment. Once your team responds, you'll see how your read compares to theirs.
           </p>
           <ResultsView data={{ quick_scores: data.quick_scores, roi_snapshot: data.roi_snapshot, magic_key: magicKey }} hideCta />
+        </div>
+        {/* Waiting on responses is the right moment for the claims read — it
+            needs nobody but them, and it deepens the picture either way. */}
+        <div className="pt-4 border-t border-mf-rule">
+          <ClaimsHandoffCta
+            magicKey={magicKey}
+            companyName={data.company_name}
+            headcount={data.roi_snapshot?.inputs?.employees}
+            avgSalary={data.roi_snapshot?.inputs?.salary}
+          />
         </div>
       </div>
     </div>
