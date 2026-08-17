@@ -41,7 +41,7 @@ export function PreventativeBand() {
         Mental Fitness for your whole team.
       </h2>
       <p className="text-gray-700 leading-relaxed max-w-3xl">
-        Add SkillfulMeans as a preventative intervention across your entire organization before stress, miscommunication and culture becomes a crisis.
+        Add SkillfulMeans as a preventative intervention across your entire organization before stress, miscommunication and culture become a crisis.
       </p>
 
       <div className="flex flex-wrap gap-2 mt-4">
