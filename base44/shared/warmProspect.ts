@@ -97,9 +97,13 @@ export async function upsertClientLead(
   }
 
   // ── New Client Lead ──
+  // Client requires name, email AND company — omitting `company` silently
+  // fails validation and leaves an orphan profile with no client_id.
+  const orgName = (input.company_name || domain).toString().slice(0, 200);
   try {
     const created = await base44.asServiceRole.entities.Client.create({
-      name: (input.company_name || domain).toString().slice(0, 200),
+      name: orgName,
+      company: orgName,
       email: input.email || undefined,
       email_domain: domain,
       industry: input.industry || undefined,
@@ -116,7 +120,7 @@ export async function upsertClientLead(
       company_name: created.name, domain,
     };
   } catch (err) {
-    console.error('[warmProspect] client create failed:', (err as any)?.message || err);
+    console.error('[warmProspect] client create failed:', (err as any)?.message || err, JSON.stringify((err as any)?.response?.data || {}));
     return blank;
   }
 }
