@@ -1,6 +1,5 @@
 import React from 'react';
-import { ExternalLink, LayoutDashboard, BarChart3, Mail, TrendingDown } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { LayoutDashboard, BarChart3, Mail, TrendingDown } from 'lucide-react';
 import ProgramJourney from '@/components/quickbuilder/ProgramJourney';
 import { ROI_CALCULATOR_URL } from '@/lib/rateCard';
 
@@ -57,12 +56,6 @@ export function PreventativeBand() {
         ))}
       </div>
 
-      <Button asChild variant="outline" className="mt-5 gap-2 border-brand-plum/40 text-brand-plum hover:bg-brand-plum/5">
-        <a href={ROI_CALCULATOR_URL} target="_blank" rel="noopener noreferrer">
-          See projected impact for your organization
-          <ExternalLink className="w-4 h-4" />
-        </a>
-      </Button>
     </div>
   );
 }
