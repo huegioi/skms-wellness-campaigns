@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
         confidence: results.confidence,
         benchmarks_used: currentClaimsBenchmarks().values,
         is_demo: is_demo === true,
-        notes: `Self-serve quick read${ref ? ` via broker ref ${ref}` : ''}. Full report withheld for the conversation.`,
+        notes: `Self-serve quick read${ref ? ` via broker ref ${ref}` : ''}. Full report withheld for the conversation.${prospect.debug ? ` [warm_debug: ${prospect.debug}]` : ''}`,
         scored_at: new Date().toISOString(),
         scored_by: normalizedEmail,
       });
