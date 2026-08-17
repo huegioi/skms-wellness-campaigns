@@ -18,6 +18,7 @@ import {
   headcountToBand,
   sessionsPerWorkshop,
   ROI_CALCULATOR_URL,
+  RATE_CARD,
 } from '@/lib/rateCard';
 
 const CALENDLY_LINK = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
@@ -117,7 +118,16 @@ export default function QuickBuilder() {
     return computeQuote({ headcount, stage: selectedStage, isNewClient });
   }, [headcount, selectedStage, isNewClient]);
 
-  const handleSubmit = async () => {
+  /**
+   * Sends the inquiry and moves on to the quote.
+   *
+   * The submit used to sit on the quote page, which meant the quote was only
+   * ever seen by people who had already committed. It now fires from the
+   * gallery step: they send their details, and the quote is what they get
+   * back. Re-entering step 3 with the Back button won't send twice.
+   */
+  const handleSubmitAndContinue = async () => {
+    if (submitted) { goNext(); return; }
     setSubmitting(true);
     try {
       await base44.functions.invoke('submitQuickBuilderInquiry', {
@@ -138,11 +148,16 @@ export default function QuickBuilder() {
         matched_stage: quote ? formatStageLabel(quote.tier) : undefined,
       });
       setSubmitted(true);
+      goNext();
     } catch (err) {
+      // A 429 means this inquiry is already with us — no reason to make them
+      // wait for a quote they've earned. Anything else, keep them here so the
+      // details aren't lost and they can try again.
       if (err?.response?.status === 429) {
-        toast.error("You've already submitted recently. Please try again later.");
+        setSubmitted(true);
+        goNext();
       } else {
-        toast.error('Something went wrong. Please try again.');
+        toast.error("Something went wrong sending that. Please try again.");
       }
     } finally {
       setSubmitting(false);
