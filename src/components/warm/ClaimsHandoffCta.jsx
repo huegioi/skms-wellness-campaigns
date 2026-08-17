@@ -16,8 +16,7 @@ import { CarryPromise } from '@/components/warm/CarriedContext';
  * travelling — carrying data silently isn't enough.
  */
 export default function ClaimsHandoffCta({
-  companyName, headcount, avgSalary, industry, email, contactName,
-  journeyId, ref: brokerRef, highlights = [], isDemo,
+  magicKey, companyName, headcount, avgSalary, industry, highlights = [],
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -32,20 +31,13 @@ export default function ClaimsHandoffCta({
   const go = async () => {
     setBusy(true);
     try {
+      // Only the magic key and the display highlights travel. Company, email,
+      // headcount, salary, industry, broker ref and demo flag are read from the
+      // Journey record server-side.
       const res = await base44.functions.invoke('createHandoffPass', {
         source: 'journey',
-        payload: {
-          company_name: companyName || null,
-          contact_name: contactName || null,
-          email: email || null,
-          headcount: headcount || null,
-          avg_salary: avgSalary || null,
-          industry: industry || null,
-          highlights,
-        },
-        ref: brokerRef || undefined,
-        journey_id: journeyId || undefined,
-        is_demo: isDemo === true,
+        journey_magic_key: magicKey || undefined,
+        payload: { highlights },
       });
       const pass = res?.data?.pass;
       window.location.href = pass ? `/ClaimsLite?pass=${pass}` : '/ClaimsLite';
