@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { ShieldCheck, Calendar, ExternalLink, Lock, ChevronLeft } from 'lucide-react';
+import { ShieldCheck, Calendar, ExternalLink, Lock, ChevronLeft, ChevronDown } from 'lucide-react';
 import { scoreClaimsProfile } from '@/lib/claimsScoring';
 import CarriedContext from '@/components/warm/CarriedContext';
 
@@ -69,6 +69,7 @@ export default function ClaimsLite() {
   const [meta, setMeta] = useState({ company_name: '', email: '', headcount: '', avgSalary: '', industry: '' });
   const [raw, setRaw] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const [result, setResult] = useState(null);
 
   // ── Resolve the pass: prefill AND show what carried over ──
@@ -147,6 +148,31 @@ export default function ClaimsLite() {
       setSubmitting(false);
     }
   };
+
+  // One renderer for both field lists — the short one and the expander.
+  const renderField = (f) => (
+    <div key={f.key} className="flex items-center gap-3">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-mf-ink">{f.label}</p>
+        <p className="text-xs text-mf-ink-3">{f.hint}</p>
+      </div>
+      {f.type === 'yn' ? (
+        <select className="h-9 w-36 rounded-md border border-mf-rule bg-white px-2 text-sm shrink-0"
+          value={raw[f.key] || ''} onChange={e => setRaw(r => ({ ...r, [f.key]: e.target.value }))}>
+          <option value="">— not shown —</option>
+          <option value="Y">Yes</option>
+          <option value="N">No</option>
+        </select>
+      ) : (
+        <div className="relative shrink-0">
+          {f.type === 'currency' && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-mf-ink-3">$</span>}
+          <Input className={`w-36 text-right ${f.type === 'percent' ? 'pr-7' : ''} ${f.type === 'currency' ? 'pl-7' : ''}`} placeholder="—"
+            value={raw[f.key] || ''} onChange={e => setRaw(r => ({ ...r, [f.key]: e.target.value }))} />
+          {f.type === 'percent' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-mf-ink-3">%</span>}
+        </div>
+      )}
+    </div>
+  );
 
   const Header = () => (
     <header className="border-b border-black/5 bg-white/60 backdrop-blur-sm">
@@ -294,28 +320,31 @@ export default function ClaimsLite() {
 
           <div className="pt-4 border-t border-mf-rule space-y-4">
             <p className="text-xs uppercase tracking-widest text-mf-ink-3 font-semibold">From the claims report — skip anything it doesn't show</p>
-            {FIELDS.map(f => (
-              <div key={f.key} className="flex items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-mf-ink">{f.label}</p>
-                  <p className="text-xs text-mf-ink-3">{f.hint}</p>
+            {FIELDS.map(renderField)}
+          </div>
+
+          {/* Nobody with the report open should be capped at a partial read. */}
+          <div className="pt-4 border-t border-mf-rule">
+            {!showMore ? (
+              <button type="button" onClick={() => setShowMore(true)}
+                className="w-full flex items-center justify-between text-left group">
+                <span>
+                  <span className="text-sm font-semibold text-mf-plum">Have the report in front of you? Add the rest.</span>
+                  <span className="block text-xs text-mf-ink-3 mt-0.5">
+                    {MORE_FIELDS.filter(f => f.counted).length} more fields the confidence meter counts, plus {MORE_FIELDS.filter(f => !f.counted).length} that sharpen the risk read.
+                  </span>
+                </span>
+                <ChevronDown className="w-4 h-4 text-mf-ink-3 group-hover:text-mf-plum shrink-0" />
+              </button>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-widest text-mf-ink-3 font-semibold">Everything else — still all optional</p>
+                  <button type="button" onClick={() => setShowMore(false)} className="text-xs text-mf-ink-3 hover:text-mf-plum">Hide</button>
                 </div>
-                {f.type === 'yn' ? (
-                  <select className="h-9 w-36 rounded-md border border-mf-rule bg-white px-2 text-sm"
-                    value={raw[f.key] || ''} onChange={e => setRaw(r => ({ ...r, [f.key]: e.target.value }))}>
-                    <option value="">— not shown —</option>
-                    <option value="Y">Yes</option>
-                    <option value="N">No</option>
-                  </select>
-                ) : (
-                  <div className="relative">
-                    <Input className={`w-36 text-right ${f.type === 'percent' ? 'pr-7' : ''}`} placeholder="—"
-                      value={raw[f.key] || ''} onChange={e => setRaw(r => ({ ...r, [f.key]: e.target.value }))} />
-                    {f.type === 'percent' && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-mf-ink-3">%</span>}
-                  </div>
-                )}
+                {MORE_FIELDS.map(renderField)}
               </div>
-            ))}
+            )}
           </div>
 
           {/* Live confidence — honest, and it pulls */}
