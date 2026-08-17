@@ -38,10 +38,10 @@ export function PreventativeBand() {
   return (
     <div className="bg-brand-cream rounded-2xl border border-brand-navy/10 p-6 md:p-8 mb-6">
       <h2 className="text-2xl md:text-3xl font-bold text-brand-navy mb-3 leading-tight">
-        Preventative mental fitness for your whole team.
+        Mental Fitness for your whole team.
       </h2>
       <p className="text-gray-700 leading-relaxed max-w-3xl">
-        Build mental fitness across your entire organization before stress becomes a crisis.
+        Add SkillfulMeans as a preventative intervention across your entire organization before stress, miscommunication and culture becomes a crisis.
       </p>
 
       <div className="flex flex-wrap gap-2 mt-4">
