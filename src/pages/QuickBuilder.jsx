@@ -216,7 +216,7 @@ export default function QuickBuilder() {
 
       {/* ── Step 1: About your team ── */}
       {step === 1 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-5">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-7 space-y-4">
           <h2 className="text-lg font-bold text-gray-800">About your team</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -266,9 +266,6 @@ export default function QuickBuilder() {
                   placeholder="e.g. 250"
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">
-                Your exact number — every price on the next step is calculated from it.
-              </p>
             </div>
           </div>
           <div>
