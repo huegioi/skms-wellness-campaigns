@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -50,6 +50,7 @@ export default function QuickBuilder() {
   const prefillStageValid = PUBLIC_STAGES().some(s => s.stage === prefillStage);
 
   const [step, setStep] = useState(1);
+  const topRef = useRef(null);
   const [form, setForm] = useState({
     company_name: searchParams.get('company') || '',
     contact_name: '',
@@ -79,6 +80,15 @@ export default function QuickBuilder() {
   const currentIndex = STEPS.findIndex(s => s.num === step);
   const goNext = () => setStep(s => Math.min(4, s + 1));
   const goPrev = () => setStep(s => Math.max(1, s - 1));
+
+  // Each step is a different page as far as the reader is concerned, but the
+  // browser keeps the old scroll offset — so clicking Next at the bottom of a
+  // long step dropped you into the middle of the next one (typically landing
+  // on "Why campaigns work"). scrollIntoView rather than window.scrollTo
+  // because PortalShell's tabbed layout scrolls an inner div, not the window.
+  useEffect(() => {
+    topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [step]);
 
   const toggleGoal = (goal) => {
     setGoals(prev =>
@@ -179,6 +189,9 @@ export default function QuickBuilder() {
       subtitle="Build your wellness campaign in minutes"
       maxWidth="max-w-4xl"
     >
+      {/* Scroll anchor — see the step effect above */}
+      <div ref={topRef} className="scroll-mt-4" />
+
       {/* Step indicator — mobile */}
       <div className="sm:hidden mb-6 flex items-center justify-between">
         <span className="text-sm font-bold text-brand-navy">Step {currentIndex + 1} of {STEPS.length}</span>
