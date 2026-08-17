@@ -164,38 +164,9 @@ export default function QuickBuilder() {
     }
   };
 
-  // ── Success screen ──
-  if (submitted) {
-    return (
-      <PortalShell
-        accentColor="#013f7c"
-        title="Quick Builder"
-        subtitle="Build your wellness campaign in minutes"
-        maxWidth="max-w-2xl"
-      >
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-12 text-center">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 bg-brand-green/10">
-            <CheckCircle className="w-9 h-9 text-brand-green" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Thank you!</h2>
-          <p className="text-gray-500 leading-relaxed max-w-md mx-auto">
-            We've got your {quote?.tier?.name} estimate of ${quote?.total?.toLocaleString()}. Our team will review and
-            send a tailored proposal within 2 business days.
-          </p>
-          <div className="mt-8">
-            <p className="text-sm font-semibold text-gray-700 mb-3">Want to talk sooner?</p>
-            <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer" className="inline-block">
-              <Button size="lg" className="bg-brand-plum gap-2">
-                <CalendarPlus className="w-5 h-5" />
-                Book a Discovery Call
-                <ExternalLink className="w-4 h-4 ml-1" />
-              </Button>
-            </a>
-          </div>
-        </div>
-      </PortalShell>
-    );
-  }
+  // There is no separate thank-you screen any more. Step 4 *is* the
+  // confirmation: it opens with the receipt, shows the quote they've just
+  // earned, and ends with the invitation to talk.
 
   return (
     <PortalShell
@@ -391,6 +362,26 @@ export default function QuickBuilder() {
             ))}
           </div>
 
+          {/* Lives here rather than on the quote page because the inquiry is
+              sent from step 3 — if this were asked later, the figure that
+              reached us would be $300 higher than the one on their screen. */}
+          <div className="bg-brand-cream rounded-xl p-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isNewClient}
+                onChange={toggleNewClient}
+                className="mt-0.5 w-4 h-4 rounded accent-brand-navy flex-shrink-0"
+              />
+              <span className="text-sm text-gray-700">
+                This is our first campaign with SkillfulMeans
+                <span className="block text-xs text-gray-400">
+                  Welcome discount — ${RATE_CARD.newClientWelcome} comes off your total
+                </span>
+              </span>
+            </label>
+          </div>
+
           <p className="text-xs text-gray-500 leading-relaxed px-1">
             Running something larger — a multi-year programme, coaching cascaded through every
             layer, or a dedicated consultant? We build those too. Mention it when you get in touch
@@ -418,13 +409,32 @@ export default function QuickBuilder() {
           services={publicServices}
           isLoading={isLoading}
           onBack={goPrev}
-          onNext={goNext}
+          onNext={handleSubmitAndContinue}
+          nextLabel="Send my details & see my quote"
+          isSubmitting={submitting}
         />
       )}
 
       {/* ── Step 4: Your quote ── */}
       {step === 4 && (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-5">
+          {/* Receipt first — they clicked send on the last step and deserve to
+              know it landed before they read anything else. */}
+          {submitted && (
+            <div className="flex items-start gap-3 rounded-xl border border-brand-green/30 bg-brand-green/[0.06] p-4">
+              <CheckCircle className="w-5 h-5 text-brand-green flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-gray-800">
+                  Thanks {form.contact_name.split(' ')[0]} — that's with us
+                </p>
+                <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
+                  We'll review it and come back with a tailored proposal within 2 business days.
+                  Here's the estimate in the meantime.
+                </p>
+              </div>
+            </div>
+          )}
+
           <div>
             <h2 className="text-lg font-bold text-gray-800">Your quote</h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -432,26 +442,30 @@ export default function QuickBuilder() {
             </p>
           </div>
 
-          <QuoteBreakdown
-            quote={quote}
-            isNewClient={isNewClient}
-            onToggleNew={toggleNewClient}
-          />
+          <QuoteBreakdown quote={quote} />
 
-          <p className="text-sm text-gray-500 text-center">
-            Send this over and we'll come back with a tailored proposal within 2 business days.
-          </p>
+          {/* Nothing left to submit here, so the page ends by offering the
+              next real step: a conversation. */}
+          <div className="rounded-xl border border-brand-plum/25 bg-brand-plum/[0.04] p-5 text-center">
+            <p className="text-sm font-semibold text-gray-800">
+              Want to see what working with us actually looks like?
+            </p>
+            <p className="text-xs text-gray-600 mt-1 mb-4 leading-relaxed">
+              A short call — we'll walk you through a campaign, answer questions, and shape the
+              numbers above around your team. No obligation.
+            </p>
+            <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer" className="inline-block">
+              <Button size="lg" className="bg-brand-plum hover:bg-brand-plum-dark gap-2">
+                <CalendarPlus className="w-5 h-5" />
+                Book a free intro call
+                <ExternalLink className="w-4 h-4 ml-1" />
+              </Button>
+            </a>
+          </div>
 
-          <div className="flex justify-between pt-2">
+          <div className="flex justify-start pt-2">
             <Button variant="outline" onClick={goPrev} className="gap-2">
               <ArrowLeft className="w-4 h-4" /> Back
-            </Button>
-            <Button
-              disabled={submitting || !quote}
-              onClick={handleSubmit}
-              className="bg-brand-plum hover:bg-brand-plum-dark gap-2"
-            >
-              {submitting ? 'Submitting...' : 'Send my quote'}
             </Button>
           </div>
         </div>
