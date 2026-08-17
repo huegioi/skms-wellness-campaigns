@@ -10,7 +10,7 @@
  */
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { newPassToken, passExpiry, appendRung, mergePayload } from '../../shared/handoffPass.ts';
-import { getOrgDomain } from '../../shared/emailDomain.ts';
+import { getOrgDomain, deriveCompanyFromEmail } from '../../shared/emailDomain.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -59,7 +59,13 @@ Deno.serve(async (req) => {
     }
     // Caller-supplied values (what was on screen) lose to the record of truth.
     const clean = mergePayload(payload, fromJourney as any) as Record<string, any>;
-    if (clean.email) clean.domain = getOrgDomain(clean.email) || clean.domain || null;
+    if (clean.email) {
+      clean.domain = getOrgDomain(clean.email) || clean.domain || null;
+      // The Journey never asks for a company name. Rather than show the next
+      // screen a blank where their name should be, derive one from the work
+      // domain — it is a prefill they can correct, not a stored fact.
+      if (!clean.company_name) clean.company_name = deriveCompanyFromEmail(clean.email) || null;
+    }
     const effectiveRef = ref || journeyRef || undefined;
     const effectiveDemo = is_demo === true || journeyDemo;
 
