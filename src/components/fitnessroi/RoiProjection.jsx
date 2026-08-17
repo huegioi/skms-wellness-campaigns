@@ -1,5 +1,4 @@
 import React from 'react';
-import RoiRampChart from '@/components/fitnessroi/RoiRampChart';
 import EscalationInfographic from '@/components/fitnessroi/EscalationInfographic';
 import ScenarioRange from '@/components/fitnessroi/ScenarioRange';
 import { STAGES } from '@/lib/roiModel';
@@ -44,7 +43,7 @@ export default function RoiProjection({ roiResult, stageNum, onStageChange, head
       <p className="mf-eyebrow mb-2">Your projection</p>
       <h2 className="mf-serif text-[26px] leading-tight text-mf-plum mb-3">What a year of this could return</h2>
       <p className="text-xs text-mf-ink-2 mb-4 leading-relaxed">
-        Estimated annual value from a SkillfulMeans mental fitness programme across four cost drivers we
+        Estimated annual value from a SkillfulMeans mental fitness program across four cost drivers we
         can evidence: recovered working time, reduced absence, retention, and the healthcare pathway.
         Every figure is built from your own inputs and published research — nothing here is a rule of
         thumb.
@@ -77,8 +76,6 @@ export default function RoiProjection({ roiResult, stageNum, onStageChange, head
       <p className="text-xs text-mf-ink-2 mb-5 leading-relaxed">
         This is the number we&rsquo;d plan against, not the best case.
       </p>
-
-      <RoiRampChart drivers={roiResult.drivers} />
 
       {/* ── The range ── */}
       {roiResult.scenarios && (
