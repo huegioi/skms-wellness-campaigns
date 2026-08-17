@@ -276,8 +276,13 @@ export default function ClaimsLite() {
             <div className="h-2 rounded-full bg-stone-200 overflow-hidden mb-2">
               <div className="h-full rounded-full bg-mf-plum" style={{ width: `${Math.round((result.fields_provided / result.fields_counted) * 100)}%` }} />
             </div>
+            {/* Now that the expander lets someone reach 11/11, this line has to
+                handle a complete profile — it used to read "0 fields are still
+                missing", which made a finished read sound unfinished. */}
             <p className="text-xs text-mf-ink-2 leading-relaxed">
-              The range above is this wide because {result.fields_counted - result.fields_provided} fields are still missing — all of them are in the renewal report you already have.
+              {result.fields_provided >= result.fields_counted
+                ? 'This is as tight as the estimate gets from a report read — you filled in everything the model looks at. The remaining width is the honest uncertainty in the published cost figures, not a gap in your data.'
+                : `The range above is this wide because ${result.fields_counted - result.fields_provided} ${result.fields_counted - result.fields_provided === 1 ? 'field is' : 'fields are'} still missing — all of them are in the renewal report you already have.`}
             </p>
           </div>
 
