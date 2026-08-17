@@ -86,7 +86,17 @@ Deno.serve(async (req) => {
     const rawOpen = await base44.asServiceRole.entities.MayaReminder.filter({ status: 'open' }, 'trigger_date', 500);
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
-    openReminders = rawOpen.map(r => {
+    // Drop challenge-report follow-ups whose challenge ended more than 14 days ago.
+    // trigger_date = challenge_end + 1, so ageDays > 14 means the challenge is stale.
+    const freshOpen = rawOpen.filter(r => {
+      if (r.reminder_type !== 'challenge_report') return true;
+      const triggerStart = new Date(r.trigger_date);
+      if (isNaN(triggerStart.getTime())) return true;
+      triggerStart.setHours(0, 0, 0, 0);
+      const ageDays = Math.round((todayStart - triggerStart) / 86400000);
+      return ageDays <= 14;
+    });
+    openReminders = freshOpen.map(r => {
       const triggerStart = new Date(r.trigger_date);
       triggerStart.setHours(0, 0, 0, 0);
       const overdueDays = Math.round((todayStart - triggerStart) / 86400000);

@@ -881,6 +881,21 @@ async function buildDeliveryContext(base44) {
   for (const [clientId, svcIds] of Object.entries(clientChallengeMap)) {
     const client = clients.find(c => c.id === clientId);
     if (!client) continue;
+    // Skip challenges that ended more than 14 days ago — no longer actionable.
+    const clientChallengeEvents = cleanEvents.filter(e =>
+      e.event_type === 'challenge' && e.client_id === clientId
+    );
+    if (clientChallengeEvents.length > 0) {
+      const latestEnd = clientChallengeEvents.reduce((latest, e) => {
+        let endRef = e.end_date ? new Date(e.end_date) : null;
+        if (!endRef || isNaN(endRef.getTime())) {
+          endRef = new Date(e.start_date);
+          endRef.setDate(endRef.getDate() + 14);
+        }
+        return endRef > latest ? endRef : latest;
+      }, new Date(0));
+      if (daysDiff(now, latestEnd) > 14) continue;
+    }
     let d0 = false, d14 = false;
     for (const a of cohortAssessments) {
       if (a.client_id !== clientId) continue;
@@ -932,6 +947,8 @@ async function buildDeliveryContext(base44) {
   const SESSION_TYPES = ['workshop', 'class', 'leadership', 'presentation'];
   const todayMinus30 = new Date(startToday);
   todayMinus30.setDate(todayMinus30.getDate() - 30);
+  const todayMinus14 = new Date(startToday);
+  todayMinus14.setDate(todayMinus14.getDate() - 14);
   const todayMinus3 = new Date(startToday);
   todayMinus3.setDate(todayMinus3.getDate() - 3);
   const todayPlus7 = new Date(startToday);
@@ -960,6 +977,7 @@ async function buildDeliveryContext(base44) {
   }
 
   // b) Challenge reports — send challenge report
+  // Only surface challenges that ended within the last 14 days; older ones are stale.
   for (const e of cleanEvents) {
     if (e.event_type !== 'challenge') continue;
     let endRef = e.end_date ? new Date(e.end_date) : null;
@@ -968,7 +986,7 @@ async function buildDeliveryContext(base44) {
       endRef.setDate(endRef.getDate() + 14);
     }
     const dayStart = startOfDay(endRef);
-    if (dayStart < todayMinus30 || dayStart >= startToday) continue;
+    if (dayStart < todayMinus14 || dayStart >= startToday) continue;
     const triggerDate = new Date(dayStart);
     triggerDate.setDate(triggerDate.getDate() + 1);
     const client = e.client_name || '';
