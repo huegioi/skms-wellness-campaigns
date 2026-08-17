@@ -24,6 +24,7 @@ import MentalFitnessScore from './pages/MentalFitnessScore';
 import MfsSurvey from './pages/MfsSurvey';
 import MfsResults from './pages/MfsResults';
 import FitnessRoi from './pages/FitnessRoi';
+import ClaimsLite from './pages/ClaimsLite';
 import FitnessRoiLaunch from './pages/FitnessRoiLaunch';
 import MfsJourneySurvey from './pages/MfsJourneySurvey';
 import FitnessRoiDashboard from './pages/FitnessRoiDashboard';
@@ -123,6 +124,7 @@ const AuthenticatedApp = () => {
       <Route path="/MfsSurvey" element={<Navigate to="/FitnessRoi" replace />} />
       <Route path="/MfsResults" element={<Navigate to="/FitnessRoi" replace />} />
       <Route path="/FitnessRoi" element={<FitnessRoi />} />
+      <Route path="/ClaimsLite" element={<ClaimsLite />} />
       <Route path="/FitnessRoi/launch" element={<FitnessRoiLaunch />} />
       <Route path="/FitnessRoi/dashboard" element={<FitnessRoiDashboard />} />
       <Route path="/MfsJourneySurvey" element={<MfsJourneySurvey />} />
