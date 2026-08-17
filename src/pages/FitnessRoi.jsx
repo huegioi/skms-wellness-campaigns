@@ -2,7 +2,6 @@ import React, { useState, useRef } from 'react';
 import { ChevronLeft, ShieldCheck } from 'lucide-react';
 import JourneyProgressBar from '@/components/fitnessroi/JourneyProgressBar';
 import JourneyProcessStrip from '@/components/fitnessroi/JourneyProcessStrip';
-import JourneyStepMarker from '@/components/fitnessroi/JourneyStepMarker';
 import QuickQuestionCard from '@/components/fitnessroi/QuickQuestionCard';
 import CompanyInfoForm from '@/components/fitnessroi/CompanyInfoForm';
 import EmailGate from '@/components/fitnessroi/EmailGate';
@@ -15,6 +14,7 @@ const QUESTIONS = [
   { label: 'Connection', key: 'connection', text: "How many of your people have real relationships at work — people they'd call friends?" },
 ];
 const OPTIONS = ['Almost none', 'About a quarter', 'About half', 'Most', 'Nearly all'];
+const LOGO_URL = 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/bb0a43468_SKMSLogoShieldBrown.png';
 const PART_HEADERS = ['Your read on your team', 'Your read on your team', 'Your read on your team', 'Your read on your team', 'About your company', 'See your results'];
 
 export default function FitnessRoi() {
@@ -39,13 +39,20 @@ export default function FitnessRoi() {
 
   return (
     <div className="mf mf-screen min-h-screen">
+      {/* Branded header — every step */}
+      <header className="border-b border-black/5 bg-white/60 backdrop-blur-sm">
+        <div className="max-w-2xl mx-auto px-5 py-3 flex items-center gap-2.5">
+          <img src={LOGO_URL} alt="SkillfulMeans" className="h-7 w-auto" />
+          <span className="text-[15px] font-semibold tracking-tight text-mf-plum">skillfulmeans</span>
+        </div>
+      </header>
+
       {step === 0 && (
         <div className="max-w-2xl mx-auto px-5 pt-8 pb-2">
           <h1 className="text-2xl md:text-3xl font-bold text-mf-plum mb-3 leading-tight">The Mental Fitness Journey</h1>
           <p className="text-sm text-mf-ink-2 leading-relaxed mb-6">
             See your team's mental fitness the way the data sees it. Start with your own two-minute read on your team — then let their anonymous responses show you where you're right, where you're off, and what the gap is costing you.
           </p>
-          <JourneyProcessStrip />
           <div className="text-center">
             <button
               onClick={scrollToStart}
@@ -60,15 +67,10 @@ export default function FitnessRoi() {
       <div ref={startRef} className={`mx-auto px-5 py-8 ${step === 6 ? 'max-w-2xl' : 'max-w-lg'} scroll-mt-4`}>
         {step < 6 && (
           <>
-            <JourneyStepMarker activeStep={activeJourneyStep} />
+            <JourneyProcessStrip activeStep={activeJourneyStep} />
             <JourneyProgressBar step={step} total={5} />
             <p className="text-xs uppercase tracking-widest text-mf-ink-3 mt-2 mb-6">about 3 minutes</p>
             <h1 className="text-2xl font-bold text-mf-plum mb-4">{PART_HEADERS[step]}</h1>
-            {step === 0 && (
-              <p className="text-sm text-mf-ink-2 mb-6 leading-relaxed">
-                This is step one: a 3-minute snapshot of your team's mental fitness as you see it, plus a projection of what improving it is worth — then, if you want the real picture, a free anonymous assessment for your whole team.
-              </p>
-            )}
           </>
         )}
         {step < 4 ? (
