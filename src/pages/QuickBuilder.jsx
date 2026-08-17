@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { PortalShell } from '@/components/portal/PortalShell';
 import { toast } from 'sonner';
 import { Check, ArrowRight, ArrowLeft, CheckCircle, CalendarPlus, ExternalLink, Users, TrendingUp } from 'lucide-react';
-import { PreventativeBand, WhyCampaignsWork, EveryCampaignIncludes } from '@/components/quickbuilder/QuickBuilderIntro';
+import { PreventativeBand, EveryCampaignIncludes } from '@/components/quickbuilder/QuickBuilderIntro';
 import TierCard from '@/components/quickbuilder/TierCard';
 import QuoteBreakdown from '@/components/quickbuilder/QuoteBreakdown';
 import ProgramGallery from '@/components/quickbuilder/ProgramGallery';
@@ -442,12 +442,14 @@ export default function QuickBuilder() {
         </div>
       )}
 
-      {/* Step 1 is the form; step 2 is choosing a tier. Neither is helped by a
-          long explainer above the fold, so "Why campaigns work" waits until
-          step 3. The includes strip is short enough to earn its place from
-          step 2 on. */}
-      {step > 2 && <WhyCampaignsWork />}
-      {step > 1 && <EveryCampaignIncludes />}
+      {/* "Why campaigns work" is gone from the builder entirely — by the time
+          someone is filling this in they have already decided to look, and the
+          case for campaigns is made on the pages that bring them here.
+
+          The includes strip earns its place while they are choosing (steps 2
+          and 3) but not on the quote, where the breakdown already itemises
+          exactly what they are getting. */}
+      {step > 1 && step < 4 && <EveryCampaignIncludes />}
     </PortalShell>
   );
 }
