@@ -15,7 +15,7 @@ export default function PrimaryCta({ magicKey }) {
           So far this is one person's perspective. The next step is a free, fully anonymous 3-minute survey for your team — when at least 5 people respond, your dashboard unlocks with your team's real scores and your ROI re-run on measured data.
         </p>
         {/* A WHITE pill, not plum-on-plum: the old bg-mf-plum button was the same
-            colour as the card it sits on, so it read as a line of text rather
+            color as the card it sits on, so it read as a line of text rather
             than something to click. */}
         <Link to={`/FitnessRoi/launch?k=${magicKey}`}
           className="inline-flex w-full items-center justify-center gap-2 bg-white text-mf-plum rounded-full px-5 py-3.5 font-semibold shadow-md hover:bg-mf-cream transition-colors">
