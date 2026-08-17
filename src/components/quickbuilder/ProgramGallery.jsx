@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, ArrowLeft, BookOpen, ExternalLink, Award, Dumbbell, Crown, Activity, Package } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ArrowRight, ArrowLeft, BookOpen, ExternalLink, Award, Dumbbell, Crown, Activity, Package, Eye } from 'lucide-react';
 import ServiceImage from '@/components/quickbuilder/ServiceImage';
 import { BROCHURE_URL } from '@/lib/rateCard';
 
+// Group headings only — the per-group paragraphs were removed 2026-08-13.
 const GROUPS = [
-  { cat: 'workshop',   label: 'Workshops',         icon: Award,    blurb: 'Live, facilitated sessions. Your tier includes a set number — you choose the topics later with us.' },
-  { cat: 'challenge',  label: '14-Day Challenges', icon: Dumbbell, blurb: 'Team-wide habit sprints that turn what people learned into daily practice.' },
-  { cat: 'leadership', label: 'Leadership',        icon: Crown,    blurb: 'Leadership EQ programs, coaching, and the Leadership Circle Profile assessment.' },
-  { cat: 'class',      label: 'Classes',           icon: Activity, blurb: 'Ongoing movement, mindfulness, and recovery classes.' },
+  { cat: 'workshop',   label: 'Workshops',         icon: Award },
+  { cat: 'challenge',  label: '14-Day Challenges', icon: Dumbbell },
+  { cat: 'leadership', label: 'Leadership',        icon: Crown },
+  { cat: 'class',      label: 'Classes',           icon: Activity },
 ];
 
 /**
@@ -18,6 +20,9 @@ const GROUPS = [
  */
 export default function ProgramGallery({ services = [], isLoading, onBack, onNext }) {
   const isExternalBrochure = /^https?:\/\//i.test(BROCHURE_URL);
+  // The service images are the branded cards, which already carry the title —
+  // so the grid stays clean and the words live in the dialog.
+  const [openService, setOpenService] = useState(null);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
@@ -58,17 +63,22 @@ export default function ProgramGallery({ services = [], isLoading, onBack, onNex
           const Icon = group.icon;
           return (
             <div key={group.cat}>
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-3">
                 <Icon className="w-4 h-4 text-brand-navy" />
                 <h3 className="font-bold text-gray-800">{group.label}</h3>
                 <span className="text-xs text-gray-400">({items.length})</span>
               </div>
-              <p className="text-xs text-gray-500 mb-3 leading-relaxed">{group.blurb}</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {items.map(svc => {
                   const image = svc.images?.[0]?.url;
                   return (
-                    <div key={svc.id} className="rounded-xl overflow-hidden border border-gray-100 shadow-sm">
+                    <button
+                      key={svc.id}
+                      type="button"
+                      onClick={() => setOpenService(svc)}
+                      className="group text-left rounded-xl overflow-hidden border border-gray-100 shadow-sm
+                                 hover:shadow-md hover:border-brand-navy/30 transition-all"
+                    >
                       <div className="relative aspect-video bg-gray-100">
                         {image ? (
                           <ServiceImage src={image} alt={svc.name} className="w-full h-full" />
@@ -78,15 +88,12 @@ export default function ProgramGallery({ services = [], isLoading, onBack, onNex
                           </div>
                         )}
                       </div>
-                      <div className="p-2.5">
-                        <p className="text-xs font-medium text-gray-800 leading-snug">{svc.name}</p>
-                        {svc.short_description && (
-                          <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2 leading-snug">
-                            {svc.short_description}
-                          </p>
-                        )}
+                      <div className="flex items-center justify-center gap-1.5 py-2
+                                      text-[11px] font-medium text-brand-navy/70 group-hover:text-brand-navy">
+                        <Eye className="w-3.5 h-3.5" />
+                        View description
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -94,6 +101,38 @@ export default function ProgramGallery({ services = [], isLoading, onBack, onNex
           );
         })
       )}
+
+      <Dialog open={!!openService} onOpenChange={o => !o && setOpenService(null)}>
+        <DialogContent className="max-w-lg">
+          {openService && (
+            <>
+              {openService.images?.[0]?.url && (
+                <div className="relative aspect-video rounded-xl overflow-hidden -mt-2">
+                  <ServiceImage
+                    src={openService.images[0].url}
+                    alt={openService.name}
+                    className="w-full h-full"
+                  />
+                </div>
+              )}
+              <DialogHeader className="space-y-1 text-left">
+                <DialogTitle className="text-lg leading-snug">{openService.name}</DialogTitle>
+                {openService.short_description && (
+                  <p className="text-sm text-brand-plum">{openService.short_description}</p>
+                )}
+              </DialogHeader>
+              {openService.description && (
+                <p className="text-sm text-gray-600 leading-relaxed max-h-64 overflow-y-auto">
+                  {openService.description}
+                </p>
+              )}
+              {!openService.description && !openService.short_description && (
+                <p className="text-sm text-gray-400">No description added for this one yet.</p>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <div className="flex justify-between pt-2">
         <Button variant="outline" onClick={onBack} className="gap-2">
