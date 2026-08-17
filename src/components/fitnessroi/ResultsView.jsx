@@ -84,7 +84,7 @@ export default function ResultsView({ data, hideCta }) {
         <ClaimsHandoffCta
           magicKey={magic_key}
           headcount={headcount}
-          avgSalary={roiInputs.salary}
+          avgSalary={roiInputs.avgSalary}
         />
       )}
     </div>
