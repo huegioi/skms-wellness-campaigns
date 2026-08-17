@@ -1,7 +1,6 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { TrendingUp, ExternalLink, Info } from 'lucide-react';
-import { ROI_CALCULATOR_URL, RATE_CARD } from '@/lib/rateCard';
+import { TrendingUp, Info } from 'lucide-react';
+import { RATE_CARD } from '@/lib/rateCard';
 
 /**
  * Line-itemed quote. `quote` comes from computeQuote() in the rate card.
@@ -71,12 +70,10 @@ export default function QuoteBreakdown({ quote }) {
         </p>
       </div>
 
-      <Button asChild variant="outline" className="w-full gap-2 border-brand-plum/40 text-brand-plum hover:bg-brand-plum/5">
-        <a href={ROI_CALCULATOR_URL} target="_blank" rel="noopener noreferrer">
-          See your projected 3-year ROI
-          <ExternalLink className="w-4 h-4" />
-        </a>
-      </Button>
+      {/* The ROI link used to sit here too, but by this point they've already
+          sent their details and the page ends on booking a call — sending them
+          off to another tool competes with that. It still appears on the tier
+          step, which is where the return actually informs a decision. */}
     </div>
   );
 }
