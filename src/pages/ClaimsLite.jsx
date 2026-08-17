@@ -187,7 +187,44 @@ export default function ClaimsLite() {
   if (result) {
     const gap = result.subscores?.unmetNeedGap;
     const shadow = result.subscores?.comorbidityShadow;
+    const burden = result.subscores?.identifiedBurden;
     const bandColor = (b) => b === 'High' ? 'text-red-700' : b === 'Elevated' ? 'text-amber-700' : 'text-emerald-700';
+
+    // ── The read, in a sentence or two ──
+    // Numbers on their own make a reader do the interpreting. This says what
+    // the pattern MEANS, in the order it matters, and stays honest about
+    // confidence. It is the short version of page 1 of the full report.
+    const summary = (() => {
+      const parts = [];
+      const hi = (s) => s?.band === 'High';
+      const el = (s) => s?.band === 'Elevated';
+
+      if (hi(shadow) || el(shadow)) {
+        parts.push(`Your report carries a ${shadow.band.toLowerCase()} stress-linked comorbidity load — the musculoskeletal, sleep and utilization patterns where undiagnosed distress usually surfaces first.`);
+      } else if (shadow?.score !== null) {
+        parts.push('The stress-linked comorbidity signals in your report are mild — the pattern where undiagnosed distress usually shows up is not pronounced here.');
+      }
+
+      if (hi(gap) || el(gap)) {
+        parts.push(`Set against that, your behavioural health spend and reach look thin, which is what drives the ${gap.band.toLowerCase()} unmet-need gap. That combination — pressure showing up everywhere except the behavioural health line — is the pattern worth acting on, and it is why a low behavioural health number is not reassurance.`);
+      } else if (gap?.score !== null) {
+        parts.push('Your behavioural health spend looks proportionate to that load, so the unmet-need gap reads low — care appears to be reaching people rather than being deferred.');
+      }
+
+      if (burden?.score !== null && (hi(burden) || el(burden))) {
+        parts.push(`Identified burden is ${burden.band.toLowerCase()}, meaning a meaningful share of your population is already in treatment or on medication — a floor, not a ceiling.`);
+      }
+
+      if (result.hidden_cost) {
+        parts.push(`Taken together, the estimated cost of what this is doing to attendance and performance is ${money(result.hidden_cost.low)}–${money(result.hidden_cost.high)} a year — typically several times what shows on the behavioural health line itself.`);
+      }
+
+      parts.push(result.confidence === 'High'
+        ? 'Confidence is high: you gave us most of what the model reads.'
+        : `Read all of this as a first pass — confidence is ${String(result.confidence).toLowerCase()} at ${result.fields_provided} of ${result.fields_counted} fields, so the range is wider than it needs to be.`);
+
+      return parts.join(' ');
+    })();
     return (
       <div className="mf mf-screen min-h-screen">
         <Header />
@@ -213,6 +250,12 @@ export default function ClaimsLite() {
               <p className="text-sm text-mf-ink-2">Add an average salary and either diagnosed prevalence or antidepressant utilization and we can estimate the hidden cost. We show it as missing rather than zero — absence of data isn't absence of cost.</p>
             </div>
           )}
+
+          {/* The summary — what the numbers mean, before the numbers themselves */}
+          <div className="mf-card p-5 border-l-4 border-l-mf-plum">
+            <p className="text-xs uppercase tracking-widest text-mf-plum font-bold mb-2">What this says</p>
+            <p className="text-sm text-mf-ink-2 leading-relaxed">{summary}</p>
+          </div>
 
           {/* Two signals */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
