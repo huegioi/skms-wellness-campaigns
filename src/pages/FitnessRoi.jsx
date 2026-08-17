@@ -72,7 +72,10 @@ export default function FitnessRoi() {
             <JourneyProcessStrip activeStep={activeJourneyStep} />
           </div>
         )}
-        <div className={`mx-auto px-5 ${step === 6 ? 'max-w-2xl' : 'max-w-lg'}`}>
+        {/* The results screen runs two columns on desktop — scores and numbers in
+            the main column, the team-survey CTA in a sidebar — so it needs more
+            room than the question column. */}
+        <div className={`mx-auto px-5 ${step === 6 ? 'max-w-5xl' : 'max-w-lg'}`}>
         {step < 6 && (
           <>
             <JourneyProgressBar step={step} total={5} />
@@ -98,6 +101,21 @@ export default function FitnessRoi() {
             onSubmit={(data) => { setResultsData(data); setStep(6); }} />
         ) : resultsData ? (
           <>
+            {/* The results screen is a destination in its own right — it has its
+                own private link and people come back to it — so it opens with a
+                title and a line about what it is, not cold on a score card. */}
+            <div className="mb-6">
+              <p className="mf-eyebrow mb-2">Your results</p>
+              <h1 className="text-2xl md:text-3xl font-bold text-mf-plum mb-2 leading-tight">
+                Your Team&rsquo;s Mental Fitness Dashboard
+              </h1>
+              <p className="text-sm text-mf-ink-2 leading-relaxed max-w-2xl">
+                Your team&rsquo;s mental fitness in one place — how each domain scores against published
+                research norms, what the gap is likely costing you, and what a program would return.
+                Every number here is built from your own read on your team; invite them to the free
+                anonymous survey and it all re-runs on their answers.
+              </p>
+            </div>
             {resultsData.email_sent ? (
               <div className="bg-[#fce7f3] rounded-xl p-3 mb-4 text-center">
                 <p className="text-xs text-mf-plum font-medium">We've emailed you a private link so you can return any time.</p>
