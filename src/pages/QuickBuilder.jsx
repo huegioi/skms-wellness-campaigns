@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { PortalShell } from '@/components/portal/PortalShell';
 import { toast } from 'sonner';
 import { Check, ArrowRight, ArrowLeft, CheckCircle, CalendarPlus, ExternalLink, Users, TrendingUp } from 'lucide-react';
-import { PreventativeBand, QuickBuilderEducation } from '@/components/quickbuilder/QuickBuilderIntro';
+import { PreventativeBand, WhyCampaignsWork, EveryCampaignIncludes } from '@/components/quickbuilder/QuickBuilderIntro';
 import TierCard from '@/components/quickbuilder/TierCard';
 import QuoteBreakdown from '@/components/quickbuilder/QuoteBreakdown';
 import ProgramGallery from '@/components/quickbuilder/ProgramGallery';
@@ -314,6 +314,26 @@ export default function QuickBuilder() {
             </p>
           </div>
 
+          {/* Deciding between tiers is exactly where the return matters, so
+              offer the ROI calculator here as well as on the final quote. */}
+          <a
+            href={ROI_CALCULATOR_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 p-4 rounded-xl border border-brand-plum/25 bg-brand-plum/[0.04] hover:bg-brand-plum/[0.08] transition-colors"
+          >
+            <div className="w-10 h-10 rounded-lg bg-brand-plum/10 flex items-center justify-center flex-shrink-0">
+              <TrendingUp className="w-5 h-5 text-brand-plum" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-sm text-gray-800">Not sure which tier is worth it?</p>
+              <p className="text-xs text-gray-500">
+                Our ROI calculator projects the 3-year return for a company your size
+              </p>
+            </div>
+            <ExternalLink className="w-4 h-4 text-brand-plum flex-shrink-0" />
+          </a>
+
           {/* A company needing more than one section is buying more delivery,
               not paying a size surcharge. Say so before they see the price. */}
           {sectionsPerWorkshop > 1 && (
@@ -348,26 +368,6 @@ export default function QuickBuilder() {
             layer, or a dedicated consultant? We build those too. Mention it when you get in touch
             and we'll shape one around you.
           </p>
-
-          {/* Deciding between tiers is exactly where the return matters, so
-              offer the ROI calculator here as well as on the final quote. */}
-          <a
-            href={ROI_CALCULATOR_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 p-4 rounded-xl border border-brand-plum/25 bg-brand-plum/[0.04] hover:bg-brand-plum/[0.08] transition-colors"
-          >
-            <div className="w-10 h-10 rounded-lg bg-brand-plum/10 flex items-center justify-center flex-shrink-0">
-              <TrendingUp className="w-5 h-5 text-brand-plum" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm text-gray-800">Not sure which tier is worth it?</p>
-              <p className="text-xs text-gray-500">
-                Our ROI calculator projects the 3-year return for a company your size
-              </p>
-            </div>
-            <ExternalLink className="w-4 h-4 text-brand-plum flex-shrink-0" />
-          </a>
 
           <div className="flex justify-between pt-2">
             <Button variant="outline" onClick={goPrev} className="gap-2">
@@ -429,10 +429,12 @@ export default function QuickBuilder() {
         </div>
       )}
 
-      {/* Step 1 is the form — keep it uncluttered so people get to a price.
-          "Why campaigns work" and "Every campaign includes" carry more weight
-          once someone is choosing a tier, so they appear from step 2 on. */}
-      {step > 1 && <QuickBuilderEducation />}
+      {/* Step 1 is the form; step 2 is choosing a tier. Neither is helped by a
+          long explainer above the fold, so "Why campaigns work" waits until
+          step 3. The includes strip is short enough to earn its place from
+          step 2 on. */}
+      {step > 2 && <WhyCampaignsWork />}
+      {step > 1 && <EveryCampaignIncludes />}
     </PortalShell>
   );
 }

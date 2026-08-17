@@ -61,39 +61,54 @@ export function PreventativeBand() {
 }
 
 /** Education section — shown below the builder steps so education follows action. */
-export function QuickBuilderEducation() {
+/**
+ * The two supporting sections, split so each step can show only what earns its
+ * place there. Step 1 is the form alone; step 2 is choosing a tier, where the
+ * essay would push the cards down the page.
+ */
+export function WhyCampaignsWork() {
   return (
-    <div className="space-y-8 mt-8">
-      {/* Why campaigns work */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-        <h2 className="text-xl md:text-2xl font-bold text-brand-navy mb-3">Why campaigns work</h2>
-        <p className="text-gray-600 leading-relaxed">
-          The most effective approaches integrate these skills across the organization — building a common language
-          and a culture of psychological safety, mental fitness, emotional intelligence, and healthy productivity.
-          That's why we recommend a campaign of at least a workshop + a 14-day challenge + wellness boxes.
-        </p>
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 mt-8">
+      <h2 className="text-xl md:text-2xl font-bold text-brand-navy mb-3">Why campaigns work</h2>
+      <p className="text-gray-600 leading-relaxed">
+        The most effective approaches integrate these skills across the organization — building a common language
+        and a culture of psychological safety, mental fitness, emotional intelligence, and healthy productivity.
+        That's why we recommend a campaign of at least a workshop + a 14-day challenge + wellness boxes.
+      </p>
 
-        <ProgramJourney />
-      </div>
+      <ProgramJourney />
+    </div>
+  );
+}
 
-      {/* Every campaign includes */}
-      <div>
-        <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Every campaign includes</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {CAMPAIGN_INCLUDES.map(item => {
-            const Icon = item.icon;
-            return (
-              <div key={item.title} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${item.bgClass}`}>
-                  <Icon className={`w-4 h-4 ${item.textClass}`} />
-                </div>
-                <p className="font-semibold text-sm text-gray-800">{item.title}</p>
-                <p className="text-xs text-gray-500 leading-snug mt-0.5">{item.desc}</p>
+export function EveryCampaignIncludes() {
+  return (
+    <div className="mt-8">
+      <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Every campaign includes</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {CAMPAIGN_INCLUDES.map(item => {
+          const Icon = item.icon;
+          return (
+            <div key={item.title} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${item.bgClass}`}>
+                <Icon className={`w-4 h-4 ${item.textClass}`} />
               </div>
-            );
-          })}
-        </div>
+              <p className="font-semibold text-sm text-gray-800">{item.title}</p>
+              <p className="text-xs text-gray-500 leading-snug mt-0.5">{item.desc}</p>
+            </div>
+          );
+        })}
       </div>
     </div>
+  );
+}
+
+/** Kept for any older importer — renders both, in the original order. */
+export function QuickBuilderEducation() {
+  return (
+    <>
+      <WhyCampaignsWork />
+      <EveryCampaignIncludes />
+    </>
   );
 }
