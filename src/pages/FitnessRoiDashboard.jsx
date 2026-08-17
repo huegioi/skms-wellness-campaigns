@@ -108,7 +108,7 @@ export default function FitnessRoiDashboard() {
             magicKey={magicKey}
             companyName={data.company_name}
             headcount={data.roi_snapshot?.inputs?.employees}
-            avgSalary={data.roi_snapshot?.inputs?.salary}
+            avgSalary={data.roi_snapshot?.inputs?.avgSalary}
             highlights={[
               ...(leaderComposite != null ? [{ label: 'Your read', value: String(Math.round(leaderComposite)) }] : []),
               ...(teamComposite != null ? [{ label: 'Your team', value: String(Math.round(teamComposite)) }] : []),
@@ -152,7 +152,7 @@ export default function FitnessRoiDashboard() {
             magicKey={magicKey}
             companyName={data.company_name}
             headcount={data.roi_snapshot?.inputs?.employees}
-            avgSalary={data.roi_snapshot?.inputs?.salary}
+            avgSalary={data.roi_snapshot?.inputs?.avgSalary}
           />
         </div>
       </div>
