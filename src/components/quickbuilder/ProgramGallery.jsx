@@ -14,6 +14,24 @@ const GROUPS = [
 ];
 
 /**
+ * For nearly every service, short_description is just the first ~150 characters
+ * of description, chopped mid-word — so printing both in the dialog showed the
+ * same sentence twice. Only treat it as a real subtitle when it isn't already
+ * contained in the long copy.
+ */
+const normalise = s => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+
+function subtitleFor(svc) {
+  const short = (svc.short_description || '').trim();
+  const full = (svc.description || '').trim();
+  if (!short || !full) return null;                 // nothing to duplicate against
+  const a = normalise(short);
+  const b = normalise(full);
+  if (!a) return null;
+  return b.includes(a.slice(0, 60)) ? null : short;
+}
+
+/**
  * Browse-only view of everything on offer. Nothing here changes the quote —
  * the tier already sets the counts. This is here so people can see what
  * they'd be picking from before they commit.
@@ -117,16 +135,15 @@ export default function ProgramGallery({ services = [], isLoading, onBack, onNex
               )}
               <DialogHeader className="space-y-1 text-left">
                 <DialogTitle className="text-lg leading-snug">{openService.name}</DialogTitle>
-                {openService.short_description && (
-                  <p className="text-sm text-brand-plum">{openService.short_description}</p>
+                {subtitleFor(openService) && (
+                  <p className="text-sm text-brand-plum">{subtitleFor(openService)}</p>
                 )}
               </DialogHeader>
-              {openService.description && (
+              {(openService.description || openService.short_description) ? (
                 <p className="text-sm text-gray-600 leading-relaxed max-h-64 overflow-y-auto">
-                  {openService.description}
+                  {openService.description || openService.short_description}
                 </p>
-              )}
-              {!openService.description && !openService.short_description && (
+              ) : (
                 <p className="text-sm text-gray-400">No description added for this one yet.</p>
               )}
             </>
