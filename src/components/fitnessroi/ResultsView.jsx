@@ -6,6 +6,7 @@ import RoiProjection from '@/components/fitnessroi/RoiProjection';
 import ParticipationBuilder from '@/components/fitnessroi/ParticipationBuilder';
 import AssumptionsPanel from '@/components/fitnessroi/AssumptionsPanel';
 import PrimaryCta from '@/components/fitnessroi/PrimaryCta';
+import ClaimsHandoffCta from '@/components/warm/ClaimsHandoffCta';
 
 export default function ResultsView({ data, hideCta }) {
   const { quick_scores, roi_snapshot, magic_key } = data;
@@ -74,6 +75,18 @@ export default function ResultsView({ data, hideCta }) {
         headcount={headcount}
         conditionCount={Object.values(conditions).filter(Boolean).length}
       />
+
+      {/* Second path, offered after the projection rather than instead of the
+          team survey: the team survey deepens the perception picture, the
+          claims read corroborates it with money. Either is a real next step;
+          the dashboard renders its own copy of this, hence !hideCta. */}
+      {!hideCta && (
+        <ClaimsHandoffCta
+          magicKey={magic_key}
+          headcount={headcount}
+          avgSalary={roiInputs.salary}
+        />
+      )}
     </div>
   );
 }
