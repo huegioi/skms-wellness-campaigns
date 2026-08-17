@@ -157,6 +157,7 @@ Deno.serve(async (req) => {
       recommended_stage: campaign.stage,
       known_client: prospect.is_current_client,
       company_name: prospect.company_name,
+      warm_debug: prospect.debug || null,   // TEMP — remove once client filing is confirmed
     });
   } catch (err) {
     console.error('[submitClaimsLite]', (err as any)?.message || err);
