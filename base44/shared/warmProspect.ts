@@ -33,6 +33,8 @@ export interface WarmContactInput {
 }
 
 export interface WarmProspectResult {
+  /** TEMP diagnostic — why no client was created. Remove once stable. */
+  debug?: string;
   client_id: string | null;
   /** True when the Client already existed — an established client or an
    *  earlier warm touch. Drives the "welcome back" state in the UI. */
@@ -58,7 +60,7 @@ export async function upsertClientLead(
     client_id: null, existing: false, is_current_client: false,
     company_name: input.company_name || null, domain: extractEmailDomain(input.email),
   };
-  if (!domain) return blank;   // free-mail or malformed — nothing to match on
+  if (!domain) return { ...blank, debug: `no org domain from "${input.email}"` };
 
   // ── Match on domain, primary then aliases ──
   let existing: any = null;
@@ -72,8 +74,9 @@ export async function upsertClientLead(
       existing = aliased?.[0] || null;
     }
   } catch (err) {
-    console.error('[warmProspect] client lookup failed:', (err as any)?.message || err);
-    return blank;
+    const detail = `${(err as any)?.message || err}`;
+    console.error('[warmProspect] client lookup failed:', detail);
+    return { ...blank, debug: `lookup: ${detail}`.slice(0, 500) };
   }
 
   if (existing) {
@@ -120,8 +123,9 @@ export async function upsertClientLead(
       company_name: created.name, domain,
     };
   } catch (err) {
-    console.error('[warmProspect] client create failed:', (err as any)?.message || err, JSON.stringify((err as any)?.response?.data || {}));
-    return blank;
+    const detail = `${(err as any)?.message || err} :: ${JSON.stringify((err as any)?.response?.data || (err as any)?.body || {})}`;
+    console.error('[warmProspect] client create failed:', detail);
+    return { ...blank, debug: `create: ${detail}`.slice(0, 500) };
   }
 }
 
