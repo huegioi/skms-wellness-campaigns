@@ -64,10 +64,17 @@ export default function FitnessRoi() {
         </div>
       )}
 
-      <div ref={startRef} className={`mx-auto px-5 py-8 ${step === 6 ? 'max-w-2xl' : 'max-w-lg'} scroll-mt-4`}>
+      <div ref={startRef} className="scroll-mt-4 pt-8 pb-8">
+        {/* The stage diagram sits in its own wider column so the four steps
+            never crowd; the questions stay in the narrow reading column. */}
+        {step < 6 && (
+          <div className="max-w-2xl mx-auto px-5">
+            <JourneyProcessStrip activeStep={activeJourneyStep} />
+          </div>
+        )}
+        <div className={`mx-auto px-5 ${step === 6 ? 'max-w-2xl' : 'max-w-lg'}`}>
         {step < 6 && (
           <>
-            <JourneyProcessStrip activeStep={activeJourneyStep} />
             <JourneyProgressBar step={step} total={5} />
             <p className="text-xs uppercase tracking-widest text-mf-ink-3 mt-2 mb-6">about 3 minutes</p>
             <h1 className="text-2xl font-bold text-mf-plum mb-4">{PART_HEADERS[step]}</h1>
@@ -109,6 +116,7 @@ export default function FitnessRoi() {
             <ChevronLeft className="w-4 h-4" /> Back
           </button>
         )}
+        </div>
       </div>
     </div>
   );
