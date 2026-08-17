@@ -20,22 +20,20 @@ export default function ScenarioRange({ scenarios, showInvestment = false }) {
   const eligible = scenarios?.clientFacing || [];
   // Nothing is withheld any more: the model bounds client-facing figures at
   // the highest published ROI rather than letting them run past it, so every
-  // case is safe to show. Where the bound bit, we say so instead of quietly
-  // presenting a clamped number as an estimate.
+  // case is safe to show. The bars carry the numbers on their own — the prose
+  // that used to restate them and explain the bound was cut 2026-08-17.
   const rows = eligible.slice().sort((a, b) => a.annualSavings - b.annualSavings);
   if (!rows.length) return null;
-  const anyBounded = rows.some(r => r.bounded);
   const allSame = rows.length > 1
     && Math.abs(rows[rows.length - 1].annualSavings - rows[0].annualSavings) < 1;
 
   const max = Math.max(...rows.map(r => r.annualSavings)) || 1;
-  const byKey = Object.fromEntries(rows.map(r => [r.scenario, r]));
 
   return (
     <div>
       <h3 className="mf-serif text-[19px] text-mf-plum mb-1.5">Three numbers, not one</h3>
       <p className="text-xs text-mf-ink-2 leading-relaxed mb-4">
-        Most wellbeing programmes are sold with a single confident figure. We&rsquo;d rather show you what
+        Most wellbeing programs are sold with a single confident figure. We&rsquo;d rather show you what
         we&rsquo;d plan against, what we&rsquo;d expect, and where the ceiling sits.
       </p>
 
@@ -74,40 +72,17 @@ export default function ScenarioRange({ scenarios, showInvestment = false }) {
         })}
       </div>
 
-      {allSame ? (
+      {/* The only note left: three identical bars need explaining, or the chart
+          reads as broken. Everything else that sat here — the published-ceiling
+          note, the restatement of the three figures, and the "these move with the
+          choices above" line — was cut 2026-08-17 at William's request. */}
+      {allSame && (
         <p className="text-xs text-mf-ink-2 leading-relaxed mt-4">
           At your numbers these come out the same, and we&rsquo;d rather show you that than manufacture a
           spread. A workforce this size, with this much reported distress and these salaries, is one
-          where the published evidence stops being able to tell the cases apart — so we hold all of them
-          to the highest figure anyone has published and plan against the first one.
-        </p>
-      ) : anyBounded && (
-        <p className="text-xs text-mf-ink-2 leading-relaxed mt-4">
-          The top of this range is held at the highest return any published study reports for a programme
-          run across a whole workforce. Our own maths came out higher. We don&rsquo;t print that number,
-          because nobody has demonstrated it.
+          where the published evidence stops being able to tell the cases apart.
         </p>
       )}
-
-      {!allSame && byKey.base && byKey.expected && (
-        <p className="text-xs text-mf-ink-2 leading-relaxed mt-4">
-          <b className="text-mf-ink">{fmtUSD(byKey.base.annualSavings)}</b> is the number we&rsquo;d
-          hold ourselves to.{' '}
-          <b className="text-mf-ink">{fmtUSD(byKey.expected.annualSavings)}</b> is what we&rsquo;d
-          expect with all four commitments in place.
-          {byKey.optimistic && (
-            <>
-              {' '}<b className="text-mf-ink">{fmtUSD(byKey.optimistic.annualSavings)}</b> is the work
-              landing about as well as it does anywhere.
-            </>
-          )}
-        </p>
-      )}
-
-      <p className="text-xs text-mf-ink-2 leading-relaxed mt-3">
-        {rows.length > 2 ? 'All three' : 'Both'} move with the choices above — those decide how many of
-        your people the programme actually reaches, and reach decides everything after it.
-      </p>
     </div>
   );
 }
