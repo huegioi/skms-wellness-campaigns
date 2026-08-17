@@ -1,0 +1,77 @@
+{
+  "name": "HandoffPass",
+  "type": "object",
+  "description": "Carries context between the warming tools (ROI calculator -> Journey -> Claims Lite -> Quick Builder) so a visitor never re-types a number. Links carry only the opaque token and the broker ref - never names, emails, or figures - so nothing sensitive lands in a URL, log, or analytics referrer. One pass per journey, appended to at each hop. Resolved server-side by resolveHandoffPass.",
+  "properties": {
+    "token": {
+      "type": "string",
+      "description": "Opaque random token used in ?pass= links. The only thing that travels in a URL."
+    },
+    "source_chain": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tools used so far, in order, e.g. ['roi_calc','journey','claims_lite']. The last entry is the deepest rung reached - this is what warmth is computed from."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Carried facts: headcount, avg_salary, industry, company_name, contact_name, email, domain. Written by whichever tool learned them; later tools prefill from here."
+    },
+    "ref": {
+      "type": "string",
+      "description": "Referring broker's portal id, carried unchanged across every hop so attribution survives the whole journey."
+    },
+    "journey_id": {
+      "type": "string",
+      "description": "MfsJourney record this pass came from, when the visitor arrived via the Mental Fitness Journey."
+    },
+    "claims_profile_id": {
+      "type": "string",
+      "description": "ClaimsProfile created or updated during this journey."
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Client record matched by email domain - set when the visitor turns out to be an existing client or becomes a Client Lead."
+    },
+    "referral_partner_id": {
+      "type": "string",
+      "description": "ReferralPartner record when the operator is a broker (Partner Lead)."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Passes expire 30 days after creation; resolve refuses an expired token."
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Demo journey - keeps test runs out of analytics and pipelines."
+    }
+  },
+  "required": [
+    "token"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
