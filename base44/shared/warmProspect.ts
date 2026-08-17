@@ -17,7 +17,7 @@
  *
  * Matching is by email DOMAIN, never by name and never by a single address
  * (companies-are-the-client). Free-mail domains identify a person, not an
- * organisation, so they never create or match a company.
+ * organization, so they never create or match a company.
  */
 import { getOrgDomain, extractEmailDomain } from './emailDomain.ts';
 
@@ -53,7 +53,7 @@ export interface WarmProspectResult {
  * Find-or-create the Client record behind a warming-tool submission.
  *
  * Never touches `Lead`. Never creates a company for a free-mail address —
- * those stay contact-level until an organisational domain shows up.
+ * those stay contact-level until an organizational domain shows up.
  */
 export async function upsertClientLead(
   base44: any,

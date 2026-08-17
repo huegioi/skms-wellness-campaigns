@@ -19,14 +19,14 @@ const GROUPS = [
  * same sentence twice. Only treat it as a real subtitle when it isn't already
  * contained in the long copy.
  */
-const normalise = s => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
+const normalize = s => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim();
 
 function subtitleFor(svc) {
   const short = (svc.short_description || '').trim();
   const full = (svc.description || '').trim();
   if (!short || !full) return null;                 // nothing to duplicate against
-  const a = normalise(short);
-  const b = normalise(full);
+  const a = normalize(short);
+  const b = normalize(full);
   if (!a) return null;
   return b.includes(a.slice(0, 60)) ? null : short;
 }

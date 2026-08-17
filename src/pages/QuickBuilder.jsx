@@ -383,7 +383,7 @@ export default function QuickBuilder() {
           </div>
 
           <p className="text-xs text-gray-500 leading-relaxed px-1">
-            Running something larger — a multi-year programme, coaching cascaded through every
+            Running something larger — a multi-year program, coaching cascaded through every
             layer, or a dedicated consultant? We build those too. Mention it when you get in touch
             and we'll shape one around you.
           </p>

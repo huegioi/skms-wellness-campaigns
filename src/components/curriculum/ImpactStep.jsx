@@ -18,7 +18,7 @@ import { DRIVERS } from '@/components/fitnessroi/dashboard/SavingsChart';
  *
  * CLIENT-SAFE BY CONSTRUCTION. Only the three client-facing scenarios render
  * (scenarios.clientFacing); the Conservative floor and capacity warnings stay
- * on the internal ROI Test Bed. All maths comes from journeyModel.ts and all
+ * on the internal ROI Test Bed. All math comes from journeyModel.ts and all
  * prices from rateCard.ts — nothing here defines a coefficient or a dollar.
  */
 
@@ -29,11 +29,11 @@ const EVIDENCE = {
   },
   workday: {
     label: 'During work hours',
-    why: 'Jørgensen 2016 (BMJ Open, n=10,605, nationally representative): programmes offered only in leisure time carried OR 0.70 against participation — this multiplier is the inverse. Every one of six programme types tested was significantly lower when moved off paid time.',
+    why: 'Jørgensen 2016 (BMJ Open, n=10,605, nationally representative): programs offered only in leisure time carried OR 0.70 against participation — this multiplier is the inverse. Every one of six program types tested was significantly lower when moved off paid time.',
   },
   noCost: {
     label: 'Free for employees',
-    why: 'Halpern 2015 (NEJM, n=2,538): a reward-framed programme drew 90.0% enrolment; an economically equivalent one requiring a $150 refundable deposit drew 13.7%. Discounted heavily because SkillfulMeans campaigns are employer-paid by default — switch off only if a client passes cost to staff.',
+    why: 'Halpern 2015 (NEJM, n=2,538): a reward-framed program drew 90.0% enrollment; an economically equivalent one requiring a $150 refundable deposit drew 13.7%. Discounted heavily because SkillfulMeans campaigns are employer-paid by default — switch off only if a client passes cost to staff.',
   },
   teamLeader: {
     label: 'Teams + leaders in',
@@ -48,8 +48,8 @@ const pct1 = (n) => (n * 100).toFixed(1) + '%';
 const DEFAULT_ASSUMPTIONS = { avgSalary: 75000, stressRate: 35, turnoverRate: 15, absDays: 4.2 };
 
 // Starting position for a fresh session: the three conditions that cost the
-// client nothing (opt-out enrolment, workday scheduling, employer-paid) are
-// on; team+leader enrolment — the one real ask — starts off.
+// client nothing (opt-out enrollment, workday scheduling, employer-paid) are
+// on; team+leader enrollment — the one real ask — starts off.
 const DEFAULT_CONDITIONS = { optOut: true, workday: true, noCost: true };
 
 export default function ImpactStep({ selections, updateSelections, onNext, onBack, onStageChange }) {

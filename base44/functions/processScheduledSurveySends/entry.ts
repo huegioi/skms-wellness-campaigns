@@ -362,7 +362,7 @@ async function processReminderBatch(base44, sendType, cutoff) {
     send_type: sendType, status: 'sent', reminder_sent: false
   }, '-sent_at', 50);
 
-  // Re-read per batch so an unsubscribe made after the initial send is honoured
+  // Re-read per batch so an unsubscribe made after the initial send is honored
   // by the reminder that follows it.
   const suppressedSet = await loadSuppressedSet(base44);
 
@@ -381,7 +381,7 @@ async function processReminderBatch(base44, sendType, cutoff) {
     }
 
     // Same session block and greeting as the original send, so the reminder is
-    // recognisable rather than a context-free nudge. Names come from the
+    // recognizable rather than a context-free nudge. Names come from the
     // check-ins on the event, matched back to each invite by email.
     const sessionCtx = await buildSessionContext(base44, send);
     const nameByEmail = {};

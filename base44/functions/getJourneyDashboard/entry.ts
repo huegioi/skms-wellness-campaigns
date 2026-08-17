@@ -185,8 +185,8 @@ Deno.serve(async (req) => {
     // the difference between them is estimate vs measured. That was only true
     // while one model existed. Snapshots written before the rebuild carry the
     // OLD model's outputs -- 0.75x salary replacement cost, a workers' comp
-    // driver, no reach decay -- so the left chart was running old maths and the
-    // right chart new maths, and the gap between them was mostly the rebuild
+    // driver, no reach decay -- so the left chart was running old math and the
+    // right chart new math, and the gap between them was mostly the rebuild
     // rather than anything about the client's team. It made measured data look
     // far worse than the leader's guess for reasons that had nothing to do with
     // the team.

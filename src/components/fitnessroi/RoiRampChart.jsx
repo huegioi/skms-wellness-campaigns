@@ -20,7 +20,7 @@ export default function RoiRampChart({ drivers }) {
         ))}
       </div>
       <p className="text-[10px] text-mf-ink-3 italic text-center mt-2">
-        Year one is partial — effects build as the programme matures, while reach falls away without
+        Year one is partial — effects build as the program matures, while reach falls away without
         re-prompting. Both are in the figures.
       </p>
     </div>

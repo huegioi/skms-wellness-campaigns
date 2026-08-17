@@ -1,7 +1,7 @@
 // Single source of truth for QuickBooks invoice body assembly.
 //
 // Both the dry-run (qbInvoiceBuild) and the POST (createQBInvoice in
-// quickbooksSync) call buildInvoiceBody with a normalised line list
+// quickbooksSync) call buildInvoiceBody with a normalized line list
 // produced by one of two adapters:
 //   - linesFromProposal: snapshot-first pricing from Proposal.selections
 //   - linesFromInvoice:  from Invoice.line_items, matching by description

@@ -13,7 +13,7 @@ import { RESEARCH_MODEL } from '@/lib/roiModel';
  * Ordered by evidential weight: presenteeism is the best-evidenced driver and
  * the largest, so it sits at the base of the stack.
  */
-// Hues are FIXED per driver -- a driver keeps its colour whatever else is on
+// Hues are FIXED per driver -- a driver keeps its color whatever else is on
 // screen, and they are never cycled or reassigned by rank. Values mirror
 // src/styles/journeyTheme.css.
 //
@@ -24,7 +24,7 @@ import { RESEARCH_MODEL } from '@/lib/roiModel';
 // adjacent pair ΔE 9.2 deuteranopia, 23.7 normal vision.
 //
 // Two of the four sit below 3:1 contrast against the surface, which is only
-// acceptable because every driver is directly labelled with its name and value
+// acceptable because every driver is directly labeled with its name and value
 // in text. Do not remove those labels without re-deriving the palette.
 export const DRIVERS = [
   { key: 'presenteeism', label: 'Recovered working time', color: '#8E3F72' },
@@ -33,7 +33,7 @@ export const DRIVERS = [
   { key: 'medical', label: 'Healthcare pathway', color: '#2A78D6' },
 ];
 
-/** Effects ramp up as the programme matures; reach decays without re-prompting.
+/** Effects ramp up as the program matures; reach decays without re-prompting.
  *  Both live in RESEARCH_MODEL so this chart cannot drift from the model. */
 const RAMP = (() => {
   const { ramp, reachRetention } = RESEARCH_MODEL;

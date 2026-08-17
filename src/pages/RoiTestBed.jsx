@@ -11,7 +11,7 @@ import {
  * ROI Test Bed — internal.
  *
  * This page imports the model DIRECTLY from base44/shared/journeyModel.ts. It
- * holds no coefficients, no prices and no copy of the maths. Whatever the
+ * holds no coefficients, no prices and no copy of the math. Whatever the
  * Journey and the team dashboard would produce for a given set of inputs, this
  * produces too, because it is the same code — there is nothing to keep in sync
  * and nothing that can drift.

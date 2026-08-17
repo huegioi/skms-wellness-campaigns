@@ -47,7 +47,7 @@ export default function PulseFeedbackRollup({ pulseResponses = [] }) {
   const bySession = useMemo(() => {
     const groups = new Map();
     for (const r of pulseResponses) {
-      const key = r.event_id || r.event_label || r.service_name || 'unlabelled';
+      const key = r.event_id || r.event_label || r.service_name || 'unlabeled';
       if (!groups.has(key)) {
         groups.set(key, { key, label: r.event_label || r.service_name || 'Session', rows: [], latest: r.submitted_at });
       }
@@ -115,7 +115,7 @@ export default function PulseFeedbackRollup({ pulseResponses = [] }) {
             {overall.intentRate != null && (
               <p className="text-xs text-gray-500 mt-4 pt-3 border-t">
                 <span className="font-semibold text-brand-green">{overall.intentRate}%</span> named a specific
-                behaviour they intend to change after the session.
+                behavior they intend to change after the session.
               </p>
             )}
           </div>

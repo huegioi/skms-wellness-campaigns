@@ -11,7 +11,7 @@ import { resolveBoxPrices, WELLNESS_BOX_PRICES, BOX_DISPLAY_NAMES, applyBoxFloor
 import { runScenarios } from '@/lib/roiModel';
 
 /**
- * The impact designed on step 2, summarised beside the quote so the story
+ * The impact designed on step 2, summarized beside the quote so the story
  * closes: this participation, this stage, this return. Same model call the
  * Impact step makes; renders nothing if that step was skipped.
  */

@@ -18,7 +18,7 @@ import CarriedContext from '@/components/warm/CarriedContext';
  *
  * Everything the previous rung learned arrives via ?pass= and is both
  * prefilled AND shown back on screen (CarriedContext) so the visitor can see
- * their own data travelled with them. An existing client is recognised by
+ * their own data traveled with them. An existing client is recognized by
  * email domain and never re-enters what we already hold.
  */
 
@@ -206,9 +206,9 @@ export default function ClaimsLite() {
       }
 
       if (hi(gap) || el(gap)) {
-        parts.push(`Set against that, your behavioural health spend and reach look thin, which is what drives the ${gap.band.toLowerCase()} unmet-need gap. That combination — pressure showing up everywhere except the behavioural health line — is the pattern worth acting on, and it is why a low behavioural health number is not reassurance.`);
+        parts.push(`Set against that, your behavioral health spend and reach look thin, which is what drives the ${gap.band.toLowerCase()} unmet-need gap. That combination — pressure showing up everywhere except the behavioral health line — is the pattern worth acting on, and it is why a low behavioral health number is not reassurance.`);
       } else if (gap?.score !== null) {
-        parts.push('Your behavioural health spend looks proportionate to that load, so the unmet-need gap reads low — care appears to be reaching people rather than being deferred.');
+        parts.push('Your behavioral health spend looks proportionate to that load, so the unmet-need gap reads low — care appears to be reaching people rather than being deferred.');
       }
 
       if (burden?.score !== null && (hi(burden) || el(burden))) {
@@ -216,7 +216,7 @@ export default function ClaimsLite() {
       }
 
       if (result.hidden_cost) {
-        parts.push(`Taken together, the estimated cost of what this is doing to attendance and performance is ${money(result.hidden_cost.low)}–${money(result.hidden_cost.high)} a year — typically several times what shows on the behavioural health line itself.`);
+        parts.push(`Taken together, the estimated cost of what this is doing to attendance and performance is ${money(result.hidden_cost.low)}–${money(result.hidden_cost.high)} a year — typically several times what shows on the behavioral health line itself.`);
       }
 
       parts.push(result.confidence === 'High'

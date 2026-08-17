@@ -11,7 +11,7 @@
  * mauve and sky sit ΔE 7.8 apart for normal vision (a hard fail; the floor is
  * 15) and 3.6 apart under deuteranopia, where red and green collapse. Roughly
  * one man in twelve would have seen two of your four drivers as the same
- * colour.
+ * color.
  *
  * The palette below was derived instead and validated on both surfaces:
  *   worst adjacent pair ΔE 9.2 (deuteranopia), 23.7 (normal vision)
@@ -19,8 +19,8 @@
  * It keeps the brand's plum and coral; the aqua and blue are the separation.
  *
  * Two of the four fall below 3:1 contrast against cream, which is acceptable
- * ONLY because every driver is directly labelled with its name and value in
- * text — colour never carries identity alone. If you remove those labels, the
+ * ONLY because every driver is directly labeled with its name and value in
+ * text — color never carries identity alone. If you remove those labels, the
  * palette has to be re-derived. All chrome (plum, ink, coral) is well above
  * the text-contrast threshold.
  */
@@ -60,7 +60,7 @@
   --mf-ord-2: #8E5379;
   --mf-ord-3: #52223F;
 
-  /* Status — reserved. Never reused as a series colour. */
+  /* Status — reserved. Never reused as a series color. */
   --mf-warn: #B4531F;
 
   font-family: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;

@@ -61,7 +61,7 @@ export const STAGES: JourneyStage[] = CAMPAIGN_STAGES.map((s, i) => ({
 
 /**
  * Default participation for a company that has not told us how they will run
- * the programme.
+ * the program.
  *
  * WAS a size curve (25% at <=250 down to 10% above 5,000) with no evidence
  * behind it — participation does not track headcount, it tracks delivery.
@@ -137,7 +137,7 @@ export function calcInvestment(
  *
  * Rewritten 2026-08-08. The model this replaced returned 7.11:1 on a 1,000
  * person Tier 3 campaign -- above the 6.30:1 ceiling, which no published
- * source for a whole-population workplace programme exceeds. Two inputs drove
+ * source for a whole-population workplace program exceeds. Two inputs drove
  * that:
  *
  *   - a turnover replacement cost of 0.75x salary, traceable only to an
@@ -245,18 +245,18 @@ export const RESEARCH_MODEL = {
   },
 
   /** Reach decays without re-prompting. Two forces run in opposite directions:
-   *  effects ramp UP as the programme matures, reach falls DOWN. Both belong. */
+   *  effects ramp UP as the program matures, reach falls DOWN. Both belong. */
   reachRetention: {
     /** Illinois measured the same cohort twice: the fall wellness activity went
      *  27.4% -> 13.3% (-51%) and spring 22.4% -> 10.4% (-54%), while
-     *  incentivised screening decayed only -24%. Behavioural activities decay
+     *  incentivised screening decayed only -24%. Behavioral activities decay
      *  about twice as fast as one-touch events. Gentler than Illinois here
-     *  because that programme had no re-engagement mechanism. */
+     *  because that program had no re-engagement mechanism. */
     y2: 0.75,
     /** Extrapolated. Robroek 2012 (JMIR) shows why this is a design choice and
      *  not a constant: in a period with no questionnaire prompt, 6% of the
      *  un-prompted group visited the site versus 27% of those receiving monthly
-     *  emails (OR 5.88). Engagement tracks prompting, not programme quality. */
+     *  emails (OR 5.88). Engagement tracks prompting, not program quality. */
     y3: 0.60,
   },
 
@@ -287,7 +287,7 @@ export const RESEARCH_MODEL = {
      *  routed into treatment, not to everyone reached. */
     benefitPerRoutedPerson: 1800,
     /** Share of distressed participants who actually engage treatment.
-     *  Deliberately low — most programmes never measure this. */
+     *  Deliberately low — most programs never measure this. */
     routeRate: 0.12,
     workDaysPerYear: 250,
   },
@@ -296,7 +296,7 @@ export const RESEARCH_MODEL = {
    *  maturation over three years. */
   ramp: { y1: 0.45, y2: 0.80, y3: 1.00 },
 
-  /** Dose and depth. Bigger programmes should show diminishing rather than
+  /** Dose and depth. Bigger programs should show diminishing rather than
    *  linear returns; saturation is the shape parameter, not a finding. */
   dose: {
     workshop: 1, challenge: 3, leadershipEq: 6,
@@ -312,7 +312,7 @@ export const RESEARCH_MODEL = {
   benchmarks: [
     { v: 0.00, label: 'Illinois / Song & Baicker / Fleming', note: 'Three RCTs, ~86,000 employees, up to three years. No significant effect on employment outcomes.' },
     { v: 1.62, label: 'Deloitte Canada, year 1', note: 'CA$1.62 per $1.' },
-    { v: 2.18, label: 'Deloitte Canada, 3 years', note: 'Rises as programmes mature.' },
+    { v: 2.18, label: 'Deloitte Canada, 3 years', note: 'Rises as programs mature.' },
     { v: 2.65, label: 'Chisholm 2016, employer share', note: 'Productivity returns only, 2.3-3.0:1. The familiar 4:1 counts monetised health gains the employer never captures.' },
     { v: 4.10, label: 'Deloitte UK, reactive', note: 'Support after someone is already struggling.' },
     { v: 4.20, label: 'Deloitte UK, proactive', note: 'Targeted at identified at-risk groups.' },
@@ -321,7 +321,7 @@ export const RESEARCH_MODEL = {
   ],
 
   /** Anything above this has no published support for a whole-population
-   *  workplace programme. A bound, not a target. If the model exceeds it, the
+   *  workplace program. A bound, not a target. If the model exceeds it, the
    *  effect sizes are too generous or participation is one the rate card
    *  cannot serve. The model live before this rebuild sat at 6.14:1. */
   ceiling: 6.30,
@@ -469,7 +469,7 @@ export function investmentAt(stage: JourneyStage, N: number, participation: numb
  * Two axes, not four points on one.
  *
  *   Conservative / Base Case / Optimistic vary the EFFECT SIZES — how well the
- *   programme works, which is a question about the science.
+ *   program works, which is a question about the science.
  *
  *   Expected varies DELIVERY — how well it is run — holding Base Case effect
  *   sizes fixed. It is the only scenario a client moves by their own choices,
@@ -501,7 +501,7 @@ export const SCENARIO_META: Record<ScenarioKey, {
   },
   optimistic: {
     label: 'Optimistic', clientFacing: true, varies: 'both',
-    note: 'Expected delivery AND upper-range effect sizes — the programme run as well as it can be run, landing at the top of what the research supports. The ceiling of the range by construction.',
+    note: 'Expected delivery AND upper-range effect sizes — the program run as well as it can be run, landing at the top of what the research supports. The ceiling of the range by construction.',
   },
 };
 
@@ -518,7 +518,7 @@ export interface ScenarioInputs {
    * Expected and Optimistic run at the participation THESE conditions produce
    * (capacity bought to match) — "your commitments, run properly" — so the
    * whole range responds to choices made on screen. Omitted → legacy
-   * behaviour: full delivery, every condition assumed met. Added 2026-08-15
+   * behavior: full delivery, every condition assumed met. Added 2026-08-15
    * because the Impact step's two biggest bars never reacted to the toggles.
    */
   conditions?: Partial<Record<ParticipationCondition, boolean>>;
@@ -563,7 +563,7 @@ export function runScenario(inputs: ScenarioInputs, scenario: ScenarioKey) {
     ? Math.max(investmentAt(stage, N, reach), calcInvestment(stage, N).total)
     : calcInvestment(stage, N).total;
 
-  // Depth saturates, so a bigger programme shows diminishing rather than
+  // Depth saturates, so a bigger program shows diminishing rather than
   // linear returns. The working-conditions uplift is JD-R: training leaders
   // lifts job resources for everyone they manage, not only the leader.
   const D = 1 - Math.exp(-dosePoints(stage) / RESEARCH_MODEL.dose.saturation);
@@ -598,7 +598,7 @@ export function runScenario(inputs: ScenarioInputs, scenario: ScenarioKey) {
   // ── The published-evidence bound ────────────────────────────────────
   // No client-facing figure goes out above RESEARCH_MODEL.ceiling -- the
   // highest ROI any credible published source reports for a whole-population
-  // workplace programme. Where the coefficients produce more, the figure stops
+  // workplace program. Where the coefficients produce more, the figure stops
   // at the ceiling and `bounded` is set so the surface says so.
   //
   // It binds most often on Optimistic, which stacks full delivery on
@@ -613,7 +613,7 @@ export function runScenario(inputs: ScenarioInputs, scenario: ScenarioKey) {
   //
   // Two scenarios can therefore tie at the ceiling. That tie is information,
   // not a glitch: at those inputs the published evidence cannot separate
-  // running the programme well from running it well AND everything landing at
+  // running the program well from running it well AND everything landing at
   // the top of its range. Surfaces should say that rather than hide it.
   //
   // This is NOT the old soft cap. That bent EVERY figure, silently, through a
@@ -670,7 +670,7 @@ export function runScenario(inputs: ScenarioInputs, scenario: ScenarioKey) {
     overCapacity: !fullDelivery && reach > capacity + 1e-9,
     capacityBought: fullDelivery,
     /** Above this there is no published support for a whole-population
-     *  workplace programme. See RESEARCH_MODEL.ceiling. Never true for
+     *  workplace program. See RESEARCH_MODEL.ceiling. Never true for
      *  Optimistic, which is bounded instead -- see `bounded`. */
     exceedsCeiling: perDollar > RESEARCH_MODEL.ceiling + 1e-9,
     /** True when this figure was held down TO the ceiling. Surfaces must say

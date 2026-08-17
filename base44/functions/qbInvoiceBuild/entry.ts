@@ -201,7 +201,7 @@ Deno.serve(async (req) => {
     }
     } // end search path
 
-    // ── Build normalised lines from Proposal ──
+    // ── Build normalized lines from Proposal ──
     const { lines, warnings: lineWarnings, blockingErrors: priceBlockingErrors } = linesFromProposal(
       proposal.selections, serviceMap, allServices
     );

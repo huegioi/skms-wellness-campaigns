@@ -634,7 +634,7 @@ Deno.serve(async (req) => {
             }
             // Backfill email only if the existing record has none — on a domain
             // match the QB customer's email is often a different person (billing
-            // vs. programme contact); never overwrite the contact of record.
+            // vs. program contact); never overwrite the contact of record.
             if (!existingClient.email) {
               updatePayload.email = email;
             }

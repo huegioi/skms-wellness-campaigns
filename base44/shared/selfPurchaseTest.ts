@@ -10,9 +10,9 @@
  * a brokerage buying for itself from a brokerage referring a client it services
  * (both produce a matching brokerage_id).
  *
- * Free-mail domains (gmail.com, etc.) identify a person, not an organisation,
+ * Free-mail domains (gmail.com, etc.) identify a person, not an organization,
  * and are skipped via isExcludedDomain. The function returns false when either
- * side has no usable organisational domain.
+ * side has no usable organizational domain.
  */
 import { isExcludedDomain } from './emailDomain';
 
@@ -27,7 +27,7 @@ export interface DomainTestBrokerage {
 
 /**
  * Returns true if the referred Client IS the brokerage itself — i.e. their
- * organisational email domains match.
+ * organizational email domains match.
  *
  * @param client  The referred Client (needs email_domain + email_domain_aliases)
  * @param brokerage  The referring partner's Brokerage (needs email_domain)

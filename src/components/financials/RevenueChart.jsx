@@ -18,7 +18,7 @@ const BRAND = {
   blue: '#013f7c',
   green: '#264d44',
   orange: '#e87040',
-  grey: '#4a5568',
+  gray: '#4a5568',
 };
 
 function CustomTooltip({ active, payload, label }) {
@@ -225,7 +225,7 @@ export default function RevenueChart() {
                     setToMonth(now.getMonth()); setToYear(now.getFullYear());
                   }}
                   className="px-3 py-1 text-xs font-semibold rounded-lg border border-gray-200 bg-white hover:border-[#264d44] hover:text-[#264d44] transition-colors"
-                  style={{ color: BRAND.grey }}
+                  style={{ color: BRAND.gray }}
                 >
                   {p.label}
                 </button>
@@ -245,10 +245,10 @@ export default function RevenueChart() {
           <ResponsiveContainer width="100%" height={340}>
             <BarChart data={chartData} margin={{ top: 4, right: 8, left: 12, bottom: 4 }} barCategoryGap="35%">
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: BRAND.grey }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: BRAND.gray }} axisLine={false} tickLine={false} />
               <YAxis
                 tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-                tick={{ fontSize: 12, fill: BRAND.grey }}
+                tick={{ fontSize: 12, fill: BRAND.gray }}
                 axisLine={false} tickLine={false} width={52}
               />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(38,77,68,0.06)', radius: 8 }} />

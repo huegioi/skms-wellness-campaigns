@@ -16,7 +16,7 @@ import React from 'react';
 const fmtUSD = (v) => '$' + Math.round(v).toLocaleString();
 
 // SEQUENTIAL, not categorical. The scenarios are ordered, so the encoding is
-// one hue getting darker -- Conservative is drained grey because it is the
+// one hue getting darker -- Conservative is drained gray because it is the
 // internal floor and should not compete. Giving these four distinct hues would
 // say they are different kinds of thing rather than four points on a range.
 const FILL = {

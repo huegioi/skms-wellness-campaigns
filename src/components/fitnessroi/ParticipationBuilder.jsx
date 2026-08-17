@@ -55,7 +55,7 @@ export default function ParticipationBuilder({
         How you run it matters more than what you buy
       </h2>
       <p className="text-xs text-mf-ink-2 mb-5 leading-relaxed">
-        Most of what decides whether a programme works is set before it starts — and it&rsquo;s yours to
+        Most of what decides whether a program works is set before it starts — and it&rsquo;s yours to
         choose. Tell us what you could commit to.
       </p>
 

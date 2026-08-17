@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
   let who5Fields = {};
 
   if (isLegacyWho5) {
-    // ── Legacy WHO-5 path (unchanged behaviour) ──
+    // ── Legacy WHO-5 path (unchanged behavior) ──
     const scores = { who5_cheerful, who5_calm, who5_active, who5_rested, who5_interested };
     for (const [key, val] of Object.entries(scores)) {
       const n = parseInt(val, 10);

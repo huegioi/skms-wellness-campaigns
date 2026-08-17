@@ -13,7 +13,7 @@ import { CarryPromise } from '@/components/warm/CarriedContext';
  *
  * Clicking mints a HandoffPass server-side and moves to Claims Lite with only
  * an opaque token in the URL. The card also states, visibly, which facts are
- * travelling — carrying data silently isn't enough.
+ * traveling — carrying data silently isn't enough.
  */
 export default function ClaimsHandoffCta({
   magicKey, companyName, headcount, avgSalary, industry, highlights = [],

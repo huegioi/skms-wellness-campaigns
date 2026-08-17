@@ -75,7 +75,7 @@ export default function AssumptionsPanel({ inputs, onChange, headcount, conditio
           </Row>
 
           <p className="text-[10px] text-mf-ink-3 leading-relaxed pt-2 border-t border-mf-rule">
-            Savings are counted only for the people the programme actually reaches, only for the four
+            Savings are counted only for the people the program actually reaches, only for the four
             drivers we can evidence, and only at effect sizes reported in peer-reviewed work. Year one is
             partial and later years account for reach falling away.
           </p>

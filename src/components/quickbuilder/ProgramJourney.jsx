@@ -4,12 +4,12 @@ import React from 'react';
  * The four building blocks of a SkillfulMeans campaign.
  *
  * Rebuilt 2026-08-08 to William's process graphic: arch-topped photo, a
- * coloured pill carrying the name, then the stage and a one-line description.
+ * colored pill carrying the name, then the stage and a one-line description.
  *
  * Built as components rather than dropping in the 1080p export, so the type
  * stays crisp at every size, reads on a phone, is selectable and screen-
  * readable, and the page doesn't carry a ~130KB raster. The photos are the
- * ones already hosted for this app; the pill colours are the brand accents.
+ * ones already hosted for this app; the pill colors are the brand accents.
  *
  * Reads left to right as the actual sequence: workshops introduce the skills,
  * challenges turn them into practice, coaching deepens and embeds them, and
