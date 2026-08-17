@@ -191,7 +191,9 @@ export default function ClaimsLite() {
 
           {/* What they get on the call — stated, not teased */}
           <div className="bg-mf-plum rounded-2xl p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-white mb-2">Your full report — we'll open it together on the call</h2>
+            {/* !text-white — `.mf h1,h2,h3 { color: plum }` in journeyTheme.css
+                out-specifies Tailwind's text-white on a plum card. */}
+            <h2 className="text-lg font-bold !text-white mb-2">Your full report — we'll open it together on the call</h2>
             <p className="text-sm text-white/75 mb-4 leading-relaxed">
               Bring the renewal report and we'll complete the missing fields live. You'll see the whole five-page read on screen during the call, and leave with it:
             </p>
