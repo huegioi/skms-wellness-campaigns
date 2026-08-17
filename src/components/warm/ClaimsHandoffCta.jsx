@@ -52,7 +52,10 @@ export default function ClaimsHandoffCta({
   return (
     <div className="bg-mf-plum rounded-2xl p-6 shadow-sm">
       <p className="text-[11px] uppercase tracking-widest font-bold text-mf-mauve mb-2">The other witness</p>
-      <h2 className="text-xl font-bold text-white mb-2 leading-snug">
+      {/* !text-white: journeyTheme.css sets `.mf h1,h2,h3 { color: plum }`,
+          which out-specifies Tailwind's text-white and renders headings
+          invisible on a plum card. The bang wins it back. */}
+      <h2 className="text-xl font-bold !text-white mb-2 leading-snug">
         Your team named the gap. Your claims show the bill.
       </h2>
       <p className="text-sm text-white/75 mb-4 leading-relaxed">
