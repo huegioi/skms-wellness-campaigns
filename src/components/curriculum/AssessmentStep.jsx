@@ -1119,7 +1119,7 @@ export default function AssessmentStep({ selections, updateSelections, onNext, i
       <StepNavigation
         onNext={handleNext}
         onBack={null}
-        nextLabel="Continue to Workshops"
+        nextLabel="Continue to Impact"
         isFirstStep={isFirstStep}
       />
     </div>
