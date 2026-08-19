@@ -6,6 +6,7 @@ import QuickQuestionCard from '@/components/fitnessroi/QuickQuestionCard';
 import CompanyInfoForm from '@/components/fitnessroi/CompanyInfoForm';
 import EmailGate from '@/components/fitnessroi/EmailGate';
 import ResultsView from '@/components/fitnessroi/ResultsView';
+import JourneyDashboardTeaser from '@/components/fitnessroi/JourneyDashboardTeaser';
 
 const QUESTIONS = [
   { label: 'Wellbeing',  key: 'wellbeing',  text: 'How many of your people would say they usually feel energized and well at work?' },
@@ -48,18 +49,33 @@ export default function FitnessRoi() {
       </header>
 
       {step === 0 && (
-        <div className="max-w-2xl mx-auto px-5 pt-8 pb-2">
-          <h1 className="text-2xl md:text-3xl font-bold text-mf-plum mb-3 leading-tight">The Mental Fitness Journey</h1>
-          <p className="text-sm text-mf-ink-2 leading-relaxed mb-6">
-            See your team's mental fitness the way the data sees it. Start with your own two-minute read on your team — then let their anonymous responses show you where you're right, where you're off, and what the gap is costing you.
-          </p>
-          <div className="text-center">
-            <button
-              onClick={scrollToStart}
-              className="inline-flex items-center gap-2 bg-mf-plum hover:bg-[#3a1830] text-white font-semibold text-sm px-6 py-3 rounded-full shadow-sm transition-colors"
-            >
-              Start your Journey ↓
-            </button>
+        <div className="max-w-5xl mx-auto px-5 pt-8 pb-2">
+          {/* Copy left, dashboard teaser right on desktop. Explicit placement so
+              a phone stacks it copy → teaser → button: see what you get, then
+              start. The teaser is markup, not a screenshot — see the component. */}
+          <div className="grid gap-x-10 gap-y-6 lg:grid-cols-2 lg:items-start">
+            <div className="lg:col-start-1 lg:row-start-1">
+              <h1 className="text-2xl md:text-3xl font-bold text-mf-plum mb-2 leading-tight">Team Mental Fitness Assessment</h1>
+              <p className="mf-serif text-[19px] md:text-[21px] leading-snug text-mf-plum/70 mb-4">
+                It&rsquo;s like getting a physical for your team&rsquo;s mental fitness.
+              </p>
+              <p className="text-sm text-mf-ink-2 leading-relaxed">
+                Start with your own two-minute read on your team — then let their anonymous responses show you where you&rsquo;re right, where you&rsquo;re off, and what the gap is costing you.
+              </p>
+            </div>
+
+            <div className="lg:col-start-2 lg:row-start-1 lg:row-span-2 w-full max-w-sm mx-auto">
+              <JourneyDashboardTeaser />
+            </div>
+
+            <div className="lg:col-start-1 lg:row-start-2 text-center lg:text-left">
+              <button
+                onClick={scrollToStart}
+                className="inline-flex items-center gap-2 bg-mf-plum hover:bg-[#3a1830] text-white font-semibold text-sm px-6 py-3 rounded-full shadow-sm transition-colors"
+              >
+                Start your Journey ↓
+              </button>
+            </div>
           </div>
         </div>
       )}
