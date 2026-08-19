@@ -53,7 +53,9 @@ export default function FitnessRoi() {
           {/* Copy left, dashboard teaser right on desktop. Explicit placement so
               a phone stacks it copy → teaser → button: see what you get, then
               start. The teaser is markup, not a screenshot — see the component. */}
-          <div className="grid gap-x-10 gap-y-6 lg:grid-cols-2 lg:items-start">
+          {/* rows [auto 1fr]: without it the row-spanning teaser hands half its
+              height to row 1 and the button drifts far below the copy. */}
+          <div className="grid gap-x-10 gap-y-6 lg:grid-cols-2 lg:grid-rows-[auto_1fr] lg:items-start">
             <div className="lg:col-start-1 lg:row-start-1">
               <h1 className="text-2xl md:text-3xl font-bold text-mf-plum mb-2 leading-tight">Team Mental Fitness Assessment</h1>
               <p className="mf-serif text-[19px] md:text-[21px] leading-snug text-mf-plum/70 mb-4">
