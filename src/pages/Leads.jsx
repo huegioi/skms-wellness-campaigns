@@ -1647,6 +1647,9 @@ export default function Leads() {
         <DialogContent className="max-w-lg w-[95vw] max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingBrokerLead ? 'Edit Partner Lead' : 'Add Partner Lead'}</DialogTitle></DialogHeader>
           <form onSubmit={handleBrokerLeadSubmit} className="space-y-3 mt-2">
+            {/* Quick capture — business card photo or LinkedIn screenshot */}
+            <QuickCaptureScan onExtract={applyScanFields} disabled={createMutation.isPending || updateMutation.isPending} />
+
             {/* Contact Identity */}
             <div className="bg-gray-50 rounded-lg p-3 space-y-3">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Contact Info</p>
@@ -1672,30 +1675,6 @@ export default function Leads() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Outreach Status</label>
-                <Select value={brokerForm.status} onValueChange={v => setBrokerForm({...brokerForm, status: v})}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(STATUS_CONFIG).filter(([k]) => k !== 'current_client').map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Partner Status</label>
-                <Select value={brokerForm.partner_status} onValueChange={v => setBrokerForm({...brokerForm, partner_status: v})}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(PARTNER_STATUS_CONFIG).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
                 <label className="text-xs text-gray-500 mb-1 block">Referral Potential</label>
                 <Select value={brokerForm.referral_potential} onValueChange={v => setBrokerForm({...brokerForm, referral_potential: v})}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -1707,40 +1686,41 @@ export default function Leads() {
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Channel</label>
-                <Select value={brokerForm.outreach_channel} onValueChange={v => setBrokerForm({...brokerForm, outreach_channel: v})}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {['email','linkedin','phone','referral','other'].map(c => (
-                      <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Last Contacted</label>
-                <Input type="date" value={brokerForm.last_contacted_date} onChange={e => setBrokerForm({...brokerForm, last_contacted_date: e.target.value})} />
-              </div>
-              <div>
                 <label className="text-xs text-gray-500 mb-1 block">Next Follow-up</label>
                 <Input type="date" value={brokerForm.next_followup_date} onChange={e => setBrokerForm({...brokerForm, next_followup_date: e.target.value})} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            {editingBrokerLead ? (
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Referral Count</label>
-                <Input type="number" min="0" value={brokerForm.referral_count} onChange={e => setBrokerForm({...brokerForm, referral_count: parseInt(e.target.value) || 0})} />
+                <label className="text-xs text-gray-500 mb-1 block">Last Contacted</label>
+                <Input type="date" value={brokerForm.last_contacted_date} onChange={e => setBrokerForm({...brokerForm, last_contacted_date: e.target.value})} />
               </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Last Referral Date</label>
-                <Input type="date" value={brokerForm.last_referral_date} onChange={e => setBrokerForm({...brokerForm, last_referral_date: e.target.value})} />
-              </div>
+            ) : (
+              <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 shrink-0" />
+                Logged as contacted today ({format(new Date(), 'MMM d')}); follow-up defaults to 48 hours out.
+              </p>
+            )}
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Tags</label>
+              <TagSelector
+                value={brokerForm.tags || []}
+                onChange={tags => setBrokerForm({...brokerForm, tags})}
+                onManageTags={() => setShowTagManager(true)}
+              />
             </div>
             <Textarea placeholder="Notes" value={brokerForm.notes} onChange={e => setBrokerForm({...brokerForm, notes: e.target.value})} rows={3} />
-            <Button type="submit" className="w-full bg-[#013f7c] hover:bg-[#012d5a]">
-              {editingBrokerLead ? 'Save Changes' : 'Add Partner Lead'}
+            <Button
+              type="submit"
+              disabled={createMutation.isPending || updateMutation.isPending}
+              className="w-full bg-[#013f7c] hover:bg-[#012d5a] disabled:opacity-70 gap-2"
+            >
+              {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="w-4 h-4 animate-spin" />}
+              {createMutation.isPending
+                ? 'Adding partner…'
+                : updateMutation.isPending
+                  ? 'Saving…'
+                  : editingBrokerLead ? 'Save Changes' : 'Add Partner Lead'}
             </Button>
           </form>
         </DialogContent>
