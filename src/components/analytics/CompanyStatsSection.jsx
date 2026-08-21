@@ -152,10 +152,12 @@ export default function CompanyStatsSection() {
     const avgRevenuePerClient = activeClients.length > 0 ? totalRevenueT12M / activeClients.length : 0;
 
     // Retention: of clients who purchased 12–24 months ago, how many purchased again in the last 12 months
-    const priorWindowClients = clients.filter(c => {
-      const days = Object.entries(lastPurchase).length ? null : null;
-      return invoices.some(inv => inv.client_id === c.id && daysAgo(inv.issue_date, now) > ONE_YEAR_DAYS && daysAgo(inv.issue_date, now) <= TWO_YEARS_DAYS);
+    const hadPriorWindowPurchase = new Set();
+    invoices.forEach(inv => {
+      const age = daysAgo(inv.issue_date, now);
+      if (inv.client_id && age > ONE_YEAR_DAYS && age <= TWO_YEARS_DAYS) hadPriorWindowPurchase.add(inv.client_id);
     });
+    const priorWindowClients = clients.filter(c => hadPriorWindowPurchase.has(c.id));
     const retained = priorWindowClients.filter(c => (lastPurchase[c.id] ?? Infinity) <= ONE_YEAR_DAYS);
     const retentionRate = priorWindowClients.length > 0 ? (retained.length / priorWindowClients.length) * 100 : null;
 
