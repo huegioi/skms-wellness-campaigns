@@ -604,6 +604,17 @@ export default function Leads() {
     else createMutation.mutate(data);
   };
 
+  // Merge fields read off a scanned business card / LinkedIn screenshot into the form
+  const applyScanFields = (fields) => {
+    setBrokerForm(prev => {
+      const next = { ...prev };
+      ['name', 'email', 'phone', 'company', 'title', 'industry', 'company_size', 'address', 'source', 'outreach_channel']
+        .forEach(k => { if (fields[k]) next[k] = fields[k]; });
+      if (fields.notes) next.notes = prev.notes ? `${prev.notes}\n${fields.notes}` : fields.notes;
+      return next;
+    });
+  };
+
   const openEditBrokerLead = (lead) => {
     setBrokerForm({
       name: lead.name || '', email: lead.email || '', email2: lead.email2 || '',
