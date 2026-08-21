@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Building2, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, ChevronRight, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, GitMerge, Settings, Inbox, Wrench, MoreVertical } from 'lucide-react';
+import { Search, Plus, Building, Building2, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, ChevronRight, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, GitMerge, Settings, Inbox, Wrench, MoreVertical, Loader2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
@@ -27,6 +27,8 @@ import ReferralPartnerDetail from '@/components/partners/ReferralPartnerDetail';
 import { Switch } from '@/components/ui/switch';
 import TagFilter from '@/components/ui/TagFilter';
 import TagManager from '@/components/ui/TagManager';
+import { TagSelector } from '@/components/ui/TagSelector';
+import QuickCaptureScan from '@/components/shared/QuickCaptureScan';
 import { toast } from 'sonner';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useToast } from '@/components/ui/use-toast';
@@ -46,8 +48,25 @@ const EMPTY_BROKER_LEAD_FORM = {
   industry: '', status: 'cold', outreach_channel: 'email',
   last_contacted_date: '', next_followup_date: '', notes: '', source: '',
   lead_type: 'broker_lead', partner_status: 'new', follow_up_stage: '',
-  referral_potential: 'medium', referral_count: 0, last_referral_date: ''
+  referral_potential: 'medium', referral_count: 0, last_referral_date: '',
+  tags: [], address: '', company_size: ''
 };
+
+// yyyy-MM-dd for today plus an optional day offset (local time, not UTC)
+function dateOffset(days = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return format(d, 'yyyy-MM-dd');
+}
+
+// A fresh add-partner form: contact logged as of now, follow-up 48h out
+function newBrokerLeadForm() {
+  return {
+    ...EMPTY_BROKER_LEAD_FORM,
+    last_contacted_date: dateOffset(0),
+    next_followup_date: dateOffset(2),
+  };
+}
 
 function PipelineStats({ leads, clientEmails, filterStatus, setFilterStatus, statusConfig, totalLabel }) {
   const counts = Object.keys(statusConfig).reduce((acc, key) => {
