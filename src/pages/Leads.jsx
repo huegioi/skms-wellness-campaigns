@@ -575,12 +575,14 @@ export default function Leads() {
       }
       return newLead;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['leads'] }); setIsAddBrokerOpen(false); setBrokerForm(newBrokerLeadForm()); toast.success('Partner added'); }
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['leads'] }); setIsAddBrokerOpen(false); setBrokerForm(newBrokerLeadForm()); toast.success('Partner added'); },
+    onError: (e) => toast.error('Could not add partner: ' + e.message)
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Lead.update(id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['leads'] }); setEditingBrokerLead(null); toast.success('Lead updated'); }
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['leads'] }); setEditingBrokerLead(null); toast.success('Lead updated'); },
+    onError: (e) => toast.error('Could not save changes: ' + e.message)
   });
 
   const deleteMutation = useMutation({
@@ -1643,7 +1645,7 @@ export default function Leads() {
       <TagManager open={showTagManager} onOpenChange={setShowTagManager} />
 
       {/* Partner Lead Add/Edit Dialog */}
-      <Dialog open={isAddBrokerOpen || !!editingBrokerLead} onOpenChange={(open) => { if (!open) { setIsAddBrokerOpen(false); setEditingBrokerLead(null); } }}>
+      <Dialog open={isAddBrokerOpen || !!editingBrokerLead} onOpenChange={(open) => { if (!open) { if (createMutation.isPending || updateMutation.isPending) return; setIsAddBrokerOpen(false); setEditingBrokerLead(null); } }}>
         <DialogContent className="max-w-lg w-[95vw] max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingBrokerLead ? 'Edit Partner Lead' : 'Add Partner Lead'}</DialogTitle></DialogHeader>
           <form onSubmit={handleBrokerLeadSubmit} className="space-y-3 mt-2">
