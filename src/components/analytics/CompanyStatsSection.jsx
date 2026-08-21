@@ -85,7 +85,7 @@ export default function CompanyStatsSection() {
     queryKey: ['partnerLeadCount'],
     queryFn: () => base44.entities.Lead.filter(
       { lead_type: 'broker_lead', is_archived: { $ne: true } },
-      '-created_date', 500, 0, ['id', 'is_demo']
+      '-created_date', 500
     ),
     staleTime: 60_000,
   });
