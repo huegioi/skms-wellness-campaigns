@@ -575,7 +575,7 @@ export default function Leads() {
       }
       return newLead;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['leads'] }); setIsAddBrokerOpen(false); setBrokerForm(EMPTY_BROKER_LEAD_FORM); toast.success('Lead added'); }
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['leads'] }); setIsAddBrokerOpen(false); setBrokerForm(newBrokerLeadForm()); toast.success('Partner added'); }
   });
 
   const updateMutation = useMutation({
@@ -590,7 +590,13 @@ export default function Leads() {
 
   const handleBrokerLeadSubmit = (e) => {
     e.preventDefault();
+    if (createMutation.isPending || updateMutation.isPending) return;
     const data = { ...brokerForm };
+    // New partners are logged as contacted right now, with a 48h follow-up by default
+    if (!editingBrokerLead) {
+      data.last_contacted_date = dateOffset(0);
+      if (!data.next_followup_date) data.next_followup_date = dateOffset(2);
+    }
     if (!data.last_contacted_date) delete data.last_contacted_date;
     if (!data.next_followup_date) delete data.next_followup_date;
     if (!data.last_referral_date) delete data.last_referral_date;
@@ -611,7 +617,10 @@ export default function Leads() {
       follow_up_stage: lead.follow_up_stage || '',
       referral_potential: lead.referral_potential || 'medium',
       referral_count: lead.referral_count || 0,
-      last_referral_date: lead.last_referral_date || ''
+      last_referral_date: lead.last_referral_date || '',
+      tags: lead.tags || [],
+      address: lead.address || '',
+      company_size: lead.company_size || ''
     });
     setEditingBrokerLead(lead);
   };
@@ -936,7 +945,7 @@ export default function Leads() {
                 </a>
               </div>
               <div className="flex gap-2">
-                <Button className="bg-[#013f7c] hover:bg-[#012d5a] gap-2" onClick={() => { setBrokerForm(EMPTY_BROKER_LEAD_FORM); setEditingBrokerLead(null); setIsAddBrokerOpen(true); }}>
+                <Button className="bg-[#013f7c] hover:bg-[#012d5a] gap-2" onClick={() => { setBrokerForm(newBrokerLeadForm()); setEditingBrokerLead(null); setIsAddBrokerOpen(true); }}>
                   <Plus className="w-4 h-4" /> Add Partner
                 </Button>
               </div>
