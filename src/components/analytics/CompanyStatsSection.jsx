@@ -195,13 +195,6 @@ export default function CompanyStatsSection() {
 
   return (
     <div className="mb-8">
-      <div className="flex items-baseline justify-between mb-4 flex-wrap gap-2">
-        <h2 className="text-xl font-bold" style={{ color: '#264d44' }}>Company Stats</h2>
-        <p className="text-xs text-gray-500">
-          Active = purchased within the past 2 years · demo &amp; internal records excluded
-        </p>
-      </div>
-
       {loading ? (
         <div className="bg-white rounded-xl p-8 shadow-lg text-center text-gray-400 text-sm">
           Loading company stats…
