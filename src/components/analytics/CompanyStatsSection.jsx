@@ -202,7 +202,8 @@ export default function CompanyStatsSection() {
       ) : (
         <>
           {/* Headline numbers */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-gray-700 mb-3">The Book Today</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <StatCard
               icon={Building2} iconBg="bg-blue-100" iconColor="text-blue-600"
               label="Active Clients"
@@ -234,6 +235,7 @@ export default function CompanyStatsSection() {
           </div>
 
           {/* Benefits-book metrics */}
+          <h2 className="text-sm font-bold uppercase tracking-widest text-gray-700 mb-3">Benefits Book KPIs</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard
               icon={Users} iconBg="bg-sky-100" iconColor="text-sky-600"
