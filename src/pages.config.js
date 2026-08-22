@@ -55,6 +55,7 @@ import CurriculumDesigner from './pages/CurriculumDesigner';
 import Dashboard from './pages/Dashboard';
 import EditProposal from './pages/EditProposal';
 import EmailTemplateManager from './pages/EmailTemplateManager';
+import CompanyStats from './pages/CompanyStats';
 import FeedbackAnalytics from './pages/FeedbackAnalytics';
 import RoiTestBed from './pages/RoiTestBed';
 import FeedbackForm from './pages/FeedbackForm';
@@ -85,6 +86,7 @@ export const PAGES = {
     "Dashboard": Dashboard,
     "EditProposal": EditProposal,
     "EmailTemplateManager": EmailTemplateManager,
+    "CompanyStats": CompanyStats,
     "FeedbackAnalytics": FeedbackAnalytics,
     "RoiTestBed": RoiTestBed,
     "FeedbackForm": FeedbackForm,
