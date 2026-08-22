@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Activity, FlaskConical } from 'lucide-react';
+import { Activity, FlaskConical, Building2 } from 'lucide-react';
 
 /**
  * Sub-navigation for the Analytics section.
@@ -15,6 +15,7 @@ import { Activity, FlaskConical } from 'lucide-react';
 const TABS = [
   { page: 'FeedbackAnalytics', label: 'Wellness Analytics', icon: Activity },
   { page: 'RoiTestBed', label: 'ROI Test Bed', icon: FlaskConical },
+  { page: 'CompanyStats', label: 'Company Stats', icon: Building2 },
 ];
 
 export default function AnalyticsTabs({ current }) {
