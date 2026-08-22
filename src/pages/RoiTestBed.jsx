@@ -85,14 +85,14 @@ export default function RoiTestBed() {
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
+        <AnalyticsTabs current="RoiTestBed" />
+
         <div className="mb-6">
           <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>ROI Test Bed</h1>
           <p className="text-gray-600 mt-1">
             The live model, with nothing hidden. Same code the Journey and the client dashboard run.
           </p>
         </div>
-
-        <AnalyticsTabs current="RoiTestBed" />
 
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
