@@ -5,7 +5,6 @@ import { BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, Cart
 import { TrendingUp, DollarSign, FileText, Clock, Eye, CheckCircle, Send, Users, Mail, UserPlus, Tag } from 'lucide-react';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import CompanyStatsSection from '@/components/analytics/CompanyStatsSection';
 
 export default function Analytics() {
   const [selectedTags, setSelectedTags] = useState([]);
@@ -203,9 +202,6 @@ export default function Analytics() {
           <h1 className="text-3xl font-bold" style={{ color: '#013f7c' }}>Analytics Dashboard</h1>
           <p className="text-gray-600">Insights into your proposal and marketing performance</p>
         </div>
-
-        {/* Company Stats — state of the book */}
-        <CompanyStatsSection />
 
         {/* Proposal KPI Cards */}
         <div className="mb-6">
