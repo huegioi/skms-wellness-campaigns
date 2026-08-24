@@ -115,18 +115,13 @@ Deno.serve(async (req) => {
             skms_event_id: eventData.id || '',
             skms_event_type: eventData.event_type || ''
           }
-        },
-        // Attach a Google Meet room (needs conferenceDataVersion=1 on the URL too).
-        conferenceData: {
-          createRequest: {
-            requestId: `skms-${eventData.id || eventData.checkin_token || crypto.randomUUID()}`,
-            conferenceSolutionKey: { type: 'hangoutsMeet' },
-          },
-        },
+        }
+        // NO conferenceData here: a Meet on the client-facing event is visible to every
+        // invitee. The Meet room lives on a separate private holder event (below).
       };
 
       const targetCalendar = calendarId || 'primary';
-      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendar)}/events?sendUpdates=none&conferenceDataVersion=1`, {
+      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendar)}/events?sendUpdates=none`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -136,10 +131,47 @@ Deno.serve(async (req) => {
       });
       
       const result = await response.json();
-      const meetLink = result.hangoutLink
-        || result.conferenceData?.entryPoints?.find(e => e.entryPointType === 'video')?.uri
-        || null;
-      return Response.json({ success: true, googleEventId: result.id, meetLink, event: result });
+
+      // Meet holder: private, non-blocking, no attendees. Attendees get the room link
+      // from the check-in page, never from the invite. Same pattern as syncCalendarEventToGoogle.
+      let meetLink = null;
+      let meetEventId = null;
+      if (eventData.id && !eventData.all_day) {
+        try {
+          const holderRes = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendar)}/events?sendUpdates=none&conferenceDataVersion=1`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              summary: `Meet room · ${eventData.title}`,
+              description: 'Holds the Google Meet room for this SkillfulMeans session. Attendees receive the link automatically after they check in. Do not invite attendees to this event.',
+              start: googleEvent.start,
+              end: googleEvent.end,
+              visibility: 'private',
+              transparency: 'transparent',
+              reminders: { useDefault: false, overrides: [] },
+              extendedProperties: { private: { skms_event_id: eventData.id, skms_role: 'meet_holder' } },
+              conferenceData: {
+                createRequest: {
+                  requestId: `skms-meet-${eventData.id}`,
+                  conferenceSolutionKey: { type: 'hangoutsMeet' },
+                },
+              },
+            })
+          });
+          if (holderRes.ok) {
+            const holder = await holderRes.json();
+            meetEventId = holder.id;
+            meetLink = holder.hangoutLink
+              || holder.conferenceData?.entryPoints?.find(e => e.entryPointType === 'video')?.uri
+              || null;
+          } else {
+            console.error('Meet holder create failed:', await holderRes.text());
+          }
+        } catch (e) {
+          console.error('Meet holder create failed:', e);
+        }
+      }
+      return Response.json({ success: true, googleEventId: result.id, meetEventId, meetLink, event: result });
     }
 
     if (action === 'updateEvent') {
