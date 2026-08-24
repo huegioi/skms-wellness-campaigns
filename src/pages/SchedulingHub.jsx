@@ -328,6 +328,39 @@ export default function SchedulingHub() {
       .sort((a, b) => parseISO(a.start_date) - parseISO(b.start_date)); // soonest first
   }, [calendarEvents, filterType, filterPresenter, eventRange]);
 
+  // Apply ?bookProposalId=&bookServiceId= once the data it needs has loaded
+  // NOTE: must sit ABOVE the isLoading/error early returns (hook order), and must not
+  // run until the page has rendered past them — the handlers it calls are consts below.
+  useEffect(() => {
+    if (isLoading || error) return;
+    if (!pendingBook || proposals.length === 0) return;
+    const proposal = proposals.find(p => p.id === pendingBook.proposalId);
+    if (!proposal) { setPendingBook(null); return; }
+    setBookingSource('proposal');
+    setSelectedInvoiceId('');
+    setBookServiceDialogOpen(true);
+    handleProposalSelect(proposal.id);
+    if (pendingBook.serviceId) {
+      const svc = getProposalServiceItems(proposal, allServices).find(i => i.service_id === pendingBook.serviceId);
+      if (svc) {
+        handleProposalServiceSelect(svc, proposal);
+      }
+    }
+    setPendingBook(null);
+    window.history.replaceState({}, '', window.location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingBook, proposals, allServices, allClients, isLoading, error]);
+
+  // Apply ?eventId= — open that event's detail dialog
+  useEffect(() => {
+    if (isLoading || error) return;
+    if (!pendingEventId || calendarEvents.length === 0) return;
+    const ev = calendarEvents.find(e => e.id === pendingEventId);
+    if (ev) setSelectedEvent(ev);
+    setPendingEventId('');
+    window.history.replaceState({}, '', window.location.pathname);
+  }, [pendingEventId, calendarEvents, isLoading, error]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
@@ -629,35 +662,6 @@ export default function SchedulingHub() {
       source: bookingSource === 'proposal' ? (proposal?.client_name || 'Proposal') : (selectedInvoice?.invoice_number || 'Invoice')
     });
   };
-
-  // Apply ?bookProposalId=&bookServiceId= once the data it needs has loaded
-  useEffect(() => {
-    if (!pendingBook || proposals.length === 0) return;
-    const proposal = proposals.find(p => p.id === pendingBook.proposalId);
-    if (!proposal) { setPendingBook(null); return; }
-    setBookingSource('proposal');
-    setSelectedInvoiceId('');
-    setBookServiceDialogOpen(true);
-    handleProposalSelect(proposal.id);
-    if (pendingBook.serviceId) {
-      const svc = getProposalServiceItems(proposal, allServices).find(i => i.service_id === pendingBook.serviceId);
-      if (svc) {
-        handleProposalServiceSelect(svc, proposal);
-      }
-    }
-    setPendingBook(null);
-    window.history.replaceState({}, '', window.location.pathname);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingBook, proposals, allServices, allClients]);
-
-  // Apply ?eventId= — open that event's detail dialog
-  useEffect(() => {
-    if (!pendingEventId || calendarEvents.length === 0) return;
-    const ev = calendarEvents.find(e => e.id === pendingEventId);
-    if (ev) setSelectedEvent(ev);
-    setPendingEventId('');
-    window.history.replaceState({}, '', window.location.pathname);
-  }, [pendingEventId, calendarEvents]);
 
   const selectedInvoice = invoices.find(inv => inv.id === selectedInvoiceId);
 
