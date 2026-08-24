@@ -264,7 +264,7 @@ export default function SchedulingHub() {
       queryClient.invalidateQueries({ queryKey: ['delivery-events'] });     // client-card chip
       queryClient.invalidateQueries({ queryKey: ['fulfillment-events'] });  // proposal fulfillment card
       if (sync.status === 'synced' && sync.meetLink) {
-        toast.success('Booked — added to Google Calendar with a Meet link.');
+        toast.success('Booked — added to Google Calendar, Meet room ready.', { description: 'The invite carries only the check-in link; attendees get the Meet after they check in.' });
       } else if (sync.status === 'synced') {
         toast.success('Booked — added to Google Calendar.', { description: 'No Meet link came back; open the event and click Sync to add one.' });
       } else if (sync.status === 'failed') {
