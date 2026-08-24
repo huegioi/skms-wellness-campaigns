@@ -538,7 +538,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
                 <p className="font-medium">{event.location}</p>
                 {event.location.startsWith('http') && (
                   <a href={event.location} target="_blank" rel="noopener noreferrer" className="text-sm text-[#013f7c] hover:underline">
-                    Join meeting
+                    {/\/Checkin\?/i.test(event.location) ? 'Open check-in page' : 'Join meeting'}
                   </a>
                 )}
               </div>
