@@ -338,7 +338,10 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
           calendarId: syncSettings.google_calendar_id || 'primary'
         });
         if (response.data?.googleEventId) {
-          await base44.entities.CalendarEvent.update(newEvent.id, { google_event_id: response.data.googleEventId });
+          await base44.entities.CalendarEvent.update(newEvent.id, {
+            google_event_id: response.data.googleEventId,
+            ...(response.data.meetLink ? { meeting_link: response.data.meetLink } : {}),
+          });
         }
       } catch (e) {
         console.error('Google sync failed:', e);
