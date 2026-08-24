@@ -24,6 +24,7 @@ const getBoxPrice = (key, snapshot, livePrices) =>
   );
 import { markTaskComplete, createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
 import { htmlToPdfDownload, proposalFilename } from '@/lib/proposalPdf';
+import ProposalFulfillment from '@/components/proposals/ProposalFulfillment';
 
 export default function EditProposal() {
   const [searchParams] = useSearchParams();
@@ -576,6 +577,11 @@ export default function EditProposal() {
           </Button>
         </div>
 
+        {/* Fulfillment — which services are booked / delivered (existing proposals only) */}
+        {!isNewProposal && proposal && (
+          <ProposalFulfillment proposal={proposal} className="mb-6 shadow-lg border-0" />
+        )}
+
         {/* Client Info */}
         <div className="bg-white rounded-xl shadow-lg p-6 mb-6">
           <h2 className="text-lg font-bold mb-4" style={{ color: '#264d44' }}>Client Information</h2>
@@ -621,6 +627,7 @@ export default function EditProposal() {
                   <SelectItem value="draft">Draft</SelectItem>
                   <SelectItem value="sent">Sent</SelectItem>
                   <SelectItem value="accepted">Accepted</SelectItem>
+                  <SelectItem value="fulfilled">Fulfilled</SelectItem>
                   <SelectItem value="declined">Declined</SelectItem>
                 </SelectContent>
               </Select>

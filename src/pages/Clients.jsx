@@ -819,8 +819,12 @@ export default function Clients() {
                             <div className="flex flex-wrap items-center gap-2 mt-2">
                               <span className={`text-xs px-2 py-0.5 rounded-full border ${stage.headerClass} ${stage.textClass}`}>{stage.label}</span>
                               {snap && snap.totalServices > 0 && (
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">
+                                <span
+                                  className={`text-xs px-2 py-0.5 rounded-full font-medium ${snap.deliveredCount === snap.totalServices ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}
+                                  title={`${snap.deliveredCount} delivered, ${snap.bookedNotDeliveredCount} booked, ${snap.unscheduledCount} not yet booked`}
+                                >
                                   {snap.deliveredCount}/{snap.totalServices} delivered
+                                  {snap.bookedNotDeliveredCount > 0 && <span className="text-blue-700"> · {snap.bookedNotDeliveredCount} booked</span>}
                                 </span>
                               )}
                               {inRenewal && client.renewal_cohort && (

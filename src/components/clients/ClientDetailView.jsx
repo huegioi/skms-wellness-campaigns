@@ -43,13 +43,10 @@ import ClientDeliveryStrip from '@/components/clients/ClientDeliveryStrip';
 import ReferredByBadge from '@/components/shared/ReferredByBadge';
 import { setMayaRecordContext, clearMayaRecordContext } from '@/lib/mayaOrbStore';
 
-const statusConfig = {
-  draft: { label: 'Draft', color: 'bg-gray-100 text-gray-700', icon: Clock },
-  sent: { label: 'Sent', color: 'bg-blue-100 text-blue-700', icon: Send },
-  viewed: { label: 'Viewed', color: 'bg-purple-100 text-purple-700', icon: Eye },
-  accepted: { label: 'Accepted', color: 'bg-green-100 text-green-700', icon: CheckCircle },
-  declined: { label: 'Declined', color: 'bg-red-100 text-red-700', icon: XCircle }
-};
+import { PROPOSAL_STATUS_CONFIG } from '@/lib/statusConfig';
+import ProposalFulfillment from '@/components/proposals/ProposalFulfillment';
+
+const statusConfig = PROPOSAL_STATUS_CONFIG;
 
 const TAB_MIGRATION = {
   proposals: 'commercial',
@@ -582,7 +579,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
                 </h4>
                 <div className="space-y-2">
                   {proposals.slice(0, 5).map(proposal => {
-                    const status = statusConfig[proposal.status || 'draft'];
+                    const status = statusConfig[proposal.status] || statusConfig.draft;
                     const StatusIcon = status.icon;
                     const latestDate = proposal.viewed_date || proposal.sent_date || proposal.created_date;
                     const latestAction = proposal.viewed_date ? 'Viewed' : proposal.sent_date ? 'Sent' : 'Created';
@@ -617,7 +614,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
                   <p className="text-center text-gray-500 py-8">No proposals yet</p>
                 ) : (
                 proposals.map(proposal => {
-                  const status = statusConfig[proposal.status || 'draft'];
+                  const status = statusConfig[proposal.status] || statusConfig.draft;
                   const StatusIcon = status.icon;
                   return (
                     <div key={proposal.id} className="bg-white border rounded-lg p-4">
@@ -645,6 +642,9 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
                           </Link>
                         </div>
                       </div>
+                      {['accepted', 'fulfilled', 'sent', 'viewed'].includes(proposal.status) && (
+                        <ProposalFulfillment proposal={proposal} collapsible defaultOpen={proposal.status === 'accepted'} className="mt-3" />
+                      )}
                     </div>
                   );
                 })

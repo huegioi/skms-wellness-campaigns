@@ -25,6 +25,8 @@ import { isChallengeEvent, getChallengeDayProgress } from '@/lib/challengeUtils'
 import MeetingNotesReviewCard from '@/components/scheduling/MeetingNotesReviewCard';
 import SurveySendsCard from '@/components/scheduling/SurveySendsCard';
 import { computeSmartAssessmentTiming } from '@/lib/checkinAssessmentUtils';
+import ProposalPicker from '@/components/proposals/ProposalPicker';
+import { getProposalServiceItems, getProposalParty } from '@/lib/proposalFulfillment';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 
@@ -77,6 +79,13 @@ export default function SchedulingHub() {
     setChecklistProposalId('');
     window.history.replaceState({}, '', window.location.pathname);
   };
+  // Deep-link: open Book Service with a proposal (+ service) preselected — from the
+  // proposal fulfillment card — or open one event's detail (?eventId=).
+  const [pendingBook, setPendingBook] = useState(() => {
+    const pid = urlParams.get('bookProposalId');
+    return pid ? { proposalId: pid, serviceId: urlParams.get('bookServiceId') || '' } : null;
+  });
+  const [pendingEventId, setPendingEventId] = useState(urlParams.get('eventId') || '');
   const [addingToCalendar, setAddingToCalendar] = useState(null);
   const [calendarView, setCalendarView] = useState('week'); // 'month', 'week', 'list'
   const [eventLens, setEventLens] = useState('delivery'); // 'delivery' | 'meetings'
@@ -234,6 +243,8 @@ export default function SchedulingHub() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
+      queryClient.invalidateQueries({ queryKey: ['delivery-events'] });     // client-card chip
+      queryClient.invalidateQueries({ queryKey: ['fulfillment-events'] });  // proposal fulfillment card
       toast.success('Service booked successfully!');
       setBookServiceDialogOpen(false);
       resetBookingForm();
@@ -533,41 +544,18 @@ export default function SchedulingHub() {
     setSelectedLineItem(null);
     const proposal = proposals.find(p => p.id === proposalId);
     if (proposal) {
+      const party = getProposalParty(proposal, allClients);
       setBookingForm(prev => ({
         ...prev,
-        client_name: proposal.client_name || proposal.company || '',
+        client_name: party.company || proposal.client_name || proposal.company || '',
         client_id: proposal.client_id || '',
+        client_email: party.email || prev.client_email,
       }));
     }
   };
 
-  const getProposalServices = (proposal) => {
-    if (!proposal?.selections) return [];
-    const sel = proposal.selections;
-    const items = [];
-    const addItems = (dataKey, fallbackKey, label) => {
-      if (sel[dataKey]?.length > 0) {
-        sel[dataKey].forEach(svc => items.push({ name: svc.name, price: svc.price || 0, category: label, description: svc.description || '', service_id: svc.service_id || '' }));
-      } else if (sel[fallbackKey]?.length > 0) {
-        sel[fallbackKey].forEach(id => {
-          const matched = allServices.find(s => s.id === id);
-          items.push({
-            name: matched?.name || 'Unknown service',
-            rawId: matched ? null : id,
-            price: matched?.price || 0,
-            category: label,
-            description: matched?.description || '',
-            service_id: id
-          });
-        });
-      }
-    };
-    addItems('workshopsData', 'workshops', 'Workshop');
-    addItems('challengeProgramsData', 'challengePrograms', 'Challenge');
-    addItems('leadershipData', 'leadership', 'Leadership');
-    addItems('movementClassesData', 'movementClasses', 'Class');
-    return items;
-  };
+  // Shared extractor (lib/proposalFulfillment) — same list the fulfillment card shows.
+  const getProposalServices = (proposal) => getProposalServiceItems(proposal, allServices);
 
   const handleLineItemSelect = (lineItem) => {
     setSelectedLineItem(lineItem);
@@ -586,14 +574,16 @@ export default function SchedulingHub() {
     }));
   };
 
-  const handleProposalServiceSelect = (svc) => {
+  const handleProposalServiceSelect = (svc, proposalOverride = null) => {
     setSelectedLineItem(svc);
     const matchedService = allServices.find(s =>
       (s.name || '').toLowerCase() === (svc.name || '').toLowerCase()
     );
     const serviceName = svc.service_id ? (allServices.find(s => s.id === svc.service_id)?.name || svc.name) : (matchedService?.name || svc.name);
-    const client = bookingForm.client_id ? allClients.find(c => c.id === bookingForm.client_id) : null;
-    const company = client?.company || bookingForm.client_name || '';
+    // proposalOverride: used by the deep-link path, where bookingForm state isn't populated yet
+    const clientId = proposalOverride?.client_id || bookingForm.client_id;
+    const client = clientId ? allClients.find(c => c.id === clientId) : null;
+    const company = client?.company || (proposalOverride ? getProposalParty(proposalOverride, allClients).company : '') || bookingForm.client_name || '';
     setBookingForm(prev => ({
       ...prev,
       title: company ? `${serviceName} — ${company}` : serviceName,
@@ -639,6 +629,35 @@ export default function SchedulingHub() {
       source: bookingSource === 'proposal' ? (proposal?.client_name || 'Proposal') : (selectedInvoice?.invoice_number || 'Invoice')
     });
   };
+
+  // Apply ?bookProposalId=&bookServiceId= once the data it needs has loaded
+  useEffect(() => {
+    if (!pendingBook || proposals.length === 0) return;
+    const proposal = proposals.find(p => p.id === pendingBook.proposalId);
+    if (!proposal) { setPendingBook(null); return; }
+    setBookingSource('proposal');
+    setSelectedInvoiceId('');
+    setBookServiceDialogOpen(true);
+    handleProposalSelect(proposal.id);
+    if (pendingBook.serviceId) {
+      const svc = getProposalServiceItems(proposal, allServices).find(i => i.service_id === pendingBook.serviceId);
+      if (svc) {
+        handleProposalServiceSelect(svc, proposal);
+      }
+    }
+    setPendingBook(null);
+    window.history.replaceState({}, '', window.location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingBook, proposals, allServices, allClients]);
+
+  // Apply ?eventId= — open that event's detail dialog
+  useEffect(() => {
+    if (!pendingEventId || calendarEvents.length === 0) return;
+    const ev = calendarEvents.find(e => e.id === pendingEventId);
+    if (ev) setSelectedEvent(ev);
+    setPendingEventId('');
+    window.history.replaceState({}, '', window.location.pathname);
+  }, [pendingEventId, calendarEvents]);
 
   const selectedInvoice = invoices.find(inv => inv.id === selectedInvoiceId);
 
@@ -1090,8 +1109,8 @@ export default function SchedulingHub() {
                 <FileText className="w-5 h-5 text-white" />
               </div>
               <div>
-                <DialogTitle className="text-white text-xl font-bold">Book Service from Invoice</DialogTitle>
-                <p className="text-white/70 text-sm mt-0.5">Schedule a service linked to an existing invoice</p>
+                <DialogTitle className="text-white text-xl font-bold">{bookingSource === 'proposal' ? 'Book Service from Proposal' : 'Book Service from Invoice'}</DialogTitle>
+                <p className="text-white/70 text-sm mt-0.5">{bookingSource === 'proposal' ? 'Schedule a service from an accepted or sent proposal' : 'Schedule a service linked to an existing invoice'}</p>
               </div>
             </div>
           </div>
@@ -1137,18 +1156,14 @@ export default function SchedulingHub() {
                   </SelectContent>
                 </Select>
               ) : (
-                <Select value={selectedProposalId} onValueChange={handleProposalSelect}>
-                  <SelectTrigger className="border-gray-200 bg-gray-50 focus:bg-white transition-colors">
-                    <SelectValue placeholder="Choose a proposal..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {proposals.map(proposal => (
-                      <SelectItem key={proposal.id} value={proposal.id}>
-                        {proposal.client_name} {proposal.company ? `— ${proposal.company}` : ''} — ${proposal.total_amount?.toLocaleString()}{proposal.created_date ? ` — ${new Date(proposal.created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <ProposalPicker
+                  proposals={proposals}
+                  clients={allClients}
+                  events={calendarEvents}
+                  services={allServices}
+                  value={selectedProposalId}
+                  onChange={handleProposalSelect}
+                />
               )}
             </div>
 
@@ -1197,7 +1212,7 @@ export default function SchedulingHub() {
                         key={idx}
                         onClick={() => handleProposalServiceSelect(svc)}
                         className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                          selectedLineItem === svc
+                          selectedLineItem?.key === svc.key
                             ? 'border-[#770142] bg-[#770142]/5 shadow-sm'
                             : 'border-gray-100 bg-gray-50 hover:border-[#770142]/40 hover:bg-white'
                         }`}
@@ -1208,10 +1223,10 @@ export default function SchedulingHub() {
                               {svc.name}
                               {svc.rawId && <span className="text-xs text-gray-400 ml-1.5 font-normal">{svc.rawId}</span>}
                             </div>
-                            <div className="text-xs text-gray-500 mt-0.5">{svc.category}</div>
+                            <div className="text-xs text-gray-500 mt-0.5">{svc.label || svc.category}</div>
                           </div>
                           {svc.price > 0 && (
-                            <div className={`text-sm font-bold px-2 py-0.5 rounded-full ${selectedLineItem === svc ? 'bg-[#770142] text-white' : 'bg-gray-200 text-gray-600'}`}>
+                            <div className={`text-sm font-bold px-2 py-0.5 rounded-full ${selectedLineItem?.key === svc.key ? 'bg-[#770142] text-white' : 'bg-gray-200 text-gray-600'}`}>
                               ${svc.price.toLocaleString()}
                             </div>
                           )}

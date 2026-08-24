@@ -2,7 +2,7 @@
  * Canonical status configuration maps for leads, partners, referrals, and proposals.
  * Import these instead of declaring local copies.
  */
-import { Clock, Send, Eye, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Clock, Send, Eye, CheckCircle, XCircle, AlertCircle, Trophy } from 'lucide-react';
 
 // ── Lead outreach status (Lead.status) ────────────────────────────────────────
 export const LEAD_STATUS_CONFIG = {
@@ -61,7 +61,12 @@ export const PROPOSAL_STATUS_CONFIG = {
   viewed:   { label: 'Viewed',   color: 'bg-purple-100 text-purple-700', icon: Eye },
   accepted: { label: 'Accepted', color: 'bg-green-100 text-green-700',   icon: CheckCircle },
   declined: { label: 'Declined', color: 'bg-red-100 text-red-700',         icon: XCircle },
+  // Every service in the proposal has been delivered (set from the Fulfillment card)
+  fulfilled: { label: 'Fulfilled', color: 'bg-emerald-100 text-emerald-800', icon: Trophy },
 };
+
+/** Statuses selectable in the proposal status dropdowns, in workflow order. */
+export const PROPOSAL_STATUSES = ['draft', 'sent', 'viewed', 'accepted', 'fulfilled', 'declined'];
 
 // ── Invoice status (Invoice.status) ───────────────────────────────────────────
 export const INVOICE_STATUS_CONFIG = {

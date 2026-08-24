@@ -24,7 +24,7 @@ function daysUntil(dateStr) {
 function computeSnapshot(client, data) {
   const { proposals, events, services, cohortAssessments, feedback } = data;
 
-  const acceptedProposals = proposals.filter(p => p.client_id === client.id && p.status === 'accepted');
+  const acceptedProposals = proposals.filter(p => p.client_id === client.id && (p.status === 'accepted' || p.status === 'fulfilled'));
   const acceptedProposalIds = new Set(acceptedProposals.map(p => p.id));
 
   // Selected service IDs from accepted proposals (services only, not wellness boxes)
@@ -155,6 +155,8 @@ function computeSnapshot(client, data) {
   return {
     totalServices,
     deliveredCount: deliveredServiceIds.size,
+    bookedCount: scheduledServiceIds.size,            // on the calendar (includes delivered)
+    bookedNotDeliveredCount: scheduledServiceIds.size - deliveredServiceIds.size,
     nextEvent,
     unscheduledCount,
     unscheduledServices,

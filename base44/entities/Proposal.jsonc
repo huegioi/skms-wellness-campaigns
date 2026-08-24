@@ -48,10 +48,16 @@
         "sent",
         "viewed",
         "accepted",
+        "fulfilled",
         "declined"
       ],
       "default": "draft",
-      "description": "Proposal status"
+      "description": "Proposal status. 'fulfilled' = every service in the proposal has been delivered (set from the Fulfillment card or by hand)."
+    },
+    "fulfilled_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the proposal was marked fulfilled"
     },
     "sent_date": {
       "type": "string",

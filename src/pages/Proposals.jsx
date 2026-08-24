@@ -18,6 +18,7 @@ import SendReminderDialog from '@/components/proposals/SendReminderDialog';
 import QuickBooksInvoiceReview from '@/components/proposals/QuickBooksInvoiceReview';
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 import { PROPOSAL_STATUS_CONFIG as statusConfig } from '@/lib/statusConfig';
+import ProposalFulfillment from '@/components/proposals/ProposalFulfillment';
 import { htmlToPdfDownload, proposalFilename } from '@/lib/proposalPdf';
 import { customBoxUnitPrice } from '@/lib/wellnessBoxes';
 import { DemoBadge } from '@/components/shared/DemoBadge';
@@ -258,6 +259,7 @@ export default function Proposals() {
               <SelectItem value="sent">Sent</SelectItem>
               <SelectItem value="viewed">Viewed</SelectItem>
               <SelectItem value="accepted">Accepted</SelectItem>
+              <SelectItem value="fulfilled">Fulfilled</SelectItem>
               <SelectItem value="declined">Declined</SelectItem>
             </SelectContent>
           </Select>
@@ -314,7 +316,7 @@ export default function Proposals() {
         ) : (
           <div className="space-y-4">
             {filteredProposals.map(proposal => {
-              const status = statusConfig[proposal.status || 'draft'];
+              const status = statusConfig[proposal.status] || statusConfig.draft;
               const StatusIcon = status.icon;
               
               return (
@@ -379,6 +381,7 @@ export default function Proposals() {
                             <SelectItem value="sent">Sent</SelectItem>
                             <SelectItem value="viewed">Viewed</SelectItem>
                             <SelectItem value="accepted">Accepted</SelectItem>
+                            <SelectItem value="fulfilled">Fulfilled</SelectItem>
                             <SelectItem value="declined">Declined</SelectItem>
                           </SelectContent>
                         </Select>
@@ -487,8 +490,8 @@ export default function Proposals() {
                   </div>
                   <div>
                     <label className="text-xs sm:text-sm text-gray-500">Status</label>
-                    <Badge className={statusConfig[viewingProposal.status || 'draft'].color}>
-                      {statusConfig[viewingProposal.status || 'draft'].label}
+                    <Badge className={(statusConfig[viewingProposal.status] || statusConfig.draft).color}>
+                      {(statusConfig[viewingProposal.status] || statusConfig.draft).label}
                     </Badge>
                   </div>
                 </div>
