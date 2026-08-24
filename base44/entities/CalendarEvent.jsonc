@@ -168,6 +168,10 @@
       "type": "string",
       "description": "Google Calendar event ID for sync"
     },
+    "google_meet_event_id": {
+      "type": "string",
+      "description": "ID of the private 'Meet room' holder event on the admin calendar that owns this session's Google Meet. Kept separate from google_event_id so the client-facing invite only ever shows the check-in link."
+    },
     "outlook_event_id": {
       "type": "string",
       "description": "Outlook Calendar event ID for sync"
