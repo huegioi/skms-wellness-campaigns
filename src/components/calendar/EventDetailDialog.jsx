@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit, Upload, CheckCircle2, X, Send, ClipboardCheck } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit, Upload, CheckCircle2, X, Send, ClipboardCheck, Video } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -225,8 +225,14 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
       });
 
       if (response.data.success) {
-        toast.success('Event synced to Google Calendar!');
+        if (response.data.meetLink) {
+          toast.success('Synced to Google Calendar — Meet link attached.');
+        } else {
+          toast.success('Synced to Google Calendar.', { description: 'Google did not return a Meet link. Try Add Meet link again in a moment.' });
+        }
         onUpdated?.();
+      } else if (response.data.error) {
+        toast.error('Failed to sync to Google Calendar: ' + response.data.error);
       }
     } catch (error) {
       toast.error('Failed to sync to Google Calendar: ' + error.message);
@@ -577,6 +583,50 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
             </div>
           )}
 
+          {/* Google Meet — the link attendees are handed after check-in */}
+          {(event.meeting_link || event.google_event_id) && (
+            <div className="flex items-start gap-3">
+              <Video className="w-5 h-5 text-gray-400 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-sm text-gray-500">Google Meet</p>
+                {event.meeting_link ? (
+                  <>
+                    <a href={event.meeting_link} target="_blank" rel="noopener noreferrer" className="font-medium text-[#013f7c] hover:underline break-all">
+                      {event.meeting_link.replace(/^https?:\/\//, '')}
+                    </a>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(event.meeting_link);
+                          toast.success('Meet link copied!');
+                        }}
+                        className="text-sm text-[#013f7c] hover:underline font-medium"
+                      >
+                        Copy Meet link
+                      </button>
+                      <span className="text-gray-300">·</span>
+                      <a href={event.meeting_link} target="_blank" rel="noopener noreferrer" className="text-sm text-[#013f7c] hover:underline font-medium">
+                        Open
+                      </a>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5">Attendees get this automatically after they check in — the invite only carries the check-in link.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-amber-700">No Meet link on this event yet — attendees who check in will see "no video link".</p>
+                    <button
+                      onClick={handleSyncToGoogle}
+                      disabled={syncing}
+                      className="text-sm text-[#013f7c] hover:underline font-medium disabled:opacity-50"
+                    >
+                      {syncing ? 'Adding…' : 'Add Meet link'}
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
           {event.client_name && (
             <div className="flex items-start gap-3">
               <User className="w-5 h-5 text-gray-400 mt-0.5" />
@@ -646,7 +696,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Synced to Google Calendar</span>
+                  <span>Synced to Google Calendar{event.meeting_link ? ' · Meet attached' : ''}</span>
                 </div>
                 <Button 
                   onClick={handleUnsyncFromGoogle} 
@@ -665,7 +715,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
                 className="w-full bg-green-600 hover:bg-green-700 text-white"
               >
                 {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                {syncing ? 'Syncing...' : 'Sync to Google Calendar'}
+                {syncing ? 'Syncing...' : 'Sync to Google Calendar + create Meet link'}
               </Button>
             )}
           </div>
