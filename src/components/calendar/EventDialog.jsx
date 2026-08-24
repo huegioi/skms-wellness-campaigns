@@ -340,6 +340,7 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
         if (response.data?.googleEventId) {
           await base44.entities.CalendarEvent.update(newEvent.id, {
             google_event_id: response.data.googleEventId,
+            ...(response.data.meetEventId ? { google_meet_event_id: response.data.meetEventId } : {}),
             ...(response.data.meetLink ? { meeting_link: response.data.meetLink } : {}),
           });
         }
@@ -386,6 +387,7 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
       if (response.data?.googleEventId) {
         await base44.entities.CalendarEvent.update(newEvent.id, {
           google_event_id: response.data.googleEventId,
+            ...(response.data.meetEventId ? { google_meet_event_id: response.data.meetEventId } : {}),
           ...(response.data.meetLink ? { meeting_link: response.data.meetLink } : {}),
         });
       }
