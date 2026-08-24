@@ -46,8 +46,11 @@ export default function ProposalPicker({
       const party = getProposalParty(p, clients);
       const f = computeProposalFulfillment(p, events, services);
       const status = p.status || 'draft';
-      const hidden = p.is_demo || p.is_internal || !OPEN_PROPOSAL_STATUSES.includes(status);
-      return { proposal: p, party, f, status, hidden };
+      // Internal = flagged on the proposal OR on its linked client (the "SkillfulMeans (internal)" test client)
+      const internal = !!(p.is_internal || party.client?.is_internal);
+      const demo = !!(p.is_demo || party.client?.is_demo);
+      const hidden = demo || internal || !OPEN_PROPOSAL_STATUSES.includes(status);
+      return { proposal: p, party, f, status, hidden, badgeRecord: { is_demo: demo, is_internal: internal } };
     });
     const visible = showAll ? list : list.filter(r => !r.hidden);
     // Always keep the currently selected row reachable
@@ -61,10 +64,14 @@ export default function ProposalPicker({
     );
   }, [proposals, clients, events, services, showAll, value]);
 
-  const hiddenCount = useMemo(
-    () => proposals.filter(p => p.is_demo || p.is_internal || !OPEN_PROPOSAL_STATUSES.includes(p.status || 'draft')).length,
-    [proposals]
-  );
+  const hiddenCount = useMemo(() => {
+    const byId = {};
+    for (const c of clients) byId[c.id] = c;
+    return proposals.filter(p => {
+      const c = p.client_id ? byId[p.client_id] : null;
+      return p.is_demo || p.is_internal || c?.is_demo || c?.is_internal || !OPEN_PROPOSAL_STATUSES.includes(p.status || 'draft');
+    }).length;
+  }, [proposals, clients]);
 
   const selected = rows.find(r => r.proposal.id === value);
 
@@ -78,12 +85,12 @@ export default function ProposalPicker({
           className={`w-full justify-between h-auto min-h-10 py-2 border-gray-200 bg-gray-50 hover:bg-white font-normal ${className}`}
         >
           {selected ? (
-            <span className="flex items-center gap-2 text-left truncate">
+            <span className="flex items-center gap-2 text-left min-w-0 flex-1 overflow-hidden">
               <Building2 className="w-4 h-4 text-[#770142] shrink-0" />
               <span className="font-semibold text-gray-800 truncate">{selected.party.company}</span>
-              {selected.party.contact && <span className="text-gray-500 truncate">· {selected.party.contact}</span>}
-              <span className="text-gray-700">· {fmtMoney(selected.proposal.total_amount)}</span>
-              <span className="text-gray-400">· {fmtDate(selected.proposal.created_date)}</span>
+              {selected.party.contact && <span className="text-gray-500 truncate shrink-[2]">· {selected.party.contact}</span>}
+              <span className="text-gray-700 shrink-0">· {fmtMoney(selected.proposal.total_amount)}</span>
+              <span className="text-gray-400 shrink-0 hidden sm:inline">· {fmtDate(selected.proposal.created_date)}</span>
             </span>
           ) : (
             <span className="text-gray-500">Choose a proposal…</span>
@@ -108,7 +115,7 @@ export default function ProposalPicker({
               </div>
             </CommandEmpty>
             <CommandGroup>
-              {rows.map(({ proposal: p, party, f, status }) => {
+              {rows.map(({ proposal: p, party, f, status, badgeRecord }) => {
                 const sc = PROPOSAL_STATUS_CONFIG[status] || PROPOSAL_STATUS_CONFIG.draft;
                 const searchable = [party.company, party.contact, party.email, p.client_name, p.company, sc.label].filter(Boolean).join(' ');
                 const isSel = p.id === value;
@@ -124,7 +131,7 @@ export default function ProposalPicker({
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-gray-800">{party.company}</span>
                         {party.contact && <span className="text-sm text-gray-500">{party.contact}</span>}
-                        <DemoOrInternalBadge record={p} />
+                        <DemoOrInternalBadge record={badgeRecord} />
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5 flex-wrap">
                         <span className="font-medium text-gray-700">{fmtMoney(p.total_amount)}</span>
