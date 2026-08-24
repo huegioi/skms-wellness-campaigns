@@ -239,13 +239,39 @@ export default function SchedulingHub() {
         is_demo: linkedClient?.is_demo === true,
       });
 
-      return calendarEvent;
+      // Booking = one step: push to Google Calendar (creates the Meet room and stores
+      // meeting_link) right away. Demo events never sync. A failure here is non-fatal —
+      // the event exists and the dialog's Sync button retries the same function.
+      let sync = { status: 'skipped' };
+      if (!calendarEvent.is_demo) {
+        try {
+          const res = await base44.functions.invoke('syncCalendarEventToGoogle', {
+            eventId: calendarEvent.id,
+            action: 'sync',
+          });
+          sync = res.data?.success
+            ? { status: 'synced', meetLink: res.data.meetLink || null }
+            : { status: 'failed', error: res.data?.error || 'unknown error' };
+        } catch (e) {
+          sync = { status: 'failed', error: e.message };
+        }
+      }
+
+      return { calendarEvent, sync };
     },
-    onSuccess: () => {
+    onSuccess: ({ sync }) => {
       queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
       queryClient.invalidateQueries({ queryKey: ['delivery-events'] });     // client-card chip
       queryClient.invalidateQueries({ queryKey: ['fulfillment-events'] });  // proposal fulfillment card
-      toast.success('Service booked successfully!');
+      if (sync.status === 'synced' && sync.meetLink) {
+        toast.success('Booked — added to Google Calendar with a Meet link.');
+      } else if (sync.status === 'synced') {
+        toast.success('Booked — added to Google Calendar.', { description: 'No Meet link came back; open the event and click Sync to add one.' });
+      } else if (sync.status === 'failed') {
+        toast.warning('Booked, but Google Calendar sync failed.', { description: `${sync.error} — open the event and click Sync to Google to retry.` });
+      } else {
+        toast.success('Service booked successfully!');
+      }
       setBookServiceDialogOpen(false);
       resetBookingForm();
     },
@@ -578,11 +604,26 @@ export default function SchedulingHub() {
     const proposal = proposals.find(p => p.id === proposalId);
     if (proposal) {
       const party = getProposalParty(proposal, allClients);
+      // Older proposals have no client_id — fall back to matching a Client record by
+      // company / name / email so the Client field is pre-filled instead of "No client linked".
+      let clientId = proposal.client_id || '';
+      if (!clientId) {
+        const norm = (s) => (s || '').trim().toLowerCase();
+        const candidates = [proposal.company, proposal.client_name].map(norm).filter(Boolean);
+        const email = norm(proposal.client_email);
+        const match = allClients.find(c =>
+          (email && norm(c.email) === email) ||
+          candidates.includes(norm(c.company)) ||
+          candidates.includes(norm(c.name))
+        );
+        clientId = match?.id || '';
+      }
+      const matchedClient = clientId ? allClients.find(c => c.id === clientId) : null;
       setBookingForm(prev => ({
         ...prev,
-        client_name: party.company || proposal.client_name || proposal.company || '',
-        client_id: proposal.client_id || '',
-        client_email: party.email || prev.client_email,
+        client_name: matchedClient?.company || party.company || proposal.client_name || proposal.company || '',
+        client_id: clientId,
+        client_email: matchedClient?.email || party.email || prev.client_email,
       }));
     }
   };
