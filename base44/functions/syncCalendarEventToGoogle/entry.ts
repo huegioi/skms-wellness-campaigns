@@ -198,9 +198,10 @@ Deno.serve(async (req) => {
           throw new Error(`Failed to delete Google Calendar event: ${error}`);
         }
 
-        // Clear google_event_id from CalendarEvent
+        // Clear google_event_id (and the Meet link — the room dies with the Google event)
         await base44.asServiceRole.entities.CalendarEvent.update(eventId, {
-          google_event_id: null
+          google_event_id: null,
+          meeting_link: null
         });
       }
 
