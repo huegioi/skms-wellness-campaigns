@@ -226,9 +226,12 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
 
       if (response.data.success) {
         if (response.data.meetLink) {
-          toast.success('Synced to Google Calendar — Meet link attached.');
+          toast.success('Synced to Google Calendar — Meet room ready.', { description: 'The invite carries only the check-in link; attendees get the Meet after they check in.' });
         } else {
           toast.success('Synced to Google Calendar.', { description: 'Google did not return a Meet link. Try Add Meet link again in a moment.' });
+        }
+        if (response.data.strippedInviteMeet) {
+          toast.info('Removed the Meet from the calendar invite.', { description: 'Attendees now see only the check-in link. The Meet room lives on a private holder event.' });
         }
         onUpdated?.();
       } else if (response.data.error) {
@@ -609,7 +612,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
                         Open
                       </a>
                     </div>
-                    <p className="text-xs text-gray-400 mt-0.5">Attendees get this automatically after they check in — the invite only carries the check-in link.</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Not on the calendar invite (that carries only the check-in link). Attendees get this automatically after they check in.</p>
                   </>
                 ) : (
                   <>
@@ -696,7 +699,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Synced to Google Calendar{event.meeting_link ? ' · Meet attached' : ''}</span>
+                  <span>Synced to Google Calendar{event.meeting_link ? ' · Meet room ready' : ''}</span>
                 </div>
                 <Button 
                   onClick={handleUnsyncFromGoogle} 
@@ -715,7 +718,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
                 className="w-full bg-green-600 hover:bg-green-700 text-white"
               >
                 {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                {syncing ? 'Syncing...' : 'Sync to Google Calendar + create Meet link'}
+                {syncing ? 'Syncing...' : 'Sync to Google Calendar + create Meet room'}
               </Button>
             )}
           </div>
