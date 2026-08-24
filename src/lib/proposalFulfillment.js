@@ -10,15 +10,32 @@
  * (proposal editor + client detail), and the client-card delivery chip.
  */
 
+import { productCatalog } from '@/components/curriculum/catalogData';
+import { resolveStaticKeys } from '@/lib/catalogServiceResolver';
+
 // The four service groups a proposal can carry, in display order.
 // `dataKey` holds enriched objects ({ id, name, price, ... }); `idKey` is the
 // older bare-id fallback. Both shapes exist on live records.
 export const SELECTION_GROUPS = [
-  { dataKey: 'workshopsData',         idKey: 'workshops',         category: 'workshop',   label: 'Workshop' },
-  { dataKey: 'challengeProgramsData', idKey: 'challengePrograms', category: 'challenge',  label: 'Challenge' },
-  { dataKey: 'leadershipData',        idKey: 'leadership',        category: 'leadership', label: 'Leadership' },
-  { dataKey: 'movementClassesData',   idKey: 'movementClasses',   category: 'class',      label: 'Class' },
+  { dataKey: 'workshopsData',         idKey: 'workshops',         category: 'workshop',   label: 'Workshop',   catalogGroup: 'workshops' },
+  { dataKey: 'challengeProgramsData', idKey: 'challengePrograms', category: 'challenge',  label: 'Challenge',  catalogGroup: 'challenges' },
+  { dataKey: 'leadershipData',        idKey: 'leadership',        category: 'leadership', label: 'Leadership', catalogGroup: 'leadership' },
+  { dataKey: 'movementClassesData',   idKey: 'movementClasses',   category: 'class',      label: 'Class',      catalogGroup: 'movementClasses' },
 ];
+
+/**
+ * Older proposals (Curriculum Designer, pre-2026) stored STATIC catalog keys
+ * ("positiveMinds") instead of live Service IDs. Resolve one of those to
+ * { name, service } so the line reads properly and can book against the live
+ * service when a name match exists.
+ */
+function resolveLegacyKey(key, group, services) {
+  const entry = productCatalog?.[group.catalogGroup]?.[key];
+  if (!entry) return null;
+  const [liveId] = resolveStaticKeys([key], group.category, services);
+  const service = liveId ? services.find(s => s.id === liveId) : null;
+  return { name: entry.name, service };
+}
 
 /** Proposal statuses that still have something left to book/deliver. */
 export const OPEN_PROPOSAL_STATUSES = ['sent', 'viewed', 'accepted'];
@@ -60,16 +77,23 @@ export function getProposalServiceItems(proposal, services = []) {
       for (const id of bare) {
         if (!id || seen.has(id)) continue;
         seen.add(id);
-        const db = byId[id];
+        let db = byId[id];
+        let legacy = null;
+        if (!db) {
+          legacy = resolveLegacyKey(id, g, services);
+          if (legacy?.service) db = legacy.service;
+        }
         items.push({
           key: id,
-          service_id: id,
-          name: db?.name || 'Unknown service',
+          // Book against the live service when the legacy key resolved to one
+          service_id: db?.id || id,
+          name: db?.name || legacy?.name || 'Unknown service',
           category: g.category,
           label: g.label,
           price: Number(db?.price ?? 0) || 0,
           description: db?.description || '',
           rawId: db ? null : id,
+          legacyKey: legacy ? id : null,
         });
       }
     }
