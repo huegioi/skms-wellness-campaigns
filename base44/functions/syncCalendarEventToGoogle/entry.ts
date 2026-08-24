@@ -35,6 +35,23 @@ function buildInviteDescription(event, service) {
 
 const CALENDAR_ID = 'admin%40skillfulmeans.life';
 
+// Google only attaches a Meet when the request carries a createRequest AND the URL has
+// conferenceDataVersion=1 (same pattern as bookFollowUpSession). requestId must be stable
+// per event so a retry never spawns a second room.
+function meetCreateRequest(event) {
+  return {
+    createRequest: {
+      requestId: `skms-${event.id}`,
+      conferenceSolutionKey: { type: 'hangoutsMeet' },
+    },
+  };
+}
+function extractMeetLink(gEvent) {
+  return gEvent?.hangoutLink
+    || gEvent?.conferenceData?.entryPoints?.find(e => e.entryPointType === 'video')?.uri
+    || '';
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -86,37 +103,44 @@ Deno.serve(async (req) => {
       };
 
       let googleEventId = event.google_event_id;
+      let meetLink = event.meeting_link || '';
+      const jsonHeaders = { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
 
       if (googleEventId) {
         // Update existing event (PATCH — not PUT — to preserve attendees, conferenceData,
         // reminders, extendedProperties and colorId on the Google event.)
-        const updateResponse = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events/${googleEventId}?sendUpdates=none`,
-          {
-            method: 'PATCH',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(eventData)
+        // If the Google event has no Meet yet, ask for one in the same PATCH.
+        let needsMeet = false;
+        if (!meetLink) {
+          const getRes = await fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events/${googleEventId}`,
+            { headers: { 'Authorization': `Bearer ${accessToken}` } }
+          );
+          if (getRes.ok) {
+            meetLink = extractMeetLink(await getRes.json());
+            needsMeet = !meetLink;
           }
+        }
+        const patchBody = needsMeet ? { ...eventData, conferenceData: meetCreateRequest(event) } : eventData;
+        const updateResponse = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events/${googleEventId}?sendUpdates=none${needsMeet ? '&conferenceDataVersion=1' : ''}`,
+          { method: 'PATCH', headers: jsonHeaders, body: JSON.stringify(patchBody) }
         );
 
         if (!updateResponse.ok) {
           const error = await updateResponse.text();
           throw new Error(`Failed to update Google Calendar event: ${error}`);
         }
+        const updated = await updateResponse.json();
+        meetLink = extractMeetLink(updated) || meetLink;
       } else {
-        // Create new event
+        // Create new event — with a Google Meet room attached.
         const createResponse = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?sendUpdates=none`,
+          `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?sendUpdates=none&conferenceDataVersion=1`,
           {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(eventData)
+            headers: jsonHeaders,
+            body: JSON.stringify({ ...eventData, conferenceData: meetCreateRequest(event) })
           }
         );
 
@@ -127,17 +151,33 @@ Deno.serve(async (req) => {
 
         const result = await createResponse.json();
         googleEventId = result.id;
+        meetLink = extractMeetLink(result);
+      }
 
-        // Update CalendarEvent with google_event_id
-        await base44.asServiceRole.entities.CalendarEvent.update(eventId, {
-          google_event_id: googleEventId
-        });
+      // Meet creation is async on Google's side — if the link isn't in the response yet,
+      // re-read the event once.
+      if (googleEventId && !meetLink) {
+        const again = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events/${googleEventId}`,
+          { headers: { 'Authorization': `Bearer ${accessToken}` } }
+        );
+        if (again.ok) meetLink = extractMeetLink(await again.json());
+      }
+
+      // Persist google_event_id + meeting_link (the check-in page hands meeting_link to
+      // attendees after they check in).
+      const patch = {};
+      if (googleEventId !== event.google_event_id) patch.google_event_id = googleEventId;
+      if (meetLink && meetLink !== event.meeting_link) patch.meeting_link = meetLink;
+      if (Object.keys(patch).length) {
+        await base44.asServiceRole.entities.CalendarEvent.update(eventId, patch);
       }
 
       return Response.json({ 
         success: true, 
         googleEventId,
-        message: 'Event synced to Google Calendar'
+        meetLink: meetLink || null,
+        message: meetLink ? 'Event synced to Google Calendar with Meet link' : 'Event synced to Google Calendar (no Meet link returned)'
       });
 
     } else if (action === 'unsync') {
