@@ -115,11 +115,18 @@ Deno.serve(async (req) => {
             skms_event_id: eventData.id || '',
             skms_event_type: eventData.event_type || ''
           }
-        }
+        },
+        // Attach a Google Meet room (needs conferenceDataVersion=1 on the URL too).
+        conferenceData: {
+          createRequest: {
+            requestId: `skms-${eventData.id || eventData.checkin_token || crypto.randomUUID()}`,
+            conferenceSolutionKey: { type: 'hangoutsMeet' },
+          },
+        },
       };
 
       const targetCalendar = calendarId || 'primary';
-      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendar)}/events?sendUpdates=none`, {
+      const response = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendar)}/events?sendUpdates=none&conferenceDataVersion=1`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -129,7 +136,10 @@ Deno.serve(async (req) => {
       });
       
       const result = await response.json();
-      return Response.json({ success: true, googleEventId: result.id, event: result });
+      const meetLink = result.hangoutLink
+        || result.conferenceData?.entryPoints?.find(e => e.entryPointType === 'video')?.uri
+        || null;
+      return Response.json({ success: true, googleEventId: result.id, meetLink, event: result });
     }
 
     if (action === 'updateEvent') {
