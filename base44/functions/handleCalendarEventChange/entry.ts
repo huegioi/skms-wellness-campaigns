@@ -50,8 +50,8 @@ Deno.serve(async (req) => {
       return Response.json({ success: true, message: 'Demo event — skipping Google sync' });
     }
 
-    // Only proceed if event has google_event_id (is synced)
-    if (!data?.google_event_id && !old_data?.google_event_id) {
+    // Only proceed if event has google_event_id (is synced) or a Meet holder
+    if (!data?.google_event_id && !old_data?.google_event_id && !old_data?.google_meet_event_id) {
       return Response.json({ success: true, message: 'Event not synced, skipping' });
     }
 
@@ -66,14 +66,17 @@ Deno.serve(async (req) => {
       : WATCHED_CALENDARS.map(c => c.id);
 
     if (event.type === 'delete') {
-      if (old_data?.google_event_id) {
+      // Delete the client-facing event AND its private Meet-room holder (see
+      // syncCalendarEventToGoogle — the Meet lives on a separate event so invitees
+      // never see two links).
+      for (const gid of [old_data?.google_event_id, old_data?.google_meet_event_id].filter(Boolean)) {
         for (const calId of candidateCals) {
           const res = await fetch(
-            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events/${old_data.google_event_id}?sendUpdates=none`,
+            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events/${gid}?sendUpdates=none`,
             { method: 'DELETE', headers: authHeaders }
           );
           if (res.ok) break;          // deleted successfully on this calendar
-          if (res.status === 404) continue; // not on this calendar — try the next
+          if (res.status === 404 || res.status === 410) continue; // not on this calendar — try the next
           console.error(`Delete failed on ${calId}: ${await res.text()}`);
         }
       }
@@ -118,6 +121,21 @@ Deno.serve(async (req) => {
           success: false,
           error: 'Failed to update Google Calendar event on any watched calendar'
         }, { status: 500 });
+      }
+
+      // Keep the Meet-room holder on the session's time/title (non-fatal).
+      if (data.google_meet_event_id) {
+        const holderPatch = { summary: `Meet room · ${data.title}`, start: eventData.start, end: eventData.end };
+        for (const calId of candidateCals) {
+          const res = await fetch(
+            `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events/${data.google_meet_event_id}?sendUpdates=none`,
+            { method: 'PATCH', headers: jsonHeaders, body: JSON.stringify(holderPatch) }
+          );
+          if (res.ok) break;
+          if (res.status === 404 || res.status === 410) continue;
+          console.error(`Holder update failed on ${calId}: ${await res.text()}`);
+          break;
+        }
       }
       return Response.json({ success: true, message: 'Updated in Google Calendar' });
     }
