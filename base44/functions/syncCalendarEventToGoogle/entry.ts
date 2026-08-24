@@ -34,14 +34,21 @@ function buildInviteDescription(event, service) {
 }
 
 const CALENDAR_ID = 'admin%40skillfulmeans.life';
+const GCAL = `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events`;
 
-// Google only attaches a Meet when the request carries a createRequest AND the URL has
-// conferenceDataVersion=1 (same pattern as bookFollowUpSession). requestId must be stable
-// per event so a retry never spawns a second room.
+// ── Google Meet lives on a SEPARATE private "holder" event ─────────────────────
+// A Meet attached to the client-facing event is always visible to invitees (Google
+// renders the "Join with Google Meet" button on it), which would put two links in
+// front of attendees. So the client event carries ONLY the check-in link, and the
+// Meet room is created on a private, non-blocking holder event with no attendees.
+// The app stores the room URL on CalendarEvent.meeting_link and hands it out after
+// check-in. Google only creates a Meet when the request carries a createRequest AND
+// the URL has conferenceDataVersion=1. requestId is stable per event so a retry
+// never spawns a second room.
 function meetCreateRequest(event) {
   return {
     createRequest: {
-      requestId: `skms-${event.id}`,
+      requestId: `skms-meet-${event.id}`,
       conferenceSolutionKey: { type: 'hangoutsMeet' },
     },
   };
@@ -50,6 +57,18 @@ function extractMeetLink(gEvent) {
   return gEvent?.hangoutLink
     || gEvent?.conferenceData?.entryPoints?.find(e => e.entryPointType === 'video')?.uri
     || '';
+}
+function holderBody(event, eventData) {
+  return {
+    summary: `Meet room · ${event.title}`,
+    description: 'Holds the Google Meet room for this SkillfulMeans session. Attendees receive the link automatically after they check in. Do not invite attendees to this event — the client-facing invite is the separate event with the check-in link.',
+    start: eventData.start,
+    end: eventData.end,
+    visibility: 'private',
+    transparency: 'transparent',
+    reminders: { useDefault: false, overrides: [] },
+    extendedProperties: { private: { skms_event_id: event.id, skms_role: 'meet_holder' } },
+  };
 }
 
 Deno.serve(async (req) => {
@@ -78,6 +97,13 @@ Deno.serve(async (req) => {
 
     // Get access token
     const accessToken = await base44.asServiceRole.connectors.getAccessToken('googlecalendar');
+    const authHeaders = { 'Authorization': `Bearer ${accessToken}` };
+    const jsonHeaders = { ...authHeaders, 'Content-Type': 'application/json' };
+    const gcalDelete = async (gid) => {
+      if (!gid) return true;
+      const res = await fetch(`${GCAL}/${gid}?sendUpdates=none`, { method: 'DELETE', headers: authHeaders });
+      return res.ok || res.status === 404 || res.status === 410;
+    };
 
     if (action === 'sync') {
       // Fetch the service so the invite description can include its copy.
@@ -89,12 +115,12 @@ Deno.serve(async (req) => {
         } catch { /* non-fatal */ }
       }
       const checkinUrl = buildCheckinUrl(event.checkin_token);
-      // Create or update in Google Calendar
+      // Client-facing event: title, check-in link, description, times. NEVER a Meet.
       const eventData = {
         summary: event.title,
         description: event.checkin_token ? buildInviteDescription(event, service) : (event.description || ''),
         location: event.checkin_token ? (checkinUrl || '') : (event.location || ''),
-        start: event.all_day 
+        start: event.all_day
           ? { date: event.start_date.split('T')[0] }
           : { dateTime: event.start_date, timeZone: 'America/New_York' },
         end: event.all_day
@@ -103,127 +129,143 @@ Deno.serve(async (req) => {
       };
 
       let googleEventId = event.google_event_id;
-      let meetLink = event.meeting_link || '';
-      const jsonHeaders = { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' };
+      let strippedInviteMeet = false;
 
       if (googleEventId) {
-        // Update existing event (PATCH — not PUT — to preserve attendees, conferenceData,
-        // reminders, extendedProperties and colorId on the Google event.)
-        // If the Google event has no Meet yet, ask for one in the same PATCH.
-        let needsMeet = false;
-        if (!meetLink) {
-          const getRes = await fetch(
-            `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events/${googleEventId}`,
-            { headers: { 'Authorization': `Bearer ${accessToken}` } }
+        // If a Meet was attached to the client event (added by hand, or by an older
+        // version of this sync), strip it so invitees only ever see the check-in link.
+        let hasInviteMeet = false;
+        const getRes = await fetch(`${GCAL}/${googleEventId}`, { headers: authHeaders });
+        if (getRes.ok) {
+          hasInviteMeet = !!extractMeetLink(await getRes.json());
+        } else if (getRes.status === 404 || getRes.status === 410) {
+          googleEventId = null; // deleted in Google — recreate below
+        }
+        if (googleEventId) {
+          // PATCH — not PUT — to preserve attendees, reminders, extendedProperties, colorId.
+          const patchBody = hasInviteMeet ? { ...eventData, conferenceData: null } : eventData;
+          const updateResponse = await fetch(
+            `${GCAL}/${googleEventId}?sendUpdates=none${hasInviteMeet ? '&conferenceDataVersion=1' : ''}`,
+            { method: 'PATCH', headers: jsonHeaders, body: JSON.stringify(patchBody) }
           );
-          if (getRes.ok) {
-            meetLink = extractMeetLink(await getRes.json());
-            needsMeet = !meetLink;
+          if (!updateResponse.ok) {
+            const error = await updateResponse.text();
+            throw new Error(`Failed to update Google Calendar event: ${error}`);
           }
+          strippedInviteMeet = hasInviteMeet;
         }
-        const patchBody = needsMeet ? { ...eventData, conferenceData: meetCreateRequest(event) } : eventData;
-        const updateResponse = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events/${googleEventId}?sendUpdates=none${needsMeet ? '&conferenceDataVersion=1' : ''}`,
-          { method: 'PATCH', headers: jsonHeaders, body: JSON.stringify(patchBody) }
-        );
+      }
 
-        if (!updateResponse.ok) {
-          const error = await updateResponse.text();
-          throw new Error(`Failed to update Google Calendar event: ${error}`);
-        }
-        const updated = await updateResponse.json();
-        meetLink = extractMeetLink(updated) || meetLink;
-      } else {
-        // Create new event — with a Google Meet room attached.
-        const createResponse = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events?sendUpdates=none&conferenceDataVersion=1`,
-          {
-            method: 'POST',
-            headers: jsonHeaders,
-            body: JSON.stringify({ ...eventData, conferenceData: meetCreateRequest(event) })
-          }
-        );
-
+      if (!googleEventId) {
+        const createResponse = await fetch(`${GCAL}?sendUpdates=none`, {
+          method: 'POST',
+          headers: jsonHeaders,
+          body: JSON.stringify({
+            ...eventData,
+            extendedProperties: { private: { skms_event_id: event.id, skms_event_type: event.event_type || '' } },
+          })
+        });
         if (!createResponse.ok) {
           const error = await createResponse.text();
           throw new Error(`Failed to create Google Calendar event: ${error}`);
         }
-
         const result = await createResponse.json();
         googleEventId = result.id;
-        meetLink = extractMeetLink(result);
       }
 
-      // Meet creation is async on Google's side — if the link isn't in the response yet,
-      // re-read the event once.
-      if (googleEventId && !meetLink) {
-        const again = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events/${googleEventId}`,
-          { headers: { 'Authorization': `Bearer ${accessToken}` } }
-        );
+      // ── Meet holder event ──
+      let meetEventId = event.google_meet_event_id || null;
+      let meetLink = '';
+      if (meetEventId) {
+        const getRes = await fetch(`${GCAL}/${meetEventId}`, { headers: authHeaders });
+        if (getRes.ok) {
+          const holder = await getRes.json();
+          if (holder.status === 'cancelled') {
+            meetEventId = null;
+          } else {
+            meetLink = extractMeetLink(holder);
+            // Keep the holder on the session's time; add a room if it somehow lacks one.
+            const needsMeet = !meetLink;
+            const patchRes = await fetch(
+              `${GCAL}/${meetEventId}?sendUpdates=none${needsMeet ? '&conferenceDataVersion=1' : ''}`,
+              {
+                method: 'PATCH', headers: jsonHeaders,
+                body: JSON.stringify({
+                  summary: `Meet room · ${event.title}`,
+                  start: eventData.start, end: eventData.end,
+                  ...(needsMeet ? { conferenceData: meetCreateRequest(event) } : {}),
+                })
+              }
+            );
+            if (patchRes.ok) meetLink = extractMeetLink(await patchRes.json()) || meetLink;
+          }
+        } else if (getRes.status === 404 || getRes.status === 410) {
+          meetEventId = null;
+        }
+      }
+      if (!meetEventId) {
+        const holderRes = await fetch(`${GCAL}?sendUpdates=none&conferenceDataVersion=1`, {
+          method: 'POST',
+          headers: jsonHeaders,
+          body: JSON.stringify({ ...holderBody(event, eventData), conferenceData: meetCreateRequest(event) })
+        });
+        if (!holderRes.ok) {
+          const error = await holderRes.text();
+          console.error('Meet holder create failed:', error);
+        } else {
+          const holder = await holderRes.json();
+          meetEventId = holder.id;
+          meetLink = extractMeetLink(holder);
+        }
+      }
+      // Meet creation is async on Google's side — if the link isn't back yet, re-read once.
+      if (meetEventId && !meetLink) {
+        const again = await fetch(`${GCAL}/${meetEventId}`, { headers: authHeaders });
         if (again.ok) meetLink = extractMeetLink(await again.json());
       }
 
-      // Persist google_event_id + meeting_link (the check-in page hands meeting_link to
-      // attendees after they check in).
+      // Persist ids + meeting_link (the check-in page hands meeting_link to attendees).
       const patch = {};
       if (googleEventId !== event.google_event_id) patch.google_event_id = googleEventId;
+      if (meetEventId !== (event.google_meet_event_id || null)) patch.google_meet_event_id = meetEventId;
       if (meetLink && meetLink !== event.meeting_link) patch.meeting_link = meetLink;
       if (Object.keys(patch).length) {
         await base44.asServiceRole.entities.CalendarEvent.update(eventId, patch);
       }
 
-      return Response.json({ 
-        success: true, 
+      return Response.json({
+        success: true,
         googleEventId,
+        meetEventId,
         meetLink: meetLink || null,
-        message: meetLink ? 'Event synced to Google Calendar with Meet link' : 'Event synced to Google Calendar (no Meet link returned)'
+        strippedInviteMeet,
+        message: meetLink
+          ? 'Event synced to Google Calendar; Meet room ready (kept off the invite)'
+          : 'Event synced to Google Calendar (no Meet link returned)'
       });
 
     } else if (action === 'unsync') {
-      // Remove from Google Calendar
-      if (event.google_event_id) {
-        const deleteResponse = await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events/${event.google_event_id}?sendUpdates=none`,
-          {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`
-            }
-          }
-        );
-
-        if (!deleteResponse.ok && deleteResponse.status !== 404) {
-          const error = await deleteResponse.text();
-          throw new Error(`Failed to delete Google Calendar event: ${error}`);
-        }
-
-        // Clear google_event_id (and the Meet link — the room dies with the Google event)
+      // Remove client event AND the Meet holder from Google Calendar
+      if (event.google_event_id && !(await gcalDelete(event.google_event_id))) {
+        throw new Error('Failed to delete Google Calendar event');
+      }
+      await gcalDelete(event.google_meet_event_id);
+      if (event.google_event_id || event.google_meet_event_id) {
         await base44.asServiceRole.entities.CalendarEvent.update(eventId, {
           google_event_id: null,
+          google_meet_event_id: null,
           meeting_link: null
         });
       }
 
-      return Response.json({ 
+      return Response.json({
         success: true,
         message: 'Event removed from Google Calendar'
       });
 
     } else if (action === 'delete') {
-      // Delete from Google Calendar if synced
-      if (event.google_event_id) {
-        await fetch(
-          `https://www.googleapis.com/calendar/v3/calendars/${CALENDAR_ID}/events/${event.google_event_id}?sendUpdates=none`,
-          {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`
-            }
-          }
-        );
-      }
-
+      await gcalDelete(event.google_event_id);
+      await gcalDelete(event.google_meet_event_id);
       return Response.json({ success: true });
     }
 
@@ -231,9 +273,9 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Sync error:', error);
-    return Response.json({ 
-      success: false, 
-      error: error.message 
+    return Response.json({
+      success: false,
+      error: error.message
     }, { status: 500 });
   }
 });
