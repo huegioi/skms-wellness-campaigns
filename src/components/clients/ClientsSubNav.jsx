@@ -1,7 +1,7 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Users, FolderOpen, Mail, Eye, ChevronLeft, ChevronRight, Brain } from 'lucide-react';
+import { Users, FolderOpen, Mail, Eye, Brain } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 
@@ -14,23 +14,12 @@ const TABS = [
 ];
 
 export default function ClientsSubNav({ activePage }) {
-  const navigate = useNavigate();
-  const currentIndex = TABS.findIndex(t => t.page === activePage);
-  const safeIndex = currentIndex === -1 ? 0 : currentIndex;
-
   const { data: mfsAssessments = [] } = useQuery({
     queryKey: ['mfs-assessments-count'],
     queryFn: () => base44.entities.MfsAssessment.list('-created_date', 200),
     staleTime: 60_000,
   });
   const mfsCount = mfsAssessments.length;
-
-  const goLeft = () => {
-    if (safeIndex > 0) navigate(createPageUrl(TABS[safeIndex - 1].page));
-  };
-  const goRight = () => {
-    if (safeIndex < TABS.length - 1) navigate(createPageUrl(TABS[safeIndex + 1].page));
-  };
 
   return (
     <div className="bg-white border-b px-4 md:px-8 pt-6 pb-0 sticky top-0 z-10">
@@ -64,38 +53,34 @@ export default function ClientsSubNav({ activePage }) {
           })}
         </div>
 
-        {/* Mobile: arrow navigation */}
-        <div className="md:hidden flex items-center gap-3 pb-3">
-          <button
-            onClick={goLeft}
-            disabled={safeIndex === 0}
-            className="p-2 rounded-full bg-blue-100 text-blue-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-blue-200 transition-all flex-shrink-0"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <div className="flex-1 text-center">
-            {(() => {
-              const Icon = TABS[safeIndex].icon;
+        {/* Mobile: scrolling chip row — every destination stays visible and one tap away */}
+        <div className="md:hidden -mx-4 px-4 pb-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex gap-2 w-max">
+            {TABS.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activePage === tab.page;
               return (
-                <span className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-[#264d44] text-white">
-                  <Icon className="w-3.5 h-3.5" />
-                  {TABS[safeIndex].label}
-                  {TABS[safeIndex].badge && (
-                    <span className="ml-0.5 text-[10px] bg-purple-200 text-purple-800 px-1.5 py-0.5 rounded-full font-bold">
+                <Link
+                  key={tab.id}
+                  to={createPageUrl(tab.page)}
+                  className={`flex items-center gap-1.5 px-3.5 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
+                    isActive ? 'bg-[#264d44] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                  style={{ minHeight: 44 }}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {tab.label}
+                  {tab.badge && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                      isActive ? 'bg-white/25 text-white' : 'bg-purple-100 text-purple-700'
+                    }`}>
                       {mfsCount}
                     </span>
                   )}
-                </span>
+                </Link>
               );
-            })()}
+            })}
           </div>
-          <button
-            onClick={goRight}
-            disabled={safeIndex === TABS.length - 1}
-            className="p-2 rounded-full bg-blue-100 text-blue-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-blue-200 transition-all flex-shrink-0"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
         </div>
       </div>
     </div>
