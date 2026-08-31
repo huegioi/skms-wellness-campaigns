@@ -392,12 +392,12 @@ Deno.serve(async (req) => {
     }
     const invoiceRecords = [
       invoice(lakeside, lakesideProposal.id, 'INV-DEMO-1001', 5000, 'paid', -320, workshopSvc, 'Beyond Burnout series — phase 1'),
-      invoice(lakeside, lakesideProposal.id, 'INV-DEMO-1002', 4500, 'paid', -240, challengeSvc, '14-Day Mental Fitness Challenge'),
-      invoice(lakeside, lakesideProposal.id, 'INV-DEMO-1003', 4500, 'paid', -160, leadershipSvc, 'Leading Under Pressure leadership track'),
+      invoice(lakeside, lakesideProposal.id, 'INV-DEMO-1002', 4500, 'paid', -240, challengeSvc, '14-day Calm & Confident Mind Challenge'),
+      invoice(lakeside, lakesideProposal.id, 'INV-DEMO-1003', 4500, 'paid', -160, leadershipSvc, 'Leadership EQ Program track'),
       invoice(lakeside, lakesideProposal.id, 'INV-DEMO-1004', 4000, 'paid', -40, boxSvc, 'Wellness Box distribution + refresher'),
       invoice(brightpath, brightpathProposal.id, 'INV-DEMO-2001', 2500, 'paid', -95, workshopSvc, 'Beyond Burnout workshop'),
-      invoice(brightpath, brightpathProposal.id, 'INV-DEMO-2002', 2000, 'paid', -30, challengeSvc, '14-Day Challenge — first cohort'),
-      invoice(brightpath, brightpathProposal.id, 'INV-DEMO-2003', 2000, 'sent', -5, workshopSvc, 'Stress Less workshop — open'),
+      invoice(brightpath, brightpathProposal.id, 'INV-DEMO-2002', 2000, 'paid', -30, challengeSvc, 'Calm & Confident Mind Challenge — first cohort'),
+      invoice(brightpath, brightpathProposal.id, 'INV-DEMO-2003', 2000, 'sent', -5, wMindfulness, 'Mindfulness for Stress Reduction workshop — open'),
       invoice(meridian, meridianProposal.id, 'INV-DEMO-3001', 12000, 'sent', -6, workshopSvc, 'Annual program — first invoice (open)'),
     ];
     await base44.asServiceRole.entities.Invoice.bulkCreate(invoiceRecords);
@@ -410,21 +410,21 @@ Deno.serve(async (req) => {
     }
     // Lakeside — full year of delivery, 6 delivered + 1 upcoming
     addEvent(lakeside, lakesideProposal.id, -322, 10, 1.5, 'workshop', 'Beyond Burnout Workshop', true, workshopSvc, 6, 'Q1 Beyond Burnout');
-    addEvent(lakeside, lakesideProposal.id, -290, 10, 1, 'challenge', '14-Day Mental Fitness Challenge — Kickoff', true, challengeSvc, 5, 'Q1 Challenge Kickoff');
-    addEvent(lakeside, lakesideProposal.id, -255, 14, 1.5, 'workshop', 'Compassion in Crisis Workshop', true, workshopSvc, 5, 'Q2 Compassion in Crisis');
-    addEvent(lakeside, lakesideProposal.id, -200, 10, 2, 'leadership', 'Leading Under Pressure — Session 1', true, leadershipSvc, 4, 'Q2 Leadership');
-    addEvent(lakeside, lakesideProposal.id, -120, 10, 1.5, 'workshop', 'Stress Less Workshop', true, workshopSvc, 5, 'Q3 Stress Less');
-    addEvent(lakeside, lakesideProposal.id, -35, 10, 1.5, 'workshop', 'Beyond Burnout — Refresher', true, workshopSvc, 5, 'Q3 Refresher');
-    addEvent(lakeside, lakesideProposal.id, 28, 10, 1.5, 'workshop', 'Navigating Holiday Stress Workshop (Upcoming)', false, workshopSvc, 0, 'Q4 Holiday Stress');
+    addEvent(lakeside, lakesideProposal.id, -290, 10, 1, 'challenge', 'Calm & Confident Mind Challenge — Kickoff', true, cCalmMind, 5, 'Q1 Challenge Kickoff');
+    addEvent(lakeside, lakesideProposal.id, -255, 14, 1.5, 'workshop', 'Compassion in Crisis Workshop', true, wCompassion, 5, 'Q2 Compassion in Crisis');
+    addEvent(lakeside, lakesideProposal.id, -200, 10, 2, 'leadership', 'Leadership EQ Program — Session 1', true, lLeadershipEq, 4, 'Q2 Leadership');
+    addEvent(lakeside, lakesideProposal.id, -120, 10, 1.5, 'workshop', 'Mindfulness for Stress Reduction Workshop', true, wMindfulness, 5, 'Q3 Mindfulness');
+    addEvent(lakeside, lakesideProposal.id, -35, 10, 1.5, 'workshop', 'Beyond Burnout — Refresher', true, wBurnout, 5, 'Q3 Refresher');
+    addEvent(lakeside, lakesideProposal.id, 28, 10, 1.5, 'workshop', 'Steady Through the Season Workshop (Upcoming)', false, wHoliday, 0, 'Q4 Holiday Stress');
     // Brightpath — mid-journey, 2 delivered + 2 upcoming
     addEvent(brightpath, brightpathProposal.id, -95, 10, 1.5, 'workshop', 'Beyond Burnout Workshop', true, workshopSvc, 6, 'Kickoff Workshop');
-    addEvent(brightpath, brightpathProposal.id, -30, 10, 1, 'challenge', '14-Day Mental Fitness Challenge — Kickoff', true, challengeSvc, 4, 'Challenge Kickoff');
-    addEvent(brightpath, brightpathProposal.id, 18, 10, 1.5, 'workshop', 'Stress Less Workshop (Upcoming)', false, workshopSvc, 0, 'Stress Less (upcoming)');
-    addEvent(brightpath, brightpathProposal.id, 45, 10, 1, 'challenge', 'Resilience Reset Challenge — Kickoff (Upcoming)', false, challengeSvc, 0, 'Resilience Reset (upcoming)');
+    addEvent(brightpath, brightpathProposal.id, -30, 10, 1, 'challenge', 'Calm & Confident Mind Challenge — Kickoff', true, cCalmMind, 4, 'Challenge Kickoff');
+    addEvent(brightpath, brightpathProposal.id, 18, 10, 1.5, 'workshop', 'Mindfulness for Stress Reduction Workshop (Upcoming)', false, wMindfulness, 0, 'Mindfulness (upcoming)');
+    addEvent(brightpath, brightpathProposal.id, 45, 10, 1, 'challenge', 'Deepening Emotional Resilience Challenge — Kickoff (Upcoming)', false, cResilience, 0, 'Emotional Resilience (upcoming)');
     // Meridian — just converted, 1 delivered last week + 2 upcoming
     addEvent(meridian, meridianProposal.id, -7, 10, 1.5, 'workshop', 'Beyond Burnout Workshop', true, workshopSvc, 6, 'First Workshop');
-    addEvent(meridian, meridianProposal.id, 14, 10, 1.5, 'workshop', 'Compassion in Crisis Workshop (Upcoming)', false, workshopSvc, 0, 'Compassion in Crisis (upcoming)');
-    addEvent(meridian, meridianProposal.id, 40, 10, 1, 'challenge', '14-Day Mental Fitness Challenge — Kickoff (Upcoming)', false, challengeSvc, 0, 'Challenge Kickoff (upcoming)');
+    addEvent(meridian, meridianProposal.id, 14, 10, 1.5, 'workshop', 'Compassion in Crisis Workshop (Upcoming)', false, wCompassion, 0, 'Compassion in Crisis (upcoming)');
+    addEvent(meridian, meridianProposal.id, 40, 10, 1, 'challenge', 'Calm & Confident Mind Challenge — Kickoff (Upcoming)', false, cCalmMind, 0, 'Challenge Kickoff (upcoming)');
 
     const createdEvents = await base44.asServiceRole.entities.CalendarEvent.bulkCreate(eventSpecs.map(s => s.rec));
     const eventsWithSpecs = createdEvents.map((ev, i) => ({ event: ev, spec: eventSpecs[i] }));
