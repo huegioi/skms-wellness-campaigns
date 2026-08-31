@@ -91,7 +91,7 @@ function PartnerAlertBadges({ partner, referrals, assist, onLogTouch }) {
 
 function StageColumn({ stage, partners, referrals, latestTouchByPartner, nextEventByPartner, renewalAssistByPartner, channelSummaryByPartner, onLogTouch, onLogLinkedinTouch, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onCopyLink, copiedId, onSelectPartner, onDelete }) {
   return (
-    <div className="w-56 flex-shrink-0">
+    <div className="w-full md:w-56 md:flex-shrink-0">
       <div className={`rounded-t-lg border px-3 py-2 mb-2 ${stage.headerClass}`}>
         <div className="flex items-center justify-between">
           <span className={`font-semibold text-sm ${stage.textClass}`}>{stage.label}</span>
@@ -346,8 +346,9 @@ export default function PartnerPipelineView({ partners, referrals, onSelectPartn
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="overflow-x-auto pb-4">
-          <div className="flex gap-4 min-w-max">
+        {/* Mobile: stages stack vertically, full width — no sideways scroll. */}
+        <div className="md:overflow-x-auto pb-4">
+          <div className="flex flex-col md:flex-row gap-4 md:min-w-max">
             {PARTNER_STAGES.map(stage => (
               <StageColumn
                 key={stage.key}
