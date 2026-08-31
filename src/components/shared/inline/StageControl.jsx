@@ -30,7 +30,7 @@ export function StageControl({ stages, value, onSave }) {
       value={value || '__none__'}
       onValueChange={(v) => onSave(v === '__none__' ? '' : v)}
     >
-      <SelectTrigger className="h-7 w-auto gap-1 rounded-full border-gray-200 bg-gray-50 hover:bg-gray-100 text-xs font-medium px-2.5 max-w-[180px]">
+      <SelectTrigger className="h-9 sm:h-7 w-auto gap-1 rounded-full border-gray-200 bg-gray-50 hover:bg-gray-100 text-xs font-medium px-3 sm:px-2.5 max-w-[180px]">
         <SelectValue>
           <span className={`truncate ${current?.textClass || 'text-gray-600'}`}>
             {current?.label || 'No Stage'}
