@@ -271,6 +271,10 @@ export default function Leads() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [brokerTagMatchAll, setBrokerTagMatchAll] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
+  const brokerActiveFilterCount =
+    (brokerFilterStatus !== 'all' ? 1 : 0) +
+    (brokerFilterOwner !== 'all' ? 1 : 0) +
+    brokerTagFilter.length;
 
   // Duplicate cleanup state (lifted up so button lives in header)
   const [scanningDuplicates, setScanningDuplicates] = useState(false);
@@ -1029,7 +1033,7 @@ export default function Leads() {
               <div className={`${showMobileFilters ? 'flex' : 'hidden'} md:contents w-full flex-wrap items-center gap-2`}>
               {brokerViewMode === 'list' && (
                 <Select value={brokerFilterStatus} onValueChange={setBrokerFilterStatus}>
-                  <SelectTrigger className="w-[160px] bg-white"><SelectValue placeholder="Filter by status" /></SelectTrigger>
+                  <SelectTrigger className="w-full md:w-[160px] bg-white"><SelectValue placeholder="Filter by status" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
                     {Object.entries(STATUS_CONFIG).map(([k, v]) => (
@@ -1041,7 +1045,7 @@ export default function Leads() {
 
               {brokerOwners.length > 0 && (
                 <Select value={brokerFilterOwner} onValueChange={setBrokerFilterOwner}>
-                  <SelectTrigger className="w-[150px] bg-white"><SelectValue placeholder="All Owners" /></SelectTrigger>
+                  <SelectTrigger className="w-full md:w-[150px] bg-white"><SelectValue placeholder="All Owners" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Owners</SelectItem>
                     {brokerOwners.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
