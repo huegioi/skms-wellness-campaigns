@@ -216,4 +216,16 @@ button:focus-visible {
   body {
     @apply bg-background text-foreground;
   }
+
+  /* iOS Safari zooms the whole page in when a focused field's font is under 16px,
+     and never zooms back out. Enforcing 16px on phones is more reliable than
+     policing every call site, since a stray text-sm on any input would undo it.
+     Desktop (sm: and up) keeps the original compact sizing. */
+  @media (max-width: 639px) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']),
+    textarea,
+    select {
+      font-size: 16px;
+    }
+  }
 }
