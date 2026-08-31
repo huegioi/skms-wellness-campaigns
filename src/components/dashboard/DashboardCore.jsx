@@ -30,13 +30,14 @@ export default function DashboardCore() {
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl sm:text-3xl font-bold text-brand-navy">Dashboard</h1>
             <div className="flex items-center gap-2">
-              <Link to="/MayaKnowledge" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-brand-green bg-green-50 hover:bg-green-100 transition-colors">
-                <BookOpen className="w-4 h-4" />
-                Maya Knowledge
+              {/* Labels drop away on phones so they stop crowding the page title */}
+              <Link to="/MayaKnowledge" aria-label="Maya Knowledge" className="flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 px-3 sm:py-1.5 rounded-lg text-sm font-medium text-brand-green bg-green-50 hover:bg-green-100 transition-colors">
+                <BookOpen className="w-4 h-4 shrink-0" />
+                <span className="hidden sm:inline">Maya Knowledge</span>
               </Link>
-              <Link to="/Demo" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors">
-                <FlaskConical className="w-4 h-4" />
-                Demo Environment
+              <Link to="/Demo" aria-label="Demo Environment" className="flex items-center justify-center gap-1.5 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 px-3 sm:py-1.5 rounded-lg text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 transition-colors">
+                <FlaskConical className="w-4 h-4 shrink-0" />
+                <span className="hidden sm:inline">Demo Environment</span>
               </Link>
             </div>
           </div>
