@@ -50,7 +50,10 @@ export default function ReferralPartnerAdmin() {
 
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const [expandedPartner, setExpandedPartner] = useState(null);
-  const [viewMode, setViewMode] = useState('pipeline');
+  // Phones open in list view — the pipeline board is a desktop layout.
+  const [viewMode, setViewMode] = useState(
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 'list' : 'pipeline'
+  );
   const [sendEmailConfirm, setSendEmailConfirm] = useState(null); // partner to confirm sending to
   const [viewingPartner, setViewingPartner] = useState(null);
   const [partnerTagFilter, setPartnerTagFilter] = useState([]);
