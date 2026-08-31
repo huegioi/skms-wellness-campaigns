@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Award, Dumbbell, Users, Package } from 'lucide-react';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
+import { buildSelectionResolver, prettifyServiceKey } from '@/lib/serviceMatching';
 
 const categoryIcons = { workshops: Award, challengePrograms: Dumbbell, leadership: Users, movementClasses: Dumbbell };
 const categoryLabels = { workshops: 'Workshops', challengePrograms: '14-Day Challenges', leadership: 'Leadership Programs', movementClasses: 'Movement & Mindfulness Classes' };
@@ -11,12 +12,10 @@ export default function ClientProposalView({ proposals: propsList, proposal: sin
   // Normalize: accept single proposal or array
   const proposals = propsList?.length > 0 ? propsList : singleProposal ? [singleProposal] : [];
 
-  // Build lookup map from live Service entity
-  const serviceMap = React.useMemo(() => {
-    const map = {};
-    services.forEach(s => { map[s.id] = s; });
-    return map;
-  }, [services]);
+  // Resolve a selection entry to a live Service. Selections normally hold
+  // Service IDs; older/demo proposals hold slugs, so the resolver falls back
+  // to name matching rather than printing the raw key.
+  const resolveService = React.useMemo(() => buildSelectionResolver(services), [services]);
 
   if (proposals.length === 0) {
     return (
@@ -80,32 +79,48 @@ export default function ClientProposalView({ proposals: propsList, proposal: sin
                       </h3>
                       <div className="space-y-3 ml-7">
                         {items.map(key => {
-                          const service = serviceMap[key];
+                          const service = resolveService(key);
+                          const title = service?.name || prettifyServiceKey(key);
+                          const blurb = service?.short_description || service?.description;
+                          const imageUrl = service?.images?.[0]?.url;
+
                           return (
-                            <div key={key} className="border rounded-lg p-4 bg-gray-50">
-                              <div className="flex items-center gap-3 mb-1">
-                                {service?.images?.[0]?.url && (
-                                  <img src={service.images[0].url} alt="" className="w-10 h-10 rounded object-cover flex-shrink-0" />
+                            <div key={key} className="border rounded-lg bg-gray-50 overflow-hidden">
+                              <div className="flex flex-col sm:flex-row">
+                                {imageUrl ? (
+                                  <img
+                                    src={imageUrl}
+                                    alt={title}
+                                    loading="lazy"
+                                    className="w-full h-32 sm:w-32 sm:h-auto sm:self-stretch object-cover flex-shrink-0 bg-gray-100"
+                                  />
+                                ) : (
+                                  <div
+                                    className="hidden sm:flex w-32 flex-shrink-0 items-center justify-center bg-gray-100"
+                                    style={{ color }}
+                                    aria-hidden="true"
+                                  >
+                                    <Icon className="w-7 h-7 opacity-40" />
+                                  </div>
                                 )}
-                                <h4 className="font-semibold text-gray-800">
-                                  {service ? service.name : key}
-                                </h4>
-                              </div>
-                              {service?.short_description && (
-                                <p className="text-gray-600 text-sm leading-relaxed">{service.short_description}</p>
-                              )}
-                              {service?.description && !service?.short_description && (
-                                <p className="text-gray-600 text-sm leading-relaxed">{service.description}</p>
-                              )}
-                              {service?.duration && (
-                                <p className="text-sm text-gray-500 mt-2"><strong>Duration:</strong> {service.duration}</p>
-                              )}
-                              {service?.included_assessments?.length > 0 && (
-                                <div className="mt-2">
-                                  <p className="text-xs text-gray-400 mb-1">Includes assessments:</p>
-                                  <AssessmentBadges assessments={service.included_assessments} size="xs" />
+                                <div className="p-4 flex-1 min-w-0">
+                                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                                    <h4 className="font-semibold text-gray-800">{title}</h4>
+                                    {service?.duration && (
+                                      <span className="text-xs text-gray-500 whitespace-nowrap">{service.duration}</span>
+                                    )}
+                                  </div>
+                                  {blurb && (
+                                    <p className="text-gray-600 text-sm leading-relaxed mt-1.5">{blurb}</p>
+                                  )}
+                                  {service?.included_assessments?.length > 0 && (
+                                    <div className="mt-3">
+                                      <p className="text-xs text-gray-400 mb-1">Includes assessments:</p>
+                                      <AssessmentBadges assessments={service.included_assessments} size="xs" />
+                                    </div>
+                                  )}
                                 </div>
-                              )}
+                              </div>
                             </div>
                           );
                         })}
