@@ -93,7 +93,7 @@ function ClientAlertBadges({ client, isSalesStage }) {
 
 function StageColumn({ stage, clients, onOwnerChange, onStageChange, onTagsChange, onFollowUpDateChange, onLogNote, onDelete, onClientClick, onHeaderClick, isSalesStage, snapshots, responseCountByClient, journeyClientIds }) {
   return (
-    <div className="w-56 flex-shrink-0">
+    <div className="w-full md:w-56 md:flex-shrink-0">
       <div
         className={`rounded-t-lg border px-3 py-2 mb-2 ${stage.headerClass} ${stage.key !== '__none__' ? 'cursor-pointer hover:brightness-95 transition-all' : ''}`}
         onClick={() => stage.key !== '__none__' && onHeaderClick(stage.key)}
@@ -322,8 +322,9 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
         onToggleFilter={() => setCohortFilter(cohortFilter === activeCohort?.label ? null : activeCohort?.label)}
       />
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="overflow-x-auto pb-4">
-          <div className="flex flex-col gap-4 min-w-max">
+        {/* Mobile: stages stack vertically, full width — no sideways scroll. */}
+        <div className="md:overflow-x-auto pb-4">
+          <div className="flex flex-col gap-4 md:min-w-max">
 
             {/* ── Sales Pipeline ── */}
             <div>
@@ -331,7 +332,7 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
                 <span className="text-white font-bold text-sm tracking-wide">🔵 Sales Pipeline</span>
                 <span className="ml-auto text-blue-100 text-xs font-medium">{salesTotal} prospect{salesTotal !== 1 ? 's' : ''}</span>
               </div>
-              <div className="flex gap-4">
+              <div className="flex flex-col md:flex-row gap-4">
                 {SALES_STAGES.map(stage => (
                   <StageColumn key={stage.key} stage={stage} clients={stageClients(stage.key)} isSalesStage={true} {...columnProps} />
                 ))}
@@ -344,7 +345,7 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
                 <span className="text-white font-bold text-sm tracking-wide">🟢 Client Lifecycle</span>
                 <span className="ml-auto text-green-100 text-xs font-medium">{lifecycleTotal} client{lifecycleTotal !== 1 ? 's' : ''}</span>
               </div>
-              <div className="flex gap-4">
+              <div className="flex flex-col md:flex-row gap-4">
                 {LIFECYCLE_STAGES.map(stage => (
                   <StageColumn key={stage.key} stage={stage} clients={stageClients(stage.key)} isSalesStage={false} snapshots={snapshots} {...columnProps} />
                 ))}
