@@ -164,6 +164,8 @@ export default function Clients() {
   const [filterIndustry, setFilterIndustry] = useState('all');
   const [filterSize, setFilterSize] = useState('all');
   const [filterBudget, setFilterBudget] = useState('all');
+  // Mobile: the filter row collapses behind a single button so the list starts near the top
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showDuplicates, setShowDuplicates] = useState(true);
   const [mergingClients, setMergingClients] = useState(null);
   const [clientTagFilter, setClientTagFilter] = useState([]);
@@ -623,18 +625,36 @@ export default function Clients() {
         {/* Search and Filters - list view only */}
         {viewMode === 'list' && <div className="bg-white rounded-xl p-4 shadow-lg mb-6">
           <div className="flex flex-col gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input 
-                placeholder="Search by name, email, or company..." 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 min-w-0">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Input 
+                  placeholder="Search by name, email, or company..." 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              {/* Mobile only: one button for all filters, badged with how many are active
+                  so a filtered-down list is never mistaken for an empty one. */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowMobileFilters(v => !v)}
+                className="md:hidden shrink-0 gap-1.5"
+              >
+                <Filter className="w-4 h-4" />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="bg-[#264d44] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
             </div>
             
-            <div className="flex flex-wrap items-center gap-2">
-              <Filter className="w-4 h-4 text-gray-500 flex-shrink-0" />
+            <div className={`${showMobileFilters ? 'flex' : 'hidden'} md:flex flex-wrap items-center gap-2`}>
+              <Filter className="w-4 h-4 text-gray-500 flex-shrink-0 hidden md:block" />
               
               <Select value={filterIndustry} onValueChange={setFilterIndustry}>
                 <SelectTrigger className="w-full sm:w-[140px]"><SelectValue placeholder="Industry" /></SelectTrigger>
