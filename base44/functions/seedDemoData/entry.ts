@@ -252,14 +252,37 @@ Deno.serve(async (req) => {
     const services = await base44.asServiceRole.entities.Service.list('sort_order', 200);
     const svcByCat = {};
     for (const s of services) { (svcByCat[s.category] ||= []).push(s); }
-    const svc = (cat, fallback) => {
-      const s = svcByCat[cat] && svcByCat[cat][0];
-      return { id: s ? s.id : undefined, name: s ? s.name : fallback, category: cat, qbItem: s ? s.quickbooks_item_id : undefined };
+
+    // Resolve BY NAME, not by "first in the category". Proposal.selections must
+    // hold real Service IDs — the client portal looks services up by ID to get
+    // the image, blurb, duration and assessment badges, so an invented slug (or
+    // an arbitrary first-in-category service) renders as a bare, wrong label.
+    const normName = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const svc = (cat, name) => {
+      const pool = svcByCat[cat] || [];
+      const t = normName(name);
+      const s = pool.find(x => normName(x.name) === t)
+        || pool.find(x => normName(x.name).startsWith(t))
+        || pool.find(x => normName(x.name).includes(t))
+        || pool[0];
+      return { id: s ? s.id : undefined, name: s ? s.name : name, category: cat, qbItem: s ? s.quickbooks_item_id : undefined };
     };
-    const workshopSvc = svc('workshop', 'Beyond Burnout: From Pressure to Presence');
-    const challengeSvc = svc('challenge', '14-Day Mental Fitness Challenge');
-    const leadershipSvc = svc('leadership', 'Leading Under Pressure');
-    const boxSvc = svc('wellness_box', 'Reduce Stress Box');
+    /** Selection arrays carry Service IDs; drop any service missing from the catalog. */
+    const ids = (...picks) => picks.map(p => p && p.id).filter(Boolean);
+
+    // ── The demo curriculum, in live-catalog terms ──
+    const wBurnout = svc('workshop', 'Beyond Burnout');
+    const wCompassion = svc('workshop', 'Compassion in Crisis');
+    const wHoliday = svc('workshop', 'Steady Through the Season');
+    const wMindfulness = svc('workshop', 'Mindfulness for Stress Reduction');
+    const cCalmMind = svc('challenge', 'Creating a Calm and Confident Mind Challenge');
+    const cResilience = svc('challenge', 'Deepening Emotional Resilience Challenge');
+    const lLeadershipEq = svc('leadership', 'Leadership EQ Program');
+
+    const workshopSvc = wBurnout;
+    const challengeSvc = cCalmMind;
+    const leadershipSvc = lLeadershipEq;
+    const boxSvc = svc('wellness_box', 'Reduce Stress Wellness Box');
 
     // ── 1. Demo tag ──
     let demoTag = (await base44.asServiceRole.entities.Tag.filter({ name: DEMO_TAG }))[0];
