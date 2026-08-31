@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Building2, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, ChevronRight, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, GitMerge, Settings, Inbox, Wrench, MoreVertical, Loader2 } from 'lucide-react';
+import { Search, Plus, Building, Building2, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, ChevronRight, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, GitMerge, Settings, Inbox, Wrench, MoreVertical, Loader2, Filter } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
@@ -267,6 +267,8 @@ export default function Leads() {
   const [brokerViewMode, setBrokerViewMode] = useState(urlParams.get('view') === 'brokerages' ? 'brokerages' : 'list'); // 'list' | 'pipeline' | 'brokerages'
   const [brokerFilterOwner, setBrokerFilterOwner] = useState('all');
   const [brokerTagFilter, setBrokerTagFilter] = useState([]);
+  // Mobile: filters collapse behind one badged button so the list starts near the top
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [brokerTagMatchAll, setBrokerTagMatchAll] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
 
@@ -1007,6 +1009,24 @@ export default function Leads() {
                 <Input placeholder="Search by name, email, company..." className="pl-10 bg-white" value={brokerSearch} onChange={e => setBrokerSearch(e.target.value)} />
               </div>
 
+              {/* Mobile only: one badged button for every filter but search.
+                  md:contents dissolves this wrapper so desktop layout is untouched. */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowMobileFilters(v => !v)}
+                className="md:hidden shrink-0 gap-1.5 bg-white"
+              >
+                <Filter className="w-4 h-4" />
+                Filters
+                {brokerActiveFilterCount > 0 && (
+                  <span className="bg-[#264d44] text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none">
+                    {brokerActiveFilterCount}
+                  </span>
+                )}
+              </Button>
+
+              <div className={`${showMobileFilters ? 'flex' : 'hidden'} md:contents w-full flex-wrap items-center gap-2`}>
               {brokerViewMode === 'list' && (
                 <Select value={brokerFilterStatus} onValueChange={setBrokerFilterStatus}>
                   <SelectTrigger className="w-[160px] bg-white"><SelectValue placeholder="Filter by status" /></SelectTrigger>
@@ -1039,6 +1059,7 @@ export default function Leads() {
               <Button variant="outline" size="sm" className="gap-2 h-9" onClick={() => setShowTagManager(true)}>
                 <Settings className="w-4 h-4" /> Manage Tags
               </Button>
+              </div>
               </>
               )}
             </div>
