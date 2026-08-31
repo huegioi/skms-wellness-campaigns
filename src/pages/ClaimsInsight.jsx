@@ -107,6 +107,53 @@ export default function ClaimsInsight() {
                 </p>
               </div>
             ) : (
+              <>
+                {/* Mobile: card list. The hidden-cost number leads and everything else
+                    supports it, so nothing has to scroll sideways to be read. */}
+                <div className="md:hidden divide-y divide-gray-50">
+                  {profiles.map(p => {
+                    const subs = p.results?.subscores || {};
+                    const hc = p.results?.hiddenCost;
+                    return (
+                      <button
+                        key={p.id}
+                        onClick={() => openProfile(p)}
+                        className="w-full text-left px-4 py-3.5 active:bg-[#faf8f4]"
+                      >
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="font-semibold text-gray-800 text-sm truncate">{p.company_name}</span>
+                          <span className="text-xs text-gray-400 shrink-0">{p.report_year || '—'}</span>
+                        </div>
+                        {(p.is_demo || p.client_id) && (
+                          <div className="flex flex-wrap items-center gap-1 mt-1">
+                            {p.is_demo && <span className="text-[10px] font-bold text-red-500 border border-red-200 rounded px-1 py-0.5">DEMO</span>}
+                            {p.client_id && <span className="text-[10px] font-bold text-emerald-600 border border-emerald-200 rounded px-1 py-0.5">CLIENT</span>}
+                          </div>
+                        )}
+                        <div className="mt-2 text-sm text-gray-600">
+                          Hidden cost{' '}
+                          <span className="font-bold text-gray-900">
+                            {hc ? `$${Math.round(hc.low / 1000)}k–$${Math.round(hc.high / 1000)}k` : '—'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <div className="flex items-center gap-1.5">
+                            {Object.values(subs).map(s => (
+                              <span key={s.key} className="flex items-center gap-1 text-xs text-gray-600">
+                                <span className={`w-2 h-2 rounded-full ${s.band ? BAND_DOT[s.band] : 'bg-gray-200'}`} />
+                                {s.score ?? '—'}
+                              </span>
+                            ))}
+                          </div>
+                          <span className="text-xs text-gray-400">· {p.confidence || '—'} confidence</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop: the full table — now scrollable instead of clipped by the parent */}
+                <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-400">
@@ -153,6 +200,8 @@ export default function ClaimsInsight() {
                   })}
                 </tbody>
               </table>
+                </div>
+              </>
             )}
           </div>
         )}
