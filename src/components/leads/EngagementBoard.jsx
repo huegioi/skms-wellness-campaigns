@@ -165,7 +165,7 @@ function EngagementColumn({ stage, leads, handlers, channelSummaryByLead }) {
   const accentColor = '#264d44';
 
   return (
-    <div className="w-64 flex-shrink-0">
+    <div className="w-full md:w-64 md:flex-shrink-0">
       <div className="rounded-xl px-3 py-2.5 mb-3 bg-emerald-50 text-emerald-800 border border-emerald-200">
         <div className="flex items-center justify-between gap-2">
           <button
@@ -268,8 +268,9 @@ export default function EngagementBoard({ leads, handlers, channelSummaryByLead 
           {count} partner{count !== 1 ? 's' : ''}
         </span>
       </div>
-      <div className="overflow-x-auto pb-4">
-        <div className="flex gap-5 min-w-max">
+      {/* Mobile: stages stack vertically, full width — no sideways scroll. */}
+      <div className="md:overflow-x-auto pb-4">
+        <div className="flex flex-col md:flex-row gap-5 md:min-w-max">
           {stages.map(stage => (
             <EngagementColumn key={stage} stage={stage} leads={map[stage]} handlers={handlers} channelSummaryByLead={channelSummaryByLead} />
           ))}
