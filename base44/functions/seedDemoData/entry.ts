@@ -339,17 +339,38 @@ Deno.serve(async (req) => {
       {
         client_id: lakeside.id, client_name: lakeside.name, client_email: lakeside.email, company: lakeside.company,
         total_amount: 18000, matched_stage: 'Stage 4 — Resilience', status: 'accepted', sent_date: isoAt(-335, 14), viewed_date: isoAt(-333, 10),
-        selections: { workshops: ['beyond_burnout', 'compassion_in_crisis', 'navigating_holiday_stress', 'stress_less'], challengePrograms: ['mental_fitness_14', 'resilience_reset'], leadership: ['leading_under_pressure'], wellnessBoxes: ['reduce_stress', 'relaxation_sleep'] }, is_demo: true,
+        selections: {
+          workshops: ids(wBurnout, wCompassion, wHoliday, wMindfulness),
+          challengePrograms: ids(cCalmMind, cResilience),
+          leadership: ids(lLeadershipEq),
+          movementClasses: [],
+          sampleBoxQuantities: { reduceStress: 25, relaxationSleep: 15 },
+          customBoxQuantity: 0,
+        }, is_demo: true,
       },
       {
         client_id: brightpath.id, client_name: brightpath.name, client_email: brightpath.email, company: brightpath.company,
         total_amount: 6500, matched_stage: 'Stage 2 — Habit', status: 'accepted', sent_date: isoAt(-108, 14), viewed_date: isoAt(-106, 10),
-        selections: { workshops: ['beyond_burnout', 'stress_less'], challengePrograms: ['mental_fitness_14'], wellnessBoxes: ['reduce_stress'] }, is_demo: true,
+        selections: {
+          workshops: ids(wBurnout, wMindfulness),
+          challengePrograms: ids(cCalmMind),
+          leadership: [],
+          movementClasses: [],
+          sampleBoxQuantities: { reduceStress: 15 },
+          customBoxQuantity: 0,
+        }, is_demo: true,
       },
       {
         client_id: meridian.id, client_name: meridian.name, client_email: meridian.email, company: meridian.company,
         total_amount: 24000, matched_stage: 'Stage 4 — Resilience', status: 'accepted', sent_date: isoAt(-12, 14), viewed_date: isoAt(-11, 10),
-        selections: { workshops: ['beyond_burnout', 'compassion_in_crisis', 'stress_less', 'navigating_holiday_stress'], challengePrograms: ['mental_fitness_14', 'resilience_reset'], leadership: ['leading_under_pressure'], wellnessBoxes: ['reduce_stress', 'relaxation_sleep', 'large_emotional_wellness'] }, is_demo: true,
+        selections: {
+          workshops: ids(wBurnout, wCompassion, wMindfulness, wHoliday),
+          challengePrograms: ids(cCalmMind, cResilience),
+          leadership: ids(lLeadershipEq),
+          movementClasses: [],
+          sampleBoxQuantities: { reduceStress: 30, relaxationSleep: 20, largeEmotional: 10 },
+          customBoxQuantity: 0,
+        }, is_demo: true,
       },
     ]));
 
