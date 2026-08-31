@@ -78,7 +78,7 @@ export default function JourneyAssessmentTable({ journeys, origin, copyLink }) {
                 <td className="py-3 px-4 text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="p-1.5 rounded-lg hover:bg-gray-100">
+                      <button aria-label="Row actions" className="flex items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-1.5 rounded-lg hover:bg-gray-100">
                         <MoreVertical className="w-4 h-4 text-gray-500" />
                       </button>
                     </DropdownMenuTrigger>
