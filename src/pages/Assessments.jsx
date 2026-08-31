@@ -212,7 +212,7 @@ export default function Assessments() {
                       </td>
                       <td className="py-3 px-4">
                         <div className="text-sm text-gray-700">{a.contact_name || '—'}</div>
-                        <div className="text-xs text-gray-400">{a.contact_email}</div>
+                        <div className="text-xs text-gray-400 max-w-[180px] truncate">{a.contact_email}</div>
                       </td>
                       <td className="py-3 px-4 text-sm text-gray-500 hidden md:table-cell">
                         {new Date(a.created_date).toLocaleDateString()}
@@ -238,7 +238,7 @@ export default function Assessments() {
                       <td className="py-3 px-4 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button className="p-1.5 rounded-lg hover:bg-gray-100">
+                            <button aria-label="Row actions" className="flex items-center justify-center min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 sm:p-1.5 rounded-lg hover:bg-gray-100">
                               <MoreVertical className="w-4 h-4 text-gray-500" />
                             </button>
                           </DropdownMenuTrigger>
