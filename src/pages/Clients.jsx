@@ -166,6 +166,7 @@ export default function Clients() {
   const [filterBudget, setFilterBudget] = useState('all');
   // Mobile: the filter row collapses behind a single button so the list starts near the top
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const activeFilterCount = [filterIndustry, filterSize, filterBudget].filter(v => v !== 'all').length;
   const [showDuplicates, setShowDuplicates] = useState(true);
   const [mergingClients, setMergingClients] = useState(null);
   const [clientTagFilter, setClientTagFilter] = useState([]);
@@ -541,10 +542,11 @@ export default function Clients() {
               matchAll={clientTagMatchAll}
               onMatchAllChange={setClientTagMatchAll}
             />
-            <Button variant="outline" size="sm" className="gap-2 h-9" onClick={() => setShowTagManager(true)}>
+            {/* Desk chores — kept off the phone where screen space is the scarce thing */}
+            <Button variant="outline" size="sm" className="gap-2 h-9 hidden md:inline-flex" onClick={() => setShowTagManager(true)}>
               <Settings className="w-4 h-4" /> Manage Tags
             </Button>
-          <SyncEmailsButton />
+          <span className="hidden md:inline-flex"><SyncEmailsButton /></span>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-[#264d44] hover:bg-[#1a3830]" onClick={resetForm}>
