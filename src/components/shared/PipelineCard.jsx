@@ -105,13 +105,13 @@ export function PipelineCard({
           </div>
           {subtitle && <p className="text-xs text-gray-500 truncate">{subtitle}</p>}
         </div>
-        <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0 flex items-center gap-0.5">
+        <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0 flex items-center gap-1 sm:gap-0.5">
           {extraActions}
           {onLogLinkedinTouch && (
             <button
               onClick={(e) => { e.stopPropagation(); doLogLi(); }}
               disabled={liLogging}
-              className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-[#0a66c2] transition-colors disabled:opacity-50"
+              className="flex items-center justify-center min-w-[34px] min-h-[34px] sm:min-w-0 sm:min-h-0 sm:p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-[#0a66c2] transition-colors disabled:opacity-50"
               title="Log LinkedIn touch"
             >
               {liLogged ? <Check className="w-3.5 h-3.5 text-green-600" /> : liLogging ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Linkedin className="w-3.5 h-3.5" />}
@@ -123,7 +123,7 @@ export function PipelineCard({
               target="_blank"
               rel="noopener noreferrer"
               onClick={handleProfileClick}
-              className="p-0.5 rounded hover:bg-gray-100 text-[#0a66c2] transition-colors"
+              className="flex items-center justify-center min-w-[34px] min-h-[34px] sm:min-w-0 sm:min-h-0 sm:p-0.5 rounded hover:bg-gray-100 text-[#0a66c2] transition-colors"
               title="Open LinkedIn profile"
             >
               <Linkedin className="w-3.5 h-3.5" />
@@ -131,7 +131,7 @@ export function PipelineCard({
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
+              <button aria-label="Card actions" className="flex items-center justify-center min-w-[34px] min-h-[34px] sm:min-w-0 sm:min-h-0 sm:p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600">
                 <MoreVertical className="w-3.5 h-3.5" />
               </button>
             </DropdownMenuTrigger>
