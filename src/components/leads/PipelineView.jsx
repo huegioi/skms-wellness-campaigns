@@ -72,7 +72,7 @@ function StatusColumn({ col, leads, handlers, latestTouchByLead, nextEventByLead
   const accent = col.accent;
 
   return (
-    <div className="w-60 flex-shrink-0">
+    <div className="w-full md:w-60 md:flex-shrink-0">
       <div
         className="rounded-xl px-3 py-2.5 mb-3 border"
         style={{ backgroundColor: `${accent}15`, color: accent, borderColor: `${accent}40` }}
@@ -402,8 +402,10 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
                 gradient="linear-gradient(135deg, #013f7c 0%, #012a54 100%)"
                 count={statusLeads.length}
               />
-              <div className="overflow-x-auto pb-4">
-                <div className="flex gap-5 min-w-max items-start">
+              {/* Mobile: stages stack vertically, full width — no sideways scroll.
+                  md+ : the original horizontally-scrolling board. */}
+              <div className="md:overflow-x-auto pb-4">
+                <div className="flex flex-col md:flex-row gap-5 md:min-w-max items-stretch md:items-start">
                   {STATUS_COLUMNS.map(col => (
                     <StatusColumn
                       key={col.key}
