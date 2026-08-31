@@ -19,6 +19,15 @@ const navItems = [
   { name: 'Quick Builder', page: 'QuickBuilder', icon: Sparkles, external: true, url: '/QuickBuilder' },
 ];
 
+// Mobile tab bar — the four destinations that are genuinely phone jobs.
+// Everything else stays one tap away behind "More", which opens the same drawer.
+const mobileTabs = [
+  { name: 'Dashboard', page: 'Home', icon: BarChart3 },
+  { name: 'Clients', page: 'Clients', icon: Users, altPages: ['ManageClientPortals', 'Proposals', 'EditProposal', 'EmailTemplateManager', 'Assessments'] },
+  { name: 'Partners', page: 'Leads', icon: Mail, altPages: ['ReferralPartnerAdmin'] },
+  { name: 'Schedule', page: 'SchedulingHub', icon: Calendar },
+];
+
 const LOGO_URL = 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/bb0a43468_SKMSLogoShieldBrown.png';
 
 const PUBLIC_PAGES = ['ViewProposal', 'MyPortal', 'ClientPortal', 'FeedbackForm', 'ReferralPortal', 'Checkin', 'MentalFitnessScore', 'MfsSurvey', 'MfsResults', 'Unsubscribe'];
@@ -49,7 +58,7 @@ export default function Layout({ children, currentPageName }) {
   }
 
   return (
-    <div className="h-screen bg-[#f4f0e9] flex overflow-hidden">
+    <div className="h-[100dvh] bg-[#f4f0e9] flex overflow-hidden">
 
       {/* ── SIDEBAR (desktop) ── */}
       <aside className="hidden lg:flex flex-col w-56 shrink-0 bg-white border-r border-gray-100 fixed inset-y-0 left-0 z-40 shadow-sm">
@@ -235,30 +244,51 @@ export default function Layout({ children, currentPageName }) {
 
       {/* ── MAIN CONTENT ── */}
       <div className="flex-1 flex flex-col min-w-0 lg:ml-56 overflow-y-auto">
-        <main className="flex-1 pb-16">
+        <main className="flex-1 pb-[calc(72px+env(safe-area-inset-bottom))] lg:pb-8">
           {children}
         </main>
       </div>
 
-      {/* ── MOBILE BOTTOM BAR — outside scroll container, truly fixed ── */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 flex items-center justify-between px-4 shadow-md" style={{ height: 56 }}>
-        <Link
-          to={createPageUrl('Home')}
-          className="flex items-center gap-2 touch-manipulation"
-          style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
-          <img src={LOGO_URL} alt="SkillfulMeans" className="h-7 w-auto shrink-0" />
-          <span className="font-bold text-[#013f7c] text-sm">SkillfulMeans Ops</span>
-        </Link>
+      {/* ── MOBILE QUICK CAPTURE — floating, thumb-reachable, mobile only ── */}
+      <Link
+        to={createPageUrl('AddLead')}
+        aria-label="Quick Capture"
+        className="lg:hidden fixed right-4 z-40 flex items-center justify-center rounded-full bg-[#264d44] text-white shadow-lg active:scale-95 transition-transform touch-manipulation"
+        style={{ width: 56, height: 56, bottom: 'calc(72px + env(safe-area-inset-bottom))', WebkitTapHighlightColor: 'transparent' }}
+      >
+        <ScanText className="w-6 h-6" />
+      </Link>
+
+      {/* ── MOBILE TAB BAR — outside scroll container, truly fixed, below the drawer ── */}
+      <nav
+        className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex shadow-md"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        {mobileTabs.map((item) => {
+          const Icon = item.icon;
+          const isActive = currentPageName === item.page || (item.altPages && item.altPages.includes(currentPageName));
+          return (
+            <Link
+              key={item.page}
+              to={createPageUrl(item.page)}
+              className={`flex-1 flex flex-col items-center justify-center gap-1 touch-manipulation ${isActive ? 'text-[#264d44]' : 'text-gray-400'}`}
+              style={{ minHeight: 56, WebkitTapHighlightColor: 'transparent' }}
+            >
+              <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+              <span className={`text-[10px] leading-none ${isActive ? 'font-bold' : 'font-medium'}`}>{item.name}</span>
+            </Link>
+          );
+        })}
         <button
           onPointerDown={() => setMobileOpen(true)}
-          className="flex items-center justify-center rounded-full bg-[#013f7c] text-white touch-manipulation"
-          style={{ width: 44, height: 44, WebkitTapHighlightColor: 'transparent' }}
-          aria-label="Open menu"
+          className={`flex-1 flex flex-col items-center justify-center gap-1 touch-manipulation ${moreActive ? 'text-[#264d44]' : 'text-gray-400'}`}
+          style={{ minHeight: 56, WebkitTapHighlightColor: 'transparent' }}
+          aria-label="More"
         >
-          <Menu className="w-5 h-5" />
+          <Menu className="w-5 h-5" strokeWidth={moreActive ? 2.5 : 2} />
+          <span className={`text-[10px] leading-none ${moreActive ? 'font-bold' : 'font-medium'}`}>More</span>
         </button>
-      </div>
+      </nav>
 
     </div>
   );
