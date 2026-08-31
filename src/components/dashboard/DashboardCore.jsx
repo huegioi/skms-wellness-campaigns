@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, Users, DollarSign, TrendingUp, Package, ChevronLeft, ChevronRight, FlaskConical, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Users, DollarSign, TrendingUp, Package, FlaskConical, BookOpen } from 'lucide-react';
 import NewInquiriesCard from '@/components/dashboard/NewInquiriesCard';
 import ActionableReviewQueue from '@/components/dashboard/ActionableReviewQueue';
 import MayaBriefingCard from '@/components/dashboard/MayaBriefingCard';
@@ -21,9 +21,6 @@ export default function DashboardCore() {
     { id: 'services', label: 'Services', icon: Package },
   ];
 
-  const currentIndex = sections.findIndex(s => s.id === activeSection);
-  const goLeft = () => { if (currentIndex > 0) setActiveSection(sections[currentIndex - 1].id); };
-  const goRight = () => { if (currentIndex < sections.length - 1) setActiveSection(sections[currentIndex + 1].id); };
 
   return (
     <div className="min-h-screen bg-brand-cream">
@@ -64,30 +61,27 @@ export default function DashboardCore() {
               );
             })}
           </div>
-          {/* Mobile: arrow navigation */}
-          <div className="md:hidden flex items-center gap-3 pb-3">
-            <button
-              onClick={goLeft}
-              disabled={currentIndex === 0}
-              className="p-2 rounded-full bg-blue-100 text-blue-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-blue-200 transition-all flex-shrink-0"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <div className="flex-1 text-center">
-              {(() => { const Icon = sections[currentIndex].icon; return (
-                <span className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold bg-brand-green text-white">
-                  <Icon className="w-3.5 h-3.5" />
-                  {sections[currentIndex].label}
-                </span>
-              ); })()}
+          {/* Mobile: scrolling chip row — all five sections visible, one tap each */}
+          <div className="md:hidden -mx-4 px-4 pb-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="flex gap-2 w-max">
+              {sections.map(section => {
+                const Icon = section.icon;
+                const isActive = activeSection === section.id;
+                return (
+                  <button
+                    key={section.id}
+                    onClick={() => setActiveSection(section.id)}
+                    className={`flex items-center gap-1.5 px-3.5 rounded-full text-sm font-semibold whitespace-nowrap transition-colors ${
+                      isActive ? 'bg-brand-green text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                    style={{ minHeight: 44 }}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    {section.label}
+                  </button>
+                );
+              })}
             </div>
-            <button
-              onClick={goRight}
-              disabled={currentIndex === sections.length - 1}
-              className="p-2 rounded-full bg-blue-100 text-blue-400 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-blue-200 transition-all flex-shrink-0"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
           </div>
         </div>
       </div>
