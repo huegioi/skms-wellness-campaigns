@@ -57,6 +57,11 @@ export default function Layout({ children, currentPageName }) {
     return <>{children}</>;
   }
 
+  // "More" lights up whenever the current page isn't one of the four mobile tabs
+  const moreActive = !mobileTabs.some(
+    (t) => currentPageName === t.page || (t.altPages && t.altPages.includes(currentPageName))
+  );
+
   return (
     <div className="h-[100dvh] bg-[#f4f0e9] flex overflow-hidden">
 
