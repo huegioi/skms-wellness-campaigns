@@ -6,8 +6,9 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
 import { TagSelector } from '@/components/ui/TagSelector';
-import { Users, AlertCircle, Minus } from 'lucide-react';
+import { Users, AlertCircle, Minus, UserX } from 'lucide-react';
 import { isExcludedFromAllPartners, matchesOwnerFilter, normalizeOwner } from '@/lib/partnerAudienceFilter';
+import { resolveClientContact } from '@/lib/clientContacts';
 
 const AUDIENCE_TYPES = [
   { value: 'client', label: 'Clients', entities: ['Client'] },
@@ -147,6 +148,18 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
   const noEmailCount = matchedRecords.filter(r => !excludedIds.includes(r.id) && !r.email).length;
   const showPreview = isAllScope || tagIds.length > 0;
 
+  // For clients, the row's person comes from the contact resolver — `Client.name`
+  // holds the organization on a lot of records. A client with no resolvable
+  // contact still gets mailed; the draft just greets without a name, so surface
+  // it here rather than letting it show up in a finished draft.
+  const isClientAudience = form.audience_type === 'client';
+  const contactFor = (r) => (isClientAudience ? resolveClientContact(r) : null);
+  const noContactNameCount = isClientAudience
+    ? matchedRecords.filter(
+        r => !excludedIds.includes(r.id) && r.email && contactFor(r).confidence === 'none'
+      ).length
+    : 0;
+
   return (
     <div className="space-y-4">
       {/* Campaign name */}
@@ -276,6 +289,15 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
             </span>
           </div>
 
+          {noContactNameCount > 0 && (
+            <div className="flex items-start gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-2.5 mb-2">
+              <UserX className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>
+                <strong>{noContactNameCount}</strong> of these have no contact name on the client record — the organization is sitting in the contact field. Those drafts will open “Hi there,” rather than guess a name from the email address. Add the person on the client’s Contacts tab to personalize them.
+              </span>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="text-sm text-gray-400 py-4 text-center">Loading...</div>
           ) : matchedRecords.length === 0 ? (
@@ -295,7 +317,11 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-800 truncate">
-                        {r.name || '(no name)'}
+                        {/* Clients are organizations — lead with the company and
+                            carry the person underneath. */}
+                        {isClientAudience
+                          ? (r.company || r.name || '(no name)')
+                          : (r.name || '(no name)')}
                         {form.audience_type === 'partner' && r._sourceType && (
                           <span className="ml-1.5 text-[10px] text-gray-400 font-normal">
                             {r._sourceType === 'referral_partner' ? 'RP' : 'L'}
@@ -303,9 +329,22 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
                         )}
                       </p>
                       <p className="text-xs text-gray-500 truncate">
-                        {r.email || 'No email'} - {r.company || 'No company'}
+                        {r.email || 'No email'}
+                        {isClientAudience
+                          ? (contactFor(r).name
+                              ? ` - ${contactFor(r).name}`
+                              : '')
+                          : ` - ${r.company || 'No company'}`}
                       </p>
                     </div>
+                    {isClientAudience && r.email && !isExcluded && contactFor(r).confidence === 'none' && (
+                      <span
+                        className="flex items-center gap-1 text-xs text-amber-700 shrink-0"
+                        title="No human contact name on this client record — the draft will greet without a name"
+                      >
+                        <UserX className="w-3 h-3" /> no contact
+                      </span>
+                    )}
                     {hasNoEmail && !isExcluded && (
                       <span className="flex items-center gap-1 text-xs text-amber-600 shrink-0">
                         <AlertCircle className="w-3 h-3" /> will be skipped
