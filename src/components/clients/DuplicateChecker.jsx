@@ -1,6 +1,8 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getOrgDomain } from '@/lib/emailDomain';
+import { clientOrgName } from '@/lib/clientContacts';
 
 export default function DuplicateChecker({ clients, email, company, currentClientId, onSelectDuplicate }) {
   const duplicates = [];
@@ -21,6 +23,23 @@ export default function DuplicateChecker({ clients, email, company, currentClien
     });
   }
   
+  // Check for email DOMAIN matches.
+  // The exact-address check above misses the most common duplicate of all: a
+  // second person at an organization we already have. Matching
+  // agnes.morawski@partnerre.com against amanda.pacheco@partnerre.com is what
+  // would have prevented the duplicate Partner Reinsurance record. Free-mail
+  // domains identify a person rather than an org, so getOrgDomain drops them.
+  const inputDomain = getOrgDomain(email);
+  if (inputDomain) {
+    clients.forEach(client => {
+      if (client.id === currentClientId) return;
+      const clientDomain = client.email_domain || getOrgDomain(client.email);
+      if (clientDomain === inputDomain && !duplicates.find(d => d.client.id === client.id)) {
+        duplicates.push({ client, matchType: 'email domain' });
+      }
+    });
+  }
+
   // Check for company name matches
   if (company) {
     const companyLower = company.toLowerCase().trim();
@@ -47,9 +66,11 @@ export default function DuplicateChecker({ clients, email, company, currentClien
             {duplicates.map(({ client, matchType }, index) => (
               <div key={index} className="bg-white rounded border border-amber-200 p-3 flex justify-between items-center">
                 <div>
-                  <p className="font-medium text-gray-800">{client.name}</p>
+                  {/* The organization is the client's identity; the contact is
+                      the subtitle. */}
+                  <p className="font-medium text-gray-800">{clientOrgName(client)}</p>
                   <p className="text-sm text-gray-600">
-                    {client.company && <span>{client.company} • </span>}
+                    {client.name && client.name !== clientOrgName(client) && <span>{client.name} • </span>}
                     {client.email}
                   </p>
                   <p className="text-xs text-amber-600">Matched by: {matchType}</p>
