@@ -43,6 +43,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
     meeting_link: event.meeting_link || '',
     presenter: event.presenter || '',
     presenter_id: event.presenter_id || '',
+    presenter_email: event.presenter_email || '',
     presenter_fee: event.presenter_fee ?? null,
     client_name: event.client_name || '',
     start_date: event.start_date?.split('T')[0] || '',
@@ -149,6 +150,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
         meeting_link: (editForm.meeting_link || '').trim() || null,
         presenter: editForm.presenter,
         presenter_id: editForm.presenter_id || null,
+        presenter_email: editForm.presenter_email || '',
         presenter_fee: editForm.presenter_fee != null ? editForm.presenter_fee : null,
         client_name: editForm.client_name,
         start_date: startDateTime,
@@ -427,7 +429,9 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
                     setEditForm(prev => ({
                       ...prev,
                       presenter_id: v === 'none' ? '' : v,
-                      presenter: p?.name || ''
+                      presenter: p?.name || '',
+                      // Carry the email too — notifications and Meet access both key off it.
+                      presenter_email: p?.email || ''
                     }));
                   }}
                 >
