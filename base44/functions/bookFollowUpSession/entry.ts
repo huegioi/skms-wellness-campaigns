@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { resolveClientContact, looksLikeOrganization } from '../../shared/clientContact.ts';
 
 const APP_BASE_URL = 'https://app.skillfulmeans.life';
 function buildCheckinUrl(token) {
@@ -58,8 +59,15 @@ Deno.serve(async (req) => {
       if (!lead) return Response.json({ error: 'Lead not found' }, { status: 404 });
     }
 
-    const contactName = client?.name || lead?.name || '';
-    const companyName = client?.company || lead?.company || contactName;
+    // The client is an ORGANIZATION; `client.name` is the contact field but on
+    // many records it holds the org, so resolve the human instead of copying it.
+    // This description lands on a real Google event the client is invited to —
+    // "a check-in with International Fund for Animal Welfare from International
+    // Fund for Animal Welfare" is what happens when it isn't resolved.
+    const contactName = client
+      ? (resolveClientContact(client).name || '')
+      : (looksLikeOrganization(lead?.name, lead?.company) ? '' : (lead?.name || ''));
+    const companyName = client?.company || lead?.company || client?.name || lead?.name || '';
     const eventTitle = `SkillfulMeans Wellness Services Check-in Call with ${companyName}`;
 
     // Get Google Calendar access token
@@ -70,7 +78,9 @@ Deno.serve(async (req) => {
     const attendees = attendeeEmail ? [{ email: attendeeEmail }] : [];
 
     // Placeholder description — PATCHed below with the check-in link once the token exists.
-    const placeholderDescription = `Follow-up check-in call with ${contactName} from ${companyName}.`;
+    const placeholderDescription = contactName
+      ? `Follow-up check-in call with ${contactName} from ${companyName}.`
+      : `Follow-up check-in call with ${companyName}.`;
 
     // Create event with Google Meet conference
     const eventBody = {
