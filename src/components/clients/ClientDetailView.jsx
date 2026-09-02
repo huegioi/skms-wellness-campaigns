@@ -45,6 +45,7 @@ import { setMayaRecordContext, clearMayaRecordContext } from '@/lib/mayaOrbStore
 
 import { PROPOSAL_STATUS_CONFIG } from '@/lib/statusConfig';
 import ProposalFulfillment from '@/components/proposals/ProposalFulfillment';
+import { syncPrimaryContact } from '@/lib/clientContacts';
 
 const statusConfig = PROPOSAL_STATUS_CONFIG;
 
@@ -105,6 +106,12 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
       throw e;
     }
   };
+
+  // Save a field that is MIRRORED from the primary entry in related_contacts
+  // (name, email, title, phone). Writing only the top level leaves the contact
+  // list stale, and the next edit in the Contacts tab reverts it.
+  const saveContactField = (patch) =>
+    onUpdate({ ...patch, related_contacts: syncPrimaryContact(client, patch) });
 
   useEffect(() => {
     if (client?.id) {
