@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { firstNameOf } from '../../shared/clientContact.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -52,9 +53,34 @@ Deno.serve(async (req) => {
     const hasRichContext = bd.has_rich_context === true;
     const thinContext = !hasRichContext;
 
-    const contactName = recipient.name || bd.recipientName || '';
-    const firstName = contactName.split(' ')[0] || 'there';
+    // ── WHO ARE WE WRITING TO? ──
+    // `recipient.name` is the RESOLVED human name for this email address — empty
+    // when no contact is known (see shared/clientContact.ts). It is never the
+    // company. When we don't have a name we say so in the prompt and let the
+    // draft greet neutrally; we do NOT let the model reconstruct one from the
+    // email address. "adileone@region16ct.org" is Tony DiLeone, not "Adi".
+    const contactName = (recipient.name || bd.recipientName || '').trim();
     const companyName = recipient.company || '';
+    const hasContactName = !!contactName && contactName.toLowerCase() !== companyName.toLowerCase();
+    const firstName = hasContactName ? firstNameOf(contactName) : null;
+
+    const contactBlock = hasContactName
+      ? `Name: ${contactName}
+First name: ${firstName}`
+      : `Name: UNKNOWN — we do not have a contact name for this address.
+First name: UNKNOWN`;
+
+    const NAME_RULES = `NAME RULES (ABSOLUTE — these override every other instruction):
+${hasContactName
+  ? `- Greet this person as "${firstName}". Use no other name for them.`
+  : `- We do NOT know this person's name. Open with a nameless greeting: "Hi there," or "Hello,". Write the rest of the email normally.`}
+- NEVER infer, guess or construct a person's name from an email address. An address local-part is not a name: "adileone@" is not "Adi", "caherne@" is not "Christy", "kslobodian@" is not a first name.
+- NEVER use the company name as the person's name. "Hi ${companyName || '<Company>'}," is always wrong.
+- NEVER take a name from the context below unless it is stated as the name of THIS recipient. Other people appear in the history; they are not who we are writing to.
+
+`;
+
+    const greetingLabel = hasContactName ? contactName : `the contact at ${companyName || 'this company'}`;
 
     // ── Follow-up round detection ──
     // Rows with followup_round >= 1 get a short 2-4 sentence bump instead of
@@ -153,12 +179,11 @@ KNOWLEDGE BASE:
 ${knowledgeText}
 
 CONTACT DETAILS:
-Name: ${contactName}
-First name: ${firstName}
+${contactBlock}
 Email: ${recipient.email || bd.recipientEmail || ''}
 Company: ${companyName}
 
-TASK: Write a short follow-up email to ${contactName}.
+${NAME_RULES}TASK: Write a short follow-up email to ${greetingLabel}.
 
 STYLE CONTRACT (CRITICAL):
 - 2 to 4 sentences only. No longer.
@@ -196,17 +221,18 @@ KNOWLEDGE BASE:
 ${knowledgeText}
 
 CONTACT DETAILS:
-Name: ${contactName}
-First name: ${firstName}
+${contactBlock}
 Email: ${recipient.email || bd.recipientEmail || ''}
 Company: ${companyName}
 
-TASK: Write a personalized email to ${contactName} using the SKELETON above as the base structure.
+${NAME_RULES}TASK: Write a personalized email to ${greetingLabel} using the SKELETON above as the base structure.
 
 SKELETON RULES (CRITICAL):
 - The body_template is the SKELETON. Its structure, key points, and call-to-action must be preserved.
 - Target roughly the template's length. This OVERRIDES the 120-word rule used for one-off Maya emails.
-- Replace {{first_name}} with "${firstName}". Replace {{company}} with "${companyName}". Replace any similar merge hints with real values.
+- ${hasContactName
+  ? `Replace {{first_name}} with "${firstName}".`
+  : `The template may contain {{first_name}} — we have no name, so rewrite that greeting as a nameless one ("Hi there,"). Do NOT leave the placeholder in, and do NOT substitute the company name.`} Replace {{company}} with "${companyName}". Replace any similar merge hints with real values.
 
 PERSONAL TOUCHES:
 - Personalize the greeting and opening lines with natural references to the contact's real history (last meeting, notes, their company's situation).
