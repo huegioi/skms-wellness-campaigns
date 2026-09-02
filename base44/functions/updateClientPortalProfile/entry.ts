@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { syncPrimaryContact } from '../../shared/clientContact.ts';
 
 const WHITELIST = [
   'name', 'email', 'email2', 'phone', 'title',
@@ -27,6 +28,16 @@ Deno.serve(async (req) => {
       if (updates[key] !== undefined) {
         safeUpdates[key] = updates[key];
       }
+    }
+
+    // name/email/title/phone are a MIRROR of the primary entry in
+    // related_contacts. Writing only the top level left the two out of step, and
+    // the next contact edit in the admin UI silently reverted whatever the client
+    // had typed here. Carry the change into the contact list too.
+    const touchesContact = ['name', 'email', 'title', 'phone']
+      .some(f => safeUpdates[f] !== undefined);
+    if (touchesContact) {
+      safeUpdates.related_contacts = syncPrimaryContact(client, safeUpdates);
     }
 
     const updated = await base44.asServiceRole.entities.Client.update(client.id, safeUpdates);
