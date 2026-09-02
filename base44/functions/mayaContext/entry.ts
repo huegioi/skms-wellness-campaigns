@@ -905,7 +905,9 @@ async function buildDeliveryContext(base44) {
         }
         return endRef > latest ? endRef : latest;
       }, new Date(0));
-      if (daysDiff(now, latestEnd) > 14) continue;
+      // daysBetween is this file's helper (daysDiff only exists in mayaDailyBriefing —
+      // the undefined reference crashed the delivery context from 2026-08-17 onward).
+      if (daysBetween(latestEnd, now) > 14) continue;
     }
     let d0 = false, d14 = false;
     for (const a of cohortAssessments) {
