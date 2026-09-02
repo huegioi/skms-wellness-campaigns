@@ -9,11 +9,23 @@ import { toast } from 'sonner';
 import { productCatalog } from '@/components/curriculum/catalogData';
 import { priceForCatalogItem, resolveHeadcount } from '@/lib/rateCard';
 import { WELLNESS_BOX_PRICES, BOX_DISPLAY_NAMES, applyBoxFloor } from '@/lib/wellnessBoxes';
+import { looksLikeOrganization } from '@/lib/clientContacts';
+
+// `Proposal.client_name` is stamped from `Client.name`, which on many records
+// holds the ORGANIZATION rather than a person — "Dear International Fund for
+// Animal Welfare," is not a greeting. Greet the human when we have one, and
+// nobody when we don't. Never guess.
+export function proposalContactName(proposal) {
+  const contact = (proposal?.client_name || '').trim();
+  if (!contact || looksLikeOrganization(contact, proposal?.company)) return '';
+  return contact;
+}
 
 export default function SendProposalDialog({ proposal, open, onOpenChange, onSent }) {
+  const contactName = proposalContactName(proposal);
   const [email, setEmail] = useState(proposal?.client_email || '');
   const [subject, setSubject] = useState(`Mental Fitness Campaign Proposal for ${proposal?.company || proposal?.client_name}`);
-  const [message, setMessage] = useState(`Dear ${proposal?.client_name},
+  const [message, setMessage] = useState(`${contactName ? `Dear ${contactName},` : 'Hello,'}
 
 Thank you for your interest in SkillfulMeans' mental fitness programs. Please find attached your customized proposal.
 
@@ -101,7 +113,7 @@ SkillfulMeans Team`);
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h2 style="color: #013f7c; text-align: center; margin-bottom: 5px;">Mental Fitness Campaign Proposal</h2>
-        <p style="text-align: center; color: #666; margin-top: 0;"><strong>Prepared for:</strong> ${proposal.client_name}${proposal.company ? ` | ${proposal.company}` : ''}</p>
+        <p style="text-align: center; color: #666; margin-top: 0;"><strong>Prepared for:</strong> ${proposal.company || proposal.client_name}${contactName && contactName !== proposal.company ? ` | Attn: ${contactName}` : ''}</p>
         
         ${proposal.narrative_summary ? `
           <div style="background: #f8f8f8; padding: 15px; border-radius: 8px; margin: 20px 0;">
