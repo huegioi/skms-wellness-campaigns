@@ -14,7 +14,7 @@ import { getOrgDomain } from '@/lib/emailDomain';
 // than blanking the org identity key. Do not read anything else from it.
 export function contactsUpdate(contacts, client) {
   const list = contacts.map(c => ({ ...c }));
-  const primary = list.find(c => c.is_primary) || list[0];
+  const primary = pickPrimary(list, client);
   if (!primary) return { related_contacts: [] };
 
   const nextDomain = getOrgDomain(primary.email);
@@ -33,6 +33,90 @@ export function contactsUpdate(contacts, client) {
   // already had rather than blanking the org identity key.
   if (nextDomain) {
     payload.email_domain = nextDomain;
+  }
+
+  return payload;
+}
+
+// Which contact is the primary?
+//
+// The old rule was `find(is_primary) || list[0]`, and list[0] is a trap: most
+// Client records were created with an EMPTY related_contacts array, so the first
+// contact anyone added — a broker, a wellness consultant, anybody — became the
+// primary and silently overwrote the client's name/email/title/phone. Adding a
+// broker must never repoint the client's contact.
+//
+// Order of preference:
+//   1. an explicit is_primary flag
+//   2. the contact whose email matches the client's current primary email
+//      (i.e. leave the existing primary where it is)
+//   3. the first contact who is not a broker or wellness consultant
+//   4. list[0], only when there is genuinely nothing else to go on
+function pickPrimary(list, client) {
+  const explicit = list.find(c => c.is_primary);
+  if (explicit) return explicit;
+
+  const currentEmail = key(client && client.email);
+  if (currentEmail) {
+    const incumbent = list.find(c => key(c && c.email) === currentEmail);
+    if (incumbent) return incumbent;
+  }
+
+  const THIRD_PARTY = new Set(['broker', 'wellness_consultant']);
+  const internal = list.find(c => !THIRD_PARTY.has(c && c.contact_type));
+  if (internal) return internal;
+
+  return list[0];
+}
+
+// Build a well-formed Client payload from intake fields.
+//
+// USE THIS IN EVERY PATH THAT CREATES A CLIENT. It is the write-side counterpart
+// of resolveClientContact: the organization goes in `company`, the person goes in
+// `name`, and the person is ALSO seeded into related_contacts so the contact list
+// and the mirrored top-level fields agree from the very first save. Creation
+// paths that skipped related_contacts are why adding a broker could overwrite a
+// client's contact, and why so many records ended up with the org in `name`.
+//
+// `contactName` may be empty — an unknown contact is a data gap to surface, not
+// something to fill with the company name. `Client.name` is a required field, so
+// it falls back to the company; resolveClientContact reads name === company as
+// "no contact known" and the UI flags it for follow-up.
+export function buildClientRecord({
+  company,
+  contactName,
+  email,
+  title,
+  phone,
+  notes,
+  contactType,
+} = {}) {
+  const org = norm(company);
+  const person = norm(contactName);
+  const addr = norm(email);
+  const usablePerson = person && !looksLikeOrganization(person, org) ? person : '';
+
+  const payload = {
+    company: org,
+    name: usablePerson || org,
+    email: addr,
+    title: norm(title),
+    phone: norm(phone),
+  };
+
+  const domain = getOrgDomain(addr);
+  if (domain) payload.email_domain = domain;
+
+  if (usablePerson || addr) {
+    payload.related_contacts = [{
+      name: usablePerson,
+      email: addr,
+      title: norm(title),
+      phone: norm(phone),
+      notes: norm(notes),
+      contact_type: norm(contactType) || 'other',
+      is_primary: true,
+    }];
   }
 
   return payload;
