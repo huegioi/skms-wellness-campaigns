@@ -8,7 +8,9 @@ import { base44 } from '@/api/base44Client';
 import EventDetailDialog from '@/components/calendar/EventDetailDialog';
 import { parseISO } from 'date-fns';
 
-export default function MonthlyCalendar({ sheets, calendarEvents = [], refetchEvents }) {
+// `sheets` is legacy (Google Sheet feed removed 2026-09-02); defaults to empty so the
+// calendar renders from CalendarEvent records alone.
+export default function MonthlyCalendar({ sheets = [], calendarEvents = [], refetchEvents }) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedEvents, setSelectedEvents] = useState([]);
