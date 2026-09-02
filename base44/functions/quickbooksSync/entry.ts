@@ -111,12 +111,23 @@ async function getAccessToken(client) {
 }
 
 async function createQBCustomer(accessToken, realmId, clientData) {
+  // The ORGANIZATION is the customer; the person is a contact on it.
+  // `client_name` is stamped from `Client.name`, which on many records holds the
+  // organization — splitting that into GivenName/FamilyName wrote "International"
+  // / "Fund for Animal Welfare" onto a QuickBooks customer, and that shows up on
+  // invoices the client receives. Only split a name we believe is a person.
+  const company = clientData.company || clientData.client_name;
+  const contactName = looksLikeOrganization(clientData.client_name, company)
+    ? ''
+    : (clientData.client_name || '').trim();
+  const nameParts = contactName.split(/\s+/).filter(Boolean);
+
   const customerData = {
-    DisplayName: clientData.company || clientData.client_name,
+    DisplayName: company,
     PrimaryEmailAddr: { Address: clientData.client_email },
     CompanyName: clientData.company,
-    GivenName: clientData.client_name.split(' ')[0],
-    FamilyName: clientData.client_name.split(' ').slice(1).join(' ')
+    ...(nameParts.length ? { GivenName: nameParts[0] } : {}),
+    ...(nameParts.length > 1 ? { FamilyName: nameParts.slice(1).join(' ') } : {}),
   };
 
   const response = await fetch(`${QB_API_URL}/${realmId}/customer`, {
