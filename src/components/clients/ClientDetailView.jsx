@@ -381,14 +381,19 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
             </div>
           )}
           <CollapsibleFieldSection title="Contact" icon={User} defaultOpen>
+            {/* email / phone / title are a MIRROR of the primary entry in
+                related_contacts. Editing them here used to write the top level
+                only, so the two drifted and the next edit in the Contacts tab
+                reverted this one. saveContactField carries the change into the
+                contact list as well. */}
             <div className="sm:col-span-2">
-              <InlineText label="Email" value={client.email} onSave={v => onUpdate({ email: v })} />
+              <InlineText label="Email" value={client.email} onSave={v => saveContactField({ email: v })} />
             </div>
             <div className="sm:col-span-2">
               <InlineText label="Secondary Email" value={client.email2} onSave={v => onUpdate({ email2: v })} placeholder="Add secondary email" />
             </div>
-            <InlineText label="Phone" value={client.phone} onSave={v => onUpdate({ phone: v })} />
-            <InlineText label="Title" value={client.title} onSave={v => onUpdate({ title: v })} />
+            <InlineText label="Phone" value={client.phone} onSave={v => saveContactField({ phone: v })} />
+            <InlineText label="Title" value={client.title} onSave={v => saveContactField({ title: v })} />
             <div className="sm:col-span-2">
               <InlineText label="LinkedIn URL" value={client.linkedin_url} onSave={v => onUpdate({ linkedin_url: v })} placeholder="https://linkedin.com/in/..." />
             </div>
