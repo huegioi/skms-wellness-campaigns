@@ -43,6 +43,12 @@ Deno.serve(async (req) => {
         updates.presenter_id = null;
         updates.presenter_email = null;
         updates.presenter = null;
+        // The seat is open again, so the notification stamp no longer applies — clearing
+        // it lets the next presenter be notified from the event dialog.
+        updates.presenter_notified_at = null;
+        updates.presenter_notified_email = '';
+        updates.presenter_notify_status = '';
+        updates.presenter_notify_error = '';
       }
     }
     if (completed !== undefined) {
