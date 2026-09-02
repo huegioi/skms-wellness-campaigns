@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 import { getOrgDomain, deriveCompanyFromEmail } from '../../shared/emailDomain.ts';
+import { buildClientRecord } from '../../shared/clientContact.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -70,10 +71,16 @@ Deno.serve(async (req) => {
     // Derive company from email domain if not provided — never leave it empty.
     const resolvedCompany = company_name || deriveCompanyFromEmail(normalizedEmail) || 'Unknown Company';
     const client = await base44.asServiceRole.entities.Client.create({
-      name: contact_name,
-      email: normalizedEmail,
+      // buildClientRecord seeds related_contacts with this person as the primary,
+      // so the contact list and the mirrored top-level fields agree from the
+      // first save. Creating a Client without related_contacts is what let the
+      // next contact anyone added silently take over as the primary.
+      ...buildClientRecord({
+        company: resolvedCompany,
+        contactName: contact_name,
+        email: normalizedEmail,
+      }),
       email_domain: getOrgDomain(normalizedEmail),
-      company: resolvedCompany,
       company_size: employee_count,
       industry: industry || undefined,
       is_assessment_lead: true,
