@@ -136,7 +136,10 @@ export default function ClaimsLite() {
         inputs,
         company_name: meta.company_name,
         email: meta.email,
-        contact_name: carried?.contact_name || undefined,
+        // Ask for the name rather than letting the Client be created nameless.
+        // A blank contact means the record carries the organization where the
+        // person should be, and every downstream email then greets nobody.
+        contact_name: (meta.contact_name || '').trim() || carried?.contact_name || undefined,
         pass: passToken || undefined,
         ref: ref || undefined,
       });
@@ -353,6 +356,10 @@ export default function ClaimsLite() {
             <div>
               <label className="text-xs font-semibold text-mf-ink-2">Company</label>
               <Input value={meta.company_name} onChange={e => setMeta(m => ({ ...m, company_name: e.target.value }))} placeholder="Acme Manufacturing" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-mf-ink-2">Your name</label>
+              <Input value={meta.contact_name || ''} onChange={e => setMeta(m => ({ ...m, contact_name: e.target.value }))} placeholder="Jordan Reyes" />
             </div>
             <div>
               <label className="text-xs font-semibold text-mf-ink-2">Work email</label>
