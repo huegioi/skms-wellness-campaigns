@@ -823,8 +823,8 @@ export default function Clients() {
               const clientProposals = getClientProposals(client.id);
               const acceptedProposals = clientProposals.filter(p => p.status === 'accepted');
               const totalValue = acceptedProposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
-              {/* The primary contact IS an entry in related_contacts, so don't
-                  add one for it — that double-counted every repaired record. */}
+              // The primary contact IS an entry in related_contacts, so don't
+              // add one for it — that double-counted every repaired record.
               const contactCount = client.related_contacts?.length
                 ? client.related_contacts.length
                 : (client.name ? 1 : 0);
