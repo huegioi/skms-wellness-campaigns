@@ -18,6 +18,8 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ClientDetailView from '@/components/clients/ClientDetailView';
 import DuplicateChecker from '@/components/clients/DuplicateChecker';
+import { buildClientRecord, contactsUpdate } from '@/lib/clientContacts';
+import { getOrgDomain } from '@/lib/emailDomain';
 import { createDefaultTasksForClient } from '@/components/tasks/taskTemplates';
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 import BrokersEditor from '@/components/clients/BrokersEditor';
@@ -64,7 +66,10 @@ function ClientFormFields({ formData, setFormData, clients, isEdit, editingClien
         currentClientId={isEdit ? editingClient?.id : null}
         onSelectDuplicate={onSelectDuplicate}
       />
-      <Input placeholder="Company Name *" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
+      {/* The company IS the client's identity, so it is required — it was
+          marked with a * but had no `required`, and a blank company fails
+          validation server-side without saying so. */}
+      <Input placeholder="Company Name *" value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} required />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Input placeholder="Contact Name *" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required />
         <Input placeholder="Job Title" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} />
@@ -240,14 +245,21 @@ export default function Clients() {
 
   const createMutation = useMutation({
     mutationFn: (data) => {
-      // Compute email_domain using the same free-mail rule as the backend
-      const FREE_MAIL = new Set(['gmail.com','outlook.com','hotmail.com','yahoo.com','aol.com','icloud.com','me.com','proton.me','protonmail.com','skillfulmeans.life']);
-      let emailDomain = null;
-      if (data.email && data.email.includes('@')) {
-        const domain = data.email.split('@').pop().toLowerCase().trim();
-        emailDomain = FREE_MAIL.has(domain) ? null : domain;
-      }
-      return base44.entities.Client.create({ ...data, email_domain: emailDomain });
+      // buildClientRecord puts the org in `company`, the person in `name`, AND
+      // seeds related_contacts with that person as the primary. Creating a Client
+      // without related_contacts is what let the next contact anyone added — a
+      // broker, say — silently take over as the client's primary contact.
+      // It also derives email_domain, so the free-mail list lives in one place.
+      return base44.entities.Client.create({
+        ...data,
+        ...buildClientRecord({
+          company: data.company,
+          contactName: data.name,
+          email: data.email,
+          title: data.title,
+          phone: data.phone,
+        }),
+      });
     },
     onSuccess: async (newClient) => {
       // Auto-create tasks for new client
@@ -331,6 +343,20 @@ export default function Clients() {
       clients.forEach(client => {
         if (client.email?.toLowerCase().trim() === emailLower) {
           duplicates.push({ client, matchType: 'email' });
+        }
+      });
+    }
+
+    // Match on email DOMAIN, not just the exact address — a second person at an
+    // organization we already have is the most common way a duplicate Client
+    // gets created (this is how a second Partner Reinsurance record was born).
+    // Free-mail domains identify a person, not an org, so getOrgDomain drops them.
+    const formDomain = getOrgDomain(formData.email);
+    if (formDomain) {
+      clients.forEach(client => {
+        const clientDomain = client.email_domain || getOrgDomain(client.email);
+        if (clientDomain === formDomain && !duplicates.find(d => d.client.id === client.id)) {
+          duplicates.push({ client, matchType: 'domain' });
         }
       });
     }
@@ -433,15 +459,25 @@ export default function Clients() {
         });
       }
 
-      // Merge related contacts
+      // Merge related contacts.
+      // Concatenating the two arrays raw could leave two primaries (or none) and
+      // duplicate the same person twice. Dedupe by email, keep the surviving
+      // client's primary as the primary, and re-mirror through contactsUpdate so
+      // the top-level name/email/title/phone still match the contact list.
+      const seenContacts = new Set();
       const mergedContacts = [
         ...(primaryClient.related_contacts || []),
-        ...(duplicateClient.related_contacts || [])
-      ];
+        ...(duplicateClient.related_contacts || []).map(c => ({ ...c, is_primary: false })),
+      ].filter(c => {
+        const k = (c?.email || c?.name || '').toLowerCase().trim();
+        if (!k || seenContacts.has(k)) return false;
+        seenContacts.add(k);
+        return true;
+      });
 
       // Update primary client with merged data
       await base44.entities.Client.update(primaryClient.id, {
-        related_contacts: mergedContacts,
+        ...contactsUpdate(mergedContacts, primaryClient),
         notes: [primaryClient.notes, duplicateClient.notes].filter(Boolean).join('\n\n---\n\n'),
         last_contacted_date: duplicateClient.last_contacted_date || primaryClient.last_contacted_date
       });
@@ -787,7 +823,11 @@ export default function Clients() {
               const clientProposals = getClientProposals(client.id);
               const acceptedProposals = clientProposals.filter(p => p.status === 'accepted');
               const totalValue = acceptedProposals.reduce((sum, p) => sum + (p.total_amount || 0), 0);
-              const contactCount = (client.related_contacts?.length || 0) + 1;
+              {/* The primary contact IS an entry in related_contacts, so don't
+                  add one for it — that double-counted every repaired record. */}
+              const contactCount = client.related_contacts?.length
+                ? client.related_contacts.length
+                : (client.name ? 1 : 0);
               
               return (
                 <div key={client.id} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
