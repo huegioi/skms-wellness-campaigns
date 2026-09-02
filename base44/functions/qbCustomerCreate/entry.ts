@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { getAccessToken, getRealmId, QB_API_URL } from '../../shared/quickbooksAuth.ts';
+import { resolveClientContact, looksLikeOrganization } from '../../shared/clientContact.ts';
 
 // POST /api/functions/qbCustomerCreate
 //
@@ -44,8 +45,15 @@ export default async function(req) {
     }
 
     const company = (client?.company || proposal.company || proposal.client_name || '').trim();
-    const contactName = (client?.name || proposal.client_name || '').trim();
     const contactEmail = (proposal.client_email || client?.email || '').toLowerCase().trim();
+    // Resolve the HUMAN behind the billing address. `client.name` holds the
+    // organization on many records, and splitting that into GivenName/FamilyName
+    // wrote "International" / "Fund for Animal Welfare" onto the QuickBooks
+    // customer — which then appears on invoices the client receives. No human,
+    // no GivenName: the DisplayName (the company) already identifies them.
+    const contactName = client
+      ? (resolveClientContact(client, contactEmail).name || '')
+      : (looksLikeOrganization(proposal.client_name, company) ? '' : (proposal.client_name || '').trim());
 
     if (!company) return Response.json({ error: 'No company name available for customer creation' }, { status: 400 });
     if (!contactEmail) return Response.json({ error: 'No contact email available' }, { status: 400 });
