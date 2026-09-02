@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { resolveClientContact } from '../../shared/clientContact.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -41,6 +42,10 @@ Deno.serve(async (req) => {
 
     // Exclude demo records
     allRecords = allRecords.filter(r => !r.is_demo);
+
+    // Full pool, keyed by id — used below to re-sync stale recipient snapshots
+    // even for records that no longer match the campaign's tags.
+    const poolById = new Map(allRecords.map(r => [r.id, r]));
 
     const isAllScope = campaign.audience_scope === 'all';
 
@@ -107,6 +112,25 @@ Deno.serve(async (req) => {
     const excludedSet = new Set(excluded_record_ids);
     const included = matched.filter(r => !excludedSet.has(r.id));
 
+    // ── Snapshot the CONTACT, not the record label ──
+    // For a Client, `name` is supposed to be the primary contact, but on many
+    // records it holds the ORGANIZATION instead (name === company) with the real
+    // human either in related_contacts or absent. Resolve the person who actually
+    // owns this email address. When there is none, snapshot an EMPTY name and
+    // flag the row — an unknown contact is a data gap to surface, never a blank
+    // for the drafter to fill in by guessing from the email address.
+    // See base44/shared/clientContact.ts.
+    const contactSnapshot = (r) => {
+      if (r._recordType !== 'client') {
+        return { name: r.name || '', contact_name_missing: false };
+      }
+      const contact = resolveClientContact(r);
+      return {
+        name: contact.name || '',
+        contact_name_missing: contact.confidence === 'none',
+      };
+    };
+
     // ── Dedupe by email, skip no-email ──
     const seenEmails = new Map();
     const toCreate = [];
@@ -145,7 +169,7 @@ Deno.serve(async (req) => {
         campaign_id,
         record_type: r._recordType,
         record_id: r.id,
-        name: r.name || '',
+        ...contactSnapshot(r),
         email: r.email,
         company: r.company || '',
         owner: r.owner || '',
@@ -159,6 +183,38 @@ Deno.serve(async (req) => {
       { campaign_id }, '-created_date', 500
     );
     const existingRecordIds = new Set(existing.map(e => e.record_id));
+
+    // ── Re-sync stale snapshots ──
+    // Recipient rows are snapshots taken when the audience was built and were
+    // never refreshed, so correcting a Client's contact never reached a campaign
+    // already built from it. Refresh name/email/company on rows that have NOT
+    // gone out yet. Never touch approved / sent / replied / skipped rows — those
+    // snapshots are the record of what was actually sent.
+    const RESYNCABLE = ['pending', 'drafting', 'drafted', 'error'];
+    const pendingResync = [];
+    for (const row of existing) {
+      if (!RESYNCABLE.includes(row.status)) continue;
+      const r = poolById.get(row.record_id);
+      if (!r) continue;
+      const snap = contactSnapshot({ ...r, _recordType: row.record_type });
+      const next = {};
+      if ((row.name || '') !== snap.name) next.name = snap.name;
+      if ((row.email || '') !== (r.email || '')) next.email = r.email || '';
+      if ((row.company || '') !== (r.company || '')) next.company = r.company || '';
+      if (!!row.contact_name_missing !== snap.contact_name_missing) {
+        next.contact_name_missing = snap.contact_name_missing;
+      }
+      if (Object.keys(next).length === 0) continue;
+      pendingResync.push({ id: row.id, data: next });
+    }
+    for (let i = 0; i < pendingResync.length; i += 10) {
+      await Promise.all(
+        pendingResync.slice(i, i + 10).map(u =>
+          base44.entities.CampaignRecipient.update(u.id, u.data)
+            .catch(e => console.error('[buildCampaignAudience] resync failed', u.id, e.message))
+        )
+      );
+    }
 
     // Only create recipients for NEW matches
     const newRecipients = toCreate.filter(r => !existingRecordIds.has(r.record_id));
@@ -198,11 +254,20 @@ Deno.serve(async (req) => {
       await base44.entities.CampaignRecipient.bulkCreate(allNew);
     }
 
+    const missingContactName =
+      newRecipients.filter(r => r.contact_name_missing).length +
+      existing.filter(r =>
+        RESYNCABLE.includes(r.status) &&
+        (pendingResync.find(u => u.id === r.id)?.data.contact_name_missing ?? r.contact_name_missing)
+      ).length;
+
     return Response.json({
       created: newRecipients.length,
       skipped: newSkipped.length,
       total_recipients: existing.length + allNew.length,
       owner_excluded: ownerExcludedCount,
+      resynced: pendingResync.length,
+      missing_contact_name: missingContactName,
     });
   } catch (error) {
     console.error('[buildCampaignAudience] Error:', error.message, error.stack);
