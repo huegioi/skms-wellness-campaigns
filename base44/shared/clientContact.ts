@@ -29,6 +29,8 @@
  * functions cannot import from src/, and Vite cannot import from base44/shared.
  */
 
+import { getOrgDomain } from './emailDomain.ts';
+
 type AnyRecord = Record<string, any>;
 
 export type ContactSource = 'related_contact' | 'client_record' | 'none';
@@ -206,4 +208,64 @@ export function listClientContacts(client: AnyRecord | null | undefined): Client
 export function clientOrgName(client: AnyRecord | null | undefined): string {
   const c: AnyRecord = client || {};
   return norm(c.company) || norm(c.name) || '';
+}
+
+export interface ClientIntake {
+  company?: string | null;
+  contactName?: string | null;
+  email?: string | null;
+  title?: string | null;
+  phone?: string | null;
+  notes?: string | null;
+  contactType?: string | null;
+}
+
+/**
+ * Build a well-formed Client payload from intake fields.
+ *
+ * USE THIS IN EVERY PATH THAT CREATES A CLIENT. It is the write-side counterpart
+ * of resolveClientContact: the organization goes in `company`, the person goes
+ * in `name`, and the person is ALSO seeded into `related_contacts` so the contact
+ * list and the mirrored top-level fields agree from the first save. Creation
+ * paths that skipped `related_contacts` are why adding a broker to a client could
+ * overwrite that client's contact, and why so many records ended up holding the
+ * organization in `name`.
+ *
+ * `contactName` may be empty — an unknown contact is a data gap to surface, not
+ * something to fill in with the company name. `Client.name` is a required field,
+ * so it falls back to the company; resolveClientContact reads name === company as
+ * "no contact known" and the UI flags it for follow-up.
+ *
+ * KEEP IN SYNC with buildClientRecord in src/lib/clientContacts.js.
+ */
+export function buildClientRecord(intake: ClientIntake = {}): AnyRecord {
+  const org = norm(intake.company);
+  const person = norm(intake.contactName);
+  const addr = norm(intake.email);
+  const usablePerson = person && !looksLikeOrganization(person, org) ? person : '';
+
+  const payload: AnyRecord = {
+    company: org,
+    name: usablePerson || org,
+    email: addr,
+    title: norm(intake.title),
+    phone: norm(intake.phone),
+  };
+
+  const domain = getOrgDomain(addr);
+  if (domain) payload.email_domain = domain;
+
+  if (usablePerson || addr) {
+    payload.related_contacts = [{
+      name: usablePerson,
+      email: addr,
+      title: norm(intake.title),
+      phone: norm(intake.phone),
+      notes: norm(intake.notes),
+      contact_type: norm(intake.contactType) || 'other',
+      is_primary: true,
+    }];
+  }
+
+  return payload;
 }
