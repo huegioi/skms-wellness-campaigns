@@ -154,6 +154,11 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
         presenter_id: editForm.presenter_id || null,
         presenter_email: editForm.presenter_email || '',
         presenter_fee: editForm.presenter_fee != null ? editForm.presenter_fee : null,
+        // A new presenter hasn't been told anything — clear the stamp so the row offers
+        // to notify them instead of claiming the previous person was already notified.
+        ...((editForm.presenter_id || '') !== (event.presenter_id || '')
+          ? { presenter_notified_at: null, presenter_notified_email: '', presenter_notify_status: '', presenter_notify_error: '' }
+          : {}),
         client_name: editForm.client_name,
         start_date: startDateTime,
         end_date: endDateTime,
