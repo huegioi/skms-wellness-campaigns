@@ -47,6 +47,7 @@ export default function SchedulingHub() {
     end_date: '',
     end_time: '',
     location: '',
+    meeting_link: '',
     client_name: '',
     client_id: '',
     client_email: '',
@@ -194,6 +195,9 @@ export default function SchedulingHub() {
         title: eventData.title,
         description: eventData.description || '',
         location: eventData.location || '',
+        // Optional Zoom/Teams/Meet link chosen at booking time. The Google sync below only
+        // fills meeting_link when it's empty, so a pasted link is kept and no Meet replaces it.
+        meeting_link: (eventData.meeting_link || '').trim() || null,
         start_date: startDateTime,
         end_date: endDateTime,
         all_day: eventData.all_day,
@@ -1158,6 +1162,18 @@ export default function SchedulingHub() {
                       placeholder="Event location or meeting link"
                       className="mt-1 bg-white"
                     />
+                  </div>
+
+                  <div className="border-t border-gray-200 pt-4">
+                    <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Video link (after check-in)</Label>
+                    <Input
+                      type="url"
+                      value={bookingForm.meeting_link}
+                      onChange={(e) => setBookingForm(prev => ({ ...prev, meeting_link: e.target.value }))}
+                      placeholder="Paste a Zoom or Teams link — leave blank to create a Google Meet room"
+                      className="mt-1 bg-white"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Attendees are sent here after they complete the check-in survey. The calendar invite carries only the check-in link.</p>
                   </div>
 
                   <div className="border-t border-gray-200 pt-4">
