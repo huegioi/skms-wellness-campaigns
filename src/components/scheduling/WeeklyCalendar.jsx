@@ -7,7 +7,9 @@ import { base44 } from '@/api/base44Client';
 import EventDetailDialog from '@/components/calendar/EventDetailDialog';
 import { parseISO, format, addDays, startOfWeek, endOfWeek } from 'date-fns';
 
-export default function WeeklyCalendar({ sheets, calendarEvents = [], refetchEvents }) {
+// `sheets` is legacy (Google Sheet feed removed 2026-09-02); defaults to empty so the
+// calendar renders from CalendarEvent records alone.
+export default function WeeklyCalendar({ sheets = [], calendarEvents = [], refetchEvents }) {
   const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 0 }));
   const [selectedEvent, setSelectedEvent] = useState(null);
 
