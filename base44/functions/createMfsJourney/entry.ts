@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 import { loadRateCard } from '../../shared/loadRateCard.ts';
 import { getOrgDomain, deriveCompanyFromEmail } from '../../shared/emailDomain.ts';
+import { buildClientRecord, syncPrimaryContact } from '../../shared/clientContact.ts';
 
 const APP_BASE_URL = (Deno.env.get('APP_BASE_URL') || 'https://app.skillfulmeans.life').replace(/\/+$/, '');
 
@@ -108,9 +109,20 @@ Deno.serve(async (req) => {
       });
 
       if (clientId) {
-        await base44.asServiceRole.entities.Client.update(clientId, {
+        // Return visit. Patching the top-level name without touching
+        // related_contacts left the two out of step, and the next contact edit
+        // reverted this one. syncPrimaryContact carries the change into the
+        // contact list as well.
+        const existingClient = await base44.asServiceRole.entities.Client.get(clientId).catch(() => null);
+        const clientPatch = {
           name: contact_name, company: company_name || undefined, industry: industry || undefined,
           company_size: headcountToBracket(headcountNum), employee_count: headcountNum,
+        };
+        await base44.asServiceRole.entities.Client.update(clientId, {
+          ...clientPatch,
+          ...(existingClient
+            ? { related_contacts: syncPrimaryContact(existingClient, clientPatch) }
+            : {}),
         });
       }
       if (leadId) {
@@ -126,9 +138,14 @@ Deno.serve(async (req) => {
 
       const resolvedCompany = company_name || deriveCompanyFromEmail(normalizedEmail) || 'Unknown Company';
       const client = await base44.asServiceRole.entities.Client.create({
-        name: contact_name, email: normalizedEmail,
+        // Seeds related_contacts with this person as the primary, so the contact
+        // list and the mirrored top-level fields agree from the first save.
+        ...buildClientRecord({
+          company: resolvedCompany,
+          contactName: contact_name,
+          email: normalizedEmail,
+        }),
         email_domain: getOrgDomain(normalizedEmail),
-        company: resolvedCompany,
         company_size: sizeBracket, employee_count: headcountNum, industry: industry || undefined,
         is_assessment_lead: true, client_stage: 'event_follow_up',
         portal_token: crypto.randomUUID(), tags: ['MFS·ROI'],
