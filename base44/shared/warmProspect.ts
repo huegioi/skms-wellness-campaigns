@@ -98,7 +98,9 @@ export async function upsertClientLead(
       existing: true,
       // is_assessment_lead true = still a prospect. Anything else is a client.
       is_current_client: existing.is_assessment_lead !== true,
-      company_name: existing.name || existing.company || input.company_name || null,
+      // The company is the client's identity — `name` is the contact field and
+      // must never be read as the organization.
+      company_name: existing.company || existing.name || input.company_name || null,
       domain,
     };
   }
@@ -107,10 +109,26 @@ export async function upsertClientLead(
   // Client requires name, email AND company — omitting `company` silently
   // fails validation and leaves an orphan profile with no client_id.
   const orgName = (input.company_name || domain).toString().slice(0, 200);
+  // The rung often captures a human name — it was being collected and dropped,
+  // which is one reason so many Clients carry the organization in the contact
+  // field. Use it when we have it. Falling back to orgName only satisfies the
+  // required-field rule: resolveClientContact reads name === company as "no
+  // contact known", so nothing downstream will greet the company as a person.
+  const contactName = (input.contact_name || '').toString().trim().slice(0, 200);
   try {
     const created = await base44.asServiceRole.entities.Client.create({
-      name: orgName,
+      name: contactName || orgName,
       company: orgName,
+      ...(contactName
+        ? {
+            related_contacts: [{
+              name: contactName,
+              email: input.email || '',
+              is_primary: true,
+              contact_type: 'other',
+            }],
+          }
+        : {}),
       email: input.email || undefined,
       email_domain: domain,
       industry: input.industry || undefined,
@@ -124,7 +142,7 @@ export async function upsertClientLead(
     });
     return {
       client_id: created.id, existing: false, is_current_client: false,
-      company_name: created.name, domain,
+      company_name: orgName, domain,
     };
   } catch (err) {
     const detail = `${(err as any)?.message || err} :: ${JSON.stringify((err as any)?.response?.data || (err as any)?.body || {})}`;
