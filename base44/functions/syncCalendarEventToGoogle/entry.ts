@@ -228,7 +228,11 @@ Deno.serve(async (req) => {
       const patch = {};
       if (googleEventId !== event.google_event_id) patch.google_event_id = googleEventId;
       if (meetEventId !== (event.google_meet_event_id || null)) patch.google_meet_event_id = meetEventId;
-      if (meetLink && meetLink !== event.meeting_link) patch.meeting_link = meetLink;
+      // Only fill/refresh meeting_link when it's empty or already a Meet URL — a Zoom/Teams
+      // link William pasted by hand must survive a re-sync.
+      const existing = event.meeting_link || '';
+      const existingIsMeet = /meet\.google\.com/i.test(existing);
+      if (meetLink && meetLink !== existing && (!existing || existingIsMeet)) patch.meeting_link = meetLink;
       if (Object.keys(patch).length) {
         await base44.asServiceRole.entities.CalendarEvent.update(eventId, patch);
       }
