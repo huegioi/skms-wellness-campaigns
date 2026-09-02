@@ -203,7 +203,9 @@ Deno.serve(async (req) => {
           meetEventId = null;
         }
       }
-      if (!meetEventId) {
+      // A hand-chosen Zoom/Teams link means no Meet room is wanted — don't create a holder.
+      const usesOtherProvider = !!event.meeting_link && !/meet\.google\.com/i.test(event.meeting_link);
+      if (!meetEventId && !usesOtherProvider) {
         const holderRes = await fetch(`${GCAL}?sendUpdates=none&conferenceDataVersion=1`, {
           method: 'POST',
           headers: jsonHeaders,
