@@ -44,7 +44,11 @@ Deno.serve(async (req) => {
       categories: ['sales_process', 'delivery'],
       internal_key: _ik,
     }),
-    base44.functions.invoke('mayaContext', { action: 'delivery', internal_key: _ik }),
+    // Delivery context is non-fatal: a failure here should degrade the briefing, not kill it.
+    base44.functions.invoke('mayaContext', { action: 'delivery', internal_key: _ik }).catch((e) => {
+      console.log('[mayaDailyBriefing] delivery context failed:', e?.message || e);
+      return { data: {} };
+    }),
   ]);
   const bd = bundleRes.data || {};
   const globalContext = bd.globalText || '';
