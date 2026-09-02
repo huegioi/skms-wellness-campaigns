@@ -65,7 +65,11 @@ Deno.serve(async (req) => {
     const results = [];
     for (let i = 0; i < recipientEmails.length; i++) {
       const toEmail = recipientEmails[i];
-      const toName = recipientNames?.[i] || toEmail;
+      // A missing name greets nobody rather than greeting an email address or
+      // an organization. `event.client_name` is the CLIENT (the company), so a
+      // caller must pass a resolved human name here or pass nothing at all.
+      const rawName = (recipientNames?.[i] || '').trim();
+      const toName = rawName && !rawName.includes('@') ? rawName : '';
 
       const emailBody = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -73,7 +77,7 @@ Deno.serve(async (req) => {
             <h1 style="color: white; margin: 0; font-size: 24px;">📅 Calendar Invite</h1>
           </div>
           <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb;">
-            <p style="color: #374151;">Hi ${toName},</p>
+            <p style="color: #374151;">${toName ? `Hi ${toName},` : 'Hi there,'}</p>
             <p style="color: #374151;">You have been invited to the following event:</p>
             <div style="background: white; border-left: 4px solid #013f7c; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h2 style="color: #013f7c; margin: 0 0 12px 0;">${event.title}</h2>
