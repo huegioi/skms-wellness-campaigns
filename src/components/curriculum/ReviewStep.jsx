@@ -633,8 +633,15 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
     
     try {
       console.log('Starting proposal submission...');
-      // Check if client already exists by email
-      const existingClients = await base44.entities.Client.filter({ email: clientEmail });
+      // Find the client by email, then by email DOMAIN — a different person at
+      // an organization we already have is the most common way a duplicate
+      // Client gets created. Free-mail domains identify a person, not an org, so
+      // getOrgDomain returns null for those and we fall back to exact email.
+      let existingClients = await base44.entities.Client.filter({ email: clientEmail });
+      const orgDomain = getOrgDomain(clientEmail);
+      if (existingClients.length === 0 && orgDomain) {
+        existingClients = await base44.entities.Client.filter({ email_domain: orgDomain });
+      }
       let clientId = null;
       
       // Map company size to enum value
@@ -654,8 +661,20 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
       if (existingClients.length > 0) {
         // Update existing client
         clientId = existingClients[0].id;
+        // Don't overwrite the client's primary contact with whatever was typed
+        // into this form — add this person to the contact list instead, and only
+        // take over the primary slot when the record has no usable contact.
+        const existing = existingClients[0];
+        const existingContact = resolveClientContact(existing, clientEmail);
+        const contactPatch = existingContact.confidence === 'none'
+          ? {
+              name: clientName,
+              email: clientEmail,
+              related_contacts: syncPrimaryContact(existing, { name: clientName, email: clientEmail }),
+            }
+          : {};
         await base44.entities.Client.update(clientId, {
-          name: clientName,
+          ...contactPatch,
           company: companyName,
           industry: assessmentData.industry || null,
           company_size: companySizeEnum,
@@ -669,10 +688,13 @@ export default function ReviewStep({ selections, onBack, allServices = [], match
       } else {
         // Create new client
         const newClient = await base44.entities.Client.create({
-          name: clientName,
-          email: clientEmail,
+          // Seeds related_contacts with this person as the primary contact.
+          ...buildClientRecord({
+            company: companyName,
+            contactName: clientName,
+            email: clientEmail,
+          }),
           email_domain: getOrgDomain(clientEmail),
-          company: companyName,
           industry: assessmentData.industry || null,
           company_size: companySizeEnum,
           employee_count: parseInt(assessmentData.companySize, 10) || undefined,
