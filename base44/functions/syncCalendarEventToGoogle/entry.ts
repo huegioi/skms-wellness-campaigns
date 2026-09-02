@@ -209,8 +209,9 @@ Deno.serve(async (req) => {
               {
                 method: 'PATCH', headers: jsonHeaders,
                 body: JSON.stringify({
-                  summary: `Meet room · ${event.title}`,
-                  start: eventData.start, end: eventData.end,
+                  // Re-send the whole holder body so a presenter added, swapped or
+                  // removed since the last sync propagates (PATCH replaces attendees).
+                  ...holderBody(event, eventData),
                   ...(needsMeet ? { conferenceData: meetCreateRequest(event) } : {}),
                 })
               }
