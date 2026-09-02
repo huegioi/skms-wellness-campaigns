@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.23';
 import { getOrgDomain, deriveCompanyFromEmail, buildClientDomainIndex } from '../../shared/emailDomain.ts';
 import { findQBCustomer } from '../../shared/quickbooksAuth.ts';
+import { looksLikeOrganization } from '../../shared/clientContact.ts';
 import { linesFromInvoice, buildInvoiceBody } from '../../shared/quickbooksInvoiceBuilder.ts';
 
 const QB_API_URL = 'https://quickbooks.api.intuit.com/v3/company';
