@@ -123,7 +123,11 @@ export default function ViewProposal() {
                 <h1 className="text-xl md:text-2xl font-bold">
                   {proposal.company || client?.company || 'Your Wellness Proposal'}
                 </h1>
-                {proposal.client_name && (
+                {/* Only show a Contact line when it is actually a person. On many
+                    records `client_name` is the organization, which rendered as
+                    "Contact: <Company>" on the page the prospect opens. */}
+                {proposal.client_name &&
+                  proposal.client_name !== (proposal.company || client?.company) && (
                   <p className="text-white/80 text-sm">Contact: {proposal.client_name}</p>
                 )}
               </div>
