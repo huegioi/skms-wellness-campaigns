@@ -268,7 +268,6 @@ export default function MonthlyCalendar({ sheets = [], calendarEvents = [], refe
         {/* Color Key */}
         <div className="mt-4 pt-4 border-t flex flex-wrap gap-3 text-xs text-gray-600">
           <span className="font-semibold text-gray-700 mr-1">Key:</span>
-          <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-blue-400 inline-block"></span>Sheet only</span>
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-[#264d44] inline-block"></span>In app calendar</span>
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-purple-600 inline-block"></span>Synced to Google</span>
           <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-orange-500 inline-block"></span>Invite sent</span>
