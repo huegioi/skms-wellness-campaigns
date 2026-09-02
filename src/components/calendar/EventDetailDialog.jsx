@@ -700,9 +700,47 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
           {event.presenter && (
             <div className="flex items-start gap-3">
               <User className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm text-gray-500">Presenter</p>
                 <p className="font-medium">{event.presenter}</p>
+                {event.presenter_email && (
+                  <p className="text-xs text-gray-500 break-all">{event.presenter_email}</p>
+                )}
+
+                {event.presenter_notified_at ? (
+                  <div className="mt-1">
+                    <p className="text-xs text-green-700 flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Notified {format(parseISO(event.presenter_notified_at), 'MMM d')} at {format(parseISO(event.presenter_notified_at), 'h:mm a')}
+                      {event.presenter_notified_email && event.presenter_notified_email !== event.presenter_email
+                        ? ` · sent to ${event.presenter_notified_email}`
+                        : ''}
+                    </p>
+                    <button
+                      onClick={() => openNotifyPreview()}
+                      disabled={notifying}
+                      className="text-sm text-[#013f7c] hover:underline font-medium disabled:opacity-50 mt-0.5"
+                    >
+                      Send again
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1">
+                    {event.presenter_notify_status === 'failed' && (
+                      <p className="text-xs text-red-700 mb-0.5">
+                        Last attempt failed{event.presenter_notify_error ? ` — ${event.presenter_notify_error}` : ''}
+                      </p>
+                    )}
+                    <button
+                      onClick={() => openNotifyPreview()}
+                      disabled={notifying}
+                      className="text-sm text-[#013f7c] hover:underline font-medium disabled:opacity-50"
+                    >
+                      {notifying ? 'Preparing…' : 'Notify presenter'}
+                    </button>
+                    <span className="text-xs text-gray-400 ml-2">Nothing sends until you confirm</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
