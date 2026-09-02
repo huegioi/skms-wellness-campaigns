@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { getOrgDomain, deriveCompanyFromEmail } from '../../shared/emailDomain.ts';
+import { buildClientRecord } from '../../shared/clientContact.ts';
 
 
 const TEAM_EMAILS = (Deno.env.get("TEAM_EMAILS") || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
@@ -47,10 +48,16 @@ Deno.serve(async (req) => {
       const clientEmail = cf.email || referral.contact_email || '';
       const resolvedCompany = cf.company || referral.company_name || deriveCompanyFromEmail(clientEmail) || 'Unknown Company';
       const clientData = {
-        name: cf.name || referral.contact_name || '',
-        email: clientEmail,
+        // buildClientRecord seeds related_contacts with the referred person as
+        // the primary contact, so the contact list exists from the first save.
+        ...buildClientRecord({
+          company: resolvedCompany,
+          contactName: cf.name || referral.contact_name || '',
+          email: clientEmail,
+          title: cf.title,
+          phone: cf.phone,
+        }),
         email_domain: getOrgDomain(clientEmail),
-        company: resolvedCompany,
         referral_partner_id: partnerId,
         referral_partner_name: partnerName,
         client_stage: 'new_client_setup',
