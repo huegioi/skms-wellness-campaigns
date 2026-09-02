@@ -5,11 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Bell, Loader2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { proposalContactName } from '@/components/proposals/SendProposalDialog';
 
 export default function SendReminderDialog({ proposal, open, onOpenChange, onSent }) {
+  // `client_name` is stamped from `Client.name`, which often holds the
+  // organization — greet the human only when we actually have one.
+  const contactName = proposalContactName(proposal);
   const [email, setEmail] = useState(proposal?.client_email || '');
   const [subject, setSubject] = useState(`Reminder: Your Mental Fitness Campaign Proposal`);
-  const [message, setMessage] = useState(`Dear ${proposal?.client_name},
+  const [message, setMessage] = useState(`${contactName ? `Dear ${contactName},` : 'Hello,'}
 
 I wanted to follow up on the mental fitness campaign proposal we sent on ${proposal?.sent_date ? new Date(proposal.sent_date).toLocaleDateString() : 'recently'}.
 
