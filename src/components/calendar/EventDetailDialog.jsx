@@ -950,6 +950,55 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
           eventDate={event.start_date}
         />
       )}
+
+      {/* Notify preview — shows exactly what goes out, and to whom, before anything sends. */}
+      <Dialog open={!!notifyPreview} onOpenChange={(o) => { if (!o) setNotifyPreview(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Notify {notifyPreview?.to?.name || 'presenter'}?</DialogTitle>
+          </DialogHeader>
+
+          {notifyPreview && (
+            <div className="space-y-4">
+              <div className="flex items-start gap-2 text-sm">
+                <Send className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-gray-500">Email to </span>
+                  <span className="font-medium break-all">{notifyPreview.to?.email}</span>
+                </div>
+              </div>
+
+              {notifyPreview.alreadyNotifiedAt && (
+                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                  Already notified {format(parseISO(notifyPreview.alreadyNotifiedAt), 'MMM d')} — sending again will be a second email.
+                </p>
+              )}
+
+              <div className="border rounded-lg overflow-hidden">
+                <div className="px-3 py-2 bg-gray-50 border-b">
+                  <p className="text-xs text-gray-500">Subject</p>
+                  <p className="text-sm font-medium">{notifyPreview.subject}</p>
+                </div>
+                <pre className="px-3 py-3 text-xs text-gray-700 whitespace-pre-wrap font-sans max-h-56 overflow-y-auto m-0">{notifyPreview.text}</pre>
+              </div>
+
+              <p className="text-xs text-gray-500">
+                {notifyPreview.phone
+                  ? `A text will also go to ${notifyPreview.phone} once SMS is switched on — email only for now.`
+                  : 'Email only. No mobile number on file for this presenter.'}
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNotifyPreview(null)} disabled={notifying}>Cancel</Button>
+            <Button onClick={confirmNotify} disabled={notifying} className="bg-[#770142] hover:bg-[#5a0132]">
+              {notifying ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+              {notifying ? 'Sending…' : 'Send it'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
