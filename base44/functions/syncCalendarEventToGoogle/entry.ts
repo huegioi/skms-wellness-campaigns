@@ -255,10 +255,12 @@ Deno.serve(async (req) => {
       }
       await gcalDelete(event.google_meet_event_id);
       if (event.google_event_id || event.google_meet_event_id) {
+        // Drop the Meet room link with the Google event; keep a hand-pasted Zoom/Teams link.
+        const keepLink = event.meeting_link && !/meet\.google\.com/i.test(event.meeting_link);
         await base44.asServiceRole.entities.CalendarEvent.update(eventId, {
           google_event_id: null,
           google_meet_event_id: null,
-          meeting_link: null
+          ...(keepLink ? {} : { meeting_link: null })
         });
       }
 
