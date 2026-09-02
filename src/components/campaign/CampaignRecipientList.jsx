@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, UserX } from 'lucide-react';
 
 const STATUS_STYLES = {
   pending: 'bg-gray-100 text-gray-600',
@@ -15,6 +15,11 @@ const STATUS_STYLES = {
 
 const FILTER_STATUSES = ['pending', 'drafting', 'drafted', 'approved', 'error'];
 
+// Rows whose client record has no human contact name for the address we're
+// mailing. The draft greets them without a name rather than inventing one from
+// the email address, so these are worth fixing before approving anything.
+const NEEDS_NAME = 'needs_name';
+
 export default function CampaignRecipientList({ recipients, selectedId, onSelect }) {
   const [filter, setFilter] = useState('all');
 
@@ -22,8 +27,12 @@ export default function CampaignRecipientList({ recipients, selectedId, onSelect
   for (const r of recipients) {
     counts[r.status] = (counts[r.status] || 0) + 1;
   }
+  const needsNameCount = recipients.filter(r => r.contact_name_missing).length;
 
-  const filtered = filter === 'all' ? recipients : recipients.filter(r => r.status === filter);
+  const filtered =
+    filter === 'all' ? recipients
+    : filter === NEEDS_NAME ? recipients.filter(r => r.contact_name_missing)
+    : recipients.filter(r => r.status === filter);
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-full">
@@ -51,6 +60,20 @@ export default function CampaignRecipientList({ recipients, selectedId, onSelect
             </button>
           );
         })}
+        {needsNameCount > 0 && (
+          <button
+            onClick={() => setFilter(NEEDS_NAME)}
+            title="No contact name on the client record for this address"
+            className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1 ${
+              filter === NEEDS_NAME
+                ? 'bg-amber-600 text-white'
+                : 'bg-amber-100 text-amber-800 hover:bg-amber-200'
+            }`}
+          >
+            <UserX className="w-3 h-3" />
+            needs a name ({needsNameCount})
+          </button>
+        )}
       </div>
 
       {/* Recipient list */}
@@ -68,12 +91,21 @@ export default function CampaignRecipientList({ recipients, selectedId, onSelect
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-sm text-gray-900 truncate">{r.name || '(no name)'}</p>
-                  <p className="text-xs text-gray-500 truncate">{r.company || '-'}</p>
+                  {/* With no contact name the company carries the row, so an
+                      unresolved contact never renders as a blank line. */}
+                  <p className="font-medium text-sm text-gray-900 truncate">
+                    {r.name || r.company || '(no name)'}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {r.name ? (r.company || '-') : (r.email || '-')}
+                  </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   {(r.followup_round || 0) >= 1 && (
                     <Badge className="text-[10px] border-0 bg-[#770142]/10 text-[#770142] px-1.5">R{r.followup_round}</Badge>
+                  )}
+                  {r.contact_name_missing && (
+                    <Badge className="text-[10px] border-0 bg-amber-100 text-amber-800 px-1.5">no contact</Badge>
                   )}
                   {r.thin_context && (
                     <Badge className="text-[10px] border-0 bg-orange-100 text-orange-700 px-1.5">thin</Badge>
@@ -81,6 +113,12 @@ export default function CampaignRecipientList({ recipients, selectedId, onSelect
                   <Badge className={`text-[10px] border-0 ${STATUS_STYLES[r.status] || 'bg-gray-100'}`}>{r.status}</Badge>
                 </div>
               </div>
+              {r.contact_name_missing && (
+                <p className="text-xs text-amber-700 mt-1 flex items-start gap-1">
+                  <AlertCircle className="w-3 h-3 shrink-0 mt-0.5" />
+                  <span>No contact name on the client record — this draft greets without one. Add the person on the client's Contacts tab, then Refresh the audience.</span>
+                </p>
+              )}
               {r.duplicate_warning && (
                 <p className="text-xs text-amber-600 mt-1 truncate flex items-center gap-1">
                   <AlertCircle className="w-3 h-3 shrink-0" />
