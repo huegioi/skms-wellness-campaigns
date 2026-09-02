@@ -263,6 +263,8 @@ Deno.serve(async (req) => {
         googleEventId,
         meetEventId,
         meetLink: meetLink || null,
+        // Who, if anyone, was invited to the room — the event dialog shows this back.
+        presenterInvited: meetEventId ? (holderAttendees(event)[0]?.email || null) : null,
         strippedInviteMeet,
         message: meetLink
           ? 'Event synced to Google Calendar; Meet room ready (kept off the invite)'
