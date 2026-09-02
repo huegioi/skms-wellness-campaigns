@@ -17,6 +17,7 @@ import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
 import CheckinQrDialog from '@/components/shared/CheckinQrDialog';
 import { isChallengeEvent } from '@/lib/challengeUtils';
 import { buildInviteDescription, icsEscape, icsFold } from '@/lib/calendarInviteBody';
+import { resolveClientContact } from '@/lib/clientContacts';
 
 export default function EventDetailDialog({ event, open, onOpenChange, eventTypeConfig, onUpdated }) {
   const [deleting, setDeleting] = useState(false);
@@ -80,6 +81,16 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
       return checkins.length;
     },
     enabled: !!event.id,
+  });
+
+  // The client record behind this event, so the invite can greet the HUMAN at
+  // the address we're mailing. `event.client_name` is the CLIENT — the
+  // organization — and must never be used as a greeting name.
+  const { data: inviteClient = null } = useQuery({
+    queryKey: ['event_invite_client', event.client_id],
+    queryFn: () => base44.entities.Client.get(event.client_id),
+    enabled: !!event.client_id,
+    staleTime: 60000,
   });
 
   const { data: service = null } = useQuery({
@@ -306,17 +317,27 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
   };
 
   const handleSendInvite = async () => {
-    const emails = [inviteEmails.client, inviteEmails.presenter].filter(Boolean);
+    // Emails and names must stay index-aligned, so build them as pairs — a blank
+    // name is legitimate (we greet "Hi there,") and must not shift the array.
+    const recipients = [
+      inviteEmails.client
+        ? {
+            email: inviteEmails.client,
+            name: resolveClientContact(inviteClient, inviteEmails.client).name || '',
+          }
+        : null,
+      inviteEmails.presenter
+        ? { email: inviteEmails.presenter, name: event.presenter || '' }
+        : null,
+    ].filter(Boolean);
+    const emails = recipients.map(r => r.email);
     if (emails.length === 0) {
       toast.error('Please enter at least one email address');
       return;
     }
     setSendingInvite(true);
     try {
-      const names = [
-        inviteEmails.client ? (event.client_name || inviteEmails.client) : null,
-        inviteEmails.presenter ? (event.presenter || inviteEmails.presenter) : null
-      ].filter(Boolean);
+      const names = recipients.map(r => r.name);
       await base44.functions.invoke('sendCalendarInvite', {
         eventId: event.id,
         recipientEmails: emails,
