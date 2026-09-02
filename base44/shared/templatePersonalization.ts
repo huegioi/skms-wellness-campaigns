@@ -1,4 +1,6 @@
-// ── Portal email-template matching + personalization (shared) ──────────────
+import { resolveClientContact } from './clientContact.ts';
+
+// ── Portal email-template matching + personalization (shared) ──────────
 //
 // Used by getClientPortalData and getPublicProposal. Replaces the old model
 // where the portal received EVERY EmailTemplate and filtered in the browser.
@@ -150,7 +152,11 @@ export function resolvePortalTemplates(opts: {
     if (!reason) continue;
 
     const values = {
-      client_name: client.name || '',
+      // {{client_name}} is used as a greeting inside portal templates, so it must
+      // be the HUMAN, not `Client.name` — which on many records holds the
+      // organization. Empty when unknown; templates then read "Hi ," → authors
+      // should write "Hi {{client_name}}" only where a contact is expected.
+      client_name: resolveClientContact(client).name || '',
       company: client.company || client.name || '',
       service_name: (serviceId && serviceNameMap[serviceId]) || t.service_name || '',
       ...eventFields(event),
