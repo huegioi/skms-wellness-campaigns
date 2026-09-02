@@ -288,6 +288,53 @@ export function listClientContacts(client) {
   return out;
 }
 
+// Keep related_contacts in step with a patch to the mirrored top-level fields.
+//
+// The top-level name/email/title/phone are a MIRROR of the primary entry in
+// related_contacts. Several paths — inline edits on the client detail view, the
+// client's own portal profile editor — wrote the top level only, so the two
+// drifted apart and the next contact edit silently reverted them. Pass the patch
+// through this and write the returned array alongside it.
+//
+// KEEP IN SYNC with syncPrimaryContact in base44/shared/clientContact.ts.
+export function syncPrimaryContact(client, patch = {}) {
+  const c = client || {};
+  const list = Array.isArray(c.related_contacts) ? c.related_contacts.map(x => ({ ...x })) : [];
+
+  const pick = (v, fallback) => (v === undefined ? fallback : v);
+  const nextEmail = norm(pick(patch.email, c.email));
+  const nextName = norm(pick(patch.name, c.name));
+  const nextTitle = norm(pick(patch.title, c.title));
+  const nextPhone = norm(pick(patch.phone, c.phone));
+  const company = norm(pick(patch.company, c.company));
+  // Never let the organization land in a contact row.
+  const person = nextName && !looksLikeOrganization(nextName, company) ? nextName : '';
+
+  // The row being edited: the one on the OLD primary address (so a changed email
+  // updates that person rather than orphaning them), else the new address, else
+  // whatever is flagged primary.
+  let idx = key(c.email) ? list.findIndex(x => key(x && x.email) === key(c.email)) : -1;
+  if (idx < 0 && key(nextEmail)) idx = list.findIndex(x => key(x && x.email) === key(nextEmail));
+  if (idx < 0) idx = list.findIndex(x => x && x.is_primary);
+
+  const row = {
+    contact_type: 'other',
+    notes: '',
+    ...(idx >= 0 ? list[idx] : {}),
+    name: person,
+    email: nextEmail,
+    title: nextTitle,
+    phone: nextPhone,
+    is_primary: true,
+  };
+
+  if (idx >= 0) list[idx] = row;
+  else list.unshift(row);
+  const primaryAt = idx >= 0 ? idx : 0;
+
+  return list.map((x, i) => ({ ...x, is_primary: i === primaryAt }));
+}
+
 // The client's display identity — the organization, always.
 export function clientOrgName(client) {
   const c = client || {};
