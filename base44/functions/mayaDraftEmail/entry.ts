@@ -68,7 +68,15 @@ ${fullContext}
 STRATEGIC OBJECTIVE (Maya's Layer 2 advice already generated):
 ${strategic_insights}
 
-TASK: Write a highly personalized, natural, and persuasive email to ${recipientName} executing this exact strategic objective. Use the email history and internal notes in the context above so you do not repeat yourself and you reference relevant details. Write in Maya's voice (warm, professional, direct).
+TASK: Write a highly personalized, natural, and persuasive email to ${recipientName || `the contact at ${recipientEmail}`} executing this exact strategic objective. Use the email history and internal notes in the context above so you do not repeat yourself and you reference relevant details. Write in Maya's voice (warm, professional, direct).
+
+NAME RULES (ABSOLUTE — these override every other instruction):
+${recipientName
+  ? `- The recipient is ${recipientName}. Greet them by their first name and use no other name for them.`
+  : `- We do NOT know this recipient's name (the record has the organization where the contact should be). Open with a nameless greeting: "Hi there," or "Hello,".`}
+- NEVER infer, guess or construct a person's name from an email address. An address local-part is not a name.
+- NEVER use the company name as the person's name.
+- NEVER borrow a name from the context above unless it is stated as THIS recipient's name. Other people appear in the history; they are not who we are writing to.
 
 CRITICAL EMAIL RULES:
 1. Short & Punchy: Keep the email under 120 words.
