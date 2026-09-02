@@ -210,6 +210,60 @@ export function clientOrgName(client: AnyRecord | null | undefined): string {
   return norm(c.company) || norm(c.name) || '';
 }
 
+/**
+ * Keep `related_contacts` in step with a patch to the mirrored top-level fields.
+ *
+ * The top-level name/email/title/phone are a MIRROR of the primary entry in
+ * `related_contacts`. Several paths — the client's own portal profile editor,
+ * the assessment funnel's return-visit update, inline edits on the client detail
+ * view — wrote the top level only, so the two drifted apart and the next contact
+ * edit silently reverted them. Pass the patch through this and write the returned
+ * array alongside it.
+ *
+ * Returns the updated contact list; the caller still writes the top-level fields.
+ */
+export function syncPrimaryContact(
+  client: AnyRecord | null | undefined,
+  patch: AnyRecord = {},
+): AnyRecord[] {
+  const c: AnyRecord = client || {};
+  const list: AnyRecord[] = Array.isArray(c.related_contacts)
+    ? c.related_contacts.map((x: AnyRecord) => ({ ...x }))
+    : [];
+
+  const nextEmail = norm(patch.email ?? c.email);
+  const nextName = norm(patch.name ?? c.name);
+  const nextTitle = norm(patch.title ?? c.title);
+  const nextPhone = norm(patch.phone ?? c.phone);
+  const company = norm(patch.company ?? c.company);
+  // Never let the organization land in a contact row.
+  const person = nextName && !looksLikeOrganization(nextName, company) ? nextName : '';
+
+  // The row being edited: the one on the OLD primary address (so a changed email
+  // updates that person rather than orphaning them), else the new address, else
+  // whatever is flagged primary.
+  let idx = key(c.email) ? list.findIndex(x => key(x?.email) === key(c.email)) : -1;
+  if (idx < 0 && key(nextEmail)) idx = list.findIndex(x => key(x?.email) === key(nextEmail));
+  if (idx < 0) idx = list.findIndex(x => x?.is_primary);
+
+  const row: AnyRecord = {
+    contact_type: 'other',
+    notes: '',
+    ...(idx >= 0 ? list[idx] : {}),
+    name: person,
+    email: nextEmail,
+    title: nextTitle,
+    phone: nextPhone,
+    is_primary: true,
+  };
+
+  if (idx >= 0) list[idx] = row;
+  else list.unshift(row);
+  const primaryAt = idx >= 0 ? idx : 0;
+
+  return list.map((x, i) => ({ ...x, is_primary: i === primaryAt }));
+}
+
 export interface ClientIntake {
   company?: string | null;
   contactName?: string | null;
