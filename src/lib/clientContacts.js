@@ -13,7 +13,28 @@ import { getOrgDomain } from '@/lib/emailDomain';
 // (getOrgDomain returns null). In that case we keep the existing domain rather
 // than blanking the org identity key. Do not read anything else from it.
 export function contactsUpdate(contacts, client) {
-  const list = contacts.map(c => ({ ...c }));
+  let list = contacts.map(c => ({ ...c }));
+
+  // Nothing in the list can serve as the client's own contact — e.g. the only
+  // entry is a broker, on a record whose related_contacts array was empty
+  // (which is most of them). Carry the record's existing contact in as the
+  // primary rather than letting a third party take the slot: adding a broker to
+  // a client must never repoint who that client is.
+  const hasCandidate = list.some(c => c && (c.is_primary || !THIRD_PARTY.has(c.contact_type)));
+  if (!hasCandidate && client && (norm(client.name) || norm(client.email))) {
+    const incumbent = norm(client.name);
+    list = [{
+      // Never carry the organization in as a person.
+      name: incumbent && !looksLikeOrganization(incumbent, client.company) ? incumbent : '',
+      email: norm(client.email),
+      title: norm(client.title),
+      phone: norm(client.phone),
+      notes: '',
+      contact_type: 'other',
+      is_primary: true,
+    }, ...list];
+  }
+
   const primary = pickPrimary(list, client);
   if (!primary) return { related_contacts: [] };
 
@@ -62,12 +83,15 @@ function pickPrimary(list, client) {
     if (incumbent) return incumbent;
   }
 
-  const THIRD_PARTY = new Set(['broker', 'wellness_consultant']);
-  const internal = list.find(c => !THIRD_PARTY.has(c && c.contact_type));
+  const internal = list.find(c => c && !THIRD_PARTY.has(c.contact_type));
   if (internal) return internal;
 
   return list[0];
 }
+
+// Contact types that belong to somebody else's organization. They are contacts
+// ON a client, never the client's own primary contact.
+const THIRD_PARTY = new Set(['broker', 'wellness_consultant']);
 
 // Build a well-formed Client payload from intake fields.
 //
