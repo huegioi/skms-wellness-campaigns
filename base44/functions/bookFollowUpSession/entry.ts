@@ -140,7 +140,10 @@ Deno.serve(async (req) => {
       end_date: endDateTime,
       client_id: clientId || undefined,
       lead_id: leadId || undefined,
-      client_name: contactName,
+      // CalendarEvent.client_name is the CLIENT, i.e. the organization — it is
+      // rendered as "Client: X" on invites and event rows. The person goes in
+      // the description, not here.
+      client_name: companyName,
       meeting_link: meetLink,
       location: checkinUrl,
       checkin_token,
