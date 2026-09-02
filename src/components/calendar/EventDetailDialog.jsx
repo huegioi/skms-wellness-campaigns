@@ -40,6 +40,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
     title: event.title,
     description: event.description || '',
     location: event.location || '',
+    meeting_link: event.meeting_link || '',
     presenter: event.presenter || '',
     presenter_id: event.presenter_id || '',
     presenter_fee: event.presenter_fee ?? null,
@@ -144,6 +145,8 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
         title: editForm.title,
         description: editForm.description,
         location: editForm.location,
+        // Video link handed to attendees after check-in — any provider (Meet, Zoom, Teams).
+        meeting_link: (editForm.meeting_link || '').trim() || null,
         presenter: editForm.presenter,
         presenter_id: editForm.presenter_id || null,
         presenter_fee: editForm.presenter_fee != null ? editForm.presenter_fee : null,
@@ -476,6 +479,17 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
               />
             </div>
 
+            <div>
+              <Label>Video link (attendees are sent here after check-in)</Label>
+              <Input
+                type="url"
+                value={editForm.meeting_link}
+                onChange={(e) => setEditForm(prev => ({ ...prev, meeting_link: e.target.value }))}
+                placeholder="https://zoom.us/j/…  ·  https://teams.microsoft.com/…  ·  https://meet.google.com/…"
+              />
+              <p className="text-xs text-gray-400 mt-1">Paste a Zoom, Teams, or Meet link. Leave blank to fall back to the Google Meet room created on sync.</p>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Start Date</Label>
@@ -607,12 +621,18 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
             </div>
           )}
 
-          {/* Google Meet — the link attendees are handed after check-in */}
-          {(event.meeting_link || event.google_event_id) && (
+          {/* Video link — the link attendees are handed after check-in (Meet, Zoom, Teams, …) */}
+          {(() => {
+            const link = event.meeting_link || '';
+            const provider = /meet\.google\.com/i.test(link) ? 'Google Meet'
+              : /zoom\.(us|com)/i.test(link) ? 'Zoom'
+              : /teams\.(microsoft|live)\.com/i.test(link) ? 'Microsoft Teams'
+              : link ? 'Video link' : null;
+            return (
             <div className="flex items-start gap-3">
               <Video className="w-5 h-5 text-gray-400 mt-0.5" />
               <div className="min-w-0">
-                <p className="text-sm text-gray-500">Google Meet</p>
+                <p className="text-sm text-gray-500">{provider || 'Video link'} <span className="text-gray-400">· sent to attendees after check-in</span></p>
                 {event.meeting_link ? (
                   <>
                     <a href={event.meeting_link} target="_blank" rel="noopener noreferrer" className="font-medium text-[#013f7c] hover:underline break-all">
@@ -622,34 +642,49 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
                       <button
                         onClick={() => {
                           navigator.clipboard.writeText(event.meeting_link);
-                          toast.success('Meet link copied!');
+                          toast.success('Link copied!');
                         }}
                         className="text-sm text-[#013f7c] hover:underline font-medium"
                       >
-                        Copy Meet link
+                        Copy link
                       </button>
                       <span className="text-gray-300">·</span>
                       <a href={event.meeting_link} target="_blank" rel="noopener noreferrer" className="text-sm text-[#013f7c] hover:underline font-medium">
                         Open
                       </a>
+                      <span className="text-gray-300">·</span>
+                      <button onClick={() => setEditing(true)} className="text-sm text-[#013f7c] hover:underline font-medium">
+                        Change link
+                      </button>
                     </div>
                     <p className="text-xs text-gray-400 mt-0.5">Not on the calendar invite (that carries only the check-in link). Attendees get this automatically after they check in.</p>
                   </>
                 ) : (
                   <>
-                    <p className="text-sm text-amber-700">No Meet link on this event yet — attendees who check in will see "no video link".</p>
-                    <button
-                      onClick={handleSyncToGoogle}
-                      disabled={syncing}
-                      className="text-sm text-[#013f7c] hover:underline font-medium disabled:opacity-50"
-                    >
-                      {syncing ? 'Adding…' : 'Add Meet link'}
-                    </button>
+                    <p className="text-sm text-amber-700">No video link on this event yet — attendees who check in will see "no video link".</p>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <button onClick={() => setEditing(true)} className="text-sm text-[#013f7c] hover:underline font-medium">
+                        Paste a Zoom / Teams / Meet link
+                      </button>
+                      {event.google_event_id && (
+                        <>
+                          <span className="text-gray-300">·</span>
+                          <button
+                            onClick={handleSyncToGoogle}
+                            disabled={syncing}
+                            className="text-sm text-[#013f7c] hover:underline font-medium disabled:opacity-50"
+                          >
+                            {syncing ? 'Adding…' : 'Create a Google Meet room'}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </>
                 )}
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {event.client_name && (
             <div className="flex items-start gap-3">
