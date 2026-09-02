@@ -35,6 +35,8 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
   const [syncing, setSyncing] = useState(false);
   const [markingComplete, setMarkingComplete] = useState(false);
   const [sendingInvite, setSendingInvite] = useState(false);
+  const [notifying, setNotifying] = useState(false);
+  const [notifyPreview, setNotifyPreview] = useState(null);
   const [inviteEmails, setInviteEmails] = useState({ client: event.client_email || '', presenter: event.presenter_email || '' });
   const [editForm, setEditForm] = useState({
     title: event.title,
@@ -230,6 +232,49 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
     a.download = `${event.title.replace(/\s+/g, '-')}.ics`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  // Two steps on purpose: this fetches what WOULD be sent and shows it. Nothing leaves
+  // the app until the confirm button in the preview dialog.
+  const openNotifyPreview = async () => {
+    setNotifying(true);
+    try {
+      const res = await base44.functions.invoke('notifyPresenterAssignment', {
+        eventId: event.id,
+        preview: true,
+      });
+      if (res.data?.error) {
+        toast.error(res.data.error);
+        return;
+      }
+      setNotifyPreview(res.data);
+    } catch (e) {
+      toast.error(e?.response?.data?.error || e.message || 'Could not build the notification');
+    } finally {
+      setNotifying(false);
+    }
+  };
+
+  const confirmNotify = async () => {
+    setNotifying(true);
+    try {
+      const res = await base44.functions.invoke('notifyPresenterAssignment', {
+        eventId: event.id,
+      });
+      if (res.data?.success) {
+        toast.success(`Sent to ${res.data.to?.email}`, {
+          description: 'They can accept or decline from their presenter portal.',
+        });
+        setNotifyPreview(null);
+        if (onUpdated) onUpdated();
+      } else {
+        toast.error(res.data?.error || 'Notification failed');
+      }
+    } catch (e) {
+      toast.error(e?.response?.data?.error || e.message || 'Notification failed');
+    } finally {
+      setNotifying(false);
+    }
   };
 
   const handleSyncToGoogle = async () => {
