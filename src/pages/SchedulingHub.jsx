@@ -235,11 +235,14 @@ export default function SchedulingHub() {
 
       return { calendarEvent, sync };
     },
-    onSuccess: ({ sync }) => {
+    onSuccess: ({ calendarEvent, sync }) => {
       queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
       queryClient.invalidateQueries({ queryKey: ['delivery-events'] });     // client-card chip
       queryClient.invalidateQueries({ queryKey: ['fulfillment-events'] });  // proposal fulfillment card
-      if (sync.status === 'synced' && sync.meetLink) {
+      const ownLink = calendarEvent?.meeting_link && !/meet\.google\.com/i.test(calendarEvent.meeting_link);
+      if (sync.status === 'synced' && ownLink) {
+        toast.success('Booked — added to Google Calendar.', { description: 'Attendees get your video link after they check in; the invite carries only the check-in link.' });
+      } else if (sync.status === 'synced' && sync.meetLink) {
         toast.success('Booked — added to Google Calendar, Meet room ready.', { description: 'The invite carries only the check-in link; attendees get the Meet after they check in.' });
       } else if (sync.status === 'synced') {
         toast.success('Booked — added to Google Calendar.', { description: 'No Meet link came back; open the event and click Sync to add one.' });
@@ -504,6 +507,7 @@ export default function SchedulingHub() {
       end_date: '',
       end_time: '',
       location: '',
+      meeting_link: '',
       client_name: '',
       client_id: '',
       client_email: '',
