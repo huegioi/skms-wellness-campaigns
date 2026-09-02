@@ -66,7 +66,7 @@ export default function ClaimsLite() {
 
   const [carried, setCarried] = useState(null);
   const [known, setKnown] = useState(null);
-  const [meta, setMeta] = useState({ company_name: '', email: '', headcount: '', avgSalary: '', industry: '' });
+  const [meta, setMeta] = useState({ company_name: '', contact_name: '', email: '', headcount: '', avgSalary: '', industry: '' });
   const [raw, setRaw] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [showMore, setShowMore] = useState(false);
@@ -87,6 +87,7 @@ export default function ClaimsLite() {
         setMeta(m => ({
           ...m,
           company_name: c.company_name || k?.company_name || m.company_name,
+          contact_name: c.contact_name || k?.contact_name || m.contact_name,
           email: c.email || m.email,
           headcount: (c.headcount ?? k?.headcount ?? m.headcount) || '',
           avgSalary: c.avg_salary ?? m.avgSalary,
