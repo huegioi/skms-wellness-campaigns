@@ -12,6 +12,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { enumToApproxCount } from '@/components/curriculum/pricingUtils';
 import { calcPricing } from '@/components/curriculum/ChallengePricingEstimator';
+import { resolveClientContact } from '@/lib/clientContacts';
 import { findMatchedStage, formatStageLabel } from '@/lib/rateCard';
 import { WELLNESS_BOX_PRICES, BOX_KEY_TO_SERVICE_NAME, BOX_DISPLAY_NAMES, resolveBoxPrices, applyBoxFloor, customBoxUnitPrice } from '@/lib/wellnessBoxes';
 
@@ -300,7 +301,11 @@ export default function EditProposal() {
       setFormData({
         ...formData,
         client_id: clientId,
-        client_name: selectedClient.name,
+        // Stamp the resolved HUMAN, not `Client.name` — on many records that
+        // field holds the organization, and the value stamped here ends up as
+        // "Dear <Company>," on the proposal email and "Prepared For:" on the PDF.
+        // Empty is correct when no contact is known; the company carries the doc.
+        client_name: resolveClientContact(selectedClient).name || '',
         client_email: selectedClient.email,
         company: selectedClient.company || ''
       });
@@ -448,8 +453,8 @@ export default function EditProposal() {
           <div class="subtitle">Prepared by SkillfulMeans</div>
         </div>
         <div class="contact-info">
-          <div class="contact-row"><span class="contact-label">Prepared For:</span> ${formData.client_name}</div>
-          ${formData.company ? `<div class="contact-row"><span class="contact-label">Company:</span> ${formData.company}</div>` : ''}
+          <div class="contact-row"><span class="contact-label">Prepared For:</span> ${formData.company || formData.client_name}</div>
+          ${formData.client_name && formData.client_name !== formData.company ? `<div class="contact-row"><span class="contact-label">Attn:</span> ${formData.client_name}</div>` : ''}
           <div class="contact-row"><span class="contact-label">Date:</span> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
         </div>
 
