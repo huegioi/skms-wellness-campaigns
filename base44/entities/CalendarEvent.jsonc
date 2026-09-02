@@ -102,6 +102,23 @@
       "type": "number",
       "description": "Per-session fee override for this event. If blank, the presenter's default_rate applies."
     },
+    "presenter_notified_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the assigned presenter was last sent an assignment notification. Cleared when the presenter changes so the new presenter can be notified."
+    },
+    "presenter_notified_email": {
+      "type": "string",
+      "description": "The address the last assignment notification actually went to."
+    },
+    "presenter_notify_status": {
+      "type": "string",
+      "description": "Outcome of the last assignment notification: sent, failed, or partial (one channel succeeded)."
+    },
+    "presenter_notify_error": {
+      "type": "string",
+      "description": "Error text from the last failed assignment notification, blank on success."
+    },
     "presenter_paid": {
       "type": "boolean",
       "default": false,
