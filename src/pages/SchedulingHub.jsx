@@ -3,18 +3,15 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { RefreshCw, Calendar, Clock, MapPin, Users, ExternalLink, Plus, Pencil, Check, X, FileText, FileSpreadsheet, CheckCircle2, LayoutGrid, List, Filter } from 'lucide-react';
+import { RefreshCw, Calendar, Clock, MapPin, Users, Plus, FileText, CheckCircle2, LayoutGrid, List, Filter } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { DemoBadge } from '@/components/shared/DemoBadge';
 import MonthlyCalendar from '@/components/scheduling/MonthlyCalendar';
 import WeeklyCalendar from '@/components/scheduling/WeeklyCalendar';
-import CompanySearch from '@/components/scheduling/CompanySearch';
 import ScheduleChecklist from '@/components/scheduling/ScheduleChecklist';
 import EventDetailDialog from '@/components/calendar/EventDetailDialog';
 import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
@@ -30,11 +27,12 @@ import { getProposalServiceItems, getProposalParty } from '@/lib/proposalFulfill
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 
+// 2026-09-02: the Google Sheet that used to feed this page is no longer maintained, so the
+// sheet poll (syncGoogleSheets), the sheet→CalendarEvent mirror (mirrorSheetEvents), the
+// sheet tabs, Company Search and Open Sheet were removed. The page now runs entirely on
+// CalendarEvent records plus the Book Service flow.
 export default function SchedulingHub() {
-  const SPREADSHEET_ID = '1dc8dAKe3HD161JMmrMyQgDOzDzTZS_RYME5MbuN9OY0';
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [editingCell, setEditingCell] = useState(null);
-  const [editValue, setEditValue] = useState('');
   const [bookServiceDialogOpen, setBookServiceDialogOpen] = useState(false);
   const [bookingSource, setBookingSource] = useState('invoice'); // 'invoice' | 'proposal'
   const [selectedInvoiceId, setSelectedInvoiceId] = useState('');
@@ -86,7 +84,6 @@ export default function SchedulingHub() {
     return pid ? { proposalId: pid, serviceId: urlParams.get('bookServiceId') || '' } : null;
   });
   const [pendingEventId, setPendingEventId] = useState(urlParams.get('eventId') || '');
-  const [addingToCalendar, setAddingToCalendar] = useState(null);
   const [calendarView, setCalendarView] = useState('week'); // 'month', 'week', 'list'
   const [eventLens, setEventLens] = useState('delivery'); // 'delivery' | 'meetings'
   const [filterType, setFilterType] = useState('all');
@@ -106,16 +103,6 @@ export default function SchedulingHub() {
     follow_up: { label: 'Follow Up', color: '#14B8A6', icon: Calendar },
     other: { label: 'Other', color: '#264d44', icon: Calendar }
   };
-
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['schedule', SPREADSHEET_ID],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('syncGoogleSheets', {});
-      return response.data;
-    },
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
-    refetchOnWindowFocus: true
-  });
 
   const { data: invoices = [] } = useQuery({
     queryKey: ['invoices'],
@@ -137,27 +124,11 @@ export default function SchedulingHub() {
     queryFn: () => base44.entities.Client.list('name', 500)
   });
 
-  const { data: calendarEvents = [], refetch: refetchCalendarEvents } = useQuery({
+  const { data: calendarEvents = [], isLoading, refetch: refetchCalendarEvents } = useQuery({
     queryKey: ['calendarEvents', eventRange],
-    queryFn: () => base44.entities.CalendarEvent.list('start_date', 1000)
+    queryFn: () => base44.entities.CalendarEvent.list('start_date', 1000),
+    refetchOnWindowFocus: true,
   });
-
-  // Mirror sheet rows into CalendarEvent records (auto-runs on mount + every 5 min)
-  const { data: mirrorResult } = useQuery({
-    queryKey: ['mirrorSheetEvents'],
-    queryFn: async () => {
-      const response = await base44.functions.invoke('mirrorSheetEvents', { window_days: 365 });
-      return response.data;
-    },
-    refetchInterval: 300000,
-    refetchOnWindowFocus: false,
-  });
-
-  useEffect(() => {
-    if (mirrorResult?.success) {
-      queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
-    }
-  }, [mirrorResult, queryClient]);
 
   const { data: cohortAssessments = [] } = useQuery({
     queryKey: ['cohort-assessments-all'],
@@ -282,44 +253,8 @@ export default function SchedulingHub() {
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
-    await Promise.all([
-      refetch(),
-      queryClient.invalidateQueries({ queryKey: ['mirrorSheetEvents'] }),
-    ]);
+    await refetchCalendarEvents();
     setTimeout(() => setIsRefreshing(false), 500);
-  };
-
-  const handleCellEdit = (sheetName, rowIndex, columnIndex, currentValue, headerRowIndex) => {
-    setEditingCell({ sheetName, rowIndex, columnIndex, headerRowIndex });
-    setEditValue(currentValue || '');
-  };
-
-  const handleCellSave = async () => {
-    if (!editingCell) return;
-
-    try {
-      const response = await base44.functions.invoke('syncGoogleSheets', {
-        action: 'update',
-        sheetName: editingCell.sheetName,
-        rowIndex: editingCell.rowIndex,
-        columnIndex: editingCell.columnIndex,
-        value: editValue,
-        headerRowIndex: editingCell.headerRowIndex
-      });
-
-      if (response.data.success) {
-        queryClient.invalidateQueries({ queryKey: ['schedule', SPREADSHEET_ID] });
-        setEditingCell(null);
-        setEditValue('');
-      }
-    } catch (error) {
-      alert('Failed to save changes: ' + error.message);
-    }
-  };
-
-  const handleCellCancel = () => {
-    setEditingCell(null);
-    setEditValue('');
   };
 
   // Range-filtered list for the All Events list view (forward/past window).
@@ -355,10 +290,10 @@ export default function SchedulingHub() {
   }, [calendarEvents, filterType, filterPresenter, eventRange]);
 
   // Apply ?bookProposalId=&bookServiceId= once the data it needs has loaded
-  // NOTE: must sit ABOVE the isLoading/error early returns (hook order), and must not
-  // run until the page has rendered past them — the handlers it calls are consts below.
+  // NOTE: must sit ABOVE the isLoading early return (hook order), and must not
+  // run until the page has rendered past it — the handlers it calls are consts below.
   useEffect(() => {
-    if (isLoading || error) return;
+    if (isLoading) return;
     if (!pendingBook || proposals.length === 0) return;
     const proposal = proposals.find(p => p.id === pendingBook.proposalId);
     if (!proposal) { setPendingBook(null); return; }
@@ -375,17 +310,17 @@ export default function SchedulingHub() {
     setPendingBook(null);
     window.history.replaceState({}, '', window.location.pathname);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingBook, proposals, allServices, allClients, isLoading, error]);
+  }, [pendingBook, proposals, allServices, allClients, isLoading]);
 
   // Apply ?eventId= — open that event's detail dialog
   useEffect(() => {
-    if (isLoading || error) return;
+    if (isLoading) return;
     if (!pendingEventId || calendarEvents.length === 0) return;
     const ev = calendarEvents.find(e => e.id === pendingEventId);
     if (ev) setSelectedEvent(ev);
     setPendingEventId('');
     window.history.replaceState({}, '', window.location.pathname);
-  }, [pendingEventId, calendarEvents, isLoading, error]);
+  }, [pendingEventId, calendarEvents, isLoading]);
 
   if (isLoading) {
     return (
@@ -398,25 +333,6 @@ export default function SchedulingHub() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
-        <Card className="p-8 max-w-md">
-          <div className="text-center">
-            <h2 className="text-xl font-bold text-red-600 mb-2">Error Loading Schedule</h2>
-            <p className="text-gray-600 mb-4">{error.message}</p>
-            <Button onClick={handleManualRefresh}>Try Again</Button>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  const sheets = data?.sheets || [];
-  const spreadsheetTitle = data?.title || 'Scheduling Hub';
-
-  // Sheet events are now mirrored into CalendarEvent records by the mirrorSheetEvents backend function.
-  // The Coming Up list shows CalendarEvent records only — no more raw parsed sheet rows.
 
   // Get upcoming CalendarEvent entities (next 30 days)
   const now = new Date();
@@ -447,7 +363,7 @@ export default function SchedulingHub() {
     })
     .sort((a, b) => parseISO(a.start_date) - parseISO(b.start_date));
 
-  // All upcoming events are CalendarEvent records (sheet-mirrored events have source_calendar='sheet')
+  // All upcoming events are CalendarEvent records
   const combinedUpcomingEvents = upcomingCalendarEvents
     .map(event => ({
       ...event,
@@ -719,7 +635,7 @@ export default function SchedulingHub() {
               </h1>
             </div>
             <p className="text-gray-600 text-sm">
-              Real-time sync with Google Sheets • Auto-updates every 30 seconds
+              Every booked session, challenge, and meeting in one place
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -740,16 +656,6 @@ export default function SchedulingHub() {
               <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <a 
-              href={`https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/edit`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Button className="bg-[#264d44] hover:bg-[#1a3830]" size="sm">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Open Sheet
-              </Button>
-            </a>
           </div>
         </div>
 
@@ -809,8 +715,6 @@ export default function SchedulingHub() {
                       allServices={allServices}
                       getEventAssessmentCounts={getEventAssessmentCounts}
                       onSelectEvent={setSelectedEvent}
-                      onAddToCalendar={addSheetEventToAppCalendar}
-                      addingToCalendar={addingToCalendar}
                       onMoveLens={handleMoveLens}
                     />
                   ))
@@ -935,10 +839,10 @@ export default function SchedulingHub() {
         </Card>
 
         {/* Calendar View */}
-        {sheets.length > 0 && (
+        {(
           <div className="mb-6">
-            {calendarView === 'month' && <MonthlyCalendar sheets={sheets} calendarEvents={calendarEvents} refetchEvents={refetchCalendarEvents} />}
-            {calendarView === 'week' && <WeeklyCalendar sheets={sheets} calendarEvents={calendarEvents} refetchEvents={refetchCalendarEvents} />}
+            {calendarView === 'month' && <MonthlyCalendar calendarEvents={calendarEvents} refetchEvents={refetchCalendarEvents} />}
+            {calendarView === 'week' && <WeeklyCalendar calendarEvents={calendarEvents} refetchEvents={refetchCalendarEvents} />}
             {calendarView === 'list' && (
               <Card className="p-6">
                 <h2 className="text-2xl font-bold mb-4" style={{ color: '#013f7c' }}>All Events</h2>
@@ -1024,9 +928,6 @@ export default function SchedulingHub() {
         <div className="mb-6">
           <SurveySendsCard />
         </div>
-
-        {/* Company Search Section */}
-        <CompanySearch sheets={sheets} onAddToCalendar={addSheetEventToAppCalendar} addingToCalendar={addingToCalendar} />
 
         {/* Sheets Tabs */}
         {sheets.length === 0 ? (
