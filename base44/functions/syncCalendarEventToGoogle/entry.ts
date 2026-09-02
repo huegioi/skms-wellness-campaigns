@@ -58,14 +58,32 @@ function extractMeetLink(gEvent) {
     || gEvent?.conferenceData?.entryPoints?.find(e => e.entryPointType === 'video')?.uri
     || '';
 }
+// The assigned presenter is the ONE attendee the holder ever carries. Being an invitee
+// on the event that owns the Meet is what lets a presenter outside our domain join
+// without knocking (same-domain presenters already could). sendUpdates=none on every
+// call means Google emails nobody — notifyPresenterAssignment is what tells them.
+function holderAttendees(event) {
+  const email = (event.presenter_email || '').trim();
+  return email ? [{ email, responseStatus: 'needsAction' }] : [];
+}
 function holderBody(event, eventData) {
+  const attendees = holderAttendees(event);
+  const hasPresenter = attendees.length > 0;
   return {
-    summary: `Meet room · ${event.title}`,
-    description: 'Holds the Google Meet room for this SkillfulMeans session. Attendees receive the link automatically after they check in. Do not invite attendees to this event — the client-facing invite is the separate event with the check-in link.',
+    // With a presenter invited the holder lands on THEIR calendar too, so it has to
+    // read as the session rather than as our internal plumbing.
+    summary: hasPresenter ? `Presenting · ${event.title}` : `Meet room · ${event.title}`,
+    description: hasPresenter
+      ? `You're presenting this SkillfulMeans session. Join with the Google Meet link on this event.\n\nAttendees join separately after they check in, so they may arrive a few minutes after the start time.\n\nHolds the Google Meet room for this session — the client-facing invite is a separate event carrying only the check-in link.`
+      : 'Holds the Google Meet room for this SkillfulMeans session. Attendees receive the link automatically after they check in. Do not invite attendees to this event — the client-facing invite is the separate event with the check-in link.',
     start: eventData.start,
     end: eventData.end,
     visibility: 'private',
-    transparency: 'transparent',
+    // Block the presenter's time when one is assigned; stay free/transparent otherwise.
+    transparency: hasPresenter ? 'opaque' : 'transparent',
+    attendees,
+    guestsCanInviteOthers: false,
+    guestsCanSeeOtherGuests: false,
     reminders: { useDefault: false, overrides: [] },
     extendedProperties: { private: { skms_event_id: event.id, skms_role: 'meet_holder' } },
   };
