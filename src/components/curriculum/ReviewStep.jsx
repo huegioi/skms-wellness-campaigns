@@ -5,6 +5,7 @@ import StepNavigation from './StepNavigation';
 import { Sparkles, Target, CheckCircle, Plus, Minus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { getOrgDomain } from '@/lib/emailDomain';
+import { buildClientRecord, resolveClientContact, syncPrimaryContact } from '@/lib/clientContacts';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { resolveBoxPrices, WELLNESS_BOX_PRICES, BOX_DISPLAY_NAMES, applyBoxFloor, customBoxUnitPrice } from '@/lib/wellnessBoxes';
