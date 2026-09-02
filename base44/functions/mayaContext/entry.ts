@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { resolveClientContact, listClientContacts } from '../../shared/clientContact.ts';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Maya Context Builder — shared backend function invoked by:
@@ -285,7 +286,10 @@ async function buildRecordContext(base44, record_type, record_id) {
     record = clients[0];
     if (!record) return { contextText: 'Client not found', recipientEmail: '', recipientName: '', owner: '' };
     recipientEmail = record.email || '';
-    recipientName = record.name || '';
+    // `Client.name` is the primary CONTACT field, but on many records it holds
+    // the organization instead. Resolve the human who owns this address; empty
+    // when there is none, so callers greet neutrally rather than guessing.
+    recipientName = resolveClientContact(record).name || '';
     owner = record.owner || 'William';
   } else if (record_type === 'partner' || record_type === 'lead') {
     const leads = await safeFilter(base44, 'Lead', { id: record_id });
@@ -389,10 +393,17 @@ async function buildRecordContext(base44, record_type, record_id) {
   if (record_type === 'client') {
     const renewalDate = getEffectiveRenewalDate(record, now);
     const daysToRenewal = daysUntilRenewal(record, now);
+    const primaryContact = resolveClientContact(record);
+    const contactRoster = listClientContacts(record);
     sections.push(`CLIENT RECORD:
 Name: ${record.company || record.name}
-Primary Contact: ${record.name}${record.title ? ` (${record.title})` : ''}
+Primary Contact: ${primaryContact.name
+      ? `${primaryContact.name}${primaryContact.title ? ` (${primaryContact.title})` : ''}`
+      : 'UNKNOWN — no human contact name is on file for this address. Address them without a name; never invent one, and never derive one from the email address.'}
 Email: ${record.email || 'None'}
+Contacts on file: ${contactRoster.length
+      ? '\n' + contactRoster.map(c => `  - ${c.name}${c.title ? `, ${c.title}` : ''}${c.email ? ` <${c.email}>` : ''}${c.phone ? ` · ${c.phone}` : ''}${c.is_primary ? ' [primary]' : ''}`).join('\n')
+      : 'none on record'}
 Industry: ${record.industry || 'Unknown'}
 Company Size: ${record.company_size || 'Unknown'}${record.employee_count ? ` (${record.employee_count} employees)` : ''}
 Client Stage: ${record.client_stage || 'Unknown'}
