@@ -146,8 +146,8 @@ export default function Proposals() {
     @media print{body{padding:20px}.section{page-break-inside:avoid}}</style></head><body>
     <div class="header"><h1>Mental Fitness Campaign Proposal</h1><div class="subtitle">Prepared by SkillfulMeans</div></div>
     <div class="contact-info">
-      <div class="contact-row"><span class="contact-label">Prepared For:</span>${proposal.client_name}</div>
-      ${proposal.company ? `<div class="contact-row"><span class="contact-label">Company:</span>${proposal.company}</div>` : ''}
+      <div class="contact-row"><span class="contact-label">Prepared For:</span>${proposal.company || proposal.client_name}</div>
+      ${proposal.client_name && proposal.client_name !== proposal.company ? `<div class="contact-row"><span class="contact-label">Attn:</span>${proposal.client_name}</div>` : ''}
       <div class="contact-row"><span class="contact-label">Date:</span>${new Date(proposal.created_date).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'})}</div>
     </div>
     ${proposal.narrative_summary ? `<div class="narrative"><div style="color:#770142;font-size:18px;font-weight:700;margin-bottom:10px">Program Overview</div><p style="white-space:pre-line">${proposal.narrative_summary}</p></div>` : ''}
