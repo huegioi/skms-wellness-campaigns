@@ -152,6 +152,10 @@
       "type": "string",
       "description": "Gmail message id / feed item link / page URL the event was extracted from"
     },
+    "date_evidence": {
+      "type": "string",
+      "description": "The exact text or field the date was read from (e.g. 'mec:startDate 2026-10-13', 'email \"October 13, 2026\"') \u2014 blank means the date was entered by hand"
+    },
     "confidence": {
       "type": "string",
       "enum": [
