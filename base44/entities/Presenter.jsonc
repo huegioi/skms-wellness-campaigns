@@ -13,7 +13,26 @@
     },
     "phone": {
       "type": "string",
-      "description": "Presenter's phone number"
+      "description": "Presenter's phone number as typed. Free text \u2014 phone_e164 is what actually gets texted."
+    },
+    "phone_e164": {
+      "type": "string",
+      "description": "The same number normalized to E.164 (+16122371146). Twilio only accepts this shape; derived automatically from `phone` on save."
+    },
+    "sms_opt_in": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this presenter agreed to receive texts. Carriers require provable consent \u2014 no text is sent without this."
+    },
+    "sms_opt_in_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When consent was recorded. This timestamp IS the proof of consent \u2014 do not clear it when re-saving."
+    },
+    "sms_opt_out_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Set when the presenter replies STOP (Twilio returns error 21610). Once set, texting stops permanently unless they re-subscribe with START."
     },
     "unique_portal_id": {
       "type": "string",
