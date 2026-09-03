@@ -42,6 +42,24 @@ function daysBetween(from, to) {
   return Math.round((startOfDay(to) - startOfDay(from)) / 86400000);
 }
 
+// Delivery vs meeting — the SAME rule the Schedule page uses in its Delivery/Meetings
+// lenses (src/components/scheduling/eventLenses.js). Kept in sync by hand because backend
+// functions can't import from src/. A workshop is delivery; a discovery call is not, and
+// treating the two alike is what made Maya flag networking chats as missing a presenter.
+const DELIVERY_TYPES = ['workshop', 'challenge', 'class', 'leadership', 'presentation', 'delivery'];
+const DELIVERY_KEYWORDS = ['workshop', 'challenge', 'class', 'training', 'presentation', 'lunch & learn', 'lunch and learn'];
+function isDeliveryEvent(event) {
+  if (!event) return false;
+  if (event.source === 'sheet' || event.source_calendar === 'sheet') return true;
+  if (event.event_type && DELIVERY_TYPES.includes(event.event_type)) return true;
+  if (event.service_id || event.proposal_id) return true;
+  if ((!event.event_type || event.event_type === 'other') && event.title) {
+    const lower = event.title.toLowerCase();
+    if (DELIVERY_KEYWORDS.some(kw => lower.includes(kw))) return true;
+  }
+  return false;
+}
+
 function nextCohortDate(now, monthIndex, day) {
   const year = now.getFullYear();
   let d = new Date(year, monthIndex, day);
