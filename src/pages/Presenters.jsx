@@ -16,10 +16,27 @@ import { useAuth } from '@/lib/AuthContext';
 
 const generatePortalId = () => crypto.randomUUID();
 
+// Twilio only accepts E.164. Type the number however you like; this is what gets texted.
+// US-default — anything that isn't 10 digits, or 11 starting with 1, or already +… is
+// left blank rather than guessing the wrong country.
+export const toE164 = (raw) => {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  if (s.startsWith('+')) {
+    const d = s.slice(1).replace(/\D/g, '');
+    return d.length >= 8 && d.length <= 15 ? '+' + d : '';
+  }
+  const d = s.replace(/\D/g, '');
+  if (d.length === 10) return '+1' + d;
+  if (d.length === 11 && d.startsWith('1')) return '+' + d;
+  return '';
+};
+
 const emptyForm = {
   name: '',
   email: '',
   phone: '',
+  sms_opt_in: false,
   default_rate: '',
   is_active: true,
   notes: ''
@@ -41,11 +58,19 @@ export default function Presenters() {
 
   const saveMutation = useMutation({
     mutationFn: async (data) => {
+      // Derive the sendable number, and stamp consent the first time it's given — that
+      // timestamp is the proof carriers require, so it is never cleared on re-save.
+      const payload = { ...data, phone_e164: toE164(data.phone) };
+      const hadConsent = editingPresenter?.sms_opt_in === true;
+      if (payload.sms_opt_in && !hadConsent) {
+        payload.sms_opt_in_at = new Date().toISOString();
+        payload.sms_opt_out_at = null;
+      }
       if (editingPresenter) {
-        return base44.entities.Presenter.update(editingPresenter.id, data);
+        return base44.entities.Presenter.update(editingPresenter.id, payload);
       } else {
         return base44.entities.Presenter.create({
-          ...data,
+          ...payload,
           unique_portal_id: generatePortalId()
         });
       }
@@ -69,6 +94,7 @@ export default function Presenters() {
       name: presenter.name || '',
       email: presenter.email || '',
       phone: presenter.phone || '',
+      sms_opt_in: presenter.sms_opt_in === true,
       default_rate: presenter.default_rate ?? '',
       is_active: presenter.is_active !== false,
       notes: presenter.notes || ''
