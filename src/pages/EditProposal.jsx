@@ -113,10 +113,23 @@ export default function EditProposal() {
 
   const saveMutation = useMutation({
     mutationFn: (data) => {
-      if (isNewProposal) {
-        return base44.entities.Proposal.create(data);
+      // Stamp the moment a status is first reached. Maya's follow-ups anchor on these:
+      // delivery reminders fire from accepted_date, and stalled-proposal detection ages
+      // off sent_date/viewed_date. Without the stamp everything falls back to
+      // updated_date, which moves every time the proposal is touched.
+      const prev = proposal?.status;
+      const nowIso = new Date().toISOString();
+      const stamped = { ...data };
+      if (data.status !== prev) {
+        if (data.status === 'sent' && !stamped.sent_date) stamped.sent_date = nowIso;
+        if (data.status === 'viewed' && !stamped.viewed_date) stamped.viewed_date = nowIso;
+        if (data.status === 'accepted' && !stamped.accepted_date) stamped.accepted_date = nowIso;
+        if (data.status === 'declined' && !stamped.declined_date) stamped.declined_date = nowIso;
       }
-      return base44.entities.Proposal.update(proposalId, data);
+      if (isNewProposal) {
+        return base44.entities.Proposal.create(stamped);
+      }
+      return base44.entities.Proposal.update(proposalId, stamped);
     },
     onSuccess: async (savedProposal, variables) => {
       if (isNewProposal) {
