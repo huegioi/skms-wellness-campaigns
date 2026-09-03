@@ -17,6 +17,12 @@ const SEASONAL_THEMES = {
   December:  ['Holiday Stress & Burnout Prevention', 'Year-End Reflection & Goal Planning', 'Giving & Volunteer Wellness'],
 };
 
+// Whole-dollar money for prompt lines — keeps the LLM from re-formatting figures.
+function fmtMoney0(n) {
+  const v = Number(n) || 0;
+  return '$' + v.toLocaleString('en-US', { maximumFractionDigits: 0 });
+}
+
 function daysDiff(a, b) {
   return (a - b) / (1000 * 60 * 60 * 24);
 }
@@ -325,8 +331,16 @@ ${globalContext}
 KNOWLEDGE BASE (sales process + delivery):
 ${knowledgeText}
 
-DELIVERY INTELLIGENCE:
-Today/tomorrow sessions (${delivery.todayTomorrowCount || 0}): ${delivery.todayTomorrowSessions?.map(s => `${s.title} — ${s.start} (${s.client || 'no client'}${s.completed ? ', ✓done' : ''}${s.presenterAccepted ? '' : ', presenter NOT accepted'})`).join('; ') || 'none'}
+SALES INTELLIGENCE (deals NOT yet won — these belong in **Sales**, never Delivery):
+Open proposals: ${sales.openProposalCount || 0}, ${fmtMoney0(sales.openPipelineValue)} total
+Stalled proposals (${sales.stalledProposalCount || 0}, ${fmtMoney0(sales.stalledValue)} at risk): ${sales.stalledProposals?.map(p => `${p.client} ${fmtMoney0(p.amount)} — ${p.status}, idle ${p.idleDays}d`).join('; ') || 'none'}
+Meetings with nothing logged after (${sales.meetingsNoFollowUpCount || 0}): ${sales.meetingsNoFollowUp?.map(m => `${m.client || m.title} — ${m.daysAgo}d ago`).join('; ') || 'none'}
+Leads past their follow-up date (${sales.overdueLeadCount || 0}): ${sales.overdueLeads?.map(l => `${l.who} — ${l.overdueDays}d overdue${l.status ? ', ' + l.status.replace(/_/g, ' ') : ''}`).join('; ') || 'none'}
+Referral partners gone quiet (${sales.quietPartnerCount || 0}): ${sales.quietPartners?.map(p => `${p.who} — ${p.count} referral(s), ${p.quietDays === null ? 'no date on last' : p.quietDays + 'd ago'}`).join('; ') || 'none'}
+
+DELIVERY INTELLIGENCE (ACCEPTED proposals only — these belong in **Delivery**):
+Today/tomorrow delivery sessions (${delivery.todayTomorrowCount || 0}): ${delivery.todayTomorrowSessions?.map(s => `${s.title} — ${s.start} (${s.client || 'no client'}${s.completed ? ', ✓done' : ''}${s.presenterAccepted ? '' : ', presenter NOT accepted'})`).join('; ') || 'none'}
+Today/tomorrow MEETINGS (${delivery.todayTomorrowMeetingCount || 0}) — NOT deliveries, no presenter needed: ${delivery.todayTomorrowMeetings?.map(m => `${m.title} — ${m.start}${m.client ? ' (' + m.client + ')' : ''}`).join('; ') || 'none'}
 Presenter-acceptance gaps (${delivery.presenterGapCount || 0}): ${delivery.presenterGapSessions?.map(s => `${s.title} (${s.client || 'no client'}, ${s.status})`).join('; ') || 'none'}
 Challenges missing assessments: ${delivery.challengeAssessmentGaps?.map(g => `${g.client} (missing ${g.missing} of the cohort assessment)`).join('; ') || 'none'}
 Unscheduled services: ${delivery.unscheduledServicesTotal || 0} across ${delivery.clientsWithDelivery || 0} client(s)
