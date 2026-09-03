@@ -83,7 +83,7 @@ const STOP = new Set(['the', 'a', 'an', 'and', 'of', 'for', 'to', 'in', 'on', 'a
 const tokens = (s = '') => new Set(s.toLowerCase().replace(/\(.*?\)/g, ' ').replace(/[^a-z0-9 ]+/g, ' ').split(/\s+/).filter(t => t && !STOP.has(t) && !/^\d{4}$/.test(t)));
 function titleSimilarity(a, b) {
   const A = tokens(a), B = tokens(b);
-  if (!A.size || !B.size) return slug(a) === slug(b) ? 1 : 0;
+  if (!A.size || !B.size) return slug(a).replace(/-?\d{4}(?=-|$)/g, '') === slug(b).replace(/-?\d{4}(?=-|$)/g, '') ? 1 : 0;
   let inter = 0; for (const t of A) if (B.has(t)) inter++;
   return inter / Math.min(A.size, B.size);
 }
@@ -368,7 +368,11 @@ Deno.serve(async (req) => {
         const patch = {};
         for (const k of ['title', 'start_date', 'end_date', 'all_day', 'registration_url', 'source_uid', 'raw_ref', 'fingerprint', 'channel', 'source_id', 'date_evidence', 'confidence']) if (fields[k] !== undefined && fields[k] !== match[k]) patch[k] = fields[k];
         for (const k of ['description', 'venue', 'city', 'state', 'region', 'format']) if (fields[k] !== undefined && (!match[k] || match[k] === 'unknown')) patch[k] = fields[k];
-        if (match.all_day && !fields.all_day) { patch.start_date = fields.start_date; patch.end_date = fields.end_date; patch.all_day = false; }
+        // Upgrade an all-day row to exact times — unless it's a multi-day conference, where the
+        // feed's "start time + 2h" default would erase the real end day.
+        const multiDay = match.end_date && dayOf(match.end_date) > dayOf(match.start_date);
+        if (match.all_day && !fields.all_day && !multiDay) { patch.start_date = fields.start_date; patch.end_date = fields.end_date; patch.all_day = false; }
+        if (multiDay) { delete patch.start_date; delete patch.end_date; delete patch.all_day; }
         if (Object.keys(patch).length) { if (!dry_run) await db.NetworkingEvent.update(match.id, patch); Object.assign(match, patch); r.updated++; report.updated++; touched++; }
         else r.skipped++;
       } else {
