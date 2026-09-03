@@ -241,7 +241,33 @@ Deno.serve(async (req) => {
     return daysDiff(now, new Date(c.last_contacted_date)) > 60;
   });
 
+  // Networking events (Campaigns → Networking Events): what's coming up in the next
+  // two weeks and what's waiting to be reviewed. Non-fatal — a failure here must not
+  // take the briefing down.
+  let networking = { upcoming: [], upcomingCount: 0, pendingCount: 0, unownedCount: 0 };
+  try {
+    const netEvents = await base44.asServiceRole.entities.NetworkingEvent.list('start_date', 500);
+    const in14 = new Date(now.getTime() + 14 * 86400000);
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const parseNet = (raw) => { if (!raw) return null; if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) { const [y, m, d] = raw.split('-').map(Number); return new Date(y, m - 1, d, 12); } const dt = new Date(raw); return isNaN(dt.getTime()) ? null : dt; };
+    const upcoming = netEvents
+      .filter(e => e.status === 'approved' && !e.is_demo)
+      .map(e => ({ ...e, _start: parseNet(e.start_date) }))
+      .filter(e => e._start && e._start >= startOfToday && e._start <= in14)
+      .sort((a, b) => a._start - b._start);
+    networking = {
+      upcoming: upcoming.slice(0, 6).map(e => `${e.title} (${e.org_name || e.org_code}) — ${e._start.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}${e.city ? ', ' + e.city : e.format === 'virtual' ? ', virtual' : ''}${e.intent && e.intent !== 'none' ? `, ${e.intent}${e.owner ? ' by ' + e.owner : ''}` : ', no plan yet'}`),
+      upcomingCount: upcoming.length,
+      pendingCount: netEvents.filter(e => e.status === 'pending_review' && !e.is_demo).length,
+      unownedCount: upcoming.filter(e => ['registered', 'attending'].includes(e.intent) && !e.owner).length,
+    };
+  } catch (netErr) {
+    console.error('[mayaDailyBriefing] networking events lookup failed:', netErr?.message || netErr);
+  }
+
   const stats = {
+    networking_upcoming_14d: networking.upcomingCount,
+    networking_pending_review: networking.pendingCount,
     overdue_partners: overduePartners.length,
     silent_clients: silentClients.length,
     renewal_clients: renewalAlerts.length,
@@ -293,6 +319,9 @@ Write today's briefing using EXACTLY this format — no extra sections, no parag
 
 **Other**
 [1–2 sentences flagging anything else worth noting — stale data, an upcoming deadline, a quick win, or new Quick Builder inquiries awaiting review (by name).]
+
+**Networking**
+[ONE line: the most useful networking event in the next 14 days (name + day) and what to do about it — register, decide who goes, or prep. Mention how many events are waiting to be reviewed if any. If there is nothing upcoming and nothing to review, write "Nothing on the networking calendar in the next two weeks."]
 
 ---
 
@@ -354,7 +383,12 @@ Challenges missing assessments: ${delivery.challengeAssessmentGaps?.map(g => `${
 Unscheduled services: ${delivery.unscheduledServicesTotal || 0} across ${delivery.clientsWithDelivery || 0} client(s)
 ${delivery.activeCohort ? `Renewal ramp active: ${delivery.activeCohort.label} cohort, ${delivery.activeCohort.daysRemaining} days remaining. Clients without booked reviews: ${delivery.renewalReviewGaps?.slice(0,8).map(g => `${g.client} (${g.daysRemaining}d, owner: ${g.owner})`).join('; ') || 'none'}` : 'No active renewal ramp.'}
 
-Open follow-up reminders: ${openReminders.length} (${overdueReminders} overdue 3+ days)`;
+Open follow-up reminders: ${openReminders.length} (${overdueReminders} overdue 3+ days)
+
+NETWORKING EVENTS (Campaigns → Networking Events — broker/HR events we could attend):
+Next 14 days (${networking.upcomingCount}): ${networking.upcoming.join('; ') || 'none'}
+Waiting to be reviewed: ${networking.pendingCount}
+Registered/attending with nobody assigned: ${networking.unownedCount}`;
 
   let briefing;
   try {
