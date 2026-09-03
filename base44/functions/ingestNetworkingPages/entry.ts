@@ -108,8 +108,10 @@ const EXTRACT_SCHEMA = {
 async function extractFromPage(base44, src, text) {
   const today = todayIsoNY();
   const prompt = `Today is ${today}. Below is the text of ${src.org_name}'s events page (${src.full_name || src.org_name}), with link targets shown in angle brackets after the link text.
-List every UPCOMING event the page advertises: conferences, webinars, meetings, receptions, forums, CE days, workshops. Rules:
+List every UPCOMING event on the page that an OUTSIDE professional could attend to learn something or meet people: conferences, public webinars, educational sessions, receptions, networking meetings, forums, CE days, workshops, summits.
+Rules:
 - Only events dated on or after ${today}. Skip past events, application deadlines, membership renewals, and navigation items.
+- EXCLUDE the organization's internal running of itself: board or trustee meetings, committee calls, chapter leadership or officer meetings, chair/volunteer training, new-member orientation, and anything whose audience is the org's own officers or volunteers. Those are not networking opportunities.
 - date_quote MUST be text copied exactly from the page that states the date (e.g. "October 22, 2026" or "Wed, Oct 22"). If the page does not state a date for an event, set start_date to "" and skip it.
 - If the page shows a date with no year, infer the year that makes the event fall on or after ${today}, but still quote the text as printed.
 - Times are US Eastern unless stated. Use 24-hour HH:MM. Leave start_time empty if no time is given.
