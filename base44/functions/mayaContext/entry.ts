@@ -1076,7 +1076,10 @@ async function buildDeliveryContext(base44) {
     const client = p.client_name || p.company || '';
     reminderCandidates.push({
       type: 'proposal_promo',
-      key: 'proposal_promo:' + p.id,
+      // Key includes the acceptance date. Reminders created before the accepted-only fix
+      // used the bare `proposal_promo:<id>` key; keeping the date in the new key means
+      // those stale rows can't block a legitimate reminder if the deal later closes.
+      key: `proposal_promo:${p.id}:${dayStart.toISOString().slice(0, 10)}`,
       client,
       clientId: p.client_id || '',
       proposalId: p.id,
@@ -1103,7 +1106,9 @@ async function buildDeliveryContext(base44) {
     const client = p.client_name || p.company || '';
     reminderCandidates.push({
       type: 'wellness_box',
-      key: 'wellness_box:' + p.id,
+      // Same reasoning as proposal_promo above — date-qualified so pre-fix rows don't
+      // suppress a real one later.
+      key: `wellness_box:${p.id}:${dayStart.toISOString().slice(0, 10)}`,
       client,
       clientId: p.client_id || '',
       proposalId: p.id,
