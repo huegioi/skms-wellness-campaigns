@@ -73,16 +73,25 @@ Deno.serve(async (req) => {
   try {
     const allReminders = await base44.asServiceRole.entities.MayaReminder.list('trigger_date', 500);
     const existingKeys = new Set(allReminders.map(r => r.dedupe_key));
-    const candidates = delivery.reminderCandidates || [];
+    // Delivery and sales candidates share one queue; `category` is what splits them into
+    // the two sections of the brief.
+    const candidates = [
+      ...(delivery.reminderCandidates || []).map(c => ({ ...c, category: c.category || 'delivery' })),
+      ...(sales.reminderCandidates || []).map(c => ({ ...c, category: c.category || 'sales' })),
+    ];
     for (const c of candidates) {
       if (existingKeys.has(c.key)) continue;
       try {
         await base44.asServiceRole.entities.MayaReminder.create({
           reminder_type: c.type,
+          category: c.category,
           dedupe_key: c.key,
           text: c.text,
           client_id: c.clientId || '',
           client_name: c.client || '',
+          lead_id: c.leadId || '',
+          referral_partner_id: c.referralPartnerId || '',
+          amount: c.amount != null ? c.amount : undefined,
           source_event_id: c.eventId || '',
           source_proposal_id: c.proposalId || '',
           trigger_date: c.triggerDate,
@@ -114,7 +123,10 @@ Deno.serve(async (req) => {
         id: r.id,
         text: r.text,
         reminder_type: r.reminder_type,
+        // Older records predate the field; they were all delivery-side.
+        category: r.category || 'delivery',
         client_name: r.client_name || '',
+        amount: r.amount ?? null,
         trigger_date: r.trigger_date,
         overdue: overdueDays >= 3,
         overdueDays,
