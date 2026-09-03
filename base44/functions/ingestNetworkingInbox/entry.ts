@@ -236,13 +236,20 @@ ${text}`;
 }
 
 // ---- cursor -----------------------------------------------------------------
+// SyncState.page_token holds JSON: { since: ISO, done: [message ids already processed] }.
+// `since` only advances once every message after it has been processed, so a run that
+// stops on its time budget resumes exactly where it left off.
 async function readCursor(db, account) {
   const rows = await db.SyncState.filter({ label: `networking_inbox:${account}` });
-  return rows?.[0] || null;
+  const row = rows?.[0] || null;
+  let state = { since: null, done: [] };
+  if (row?.page_token) { try { const p = JSON.parse(row.page_token); if (p && typeof p === 'object') state = { since: p.since || null, done: Array.isArray(p.done) ? p.done : [] }; else if (typeof p === 'string') state.since = p; } catch { state.since = row.page_token; } }
+  return { row, state };
 }
-async function writeCursor(db, account, existingRow, isoTs) {
-  if (existingRow) await db.SyncState.update(existingRow.id, { page_token: isoTs });
-  else await db.SyncState.create({ label: `networking_inbox:${account}`, page_token: isoTs });
+async function writeCursor(db, account, row, state) {
+  const token = JSON.stringify({ since: state.since, done: state.done.slice(-600) });
+  if (row) await db.SyncState.update(row.id, { page_token: token });
+  else await db.SyncState.create({ label: `networking_inbox:${account}`, page_token: token });
 }
 
 // ---- main -------------------------------------------------------------------
@@ -255,6 +262,9 @@ Deno.serve(async (req) => {
     if (!user || !isTeamMember(user)) return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { lookback_days, dry_run = false, accounts: onlyAccounts, ignore_cursor = false } = body;
+  const budgetMs = Math.min(Math.max(Number(body.budget_seconds) || (isScheduled ? 240 : 100), 20), 270) * 1000;
+  const maxLlm = Math.max(Number(body.max_llm_calls) || 25, 1);
+  const startedAt = Date.now();
   const db = base44.asServiceRole.entities;
 
   // "Add from text": run the same extractor on pasted email text / a page's text and return
@@ -276,8 +286,9 @@ Deno.serve(async (req) => {
   const allSources = await db.EventSource.list('org_name', 200);
   const sources = allSources.filter(s => s.is_active !== false && (s.sender_patterns || []).length);
   const index = await loadEventIndex(db);
-  const report = { ran_at: now.toISOString(), accounts: [], created: 0, updated: 0, skipped: 0, dry_run };
+  const report = { ran_at: now.toISOString(), accounts: [], created: 0, updated: 0, skipped: 0, more: false, dry_run };
   const senderMatcher = (addr) => !!matchSource(addr, sources);
+  const outOfTime = () => Date.now() - startedAt > budgetMs;
 
   const accountPlans = [
     { label: 'william', kind: 'gmail', token: async () => (await base44.asServiceRole.connectors.getConnection('gmail')).accessToken },
@@ -285,59 +296,78 @@ Deno.serve(async (req) => {
     { label: 'admin', kind: 'imap', address: Deno.env.get('GMAIL_ADDRESS') || 'admin@skillfulmeans.life', password: () => Deno.env.get('GMAIL_ADMIN_PASSWORD') },
   ].filter(a => !onlyAccounts || onlyAccounts.includes(a.label));
 
+  // Handles one normalized message; returns true when it was processed (so it can be marked done).
+  async function processMessage(m, r) {
+    r.scanned++;
+    const src = matchSource(m.from, sources); if (!src) { r.skipped++; return true; }
+    let candidates = inviteCandidates(m, src);
+    let channel = 'invite';
+    if (candidates.length) r.invites++;
+    else {
+      const text = bodyTextOf(m);
+      if (!looksLikeEventMail(m.subject, text)) { r.skipped++; return true; }
+      if (r.llm_calls >= maxLlm) { r.scanned--; return false; } // leave for the next run
+      r.llm_calls++;
+      try { candidates = await llmCandidates(base44, m, src, text); } catch (e) { candidates = []; r.samples.push(`llm error: ${String(e?.message || e).slice(0, 120)}`); }
+      channel = 'email';
+    }
+    for (const c of candidates) {
+      if (c._cancelled) {
+        const match = index.findMatch(src.org_code, c);
+        if (match && !match._crossOrg && !dry_run) await db.NetworkingEvent.update(match.id, { status: 'rejected', notes: `${match.notes ? match.notes + ' · ' : ''}Cancelled by organizer (${ymd(now)})` });
+        r.skipped++; continue;
+      }
+      const outcome = await upsertCandidate(db, src, c, index, { dry_run, channel, todayIso });
+      r[outcome]++; report[outcome]++;
+      if (r.samples.length < 10) r.samples.push(`${outcome}: ${src.org_code} · ${c.title} · ${(c.start_date || '').slice(0, 16)} · ${c.confidence}`);
+    }
+    return true;
+  }
+
   for (const acct of accountPlans) {
-    const r = { account: acct.label, scanned: 0, invites: 0, llm_calls: 0, created: 0, updated: 0, skipped: 0, error: null, samples: [] };
+    if (outOfTime()) { report.more = true; break; }
+    const r = { account: acct.label, scanned: 0, invites: 0, llm_calls: 0, created: 0, updated: 0, skipped: 0, remaining: 0, error: null, samples: [] };
+    let imap = null;
     try {
-      const cursorRow = ignore_cursor ? null : await readCursor(db, acct.label);
-      const lookback = lookback_days || (cursorRow ? DEFAULT_LOOKBACK_DAYS : 30);
+      const cur = await readCursor(db, acct.label);
+      const row = cur.row; const state = ignore_cursor ? { since: null, done: [] } : cur.state;
+      const lookback = lookback_days || (state.since ? DEFAULT_LOOKBACK_DAYS : 30);
       let since = new Date(now.getTime() - lookback * 86400000);
-      if (cursorRow?.page_token) { const c = new Date(cursorRow.page_token); if (!isNaN(c.getTime()) && c > since) since = new Date(c.getTime() - 3600000); }
-      let messages = [];
+      if (state.since) { const c = new Date(state.since); if (!isNaN(c.getTime()) && c > since) since = c; }
+      const done = new Set(state.done);
+      let pending = []; // [{ id, load: () => message }]
       if (acct.kind === 'gmail') {
         const token = await acct.token(); if (!token) throw new Error('No access token');
         const q = gmailQueryFor(sources, Math.floor(since.getTime() / 1000)); if (!q) throw new Error('No sender patterns configured');
         const ids = await gmailListMessages(token, q);
-        for (const id of ids) messages.push(await gmailGetMessage(token, id));
+        pending = ids.reverse().filter(id => !done.has(id)).map(id => ({ id, load: () => gmailGetMessage(token, id) })); // Gmail lists newest first → reverse = oldest first
       } else {
         const pw = acct.password(); if (!pw) throw new Error('No IMAP password in secrets');
-        messages = await imapMessages(acct.address, pw, since, senderMatcher);
+        imap = await imapOpen(acct.address, pw, since, senderMatcher);
+        pending = imap.list.filter(e => !done.has(e.id)).map(e => ({ id: e.id, load: () => imap.download(e) }));
       }
-      messages = messages.filter(m => m.date > since).sort((a, b) => a.date - b.date);
-      let newest = cursorRow?.page_token ? new Date(cursorRow.page_token) : since;
-      for (const m of messages) {
-        r.scanned++;
-        const src = matchSource(m.from, sources); if (!src) { r.skipped++; continue; }
-        let candidates = inviteCandidates(m, src);
-        let channel = 'invite';
-        if (candidates.length) r.invites++;
-        else {
-          const text = bodyTextOf(m);
-          if (!looksLikeEventMail(m.subject, text)) { r.skipped++; if (m.date > newest) newest = m.date; continue; }
-          r.llm_calls++;
-          try { candidates = await llmCandidates(base44, m, src, text); } catch (e) { candidates = []; r.samples.push(`llm error: ${String(e?.message || e).slice(0, 120)}`); }
-          channel = 'email';
-        }
-        for (const c of candidates) {
-          if (c._cancelled) {
-            const match = index.findMatch(src.org_code, c);
-            if (match && !match._crossOrg && !dry_run) await db.NetworkingEvent.update(match.id, { status: 'rejected', notes: `${match.notes ? match.notes + ' · ' : ''}Cancelled by organizer (${ymd(now)})` });
-            r.skipped++; continue;
-          }
-          const outcome = await upsertCandidate(db, src, c, index, { dry_run, channel, todayIso });
-          r[outcome]++; report[outcome]++;
-          if (r.samples.length < 8) r.samples.push(`${outcome}: ${src.org_code} · ${c.title} · ${(c.start_date || '').slice(0, 16)} · ${c.confidence}`);
-        }
-        if (m.date > newest) newest = m.date;
+      let processedAll = true; let handled = 0;
+      for (const p of pending) {
+        if (outOfTime()) { processedAll = false; break; }
+        const m = await p.load();
+        const ok = await processMessage(m, r);
+        if (!ok) { processedAll = false; break; }
+        done.add(p.id); handled++;
       }
-      if (!dry_run && messages.length) await writeCursor(db, acct.label, cursorRow, newest.toISOString());
+      r.remaining = pending.length - handled;
+      if (!processedAll) report.more = true;
+      // Advance `since` only when everything listed was handled; keep a 1-day overlap for late arrivals.
+      const nextSince = processedAll ? new Date(now.getTime() - 86400000).toISOString() : (state.since || since.toISOString());
+      if (!dry_run) await writeCursor(db, acct.label, row, { since: nextSince, done: [...done] });
     } catch (err) {
       r.error = String(err?.message || err);
-    }
+    } finally { if (imap) await imap.close(); }
     report.accounts.push(r);
   }
   // Stamp the sources that have inbox channels so the panel shows they were checked.
   if (!dry_run) for (const s of sources.filter(s => ['email', 'invite'].includes(s.channel) || ['email', 'invite'].includes(s.fallback_channel))) {
     await db.EventSource.update(s.id, { last_polled_at: now.toISOString(), last_error: '' });
   }
+  report.elapsed_seconds = Math.round((Date.now() - startedAt) / 1000);
   return Response.json(report);
 });
