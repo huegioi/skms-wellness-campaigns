@@ -371,9 +371,9 @@ Open follow-up reminders: ${openReminders.length} (${overdueReminders} overdue 3
     const deliveryItems = (delivery.todayTomorrowSessions || []).slice(0,3)
       .map((s,i) => `${i+1}. ${s.client || s.title} — ${s.start}${s.presenterAccepted ? '' : ' (presenter not accepted)'}`).join('\n')
       || silentClients.slice(0,3).map((c,i) => `${i+1}. ${c.company || c.name} — Re-engage, last contact ${c.last_contacted_date || 'unknown'}`).join('\n')
-      || '1. Review delivery'
+      || '1. Review delivery';
     const campaignItem = triggeredCampaigns.length > 0 ? `• ${triggeredCampaigns[0].campaign.name} — ${triggeredCampaigns[0].label}` : `• Review ${currentMonthName} seasonal themes`;
-    briefing = `Today is ${todayStr}. ${stats.silent_clients} clients need re-engagement and ${stats.overdue_partners} partner follow-ups are overdue. Start with your most at-risk client relationship.\n\n**Client To-Dos**\n${clientItems}\n\n**Partner To-Dos**\n${partnerItems}\n\n**Campaign To-Do**\n${campaignItem}\n\n**Other**\n${stats.renewal_clients} client(s) are in their 90-day renewal window.\n\n_Maya hit an upstream error (${err.message || 'timeout'}) — refresh to regenerate._`;
+    briefing = `Today is ${todayStr}. ${stats.sales_stalled_proposals} proposal(s) worth ${fmtMoney0(stats.sales_stalled_value)} have stalled and ${stats.overdue_partners} partner follow-ups are overdue. Start with the biggest thing sitting still.\n\n**Sales**\n${salesItems}\n\n**Delivery**\n${deliveryItems}\n\n**Campaign To-Do**\n${campaignItem}\n\n**Other**\n${stats.renewal_clients} client(s) are in their 90-day renewal window.\n\n_Maya hit an upstream error (${err.message || 'timeout'}) — refresh to regenerate._`;
   }
 
   const warningPrefix = contextWarnings.length > 0 ? contextWarnings.join('\n') + '\n\n' : '';
