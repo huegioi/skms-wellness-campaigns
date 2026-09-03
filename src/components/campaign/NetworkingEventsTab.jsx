@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Users, ExternalLink, Check, X, MapPin, Video, Search, Radio, RefreshCw, Play } from 'lucide-react';
+import { Plus, Pencil, Trash2, Users, ExternalLink, Check, X, MapPin, Video, Search, Radio, RefreshCw, Play, Mail, ClipboardPaste, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
 
@@ -369,6 +369,7 @@ function EventRow({ ev, onEdit, onIntent, onApprove, onReject, onDelete, review 
           {ev.cost_text && <span>· {ev.cost_text}</span>}
         </p>
         {ev.notes && <p className="text-xs text-gray-400 mt-0.5 italic truncate">{ev.notes}</p>}
+        {review && ev.date_evidence && <p className="text-[11px] text-gray-400 mt-0.5 truncate" title={ev.date_evidence}>Date read from: {ev.date_evidence}</p>}
       </div>
       <div className="flex items-start gap-1 shrink-0">
         {review ? (
@@ -440,6 +441,45 @@ export default function NetworkingEventsTab() {
     onError: (e) => toast.error(`Sync failed: ${e?.message || e}`),
     onSettled: () => setCheckingId(null),
   });
+
+  // Inbox channel: william@ / heather@ (Gmail) + admin@ (IMAP). Runs inside a time budget and
+  // resumes from a cursor, so a long backfill may need a few clicks.
+  const runInbox = useMutation({
+    mutationFn: async (payload) => { const { data } = await base44.functions.invoke('ingestNetworkingInbox', payload || {}); return data; },
+    onSuccess: (data) => {
+      invalidate();
+      if (data?.error) { toast.error(data.error); return; }
+      const acc = data?.accounts || [];
+      const failed = acc.filter(a => a.error);
+      const scanned = acc.reduce((n, a) => n + (a.scanned || 0), 0);
+      const summary = `${scanned} email${scanned === 1 ? '' : 's'} read: ${data?.created ?? 0} new, ${data?.updated ?? 0} updated`;
+      if (failed.length) toast.warning(`${summary} · ${failed.map(f => `${f.account}: ${f.error}`).join(' · ')}`, { duration: 8000 });
+      else if (data?.more) toast.info(`${summary} · more waiting — click Check inbox again to continue`, { duration: 8000 });
+      else toast.success(summary);
+    },
+    onError: (e) => toast.error(`Inbox check failed: ${e?.message || e}`),
+    onSettled: () => setCheckingId(null),
+  });
+
+  // "Add from text": paste an email or a page's text, let the extractor propose events.
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [pasteOrg, setPasteOrg] = useState('');
+  const [pasteResults, setPasteResults] = useState(null);
+  const extractText = useMutation({
+    mutationFn: async () => { const { data } = await base44.functions.invoke('ingestNetworkingInbox', { action: 'extract_text', text: pasteText, org_code: pasteOrg }); return data; },
+    onSuccess: (data) => { if (data?.error) { toast.error(data.error); return; } setPasteResults(data?.candidates || []); if (!(data?.candidates || []).length) toast.info('No dated events found in that text.'); },
+    onError: (e) => toast.error(`Could not extract: ${e?.message || e}`),
+  });
+  const useCandidate = (c) => {
+    const src = sources.find(s => s.org_code === pasteOrg);
+    setEditingEvent({
+      ...EMPTY_EVENT, title: c.title || '', org_code: pasteOrg, description: c.description || '', start_date: c.start_date || '', end_date: c.end_date || '', all_day: !!c.all_day,
+      format: c.format || 'unknown', venue: c.venue || '', city: c.city || '', state: c.state || '', region: c.region || (c.format === 'virtual' ? 'Virtual' : src?.region || ''),
+      registration_url: c.registration_url || '', cost_text: c.cost_text || '', channel: c.channel || 'manual', confidence: c.confidence || 'medium', date_evidence: c.quote || '', status: 'approved',
+    });
+    setPasteOpen(false); setEventDialog(true);
+  };
 
   const today = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
   const in30 = useMemo(() => new Date(today.getTime() + 30 * 86400000), [today]);
@@ -524,13 +564,21 @@ export default function NetworkingEventsTab() {
         <div className="flex items-center gap-2 shrink-0">
           {view === 'sources' ? (
             <>
+              <Button variant="outline" disabled={runInbox.isPending} onClick={() => { setCheckingId('inbox'); runInbox.mutate({}); }} className="gap-1.5 text-sm" title="Read william@, heather@ and admin@ for invites and event announcements from the watched senders">
+                <Mail className={`w-4 h-4 ${runInbox.isPending ? 'animate-pulse' : ''}`} /> <span className="hidden sm:inline">Check inbox</span>
+              </Button>
               <Button variant="outline" disabled={runIngest.isPending} onClick={() => { setCheckingId('all'); runIngest.mutate({ force: true }); }} className="gap-1.5 text-sm" title="Check every active feed source now">
                 <RefreshCw className={`w-4 h-4 ${runIngest.isPending && checkingId === 'all' ? 'animate-spin' : ''}`} /> <span className="hidden sm:inline">Check all feeds</span>
               </Button>
               <Button onClick={() => { setEditingSource(null); setSourceDialog(true); }} className="bg-[#013f7c] hover:bg-[#013f7c]/90 text-white gap-1.5 text-sm"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span> Source</Button>
             </>
           ) : (
-            <Button onClick={openNewEvent} className="bg-[#013f7c] hover:bg-[#013f7c]/90 text-white gap-1.5 text-sm"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span> Event</Button>
+            <>
+              <Button variant="outline" onClick={() => { setPasteResults(null); setPasteText(''); setPasteOpen(true); }} className="gap-1.5 text-sm" title="Paste an email or a web page's text and let the extractor fill in the event">
+                <ClipboardPaste className="w-4 h-4" /> <span className="hidden sm:inline">Add from text</span>
+              </Button>
+              <Button onClick={openNewEvent} className="bg-[#013f7c] hover:bg-[#013f7c]/90 text-white gap-1.5 text-sm"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span> Event</Button>
+            </>
           )}
         </div>
       </div>
@@ -671,6 +719,41 @@ export default function NetworkingEventsTab() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingEvent ? 'Edit event' : 'Add event'}</DialogTitle></DialogHeader>
           <EventForm key={editingEvent?.id || 'new'} initial={editingEvent || EMPTY_EVENT} sources={sources} onSave={saveEvent} onCancel={() => { setEventDialog(false); setEditingEvent(null); }} saving={createEvent.isPending || updateEvent.isPending} />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pasteOpen} onOpenChange={setPasteOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Add from text</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-gray-500">Paste an event email, a calendar invite, or the text of an events page. The extractor proposes the events it finds; pick one to open it in the form.</p>
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Organization</label>
+              <Select value={pasteOrg} onValueChange={setPasteOrg}>
+                <SelectTrigger><SelectValue placeholder="Who is hosting?" /></SelectTrigger>
+                <SelectContent>{sources.map(s => <SelectItem key={s.org_code} value={s.org_code}>{s.org_name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <Textarea rows={10} value={pasteText} onChange={e => setPasteText(e.target.value)} placeholder="Paste here…" className="font-mono text-xs" />
+            <div className="flex gap-2">
+              <Button disabled={!pasteText.trim() || !pasteOrg || extractText.isPending} onClick={() => extractText.mutate()} className="bg-[#013f7c] hover:bg-[#013f7c]/90 text-white gap-1.5"><Sparkles className="w-4 h-4" />{extractText.isPending ? 'Reading…' : 'Find events'}</Button>
+              <Button variant="outline" onClick={() => setPasteOpen(false)}>Cancel</Button>
+            </div>
+            {pasteResults && pasteResults.length > 0 && (
+              <div className="border border-gray-200 rounded-xl divide-y divide-gray-100">
+                {pasteResults.map((c, i) => (
+                  <div key={i} className="flex items-start justify-between gap-3 px-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{c.title}</p>
+                      <p className="text-xs text-gray-500">{eventWhen(c)}{c.venue || c.city ? ` · ${[c.venue, c.city, c.state].filter(Boolean).join(', ')}` : ''}{c.cost_text ? ` · ${c.cost_text}` : ''}</p>
+                      {c.quote && <p className="text-[11px] text-gray-400 truncate">Date read from: {c.quote}</p>}
+                    </div>
+                    <Button size="sm" variant="outline" className="h-7 text-xs shrink-0" onClick={() => useCandidate(c)}>Use</Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
