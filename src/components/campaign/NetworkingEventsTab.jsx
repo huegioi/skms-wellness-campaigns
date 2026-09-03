@@ -440,17 +440,6 @@ export default function NetworkingEventsTab() {
     onError: (e) => toast.error(`Sync failed: ${e?.message || e}`),
     onSettled: () => setCheckingId(null),
   });
-  const { data: schedule, refetch: refetchSchedule } = useQuery({
-    queryKey: ['networking_events_schedule'],
-    queryFn: async () => { const { data } = await base44.functions.invoke('manageNetworkingEventsSync', { action: 'status' }); return data; },
-    enabled: !isLoadingAuth && view === 'sources',
-    staleTime: 60000,
-  });
-  const toggleSchedule = useMutation({
-    mutationFn: async (enable) => { const { data } = await base44.functions.invoke('manageNetworkingEventsSync', { action: enable ? 'enable' : 'disable' }); return data; },
-    onSuccess: (data) => { refetchSchedule(); if (data?.error) toast.error(data.error); else toast.success(data?.is_active ? 'Daily sync is on (runs each morning at 6:30 ET)' : 'Daily sync paused'); },
-    onError: (e) => toast.error(`Could not change the schedule: ${e?.message || e}`),
-  });
 
   const today = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
   const in30 = useMemo(() => new Date(today.getTime() + 30 * 86400000), [today]);
@@ -648,16 +637,8 @@ export default function NetworkingEventsTab() {
               </tbody>
             </table>
             <div className="px-4 py-2.5 text-xs text-gray-500 border-t border-gray-50 flex flex-wrap items-center justify-between gap-2">
-              <span className="inline-flex items-center gap-1.5"><Radio className="w-3 h-3" />
-                {schedule === undefined ? 'Checking the daily schedule…'
-                  : schedule?.error ? `Schedule unavailable: ${schedule.error}`
-                  : schedule?.is_active ? 'Daily sync is on — feed sources are checked each morning at 6:30 ET; inbox and page sources arrive in the next phase.'
-                  : 'Daily sync is off — turn it on to check feed sources automatically each morning.'}
-              </span>
-              <label className="inline-flex items-center gap-2">
-                <span>Daily sync</span>
-                <Switch checked={!!schedule?.is_active} disabled={toggleSchedule.isPending || schedule === undefined} onCheckedChange={v => toggleSchedule.mutate(v)} />
-              </label>
+              <span className="inline-flex items-center gap-1.5"><Radio className="w-3 h-3" />Feed sources are checked automatically every morning at 6:30 by the “Daily Networking Events Sync” automation; inbox and page sources arrive in the next phase.</span>
+              <a href="https://app.base44.com/apps/6911f6f4a9d8505805b51a3b/editor/workspace/automations" target="_blank" rel="noreferrer" className="text-[#013f7c] hover:underline inline-flex items-center gap-1">Manage schedule <ExternalLink className="w-3 h-3" /></a>
             </div>
           </div>
         )
