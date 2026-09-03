@@ -1384,6 +1384,11 @@ Deno.serve(async (req) => {
       return Response.json(result);
     }
 
+    if (action === 'sales') {
+      const result = await buildSalesContext(base44);
+      return Response.json(result);
+    }
+
     if (action === 'persona') {
       return Response.json({ persona: MAYA_PERSONA });
     }
