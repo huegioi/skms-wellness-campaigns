@@ -1,0 +1,249 @@
+{
+  "name": "NetworkingEvent",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Event title as published"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short description or agenda"
+    },
+    "org_code": {
+      "type": "string",
+      "description": "EventSource.org_code of the hosting organization"
+    },
+    "org_name": {
+      "type": "string",
+      "description": "Denormalized org display name for lists"
+    },
+    "source_id": {
+      "type": "string",
+      "description": "EventSource record id"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Start (ISO). For multi-day conferences, first day"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "End (ISO). Blank if unknown"
+    },
+    "all_day": {
+      "type": "boolean",
+      "default": false,
+      "description": "True when only a date is known, no time"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "America/New_York",
+      "description": "IANA timezone the times were published in"
+    },
+    "format": {
+      "type": "string",
+      "enum": [
+        "in_person",
+        "virtual",
+        "hybrid",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Delivery format"
+    },
+    "venue": {
+      "type": "string",
+      "description": "Venue name"
+    },
+    "city": {
+      "type": "string",
+      "description": "City"
+    },
+    "state": {
+      "type": "string",
+      "description": "State abbreviation, e.g. MA"
+    },
+    "region": {
+      "type": "string",
+      "enum": [
+        "MA",
+        "CT",
+        "NY",
+        "NYC",
+        "RI",
+        "NH",
+        "New England",
+        "National",
+        "Virtual"
+      ],
+      "description": "Region bucket used by the filter"
+    },
+    "registration_url": {
+      "type": "string",
+      "description": "Registration or details link"
+    },
+    "cost_text": {
+      "type": "string",
+      "description": "Price as published, e.g. '$225 member / $325 non-member'"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_review",
+        "approved",
+        "rejected",
+        "archived"
+      ],
+      "default": "pending_review",
+      "description": "Review state. Archived = event has passed"
+    },
+    "intent": {
+      "type": "string",
+      "enum": [
+        "none",
+        "interested",
+        "registered",
+        "attending",
+        "attended",
+        "skip"
+      ],
+      "default": "none",
+      "description": "Our intent for this event"
+    },
+    "owner": {
+      "type": "string",
+      "description": "Who owns attending/following up: William, Heather, or blank"
+    },
+    "opportunity": {
+      "type": "string",
+      "enum": [
+        "none",
+        "sponsor",
+        "speak",
+        "exhibit"
+      ],
+      "default": "none",
+      "description": "Sponsorship / speaking / exhibiting opportunity flag"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "feed_ics",
+        "feed_rss",
+        "feed_json",
+        "scrape",
+        "email",
+        "invite",
+        "manual"
+      ],
+      "description": "How this event was discovered"
+    },
+    "source_uid": {
+      "type": "string",
+      "description": "Exact id from the source (feed GUID, ICS UID, page URL) \u2014 updates match on this first"
+    },
+    "fingerprint": {
+      "type": "string",
+      "description": "org_code|normalized-title|YYYY-MM-DD \u2014 fuzzy dedupe key"
+    },
+    "raw_ref": {
+      "type": "string",
+      "description": "Gmail message id / feed item link / page URL the event was extracted from"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low"
+      ],
+      "default": "high",
+      "description": "Extraction confidence; low always goes to review"
+    },
+    "google_event_id": {
+      "type": "string",
+      "description": "Set when pushed to Google Calendar"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Internal notes, e.g. who else is going"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Free-form tags"
+    },
+    "is_demo": {
+      "type": "boolean",
+      "default": false,
+      "description": "Excluded from syncs and briefings when true"
+    }
+  },
+  "required": [
+    "title",
+    "org_code",
+    "start_date"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    }
+  }
+}

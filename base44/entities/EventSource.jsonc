@@ -1,0 +1,186 @@
+{
+  "name": "EventSource",
+  "type": "object",
+  "properties": {
+    "org_name": {
+      "type": "string",
+      "description": "Organization display name, e.g. 'NEEBC'"
+    },
+    "org_code": {
+      "type": "string",
+      "description": "Stable short key used by NetworkingEvent.org_code, e.g. 'neebc'"
+    },
+    "full_name": {
+      "type": "string",
+      "description": "Full organization name, e.g. 'New England Employee Benefits Council'"
+    },
+    "region": {
+      "type": "string",
+      "enum": [
+        "MA",
+        "CT",
+        "NY",
+        "NYC",
+        "RI",
+        "NH",
+        "New England",
+        "National",
+        "Virtual"
+      ],
+      "description": "Where this org's events mostly happen"
+    },
+    "tier": {
+      "type": "number",
+      "default": 1,
+      "description": "1 = core (New England / NYC broker + HR circles), 2 = secondary"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "feed_ics",
+        "feed_rss",
+        "feed_json",
+        "scrape",
+        "email",
+        "invite",
+        "manual"
+      ],
+      "description": "Primary way events are discovered for this org"
+    },
+    "fallback_channel": {
+      "type": "string",
+      "enum": [
+        "feed_ics",
+        "feed_rss",
+        "feed_json",
+        "scrape",
+        "email",
+        "invite",
+        "manual",
+        "none"
+      ],
+      "default": "none",
+      "description": "Secondary discovery channel"
+    },
+    "website": {
+      "type": "string",
+      "description": "Org homepage"
+    },
+    "page_url": {
+      "type": "string",
+      "description": "Public events/calendar page to scrape"
+    },
+    "feed_url": {
+      "type": "string",
+      "description": "RSS / JSON / ICS feed URL when one exists"
+    },
+    "sender_patterns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Email addresses or @domains whose messages should be checked for events (email + invite channels)"
+    },
+    "poll_every_days": {
+      "type": "number",
+      "default": 1,
+      "description": "How often the daily job checks this source"
+    },
+    "auto_approve": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, discovered events are approved on arrival instead of landing in the review queue"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Inactive sources are skipped by the daily job"
+    },
+    "in_inbox": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if william@ already receives this org's emails"
+    },
+    "last_polled_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time the daily job checked this source"
+    },
+    "last_success_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time the job found or updated at least one event"
+    },
+    "last_error": {
+      "type": "string",
+      "description": "Most recent error message, blank when healthy"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Source quirks, e.g. 'JSON date is publish date, use per-event ICS'"
+    }
+  },
+  "required": [
+    "org_name",
+    "org_code",
+    "channel"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    }
+  }
+}
