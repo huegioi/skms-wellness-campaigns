@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
 
   // ── Single bundle call (global + knowledge + persona) + delivery in parallel ──
   const _ik = Deno.env.get('MAYA_INTERNAL_KEY');
-  const [bundleRes, deliveryResponse] = await Promise.all([
+  const [bundleRes, deliveryResponse, salesResponse] = await Promise.all([
     base44.functions.invoke('mayaContext', {
       action: 'bundle',
       include_global: true,
@@ -47,6 +47,11 @@ Deno.serve(async (req) => {
     // Delivery context is non-fatal: a failure here should degrade the briefing, not kill it.
     base44.functions.invoke('mayaContext', { action: 'delivery', internal_key: _ik }).catch((e) => {
       console.log('[mayaDailyBriefing] delivery context failed:', e?.message || e);
+      return { data: {} };
+    }),
+    // Sales context — same non-fatal treatment.
+    base44.functions.invoke('mayaContext', { action: 'sales', internal_key: _ik }).catch((e) => {
+      console.log('[mayaDailyBriefing] sales context failed:', e?.message || e);
       return { data: {} };
     }),
   ]);
@@ -60,6 +65,7 @@ Deno.serve(async (req) => {
   const knowledgeText = bd.knowledgeText || '';
   const MAYA_PERSONA = bd.persona || '';
   const delivery = deliveryResponse.data || {};
+  const sales = salesResponse.data || {};
 
   // ── Sync reminder candidates to persistent MayaReminder records ──
   let openReminders = [];
