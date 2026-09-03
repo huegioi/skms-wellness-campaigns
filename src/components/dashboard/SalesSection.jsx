@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, FileText, PhoneMissed, UserClock, Handshake, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, FileText, PhoneMissed, Clock, Handshake, CheckCircle2 } from 'lucide-react';
 
 /**
  * Structured sales snapshot — deals still being WON.
@@ -102,7 +102,7 @@ export default function SalesSection({ snapshot }) {
         ))}
 
         {leads.map((l, i) => (
-          <Row key={`l${i}`} icon={UserClock} tone="warn">
+          <Row key={`l${i}`} icon={Clock} tone="warn">
             <strong className="font-semibold">{l.who}</strong>
             {' — follow-up '}
             <strong className="font-semibold">{l.overdueDays}d overdue</strong>
