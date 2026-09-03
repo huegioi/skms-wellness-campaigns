@@ -16,8 +16,23 @@ const APP_URL = Deno.env.get('APP_URL') || 'https://app.skillfulmeans.life';
 const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY');
 const FROM_EMAIL = 'admin@skillfulmeans.life';
 const FROM_NAME = 'SkillfulMeans';
+const CALENDAR_ID = 'admin@skillfulmeans.life';
 
 const NY = 'America/New_York';
+
+// Google's own event URL is base64("<eventId> <calendarId>") with padding stripped.
+// The presenter is an attendee on the Meet HOLDER event, not the client-facing one,
+// so that's the event they can actually open.
+function b64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+function googleCalendarUrl(eventId) {
+  if (!eventId) return '';
+  return `https://www.google.com/calendar/event?eid=${b64(`${eventId} ${CALENDAR_ID}`).replace(/=+$/, '')}`;
+}
 
 function fmtWhen(startIso, endIso, allDay) {
   const start = new Date(startIso);
@@ -43,7 +58,7 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function buildEmail({ presenterName, event, when, feeText, clientLabel, portalUrl }) {
+function buildEmail({ presenterName, event, when, feeText, clientLabel, portalUrl, calendarUrl }) {
   const firstName = (presenterName || '').trim().split(/\s+/)[0] || 'there';
   const subject = `You're requested to present: ${event.title}`;
 
@@ -77,11 +92,17 @@ function buildEmail({ presenterName, event, when, feeText, clientLabel, portalUr
     </div>
 
     <a href="${portalUrl}"
-       style="display:inline-block;background:#770142;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:13px 26px;border-radius:8px;">
+       style="display:inline-block;background:#770142;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:13px 26px;border-radius:8px;margin:0 8px 8px 0;">
       Accept or decline
     </a>
+    ${calendarUrl ? `<a href="${calendarUrl}"
+       style="display:inline-block;background:#013f7c;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:13px 26px;border-radius:8px;margin:0 8px 8px 0;">
+      Open in Google Calendar
+    </a>` : ''}
 
-    <p style="color:#6b7280;font-size:13px;line-height:1.6;margin:22px 0 0;">
+    ${event.meeting_link ? `<p style="color:#4b5563;font-size:14px;margin:20px 0 0;"><strong>Video link:</strong> <a href="${escapeHtml(event.meeting_link)}" style="color:#013f7c;">${escapeHtml(event.meeting_link.replace(/^https?:\/\//, ''))}</a></p>` : ''}
+
+    <p style="color:#6b7280;font-size:13px;line-height:1.6;margin:16px 0 0;">
       The Google Meet room is already on your calendar for this session. Attendees join separately after they check in, so they may arrive a few minutes after the start time.
     </p>
     <p style="color:#9ca3af;font-size:12px;margin:18px 0 0;">
@@ -102,6 +123,8 @@ function buildEmail({ presenterName, event, when, feeText, clientLabel, portalUr
     feeText ? `Your fee: ${feeText}` : '',
     ``,
     `Accept or decline: ${portalUrl}`,
+    calendarUrl ? `Open in Google Calendar: ${calendarUrl}` : '',
+    event.meeting_link ? `Video link: ${event.meeting_link}` : '',
     ``,
     `The Google Meet room is already on your calendar. Attendees join separately after they check in.`,
   ].filter(Boolean).join('\n');
@@ -191,7 +214,11 @@ Deno.serve(async (req) => {
     const when = fmtWhen(event.start_date, event.end_date, event.all_day);
     const clientLabel = event.client_name || '';
 
-    const message = buildEmail({ presenterName, event, when, feeText, clientLabel, portalUrl });
+    // Prefer the holder event (the presenter is an attendee there); fall back to the
+    // client-facing event if this session has no Meet room yet.
+    const calendarUrl = googleCalendarUrl(event.google_meet_event_id || event.google_event_id);
+
+    const message = buildEmail({ presenterName, event, when, feeText, clientLabel, portalUrl, calendarUrl });
 
     if (preview) {
       return Response.json({
@@ -203,6 +230,7 @@ Deno.serve(async (req) => {
         subject: message.subject,
         text: message.text,
         portalUrl,
+        calendarUrl: calendarUrl || null,
         when: when.full,
         fee: feeText,
         alreadyNotifiedAt: event.presenter_notified_at || null,
