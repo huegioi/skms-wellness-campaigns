@@ -1146,6 +1146,194 @@ async function buildDeliveryContext(base44) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// SALES CONTEXT — deals still being WON. Never delivery.
+// ═══════════════════════════════════════════════════════════════════════════
+// The line: a proposal becomes delivery the moment it's accepted. Before that it lives
+// here. Everything below produces persistent MayaReminder candidates (category 'sales')
+// so nothing quietly expires — they pile up until checked off, same rule as delivery.
+
+const STALL_DAYS = { draft: 7, sent: 10, viewed: 7 };  // viewed = they looked, then went quiet
+const PARTNER_QUIET_DAYS = 90;
+const MEETING_GRACE_DAYS = 2;                          // 2 days before nagging about a meeting
+
+async function buildSalesContext(base44) {
+  const now = new Date();
+  const startToday = startOfDay(now);
+  const reminderCandidates = [];
+
+  const [allProposals, allLeads, allPartners, allEvents, allInteractions] = await Promise.all([
+    safeFilter(base44, 'Proposal', {}, '-created_date', 300),
+    safeFilter(base44, 'Lead', { is_archived: { $ne: true } }, '-created_date', 500),
+    safeFilter(base44, 'ReferralPartner', { is_active: true }, '-created_date', 300),
+    safeFilter(base44, 'CalendarEvent', {}, '-start_date', 500),
+    safeFilter(base44, 'ClientInteraction', {}, '-date', 500),
+  ]);
+
+  const proposals    = allProposals.filter(p => !p.is_demo);
+  const leads        = allLeads.filter(l => !l.is_demo);
+  const partners     = allPartners.filter(p => !p.is_demo);
+  const events       = allEvents.filter(e => !e.is_demo);
+  const interactions = allInteractions.filter(i => !i.is_demo);
+
+  const nameOf = (p) => p.company || p.client_name || 'Unknown';
+
+  // ── a) Stalled proposals ────────────────────────────────────────────────
+  // Open money that stopped moving. sent_date/viewed_date are null on most real
+  // records (status changes were never stamped), so updated_date is the fallback.
+  const openProposals = proposals.filter(p => ['draft', 'sent', 'viewed'].includes(p.status));
+  const stalledProposals = [];
+  for (const p of openProposals) {
+    const anchorRaw = p.status === 'viewed' ? (p.viewed_date || p.updated_date || p.created_date)
+                    : p.status === 'sent'   ? (p.sent_date   || p.updated_date || p.created_date)
+                    :                         (p.updated_date || p.created_date);
+    const anchor = new Date(anchorRaw);
+    if (isNaN(anchor.getTime())) continue;
+    const idleDays = daysBetween(anchor, now);
+    if (idleDays < (STALL_DAYS[p.status] ?? 10)) continue;
+
+    const client = nameOf(p);
+    const amount = Number(p.total_amount) || 0;
+    const money = amount > 0 ? ` (${fmtMoney(amount)})` : '';
+    const verb = p.status === 'draft'
+      ? `draft written ${idleDays} days ago and never sent`
+      : p.status === 'viewed'
+        ? `opened it ${idleDays} days ago and went quiet`
+        : `sent ${idleDays} days ago with no reply`;
+
+    stalledProposals.push({ client, status: p.status, idleDays, amount, proposalId: p.id });
+    reminderCandidates.push({
+      type: 'proposal_stalled',
+      category: 'sales',
+      key: `proposal_stalled:${p.id}`,
+      client,
+      clientId: p.client_id || '',
+      proposalId: p.id,
+      amount,
+      triggerDate: startOfDay(new Date(anchor.getTime() + (STALL_DAYS[p.status] ?? 10) * 86400000))
+        .toISOString().slice(0, 10),
+      text: `${client}${money} — proposal ${verb}. Follow up or mark it declined.`,
+    });
+  }
+  stalledProposals.sort((a, b) => b.amount - a.amount || b.idleDays - a.idleDays);
+
+  // ── b) Meetings with nothing logged after ───────────────────────────────
+  // A meeting is a sales event (the Delivery/Meetings lens decides), so a meeting that
+  // happened with no interaction and no proposal since it is a dropped thread.
+  const windowStart = new Date(startToday);
+  windowStart.setDate(windowStart.getDate() - 30);
+  const graceCutoff = new Date(startToday);
+  graceCutoff.setDate(graceCutoff.getDate() - MEETING_GRACE_DAYS);
+
+  const meetingsNoFollowUp = [];
+  for (const e of events) {
+    if (isDeliveryEvent(e)) continue;                        // deliveries are handled elsewhere
+    const start = new Date(e.start_date);
+    if (isNaN(start.getTime())) continue;
+    if (start < windowStart || start > graceCutoff) continue;
+    const who = e.client_name || '';
+    if (!who && !e.client_id && !e.lead_id) continue;        // unattributable calendar noise
+
+    const since = (d) => d && new Date(d) > start;
+    const loggedAfter = interactions.some(i =>
+      ((e.client_id && i.client_id === e.client_id) ||
+       (e.lead_id && i.lead_id === e.lead_id) ||
+       (i.calendar_event_id && i.calendar_event_id === e.id)) && since(i.date)
+    );
+    if (loggedAfter) continue;
+    const proposalAfter = proposals.some(p =>
+      e.client_id && p.client_id === e.client_id && since(p.created_date)
+    );
+    if (proposalAfter) continue;
+
+    const daysAgo = daysBetween(start, now);
+    meetingsNoFollowUp.push({ title: e.title, client: who, daysAgo });
+    reminderCandidates.push({
+      type: 'meeting_no_follow_up',
+      category: 'sales',
+      key: `meeting_no_follow_up:${e.id}`,
+      client: who,
+      clientId: e.client_id || '',
+      leadId: e.lead_id || '',
+      eventId: e.id,
+      triggerDate: startOfDay(new Date(start.getTime() + MEETING_GRACE_DAYS * 86400000))
+        .toISOString().slice(0, 10),
+      text: `${who || e.title} — met ${daysAgo} days ago ("${e.title}") and nothing has been logged since. Send the recap or log what happened.`,
+    });
+  }
+  meetingsNoFollowUp.sort((a, b) => b.daysAgo - a.daysAgo);
+
+  // ── c) Leads past their own follow-up date ──────────────────────────────
+  // These dates were already being set and only ever checked for partners.
+  const DEAD_STATUSES = ['converted', 'not_interested', 'current_client'];
+  const overdueLeads = [];
+  for (const l of leads) {
+    if (DEAD_STATUSES.includes(l.status)) continue;
+    const dueRaw = l.next_followup_date || l.follow_up_due_date;
+    if (!dueRaw) continue;
+    const due = startOfDay(new Date(dueRaw));
+    if (isNaN(due.getTime()) || due >= startToday) continue;
+    const overdueDays = daysBetween(due, now);
+    const who = l.name || l.company || 'Unknown';
+    const where = l.company && l.name ? ` (${l.company})` : '';
+    overdueLeads.push({ who: who + where, overdueDays, status: l.status || '' });
+    reminderCandidates.push({
+      type: 'lead_follow_up_due',
+      category: 'sales',
+      key: `lead_follow_up_due:${l.id}:${due.toISOString().slice(0, 10)}`,
+      client: who,
+      leadId: l.id,
+      triggerDate: due.toISOString().slice(0, 10),
+      text: `${who}${where} — follow-up was due ${overdueDays} day${overdueDays === 1 ? '' : 's'} ago${l.status ? ` (${l.status.replace(/_/g, ' ')})` : ''}.`,
+    });
+  }
+  overdueLeads.sort((a, b) => b.overdueDays - a.overdueDays);
+
+  // ── d) Referral partners who have gone quiet ────────────────────────────
+  // Someone who has sent business before and then stopped is the warmest re-open there is.
+  const quietPartners = [];
+  for (const p of partners) {
+    const count = Number(p.referral_count) || 0;
+    if (count < 1) continue;                                  // never referred: not "gone quiet"
+    const lastRaw = p.last_referral_date;
+    const last = lastRaw ? new Date(lastRaw) : null;
+    const quietDays = last && !isNaN(last.getTime()) ? daysBetween(last, now) : null;
+    if (quietDays !== null && quietDays < PARTNER_QUIET_DAYS) continue;
+    const who = p.name || p.company || 'Unknown';
+    quietPartners.push({ who, quietDays, count });
+    reminderCandidates.push({
+      type: 'partner_gone_quiet',
+      category: 'sales',
+      key: `partner_gone_quiet:${p.id}:${quietDays === null ? 'never' : Math.floor(quietDays / 30)}`,
+      client: who,
+      referralPartnerId: p.id,
+      triggerDate: startToday.toISOString().slice(0, 10),
+      text: quietDays === null
+        ? `${who} — has referred ${count} time${count === 1 ? '' : 's'} but no date on the last one. Check in and log it.`
+        : `${who} — ${count} referral${count === 1 ? '' : 's'}, last one ${quietDays} days ago. Worth a check-in.`,
+    });
+  }
+  quietPartners.sort((a, b) => (b.quietDays ?? 9999) - (a.quietDays ?? 9999));
+
+  const openPipelineValue = openProposals.reduce((s, p) => s + (Number(p.total_amount) || 0), 0);
+  const stalledValue = stalledProposals.reduce((s, p) => s + p.amount, 0);
+
+  return {
+    openProposalCount: openProposals.length,
+    openPipelineValue,
+    stalledProposalCount: stalledProposals.length,
+    stalledValue,
+    stalledProposals: stalledProposals.slice(0, 8),
+    meetingsNoFollowUpCount: meetingsNoFollowUp.length,
+    meetingsNoFollowUp: meetingsNoFollowUp.slice(0, 8),
+    overdueLeadCount: overdueLeads.length,
+    overdueLeads: overdueLeads.slice(0, 8),
+    quietPartnerCount: quietPartners.length,
+    quietPartners: quietPartners.slice(0, 6),
+    reminderCandidates,
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // HANDLER
 // ═══════════════════════════════════════════════════════════════════════════
 
