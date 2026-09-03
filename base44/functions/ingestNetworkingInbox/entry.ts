@@ -184,6 +184,7 @@ Extract every UPCOMING event this email invites the reader to attend: webinars, 
 - Times are US Eastern unless the email says otherwise. Use 24-hour HH:MM. Leave start_time empty when no time is given.
 - format: "virtual" for Zoom/webinar/online, "in_person" when a venue or city is named, "hybrid" if both, else "unknown".
 - registration_url: the link the email uses for registering or details, if any.
+- One entry per event. Do NOT list receptions, breakfasts, sessions, forums or other agenda items that are part of a larger event as separate events — fold them into the main event.
 - Keep titles as written by the organizer, without the org name prefix.
 
 SUBJECT: ${m.subject}
