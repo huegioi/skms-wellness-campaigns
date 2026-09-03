@@ -256,6 +256,14 @@ Deno.serve(async (req) => {
     renewal_review_gaps: (delivery.renewalReviewGaps || []).length,
     open_follow_ups: openReminders.length,
     overdue_follow_ups: overdueReminders,
+    sales_open_proposals: sales.openProposalCount || 0,
+    sales_open_value: sales.openPipelineValue || 0,
+    sales_stalled_proposals: sales.stalledProposalCount || 0,
+    sales_stalled_value: sales.stalledValue || 0,
+    sales_meetings_no_follow_up: sales.meetingsNoFollowUpCount || 0,
+    sales_overdue_leads: sales.overdueLeadCount || 0,
+    sales_quiet_partners: sales.quietPartnerCount || 0,
+    delivery_meetings_today_tomorrow: delivery.todayTomorrowMeetingCount || 0,
   };
 
   // =========================================================
@@ -356,16 +364,35 @@ Open follow-up reminders: ${openReminders.length} (${overdueReminders} overdue 3
     });
   } catch (err) {
     console.error('[mayaDailyBriefing] LLM call failed:', err.message, err.stack);
-    const clientItems = silentClients.slice(0,3).map((c,i) => `${i+1}. ${c.company || c.name} — Re-engage, last contact ${c.last_contacted_date || 'unknown'}`).join('\n') || '1. Review client pipeline';
-    const partnerItems = overduePartners.slice(0,3).map((l,i) => `${i+1}. ${l.name} — Follow up (overdue ${l.follow_up_due_date})`).join('\n') || '1. Review partner pipeline';
+    const salesItems = (sales.stalledProposals || []).slice(0,4)
+      .map((p,i) => `${i+1}. ${p.client} — proposal ${p.status}, idle ${p.idleDays} days${p.amount ? ` (${fmtMoney0(p.amount)})` : ''}`).join('\n')
+      || overduePartners.slice(0,3).map((l,i) => `${i+1}. ${l.name} — Follow up (overdue ${l.follow_up_due_date})`).join('\n')
+      || '1. Review the sales pipeline';
+    const deliveryItems = (delivery.todayTomorrowSessions || []).slice(0,3)
+      .map((s,i) => `${i+1}. ${s.client || s.title} — ${s.start}${s.presenterAccepted ? '' : ' (presenter not accepted)'}`).join('\n')
+      || silentClients.slice(0,3).map((c,i) => `${i+1}. ${c.company || c.name} — Re-engage, last contact ${c.last_contacted_date || 'unknown'}`).join('\n')
+      || '1. Review delivery'
     const campaignItem = triggeredCampaigns.length > 0 ? `• ${triggeredCampaigns[0].campaign.name} — ${triggeredCampaigns[0].label}` : `• Review ${currentMonthName} seasonal themes`;
     briefing = `Today is ${todayStr}. ${stats.silent_clients} clients need re-engagement and ${stats.overdue_partners} partner follow-ups are overdue. Start with your most at-risk client relationship.\n\n**Client To-Dos**\n${clientItems}\n\n**Partner To-Dos**\n${partnerItems}\n\n**Campaign To-Do**\n${campaignItem}\n\n**Other**\n${stats.renewal_clients} client(s) are in their 90-day renewal window.\n\n_Maya hit an upstream error (${err.message || 'timeout'}) — refresh to regenerate._`;
   }
 
   const warningPrefix = contextWarnings.length > 0 ? contextWarnings.join('\n') + '\n\n' : '';
 
+  // Rendered as its own section in MayaBriefingCard — never passed through the LLM,
+  // so the figures on screen are the real ones.
+  const salesSnapshot = {
+    openProposalCount: sales.openProposalCount || 0,
+    openPipelineValue: sales.openPipelineValue || 0,
+    stalledProposals: sales.stalledProposals || [],
+    stalledValue: sales.stalledValue || 0,
+    meetingsNoFollowUp: sales.meetingsNoFollowUp || [],
+    overdueLeads: sales.overdueLeads || [],
+    quietPartners: sales.quietPartners || [],
+  };
+
   const deliverySnapshot = {
     todayTomorrowSessions: delivery.todayTomorrowSessions || [],
+    todayTomorrowMeetings: delivery.todayTomorrowMeetings || [],
     presenterGapSessions: delivery.presenterGapSessions || [],
     challengeAssessmentGaps: delivery.challengeAssessmentGaps || [],
     unscheduledServicesTotal: delivery.unscheduledServicesTotal || 0,
@@ -380,5 +407,6 @@ Open follow-up reminders: ${openReminders.length} (${overdueReminders} overdue 3
     stats,
     follow_ups: openReminders,
     delivery_snapshot: deliverySnapshot,
+    sales_snapshot: salesSnapshot,
   });
 });
