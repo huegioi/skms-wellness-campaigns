@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Users, ExternalLink, Check, X, MapPin, Video, Search, Radio, RefreshCw, Play, Mail, ClipboardPaste, Sparkles } from 'lucide-react';
+import { Plus, Pencil, Trash2, Users, ExternalLink, Check, X, MapPin, Video, Search, Radio, RefreshCw, Play, Mail, ClipboardPaste, Sparkles, Globe, CalendarPlus, CalendarCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
 
@@ -344,7 +344,7 @@ function SourceForm({ initial, onSave, onCancel, saving }) {
 }
 
 // ---- event row -------------------------------------------------------------
-function EventRow({ ev, onEdit, onIntent, onApprove, onReject, onDelete, review }) {
+function EventRow({ ev, onEdit, onIntent, onApprove, onReject, onDelete, onPushCalendar, pushingId, review }) {
   const s = parseEventDate(ev.start_date);
   const intentStyle = INTENT_STYLE[ev.intent];
   return (
@@ -378,10 +378,20 @@ function EventRow({ ev, onEdit, onIntent, onApprove, onReject, onDelete, review 
             <Button size="sm" variant="ghost" className="h-7 text-xs text-gray-500 hover:text-red-600" onClick={() => onReject(ev)}><X className="w-3.5 h-3.5 mr-1" />Reject</Button>
           </>
         ) : (
-          <Select value={ev.intent || 'none'} onValueChange={v => onIntent(ev, v)}>
-            <SelectTrigger className="h-7 w-[118px] text-xs hidden sm:flex"><SelectValue /></SelectTrigger>
-            <SelectContent>{INTENTS.map(i => <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>)}</SelectContent>
-          </Select>
+          <>
+            <Select value={ev.intent || 'none'} onValueChange={v => onIntent(ev, v)}>
+              <SelectTrigger className="h-7 w-[118px] text-xs hidden sm:flex"><SelectValue /></SelectTrigger>
+              <SelectContent>{INTENTS.map(i => <SelectItem key={i.value} value={i.value}>{i.label}</SelectItem>)}</SelectContent>
+            </Select>
+            {['attending', 'registered'].includes(ev.intent) && (
+              <Button size="icon" variant="ghost" disabled={pushingId === ev.id}
+                className={`w-7 h-7 ${ev.google_event_id ? 'text-green-600' : 'text-gray-400 hover:text-[#013f7c]'}`}
+                title={ev.google_event_id ? 'On the SkillfulMeans calendar — click to update it' : 'Add to the SkillfulMeans Google calendar'}
+                onClick={() => onPushCalendar(ev)}>
+                {ev.google_event_id ? <CalendarCheck className="w-3.5 h-3.5" /> : <CalendarPlus className="w-3.5 h-3.5" />}
+              </Button>
+            )}
+          </>
         )}
         {ev.registration_url && <a href={ev.registration_url} target="_blank" rel="noreferrer" className="w-7 h-7 inline-flex items-center justify-center text-gray-400 hover:text-[#013f7c]" title="Open registration"><ExternalLink className="w-3.5 h-3.5" /></a>}
         <Button size="icon" variant="ghost" className="w-7 h-7 text-gray-400 hover:text-[#013f7c]" onClick={() => onEdit(ev)}><Pencil className="w-3.5 h-3.5" /></Button>
@@ -460,6 +470,34 @@ export default function NetworkingEventsTab() {
     onError: (e) => toast.error(`Inbox check failed: ${e?.message || e}`),
     onSettled: () => setCheckingId(null),
   });
+
+  // Page scrapers: the orgs with no feed. Skips the model when a page hasn't changed.
+  const runPages = useMutation({
+    mutationFn: async (payload) => { const { data } = await base44.functions.invoke('ingestNetworkingPages', payload || {}); return data; },
+    onSuccess: (data) => {
+      invalidate();
+      if (data?.error) { toast.error(data.error); return; }
+      const failed = (data?.sources || []).filter(s => s.error);
+      const parts = [`${data?.created ?? 0} new`, `${data?.updated ?? 0} updated`];
+      if (data?.unchanged) parts.push(`${data.unchanged} unchanged`);
+      const summary = `Checked ${data?.sources?.length ?? 0} page${data?.sources?.length === 1 ? '' : 's'}: ${parts.join(', ')}`;
+      if (failed.length) toast.warning(`${summary} · ${failed.length} failed (${failed.map(f => f.org).join(', ')})`, { duration: 8000 });
+      else if (data?.more) toast.info(`${summary} · more pages waiting — click again to continue`, { duration: 8000 });
+      else toast.success(summary);
+    },
+    onError: (e) => toast.error(`Page check failed: ${e?.message || e}`),
+    onSettled: () => setCheckingId(null),
+  });
+
+  // Push an event we're attending onto the shared SkillfulMeans Google calendar.
+  const [pushingId, setPushingId] = useState(null);
+  const pushCalendar = useMutation({
+    mutationFn: async (ev) => { const { data } = await base44.functions.invoke('pushNetworkingEventToCalendar', { event_id: ev.id }); return data; },
+    onSuccess: (data) => { invalidate(); if (data?.error) toast.error(data.error); else toast.success('On the SkillfulMeans calendar'); },
+    onError: (e) => toast.error(`Could not add to the calendar: ${e?.message || e}`),
+    onSettled: () => setPushingId(null),
+  });
+  const onPushCalendar = (ev) => { setPushingId(ev.id); pushCalendar.mutate(ev); };
 
   // "Add from text": paste an email or a page's text, let the extractor propose events.
   const [pasteOpen, setPasteOpen] = useState(false);
@@ -566,6 +604,9 @@ export default function NetworkingEventsTab() {
             <>
               <Button variant="outline" disabled={runInbox.isPending} onClick={() => { setCheckingId('inbox'); runInbox.mutate({}); }} className="gap-1.5 text-sm" title="Read william@, heather@ and admin@ for invites and event announcements from the watched senders">
                 <Mail className={`w-4 h-4 ${runInbox.isPending ? 'animate-pulse' : ''}`} /> <span className="hidden sm:inline">Check inbox</span>
+              </Button>
+              <Button variant="outline" disabled={runPages.isPending} onClick={() => { setCheckingId('pages'); runPages.mutate({}); }} className="gap-1.5 text-sm" title="Read the events pages of the orgs that publish no feed">
+                <Globe className={`w-4 h-4 ${runPages.isPending ? 'animate-pulse' : ''}`} /> <span className="hidden sm:inline">Check pages</span>
               </Button>
               <Button variant="outline" disabled={runIngest.isPending} onClick={() => { setCheckingId('all'); runIngest.mutate({ force: true }); }} className="gap-1.5 text-sm" title="Check every active feed source now">
                 <RefreshCw className={`w-4 h-4 ${runIngest.isPending && checkingId === 'all' ? 'animate-spin' : ''}`} /> <span className="hidden sm:inline">Check all feeds</span>
@@ -675,6 +716,11 @@ export default function NetworkingEventsTab() {
                               <Play className={`w-3 h-3 mr-1 ${runIngest.isPending && checkingId === s.id ? 'animate-pulse' : ''}`} />Check now
                             </Button>
                           )}
+                          {s.channel === 'scrape' && s.page_url && (
+                            <Button size="sm" variant="ghost" disabled={runPages.isPending} className="h-7 px-2 text-xs text-gray-500 hover:text-[#013f7c]" title="Read this org's events page now" onClick={() => { setCheckingId(s.id); runPages.mutate({ source_id: s.id, force: true }); }}>
+                              <Play className={`w-3 h-3 mr-1 ${runPages.isPending && checkingId === s.id ? 'animate-pulse' : ''}`} />Check now
+                            </Button>
+                          )}
                           {(s.page_url || s.website) && <a href={s.page_url || s.website} target="_blank" rel="noreferrer" className="w-7 h-7 inline-flex items-center justify-center text-gray-400 hover:text-[#013f7c]"><ExternalLink className="w-3.5 h-3.5" /></a>}
                           <Button size="icon" variant="ghost" className="w-7 h-7 text-gray-400 hover:text-[#013f7c]" onClick={() => { setEditingSource(s); setSourceDialog(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
                         </div>
@@ -707,7 +753,7 @@ export default function NetworkingEventsTab() {
               </div>
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 {g.items.map(ev => (
-                  <EventRow key={ev.id} ev={ev} review={view === 'review'} onEdit={openEditEvent} onIntent={setIntent} onApprove={approve} onReject={reject} onDelete={remove} />
+                  <EventRow key={ev.id} ev={ev} review={view === 'review'} onEdit={openEditEvent} onIntent={setIntent} onApprove={approve} onReject={reject} onDelete={remove} onPushCalendar={onPushCalendar} pushingId={pushingId} />
                 ))}
               </div>
             </div>
