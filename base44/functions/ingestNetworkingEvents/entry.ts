@@ -308,6 +308,12 @@ Deno.serve(async (req) => {
       if (Math.abs(ed - d) > DAY_MS) continue;
       if (titleSimilarity(e.title, c.title) >= 0.5 || fingerprintOf(org, e.title, dayOf(e.start_date)) === fingerprintOf(org, c.title, dayOf(c.start_date))) return e;
     }
+    // Cross-org: MA SHRM's feed re-lists NEHRA and chapter events. Same day + near-identical
+    // title anywhere on the calendar counts as the same event (we keep the original org).
+    for (const e of existing) {
+      if (e.org_code === org || dayOf(e.start_date) !== dayOf(c.start_date)) continue;
+      if (titleSimilarity(e.title, c.title) >= 0.75 || slug(e.title) === slug(c.title)) return { ...e, _crossOrg: true };
+    }
     return null;
   };
 
@@ -349,6 +355,14 @@ Deno.serve(async (req) => {
         channel: src.channel, org_code: src.org_code, org_name: src.org_name, source_id: src.id,
       };
       for (const k of Object.keys(fields)) if (fields[k] === undefined || fields[k] === '') delete fields[k];
+      if (match?._crossOrg) {
+        // Another org already owns this event; only fill blanks, never re-home it.
+        const patch = {};
+        for (const k of ['description', 'venue', 'city', 'state', 'registration_url', 'end_date']) if (fields[k] !== undefined && !match[k]) patch[k] = fields[k];
+        if (Object.keys(patch).length) { if (!dry_run) await db.NetworkingEvent.update(match.id, patch); r.updated++; report.updated++; }
+        else r.skipped++;
+        continue;
+      }
       if (match) {
         // Update only what the feed knows better; never touch status/intent/owner/notes/opportunity.
         const patch = {};
