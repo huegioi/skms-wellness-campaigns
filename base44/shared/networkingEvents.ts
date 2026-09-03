@@ -220,9 +220,12 @@ export async function upsertCandidate(db, src, c, index, { dry_run = false, chan
   }
   if (match) {
     const patch = {};
-    const exactness = { invite: 3, feed_ics: 3, feed_rss: 2, feed_json: 2, scrape: 1, email: 1, manual: 0 };
-    const incoming = exactness[fields.channel] ?? 1, current = exactness[match.channel] ?? 0;
-    const canOverwrite = incoming >= current;
+    // Hand-entered rows rank with email/scrape: an LLM reading of a newsletter never renames or
+    // re-dates something a person or a feed already set — it only fills blanks. Feeds (2) beat
+    // hand entry (1); invites and ICS (3) beat everything.
+    const exactness = { invite: 3, feed_ics: 3, feed_rss: 2, feed_json: 2, manual: 1, scrape: 1, email: 1 };
+    const incoming = exactness[fields.channel] ?? 1, current = exactness[match.channel] ?? 1;
+    const canOverwrite = incoming > current;
     if (canOverwrite) for (const k of ['title', 'start_date', 'end_date', 'all_day', 'registration_url', 'source_uid', 'raw_ref', 'fingerprint', 'channel', 'source_id', 'date_evidence', 'confidence']) if (fields[k] !== undefined && fields[k] !== match[k]) patch[k] = fields[k];
     for (const k of ['description', 'venue', 'city', 'state', 'region', 'format', 'cost_text', 'registration_url']) if (fields[k] !== undefined && (!match[k] || match[k] === 'unknown')) patch[k] = fields[k];
     const multiDay = match.end_date && dayOf(match.end_date) > dayOf(match.start_date);
