@@ -117,29 +117,31 @@ async function gmailGetMessage(token, id) {
 }
 
 // ---- IMAP (admin@) ----------------------------------------------------------
-async function imapMessages(account, password, sinceDate, senderMatcher, max = 150) {
+// Opens INBOX, lists messages since `sinceDate` whose sender matches, and returns
+// { list: [{id, uid, from, subject, date}], download(entry), close() } so the caller can
+// process lazily inside its time budget.
+async function imapOpen(account, password, sinceDate, senderMatcher) {
   const client = new ImapFlow({ host: 'imap.gmail.com', port: 993, secure: true, auth: { user: account, pass: password }, logger: false });
-  const out = [];
   await client.connect();
-  try {
-    const lock = await client.getMailboxLock('INBOX');
-    try {
-      const uids = await client.search({ since: sinceDate }, { uid: true });
-      const recent = (uids || []).slice(-400);
-      const wanted = [];
-      if (recent.length) for await (const m of client.fetch(recent, { envelope: true, uid: true }, { uid: true })) {
-        const from = m.envelope?.from?.[0]; const addr = from?.address || (from?.mailbox && from?.host ? `${from.mailbox}@${from.host}` : '');
-        if (addr && senderMatcher(addr)) wanted.push({ uid: m.uid, from: addr, subject: m.envelope.subject || '', date: m.envelope.date ? new Date(m.envelope.date) : new Date() });
-      }
-      for (const w of wanted.slice(-max)) {
-        const dl = await client.download(String(w.uid), undefined, { uid: true });
-        const chunks = []; for await (const ch of dl.content) chunks.push(ch);
-        const raw = new TextDecoder('utf-8').decode(new Uint8Array(chunks.reduce((a, c) => { const n = new Uint8Array(a.length + c.length); n.set(a); n.set(c, a.length); return n; }, new Uint8Array())));
-        out.push({ id: `imap:${account}:${w.uid}`, from: w.from, subject: w.subject, date: w.date, parts: parseMime(raw) });
-      }
-    } finally { lock.release(); }
-  } finally { try { await client.logout(); } catch (_) {} }
-  return out;
+  const lock = await client.getMailboxLock('INBOX');
+  const uids = await client.search({ since: sinceDate }, { uid: true });
+  const recent = (uids || []).slice(-400);
+  const list = [];
+  if (recent.length) for await (const m of client.fetch(recent, { envelope: true, uid: true }, { uid: true })) {
+    const from = m.envelope?.from?.[0]; const addr = from?.address || (from?.mailbox && from?.host ? `${from.mailbox}@${from.host}` : '');
+    if (addr && senderMatcher(addr)) list.push({ id: `imap:${account}:${m.uid}`, uid: m.uid, from: addr, subject: m.envelope.subject || '', date: m.envelope.date ? new Date(m.envelope.date) : new Date() });
+  }
+  list.sort((a, b) => a.date - b.date);
+  return {
+    list,
+    async download(entry) {
+      const dl = await client.download(String(entry.uid), undefined, { uid: true });
+      const chunks = []; for await (const ch of dl.content) chunks.push(ch);
+      const raw = new TextDecoder('utf-8').decode(new Uint8Array(chunks.reduce((a, c) => { const n = new Uint8Array(a.length + c.length); n.set(a); n.set(c, a.length); return n; }, new Uint8Array())));
+      return { ...entry, parts: parseMime(raw) };
+    },
+    async close() { try { lock.release(); } catch (_) {} try { await client.logout(); } catch (_) {} },
+  };
 }
 
 // ---- message → candidates ---------------------------------------------------
