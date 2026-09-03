@@ -9,9 +9,34 @@
         "challenge_report",
         "week_out_confirmation",
         "proposal_promo",
-        "wellness_box"
+        "wellness_box",
+        "proposal_stalled",
+        "meeting_no_follow_up",
+        "lead_follow_up_due",
+        "partner_gone_quiet"
       ],
-      "description": "Type of follow-up reminder"
+      "description": "Type of follow-up reminder. The first five are delivery-side (they only fire on ACCEPTED proposals and delivery events); the last four are sales-side."
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "delivery",
+        "sales"
+      ],
+      "default": "delivery",
+      "description": "Which section of Maya's brief this belongs to. Delivery = work already sold; Sales = still being won."
+    },
+    "lead_id": {
+      "type": "string",
+      "description": "Associated Lead ID, for sales-side reminders"
+    },
+    "referral_partner_id": {
+      "type": "string",
+      "description": "Associated ReferralPartner ID, for sales-side reminders"
+    },
+    "amount": {
+      "type": "number",
+      "description": "Deal value attached to this reminder, when there is one \u2014 lets the brief lead with the biggest thing at risk."
     },
     "dedupe_key": {
       "type": "string",
