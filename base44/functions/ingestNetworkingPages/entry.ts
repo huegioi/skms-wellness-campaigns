@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import {
   isTeamMember, stripHtml, decodeEntities, fetchText, parseIcs, zonedToIso, todayIsoNY,
-  isTeamMember as _unused, loadEventIndex, upsertCandidate, archivePastEvents,
+  loadEventIndex, upsertCandidate, archivePastEvents,
 } from '../../shared/networkingEvents.ts';
 
 // ---------------------------------------------------------------------------
