@@ -59,6 +59,16 @@
       "format": "date-time",
       "description": "When the proposal was marked fulfilled"
     },
+    "accepted_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the client accepted. Delivery follow-ups (promo emails, wellness boxes) anchor on THIS, not created_date \u2014 a proposal accepted months after it was written still gets its follow-ups."
+    },
+    "declined_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the client declined \u2014 stops sales nudges without deleting the record."
+    },
     "sent_date": {
       "type": "string",
       "format": "date-time",
