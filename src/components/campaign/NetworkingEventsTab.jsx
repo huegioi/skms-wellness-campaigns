@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2, Users, ExternalLink, Check, X, MapPin, Video, Search, Radio } from 'lucide-react';
+import { Plus, Pencil, Trash2, Users, ExternalLink, Check, X, MapPin, Video, Search, Radio, RefreshCw, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
 
@@ -423,6 +423,35 @@ export default function NetworkingEventsTab() {
   const createSource = useMutation({ mutationFn: d => base44.entities.EventSource.create(d), onSuccess: () => { invalidate(); toast.success('Source added'); setSourceDialog(false); setEditingSource(null); }, onError: () => toast.error('Could not save source') });
   const updateSource = useMutation({ mutationFn: ({ id, data }) => base44.entities.EventSource.update(id, data), onSuccess: () => { invalidate(); setSourceDialog(false); setEditingSource(null); }, onError: () => toast.error('Could not update source') });
 
+  // Daily sync: run one source (Check now), run every due feed, and the schedule switch.
+  const [checkingId, setCheckingId] = useState(null);
+  const runIngest = useMutation({
+    mutationFn: async (payload) => { const { data } = await base44.functions.invoke('ingestNetworkingEvents', payload); return data; },
+    onSuccess: (data) => {
+      invalidate();
+      if (data?.error) { toast.error(data.error); return; }
+      const failed = (data?.sources || []).filter(s => s.error);
+      const parts = [`${data?.created ?? 0} new`, `${data?.updated ?? 0} updated`];
+      if (data?.archived) parts.push(`${data.archived} archived`);
+      if (failed.length) toast.warning(`Checked ${data.sources.length} source${data.sources.length === 1 ? '' : 's'}: ${parts.join(', ')} · ${failed.length} failed (${failed.map(f => f.org).join(', ')})`);
+      else if (!data?.sources?.length) toast.info('Nothing was due — every feed was checked recently. Use Check now on a source to force it.');
+      else toast.success(`Checked ${data.sources.length} source${data.sources.length === 1 ? '' : 's'}: ${parts.join(', ')}`);
+    },
+    onError: (e) => toast.error(`Sync failed: ${e?.message || e}`),
+    onSettled: () => setCheckingId(null),
+  });
+  const { data: schedule, refetch: refetchSchedule } = useQuery({
+    queryKey: ['networking_events_schedule'],
+    queryFn: async () => { const { data } = await base44.functions.invoke('manageNetworkingEventsSync', { action: 'status' }); return data; },
+    enabled: !isLoadingAuth && view === 'sources',
+    staleTime: 60000,
+  });
+  const toggleSchedule = useMutation({
+    mutationFn: async (enable) => { const { data } = await base44.functions.invoke('manageNetworkingEventsSync', { action: enable ? 'enable' : 'disable' }); return data; },
+    onSuccess: (data) => { refetchSchedule(); if (data?.error) toast.error(data.error); else toast.success(data?.is_active ? 'Daily sync is on (runs each morning at 6:30 ET)' : 'Daily sync paused'); },
+    onError: (e) => toast.error(`Could not change the schedule: ${e?.message || e}`),
+  });
+
   const today = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
   const in30 = useMemo(() => new Date(today.getTime() + 30 * 86400000), [today]);
 
@@ -430,7 +459,7 @@ export default function NetworkingEventsTab() {
   const pending = enriched.filter(e => e.status === 'pending_review');
   const approved = enriched.filter(e => e.status === 'approved');
   const upcoming = approved.filter(e => e._end && e._end >= today).sort((a, b) => a._start - b._start);
-  const past = approved.filter(e => e._end && e._end < today).sort((a, b) => b._start - a._start);
+  const past = enriched.filter(e => (e.status === 'archived' || e.status === 'approved') && e._end && e._end < today).sort((a, b) => b._start - a._start);
 
   const applyFilters = list => list.filter(e => {
     if (filters.org !== 'all' && e.org_code !== filters.org) return false;
@@ -505,7 +534,12 @@ export default function NetworkingEventsTab() {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {view === 'sources' ? (
-            <Button onClick={() => { setEditingSource(null); setSourceDialog(true); }} className="bg-[#013f7c] hover:bg-[#013f7c]/90 text-white gap-1.5 text-sm"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span> Source</Button>
+            <>
+              <Button variant="outline" disabled={runIngest.isPending} onClick={() => { setCheckingId('all'); runIngest.mutate({ force: true }); }} className="gap-1.5 text-sm" title="Check every active feed source now">
+                <RefreshCw className={`w-4 h-4 ${runIngest.isPending && checkingId === 'all' ? 'animate-spin' : ''}`} /> <span className="hidden sm:inline">Check all feeds</span>
+              </Button>
+              <Button onClick={() => { setEditingSource(null); setSourceDialog(true); }} className="bg-[#013f7c] hover:bg-[#013f7c]/90 text-white gap-1.5 text-sm"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span> Source</Button>
+            </>
           ) : (
             <Button onClick={openNewEvent} className="bg-[#013f7c] hover:bg-[#013f7c]/90 text-white gap-1.5 text-sm"><Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add</span> Event</Button>
           )}
@@ -599,6 +633,11 @@ export default function NetworkingEventsTab() {
                       <td className="px-4 py-3 text-center"><Switch checked={!!s.is_active} onCheckedChange={v => updateSource.mutate({ id: s.id, data: { is_active: v } })} /></td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {['feed_rss', 'feed_json', 'feed_ics'].includes(s.channel) && s.feed_url && (
+                            <Button size="sm" variant="ghost" disabled={runIngest.isPending} className="h-7 px-2 text-xs text-gray-500 hover:text-[#013f7c]" title="Fetch this feed now" onClick={() => { setCheckingId(s.id); runIngest.mutate({ source_id: s.id, force: true }); }}>
+                              <Play className={`w-3 h-3 mr-1 ${runIngest.isPending && checkingId === s.id ? 'animate-pulse' : ''}`} />Check now
+                            </Button>
+                          )}
                           {(s.page_url || s.website) && <a href={s.page_url || s.website} target="_blank" rel="noreferrer" className="w-7 h-7 inline-flex items-center justify-center text-gray-400 hover:text-[#013f7c]"><ExternalLink className="w-3.5 h-3.5" /></a>}
                           <Button size="icon" variant="ghost" className="w-7 h-7 text-gray-400 hover:text-[#013f7c]" onClick={() => { setEditingSource(s); setSourceDialog(true); }}><Pencil className="w-3.5 h-3.5" /></Button>
                         </div>
@@ -608,7 +647,18 @@ export default function NetworkingEventsTab() {
                 })}
               </tbody>
             </table>
-            <div className="px-4 py-2.5 text-xs text-gray-400 border-t border-gray-50 flex items-center gap-1.5"><Radio className="w-3 h-3" /> The daily check that fills this calendar from feeds and your inbox arrives in the next phase; until then, events are added by hand.</div>
+            <div className="px-4 py-2.5 text-xs text-gray-500 border-t border-gray-50 flex flex-wrap items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1.5"><Radio className="w-3 h-3" />
+                {schedule === undefined ? 'Checking the daily schedule…'
+                  : schedule?.error ? `Schedule unavailable: ${schedule.error}`
+                  : schedule?.is_active ? 'Daily sync is on — feed sources are checked each morning at 6:30 ET; inbox and page sources arrive in the next phase.'
+                  : 'Daily sync is off — turn it on to check feed sources automatically each morning.'}
+              </span>
+              <label className="inline-flex items-center gap-2">
+                <span>Daily sync</span>
+                <Switch checked={!!schedule?.is_active} disabled={toggleSchedule.isPending || schedule === undefined} onCheckedChange={v => toggleSchedule.mutate(v)} />
+              </label>
+            </div>
           </div>
         )
       ) : loadingEvents ? (
