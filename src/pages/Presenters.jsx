@@ -267,7 +267,37 @@ export default function Presenters() {
                   placeholder="(555) 000-0000"
                   className="mt-1"
                 />
+                {form.phone && !toE164(form.phone) && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    Not a number we can text — needs 10 digits, or start with + for non-US.
+                  </p>
+                )}
               </div>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+              <label className="flex items-start gap-2.5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!form.sms_opt_in}
+                  onChange={e => setForm(f => ({ ...f, sms_opt_in: e.target.checked }))}
+                  disabled={!toE164(form.phone)}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 disabled:opacity-40"
+                />
+                <span className="text-sm text-gray-700 leading-snug">
+                  They agreed to receive texts about sessions
+                  <span className="block text-xs text-gray-500 mt-0.5">
+                    {toE164(form.phone)
+                      ? <>Texts go to <span className="font-mono">{toE164(form.phone)}</span>. Only tick this if they actually said yes — carriers require provable consent.</>
+                      : 'Add a textable mobile number first.'}
+                  </span>
+                </span>
+              </label>
+              {editingPresenter?.sms_opt_out_at && (
+                <p className="text-xs text-red-700 mt-2">
+                  They replied STOP on {new Date(editingPresenter.sms_opt_out_at).toLocaleDateString()} — texting stays off until they reply START.
+                </p>
+              )}
             </div>
             <div>
               <Label>Default Rate ($/session)</Label>
