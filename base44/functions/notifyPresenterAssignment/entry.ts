@@ -18,6 +18,27 @@ const FROM_EMAIL = 'admin@skillfulmeans.life';
 const FROM_NAME = 'SkillfulMeans';
 const CALENDAR_ID = 'admin@skillfulmeans.life';
 
+const TWILIO_SID   = Deno.env.get('TWILIO_ACCOUNT_SID');
+const TWILIO_TOKEN = Deno.env.get('TWILIO_AUTH_TOKEN');
+const TWILIO_FROM  = Deno.env.get('TWILIO_FROM_NUMBER');
+
+// Twilio only accepts E.164 (+16122371146). Presenter phones are free text
+// ("612 237 1146", "8578911828"), so normalize before sending. US-default: a bare
+// 10-digit number gets +1; 11 digits starting with 1 gets +. Anything else that
+// doesn't already start with + we refuse rather than guess a country wrong.
+function toE164(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  if (s.startsWith('+')) {
+    const d = s.slice(1).replace(/\D/g, '');
+    return d.length >= 8 && d.length <= 15 ? '+' + d : '';
+  }
+  const d = s.replace(/\D/g, '');
+  if (d.length === 10) return '+1' + d;
+  if (d.length === 11 && d.startsWith('1')) return '+' + d;
+  return '';
+}
+
 const NY = 'America/New_York';
 
 // Google's own event URL is base64("<eventId> <calendarId>") with padding stripped.
@@ -156,6 +177,31 @@ async function sendEmail({ to, toName, subject, html, text }) {
   return { ok: false, error: `SendGrid ${resp.status}: ${body.slice(0, 300)}` };
 }
 
+// Twilio REST call. Kept deliberately small: one message, no retries — a failed text
+// must never block or fail the email, which is the channel that actually matters.
+async function sendSms({ to, body }) {
+  if (!TWILIO_SID || !TWILIO_TOKEN || !TWILIO_FROM) {
+    return { ok: false, error: 'Twilio is not configured (need TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER)', skipped: true };
+  }
+  const form = new URLSearchParams({ To: to, From: TWILIO_FROM, Body: body });
+  const resp = await fetch(
+    `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages.json`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: 'Basic ' + btoa(`${TWILIO_SID}:${TWILIO_TOKEN}`),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: form.toString(),
+    }
+  );
+  const data = await resp.json().catch(() => ({}));
+  if (resp.ok) return { ok: true, sid: data.sid };
+  // 21610 = the recipient replied STOP. Twilio blocks it at their end; we record it so
+  // we stop trying and the UI can say why.
+  return { ok: false, error: `Twilio ${data.code || resp.status}: ${data.message || 'send failed'}`, code: data.code };
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -220,6 +266,12 @@ Deno.serve(async (req) => {
 
     const message = buildEmail({ presenterName, event, when, feeText, clientLabel, portalUrl, calendarUrl });
 
+    // Text: short by design — one line of what, one of when, and the link that lets them
+    // accept. 'Reply STOP to opt out' is a carrier requirement, not a nicety.
+    const smsTo = presenter?.phone_e164 || toE164(presenter?.phone);
+    const smsOptedIn = presenter?.sms_opt_in === true && !presenter?.sms_opt_out_at;
+    const smsBody = `SkillfulMeans: you're requested to present "${event.title}" on ${when.date}${when.time ? ' at ' + when.time : ''}. Accept or decline: ${portalUrl}\nReply STOP to opt out.`;
+
     if (preview) {
       return Response.json({
         success: true,
@@ -227,6 +279,16 @@ Deno.serve(async (req) => {
         to: { email: toEmail, name: presenterName },
         // Phone is surfaced so the dialog can say whether SMS would be possible later.
         phone: presenter?.phone || '',
+        smsTo: smsTo || null,
+        smsOptedIn,
+        smsConfigured: !!(TWILIO_SID && TWILIO_TOKEN && TWILIO_FROM),
+        smsBody: smsTo && smsOptedIn ? smsBody : null,
+        smsBlockedReason: !smsTo
+          ? (presenter?.phone ? 'phone number is not a valid US mobile' : 'no mobile number on file')
+          : !presenter?.sms_opt_in ? 'presenter has not opted in to texts'
+          : presenter?.sms_opt_out_at ? 'presenter replied STOP'
+          : !(TWILIO_SID && TWILIO_TOKEN && TWILIO_FROM) ? 'Twilio is not configured'
+          : null,
         subject: message.subject,
         text: message.text,
         portalUrl,
@@ -247,11 +309,24 @@ Deno.serve(async (req) => {
     });
     channels.push({ channel: 'email', target: toEmail, ...emailResult });
 
-    // SMS goes here once Twilio credentials + 10DLC registration exist.
+    // SMS is best-effort and additive: it never blocks the email and never fails the call.
+    if (smsTo && smsOptedIn) {
+      const smsResult = await sendSms({ to: smsTo, body: smsBody });
+      channels.push({ channel: 'sms', target: smsTo, ...smsResult });
+      if (smsResult.code === 21610 && presenter?.id) {
+        await base44.asServiceRole.entities.Presenter.update(presenter.id, {
+          sms_opt_out_at: new Date().toISOString(),
+          sms_opt_in: false,
+        }).catch(() => {});
+      }
+    }
 
-    const anyOk = channels.some(c => c.ok);
+    // Email is the channel that must land. A text failing on its own is 'partial', not
+    // 'failed' — the presenter was still told.
+    const emailOk = channels.find(c => c.channel === 'email')?.ok === true;
     const allOk = channels.every(c => c.ok);
-    const status = allOk ? 'sent' : anyOk ? 'partial' : 'failed';
+    const anyOk = channels.some(c => c.ok);
+    const status = allOk ? 'sent' : emailOk ? 'partial' : 'failed';
     const errorText = channels.filter(c => !c.ok).map(c => `${c.channel}: ${c.error}`).join('; ');
 
     await base44.asServiceRole.entities.CalendarEvent.update(eventId, {
