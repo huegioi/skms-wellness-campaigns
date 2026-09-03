@@ -263,30 +263,34 @@ Write today's briefing using EXACTLY this format — no extra sections, no parag
 
 [3 sentences: (1) today's date, (2) a quick read on the overall state of play using real numbers or names, (3) the single most important thing to focus on today. Be specific and human.]
 
-**Client To-Dos**
-1. [Client/company name] — [one specific next action]
-2. [Client/company name] — [one specific next action]
-3. [Client/company name] — [one specific next action]
+**Sales**
+1. [Company or person] — [one specific next action to move the deal]
+2. [Company or person] — [one specific next action]
+3. [Company or person] — [one specific next action]
+4. [Company or person] — [one specific next action]
 
-**Partner To-Dos**
-1. [Partner name] — [one specific next action]
-2. [Partner name] — [one specific next action]
-3. [Partner name] — [one specific next action]
+**Delivery**
+1. [Client name] — [one specific next action on work already sold]
+2. [Client name] — [one specific next action]
+3. [Client name] — [one specific next action]
 
 **Campaign To-Do**
 • [The single most relevant seasonal or campaign action for right now — one line]
 
 **Other**
-[1–2 sentences flagging anything else worth noting — stale data, upcoming deadline, a quick win, or new Quick Builder inquiries awaiting review (by name).]
+[1–2 sentences flagging anything else worth noting — stale data, an upcoming deadline, a quick win, or new Quick Builder inquiries awaiting review (by name).]
 
 ---
 
 RULES:
 - Each to-do is ONE line: name + action only. No sub-bullets, no explanations.
-- If a section has fewer than 3 real items, write as many as the data supports — do not invent names.
+- THE LINE BETWEEN SECTIONS IS ABSOLUTE: **Sales** is for deals not yet won — open proposals, leads, partners, meetings needing follow-up. **Delivery** is ONLY for clients with an ACCEPTED proposal — sessions, presenters, assessments, recordings, boxes. Never put a client with an unaccepted proposal in Delivery; they are still being sold to.
+- Lead Sales with the biggest thing at risk — largest dollar value or longest stalled.
+- Do not confuse a meeting with a delivery. A workshop, class, challenge or presentation is delivery; a 1:1, discovery or networking call is sales.
+- If a section has fewer real items than the slots above, write as many as the data supports — do not invent names.
 - Mention follow-up counts in the opening if notable; do NOT list individual follow-ups — they are shown separately.
-- Do NOT write a Delivery or Renewal section — they are rendered separately. You may reference delivery/renewal highlights in the opening.
-- Total output should be under 280 words.
+- Do NOT write a Renewal section — it is rendered separately. You may reference renewal highlights in the opening.
+- Total output should be under 320 words.
 
 DATA (use this — do not repeat it verbatim):
 
