@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit, Upload, CheckCircle2, X, Send, ClipboardCheck, Video } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit, Upload, CheckCircle2, X, Send, ClipboardCheck, Video, MessageSquare } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -987,11 +987,19 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
                 <pre className="px-3 py-3 text-xs text-gray-700 whitespace-pre-wrap font-sans max-h-56 overflow-y-auto m-0">{notifyPreview.text}</pre>
               </div>
 
-              <p className="text-xs text-gray-500">
-                {notifyPreview.phone
-                  ? `A text will also go to ${notifyPreview.phone} once SMS is switched on — email only for now.`
-                  : 'Email only. No mobile number on file for this presenter.'}
-              </p>
+              {notifyPreview.smsBody ? (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="px-3 py-2 bg-gray-50 border-b flex items-center gap-2">
+                    <MessageSquare className="w-3.5 h-3.5 text-gray-400" />
+                    <p className="text-xs text-gray-500">Text to <span className="font-medium text-gray-700">{notifyPreview.smsTo}</span></p>
+                  </div>
+                  <pre className="px-3 py-2.5 text-xs text-gray-700 whitespace-pre-wrap font-sans m-0">{notifyPreview.smsBody}</pre>
+                </div>
+              ) : (
+                <p className="text-xs text-gray-500">
+                  Email only — no text{notifyPreview.smsBlockedReason ? ` (${notifyPreview.smsBlockedReason})` : ''}.
+                </p>
+              )}
             </div>
           )}
 
