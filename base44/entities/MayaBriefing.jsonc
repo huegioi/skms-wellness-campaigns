@@ -19,6 +19,10 @@
       "type": "object",
       "description": "Map of action item key -> { name, timestamp } for completed items"
     },
+    "sales_snapshot": {
+      "type": "object",
+      "description": "Structured sales figures for the brief's Sales section (stalled proposals, meetings with no follow-up, overdue leads, quiet partners). Rendered directly \u2014 never passed through the LLM \u2014 so the numbers on screen are the real ones."
+    },
     "delivery_snapshot": {
       "type": "object",
       "description": "Structured delivery snapshot rendered separately from the LLM briefing text: todayTomorrowSessions, presenterGapSessions, challengeAssessmentGaps, unscheduledServicesTotal, clientsWithDelivery, activeCohort, renewalReviewGaps"
