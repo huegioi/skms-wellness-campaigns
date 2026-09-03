@@ -864,15 +864,27 @@ async function buildDeliveryContext(base44) {
   const clients = allClients.filter(c => !c.is_demo && !c.is_internal && !c.is_assessment_lead);
   const cleanServices = services.filter(s => !s.is_demo);
   const cleanEvents = events.filter(e => !e.is_demo);
-  const recentProposals = recentProposalsRaw.filter(p => !p.is_demo);
 
-  // ── Today/tomorrow sessions with presenter-acceptance gaps ──
-  const todayTomorrow = cleanEvents
-    .filter(e => {
-      const d = new Date(e.start_date);
-      return d >= startToday && d < endTomorrow;
-    })
-    .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+  // DELIVERY follow-ups only ever apply to work the client actually bought. A proposal
+  // sitting in draft/sent/viewed is still a SALES conversation — promo emails and wellness
+  // box asks against it were the bug William reported (Great Minds, sent since February,
+  // was generating delivery tasks). 'fulfilled' counts: it means accepted, then delivered.
+  const wonProposals = recentProposalsRaw.filter(p =>
+    !p.is_demo && (p.status === 'accepted' || p.status === 'fulfilled')
+  );
+
+  // ── Today/tomorrow DELIVERY sessions with presenter-acceptance gaps ──
+  // Meetings (1:1s, networking calls, discovery) are not deliveries and have no presenter,
+  // so including them produced nonsense like "Remote Networking Chat — presenter NOT
+  // accepted". Same rule the Schedule page uses for its Delivery/Meetings lenses.
+  const inWindow = (e) => {
+    const d = new Date(e.start_date);
+    return d >= startToday && d < endTomorrow;
+  };
+  const byStart = (a, b) => new Date(a.start_date) - new Date(b.start_date);
+
+  const todayTomorrow = cleanEvents.filter(e => inWindow(e) && isDeliveryEvent(e)).sort(byStart);
+  const todayTomorrowMeetings = cleanEvents.filter(e => inWindow(e) && !isDeliveryEvent(e)).sort(byStart);
 
   const presenterGaps = todayTomorrow.filter(e =>
     !e.completed && e.presenter_accepted !== true
@@ -1034,9 +1046,12 @@ async function buildDeliveryContext(base44) {
     });
   }
 
-  // d) Proposal promos — send promotional emails for workshops/challenges/events
-  for (const p of recentProposals) {
-    const dayStart = startOfDay(new Date(p.created_date));
+  // d) Proposal promos — send promotional emails for workshops/challenges/events.
+  // Anchored on acceptance, not creation: a proposal written in March and accepted in
+  // August needs its promo push in August. accepted_date is stamped on the status change;
+  // updated_date is the fallback for records that predate the field.
+  for (const p of wonProposals) {
+    const dayStart = startOfDay(new Date(p.accepted_date || p.updated_date || p.created_date));
     if (dayStart < todayMinus30 || dayStart >= startToday) continue;
     const triggerDate = new Date(dayStart);
     triggerDate.setDate(triggerDate.getDate() + 1);
@@ -1048,13 +1063,13 @@ async function buildDeliveryContext(base44) {
       clientId: p.client_id || '',
       proposalId: p.id,
       triggerDate: triggerDate.toISOString().slice(0, 10),
-      text: `${client} — send promotional emails for the workshops/challenges/events on their proposal (created ${fmtDate(p.created_date)})`,
+      text: `${client} — send promotional emails for the workshops/challenges/events on their proposal (accepted ${fmtDate(p.accepted_date || p.updated_date || p.created_date)})`,
     });
   }
 
   // e) Wellness box follow-ups — ask which themes + mailing plan
-  for (const p of recentProposals) {
-    const dayStart = startOfDay(new Date(p.created_date));
+  for (const p of wonProposals) {
+    const dayStart = startOfDay(new Date(p.accepted_date || p.updated_date || p.created_date));
     if (dayStart < todayMinus30 || dayStart > todayMinus3) continue;
     const sel = p.selections || {};
     const hasSampleBoxes = Object.values(sel.sampleBoxQuantities || {}).some(v => Number(v) > 0);
@@ -1075,12 +1090,20 @@ async function buildDeliveryContext(base44) {
       clientId: p.client_id || '',
       proposalId: p.id,
       triggerDate: triggerDate.toISOString().slice(0, 10),
-      text: `${client} — ask which wellness box theme(s) they'd like and when/how to mail them (e.g. 5 after the workshop, 10 to challenge winners) — ${boxCount} boxes on proposal from ${fmtDate(p.created_date)}`,
+      text: `${client} — ask which wellness box theme(s) they'd like and when/how to mail them (e.g. 5 after the workshop, 10 to challenge winners) — ${boxCount} boxes on proposal accepted ${fmtDate(p.accepted_date || p.updated_date || p.created_date)}`,
     });
   }
 
   return {
     todayTomorrowCount: todayTomorrow.length,
+    // Meetings are surfaced separately so the brief can say "2 deliveries, 3 meetings"
+    // instead of lumping a networking call in with a workshop.
+    todayTomorrowMeetingCount: todayTomorrowMeetings.length,
+    todayTomorrowMeetings: todayTomorrowMeetings.map(e => ({
+      title: e.title,
+      start: fmtDateTime(e.start_date),
+      client: e.client_name || '',
+    })),
     presenterGapCount: presenterGaps.length,
     presenterGapSessions: presenterGaps.map(e => ({
       title: e.title,
