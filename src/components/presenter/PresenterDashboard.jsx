@@ -185,6 +185,13 @@ export function summarizePresenters(presenters, events, now = new Date()) {
     recordings: rows.reduce((s, r) => s + r.recordingsDue.length, 0),
     unpaid: rows.reduce((s, r) => s + r.unpaidTotal, 0),
     needsPresenter: needsPresenter.length,
+    // The soonest unstaffed session. The tile deliberately counts EVERY upcoming
+    // one, not just the next 30 days — a gap in November still needs filling — so
+    // it has to say when, or it reads as a phantom next to a schedule that
+    // doesn't show it.
+    needsPresenterNext: needsPresenter
+      .map(e => parseISO(e.start_date))
+      .sort((a, b) => a - b)[0] || null,
   };
 
   return { rows, ranked, totals, schedule };
@@ -337,7 +344,9 @@ export default function PresenterDashboard() {
         <StatTile icon={CalendarDays} label="Sessions next 30d" value={totals.next30} />
         <StatTile icon={AlertCircle} label="Needs a presenter" value={totals.needsPresenter}
           tone={totals.needsPresenter > 0 ? 'alert' : 'neutral'}
-          hint={totals.needsPresenter > 0 ? 'Unassigned or declined' : null} />
+          hint={totals.needsPresenter > 0
+            ? `Unassigned or declined${totals.needsPresenterNext ? ` · soonest ${format(totals.needsPresenterNext, 'MMM d')}` : ''}`
+            : null} />
         <StatTile icon={Clock} label="Awaiting acceptance" value={totals.awaiting}
           tone={totals.awaiting > 0 ? 'attention' : 'neutral'}
           hint={totals.awaiting > 0 ? 'Assigned but not confirmed' : null} />
