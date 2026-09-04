@@ -8,8 +8,10 @@ import { format, parseISO, differenceInCalendarDays } from 'date-fns';
 import {
   Mail, Phone, ExternalLink, Copy, Check, Users, CalendarDays,
   Clock, Video, DollarSign, AlertCircle, MessageSquare,
+  Building, CheckCircle2, UserX, Calendar,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 import { getEventLens } from '@/components/scheduling/eventLenses';
 import { getPresenterStatus } from '@/components/scheduling/PresenterStatusIcon';
 
@@ -81,6 +83,12 @@ export function summarizePresenters(presenters, events, now = new Date()) {
   // Demo rows are excluded from every count, the same as elsewhere in analytics.
   const realEvents = events.filter(e => !e.is_demo);
 
+  // "Upcoming" starts at midnight, not at this instant: a session that ran at
+  // 10am is still today's business at 2pm, and chasing its recording the same
+  // afternoon would be wrong.
+  const dayStart = new Date(now);
+  dayStart.setHours(0, 0, 0, 0);
+
   const rows = presenters.map(presenter => {
     const fullName = (presenter.name || '').trim();
     const mine = realEvents.filter(e =>
@@ -90,9 +98,9 @@ export function summarizePresenters(presenters, events, now = new Date()) {
 
     const delivery = mine.filter(e => getEventLens(e) === 'delivery');
     const upcoming = delivery
-      .filter(e => e.start_date && parseISO(e.start_date) >= now && !e.completed)
+      .filter(e => e.start_date && parseISO(e.start_date) >= dayStart && !e.completed)
       .sort((a, b) => parseISO(a.start_date) - parseISO(b.start_date));
-    const past = delivery.filter(e => e.start_date && parseISO(e.start_date) < now);
+    const past = delivery.filter(e => e.start_date && parseISO(e.start_date) < dayStart);
 
     // Assigned but not yet accepted — the thing that needs a nudge before the date.
     const awaitingAccept = upcoming.filter(e => getPresenterStatus(e) === 'assigned');
@@ -133,16 +141,41 @@ export function summarizePresenters(presenters, events, now = new Date()) {
     return (a.presenter.name || '').localeCompare(b.presenter.name || '');
   });
 
-  const in30 = new Date(now);
+  const in30 = new Date(dayStart);
   in30.setDate(in30.getDate() + 30);
 
   // Upcoming delivery sessions with nobody on them — including ones a presenter
   // declined, which is where declines actually become visible.
   const needsPresenter = realEvents.filter(e =>
     getEventLens(e) === 'delivery' &&
-    e.start_date && parseISO(e.start_date) >= now && !e.completed &&
+    e.start_date && parseISO(e.start_date) >= dayStart && !e.completed &&
     !e.presenter_id && !(e.presenter || '').trim()
   );
+
+  // ── The next month of presentations ──
+  // Every delivery session in the window, whoever is (or isn't) on it — this is
+  // the schedule view, so an unassigned session has to appear here rather than
+  // being filtered out with the presenter it doesn't have.
+  const presenterById = new Map(presenters.map(p => [p.id, p]));
+  const schedule = realEvents
+    .filter(e =>
+      getEventLens(e) === 'delivery' &&
+      e.start_date &&
+      parseISO(e.start_date) >= dayStart &&
+      parseISO(e.start_date) <= in30
+    )
+    .sort((a, b) => parseISO(a.start_date) - parseISO(b.start_date))
+    .map(event => {
+      const assigned = presenterById.get(event.presenter_id) || null;
+      return {
+        event,
+        // The roster record when we have one, else the legacy free-text name.
+        presenterName: assigned?.name || (event.presenter || '').trim() || null,
+        presenter: assigned,
+        status: getPresenterStatus(event), // accepted | assigned | declined | unassigned
+        fee: assigned ? sessionFee(event, assigned) : null,
+      };
+    });
 
   const totals = {
     active: presenters.filter(p => p.is_active !== false).length,
@@ -154,7 +187,94 @@ export function summarizePresenters(presenters, events, now = new Date()) {
     needsPresenter: needsPresenter.length,
   };
 
-  return { rows, ranked, totals };
+  return { rows, ranked, totals, schedule };
+}
+
+/** How a scheduled session presents on the admin side, keyed by presenter status. */
+const STATUS_STYLE = {
+  accepted: {
+    label: 'Accepted', Icon: CheckCircle2,
+    pill: 'text-emerald-600 bg-emerald-50',
+    edge: 'border-l-brand-navy', chip: 'bg-brand-navy', chipLabel: 'text-blue-200',
+  },
+  assigned: {
+    label: 'Awaiting acceptance', Icon: Clock,
+    pill: 'text-amber-700 bg-amber-50',
+    edge: 'border-l-amber-400', chip: 'bg-amber-500', chipLabel: 'text-amber-100',
+  },
+  declined: {
+    label: 'Declined — needs a presenter', Icon: AlertCircle,
+    pill: 'text-red-700 bg-red-50',
+    edge: 'border-l-red-400', chip: 'bg-red-500', chipLabel: 'text-red-100',
+  },
+  unassigned: {
+    label: 'Needs a presenter', Icon: UserX,
+    pill: 'text-red-700 bg-red-50',
+    edge: 'border-l-red-400', chip: 'bg-red-500', chipLabel: 'text-red-100',
+  },
+};
+
+/**
+ * One scheduled session. Deliberately mirrors SessionCard in PresenterPortal so
+ * the admin view and the presenter's own view read as the same object — the
+ * difference is that this one leads with WHO is on it and whether they've said yes.
+ */
+function ScheduleCard({ entry, service }) {
+  const { event, presenterName, status, fee } = entry;
+  const start = parseISO(event.start_date);
+  const s = STATUS_STYLE[status] || STATUS_STYLE.unassigned;
+
+  return (
+    <div className={`w-full bg-white rounded-2xl shadow-sm border-l-4 ${s.edge}`}>
+      <div className="w-full text-left p-5 flex items-center gap-4">
+        <div className={`flex-shrink-0 rounded-xl text-center px-3 py-2 min-w-[56px] ${s.chip}`}>
+          <p className={`text-xs font-bold uppercase ${s.chipLabel}`}>{format(start, 'MMM')}</p>
+          <p className="text-2xl font-bold leading-none text-white">{format(start, 'd')}</p>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-semibold text-gray-800 truncate">{event.title}</p>
+            <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${s.pill}`}>
+              <s.Icon className="w-3 h-3" /> {s.label}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 flex-wrap">
+            {/* Who is on it — the whole point of this view */}
+            <span className={`flex items-center gap-1 font-medium ${presenterName ? 'text-gray-700' : 'text-red-600'}`}>
+              <Users className="w-3.5 h-3.5" />
+              {presenterName || 'Unassigned'}
+            </span>
+            {event.client_name && (
+              <span className="flex items-center gap-1">
+                <Building className="w-3.5 h-3.5" />
+                {event.client_name}
+              </span>
+            )}
+            <span className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" />
+              {format(start, 'h:mm a')}
+            </span>
+            {service?.name && (
+              <span className="flex items-center gap-1.5">
+                {service.name}
+                {service.included_assessments?.length > 0 && (
+                  <AssessmentBadges assessments={service.included_assessments} size="xs" />
+                )}
+              </span>
+            )}
+            {fee != null && fee > 0 && (
+              <span className="flex items-center gap-1 font-medium text-gray-600">
+                <DollarSign className="w-3.5 h-3.5" />
+                {Number(fee).toLocaleString('en-US', { maximumFractionDigits: 0 })}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function PresenterDashboard() {
