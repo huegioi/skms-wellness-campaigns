@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { useRateCard } from '@/lib/useRateCard';
-import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays, ScanText, Sparkles, FlaskConical, ExternalLink } from 'lucide-react';
+import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays, ScanText, Wrench, FlaskConical, ExternalLink } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', page: 'Home', icon: BarChart3 },
@@ -14,9 +14,17 @@ const navItems = [
   { name: 'Financials', page: 'Financials', icon: Landmark },
   { name: 'Analytics', page: 'FeedbackAnalytics', icon: ClipboardList, altPages: ['RoiTestBed', 'CompanyStats'] },
   { name: 'Campaigns', page: 'CampaignCalendar', icon: CalendarDays },
-  { name: 'Claims Insight', page: 'ClaimsInsight', icon: ScanText },
   { name: 'Presenters', page: 'Presenters', icon: Users },
-  { name: 'Quick Builder', page: 'QuickBuilder', icon: Sparkles, external: true, url: '/QuickBuilder' },
+  // Occasional-use tools live behind one door now (see pages/AdminTools.jsx).
+  // altPages keeps this item lit while you are on any of them, since none of
+  // those pages has a menu item of its own any more.
+  {
+    name: 'Admin Tools',
+    page: 'AdminTools',
+    icon: Wrench,
+    divider: true,
+    altPages: ['AddLead', 'ClaimsInsight', 'MayaKnowledge', 'Demo'],
+  },
 ];
 
 // Mobile tab bar — the four destinations that are genuinely phone jobs.
@@ -98,19 +106,6 @@ export default function Layout({ children, currentPageName }) {
             Builder
           </Link>
 
-          {/* Quick Capture CTA — styled like Builder, forest green */}
-          <Link
-            to={createPageUrl('AddLead')}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold border-2 transition-colors mb-2 ${
-              currentPageName === 'AddLead'
-                ? 'bg-[#264d44] text-white border-[#264d44]'
-                : 'text-[#264d44] border-[#264d44] hover:bg-[#264d44] hover:text-white'
-            }`}
-          >
-            <ScanText className="w-4 h-4 shrink-0" />
-            Quick Capture
-          </Link>
-
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPageName === item.page || (item.altPages && item.altPages.includes(currentPageName));
@@ -130,18 +125,20 @@ export default function Layout({ children, currentPageName }) {
               );
             }
             return (
-              <Link
-                key={item.page}
-                to={createPageUrl(item.page)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-[#264d44] text-white'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                {item.name}
-              </Link>
+              <React.Fragment key={item.page}>
+                {item.divider && <div className="my-2 border-t border-gray-100" />}
+                <Link
+                  to={createPageUrl(item.page)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-[#264d44] text-white'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {item.name}
+                </Link>
+              </React.Fragment>
             );
           })}
         </nav>
@@ -195,20 +192,6 @@ export default function Layout({ children, currentPageName }) {
             Builder
           </Link>
 
-          {/* Quick Capture CTA — styled like Builder, forest green */}
-          <Link
-            to={createPageUrl('AddLead')}
-            onClick={() => setMobileOpen(false)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold border-2 transition-colors mb-2 ${
-              currentPageName === 'AddLead'
-                ? 'bg-[#264d44] text-white border-[#264d44]'
-                : 'text-[#264d44] border-[#264d44] hover:bg-[#264d44] hover:text-white'
-            }`}
-          >
-            <ScanText className="w-4 h-4 shrink-0" />
-            Quick Capture
-          </Link>
-
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPageName === item.page || (item.altPages && item.altPages.includes(currentPageName));
@@ -229,19 +212,21 @@ export default function Layout({ children, currentPageName }) {
               );
             }
             return (
-              <Link
-                key={item.page}
-                to={createPageUrl(item.page)}
-                onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-[#264d44] text-white'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                }`}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                {item.name}
-              </Link>
+              <React.Fragment key={item.page}>
+                {item.divider && <div className="my-2 border-t border-gray-100" />}
+                <Link
+                  to={createPageUrl(item.page)}
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-[#264d44] text-white'
+                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {item.name}
+                </Link>
+              </React.Fragment>
             );
           })}
         </nav>
