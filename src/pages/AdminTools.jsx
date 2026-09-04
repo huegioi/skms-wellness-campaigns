@@ -153,26 +153,30 @@ export default function AdminTools() {
         </div>
       </div>
 
-      <div className="px-4 md:px-8 py-6 max-w-5xl mx-auto space-y-8">
-        {GROUPS.map((group) => (
-          <section key={group.title}>
-            <h2 className="text-xs font-bold uppercase tracking-wide text-gray-400">{group.title}</h2>
-            <p className="text-sm text-gray-500 mt-0.5 mb-3">{group.blurb}</p>
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {group.tools.map((tool) => (
-                <ToolCard key={tool.name} tool={tool} />
-              ))}
-            </div>
-          </section>
-        ))}
+      {/* Same px + max-w structure as the header above, so the h1 and the
+          first card share a left edge. */}
+      <div className="px-4 md:px-8 py-6">
+        <div className="max-w-5xl mx-auto space-y-8">
+          {GROUPS.map((group) => (
+            <section key={group.title}>
+              <h2 className="text-xs font-bold uppercase tracking-wide text-gray-400">{group.title}</h2>
+              <p className="text-sm text-gray-500 mt-0.5 mb-3">{group.blurb}</p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {group.tools.map((tool) => (
+                  <ToolCard key={tool.name} tool={tool} />
+                ))}
+              </div>
+            </section>
+          ))}
 
-        {/* Where the assessments went — William asked for this to stay under Clients */}
-        <p className="text-xs text-gray-400 border-t border-gray-200 pt-4">
-          Looking for assessment results? They stay under{' '}
-          <Link to={createPageUrl('Assessments')} className="text-[#264d44] font-semibold hover:underline">
-            Clients → Assessments
-          </Link>.
-        </p>
+          {/* Where the assessments went — William asked for this to stay under Clients */}
+          <p className="text-xs text-gray-400 border-t border-gray-200 pt-4">
+            Looking for assessment results? They stay under{' '}
+            <Link to={createPageUrl('Assessments')} className="text-[#264d44] font-semibold hover:underline">
+              Clients → Assessments
+            </Link>.
+          </p>
+        </div>
       </div>
     </div>
   );
