@@ -290,6 +290,16 @@ export default function PresenterDashboard() {
     queryFn: () => base44.entities.CalendarEvent.list('-start_date', 500),
   });
 
+  // Service name + instrument badges on each scheduled session. The presenter's
+  // own portal gets these pre-joined by getPresenterPortalData; reading raw
+  // CalendarEvents here means joining them ourselves.
+  const { data: services = [] } = useQuery({
+    queryKey: ['presenter-dashboard-services'],
+    queryFn: () => base44.entities.Service.list('name', 300),
+  });
+  const serviceById = React.useMemo(
+    () => new Map(services.map(s => [s.id, s])), [services]);
+
   const copyPortalLink = (presenter) => {
     navigator.clipboard.writeText(portalUrl(presenter));
     setCopiedId(presenter.id);
@@ -298,7 +308,7 @@ export default function PresenterDashboard() {
   };
 
   const now = new Date();
-  const { ranked, totals } = summarizePresenters(presenters, events, now);
+  const { ranked, totals, schedule } = summarizePresenters(presenters, events, now);
 
   if (loadingPresenters || loadingEvents) {
     return (
@@ -339,8 +349,40 @@ export default function PresenterDashboard() {
           hint={totals.unpaid > 0 ? 'Across completed sessions' : null} />
       </div>
 
+      {/* The next month of presentations, in date order */}
+      <section>
+        <h2 className="text-lg font-bold text-brand-navy mb-3 flex items-center gap-2">
+          <Calendar className="w-5 h-5" />
+          Next 30 Days
+          <span className="text-sm font-normal text-gray-400">
+            {schedule.length} session{schedule.length === 1 ? '' : 's'}
+          </span>
+        </h2>
+        {schedule.length === 0 ? (
+          <div className="bg-white rounded-2xl p-8 text-center text-gray-400">
+            <Calendar className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="text-sm">Nothing on the schedule for the next 30 days.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {schedule.map(entry => (
+              <ScheduleCard
+                key={entry.event.id}
+                entry={entry}
+                service={serviceById.get(entry.event.service_id) || null}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* Per-presenter — anything needing a chase sorts to the top */}
-      <div className="space-y-3">
+      <div>
+        <h2 className="text-lg font-bold text-brand-navy mb-3 flex items-center gap-2">
+          <Users className="w-5 h-5" />
+          Presenters
+        </h2>
+        <div className="space-y-3">
         {ranked.map(({ presenter, upcoming, awaitingAccept, recordingsDue,
                        unpaidTotal, lastSession, nextSession, delivered }) => {
           const isActive = presenter.is_active !== false;
@@ -451,6 +493,7 @@ export default function PresenterDashboard() {
             </Card>
           );
         })}
+        </div>
       </div>
     </div>
   );
