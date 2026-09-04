@@ -9,9 +9,10 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Plus, Pencil, Check, Users, Mail, Phone, DollarSign, Link } from 'lucide-react';
+import { Plus, Pencil, Check, Users, Mail, Phone, DollarSign, Link, ExternalLink, LayoutDashboard } from 'lucide-react';
 import { toast } from 'sonner';
 import PresenterPayouts from '@/components/presenter/PresenterPayouts';
+import PresenterDashboard from '@/components/presenter/PresenterDashboard';
 import { useAuth } from '@/lib/AuthContext';
 
 const generatePortalId = () => crypto.randomUUID();
@@ -111,12 +112,21 @@ export default function Presenters() {
     saveMutation.mutate(data);
   };
 
+  // One definition of the portal URL, shared by copy and open.
+  const portalUrl = (presenter) =>
+    `${window.location.origin}/PresenterPortal?id=${presenter.unique_portal_id}`;
+
   const copyPortalLink = (presenter) => {
-    const url = `${window.location.origin}/PresenterPortal?id=${presenter.unique_portal_id}`;
-    navigator.clipboard.writeText(url);
+    navigator.clipboard.writeText(portalUrl(presenter));
     setCopiedId(presenter.id);
     toast.success('Portal link copied!');
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // Open the presenter's portal directly — seeing what they see is the usual
+  // reason for reaching for this, and pasting the link into a tab is a chore.
+  const openPortal = (presenter) => {
+    window.open(portalUrl(presenter), '_blank', 'noopener,noreferrer');
   };
 
   if (isLoadingAuth || isLoading) {
@@ -145,11 +155,19 @@ export default function Presenters() {
           </Button>
         </div>
 
-        <Tabs defaultValue="roster">
+        <Tabs defaultValue="dashboard">
           <TabsList className="mb-6">
+            <TabsTrigger value="dashboard" className="gap-1.5">
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              Dashboard
+            </TabsTrigger>
             <TabsTrigger value="roster">Roster</TabsTrigger>
             <TabsTrigger value="payouts">Payouts</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="dashboard">
+            <PresenterDashboard />
+          </TabsContent>
 
           <TabsContent value="payouts">
             <PresenterPayouts />
@@ -206,6 +224,21 @@ export default function Presenters() {
                         <Button
                           size="sm"
                           variant="outline"
+                          disabled={!presenter.unique_portal_id}
+                          title={presenter.unique_portal_id
+                            ? 'Open this presenter’s portal in a new tab'
+                            : 'No portal link yet — save this presenter to generate one'}
+                          onClick={() => openPortal(presenter)}
+                          className="gap-1.5 text-xs"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Open Portal</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={!presenter.unique_portal_id}
+                          title="Copy the portal link"
                           onClick={() => copyPortalLink(presenter)}
                           className="gap-1.5 text-xs"
                         >
