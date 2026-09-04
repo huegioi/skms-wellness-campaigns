@@ -8,7 +8,10 @@ import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Land
 const navItems = [
   { name: 'Dashboard', page: 'Home', icon: BarChart3 },
   { name: 'Partners', page: 'Leads', icon: Mail },
-  { name: 'Clients', page: 'Clients', icon: Users, altPages: ['ManageClientPortals', 'Proposals', 'EditProposal', 'EmailTemplateManager'] },
+  // 'Assessments' belongs here as well as in mobileTabs — it is a tab in
+  // ClientsSubNav, so the sidebar must stay lit on it. It was only ever listed
+  // on the mobile side, which left the desktop sidebar dark on /Assessments.
+  { name: 'Clients', page: 'Clients', icon: Users, altPages: ['ManageClientPortals', 'Proposals', 'EditProposal', 'EmailTemplateManager', 'Assessments'] },
   { name: 'Services', page: 'ServiceCatalog', icon: Package, altPages: ['RateCard'] },
   { name: 'Schedule', page: 'SchedulingHub', icon: Calendar },
   { name: 'Financials', page: 'Financials', icon: Landmark },
