@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
   ScanText, Gauge, Sparkles, Compass, Calculator, MonitorPlay,
-  Database, Bot, FlaskConical, ExternalLink, ArrowRight,
+  Database, Bot, FlaskConical, Trophy, ExternalLink, ArrowRight,
 } from 'lucide-react';
 
 /**
@@ -68,6 +68,19 @@ const GROUPS = [
         icon: MonitorPlay,
         tint: 'bg-sky-100 text-sky-700',
         href: 'https://huegioi.github.io/skillfulmeans-client-demo',
+      },
+    ],
+  },
+  {
+    title: 'Challenges',
+    blurb: 'The 14-day challenge app at challenges.skillfulmeans.life — a separate build, linked from here.',
+    tools: [
+      {
+        name: 'Challenges Admin',
+        description: 'Set up challenges, company codes, and participants. Signs in with a magic link.',
+        icon: Trophy,
+        tint: 'bg-orange-100 text-orange-700',
+        href: 'https://challenges.skillfulmeans.life/admin',
       },
     ],
   },
