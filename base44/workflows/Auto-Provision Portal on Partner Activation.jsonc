@@ -1,0 +1,38 @@
+{
+  "name": "Auto-Provision Portal on Partner Activation",
+  "description": "When a ReferralPartner is created or updated with is_active=true and no portal ID yet, auto-generates a portal ID and sends an invite email.",
+  "trigger": {
+    "condition": "${ ((.trigger.data.unique_portal_id == null) and (.trigger.data.partner_status == \"Active Partner\")) }",
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create",
+        "update"
+      ],
+      "entity_name": "ReferralPartner"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "auto_provision_portal_on_partner_activation",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "provisionPartnerPortalOnActivation",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "provisionPartnerPortalOnActivation"
+  }
+}

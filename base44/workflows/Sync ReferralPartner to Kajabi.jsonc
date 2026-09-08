@@ -1,0 +1,38 @@
+{
+  "name": "Sync ReferralPartner to Kajabi",
+  "description": "Fires whenever a ReferralPartner record is created or updated and pushes the contact + tag to Kajabi (one-way, read-only \u2014 does not write back to ReferralPartner).",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create",
+        "update"
+      ],
+      "entity_name": "ReferralPartner"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "sync_referralpartner_to_kajabi",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "syncReferralPartnerToKajabi",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "syncReferralPartnerToKajabi"
+  }
+}

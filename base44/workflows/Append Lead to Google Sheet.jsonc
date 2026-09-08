@@ -1,0 +1,37 @@
+{
+  "name": "Append Lead to Google Sheet",
+  "description": "When a new Lead is created, append it as a row to the Referral Partners Google Sheet tab and store the sheet_row_id back on the Lead for future sync matching.",
+  "trigger": {
+    "condition": "${ (.trigger.data.lead_type == \"broker\" or .trigger.data.lead_type == \"broker_lead\") }",
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create"
+      ],
+      "entity_name": "Lead"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "append_lead_to_google_sheet",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "appendLeadToSheet",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "appendLeadToSheet"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "name": "Queue Survey Sends on Check-in",
+  "description": "When an attendee checks in, triggers queueSurveySendsForEvent to queue an enps_post_session send if the event is a running workshop.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create"
+      ],
+      "entity_name": "EventCheckin"
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "queue_survey_sends_on_check_in",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "queueSurveySendsForEvent",
+            "args": {}
+          },
+          "then": "end"
+        }
+      }
+    ]
+  },
+  "x-base44-migrated-from-automation": {
+    "legacy_payload_function": "queueSurveySendsForEvent"
+  }
+}
