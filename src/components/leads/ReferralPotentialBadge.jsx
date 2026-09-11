@@ -38,19 +38,15 @@ export default function ReferralPotentialBadge({ lead, size = 'sm', showWhenUnse
   const cfg = REFERRAL_POTENTIAL_CONFIG[current] || null;
 
   const mutation = useMutation({
-    mutationFn: (value) => base44.entities.Lead.update(lead.id, { referral_potential: value || null }),
+    mutationFn: (value) => base44.entities.Lead.update(lead.id, { referral_potential: value }),
     onSuccess: (_data, value) => {
       // Patch the cached list right away so the chip updates without a flash.
       queryClient.setQueryData(['leads'], (old) =>
-        (old || []).map(l => (l.id === lead.id ? { ...l, referral_potential: value || '' } : l))
+        (old || []).map(l => (l.id === lead.id ? { ...l, referral_potential: value } : l))
       );
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['broker-lead', lead.id] });
-      toast.success(
-        value
-          ? `${lead.name || 'Partner'} set to ${REFERRAL_POTENTIAL_CONFIG[value].label} potential`
-          : 'Referral potential cleared'
-      );
+      toast.success(`${lead.name || 'Partner'} set to ${REFERRAL_POTENTIAL_CONFIG[value].label} potential`);
     },
     onError: (e) => toast.error('Could not update potential: ' + e.message),
   });
@@ -101,17 +97,6 @@ export default function ReferralPotentialBadge({ lead, size = 'sm', showWhenUnse
             {key === current && <Check className="w-3.5 h-3.5 ml-auto text-gray-500" />}
           </DropdownMenuItem>
         ))}
-        {current && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onSelect={() => mutation.mutate('')}
-              className="text-sm text-gray-500 cursor-pointer"
-            >
-              Clear
-            </DropdownMenuItem>
-          </>
-        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
