@@ -36,7 +36,7 @@ import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea as TextareaUI } from '@/components/ui/textarea';
 import { LEAD_STATUS_CONFIG as STATUS_CONFIG, PARTNER_STATUS_CONFIG, REFERRAL_STATUS_COLORS } from '@/lib/statusConfig';
-import ReferralPotentialBadge, { REFERRAL_POTENTIAL_CONFIG } from '@/components/leads/ReferralPotentialBadge';
+import ReferralPotentialBadge from '@/components/leads/ReferralPotentialBadge';
 
 const EMPTY_BROKER_LEAD_FORM = {
   name: '', email: '', email2: '', company: '', title: '', phone: '',
