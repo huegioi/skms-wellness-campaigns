@@ -36,12 +36,7 @@ import { format } from 'date-fns';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea as TextareaUI } from '@/components/ui/textarea';
 import { LEAD_STATUS_CONFIG as STATUS_CONFIG, PARTNER_STATUS_CONFIG, REFERRAL_STATUS_COLORS } from '@/lib/statusConfig';
-
-const REFERRAL_POTENTIAL_CONFIG = {
-  low:    { label: 'Low',    color: 'bg-slate-100 text-slate-600' },
-  medium: { label: 'Medium', color: 'bg-amber-100 text-amber-700' },
-  high:   { label: 'High',   color: 'bg-green-100 text-green-700' },
-};
+import ReferralPotentialBadge, { REFERRAL_POTENTIAL_CONFIG } from '@/components/leads/ReferralPotentialBadge';
 
 const EMPTY_BROKER_LEAD_FORM = {
   name: '', email: '', email2: '', company: '', title: '', phone: '',
@@ -726,7 +721,6 @@ export default function Leads() {
     const [showEmails, setShowEmails] = useState(false);
     const statusCfg = STATUS_CONFIG[lead.status || 'cold'] || STATUS_CONFIG.cold;
     const partnerCfg = PARTNER_STATUS_CONFIG[lead.partner_status || 'new'] || PARTNER_STATUS_CONFIG.new;
-    const referralCfg = REFERRAL_POTENTIAL_CONFIG[lead.referral_potential] || null;
     const sourceParts = (lead.source || '').split(' | ');
     const linkedinUrl = sourceParts[1] || '';
     const isActive = lead.partner_status === 'active_partner';
@@ -772,11 +766,8 @@ export default function Leads() {
                 {lead.name}
               </button>
               {isActive && <Badge variant="outline" className={`text-xs ${partnerCfg.color}`}>{partnerCfg.label}</Badge>}
-              {referralCfg && (
-                <Badge variant="outline" className={`text-xs ${referralCfg.color} flex items-center gap-1`}>
-                  <Star className="w-3 h-3" />{referralCfg.label} potential
-                </Badge>
-              )}
+              {/* Click the chip to change referral potential in place */}
+              <ReferralPotentialBadge lead={lead} />
               {(lead.referral_count || 0) > 0 && (
                 <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
                   {lead.referral_count} referral{lead.referral_count !== 1 ? 's' : ''}
