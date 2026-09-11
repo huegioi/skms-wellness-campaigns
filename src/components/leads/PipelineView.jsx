@@ -8,6 +8,7 @@ import { normalizeLeadStatus } from '@/lib/statusConfig';
 import { ActivityStrip } from '@/components/shared/ActivityStrip';
 import { buildLatestTouchMap, buildChannelSummaryMap } from '@/lib/lastTouch';
 import LeadPlaybookDialog from '@/components/leads/LeadPlaybookDialog';
+import ReferralPotentialBadge from '@/components/leads/ReferralPotentialBadge';
 import EngagementBoard from '@/components/leads/EngagementBoard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -49,9 +50,10 @@ function getDueDateStatus(dueDateStr) {
 
 function LeadAlertBadges({ lead }) {
   const dueDateStatus = getDueDateStatus(lead.follow_up_due_date);
-  if (!dueDateStatus) return null;
   return (
-    <div className="flex flex-wrap gap-1 mb-1">
+    <div className="flex flex-wrap items-center gap-1 mb-1">
+      {/* Click the chip to change referral potential without opening the card */}
+      <ReferralPotentialBadge lead={lead} size="xs" />
       {dueDateStatus === 'overdue' && (
         <span className="inline-flex items-center text-xs font-semibold text-red-700 bg-red-50 border border-red-300 rounded-full px-1.5 py-0.5">
           ⚠ Overdue
