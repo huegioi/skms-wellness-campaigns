@@ -191,7 +191,7 @@
     },
     "owner": {
       "type": "string",
-      "description": "Team member responsible for this lead"
+      "description": "Team member(s) responsible for this lead. May hold several names, comma-separated (\"William, Heather\"); the FIRST is the primary owner whose mailbox sends campaign drafts. Parse with shared/owners.ts / src/lib/owners.js \u2014 never compare with ===."
     },
     "kajabi_contact_id": {
       "type": "string",
