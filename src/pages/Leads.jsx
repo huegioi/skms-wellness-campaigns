@@ -20,6 +20,8 @@ import PipelineView from '@/components/leads/PipelineView';
 import { ActivityStrip, getLeadStaleThreshold } from '@/components/shared/ActivityStrip';
 import { ChannelIndicators } from '@/components/shared/ChannelIndicators';
 import { buildLatestTouchMap, buildChannelSummaryMap } from '@/lib/lastTouch';
+import { parseOwners, matchesOwnerSelect, UNASSIGNED_FILTER } from '@/lib/owners';
+import { OWNERS } from '@/components/shared/constants';
 import MergePartnerDuplicatesPanel from '@/components/leads/MergePartnerDuplicatesPanel';
 import BrokeragesView from '@/components/partners/BrokeragesView';
 import PartnerAdminMenu from '@/components/partners/PartnerAdminMenu';
@@ -702,7 +704,18 @@ export default function Leads() {
     }
   };
 
-  const brokerOwners = [...new Set(brokerLeads.map(l => l.owner).filter(Boolean))].sort();
+  // Owner filter options: the standard team plus any other name found on a
+  // record (legacy/imported). A record may carry several owners ("William,
+  // Heather"), so split before collecting — never list the joined string.
+  const brokerOwners = (() => {
+    const names = [...OWNERS];
+    for (const l of brokerLeads) {
+      for (const o of parseOwners(l.owner)) {
+        if (!names.some(n => n.toLowerCase() === o.toLowerCase())) names.push(o);
+      }
+    }
+    return names;
+  })();
 
   const filteredBrokerLeads = brokerLeads.filter(lead => {
     const matchSearch = !brokerSearch ||
@@ -710,7 +723,8 @@ export default function Leads() {
       lead.email?.toLowerCase().includes(brokerSearch.toLowerCase()) ||
       lead.company?.toLowerCase().includes(brokerSearch.toLowerCase());
     const matchStatus = brokerFilterStatus === 'all' || (lead.status || 'cold') === brokerFilterStatus;
-    const matchOwner = brokerFilterOwner === 'all' || lead.owner === brokerFilterOwner;
+    // 'all' | a name (matches ANY of the record's owners) | UNASSIGNED_FILTER (no owner)
+    const matchOwner = matchesOwnerSelect(lead.owner, brokerFilterOwner);
     const matchTags = brokerTagFilter.length === 0 || (brokerTagMatchAll
       ? brokerTagFilter.every(t => lead.tags?.includes(t))
       : brokerTagFilter.some(t => lead.tags?.includes(t)));
@@ -1034,15 +1048,14 @@ export default function Leads() {
                 </Select>
               )}
 
-              {brokerOwners.length > 0 && (
-                <Select value={brokerFilterOwner} onValueChange={setBrokerFilterOwner}>
-                  <SelectTrigger className="w-full md:w-[150px] bg-white"><SelectValue placeholder="All Owners" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Owners</SelectItem>
-                    {brokerOwners.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              )}
+              <Select value={brokerFilterOwner} onValueChange={setBrokerFilterOwner}>
+                <SelectTrigger className="w-full md:w-[150px] bg-white"><SelectValue placeholder="All Owners" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Owners</SelectItem>
+                  {brokerOwners.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  <SelectItem value={UNASSIGNED_FILTER}>Unassigned</SelectItem>
+                </SelectContent>
+              </Select>
 
               <TagFilter
                 selected={brokerTagFilter}
