@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { senderForOwner } from '../../shared/owners.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -112,10 +113,11 @@ CRITICAL EMAIL RULES:
       emailBody = contextWarnings.join('\n') + '\n\n' + emailBody;
     }
 
-    // Determine sender: explicit override takes priority, then falls back to record owner
+    // Determine sender: explicit override takes priority, then falls back to the
+    // record's PRIMARY (first-listed) owner — a record can carry several owners.
     const senderKey = sender_override
       ? sender_override.toLowerCase()
-      : (owner || '').toLowerCase().includes('heather') ? 'heather' : 'william';
+      : senderForOwner(owner);
     const sender = senderKey.includes('heather') ? 'heather' : 'william';
 
     // Delegate MIME building + Gmail draft creation to gmailCreateDraft
