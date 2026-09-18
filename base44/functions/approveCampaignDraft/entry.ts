@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { senderForOwner } from '../../shared/owners.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -41,9 +42,9 @@ Deno.serve(async (req) => {
     } else if (campaign.sender_mode === 'william') {
       sender = 'william';
     } else {
-      // record_owner: 'heather' in owner field → Heather, else William
-      const owner = (recipient.owner || '').toLowerCase();
-      sender = owner.includes('heather') ? 'heather' : 'william';
+      // record_owner: the PRIMARY (first-listed) owner decides — a record can
+      // carry several owners ("William, Heather"). Heather → Heather, else William.
+      sender = senderForOwner(recipient.owner);
     }
     const senderName = sender === 'heather' ? 'Heather' : 'William';
 
