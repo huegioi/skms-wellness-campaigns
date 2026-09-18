@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { firstNameOf } from '../../shared/clientContact.ts';
+import { senderForOwner } from '../../shared/owners.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -159,7 +160,7 @@ ${launchCtas.map(c => `- "${c.label || ''}" → ${c.url || ''}${c.guidance ? ` (
         : '';
       const senderName = campaign.sender_mode === 'heather' ? 'Heather'
         : campaign.sender_mode === 'william' ? 'William'
-        : ((recipient.owner || '').toLowerCase().includes('heather') ? 'Heather' : 'William');
+        : (senderForOwner(recipient.owner) === 'heather' ? 'Heather' : 'William'); // primary owner decides
 
       userMessage = `FOLLOW-UP EMAIL — Round ${roundNum}. This is a gentle bump to someone who received your previous email but did not reply.
 
