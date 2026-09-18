@@ -1,3 +1,5 @@
+import { ownerBuckets, matchesOwnerFilter as _matchesOwnerFilter } from '@/lib/owners';
+
 /**
  * Shared partner-audience inclusion criteria.
  *
@@ -66,7 +68,6 @@ export function isExcludedFromAllPartners(r) {
  * william | heather | unassigned. A record passes when ANY of its owners is
  * selected; unassigned records pass only when 'unassigned' is selected.
  */
-import { ownerBuckets, matchesOwnerFilter as _matchesOwnerFilter } from '@/lib/owners';
 
 /** Buckets for every owner on the record: ['william','heather'] | ['unassigned'] | ... */
 export function normalizeOwners(owner) {
