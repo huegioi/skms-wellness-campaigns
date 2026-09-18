@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { resolveClientContact } from '../../shared/clientContact.ts';
+import { matchesOwnerFilter as ownerPasses, isOwnerFilterActive } from '../../shared/owners.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -87,24 +88,16 @@ Deno.serve(async (req) => {
     }
 
     // ── Owner filter (same position as frontend: after demo/inactive/tag, before dedupe) ──
-    // Inlined from src/lib/partnerAudienceFilter.js — the Deno function cannot import
-    // from src/. Keep character-for-character identical to the shared version.
-    const normalizeOwner = (owner) => {
-      const o = (owner || '').trim().toLowerCase();
-      if (!o) return 'unassigned';
-      if (o.includes('heather')) return 'heather';
-      if (o.includes('william')) return 'william';
-      return 'other';
-    };
-    const matchesOwnerFilter = (record, ownerFilterVal) => {
-      if (!ownerFilterVal || ownerFilterVal === 'all') return true;
-      return normalizeOwner(record.owner) === ownerFilterVal;
-    };
+    // owner_filter is 'all' or a comma-separated subset of william|heather|unassigned
+    // (multi-select). A record may carry several owners ("William, Heather") and
+    // passes when ANY of them is selected. Logic lives in shared/owners.ts, mirrored
+    // in src/lib/owners.js for the wizard preview.
     const ownerFilter = campaign.owner_filter || 'all';
-    const ownerExcludedCount = ownerFilter !== 'all'
+    const matchesOwnerFilter = (record, ownerFilterVal) => ownerPasses(record.owner, ownerFilterVal);
+    const ownerExcludedCount = isOwnerFilterActive(ownerFilter)
       ? matched.filter(r => !matchesOwnerFilter(r, ownerFilter)).length
       : 0;
-    if (ownerFilter !== 'all') {
+    if (isOwnerFilterActive(ownerFilter)) {
       matched = matched.filter(r => matchesOwnerFilter(r, ownerFilter));
     }
 
