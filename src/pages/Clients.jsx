@@ -29,6 +29,7 @@ import { ActivityStrip } from '@/components/shared/ActivityStrip';
 import { useClientDeliveryStatus } from '@/hooks/useClientDeliveryStatus';
 import { isInRenewalRamp } from '@/lib/renewal';
 import { CLIENT_STAGES } from '@/components/shared/constants';
+import { matchesOwnerSelect, UNASSIGNED_FILTER } from '@/lib/owners';
 import TagFilter from '@/components/ui/TagFilter';
 import TagManager from '@/components/ui/TagManager';
 import { LayoutList, Columns, Settings, MoreVertical } from 'lucide-react';
@@ -516,7 +517,11 @@ export default function Clients() {
       ? clientTagFilter.every(t => client.tags?.includes(t))
       : clientTagFilter.some(t => client.tags?.includes(t)));
 
-    return matchesSearch && matchesIndustry && matchesSize && matchesBudget && matchTags;
+    // Owner: 'all' | a name (matches ANY of the record's owners) | UNASSIGNED_FILTER.
+    // Applied here so the list view honors it too, not only the pipeline.
+    const matchOwner = matchesOwnerSelect(client.owner, ownerFilter);
+
+    return matchesSearch && matchesIndustry && matchesSize && matchesBudget && matchTags && matchOwner;
   });
 
   const statusColors = {
@@ -567,6 +572,7 @@ export default function Clients() {
                 <SelectItem value="all">All Owners</SelectItem>
                 <SelectItem value="William">William</SelectItem>
                 <SelectItem value="Heather">Heather</SelectItem>
+                <SelectItem value={UNASSIGNED_FILTER}>Unassigned</SelectItem>
               </SelectContent>
             </Select>
           </div>
