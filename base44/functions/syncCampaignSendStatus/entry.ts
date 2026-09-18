@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { senderForOwner } from '../../shared/owners.ts';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // syncCampaignSendStatus — read-only Gmail check for campaign send/reply status.
@@ -114,7 +115,8 @@ async function getAccessToken(base44, sender) {
 function resolveSender(campaign, recipient) {
   if (campaign.sender_mode === 'heather') return 'heather';
   if (campaign.sender_mode === 'william') return 'william';
-  return (recipient.owner || '').toLowerCase().includes('heather') ? 'heather' : 'william';
+  // Primary (first-listed) owner decides; a record can carry several owners.
+  return senderForOwner(recipient.owner);
 }
 
 Deno.serve(async (req) => {
