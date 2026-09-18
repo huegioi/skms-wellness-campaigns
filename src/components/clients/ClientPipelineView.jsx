@@ -9,6 +9,7 @@ import { differenceInDays, parseISO } from 'date-fns';
 import { PipelineCard } from '@/components/shared/PipelineCard';
 import StagePlaybookDialog from './StagePlaybookDialog';
 import { CLIENT_STAGES } from '@/components/shared/constants';
+import { matchesOwnerSelect } from '@/lib/owners';
 import { useClientDeliveryStatus } from '@/hooks/useClientDeliveryStatus';
 import ClientDeliveryStrip from '@/components/clients/ClientDeliveryStrip';
 import RenewalSeasonBanner from '@/components/clients/RenewalSeasonBanner';
@@ -276,8 +277,10 @@ export default function ClientPipelineView({ clients, ownerFilter, onClientClick
     refresh();
   };
 
+  // A client can carry several owners ("William, Heather") — match on any of
+  // them; the unassigned option matches clients with no owner at all.
   const filtered = useMemo(() => ownerFilter && ownerFilter !== 'all'
-    ? clients.filter(c => c.owner === ownerFilter)
+    ? clients.filter(c => matchesOwnerSelect(c.owner, ownerFilter))
     : clients, [clients, ownerFilter]);
 
   const snapshots = useClientDeliveryStatus(filtered);
