@@ -46,14 +46,8 @@
     },
     "owner_filter": {
       "type": "string",
-      "enum": [
-        "all",
-        "william",
-        "heather",
-        "unassigned"
-      ],
       "default": "all",
-      "description": "Restricts the audience to records whose owner matches. 'all' applies no filter and includes records with no owner. 'unassigned' selects only records with a null or empty owner. Distinct from sender_mode, which controls who the email is sent from."
+      "description": "Multi-select owner filter. Either 'all' (no filter \u2014 includes records with no owner) or a comma-separated subset of william | heather | unassigned, e.g. 'william,heather' or 'heather,unassigned'. A record passes when ANY of its owners is selected (a record's owner field may itself hold several names, 'William, Heather'); 'unassigned' selects records with a null or empty owner. Legacy single values ('william') still work. Parsed by shared/owners.ts. Distinct from sender_mode, which controls who the email is sent from."
     },
     "subject_template": {
       "type": "string",
@@ -82,7 +76,7 @@
         "heather"
       ],
       "default": "record_owner",
-      "description": "Who the email is sent from"
+      "description": "Who the email is sent from. record_owner = the recipient record's PRIMARY (first-listed) owner's mailbox; Heather when that is Heather, otherwise William."
     },
     "template_source_id": {
       "type": "string",
