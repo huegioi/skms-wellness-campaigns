@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogTitle } from '@/components/ui/dialog';
+import { Building2, Layers, Percent, Users } from 'lucide-react';
+import { RecordDetailContent, RecordDetailFrame, RailSection, FrameSection } from '@/components/shared/RecordDetailFrame';
 import { useToast } from '@/components/ui/use-toast';
 import { isExcludedDomain } from '@/lib/emailDomain';
 
@@ -154,166 +156,252 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
     setForm(f => ({ ...f, commission_tiers: tiers }));
   };
 
+  // Brokers at this firm — same query key as BrokerageRollup, so the cache is shared.
+  const { data: firmBrokers = [] } = useQuery({
+    queryKey: ['brokerage-partners', editing?.id],
+    queryFn: () => base44.entities.ReferralPartner.filter({ brokerage_id: editing.id, is_demo: false }, '-created_date', 500),
+    enabled: open && !!editing?.id,
+  });
+
   const bothEnabled = form.brokerage_commission_enabled && form.broker_commission_enabled;
   const brokeragePct = Math.round((1 - form.broker_split) * 100);
   const brokerPct = Math.round(form.broker_split * 100);
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{editing ? 'Edit Brokerage' : 'Add Brokerage'}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-5 mt-2">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+  const money = (n) => `$${Math.round(Number(n) || 0).toLocaleString()}`;
+  const pct = (r) => {
+    const v = (Number(r) || 0) * 100;
+    return `${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}%`;
+  };
+  // Where the firm sits today, against the tiers as currently edited.
+  const firmYtd = firmBrokers.reduce((sum, p) => sum + (p.ytd_revenue || 0), 0);
+  const tiersSorted = [...(form.commission_tiers || [])].sort((a, b) => (a.min_revenue || 0) - (b.min_revenue || 0));
+  const currentTier = tiersSorted.filter(t => firmYtd >= (t.min_revenue || 0)).pop() || null;
+  const nextTier = tiersSorted.find(t => (t.min_revenue || 0) > firmYtd) || null;
+
+  // ── Responsive layout (see RecordDetailFrame) ──
+  // Main: the firm and its tier table. Rail: commission structure (and, when
+  // editing, the firm's brokers + current tier). Footer: Save stays pinned.
+  const header = (
+    <div className="min-w-0">
+      <DialogTitle className="text-xl font-bold text-[#013f7c]">{editing ? 'Edit Brokerage' : 'Add Brokerage'}</DialogTitle>
+      <p className="text-sm text-gray-500 mt-0.5 truncate">
+        {editing
+          ? [editing.name, normalizeDomain(editing.email_domain)].filter(Boolean).join(' · ')
+          : 'Group brokers under one firm with a shared, two-level commission structure.'}
+      </p>
+    </div>
+  );
+
+  const splitInput = (label, dotClass, value, onValue) => (
+    <div>
+      <label className="text-xs text-gray-500 mb-1 flex items-center gap-1.5">
+        <span className={`w-2 h-2 rounded-full ${dotClass}`} /> {label}
+      </label>
+      <div className="flex items-center gap-1">
+        <Input
+          type="number"
+          min="0" max="100"
+          value={value}
+          onChange={e => onValue(Math.min(100, Math.max(0, parseInt(e.target.value) || 0)))}
+          className="text-sm h-9 bg-white"
+        />
+        <span className="text-gray-500 text-sm">%</span>
+      </div>
+    </div>
+  );
+
+  const rail = (
+    <>
+      <RailSection title="Commission structure" icon={Percent}>
+        <div className="space-y-3">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">Name *</label>
-              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
+              <label className="text-sm font-medium text-gray-700">Brokerage commission</label>
+              <p className="text-xs text-gray-400">The brokerage (house) earns commission on placements</p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">Company</label>
-              <Input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} placeholder="Legal entity name" />
-            </div>
+            <Switch
+              checked={form.brokerage_commission_enabled}
+              onCheckedChange={(checked) => setForm(f => ({ ...f, brokerage_commission_enabled: checked }))}
+            />
           </div>
 
-          {/* Email domain + aliases */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">Email domain</label>
-              <Input value={form.email_domain} onChange={e => setForm(f => ({ ...f, email_domain: e.target.value }))} placeholder="e.g. burnsemployeebenefits.com" />
-              <p className="text-xs text-gray-400 mt-1">The firm's mail domain — this is how brokers are matched to this firm.</p>
-              {!normalizeDomain(form.email_domain) && (
-                <p className="text-xs text-amber-600 mt-1">No domain set — this firm won't be matched to any broker automatically.</p>
-              )}
+              <label className="text-sm font-medium text-gray-700">Broker commission</label>
+              <p className="text-xs text-gray-400">Individual brokers earn commission. When off, broker portals hide commission features.</p>
             </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">Domain aliases</label>
-              <Input value={form.email_domain_aliases} onChange={e => setForm(f => ({ ...f, email_domain_aliases: e.target.value }))} placeholder="e.g. oldfirm.com, legacy-brand.com" />
-              <p className="text-xs text-gray-400 mt-1">Other domains this firm owns, e.g. after an acquisition.</p>
-            </div>
+            <Switch
+              checked={form.broker_commission_enabled}
+              onCheckedChange={(checked) => setForm(f => ({ ...f, broker_commission_enabled: checked }))}
+            />
           </div>
 
-          {domainErrors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-1">
-              {domainErrors.map((err, i) => (
-                <p key={i} className="text-xs text-red-700 font-medium">{err}</p>
-              ))}
+          {/* Split control — only when both are on */}
+          {bothEnabled && (
+            <div className="pt-3 border-t border-gray-200">
+              <label className="text-sm font-medium text-gray-700 block mb-2">Commission split</label>
+              <div className="h-2.5 w-full rounded-full overflow-hidden flex bg-gray-100 mb-2.5" aria-hidden="true">
+                <div className="bg-[#013f7c] transition-all" style={{ width: `${brokeragePct}%` }} />
+                <div className="bg-[#770142] transition-all" style={{ width: `${brokerPct}%` }} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {splitInput('Brokerage share', 'bg-[#013f7c]', brokeragePct, (val) => setForm(f => ({ ...f, broker_split: (100 - val) / 100 })))}
+                {splitInput('Broker share', 'bg-[#770142]', brokerPct, (val) => setForm(f => ({ ...f, broker_split: val / 100 })))}
+              </div>
             </div>
           )}
 
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
-            <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2} />
-          </div>
+          {!bothEnabled && (form.brokerage_commission_enabled || form.broker_commission_enabled) && (
+            <p className="text-xs text-gray-500 pt-2 border-t border-gray-200">
+              {form.brokerage_commission_enabled
+                ? 'Brokerage receives 100% of commission.'
+                : 'Brokers receive 100% of commission.'}
+            </p>
+          )}
 
-          {/* Commission Tiers */}
-          <div>
-            <label className="text-sm font-medium text-gray-700 block mb-2">Commission Tiers</label>
-            <p className="text-xs text-gray-400 mb-2">Tiers are computed on the brokerage's aggregate first-year revenue across all its brokers this calendar year.</p>
-            <div className="space-y-2">
-              {form.commission_tiers.map((tier, i) => (
-                <div key={i} className="grid grid-cols-4 gap-2 items-center p-3 bg-gray-50 rounded-lg">
-                  <Input value={tier.label} onChange={e => updateTier(i, 'label', e.target.value)} placeholder="Label" className="text-sm" />
-                  <Input type="number" value={tier.min_revenue} onChange={e => updateTier(i, 'min_revenue', e.target.value)} placeholder="Min $" className="text-sm" />
-                  <Input type="number" value={tier.max_revenue ?? ''} onChange={e => updateTier(i, 'max_revenue', e.target.value)} placeholder="Max $ (blank=∞)" className="text-sm" />
-                  <div className="flex items-center gap-1">
-                    <Input type="number" step="0.001" min="0" max="1" value={tier.rate} onChange={e => updateTier(i, 'rate', e.target.value)} placeholder="Rate (0.125)" className="text-sm" />
-                    <span className="text-gray-500 text-sm">{(tier.rate * 100 % 1 === 0 ? (tier.rate * 100).toFixed(0) : (tier.rate * 100).toFixed(1))}%</span>
-                  </div>
+          {!form.brokerage_commission_enabled && !form.broker_commission_enabled && (
+            <p className="text-xs text-gray-500 pt-2 border-t border-gray-200">
+              No commission accrues for this brokerage's referrals. Statuses still track.
+            </p>
+          )}
+        </div>
+      </RailSection>
+
+      {editing && (
+        <RailSection title={`Brokers at this firm (${firmBrokers.length})`} icon={Users}>
+          {firmBrokers.length === 0 ? (
+            <p className="text-xs text-gray-400">No referral partners are linked to this brokerage yet. Link one from the Brokerage field on a partner's record.</p>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 gap-2 mb-2.5">
+                <div className="rounded-md bg-gray-50 px-2.5 py-2 min-w-0">
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400">Firm YTD</p>
+                  <p className="text-base font-bold text-[#264d44] tabular-nums">{money(firmYtd)}</p>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Commission Toggle Switches */}
-          <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Brokerage commission</label>
-                <p className="text-xs text-gray-400">The brokerage (house) earns commission on placements</p>
-              </div>
-              <Switch
-                checked={form.brokerage_commission_enabled}
-                onCheckedChange={(checked) => setForm(f => ({ ...f, brokerage_commission_enabled: checked }))}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="text-sm font-medium text-gray-700">Broker commission</label>
-                <p className="text-xs text-gray-400">Individual brokers earn commission. When off, broker portals hide commission features.</p>
-              </div>
-              <Switch
-                checked={form.broker_commission_enabled}
-                onCheckedChange={(checked) => setForm(f => ({ ...f, broker_commission_enabled: checked }))}
-              />
-            </div>
-
-            {/* Split control — only when both are on */}
-            {bothEnabled && (
-              <div className="pt-3 border-t border-gray-200">
-                <label className="text-sm font-medium text-gray-700 block mb-2">Commission Split</label>
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <label className="text-xs text-gray-500 block mb-1">Brokerage share</label>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        min="0" max="100"
-                        value={brokeragePct}
-                        onChange={e => {
-                          const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
-                          setForm(f => ({ ...f, broker_split: (100 - val) / 100 }));
-                        }}
-                        className="text-sm"
-                      />
-                      <span className="text-gray-500 text-sm">%</span>
-                    </div>
-                  </div>
-                  <div className="text-gray-300 pt-5">/</div>
-                  <div className="flex-1">
-                    <label className="text-xs text-gray-500 block mb-1">Broker share</label>
-                    <div className="flex items-center gap-1">
-                      <Input
-                        type="number"
-                        min="0" max="100"
-                        value={brokerPct}
-                        onChange={e => {
-                          const val = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
-                          setForm(f => ({ ...f, broker_split: val / 100 }));
-                        }}
-                        className="text-sm"
-                      />
-                      <span className="text-gray-500 text-sm">%</span>
-                    </div>
-                  </div>
+                <div className="rounded-md bg-gray-50 px-2.5 py-2 min-w-0">
+                  <p className="text-[10px] uppercase tracking-wide text-gray-400">Current tier</p>
+                  <p className="text-sm font-semibold text-[#013f7c] truncate">
+                    {currentTier ? `${currentTier.label || 'Tier'} · ${pct(currentTier.rate)}` : '—'}
+                  </p>
                 </div>
               </div>
-            )}
+              {nextTier && (
+                <p className="text-[11px] text-gray-500 mb-2">
+                  {money((nextTier.min_revenue || 0) - firmYtd)} more first-year revenue reaches {nextTier.label || 'the next tier'} ({pct(nextTier.rate)}).
+                </p>
+              )}
+              <ul className="divide-y divide-gray-100 max-h-56 overflow-y-auto">
+                {[...firmBrokers].sort((a, b) => (b.ytd_revenue || 0) - (a.ytd_revenue || 0)).map(p => (
+                  <li key={p.id} className="flex items-center justify-between gap-2 py-1.5 text-sm">
+                    <span className="truncate text-gray-800">{p.name}</span>
+                    <span className="text-xs text-gray-500 tabular-nums shrink-0">{money(p.ytd_revenue)}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </RailSection>
+      )}
+    </>
+  );
 
-            {!bothEnabled && (form.brokerage_commission_enabled || form.broker_commission_enabled) && (
-              <p className="text-xs text-gray-500 pt-2 border-t border-gray-200">
-                {form.brokerage_commission_enabled
-                  ? 'Brokerage receives 100% of commission.'
-                  : 'Brokers receive 100% of commission.'}
-              </p>
-            )}
+  const footer = (
+    <div className="flex justify-end gap-2">
+      <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+      {/* form= submits the form in the body even though the button sits outside it */}
+      <Button type="submit" form="brokerage-form" disabled={saveMutation.isPending} className="bg-[#013f7c] hover:bg-[#012d5a] text-white">
+        {saveMutation.isPending ? 'Saving...' : editing ? 'Save Changes' : 'Create Brokerage'}
+      </Button>
+    </div>
+  );
 
-            {!form.brokerage_commission_enabled && !form.broker_commission_enabled && (
-              <p className="text-xs text-gray-500 pt-2 border-t border-gray-200">
-                No commission accrues for this brokerage's referrals. Statuses still track.
-              </p>
-            )}
-          </div>
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <RecordDetailContent maxWidth="1040px" fill={false}>
+        <RecordDetailFrame header={header} rail={rail} footer={footer}>
+          <form id="brokerage-form" onSubmit={handleSubmit} className="space-y-6">
+            <FrameSection title="Firm" icon={Building2}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Name *</label>
+                  <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Company</label>
+                  <Input value={form.company} onChange={e => setForm(f => ({ ...f, company: e.target.value }))} placeholder="Legal entity name" />
+                </div>
+              </div>
 
-          <div className="flex gap-3 pt-2">
-            <Button type="submit" disabled={saveMutation.isPending} className="bg-[#013f7c] hover:bg-[#012d5a] text-white">
-              {saveMutation.isPending ? 'Saving...' : editing ? 'Save Changes' : 'Create Brokerage'}
-            </Button>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          </div>
-        </form>
-      </DialogContent>
+              {/* Email domain + aliases */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Email domain</label>
+                  <Input value={form.email_domain} onChange={e => setForm(f => ({ ...f, email_domain: e.target.value }))} placeholder="e.g. burnsemployeebenefits.com" />
+                  <p className="text-xs text-gray-400 mt-1">The firm's mail domain — this is how brokers are matched to this firm.</p>
+                  {!normalizeDomain(form.email_domain) && (
+                    <p className="text-xs text-amber-600 mt-1">No domain set — this firm won't be matched to any broker automatically.</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Domain aliases</label>
+                  <Input value={form.email_domain_aliases} onChange={e => setForm(f => ({ ...f, email_domain_aliases: e.target.value }))} placeholder="e.g. oldfirm.com, legacy-brand.com" />
+                  <p className="text-xs text-gray-400 mt-1">Other domains this firm owns, e.g. after an acquisition.</p>
+                </div>
+              </div>
+
+              {domainErrors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-1">
+                  {domainErrors.map((err, i) => (
+                    <p key={i} className="text-xs text-red-700 font-medium">{err}</p>
+                  ))}
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
+                <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={3} />
+              </div>
+            </FrameSection>
+
+            {/* Commission Tiers */}
+            <FrameSection title="Commission tiers" icon={Layers}>
+              <p className="text-xs text-gray-400">Tiers are computed on the brokerage's aggregate first-year revenue across all its brokers this calendar year.</p>
+              <div className="hidden sm:grid grid-cols-12 gap-2 px-3 text-[10px] uppercase tracking-wide text-gray-400">
+                <span className="col-span-3">Label</span>
+                <span className="col-span-3">Min revenue</span>
+                <span className="col-span-3">Max revenue</span>
+                <span className="col-span-3">Rate</span>
+              </div>
+              <div className="space-y-2">
+                {form.commission_tiers.map((tier, i) => {
+                  const isCurrent = !!editing && firmBrokers.length > 0 && tier === currentTier;
+                  return (
+                    <div
+                      key={i}
+                      title={isCurrent ? 'The firm is in this tier today' : undefined}
+                      className={`grid grid-cols-2 sm:grid-cols-12 gap-2 items-center p-3 rounded-lg ${isCurrent ? 'bg-[#013f7c]/5 ring-1 ring-[#013f7c]/30' : 'bg-gray-50'}`}
+                    >
+                      <div className="col-span-2 sm:col-span-3">
+                        <Input value={tier.label} onChange={e => updateTier(i, 'label', e.target.value)} placeholder="Label" className="text-sm bg-white" />
+                      </div>
+                      <div className="sm:col-span-3">
+                        <Input type="number" value={tier.min_revenue} onChange={e => updateTier(i, 'min_revenue', e.target.value)} placeholder="Min $" className="text-sm bg-white" />
+                      </div>
+                      <div className="sm:col-span-3">
+                        <Input type="number" value={tier.max_revenue ?? ''} onChange={e => updateTier(i, 'max_revenue', e.target.value)} placeholder="Max $ (blank=∞)" className="text-sm bg-white" />
+                      </div>
+                      <div className="col-span-2 sm:col-span-3 flex items-center gap-1.5">
+                        <Input type="number" step="0.001" min="0" max="1" value={tier.rate} onChange={e => updateTier(i, 'rate', e.target.value)} placeholder="Rate (0.125)" className="text-sm bg-white" />
+                        <span className="text-gray-500 text-sm w-11 text-right shrink-0 tabular-nums">{pct(tier.rate)}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </FrameSection>
+          </form>
+        </RecordDetailFrame>
+      </RecordDetailContent>
     </Dialog>
   );
 }
