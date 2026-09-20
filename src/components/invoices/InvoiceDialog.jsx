@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogTitle } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Save } from 'lucide-react';
+import { Plus, Trash2, Save, Loader2, Building2, FileText, DollarSign, ListOrdered } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { BOX_DISPLAY_NAMES, WELLNESS_BOX_PRICES, applyBoxFloor } from '@/lib/wellnessBoxes';
 import { priceForCatalogItem, resolveHeadcount } from '@/lib/rateCard';
+import { INVOICE_STATUS_CONFIG } from '@/lib/statusConfig';
+import { RecordDetailContent, RecordDetailFrame, RailSection, FrameSection, FieldRow } from '@/components/shared/RecordDetailFrame';
 
 export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clients, preselectedProposalId }) {
   const [formData, setFormData] = useState({
@@ -331,228 +334,351 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
 
   const { subtotal, tax_amount, total } = calculateTotals();
   const isReadOnly = mode === 'view';
+  const isSaving = createMutation.isPending || updateMutation.isPending;
+  const lineItems = formData.line_items || [];
+  const statusCfg = INVOICE_STATUS_CONFIG[formData.status] || null;
+  const money = (n) => `$${(Number(n) || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+  const fmtDate = (d) => {
+    if (!d) return '—';
+    const dt = new Date(`${String(d).slice(0, 10)}T00:00:00`);
+    return isNaN(dt.getTime()) ? String(d) : dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+  const acceptedForClient = proposals.filter(p => p.client_id === formData.client_id && p.status === 'accepted');
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
-        <DialogHeader>
-          <DialogTitle>
-            {mode === 'create' ? 'Create Invoice' : mode === 'edit' ? 'Edit Invoice' : 'View Invoice'}
-          </DialogTitle>
-        </DialogHeader>
+  // ── Responsive layout (see RecordDetailFrame) ──
+  // Header: title, status, running total. Rail: client, invoice details,
+  // totals — beside the lines on wide windows, above them on narrow ones.
+  // Main: line items (a read-only table in view mode), memo, notes.
+  // Footer (edit/create only): Save stays pinned however long the list is.
+  const title = mode === 'create'
+    ? 'Create Invoice'
+    : `${mode === 'edit' ? 'Edit invoice' : 'Invoice'}${formData.invoice_number ? ` ${formData.invoice_number}` : ''}`;
+  const partyLine = [
+    formData.company,
+    formData.client_name && formData.client_name !== formData.company ? formData.client_name : null,
+  ].filter(Boolean).join(' · ');
 
-        <div className="space-y-6 mt-4">
-          {/* Client Selection */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {mode === 'create' ? (
-              <>
-                <Select value={formData.client_id} onValueChange={handleClientChange} disabled={isReadOnly}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select client..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map(client => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name} {client.company ? `- ${client.company}` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                
-                <Select 
-                  value={formData.proposal_id} 
-                  onValueChange={handleProposalChange} 
-                  disabled={isReadOnly || !formData.client_id}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Import from proposal (optional)..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {proposals
-                      .filter(p => p.client_id === formData.client_id && p.status === 'accepted')
-                      .map(proposal => (
-                        <SelectItem key={proposal.id} value={proposal.id}>
-                          Proposal - ${proposal.total_amount?.toLocaleString()}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </>
-            ) : (
-              <div className="col-span-2">
-                <p className="text-sm text-gray-500">Client</p>
-                <p className="font-semibold">{formData.client_name}</p>
-                {formData.company && <p className="text-sm text-gray-600">{formData.company}</p>}
-              </div>
+  const header = (
+    <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <DialogTitle className="text-xl font-bold text-[#013f7c]">{title}</DialogTitle>
+          {statusCfg && mode !== 'create' && <Badge className={statusCfg.color}>{statusCfg.label}</Badge>}
+        </div>
+        <p className="text-sm text-gray-500 mt-0.5 truncate">
+          {mode === 'create'
+            ? 'Choose a client, optionally import an accepted proposal, then adjust the lines.'
+            : (partyLine || 'No client on this invoice')}
+        </p>
+      </div>
+      <div className="sm:text-right">
+        <p className="text-[11px] uppercase tracking-wide text-gray-500">Total</p>
+        <p className="text-2xl font-bold leading-tight tabular-nums" style={{ color: '#770142' }}>{money(total)}</p>
+      </div>
+    </div>
+  );
+
+  const dateField = (label, key) => (
+    <div className="min-w-0">
+      <label className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">{label}</label>
+      {isReadOnly ? (
+        <p className="text-sm text-gray-800">{fmtDate(formData[key])}</p>
+      ) : (
+        <Input
+          type="date"
+          value={formData[key] || ''}
+          onChange={(e) => setFormData({ ...formData, [key]: e.target.value })}
+          className="bg-white h-9"
+        />
+      )}
+    </div>
+  );
+
+  const rail = (
+    <>
+      <RailSection title="Client" icon={Building2}>
+        {mode === 'create' ? (
+          <div className="space-y-2">
+            <Select value={formData.client_id} onValueChange={handleClientChange}>
+              <SelectTrigger className="bg-white">
+                <SelectValue placeholder="Select client..." />
+              </SelectTrigger>
+              <SelectContent>
+                {clients.map(client => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.company || client.name}
+                    {client.company && client.name && client.name !== client.company ? ` — ${client.name}` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={formData.proposal_id}
+              onValueChange={handleProposalChange}
+              disabled={!formData.client_id}
+            >
+              <SelectTrigger className="bg-white">
+                <SelectValue placeholder="Import from proposal (optional)..." />
+              </SelectTrigger>
+              <SelectContent>
+                {acceptedForClient.map(proposal => (
+                  <SelectItem key={proposal.id} value={proposal.id}>
+                    Proposal - ${proposal.total_amount?.toLocaleString()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {formData.client_id && acceptedForClient.length === 0 && (
+              <p className="text-[11px] text-gray-400">No accepted proposals for this client — add the lines by hand.</p>
             )}
           </div>
+        ) : (
+          <dl className="space-y-1.5">
+            <FieldRow label="Company">{formData.company || '—'}</FieldRow>
+            <FieldRow label="Contact">{formData.client_name || '—'}</FieldRow>
+            {formData.client_email && (
+              <FieldRow label="Email">
+                <a href={`mailto:${formData.client_email}`} className="text-[#013f7c] hover:underline break-all">{formData.client_email}</a>
+              </FieldRow>
+            )}
+          </dl>
+        )}
+      </RailSection>
 
-          {mode === 'create' && (
-            <div>
+      <RailSection title="Details" icon={FileText}>
+        <div className="space-y-2.5">
+          <div>
+            <label className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Invoice number</label>
+            {mode === 'create' ? (
               <Input
                 placeholder="Invoice Number"
                 value={formData.invoice_number}
                 onChange={(e) => setFormData({ ...formData, invoice_number: e.target.value })}
-                disabled={isReadOnly}
+                className="bg-white h-9"
               />
-            </div>
+            ) : (
+              <p className="text-sm text-gray-800">{formData.invoice_number || '—'}</p>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {dateField('Issue date', 'issue_date')}
+            {dateField('Due date', 'due_date')}
+          </div>
+          {isReadOnly && formData.paid_date && (
+            <dl><FieldRow label="Paid">{fmtDate(formData.paid_date)}</FieldRow></dl>
           )}
+          {isReadOnly && formData.quickbooks_id && (
+            <dl>
+              <FieldRow label="QuickBooks">
+                #{formData.quickbooks_id}{formData.quickbooks_sync_date ? ` · synced ${fmtDate(formData.quickbooks_sync_date)}` : ''}
+              </FieldRow>
+            </dl>
+          )}
+        </div>
+      </RailSection>
 
-          {/* Dates */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-sm text-gray-600">Issue Date</label>
-              <Input
-                type="date"
-                value={formData.issue_date}
-                onChange={(e) => setFormData({ ...formData, issue_date: e.target.value })}
-                disabled={isReadOnly}
-              />
-            </div>
-            <div>
-              <label className="text-sm text-gray-600">Due Date</label>
-              <Input
-                type="date"
-                value={formData.due_date}
-                onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
-                disabled={isReadOnly}
-              />
-            </div>
+      <RailSection title="Totals" icon={DollarSign}>
+        <div className="space-y-1.5 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Subtotal</span>
+            <span className="font-semibold tabular-nums">{money(subtotal)}</span>
           </div>
-
-          {/* Line Items */}
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-sm font-medium text-gray-700">Line Items</label>
-              {!isReadOnly && (
-                <Button size="sm" variant="outline" onClick={addLineItem}>
-                  <Plus className="w-4 h-4 mr-1" /> Add Item
-                </Button>
-              )}
-            </div>
-            
-            <div className="space-y-3">
-              {formData.line_items.map((item, idx) => (
-                <div key={idx} className="bg-gray-50 p-3 rounded relative">
-                  {item.already_invoiced && (
-                    <div className="absolute -top-1 -right-1 z-10">
-                      <span className="bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full">
-                        Already Invoiced
-                      </span>
-                    </div>
-                  )}
-                  <div className="space-y-2">
-                    <Input
-                      placeholder="Item Name"
-                      value={item.name || ''}
-                      onChange={(e) => updateLineItem(idx, 'name', e.target.value)}
-                      className="font-semibold"
-                      disabled={isReadOnly}
-                    />
-                    <Textarea
-                      placeholder="Description"
-                      value={item.description || ''}
-                      onChange={(e) => updateLineItem(idx, 'description', e.target.value)}
-                      rows={2}
-                      disabled={isReadOnly}
-                    />
-                    <div className="grid grid-cols-12 gap-2 items-center">
-                      <Input
-                        type="number"
-                        placeholder="Qty"
-                        value={item.quantity}
-                        onChange={(e) => updateLineItem(idx, 'quantity', Number(e.target.value))}
-                        className="col-span-3"
-                        disabled={isReadOnly}
-                      />
-                      <Input
-                        type="number"
-                        placeholder="Rate"
-                        value={item.rate}
-                        onChange={(e) => updateLineItem(idx, 'rate', Number(e.target.value))}
-                        className="col-span-3"
-                        disabled={isReadOnly}
-                      />
-                      <div className="col-span-5 text-right font-semibold text-lg">
-                        ${item.amount.toLocaleString()}
-                      </div>
-                      {!isReadOnly && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="col-span-1 text-red-500"
-                          onClick={() => removeLineItem(idx)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Totals */}
-          <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Subtotal:</span>
-              <span className="font-semibold">${subtotal.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Tax Rate:</span>
-                {!isReadOnly && (
+          <div className="flex justify-between items-center gap-2">
+            <span className="text-gray-600 flex items-center gap-1.5">
+              Tax
+              {isReadOnly ? (
+                <span className="text-gray-500">({formData.tax_rate || 0}%)</span>
+              ) : (
+                <span className="inline-flex items-center gap-1">
                   <Input
                     type="number"
                     value={formData.tax_rate}
                     onChange={(e) => setFormData({ ...formData, tax_rate: Number(e.target.value) })}
-                    className="w-20"
-                    disabled={isReadOnly}
+                    className="w-16 h-7 px-2 text-xs bg-white"
+                    aria-label="Tax rate"
+                  />
+                  <span className="text-gray-500 text-xs">%</span>
+                </span>
+              )}
+            </span>
+            <span className="font-semibold tabular-nums">{money(tax_amount)}</span>
+          </div>
+          <div className="flex justify-between text-base font-bold pt-2 mt-1 border-t">
+            <span>Total</span>
+            <span className="tabular-nums" style={{ color: '#770142' }}>{money(total)}</span>
+          </div>
+        </div>
+      </RailSection>
+    </>
+  );
+
+  const textBlock = (value) => (
+    <p className="text-sm text-gray-700 whitespace-pre-line rounded-lg bg-gray-50 border border-gray-100 p-3 min-h-[3rem]">
+      {value || <span className="text-gray-400">—</span>}
+    </p>
+  );
+
+  const footer = !isReadOnly ? (
+    <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2">
+      <p className="text-xs text-gray-500 hidden sm:block">
+        {lineItems.length} line{lineItems.length === 1 ? '' : 's'} · total {money(total)}
+      </p>
+      <div className="flex gap-2">
+        <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none">Cancel</Button>
+        <Button onClick={handleSave} disabled={isSaving} className="flex-1 sm:flex-none bg-[#264d44] hover:bg-[#1a3830]">
+          {isSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          Save Invoice
+        </Button>
+      </div>
+    </div>
+  ) : null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <RecordDetailContent maxWidth="1120px" fill={false}>
+        <RecordDetailFrame header={header} rail={rail} footer={footer}>
+          <div className="space-y-6">
+            <FrameSection
+              title={`Line items (${lineItems.length})`}
+              icon={ListOrdered}
+              action={!isReadOnly && (
+                <Button size="sm" variant="outline" onClick={addLineItem} className="h-8">
+                  <Plus className="w-4 h-4 mr-1" /> Add item
+                </Button>
+              )}
+            >
+              {isReadOnly ? (
+                <div className="overflow-x-auto rounded-lg border border-gray-200">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr className="text-left text-[11px] uppercase tracking-wide text-gray-500">
+                        <th className="py-2 px-3 font-semibold">Item</th>
+                        <th className="py-2 px-3 font-semibold text-right">Qty</th>
+                        <th className="py-2 px-3 font-semibold text-right">Rate</th>
+                        <th className="py-2 px-3 font-semibold text-right">Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {lineItems.map((item, idx) => (
+                        <tr key={idx} className="align-top">
+                          <td className="py-2.5 px-3 min-w-[12rem]">
+                            <p className="font-medium text-gray-800">{item.name || '—'}</p>
+                            {item.description && (
+                              <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-line">{item.description}</p>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-right tabular-nums">{item.quantity ?? 1}</td>
+                          <td className="py-2.5 px-3 text-right tabular-nums">{money(item.rate)}</td>
+                          <td className="py-2.5 px-3 text-right font-semibold tabular-nums">{money(item.amount)}</td>
+                        </tr>
+                      ))}
+                      {lineItems.length === 0 && (
+                        <tr><td colSpan={4} className="py-6 text-center text-gray-400">No line items.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {/* Column labels — wide windows only; narrow ones label each cell */}
+                  <div className="hidden md:grid grid-cols-12 gap-x-3 px-3 text-[10px] uppercase tracking-wide text-gray-400">
+                    <span className="col-span-6">Item</span>
+                    <span className="col-span-2">Qty</span>
+                    <span className="col-span-2">Rate</span>
+                    <span className="col-span-2 text-right">Amount</span>
+                  </div>
+                  {lineItems.map((item, idx) => (
+                    <div
+                      key={idx}
+                      className={`relative rounded-lg border p-3 ${item.already_invoiced ? 'border-amber-300 bg-amber-50/40' : 'border-gray-200 bg-white'}`}
+                    >
+                      {item.already_invoiced && (
+                        <span className="absolute -top-2 right-3 bg-amber-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                          Already invoiced
+                        </span>
+                      )}
+                      <div className="grid grid-cols-12 gap-x-3 gap-y-2 items-start">
+                        <div className="col-span-12 md:col-span-6 space-y-2">
+                          <Input
+                            placeholder="Item Name"
+                            value={item.name || ''}
+                            onChange={(e) => updateLineItem(idx, 'name', e.target.value)}
+                            className="font-semibold"
+                          />
+                          <Textarea
+                            placeholder="Description"
+                            value={item.description || ''}
+                            onChange={(e) => updateLineItem(idx, 'description', e.target.value)}
+                            rows={2}
+                            className="text-sm"
+                          />
+                        </div>
+                        <div className="col-span-4 md:col-span-2">
+                          <label className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5 md:hidden">Qty</label>
+                          <Input
+                            type="number"
+                            placeholder="Qty"
+                            value={item.quantity}
+                            onChange={(e) => updateLineItem(idx, 'quantity', Number(e.target.value))}
+                          />
+                        </div>
+                        <div className="col-span-4 md:col-span-2">
+                          <label className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5 md:hidden">Rate</label>
+                          <Input
+                            type="number"
+                            placeholder="Rate"
+                            value={item.rate}
+                            onChange={(e) => updateLineItem(idx, 'rate', Number(e.target.value))}
+                          />
+                        </div>
+                        <div className="col-span-4 md:col-span-2 flex flex-col items-end">
+                          <label className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5 md:hidden">Amount</label>
+                          <p className="font-semibold text-base tabular-nums md:pt-1.5">{money(item.amount)}</p>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 mt-1 text-red-500 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => removeLineItem(idx)}
+                            title="Remove this line"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {lineItems.length === 0 && (
+                    <p className="text-sm text-gray-400 text-center py-6 border border-dashed rounded-lg">No line items — add one above.</p>
+                  )}
+                </div>
+              )}
+            </FrameSection>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <FrameSection title="Customer memo">
+                {isReadOnly ? textBlock(formData.memo) : (
+                  <Textarea
+                    placeholder="Visible to customer..."
+                    value={formData.memo || ''}
+                    onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
+                    rows={3}
                   />
                 )}
-                {isReadOnly && <span>{formData.tax_rate}%</span>}
-                <span className="text-gray-600">%</span>
-              </div>
-              <span className="font-semibold">${tax_amount.toLocaleString()}</span>
+              </FrameSection>
+              <FrameSection title="Internal notes">
+                {isReadOnly ? textBlock(formData.notes) : (
+                  <Textarea
+                    placeholder="Private notes..."
+                    value={formData.notes || ''}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    rows={3}
+                  />
+                )}
+              </FrameSection>
             </div>
-            <div className="flex justify-between text-lg font-bold pt-2 border-t">
-              <span>Total:</span>
-              <span style={{ color: '#770142' }}>${total.toLocaleString()}</span>
-            </div>
           </div>
-
-          {/* Notes */}
-          <div>
-            <label className="text-sm text-gray-600">Customer Memo</label>
-            <Textarea
-              placeholder="Visible to customer..."
-              value={formData.memo}
-              onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
-              rows={2}
-              disabled={isReadOnly}
-            />
-          </div>
-
-          <div>
-            <label className="text-sm text-gray-600">Internal Notes</label>
-            <Textarea
-              placeholder="Private notes..."
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              rows={2}
-              disabled={isReadOnly}
-            />
-          </div>
-
-          {/* Actions */}
-          {!isReadOnly && (
-            <Button onClick={handleSave} className="w-full bg-[#264d44] hover:bg-[#1a3830]">
-              <Save className="w-4 h-4 mr-2" /> Save Invoice
-            </Button>
-          )}
-        </div>
-      </DialogContent>
+        </RecordDetailFrame>
+      </RecordDetailContent>
     </Dialog>
   );
 }
