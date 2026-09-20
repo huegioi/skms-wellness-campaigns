@@ -339,7 +339,7 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
         <div className="flex-1 min-w-0">
           <RecordSnapshotHeader record={lead} entityType="Lead" stages={LEAD_STAGES} onUpdate={handleFieldUpdate} />
         </div>
-        <div className="flex flex-wrap sm:flex-col gap-2 sm:pr-8 shrink-0">
+        <div className="flex flex-wrap sm:flex-col gap-2 shrink-0">
           <Button
             onClick={toggleActivePartner}
             disabled={updateLeadMutation.isPending}

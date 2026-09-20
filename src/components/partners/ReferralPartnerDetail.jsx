@@ -174,7 +174,7 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
             onUpdate={handleUpdate}
           />
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:pr-8 shrink-0 sm:w-[21rem]">
+        <div className="grid grid-cols-2 gap-2 shrink-0 sm:w-[21rem]">
           <Button variant="outline" size="sm" className="gap-1.5 justify-start" onClick={copyLink}>
             {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Copied!' : 'Copy Portal Link'}

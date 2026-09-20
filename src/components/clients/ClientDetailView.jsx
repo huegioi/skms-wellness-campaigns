@@ -306,7 +306,7 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
       <div className="flex-1 min-w-0">
         <RecordSnapshotHeader record={client} entityType="Client" stages={CLIENT_STAGES} onUpdate={onUpdate} />
       </div>
-      <div className="flex sm:flex-col gap-2 sm:pr-8 shrink-0">
+      <div className="flex sm:flex-col gap-2 shrink-0">
         <Link to={createPageUrl('EditProposal') + `?clientId=${client.id}`}>
           <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132] whitespace-nowrap w-full">
             <FileText className="w-4 h-4 mr-2" /> New Proposal
