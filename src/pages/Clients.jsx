@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import ClientDetailView from '@/components/clients/ClientDetailView';
+import { RecordDetailContent } from '@/components/shared/RecordDetailFrame';
 import DuplicateChecker from '@/components/clients/DuplicateChecker';
 import { buildClientRecord, contactsUpdate } from '@/lib/clientContacts';
 import { getOrgDomain } from '@/lib/emailDomain';
@@ -745,7 +746,9 @@ export default function Clients() {
 
         {/* Client Detail View Dialog */}
         <Dialog open={!!viewingClient} onOpenChange={(open) => { if (!open) { urlClientDismissed.current = true; setViewingClient(null); } }}>
-          <DialogContent className="max-w-3xl w-[95vw] sm:w-full h-[90vh] flex flex-col p-0 overflow-hidden">
+          {/* Sized by the window (up to 1240px wide, 90vh tall); two columns on lg+. */}
+          <RecordDetailContent maxWidth="1240px" aria-describedby={undefined}>
+            <DialogTitle className="sr-only">{viewingClient?.company || viewingClient?.name || 'Client'}</DialogTitle>
             {viewingClient && (
               <ClientDetailView 
                 client={viewingClient} 
@@ -753,7 +756,7 @@ export default function Clients() {
                 onUpdate={handleClientUpdate}
               />
             )}
-          </DialogContent>
+          </RecordDetailContent>
         </Dialog>
 
         {/* Merge Clients Dialog */}
