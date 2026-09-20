@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogTitle } from '@/components/ui/dialog';
+import { RecordDetailContent, RecordDetailFrame } from '@/components/shared/RecordDetailFrame';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -236,29 +237,44 @@ ${proposalHTML}
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-[95vw] sm:w-full">
-        <DialogHeader>
-          <DialogTitle>Send Proposal</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 mt-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Recipient Email *</label>
-            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="client@company.com" />
+      {/* Window-sized compose view; Send stays pinned under the message. */}
+      <RecordDetailContent maxWidth="820px" fill={false}>
+        <RecordDetailFrame
+          header={
+            <div className="min-w-0">
+              <DialogTitle className="text-xl font-bold text-[#013f7c]">Send Proposal</DialogTitle>
+              <p className="text-sm text-gray-500 mt-0.5 truncate">
+                {proposal?.company || proposal?.client_name || 'Proposal'}
+                {proposal?.total_amount ? ` · $${proposal.total_amount.toLocaleString()}` : ''}
+              </p>
+            </div>
+          }
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button onClick={handleSend} disabled={!email || sending} className="bg-[#770142] hover:bg-[#5a0132]">
+                {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                {sending ? 'Sending...' : 'Send Proposal'}
+              </Button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Recipient Email *</label>
+              <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="client@company.com" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Subject</label>
+              <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-600 mb-1">Message</label>
+              <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={12} className="min-h-[14rem] leading-relaxed" />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Subject</label>
-            <Input value={subject} onChange={(e) => setSubject(e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Message</label>
-            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={8} />
-          </div>
-          <Button onClick={handleSend} disabled={!email || sending} className="w-full bg-[#770142] hover:bg-[#5a0132]">
-            {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-            {sending ? 'Sending...' : 'Send Proposal'}
-          </Button>
-        </div>
-      </DialogContent>
+        </RecordDetailFrame>
+      </RecordDetailContent>
     </Dialog>
   );
 }

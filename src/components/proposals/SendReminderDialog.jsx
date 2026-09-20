@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogTitle } from '@/components/ui/dialog';
+import { RecordDetailContent, RecordDetailFrame } from '@/components/shared/RecordDetailFrame';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -57,11 +58,29 @@ SkillfulMeans Team`);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-[95vw] sm:w-full">
-        <DialogHeader>
-          <DialogTitle>Send Reminder</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 mt-4">
+      {/* Window-sized compose view; Send stays pinned under the message. */}
+      <RecordDetailContent maxWidth="820px" fill={false}>
+        <RecordDetailFrame
+          header={
+            <div className="min-w-0">
+              <DialogTitle className="text-xl font-bold text-[#013f7c]">Send Reminder</DialogTitle>
+              <p className="text-sm text-gray-500 mt-0.5 truncate">
+                {proposal?.company || proposal?.client_name || 'Proposal'}
+                {proposal?.total_amount ? ` · $${proposal.total_amount.toLocaleString()}` : ''}
+              </p>
+            </div>
+          }
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+              <Button onClick={handleSend} disabled={!email || sending} className="bg-amber-600 hover:bg-amber-700">
+                {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
+                {sending ? 'Sending...' : 'Send Reminder'}
+              </Button>
+            </div>
+          }
+        >
+        <div className="space-y-4">
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm">
             <p className="text-amber-800">
               {proposal?.reminder_count > 0 
@@ -79,14 +98,11 @@ SkillfulMeans Team`);
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">Message</label>
-            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={8} />
+            <Textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={12} className="min-h-[14rem] leading-relaxed" />
           </div>
-          <Button onClick={handleSend} disabled={!email || sending} className="w-full bg-amber-600 hover:bg-amber-700">
-            {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Bell className="w-4 h-4 mr-2" />}
-            {sending ? 'Sending...' : 'Send Reminder'}
-          </Button>
         </div>
-      </DialogContent>
+        </RecordDetailFrame>
+      </RecordDetailContent>
     </Dialog>
   );
 }
