@@ -562,8 +562,9 @@ export default function InvoiceDialog({ open, onOpenChange, invoice, mode, clien
                       {lineItems.map((item, idx) => (
                         <tr key={idx} className="align-top">
                           <td className="py-2.5 px-3 min-w-[12rem]">
-                            <p className="font-medium text-gray-800">{item.name || '—'}</p>
-                            {item.description && (
+                            {/* QuickBooks imports often carry only a description — lead with it then. */}
+                            <p className="font-medium text-gray-800 whitespace-pre-line">{item.name || item.description || '—'}</p>
+                            {item.name && item.description && (
                               <p className="text-xs text-gray-500 mt-0.5 whitespace-pre-line">{item.description}</p>
                             )}
                           </td>
