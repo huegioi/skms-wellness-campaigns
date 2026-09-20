@@ -332,7 +332,7 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <RecordDetailContent maxWidth="1040px" fill={false}>
-        <RecordDetailFrame header={header} rail={rail} footer={footer}>
+        <RecordDetailFrame header={header} rail={rail} footer={footer} railFirstOnNarrow={false}>
           <form id="brokerage-form" onSubmit={handleSubmit} className="space-y-6">
             <FrameSection title="Firm" icon={Building2}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -301,7 +301,7 @@ export default function QuickBooksInvoiceReview({ proposal, open, onOpenChange }
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <RecordDetailContent maxWidth="1080px" fill={false}>
-        <RecordDetailFrame header={header} rail={rail} footer={footer}>
+        <RecordDetailFrame header={header} rail={rail} footer={footer} railFirstOnNarrow={false}>
           <div className="space-y-5">
             {/* Blocking errors at the top */}
             {blockingPanel}

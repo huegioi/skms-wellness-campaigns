@@ -190,7 +190,7 @@ export default function ProposalPreviewDialog({ proposal, open, onOpenChange, cl
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <RecordDetailContent maxWidth="1100px" fill={false}>
-        <RecordDetailFrame header={header} rail={rail}>
+        <RecordDetailFrame header={header} rail={rail} railFirstOnNarrow={false}>
           <div className="space-y-6">
             {proposal.narrative_summary && (
               <FrameSection title="Program overview" icon={FileText}>
