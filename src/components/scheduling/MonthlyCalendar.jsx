@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { RecordDetailContent, RecordDetailFrame } from '@/components/shared/RecordDetailFrame';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, CheckCircle2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import EventDetailDialog from '@/components/calendar/EventDetailDialog';
@@ -275,15 +276,23 @@ export default function MonthlyCalendar({ sheets = [], calendarEvents = [], refe
       </Card>
 
       <Dialog open={!!selectedDate} onOpenChange={() => setSelectedDate(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              Events for {selectedDate?.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 mt-4">
+        {/* Window-sized; the day's events sit two across on wider screens. */}
+        <RecordDetailContent maxWidth="900px" fill={false}>
+          <RecordDetailFrame
+            header={
+              <div>
+                <DialogTitle className="text-xl font-bold text-[#013f7c]">
+                  Events for {selectedDate?.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                </DialogTitle>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {selectedEvents.length === 0 ? 'Nothing scheduled' : `${selectedEvents.length} event${selectedEvents.length === 1 ? '' : 's'}`}
+                </p>
+              </div>
+            }
+          >
+          <div className="grid gap-3 sm:grid-cols-2">
             {selectedEvents.length === 0 ? (
-              <p className="text-center text-gray-500 py-8">No events scheduled</p>
+              <p className="text-center text-gray-500 py-8 sm:col-span-2">No events scheduled</p>
             ) : (
               selectedEvents.map((event, idx) => (
                 <div key={idx} className="bg-gray-50 rounded-lg p-4 border">
@@ -324,7 +333,8 @@ export default function MonthlyCalendar({ sheets = [], calendarEvents = [], refe
               ))
             )}
           </div>
-        </DialogContent>
+          </RecordDetailFrame>
+        </RecordDetailContent>
       </Dialog>
 
       {/* Calendar Event Detail Dialog */}
