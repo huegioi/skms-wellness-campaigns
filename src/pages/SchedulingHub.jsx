@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { RecordDetailContent, RecordDetailFrame } from '@/components/shared/RecordDetailFrame';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RefreshCw, Calendar, Clock, MapPin, Users, Plus, FileText, CheckCircle2, LayoutGrid, List, Filter } from 'lucide-react';
@@ -847,21 +848,39 @@ export default function SchedulingHub() {
 
       {/* Book Service Dialog */}
       <Dialog open={bookServiceDialogOpen} onOpenChange={setBookServiceDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-[#013f7c] to-[#264d44] p-6 rounded-t-lg">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <FileText className="w-5 h-5 text-white" />
+        {/* Window-sized: choose on the left, event details on the right (lg+); Book stays pinned. */}
+        <RecordDetailContent maxWidth="1120px" fill={false}>
+          <RecordDetailFrame
+            headerClassName="bg-gradient-to-r from-[#013f7c] to-[#264d44] border-b-0"
+            header={
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+                <div className="min-w-0">
+                  <DialogTitle className="text-white text-xl font-bold">{bookingSource === 'proposal' ? 'Book Service from Proposal' : 'Book Service from Invoice'}</DialogTitle>
+                  <p className="text-white/70 text-sm mt-0.5">{bookingSource === 'proposal' ? 'Schedule a service from an accepted or sent proposal' : 'Schedule a service linked to an existing invoice'}</p>
+                </div>
               </div>
-              <div>
-                <DialogTitle className="text-white text-xl font-bold">{bookingSource === 'proposal' ? 'Book Service from Proposal' : 'Book Service from Invoice'}</DialogTitle>
-                <p className="text-white/70 text-sm mt-0.5">{bookingSource === 'proposal' ? 'Schedule a service from an accepted or sent proposal' : 'Schedule a service linked to an existing invoice'}</p>
+            }
+            footer={
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setBookServiceDialogOpen(false)} className="px-5">
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleBookService}
+                  disabled={!selectedLineItem || !bookingForm.title || !bookingForm.start_date || bookServiceMutation.isPending}
+                  className="bg-[#264d44] hover:bg-[#1a3830] px-6"
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  {bookServiceMutation.isPending ? 'Booking...' : 'Book Service'}
+                </Button>
               </div>
-            </div>
-          </div>
-
-          <div className="p-6 space-y-5">
+            }
+          >
+          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+          <div className="space-y-5">
             {/* Source toggle */}
             <div className="flex gap-2">
               <button
@@ -983,6 +1002,16 @@ export default function SchedulingHub() {
                 </div>
               ) : <p className="text-sm text-gray-400 italic">No services found in this proposal.</p>;
             })()}
+
+          </div>
+          <div className="space-y-4">
+            {!selectedLineItem && (
+              <div className="hidden lg:flex flex-col items-center justify-center text-center rounded-xl border-2 border-dashed border-gray-200 p-8 min-h-[16rem]">
+                <Calendar className="w-8 h-8 mb-2 text-gray-300" />
+                <p className="text-sm font-medium text-gray-500">Event details appear here</p>
+                <p className="text-xs text-gray-400 mt-1">Pick {bookingSource === 'invoice' ? 'an invoice' : 'a proposal'} and a service on the left.</p>
+              </div>
+            )}
 
             {/* Step 3 - Booking Form */}
             {selectedLineItem && (
@@ -1236,21 +1265,9 @@ export default function SchedulingHub() {
               </div>
             )}
           </div>
-
-          <div className="px-6 pb-6 flex justify-end gap-3 border-t border-gray-100 pt-4">
-            <Button variant="outline" onClick={() => setBookServiceDialogOpen(false)} className="px-5">
-              Cancel
-            </Button>
-            <Button
-              onClick={handleBookService}
-              disabled={!selectedLineItem || !bookingForm.title || !bookingForm.start_date || bookServiceMutation.isPending}
-              className="bg-[#264d44] hover:bg-[#1a3830] px-6"
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              {bookServiceMutation.isPending ? 'Booking...' : 'Book Service'}
-            </Button>
           </div>
-        </DialogContent>
+          </RecordDetailFrame>
+        </RecordDetailContent>
       </Dialog>
 
       {/* Event Detail Dialog */}
