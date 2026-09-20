@@ -32,6 +32,7 @@ import MayaInsightsWidget from '@/components/shared/MayaInsightsWidget';
 import MfsAdminCard from '@/components/clients/MfsAdminCard';
 import JourneyAdminCard from '@/components/clients/JourneyAdminCard';
 import RecordSnapshotHeader from '@/components/shared/RecordSnapshotHeader';
+import { RecordDetailFrame, StatTile } from '@/components/shared/RecordDetailFrame';
 import CollapsibleFieldSection from '@/components/shared/CollapsibleFieldSection';
 import { Switch } from '@/components/ui/switch';
 import { InlineText } from '@/components/shared/inline/InlineText';
@@ -296,70 +297,64 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
     }
   };
 
-  return (
-    <div className="space-y-6 overflow-y-auto flex-1 p-6 pt-8">
-      {/* Snapshot Header */}
-      <RecordSnapshotHeader record={client} entityType="Client" stages={CLIENT_STAGES} onUpdate={onUpdate} />
+  // ── Responsive dialog layout ──
+  // Header (sticky): snapshot + primary action. Rail (right column on wide
+  // windows, stacked above the tabs on narrow ones): numbers, QuickBooks,
+  // contacts, referral source. Main: the tab strip. See RecordDetailFrame.
+  const header = (
+    <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+      <div className="flex-1 min-w-0">
+        <RecordSnapshotHeader record={client} entityType="Client" stages={CLIENT_STAGES} onUpdate={onUpdate} />
+      </div>
+      <div className="flex sm:flex-col gap-2 sm:pr-8 shrink-0">
+        <Link to={createPageUrl('EditProposal') + `?clientId=${client.id}`}>
+          <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132] whitespace-nowrap w-full">
+            <FileText className="w-4 h-4 mr-2" /> New Proposal
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
 
-      {/* Contacts card — always visible, above the tab strip */}
+  const rail = (
+    <>
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2.5">
+        <StatTile label="Proposals" value={proposals.length} />
+        <StatTile label="Proposal Value" value={`$${totalProposalValue.toLocaleString()}`} color="#16a34a" />
+        <StatTile label="Won Value" value={`$${wonValue.toLocaleString()}`} color="#770142" />
+        <StatTile
+          label="Interactions"
+          value={<span className="inline-flex items-center gap-1">{interactions.length + gmailEmailCount}{gmailLoading && <RefreshCw className="w-3 h-3 text-gray-400 animate-spin" />}</span>}
+          sub={gmailEmailCount > 0 ? `${interactions.length} logged + ${gmailEmailCount} emails` : undefined}
+          color="#2563eb"
+        />
+      </div>
+
+      {/* QuickBooks Invoice Stats */}
+      {(client.total_invoice_value > 0 || client.invoice_count > 0) && (
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3.5 border border-green-200 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] uppercase tracking-wide text-gray-500">QuickBooks invoiced</p>
+            <p className="text-2xl font-bold text-green-700 leading-tight">${(client.total_invoice_value || 0).toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{client.invoice_count || 0} invoice{client.invoice_count !== 1 ? 's' : ''} synced</p>
+          </div>
+          <DollarSign className="w-9 h-9 text-green-600 shrink-0" />
+        </div>
+      )}
+
+      {/* Contacts card */}
       <ContactsCard client={client} onUpdate={onUpdate} />
 
       {/* Referral partner badge */}
       {client.referral_partner_name && (
         <ReferredByBadge partnerId={client.referral_partner_id} partnerName={client.referral_partner_name} />
       )}
+    </>
+  );
 
-      {/* Action Bar */}
-      <div className="flex justify-end pr-8">
-        <Link to={createPageUrl('EditProposal') + `?clientId=${client.id}`}>
-          <Button size="sm" className="bg-[#770142] hover:bg-[#5a0132] whitespace-nowrap">
-            <FileText className="w-4 h-4 sm:mr-2" /> <span className="hidden sm:inline">New Proposal</span><span className="sm:hidden">Proposal</span>
-          </Button>
-        </Link>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-gray-500">Total Proposals</p>
-          <p className="text-xl sm:text-2xl font-bold" style={{ color: '#013f7c' }}>{proposals.length}</p>
-        </div>
-        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-gray-500">Proposal Value</p>
-          <p className="text-xl sm:text-2xl font-bold text-green-600">${totalProposalValue.toLocaleString()}</p>
-        </div>
-        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-gray-500">Won Value</p>
-          <p className="text-xl sm:text-2xl font-bold" style={{ color: '#770142' }}>${wonValue.toLocaleString()}</p>
-        </div>
-        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
-          <p className="text-xs sm:text-sm text-gray-500">Interactions</p>
-          <div className="flex items-center gap-1">
-            <p className="text-xl sm:text-2xl font-bold text-blue-600">{interactions.length + gmailEmailCount}</p>
-            {gmailLoading && <RefreshCw className="w-3 h-3 text-gray-400 animate-spin" />}
-          </div>
-          {gmailEmailCount > 0 && (
-            <p className="text-xs text-gray-400">{interactions.length} logged + {gmailEmailCount} emails</p>
-          )}
-        </div>
-      </div>
-      
-      {/* QuickBooks Invoice Stats */}
-      {(client.total_invoice_value > 0 || client.invoice_count > 0) && (
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4 border border-green-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">QuickBooks Invoice Total</p>
-              <p className="text-3xl font-bold text-green-700">${(client.total_invoice_value || 0).toLocaleString()}</p>
-              <p className="text-sm text-gray-500 mt-1">{client.invoice_count || 0} invoice{client.invoice_count !== 1 ? 's' : ''} synced from QuickBooks</p>
-            </div>
-            <div className="text-green-600">
-              <DollarSign className="w-12 h-12" />
-            </div>
-          </div>
-        </div>
-      )}
-
+  return (
+    <RecordDetailFrame header={header} rail={rail}>
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex w-full overflow-x-auto h-auto flex-wrap gap-1 justify-start bg-muted p-1 rounded-lg">
@@ -1117,8 +1112,6 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
           clients={[client]}
         />
       )}
-
-
-    </div>
+    </RecordDetailFrame>
   );
 }
