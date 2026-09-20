@@ -16,6 +16,7 @@ import TagManager from '@/components/ui/TagManager';
 import { toast } from 'sonner';
 import MayaInsightsWidget from '@/components/shared/MayaInsightsWidget';
 import RecordSnapshotHeader from '@/components/shared/RecordSnapshotHeader';
+import { RecordDetailContent, RecordDetailFrame, StatTile, RailSection } from '@/components/shared/RecordDetailFrame';
 import CollapsibleFieldSection from '@/components/shared/CollapsibleFieldSection';
 import { InlineText } from '@/components/shared/inline/InlineText';
 import { InlineSelect } from '@/components/shared/inline/InlineSelect';
@@ -325,70 +326,114 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
     return clientCompany.includes(refCompany) || refCompany.includes(clientCompany);
   }) : [];
 
-  return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] flex flex-col p-0 gap-0">
-        {/* Header */}
-        <DialogHeader className="px-6 pt-6 pb-4 border-b flex-shrink-0">
-          <DialogTitle className="sr-only">{lead.name}</DialogTitle>
+  // ── Responsive dialog layout (see RecordDetailFrame) ──
+  // Header: snapshot + actions. Rail: the numbers and an at-a-glance card.
+  // Main: the tab strip. On lg+ the rail sits beside the tabs; below that it
+  // stacks above them.
+  const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : null);
+  const partnerCfg = PARTNER_STATUS_CONFIG[lead.partner_status || 'new'] || PARTNER_STATUS_CONFIG.new;
+
+  const header = (
+    <>
+      <DialogTitle className="sr-only">{lead.name}</DialogTitle>
+      <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+        <div className="flex-1 min-w-0">
           <RecordSnapshotHeader record={lead} entityType="Lead" stages={LEAD_STAGES} onUpdate={handleFieldUpdate} />
-          <div className="flex justify-end gap-2 mt-2 flex-wrap">
-            {(lead.lead_type === 'company_inquiry' || (lead.quickbuilder_selections?.length || 0) > 0) && (
-              <Button
-                onClick={() => navigate(`/CurriculumDesigner?leadId=${lead.id}${lead.matched_stage ? `&stage=${encodeURIComponent(lead.matched_stage)}` : ''}`)}
-                className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-1.5"
-                size="sm"
-              >
-                <Wand2 className="w-4 h-4" />
-                Open in Curriculum Designer
-              </Button>
-            )}
+        </div>
+        <div className="flex flex-wrap sm:flex-col gap-2 sm:pr-8 shrink-0">
+          <Button
+            onClick={toggleActivePartner}
+            disabled={updateLeadMutation.isPending}
+            className={isActive
+              ? 'bg-green-600 hover:bg-green-700 text-white'
+              : 'bg-white border-2 border-green-600 text-green-700 hover:bg-green-50'}
+            size="sm"
+          >
+            <CheckCircle className="w-4 h-4 mr-1.5" />
+            {isActive ? 'Active Partner ✓' : 'Promote to Active Partner'}
+          </Button>
+          {(lead.lead_type === 'company_inquiry' || (lead.quickbuilder_selections?.length || 0) > 0) && (
             <Button
-              onClick={toggleActivePartner}
-              disabled={updateLeadMutation.isPending}
-              className={isActive
-                ? 'bg-green-600 hover:bg-green-700 text-white'
-                : 'bg-white border-2 border-green-600 text-green-700 hover:bg-green-50'}
+              onClick={() => navigate(`/CurriculumDesigner?leadId=${lead.id}${lead.matched_stage ? `&stage=${encodeURIComponent(lead.matched_stage)}` : ''}`)}
+              className="bg-[#013f7c] hover:bg-[#012d5a] text-white gap-1.5"
               size="sm"
             >
-              <CheckCircle className="w-4 h-4 mr-1.5" />
-              {isActive ? 'Active Partner ✓' : 'Promote to Active Partner'}
+              <Wand2 className="w-4 h-4" />
+              Open in Curriculum Designer
             </Button>
-          </div>
-        </DialogHeader>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-3 gap-3 px-6 py-4 bg-gray-50 border-b flex-shrink-0">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-[#013f7c]">{displayReferrals}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Referrals</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-gray-700">{displayProposalCount}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Proposals</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">${displayTotalValue.toLocaleString()}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Total Value</p>
-          </div>
+          )}
         </div>
+      </div>
+    </>
+  );
 
-        {/* Tabs */}
-        <div className="flex-1 overflow-y-auto">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
-            <TabsList className="w-full rounded-none border-b bg-white px-6 justify-start h-10 gap-1">
-              <TabsTrigger value="overview" className="text-sm">Overview</TabsTrigger>
-              <TabsTrigger value="referrals" className="text-sm">
+  const rail = (
+    <>
+      <div className="grid grid-cols-3 lg:grid-cols-1 gap-2.5">
+        <StatTile label="Referrals" value={displayReferrals} />
+        <StatTile label="Proposals" value={displayProposalCount} color="#374151" />
+        <StatTile label="Total Value" value={`$${displayTotalValue.toLocaleString()}`} color="#16a34a" />
+      </div>
+      <RailSection title="At a glance" icon={User}>
+        <dl className="space-y-1.5 text-sm">
+          <div className="flex items-center gap-2 min-w-0">
+            <Badge variant="outline" className={`text-xs ${partnerCfg.color}`}>{partnerCfg.label}</Badge>
+            {lead.company && <span className="text-gray-600 truncate">{lead.company}</span>}
+          </div>
+          {lead.email && (
+            <div className="flex items-center gap-2 min-w-0"><Mail className="w-3.5 h-3.5 text-gray-400 shrink-0" /><a href={`mailto:${lead.email}`} className="text-[#013f7c] hover:underline truncate">{lead.email}</a></div>
+          )}
+          {lead.phone && (
+            <div className="flex items-center gap-2 min-w-0"><Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" /><a href={`tel:${lead.phone}`} className="text-gray-700 hover:underline truncate">{lead.phone}</a></div>
+          )}
+          {linkedinUrl && (
+            <div className="flex items-center gap-2 min-w-0"><Linkedin className="w-3.5 h-3.5 text-[#0a66c2] shrink-0" /><a href={linkedinUrl.startsWith('http') ? linkedinUrl : `https://${linkedinUrl}`} target="_blank" rel="noopener noreferrer" className="text-[#0a66c2] hover:underline truncate">LinkedIn profile</a></div>
+          )}
+          <div className="grid grid-cols-2 gap-2 pt-1.5 mt-1.5 border-t border-gray-100">
+            <div>
+              <dt className="text-[10px] uppercase tracking-wide text-gray-400">Last contacted</dt>
+              <dd className="text-gray-700">{fmtDate(lead.last_contacted_date) || <span className="text-gray-400">never</span>}</dd>
+            </div>
+            <div>
+              <dt className="text-[10px] uppercase tracking-wide text-gray-400">Last referral</dt>
+              <dd className="text-gray-700">{fmtDate(lead.last_referral_date) || <span className="text-gray-400">none yet</span>}</dd>
+            </div>
+            {lead.next_followup_date && (
+              <div>
+                <dt className="text-[10px] uppercase tracking-wide text-gray-400">Next follow-up</dt>
+                <dd className="text-amber-700">{fmtDate(lead.next_followup_date)}</dd>
+              </div>
+            )}
+            {lead.source && (
+              <div className="col-span-2 min-w-0">
+                <dt className="text-[10px] uppercase tracking-wide text-gray-400">Source</dt>
+                <dd className="text-gray-700 truncate" title={lead.source}>{(lead.source || '').split(' | ')[0]}</dd>
+              </div>
+            )}
+          </div>
+        </dl>
+      </RailSection>
+    </>
+  );
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <RecordDetailContent maxWidth="1120px" aria-describedby={undefined}>
+        <RecordDetailFrame header={header} rail={rail}>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="flex w-full overflow-x-auto h-auto flex-wrap gap-1 justify-start bg-muted p-1 rounded-lg">
+              <TabsTrigger value="overview" className="flex-shrink-0 text-sm">Overview</TabsTrigger>
+              <TabsTrigger value="referrals" className="flex-shrink-0 text-sm">
                 Referrals ({displayReferrals})
               </TabsTrigger>
-              <TabsTrigger value="proposals" className="text-sm">
+              <TabsTrigger value="proposals" className="flex-shrink-0 text-sm">
                 Proposals ({displayProposalCount})
               </TabsTrigger>
-              <TabsTrigger value="activity" className="text-sm">Activity</TabsTrigger>
+              <TabsTrigger value="activity" className="flex-shrink-0 text-sm">Activity</TabsTrigger>
             </TabsList>
 
             {/* Overview */}
-            <TabsContent value="overview" className="p-6 space-y-2 mt-0">
+            <TabsContent value="overview" className="space-y-2 mt-4">
               <CollapsibleFieldSection title="Contact" icon={User} defaultOpen>
                 <InlineText label="Title" value={lead.title} onSave={v => handleFieldUpdate({ title: v })} />
                 <InlineText label="Email" value={lead.email} onSave={v => handleFieldUpdate({ email: v })} />
@@ -453,7 +498,7 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
             </TabsContent>
 
             {/* Referrals (merged with Companies) */}
-            <TabsContent value="referrals" className="p-6 mt-0">
+            <TabsContent value="referrals" className="mt-4">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="font-semibold text-gray-700">Client Referrals</h4>
                 <Button size="sm" variant="outline" onClick={() => {
@@ -581,7 +626,7 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
             </TabsContent>
 
             {/* Proposals */}
-            <TabsContent value="proposals" className="p-6 mt-0">
+            <TabsContent value="proposals" className="mt-4">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="font-semibold text-gray-700">Accepted Proposals</h4>
                 {matchedPartner && unlinkedReferrals.length > 0 && (
@@ -714,11 +759,10 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
             </TabsContent>
 
             {/* Activity */}
-            <TabsContent value="activity" className="p-6 mt-0">
+            <TabsContent value="activity" className="mt-4">
               <InteractionTimeline lead_id={lead.id} onUpdate={onUpdate} />
             </TabsContent>
           </Tabs>
-        </div>
 
         {convertingReferral && (
           <ConvertReferralToClientDialog
@@ -733,7 +777,8 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
             }}
           />
         )}
-      </DialogContent>
+        </RecordDetailFrame>
+      </RecordDetailContent>
     </Dialog>
   );
 }
