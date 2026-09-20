@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogTitle } from '@/components/ui/dialog';
-import { Building2, Layers, Percent, Users } from 'lucide-react';
+import { Building2, Layers, Percent, Users, Plus, Trash2 } from 'lucide-react';
 import { RecordDetailContent, RecordDetailFrame, RailSection, FrameSection } from '@/components/shared/RecordDetailFrame';
 import { useToast } from '@/components/ui/use-toast';
 import { isExcludedDomain } from '@/lib/emailDomain';
@@ -154,6 +154,20 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
           : value,
     };
     setForm(f => ({ ...f, commission_tiers: tiers }));
+  };
+
+  // New tier starts where the current top tier ends, open-ended.
+  const addTier = () => {
+    setForm(f => {
+      const tiers = [...(f.commission_tiers || [])];
+      const last = tiers[tiers.length - 1];
+      const min = last ? (last.max_revenue != null ? last.max_revenue + 1 : (last.min_revenue || 0)) : 0;
+      return { ...f, commission_tiers: [...tiers, { label: '', min_revenue: min, max_revenue: null, rate: 0 }] };
+    });
+  };
+
+  const removeTier = (i) => {
+    setForm(f => ({ ...f, commission_tiers: (f.commission_tiers || []).filter((_, idx) => idx !== i) }));
   };
 
   // Brokers at this firm — same query key as BrokerageRollup, so the cache is shared.
@@ -364,9 +378,31 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
             </FrameSection>
 
             {/* Commission Tiers */}
-            <FrameSection title="Commission tiers" icon={Layers}>
+            <FrameSection
+              title="Commission tiers"
+              icon={Layers}
+              action={
+                <Button type="button" size="sm" variant="outline" className="h-8" onClick={addTier}>
+                  <Plus className="w-4 h-4 mr-1" /> Add tier
+                </Button>
+              }
+            >
               <p className="text-xs text-gray-400">Tiers are computed on the brokerage's aggregate first-year revenue across all its brokers this calendar year.</p>
-              <div className="hidden sm:grid grid-cols-12 gap-2 px-3 text-[10px] uppercase tracking-wide text-gray-400">
+              {form.commission_tiers.length === 0 && (
+                <div className="rounded-lg border border-dashed border-gray-300 p-4 text-center">
+                  <p className="text-sm text-gray-600">No tiers set. Referrals from this firm's brokers calculate at 0% commission until one is added.</p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="mt-2"
+                    onClick={() => setForm(f => ({ ...f, commission_tiers: DEFAULT_TIERS.map(t => ({ ...t })) }))}
+                  >
+                    Use the standard three tiers
+                  </Button>
+                </div>
+              )}
+              <div className={`${form.commission_tiers.length === 0 ? 'hidden' : 'hidden sm:grid'} grid-cols-12 gap-2 px-3 text-[10px] uppercase tracking-wide text-gray-400`}>
                 <span className="col-span-3">Label</span>
                 <span className="col-span-3">Min revenue</span>
                 <span className="col-span-3">Max revenue</span>
@@ -391,8 +427,18 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
                         <Input type="number" value={tier.max_revenue ?? ''} onChange={e => updateTier(i, 'max_revenue', e.target.value)} placeholder="Max $ (blank=∞)" className="text-sm bg-white" />
                       </div>
                       <div className="col-span-2 sm:col-span-3 flex items-center gap-1.5">
-                        <Input type="number" step="0.001" min="0" max="1" value={tier.rate} onChange={e => updateTier(i, 'rate', e.target.value)} placeholder="Rate (0.125)" className="text-sm bg-white" />
+                        <Input type="number" step="0.001" min="0" max="1" value={tier.rate} onChange={e => updateTier(i, 'rate', e.target.value)} placeholder="Rate (0.125)" className="text-sm bg-white min-w-0" />
                         <span className="text-gray-500 text-sm w-11 text-right shrink-0 tabular-nums">{pct(tier.rate)}</span>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                          onClick={() => removeTier(i)}
+                          title="Remove this tier"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   );
