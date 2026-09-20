@@ -16,6 +16,7 @@ import { getProposalServiceItems, getProposalParty, SELECTION_GROUPS } from '@/l
 import { BOX_DISPLAY_NAMES, WELLNESS_BOX_PRICES, applyBoxFloor } from '@/lib/wellnessBoxes';
 import { copyToClipboard } from '@/lib/copyToClipboard';
 import ProposalFulfillment from '@/components/proposals/ProposalFulfillment';
+import { calculateChallengePrice } from '@/components/curriculum/pricingUtils';
 import { RecordDetailContent, RecordDetailFrame, RailSection, FrameSection } from '@/components/shared/RecordDetailFrame';
 
 const GROUP_TITLES = { workshop: 'Workshops', challenge: 'Challenges', leadership: 'Leadership', class: 'Classes' };
@@ -63,7 +64,18 @@ export default function ProposalPreviewDialog({ proposal, open, onOpenChange, cl
   const sel = proposal.selections || {};
 
   // ── What's included ──
-  const items = getProposalServiceItems(proposal, services);
+  // Line prices follow the proposal editor's rules (EditProposal getPrice): a
+  // manual override wins; challenges are priced from company headcount, never
+  // from Service.price — for a challenge that is a per-participant rate, which
+  // is how a whole program can read as "$30".
+  const overrides = sel.priceOverrides || {};
+  const headcountChallengePrice = calculateChallengePrice(sel.assessmentData?.companySize);
+  const priceFor = (item) => {
+    if (item.service_id && overrides[item.service_id] !== undefined) return Number(overrides[item.service_id]) || 0;
+    if (item.category === 'challenge') return headcountChallengePrice ?? (Number(sel.challengePrice) || 0);
+    return item.price;
+  };
+  const items = getProposalServiceItems(proposal, services).map(i => ({ ...i, displayPrice: priceFor(i) }));
   const grouped = SELECTION_GROUPS
     .map(g => ({ category: g.category, title: GROUP_TITLES[g.category] || g.label, items: items.filter(i => i.category === g.category) }))
     .filter(g => g.items.length > 0);
@@ -203,7 +215,7 @@ export default function ProposalPreviewDialog({ proposal, open, onOpenChange, cl
                             {item.name}
                             {item.rawId && <span className="ml-1.5 text-[10px] text-amber-600 font-normal">(not in catalog)</span>}
                           </p>
-                          {item.price > 0 && <span className="text-xs font-semibold text-gray-600 tabular-nums shrink-0">{money(item.price)}</span>}
+                          {item.displayPrice > 0 && <span className="text-xs font-semibold text-gray-600 tabular-nums shrink-0">{money(item.displayPrice)}</span>}
                         </div>
                         {item.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.description}</p>}
                       </div>
