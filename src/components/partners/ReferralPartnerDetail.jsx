@@ -174,7 +174,7 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
             onUpdate={handleUpdate}
           />
         </div>
-        <div className="grid grid-cols-2 sm:flex sm:flex-col gap-2 sm:pr-8 shrink-0">
+        <div className="grid grid-cols-2 gap-2 sm:pr-8 shrink-0 sm:w-[21rem]">
           <Button variant="outline" size="sm" className="gap-1.5 justify-start" onClick={copyLink}>
             {copied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
             {copied ? 'Copied!' : 'Copy Portal Link'}
@@ -215,9 +215,11 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
 
   const rail = (
     <>
-      <div className="grid grid-cols-3 lg:grid-cols-1 gap-2.5">
+      <div className="grid grid-cols-3 lg:grid-cols-2 gap-2.5">
         <StatTile label="Referrals" value={referrals.length} />
+        <StatTile label="Linked Clients" value={linkedClients.length} color="#2563eb" />
         <StatTile
+          className="lg:col-span-2"
           label="Commission Earned"
           value={`$${earnedCommission.toLocaleString()}`}
           color="#16a34a"
@@ -227,7 +229,6 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
               : hasUnsplit ? 'unsplit — run backfill' : undefined
           }
         />
-        <StatTile label="Linked Clients" value={linkedClients.length} color="#2563eb" />
       </div>
 
       <RailSection title="Agreement" icon={FileText}>
