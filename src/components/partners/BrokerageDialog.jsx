@@ -402,11 +402,13 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
                   </Button>
                 </div>
               )}
-              <div className={`${form.commission_tiers.length === 0 ? 'hidden' : 'hidden sm:grid'} grid-cols-12 gap-2 px-3 text-[10px] uppercase tracking-wide text-gray-400`}>
-                <span className="col-span-3">Label</span>
-                <span className="col-span-3">Min revenue</span>
-                <span className="col-span-3">Max revenue</span>
-                <span className="col-span-3">Rate</span>
+              {/* Same column template as the rows below; Rate gets the widest share
+                  because it also carries the % readout and the remove button. */}
+              <div className={`${form.commission_tiers.length === 0 ? 'hidden' : 'hidden sm:grid'} sm:grid-cols-[1.3fr_1fr_1fr_1.35fr] gap-2 px-3 text-[10px] uppercase tracking-wide text-gray-400`}>
+                <span>Label</span>
+                <span>Min revenue</span>
+                <span>Max revenue</span>
+                <span>Rate</span>
               </div>
               <div className="space-y-2">
                 {form.commission_tiers.map((tier, i) => {
@@ -415,20 +417,20 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
                     <div
                       key={i}
                       title={isCurrent ? 'The firm is in this tier today' : undefined}
-                      className={`grid grid-cols-2 sm:grid-cols-12 gap-2 items-center p-3 rounded-lg ${isCurrent ? 'bg-[#013f7c]/5 ring-1 ring-[#013f7c]/30' : 'bg-gray-50'}`}
+                      className={`grid grid-cols-2 sm:grid-cols-[1.3fr_1fr_1fr_1.35fr] gap-2 items-center p-3 rounded-lg ${isCurrent ? 'bg-[#013f7c]/5 ring-1 ring-[#013f7c]/30' : 'bg-gray-50'}`}
                     >
-                      <div className="col-span-2 sm:col-span-3">
+                      <div className="col-span-2 sm:col-span-1 min-w-0">
                         <Input value={tier.label} onChange={e => updateTier(i, 'label', e.target.value)} placeholder="Label" className="text-sm bg-white" />
                       </div>
-                      <div className="sm:col-span-3">
+                      <div className="min-w-0">
                         <Input type="number" value={tier.min_revenue} onChange={e => updateTier(i, 'min_revenue', e.target.value)} placeholder="Min $" className="text-sm bg-white" />
                       </div>
-                      <div className="sm:col-span-3">
+                      <div className="min-w-0">
                         <Input type="number" value={tier.max_revenue ?? ''} onChange={e => updateTier(i, 'max_revenue', e.target.value)} placeholder="Max $ (blank=∞)" className="text-sm bg-white" />
                       </div>
-                      <div className="col-span-2 sm:col-span-3 flex items-center gap-1.5">
+                      <div className="col-span-2 sm:col-span-1 min-w-0 flex items-center gap-1.5">
                         <Input type="number" step="0.001" min="0" max="1" value={tier.rate} onChange={e => updateTier(i, 'rate', e.target.value)} placeholder="Rate (0.125)" className="text-sm bg-white min-w-0" />
-                        <span className="text-gray-500 text-sm w-11 text-right shrink-0 tabular-nums">{pct(tier.rate)}</span>
+                        <span className="text-gray-500 text-sm w-10 text-right shrink-0 tabular-nums">{pct(tier.rate)}</span>
                         <Button
                           type="button"
                           size="icon"
