@@ -46,6 +46,7 @@ import { setMayaRecordContext, clearMayaRecordContext } from '@/lib/mayaOrbStore
 
 import { PROPOSAL_STATUS_CONFIG } from '@/lib/statusConfig';
 import ProposalFulfillment from '@/components/proposals/ProposalFulfillment';
+import ProposalPreviewDialog from '@/components/proposals/ProposalPreviewDialog';
 import { syncPrimaryContact } from '@/lib/clientContacts';
 
 const statusConfig = PROPOSAL_STATUS_CONFIG;
@@ -1000,83 +1001,13 @@ export default function ClientDetailView({ client: initialClient, onClose, onUpd
         </TabsContent>
       </Tabs>
 
-      {/* View Proposal Dialog */}
-      <Dialog open={!!viewingProposal} onOpenChange={(open) => !open && setViewingProposal(null)}>
-        <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Proposal Details</DialogTitle>
-          </DialogHeader>
-          {viewingProposal && (
-            <div className="space-y-4 mt-4">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-2xl font-bold" style={{ color: '#770142' }}>
-                    ${viewingProposal.total_amount?.toLocaleString()}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Created: {new Date(viewingProposal.created_date).toLocaleDateString()}
-                  </p>
-                </div>
-                <Badge className={statusConfig[viewingProposal.status || 'draft'].color}>
-                  {statusConfig[viewingProposal.status || 'draft'].label}
-                </Badge>
-              </div>
-
-              {viewingProposal.narrative_summary && (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="font-semibold mb-2">Program Overview</h4>
-                  <p className="text-sm text-gray-600">{viewingProposal.narrative_summary}</p>
-                </div>
-              )}
-
-              {(() => {
-                const sel = viewingProposal.selections || {};
-                const items = [];
-                
-                if (sel.workshops?.length > 0) {
-                  items.push({ category: 'Workshops', services: sel.workshops, dataKey: 'workshopsData' });
-                }
-                if (sel.challengePrograms?.length > 0) {
-                  items.push({ category: '14-Day Challenges', services: sel.challengePrograms, dataKey: 'challengeProgramsData' });
-                }
-                if (sel.leadership?.length > 0) {
-                  items.push({ category: 'Leadership', services: sel.leadership, dataKey: 'leadershipData' });
-                }
-                if (sel.movementClasses?.length > 0) {
-                  items.push({ category: 'Classes', services: sel.movementClasses, dataKey: 'movementClassesData' });
-                }
-
-                return items.map(({ category, services, dataKey }, idx) => (
-                  <div key={idx} className="bg-white border rounded-lg p-4">
-                    <h4 className="font-semibold mb-2" style={{ color: '#264d44' }}>{category}</h4>
-                    <ul className="space-y-1">
-                      {services.map(serviceId => {
-                        // Try enriched data first, then DB services, then static catalog
-                        const enriched = (sel[dataKey] || []).find(s => s.id === serviceId);
-                        const dbService = allServices.find(s => s.id === serviceId);
-                        const name = enriched?.name || dbService?.name || getServiceName(serviceId);
-                        const desc = enriched?.description || dbService?.short_description || dbService?.description;
-                        return (
-                          <li key={serviceId} className="text-sm text-gray-600">
-                            <span className="font-medium text-gray-800">• {name}</span>
-                            {desc && <span className="block pl-4 text-xs text-gray-500 mt-0.5">{desc.slice(0, 120)}{desc.length > 120 ? '…' : ''}</span>}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </div>
-                ));
-              })()}
-
-              <Link to={createPageUrl('EditProposal') + `?id=${viewingProposal.id}`}>
-                <Button className="w-full">
-                  <Pencil className="w-4 h-4 mr-2" /> Edit Proposal
-                </Button>
-              </Link>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Proposal preview — shared with the Proposals page */}
+      <ProposalPreviewDialog
+        proposal={viewingProposal}
+        open={!!viewingProposal}
+        onOpenChange={(open) => !open && setViewingProposal(null)}
+        client={client}
+      />
 
       {/* Add Service Dialog */}
       <Dialog open={showAddService} onOpenChange={setShowAddService}>

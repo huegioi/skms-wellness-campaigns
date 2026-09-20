@@ -16,6 +16,7 @@ import { createPageUrl } from '@/utils';
 import SendProposalDialog from '@/components/proposals/SendProposalDialog';
 import SendReminderDialog from '@/components/proposals/SendReminderDialog';
 import QuickBooksInvoiceReview from '@/components/proposals/QuickBooksInvoiceReview';
+import ProposalPreviewDialog from '@/components/proposals/ProposalPreviewDialog';
 import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 import { PROPOSAL_STATUS_CONFIG as statusConfig } from '@/lib/statusConfig';
 import ProposalFulfillment from '@/components/proposals/ProposalFulfillment';
@@ -465,90 +466,16 @@ export default function Proposals() {
           </div>
         )}
 
-        {/* View Proposal Dialog */}
-        <Dialog open={!!viewingProposal} onOpenChange={(open) => !open && setViewingProposal(null)}>
-          <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Proposal Details</DialogTitle>
-            </DialogHeader>
-            {viewingProposal && (
-              <div className="space-y-4 mt-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-500">Client</label>
-                    <p className="font-semibold">{viewingProposal.client_name}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-500">Company</label>
-                    <p className="font-semibold">{viewingProposal.company || '-'}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-500">Total Amount</label>
-                    <p className="font-semibold text-lg" style={{ color: '#770142' }}>
-                      ${viewingProposal.total_amount?.toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-xs sm:text-sm text-gray-500">Status</label>
-                    <Badge className={(statusConfig[viewingProposal.status] || statusConfig.draft).color}>
-                      {(statusConfig[viewingProposal.status] || statusConfig.draft).label}
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Email tracking info */}
-                {viewingProposal.sent_date && (
-                  <div className="border-t pt-4">
-                    <h4 className="font-semibold mb-3">Email Activity</h4>
-                    <div className="space-y-2 text-sm">
-                      <p className="text-gray-600">
-                        <Mail className="w-4 h-4 inline mr-2" />
-                        Sent: {new Date(viewingProposal.sent_date).toLocaleString()}
-                        {viewingProposal.client_email && ` to ${viewingProposal.client_email}`}
-                      </p>
-                      {viewingProposal.viewed_date && (
-                        <p className="text-purple-600">
-                          <Eye className="w-4 h-4 inline mr-2" />
-                          Viewed: {new Date(viewingProposal.viewed_date).toLocaleString()}
-                        </p>
-                      )}
-                      {viewingProposal.reminder_count > 0 && (
-                        <p className="text-amber-600">
-                          <Bell className="w-4 h-4 inline mr-2" />
-                          {viewingProposal.reminder_count} reminder(s) sent
-                          {viewingProposal.last_reminder_date && ` (last: ${new Date(viewingProposal.last_reminder_date).toLocaleDateString()})`}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
-                {viewingProposal.selections && (
-                  <div className="border-t pt-4">
-                    <h4 className="font-semibold mb-3">Included Items</h4>
-                    {viewingProposal.selections.workshops?.length > 0 && (
-                      <p className="text-sm text-gray-600">• {viewingProposal.selections.workshops.length} Workshops</p>
-                    )}
-                    {viewingProposal.selections.challengePrograms?.length > 0 && (
-                      <p className="text-sm text-gray-600">• {viewingProposal.selections.challengePrograms.length} Challenges</p>
-                    )}
-                    {viewingProposal.selections.leadership?.length > 0 && (
-                      <p className="text-sm text-gray-600">• {viewingProposal.selections.leadership.length} Leadership Programs</p>
-                    )}
-                    {viewingProposal.selections.movementClasses?.length > 0 && (
-                      <p className="text-sm text-gray-600">• {viewingProposal.selections.movementClasses.length} Classes</p>
-                    )}
-                    {(() => {
-                      const boxes = viewingProposal.selections.wellnessBoxes || viewingProposal.selections.sampleBoxQuantities || {};
-                      const totalBoxes = (boxes.reduceStress || 0) + (boxes.relaxationSleep || 0) + (boxes.largeEmotional || 0) + (boxes.largeStressReduction || 0);
-                      return totalBoxes > 0 ? <p className="text-sm text-gray-600">• {totalBoxes} Wellness Boxes</p> : null;
-                    })()}
-                  </div>
-                )}
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        {/* Proposal preview — the same component the client popup uses */}
+        <ProposalPreviewDialog
+          proposal={viewingProposal}
+          open={!!viewingProposal}
+          onOpenChange={(open) => !open && setViewingProposal(null)}
+          client={viewingProposal ? clients.find(c => c.id === viewingProposal.client_id) || null : null}
+          onSend={setSendingProposal}
+          onRemind={setReminderProposal}
+          onQuickBooks={setQbProposal}
+        />
 
         {/* Send Proposal Dialog */}
         {sendingProposal && (
