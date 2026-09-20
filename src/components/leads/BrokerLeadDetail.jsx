@@ -368,10 +368,10 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
 
   const rail = (
     <>
-      <div className="grid grid-cols-3 lg:grid-cols-1 gap-2.5">
+      <div className="grid grid-cols-3 lg:grid-cols-2 gap-2.5">
         <StatTile label="Referrals" value={displayReferrals} />
         <StatTile label="Proposals" value={displayProposalCount} color="#374151" />
-        <StatTile label="Total Value" value={`$${displayTotalValue.toLocaleString()}`} color="#16a34a" />
+        <StatTile className="lg:col-span-2" label="Total Value" value={`$${displayTotalValue.toLocaleString()}`} color="#16a34a" />
       </div>
       <RailSection title="At a glance" icon={User}>
         <dl className="space-y-1.5 text-sm">
