@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogTitle } from '@/components/ui/dialog';
+import { RecordDetailContent, RecordDetailFrame } from '@/components/shared/RecordDetailFrame';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -412,238 +413,272 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
     onOpenChange(false);
   };
 
+  // ── Responsive layout (see RecordDetailFrame) ──
+  // Wider window-sized dialog; fields sit two to a row on sm+, the service
+  // pickers list two per row, and Create stays pinned in the footer.
+  const pickerActive = showServicePicker || showCatalogPicker;
+  // Same conditions as before: manual mode always shows the buttons (disabled
+  // until there's a title); picker mode shows them once a service is chosen.
+  const showSaveButtons = !pickerActive || !!formData.title;
+  const labelCls = 'block text-sm font-medium text-gray-600 mb-1';
+
+  const footer = showSaveButtons ? (
+    <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+      <Button
+        onClick={handleSaveAndAddToGoogle}
+        disabled={saving || !formData.title}
+        variant="outline"
+      >
+        <img src="https://www.gstatic.com/images/branding/product/1x/calendar_48dp.png" className="w-4 h-4 mr-2" alt="" />
+        + Google
+      </Button>
+      <Button onClick={handleSave} disabled={saving || !formData.title} className="bg-[#770142] hover:bg-[#5a0132]">
+        {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+        Create Event
+      </Button>
+    </div>
+  ) : null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Add New Event</DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-4 mt-4">
-          {/* Contact Selection — Clients + Leads */}
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Client / Lead</label>
-            <Select value={contactValue} onValueChange={handleContactChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a client or lead..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">No contact</SelectItem>
-                {clients.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel>Clients</SelectLabel>
-                    {clients.map(client => (
-                      <SelectItem key={client.id} value={`client:${client.id}`}>
-                        <span className="font-medium">{client.name}</span>
-                        {client.company && <span className="text-gray-500 ml-1">({client.company})</span>}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-                {leads.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel>Leads</SelectLabel>
-                    {leads.map(lead => (
-                      <SelectItem key={lead.id} value={`lead:${lead.id}`}>
-                        <span className="font-medium">{lead.name}</span>
-                        {lead.company && <span className="text-gray-500 ml-1">({lead.company})</span>}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Proposal Selection */}
-          {formData.client_id && (
+      <RecordDetailContent maxWidth="960px" fill={false}>
+        <RecordDetailFrame
+          header={
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Related Proposal</label>
-              <Select value={formData.proposal_id || "none"} onValueChange={(v) => handleProposalChange(v === "none" ? "" : v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a proposal to add services..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No proposal</SelectItem>
-                  {proposals.filter(p => p.client_id === formData.client_id || p.client_name === clients.find(c => c.id === formData.client_id)?.name).map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.client_name} - ${p.total_amount?.toLocaleString()}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <DialogTitle className="text-xl font-bold text-[#013f7c]">Add New Event</DialogTitle>
+              <p className="text-sm text-gray-500 mt-0.5">Pick a client and proposal to prefill it, choose from the catalog, or fill in the details yourself.</p>
             </div>
-          )}
-
-          {/* Service Picker from Proposal */}
-          {showServicePicker && selectedProposal && getProposalServices().length > 0 && (
-            <div className="bg-gray-50 rounded-lg p-4">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Select a service from this proposal:
-              </label>
-              <div className="space-y-2 max-h-48 overflow-y-auto">
-                {getProposalServices().map((service, idx) => {
-                  const config = eventTypeConfig[service.type];
-                  const ServiceIcon = config?.icon || Clock;
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => selectService(service)}
-                      className="flex items-center gap-3 p-2 rounded-lg bg-white border cursor-pointer hover:border-[#770142] hover:bg-[#770142]/5 transition-all"
-                    >
-                      <div 
-                        className="w-8 h-8 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: config?.color || '#666' }}
-                      >
-                        <ServiceIcon className="w-4 h-4 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{service.name}</p>
-                        <p className="text-xs text-gray-500">{config?.label}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="mt-2 w-full"
-                onClick={() => setShowServicePicker(false)}
-              >
-                Or create custom event
-              </Button>
-            </div>
-          )}
-
-          {/* Service Catalog Picker */}
-          {!showServicePicker && !showCatalogPicker && catalogServices.filter(s => s.is_active !== false).length > 0 && (
-            <div>
-              <Button 
-                variant="outline" 
-                className="w-full justify-start text-left"
-                onClick={() => setShowCatalogPicker(true)}
-              >
-                <Package className="w-4 h-4 mr-2" />
-                Select from Service Catalog
-              </Button>
-            </div>
-          )}
-
-          {showCatalogPicker && (
-            <div className="bg-gray-50 rounded-lg p-4">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Select from your service catalog:
-              </label>
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {['workshop', 'challenge', 'leadership', 'class', 'wellness_box'].map(category => {
-                  const categoryServices = catalogServices.filter(s => s.category === category && s.is_active !== false);
-                  if (categoryServices.length === 0) return null;
-                  const categoryLabels = {
-                    workshop: 'Workshops',
-                    challenge: 'Challenges',
-                    leadership: 'Leadership',
-                    class: 'Classes',
-                    wellness_box: 'Wellness Boxes'
-                  };
-                  return (
-                    <div key={category}>
-                      <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{categoryLabels[category]}</p>
-                      {categoryServices.map(service => {
-                        const categoryMap = { workshop: 'workshop', challenge: 'challenge', leadership: 'leadership', class: 'class', wellness_box: 'delivery' };
-                        const config = eventTypeConfig[categoryMap[service.category]];
-                        const ServiceIcon = config?.icon || Clock;
-                        return (
-                          <div
-                            key={service.id}
-                            onClick={() => selectCatalogService(service)}
-                            className="flex items-center gap-3 p-2 rounded-lg bg-white border cursor-pointer hover:border-[#770142] hover:bg-[#770142]/5 transition-all mb-1"
-                          >
-                            <div 
-                              className="w-8 h-8 rounded-lg flex items-center justify-center"
-                              style={{ backgroundColor: config?.color || '#666' }}
-                            >
-                              <ServiceIcon className="w-4 h-4 text-white" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-medium text-sm">{service.name}</p>
-                              <p className="text-xs text-gray-500">${service.price?.toLocaleString()} • {service.duration || 'N/A'}</p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="mt-2 w-full"
-                onClick={() => setShowCatalogPicker(false)}
-              >
-                Or create custom event
-              </Button>
-            </div>
-          )}
-
-          {/* Manual Event Creation */}
-          {!showServicePicker && !showCatalogPicker && (
-            <>
+          }
+          footer={footer}
+        >
+          <div className="space-y-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Contact Selection — Clients + Leads */}
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Event Type *</label>
-                <Select value={formData.event_type} onValueChange={handleEventTypeChange}>
+                <label className={labelCls}>Client / Lead</label>
+                <Select value={contactValue} onValueChange={handleContactChange}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select a client or lead..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {Object.entries(eventTypeConfig).map(([key, config]) => (
-                      <SelectItem key={key} value={key}>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded" style={{ backgroundColor: config.color }}></div>
-                          {config.label}
-                        </div>
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="none">No contact</SelectItem>
+                    {clients.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Clients</SelectLabel>
+                        {clients.map(client => (
+                          <SelectItem key={client.id} value={`client:${client.id}`}>
+                            <span className="font-medium">{client.name}</span>
+                            {client.company && <span className="text-gray-500 ml-1">({client.company})</span>}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
+                    {leads.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Leads</SelectLabel>
+                        {leads.map(lead => (
+                          <SelectItem key={lead.id} value={`lead:${lead.id}`}>
+                            <span className="font-medium">{lead.name}</span>
+                            {lead.company && <span className="text-gray-500 ml-1">({lead.company})</span>}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
 
+              {/* Proposal Selection */}
+              {formData.client_id && (
+                <div>
+                  <label className={labelCls}>Related Proposal</label>
+                  <Select value={formData.proposal_id || "none"} onValueChange={(v) => handleProposalChange(v === "none" ? "" : v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a proposal to add services..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No proposal</SelectItem>
+                      {proposals.filter(p => p.client_id === formData.client_id || p.client_name === clients.find(c => c.id === formData.client_id)?.name).map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.client_name} - ${p.total_amount?.toLocaleString()}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            {/* Service Picker from Proposal */}
+            {showServicePicker && selectedProposal && getProposalServices().length > 0 && (
+              <div className="bg-gray-50 rounded-lg p-4">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Select a service from this proposal:
+                </label>
+                <div className="grid gap-2 sm:grid-cols-2 max-h-72 overflow-y-auto">
+                  {getProposalServices().map((service, idx) => {
+                    const config = eventTypeConfig[service.type];
+                    const ServiceIcon = config?.icon || Clock;
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => selectService(service)}
+                        className="flex items-center gap-3 p-2 rounded-lg bg-white border cursor-pointer hover:border-[#770142] hover:bg-[#770142]/5 transition-all"
+                      >
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ backgroundColor: config?.color || '#666' }}
+                        >
+                          <ServiceIcon className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{service.name}</p>
+                          <p className="text-xs text-gray-500">{config?.label}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => setShowServicePicker(false)}
+                >
+                  Or create custom event
+                </Button>
+              </div>
+            )}
+
+            {/* Service Catalog Picker */}
+            {!showServicePicker && !showCatalogPicker && catalogServices.filter(s => s.is_active !== false).length > 0 && (
               <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Title *</label>
-                <Input 
-                  value={formData.title} 
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
-                  placeholder="Event title..."
-                />
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left"
+                  onClick={() => setShowCatalogPicker(true)}
+                >
+                  <Package className="w-4 h-4 mr-2" />
+                  Select from Service Catalog
+                </Button>
               </div>
+            )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Description</label>
-                <Textarea 
-                  value={formData.description} 
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Add details..."
-                  rows={3}
-                />
+            {showCatalogPicker && (
+              <div className="bg-gray-50 rounded-lg p-4">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Select from your service catalog:
+                </label>
+                <div className="space-y-3 max-h-[26rem] overflow-y-auto">
+                  {['workshop', 'challenge', 'leadership', 'class', 'wellness_box'].map(category => {
+                    const categoryServices = catalogServices.filter(s => s.category === category && s.is_active !== false);
+                    if (categoryServices.length === 0) return null;
+                    const categoryLabels = {
+                      workshop: 'Workshops',
+                      challenge: 'Challenges',
+                      leadership: 'Leadership',
+                      class: 'Classes',
+                      wellness_box: 'Wellness Boxes'
+                    };
+                    return (
+                      <div key={category}>
+                        <p className="text-xs font-semibold text-gray-500 uppercase mb-1">{categoryLabels[category]}</p>
+                        <div className="grid gap-1.5 sm:grid-cols-2">
+                          {categoryServices.map(service => {
+                            const categoryMap = { workshop: 'workshop', challenge: 'challenge', leadership: 'leadership', class: 'class', wellness_box: 'delivery' };
+                            const config = eventTypeConfig[categoryMap[service.category]];
+                            const ServiceIcon = config?.icon || Clock;
+                            return (
+                              <div
+                                key={service.id}
+                                onClick={() => selectCatalogService(service)}
+                                className="flex items-center gap-3 p-2 rounded-lg bg-white border cursor-pointer hover:border-[#770142] hover:bg-[#770142]/5 transition-all"
+                              >
+                                <div
+                                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                                  style={{ backgroundColor: config?.color || '#666' }}
+                                >
+                                  <ServiceIcon className="w-4 h-4 text-white" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm truncate">{service.name}</p>
+                                  <p className="text-xs text-gray-500">${service.price?.toLocaleString()} • {service.duration || 'N/A'}</p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 w-full"
+                  onClick={() => setShowCatalogPicker(false)}
+                >
+                  Or create custom event
+                </Button>
               </div>
+            )}
 
-              <div className="flex items-center gap-2">
-                <Checkbox 
-                  id="all_day"
-                  checked={formData.all_day} 
-                  onCheckedChange={(checked) => setFormData({...formData, all_day: checked})}
-                />
-                <label htmlFor="all_day" className="text-sm text-gray-600">All day event</label>
-              </div>
+            {/* Manual Event Creation */}
+            {!pickerActive && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className={labelCls}>Event Type *</label>
+                  <Select value={formData.event_type} onValueChange={handleEventTypeChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(eventTypeConfig).map(([key, config]) => (
+                        <SelectItem key={key} value={key}>
+                          <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded" style={{ backgroundColor: config.color }}></div>
+                            {config.label}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className={labelCls}>Title *</label>
+                  <Input
+                    value={formData.title}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
+                    placeholder="Event title..."
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className={labelCls}>Description</label>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    placeholder="Add details..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="sm:col-span-2 flex items-center gap-2">
+                  <Checkbox
+                    id="all_day"
+                    checked={formData.all_day}
+                    onCheckedChange={(checked) => setFormData({...formData, all_day: checked})}
+                  />
+                  <label htmlFor="all_day" className="text-sm text-gray-600">All day event</label>
+                </div>
+
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">
                     <Calendar className="w-4 h-4 inline mr-1" />
                     Start *
                   </label>
-                  <Input 
+                  <Input
                     type={formData.all_day ? "date" : "datetime-local"}
                     value={formData.all_day ? formData.start_date.split('T')[0] : formData.start_date}
                     onChange={(e) => setFormData({...formData, start_date: e.target.value})}
@@ -654,151 +689,116 @@ export default function EventDialog({ open, onOpenChange, selectedDate, clients,
                     <Clock className="w-4 h-4 inline mr-1" />
                     End
                   </label>
-                  <Input 
+                  <Input
                     type={formData.all_day ? "date" : "datetime-local"}
                     value={formData.all_day ? formData.end_date.split('T')[0] : formData.end_date}
                     onChange={(e) => setFormData({...formData, end_date: e.target.value})}
                   />
                 </div>
-              </div>
 
-              {formData.event_type === 'leadership' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">Workshop Duration</label>
-                  <Select 
-                    value={formData.title.includes('3') ? '3' : '1'}
-                    onValueChange={(val) => {
-                      const startDate = new Date(formData.start_date);
-                      const endDate = new Date(startDate.getTime() + parseInt(val) * 60 * 60 * 1000);
-                      setFormData({
-                        ...formData, 
-                        title: `${val}-Hour Leadership Workshop`,
-                        end_date: format(endDate, "yyyy-MM-dd'T'HH:mm")
-                      });
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 Hour</SelectItem>
-                      <SelectItem value="3">3 Hours</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+                {formData.event_type === 'leadership' && (
+                  <div className="sm:col-span-2">
+                    <label className={labelCls}>Workshop Duration</label>
+                    <Select
+                      value={formData.title.includes('3') ? '3' : '1'}
+                      onValueChange={(val) => {
+                        const startDate = new Date(formData.start_date);
+                        const endDate = new Date(startDate.getTime() + parseInt(val) * 60 * 60 * 1000);
+                        setFormData({
+                          ...formData,
+                          title: `${val}-Hour Leadership Workshop`,
+                          end_date: format(endDate, "yyyy-MM-dd'T'HH:mm")
+                        });
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 Hour</SelectItem>
+                        <SelectItem value="3">3 Hours</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">
-                  <MapPin className="w-4 h-4 inline mr-1" />
-                  Location / Meeting Link
-                </label>
-                <Input 
-                  value={formData.location} 
-                  onChange={(e) => setFormData({...formData, location: e.target.value})}
-                  placeholder="Office, Zoom link, etc..."
-                />
-              </div>
-
-              {activePresenters.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">
-                    <Users className="w-4 h-4 inline mr-1" />
-                    Presenter
+                <div className={activePresenters.length > 0 ? '' : 'sm:col-span-2'}>
+                  <label className={labelCls}>
+                    <MapPin className="w-4 h-4 inline mr-1" />
+                    Location / Meeting Link
                   </label>
-                  <Select
-                    value={formData.presenter_id || 'none'}
-                    onValueChange={(v) => {
-                      const p = activePresenters.find(x => x.id === v);
-                      setFormData(prev => ({
-                        ...prev,
-                        presenter_id: v === 'none' ? '' : v,
-                        presenter: p?.name || prev.presenter,
-                        presenter_email: p?.email || prev.presenter_email
-                      }));
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a presenter..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No presenter</SelectItem>
-                      {activePresenters.map(p => (
-                        <SelectItem key={p.id} value={p.id}>{p.name}{p.email ? ` — ${p.email}` : ''}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    value={formData.location}
+                    onChange={(e) => setFormData({...formData, location: e.target.value})}
+                    placeholder="Office, Zoom link, etc..."
+                  />
                 </div>
-              )}
 
-              {formData.service_id && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-1">
-                    <ClipboardCheck className="w-4 h-4 inline mr-1" />
-                    Assessment at check-in
-                  </label>
-                  <Select
-                    value={formData.assessment_timing || 'none'}
-                    onValueChange={(v) => setFormData(prev => ({ ...prev, assessment_timing: v }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No assessment</SelectItem>
-                      <SelectItem value="baseline">Baseline (first session)</SelectItem>
-                      <SelectItem value="session">Every session (service instruments)</SelectItem>
-                      <SelectItem value="endpoint">Endpoint (last session)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {(() => {
-                      const t = formData.assessment_timing || 'none';
-                      const count = t === 'baseline' ? 5 : (selectedService?.included_assessments || []).filter(a => a !== 'enps').length;
-                      return `Attendees will be asked ${count} quick survey${count !== 1 ? 's' : ''} at check-in.`;
-                    })()}
-                  </p>
-                </div>
-              )}
+                {activePresenters.length > 0 && (
+                  <div>
+                    <label className={labelCls}>
+                      <Users className="w-4 h-4 inline mr-1" />
+                      Presenter
+                    </label>
+                    <Select
+                      value={formData.presenter_id || 'none'}
+                      onValueChange={(v) => {
+                        const p = activePresenters.find(x => x.id === v);
+                        setFormData(prev => ({
+                          ...prev,
+                          presenter_id: v === 'none' ? '' : v,
+                          presenter: p?.name || prev.presenter,
+                          presenter_email: p?.email || prev.presenter_email
+                        }));
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a presenter..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No presenter</SelectItem>
+                        {activePresenters.map(p => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}{p.email ? ` — ${p.email}` : ''}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
-              <div className="flex gap-2">
-                <Button onClick={handleSave} disabled={saving || !formData.title} className="flex-1 bg-[#770142] hover:bg-[#5a0132]">
-                  {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  Create Event
-                </Button>
-                <Button 
-                  onClick={handleSaveAndAddToGoogle} 
-                  disabled={saving || !formData.title} 
-                  variant="outline"
-                  className="flex-1"
-                >
-                  <img src="https://www.gstatic.com/images/branding/product/1x/calendar_48dp.png" className="w-4 h-4 mr-2" alt="" />
-                  + Google
-                </Button>
+                {formData.service_id && (
+                  <div className="sm:col-span-2">
+                    <label className={labelCls}>
+                      <ClipboardCheck className="w-4 h-4 inline mr-1" />
+                      Assessment at check-in
+                    </label>
+                    <Select
+                      value={formData.assessment_timing || 'none'}
+                      onValueChange={(v) => setFormData(prev => ({ ...prev, assessment_timing: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No assessment</SelectItem>
+                        <SelectItem value="baseline">Baseline (first session)</SelectItem>
+                        <SelectItem value="session">Every session (service instruments)</SelectItem>
+                        <SelectItem value="endpoint">Endpoint (last session)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {(() => {
+                        const t = formData.assessment_timing || 'none';
+                        const count = t === 'baseline' ? 5 : (selectedService?.included_assessments || []).filter(a => a !== 'enps').length;
+                        return `Attendees will be asked ${count} quick survey${count !== 1 ? 's' : ''} at check-in.`;
+                      })()}
+                    </p>
+                  </div>
+                )}
               </div>
-            </>
-          )}
-
-          {/* Save buttons when service picker is active */}
-          {(showServicePicker || showCatalogPicker) && formData.title && (
-            <div className="flex gap-2 pt-4 border-t">
-              <Button onClick={handleSave} disabled={saving} className="flex-1 bg-[#770142] hover:bg-[#5a0132]">
-                {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                Create Event
-              </Button>
-              <Button 
-                onClick={handleSaveAndAddToGoogle} 
-                disabled={saving} 
-                variant="outline"
-                className="flex-1"
-              >
-                <img src="https://www.gstatic.com/images/branding/product/1x/calendar_48dp.png" className="w-4 h-4 mr-2" alt="" />
-                + Google
-              </Button>
-            </div>
-          )}
-        </div>
-      </DialogContent>
+            )}
+          </div>
+        </RecordDetailFrame>
+      </RecordDetailContent>
     </Dialog>
   );
 }
