@@ -9,6 +9,8 @@ import { Copy, ExternalLink, Check, User, DollarSign, Users, FileText, StickyNot
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import RecordSnapshotHeader from '@/components/shared/RecordSnapshotHeader';
+import { RecordDetailContent, RecordDetailFrame, StatTile, RailSection } from '@/components/shared/RecordDetailFrame';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CollapsibleFieldSection from '@/components/shared/CollapsibleFieldSection';
 import { InlineText } from '@/components/shared/inline/InlineText';
 import { PARTNER_STAGES } from '@/components/shared/constants';
