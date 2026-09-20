@@ -33,12 +33,10 @@ export function RecordDetailContent({ className, maxWidth = '1180px', children, 
         'sm:w-[94vw] sm:h-[90vh] sm:max-h-[90vh] sm:rounded-xl',
         className
       )}
-      style={{ ['--record-dialog-max']: maxWidth }}
+      // Inline style beats the base sm:max-w-lg utility, so any px/rem cap works.
+      style={{ maxWidth }}
       {...props}
     >
-      {/* max-width via CSS var so callers can pass any px/rem value */}
-      <style>{`[data-record-dialog]{max-width:var(--record-dialog-max)}`}</style>
-      <div data-record-dialog className="contents" />
       {children}
     </DialogContent>
   );
