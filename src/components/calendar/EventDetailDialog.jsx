@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit, Upload, CheckCircle2, X, Send, ClipboardCheck, Video, MessageSquare } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, FileText, Trash2, ExternalLink, Loader2, Edit, Upload, CheckCircle2, X, Send, ClipboardCheck, Video, MessageSquare, Building2 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { format, parseISO } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -18,6 +18,7 @@ import CheckinQrDialog from '@/components/shared/CheckinQrDialog';
 import { isChallengeEvent } from '@/lib/challengeUtils';
 import { buildInviteDescription, icsEscape, icsFold } from '@/lib/calendarInviteBody';
 import { resolveClientContact } from '@/lib/clientContacts';
+import { RecordDetailContent, RecordDetailFrame, RailSection, FrameSection } from '@/components/shared/RecordDetailFrame';
 
 export default function EventDetailDialog({ event, open, onOpenChange, eventTypeConfig, onUpdated }) {
   const [deleting, setDeleting] = useState(false);
@@ -409,543 +410,576 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
     }
   };
 
-  return (<Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div 
-                className="w-10 h-10 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: event.color || config.color }}
-              >
-                <Icon className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <DialogTitle>{editing ? 'Edit Event' : event.title}</DialogTitle>
-                <div className="flex items-center gap-2 mt-1">
-                  <Badge style={{ backgroundColor: event.color || config.color }} className="text-white">
-                    {config.label}
-                  </Badge>
-                  {event.google_event_id && (
-                    <Badge variant="outline" className="text-green-600 border-green-600">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      Synced
-                    </Badge>
-                  )}
-                  {event.completed && (
-                    <Badge variant="outline" className="text-blue-600 border-blue-600">
-                      <CheckCircle2 className="w-3 h-3 mr-1" />
-                      Completed
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </div>
-            {!editing && (
-              <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-                <Edit className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
-        </DialogHeader>
-        
-        {editing ? (
-          <div className="space-y-4 mt-4">
-            <div>
-              <Label>Event Title</Label>
-              <Input
-                value={editForm.title}
-                onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Enter event title"
-              />
-            </div>
+  // ── Responsive layout (see RecordDetailFrame) ──
+  // View: header carries the date/time line; main = the event's details;
+  // rail = outward actions (Google sync, invite, other calendars) — beside the
+  // details on wide windows, after them on narrow ones; footer = complete /
+  // delete. Edit: a two-column form (what & who | when & where) with Save
+  // pinned in the footer.
+  const whenLine = (() => {
+    try {
+      const start = parseISO(event.start_date);
+      const day = format(start, 'EEEE, MMMM d, yyyy');
+      if (event.all_day) return `${day} · All day`;
+      const end = event.end_date ? parseISO(event.end_date) : null;
+      return `${day} · ${format(start, 'h:mm a')}${end ? ` – ${format(end, 'h:mm a')}` : ''}`;
+    } catch {
+      return '';
+    }
+  })();
 
-            <div>
-              <Label>Client Name</Label>
-              <Input
-                value={editForm.client_name}
-                onChange={(e) => setEditForm(prev => ({ ...prev, client_name: e.target.value }))}
-                placeholder="Client name"
-              />
-            </div>
+  const header = (
+    <div className="flex items-start gap-3">
+      <div
+        className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+        style={{ backgroundColor: event.color || config.color }}
+      >
+        <Icon className="w-5 h-5 text-white" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <DialogTitle className="text-lg sm:text-xl font-bold text-gray-900 leading-snug break-words">
+          {editing ? 'Edit Event' : event.title}
+        </DialogTitle>
+        <p className="text-sm text-gray-600 mt-0.5">{editing ? event.title : whenLine}</p>
+        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+          <Badge style={{ backgroundColor: event.color || config.color }} className="text-white">
+            {config.label}
+          </Badge>
+          {event.google_event_id && (
+            <Badge variant="outline" className="text-green-600 border-green-600">
+              <CheckCircle2 className="w-3 h-3 mr-1" />
+              Synced
+            </Badge>
+          )}
+          {event.completed && (
+            <Badge variant="outline" className="text-blue-600 border-blue-600">
+              <CheckCircle2 className="w-3 h-3 mr-1" />
+              Completed
+            </Badge>
+          )}
+        </div>
+      </div>
+      {!editing && (
+        <Button variant="outline" size="sm" onClick={() => setEditing(true)} className="shrink-0">
+          <Edit className="w-4 h-4 sm:mr-1.5" />
+          <span className="hidden sm:inline">Edit</span>
+        </Button>
+      )}
+    </div>
+  );
 
-            <div>
-              <Label>Presenter</Label>
-              {activePresenters.length > 0 ? (
-                <Select
-                  value={editForm.presenter_id || 'none'}
-                  onValueChange={(v) => {
-                    const p = activePresenters.find(x => x.id === v);
-                    setEditForm(prev => ({
-                      ...prev,
-                      presenter_id: v === 'none' ? '' : v,
-                      presenter: p?.name || '',
-                      // Carry the email too — notifications and Meet access both key off it.
-                      presenter_email: p?.email || ''
-                    }));
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a presenter..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No presenter</SelectItem>
-                    {activePresenters.map(p => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}{p.email ? ` — ${p.email}` : ''}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <Input
-                  value={editForm.presenter}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, presenter: e.target.value }))}
-                  placeholder="Presenter name"
-                />
+  const row = 'flex items-start gap-3 px-4 py-3';
+
+  const viewMain = (
+    <div className="space-y-5">
+      <div className="rounded-xl border border-gray-200 bg-white divide-y divide-gray-100">
+        {event.location && (
+          <div className={row}>
+            <MapPin className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm text-gray-500">Location</p>
+              <p className="font-medium break-words">{event.location}</p>
+              {event.location.startsWith('http') && (
+                <a href={event.location} target="_blank" rel="noopener noreferrer" className="text-sm text-[#013f7c] hover:underline">
+                  {/\/Checkin\?/i.test(event.location) ? 'Open check-in page' : 'Join meeting'}
+                </a>
               )}
-            </div>
-
-            <div>
-              <Label>Presenter Fee Override ($/session)</Label>
-              <Input
-                type="number"
-                value={editForm.presenter_fee ?? ''}
-                onChange={(e) => setEditForm(prev => ({ ...prev, presenter_fee: e.target.value === '' ? null : Number(e.target.value) }))}
-                placeholder="Leave blank to use presenter's default rate"
-              />
-            </div>
-
-            <div>
-              <Label>Description</Label>
-              <Textarea
-                value={editForm.description}
-                onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Event description..."
-                rows={3}
-              />
-            </div>
-
-            <div>
-              <Label>Location</Label>
-              <Input
-                value={editForm.location}
-                onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
-                placeholder="Location or meeting link"
-              />
-            </div>
-
-            <div>
-              <Label>Video link (attendees are sent here after check-in)</Label>
-              <Input
-                type="url"
-                value={editForm.meeting_link}
-                onChange={(e) => setEditForm(prev => ({ ...prev, meeting_link: e.target.value }))}
-                placeholder="https://zoom.us/j/…  ·  https://teams.microsoft.com/…  ·  https://meet.google.com/…"
-              />
-              <p className="text-xs text-gray-400 mt-1">Paste a Zoom, Teams, or Meet link. Leave blank to fall back to the Google Meet room created on sync.</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Start Date</Label>
-                <Input
-                  type="date"
-                  value={editForm.start_date}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, start_date: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>Start Time</Label>
-                <Input
-                  type="time"
-                  value={editForm.start_time}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, start_time: e.target.value }))}
-                  disabled={editForm.all_day}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>End Date</Label>
-                <Input
-                  type="date"
-                  value={editForm.end_date}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, end_date: e.target.value }))}
-                />
-              </div>
-              <div>
-                <Label>End Time</Label>
-                <Input
-                  type="time"
-                  value={editForm.end_time}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, end_time: e.target.value }))}
-                  disabled={editForm.all_day}
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="edit_all_day"
-                checked={editForm.all_day}
-                onChange={(e) => setEditForm(prev => ({ ...prev, all_day: e.target.checked }))}
-                className="rounded"
-              />
-              <Label htmlFor="edit_all_day" className="cursor-pointer">All-day event</Label>
-            </div>
-
-            <DialogFooter className="gap-2">
-              <Button variant="outline" onClick={() => setEditing(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveEdit} disabled={saving} className="bg-[#264d44] hover:bg-[#1a3830]">
-                {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </div>
-        ) : (
-          <div className="space-y-4 mt-4">
-          <div className="flex items-start gap-3">
-            <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
-            <div>
-              <p className="font-medium">
-                {format(parseISO(event.start_date), event.all_day ? 'EEEE, MMMM d, yyyy' : 'EEEE, MMMM d, yyyy')}
-              </p>
-              {!event.all_day && (
-                <p className="text-sm text-gray-500">
-                  {format(parseISO(event.start_date), 'h:mm a')}
-                  {event.end_date && ` - ${format(parseISO(event.end_date), 'h:mm a')}`}
-                </p>
-              )}
-              {event.all_day && <p className="text-sm text-gray-500">All day</p>}
-            </div>
-          </div>
-
-          {event.location && (
-            <div className="flex items-start gap-3">
-              <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div>
-                <p className="font-medium">{event.location}</p>
-                {event.location.startsWith('http') && (
-                  <a href={event.location} target="_blank" rel="noopener noreferrer" className="text-sm text-[#013f7c] hover:underline">
-                    {/\/Checkin\?/i.test(event.location) ? 'Open check-in page' : 'Join meeting'}
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
-
-          {event.checkin_token && (
-            <div className="flex items-start gap-3">
-              <ClipboardCheck className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-500">Attendee Check-in</p>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/Checkin?t=${event.checkin_token}`);
-                      toast.success('Check-in link copied!');
-                    }}
-                    className="text-sm text-[#013f7c] hover:underline font-medium"
-                  >
-                    Copy check-in link
-                  </button>
-                  <span className="text-gray-300">·</span>
-                  <button
-                    onClick={() => setShowQr(true)}
-                    className="text-sm text-[#013f7c] hover:underline font-medium"
-                  >
-                    Show QR code
-                  </button>
-                  <span className="text-gray-300">·</span>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/Checkin?t=${event.checkin_token}&kiosk=1`);
-                      toast.success('Kiosk link copied!');
-                    }}
-                    className="text-sm text-[#013f7c] hover:underline font-medium"
-                  >
-                    Copy kiosk link
-                  </button>
-                </div>
-                <p className="text-xs text-gray-400 mt-0.5">Share this in the calendar invite instead of the raw video link. Kiosk link is for a tablet at the door.</p>
-              </div>
-            </div>
-          )}
-
-          {/* Video link — the link attendees are handed after check-in (Meet, Zoom, Teams, …) */}
-          {(() => {
-            const link = event.meeting_link || '';
-            const provider = /meet\.google\.com/i.test(link) ? 'Google Meet'
-              : /zoom\.(us|com)/i.test(link) ? 'Zoom'
-              : /teams\.(microsoft|live)\.com/i.test(link) ? 'Microsoft Teams'
-              : link ? 'Video link' : null;
-            return (
-            <div className="flex items-start gap-3">
-              <Video className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div className="min-w-0">
-                <p className="text-sm text-gray-500">{provider || 'Video link'} <span className="text-gray-400">· sent to attendees after check-in</span></p>
-                {event.meeting_link ? (
-                  <>
-                    <a href={event.meeting_link} target="_blank" rel="noopener noreferrer" className="font-medium text-[#013f7c] hover:underline break-all">
-                      {event.meeting_link.replace(/^https?:\/\//, '')}
-                    </a>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(event.meeting_link);
-                          toast.success('Link copied!');
-                        }}
-                        className="text-sm text-[#013f7c] hover:underline font-medium"
-                      >
-                        Copy link
-                      </button>
-                      <span className="text-gray-300">·</span>
-                      <a href={event.meeting_link} target="_blank" rel="noopener noreferrer" className="text-sm text-[#013f7c] hover:underline font-medium">
-                        Open
-                      </a>
-                      <span className="text-gray-300">·</span>
-                      <button onClick={() => setEditing(true)} className="text-sm text-[#013f7c] hover:underline font-medium">
-                        Change link
-                      </button>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-0.5">Not on the calendar invite (that carries only the check-in link). Attendees get this automatically after they check in.</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm text-amber-700">No video link on this event yet — attendees who check in will see "no video link".</p>
-                    <div className="flex items-center gap-3 mt-0.5">
-                      <button onClick={() => setEditing(true)} className="text-sm text-[#013f7c] hover:underline font-medium">
-                        Paste a Zoom / Teams / Meet link
-                      </button>
-                      {event.google_event_id && (
-                        <>
-                          <span className="text-gray-300">·</span>
-                          <button
-                            onClick={handleSyncToGoogle}
-                            disabled={syncing}
-                            className="text-sm text-[#013f7c] hover:underline font-medium disabled:opacity-50"
-                          >
-                            {syncing ? 'Adding…' : 'Create a Google Meet room'}
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-            );
-          })()}
-
-          {event.client_name && (
-            <div className="flex items-start gap-3">
-              <User className="w-5 h-5 text-gray-400 mt-0.5" />
-              <p className="font-medium">{event.client_name}</p>
-            </div>
-          )}
-
-          {event.presenter && (
-            <div className="flex items-start gap-3">
-              <User className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div className="min-w-0">
-                <p className="text-sm text-gray-500">Presenter</p>
-                <p className="font-medium">{event.presenter}</p>
-                {event.presenter_email && (
-                  <p className="text-xs text-gray-500 break-all">{event.presenter_email}</p>
-                )}
-
-                {event.presenter_notified_at ? (
-                  <div className="mt-1">
-                    <p className="text-xs text-green-700 flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Notified {format(parseISO(event.presenter_notified_at), 'MMM d')} at {format(parseISO(event.presenter_notified_at), 'h:mm a')}
-                      {event.presenter_notified_email && event.presenter_notified_email !== event.presenter_email
-                        ? ` · sent to ${event.presenter_notified_email}`
-                        : ''}
-                    </p>
-                    <button
-                      onClick={() => openNotifyPreview()}
-                      disabled={notifying}
-                      className="text-sm text-[#013f7c] hover:underline font-medium disabled:opacity-50 mt-0.5"
-                    >
-                      Send again
-                    </button>
-                  </div>
-                ) : (
-                  <div className="mt-1">
-                    {event.presenter_notify_status === 'failed' && (
-                      <p className="text-xs text-red-700 mb-0.5">
-                        Last attempt failed{event.presenter_notify_error ? ` — ${event.presenter_notify_error}` : ''}
-                      </p>
-                    )}
-                    <button
-                      onClick={() => openNotifyPreview()}
-                      disabled={notifying}
-                      className="text-sm text-[#013f7c] hover:underline font-medium disabled:opacity-50"
-                    >
-                      {notifying ? 'Preparing…' : 'Notify presenter'}
-                    </button>
-                    <span className="text-xs text-gray-400 ml-2">Nothing sends until you confirm</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {event.proposal_id && (
-            <div className="flex items-start gap-3">
-              <FileText className="w-5 h-5 text-gray-400 mt-0.5" />
-              <Link to={createPageUrl('EditProposal') + `?id=${event.proposal_id}`} className="text-[#013f7c] hover:underline">
-                View Related Proposal
-              </Link>
-            </div>
-          )}
-
-          {event.description && (
-            <div className="pt-3 border-t">
-              <p className="text-sm text-gray-600 whitespace-pre-wrap">{event.description}</p>
-            </div>
-          )}
-
-          {/* Facilitation checklist (challenge events) */}
-          {isChallenge && (
-            <div className="pt-3 border-t">
-              <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                <ClipboardCheck className="w-4 h-4" /> Facilitation Progress
-              </p>
-              <FacilitationChecklist
-                day0Count={assessmentCounts?.day0 ?? 0}
-                day14Count={assessmentCounts?.day14 ?? 0}
-                checkinCount={checkinCount}
-                hasRecording={!!event.recording_link}
-                compact
-              />
-            </div>
-          )}
-          {/* Facilitation checklist (non-challenge events with assessment_timing) */}
-          {!isChallenge && event.assessment_timing && event.assessment_timing !== 'none' && (
-            <div className="pt-3 border-t">
-              <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                <ClipboardCheck className="w-4 h-4" /> Assessment Progress
-              </p>
-              <FacilitationChecklist
-                baselineCount={assessmentCounts?.baseline ?? 0}
-                endpointCount={assessmentCounts?.endpoint ?? 0}
-                checkinCount={checkinCount}
-                hasRecording={!!event.recording_link}
-                compact
-              />
-            </div>
-          )}
-
-          {/* Sync to Google Calendar */}
-          <div className="pt-3 border-t">
-            {event.google_event_id ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Synced to Google Calendar{event.meeting_link ? ' · Meet room ready' : ''}</span>
-                </div>
-                <Button 
-                  onClick={handleUnsyncFromGoogle} 
-                  disabled={syncing}
-                  variant="outline"
-                  className="w-full"
-                >
-                  {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                  {syncing ? 'Removing...' : 'Remove from Google Calendar'}
-                </Button>
-              </div>
-            ) : (
-              <Button 
-                onClick={handleSyncToGoogle} 
-                disabled={syncing}
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
-              >
-                {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                {syncing ? 'Syncing...' : 'Sync to Google Calendar + create Meet room'}
-              </Button>
-            )}
-          </div>
-
-          {/* Send Calendar Invite */}
-          <div className="pt-3 border-t">
-            <p className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1"><Send className="w-4 h-4" /> Send Calendar Invite</p>
-            <div className="space-y-2">
-              <Input
-                type="email"
-                placeholder="Client email"
-                value={inviteEmails.client}
-                onChange={(e) => setInviteEmails(prev => ({ ...prev, client: e.target.value }))}
-              />
-              <Input
-                type="email"
-                placeholder="Presenter email"
-                value={inviteEmails.presenter}
-                onChange={(e) => setInviteEmails(prev => ({ ...prev, presenter: e.target.value }))}
-              />
-              <Button
-                onClick={handleSendInvite}
-                disabled={sendingInvite}
-                className="w-full bg-[#013f7c] hover:bg-[#012d5a]"
-              >
-                {sendingInvite ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
-                {sendingInvite ? 'Sending...' : 'Send Invite by Email'}
-              </Button>
-            </div>
-          </div>
-
-          {/* Export Options */}
-          <div className="pt-3 border-t">
-            <p className="text-sm font-medium text-gray-600 mb-2">Add to Other Calendars:</p>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={exportToGoogleCalendar}>
-                <ExternalLink className="w-3 h-3 mr-1" /> Google
-              </Button>
-              <Button variant="outline" size="sm" onClick={exportToOutlook}>
-                <ExternalLink className="w-3 h-3 mr-1" /> Outlook
-              </Button>
-              <Button variant="outline" size="sm" onClick={downloadICS}>
-                <ExternalLink className="w-3 h-3 mr-1" /> Download .ics
-              </Button>
-            </div>
-          </div>
-
-            <div className="pt-3 border-t flex flex-col sm:flex-row justify-between gap-2">
-              {!event.completed ? (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleMarkComplete} 
-                  disabled={markingComplete}
-                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
-                >
-                  {markingComplete ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
-                  Mark as Completed
-                </Button>
-              ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleMarkIncomplete} 
-                  disabled={markingComplete}
-                  className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-                >
-                  {markingComplete ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <X className="w-4 h-4 mr-1" />}
-                  Mark as Incomplete
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleDelete} disabled={deleting}>
-                {deleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
-                Delete Event
-              </Button>
             </div>
           </div>
         )}
-      </DialogContent>
+
+        {event.checkin_token && (
+          <div className={row}>
+            <ClipboardCheck className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm text-gray-500">Attendee Check-in</p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/Checkin?t=${event.checkin_token}`);
+                    toast.success('Check-in link copied!');
+                  }}
+                  className="text-sm text-[#013f7c] hover:underline font-medium"
+                >
+                  Copy check-in link
+                </button>
+                <span className="text-gray-300">·</span>
+                <button
+                  onClick={() => setShowQr(true)}
+                  className="text-sm text-[#013f7c] hover:underline font-medium"
+                >
+                  Show QR code
+                </button>
+                <span className="text-gray-300">·</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/Checkin?t=${event.checkin_token}&kiosk=1`);
+                    toast.success('Kiosk link copied!');
+                  }}
+                  className="text-sm text-[#013f7c] hover:underline font-medium"
+                >
+                  Copy kiosk link
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-0.5">Share this in the calendar invite instead of the raw video link. Kiosk link is for a tablet at the door.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Video link — the link attendees are handed after check-in (Meet, Zoom, Teams, …) */}
+        {(() => {
+          const link = event.meeting_link || '';
+          const provider = /meet\.google\.com/i.test(link) ? 'Google Meet'
+            : /zoom\.(us|com)/i.test(link) ? 'Zoom'
+            : /teams\.(microsoft|live)\.com/i.test(link) ? 'Microsoft Teams'
+            : link ? 'Video link' : null;
+          return (
+          <div className={row}>
+            <Video className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm text-gray-500">{provider || 'Video link'} <span className="text-gray-400">· sent to attendees after check-in</span></p>
+              {event.meeting_link ? (
+                <>
+                  <a href={event.meeting_link} target="_blank" rel="noopener noreferrer" className="font-medium text-[#013f7c] hover:underline break-all">
+                    {event.meeting_link.replace(/^https?:\/\//, '')}
+                  </a>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(event.meeting_link);
+                        toast.success('Link copied!');
+                      }}
+                      className="text-sm text-[#013f7c] hover:underline font-medium"
+                    >
+                      Copy link
+                    </button>
+                    <span className="text-gray-300">·</span>
+                    <a href={event.meeting_link} target="_blank" rel="noopener noreferrer" className="text-sm text-[#013f7c] hover:underline font-medium">
+                      Open
+                    </a>
+                    <span className="text-gray-300">·</span>
+                    <button onClick={() => setEditing(true)} className="text-sm text-[#013f7c] hover:underline font-medium">
+                      Change link
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">Not on the calendar invite (that carries only the check-in link). Attendees get this automatically after they check in.</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-amber-700">No video link on this event yet — attendees who check in will see "no video link".</p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
+                    <button onClick={() => setEditing(true)} className="text-sm text-[#013f7c] hover:underline font-medium">
+                      Paste a Zoom / Teams / Meet link
+                    </button>
+                    {event.google_event_id && (
+                      <>
+                        <span className="text-gray-300">·</span>
+                        <button
+                          onClick={handleSyncToGoogle}
+                          disabled={syncing}
+                          className="text-sm text-[#013f7c] hover:underline font-medium disabled:opacity-50"
+                        >
+                          {syncing ? 'Adding…' : 'Create a Google Meet room'}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          );
+        })()}
+
+        {event.client_name && (
+          <div className={row}>
+            <Building2 className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm text-gray-500">Client</p>
+              <p className="font-medium break-words">{event.client_name}</p>
+            </div>
+          </div>
+        )}
+
+        {event.presenter && (
+          <div className={row}>
+            <User className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm text-gray-500">Presenter</p>
+              <p className="font-medium">{event.presenter}</p>
+              {event.presenter_email && (
+                <p className="text-xs text-gray-500 break-all">{event.presenter_email}</p>
+              )}
+
+              {event.presenter_notified_at ? (
+                <div className="mt-1">
+                  <p className="text-xs text-green-700 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    Notified {format(parseISO(event.presenter_notified_at), 'MMM d')} at {format(parseISO(event.presenter_notified_at), 'h:mm a')}
+                    {event.presenter_notified_email && event.presenter_notified_email !== event.presenter_email
+                      ? ` · sent to ${event.presenter_notified_email}`
+                      : ''}
+                  </p>
+                  <button
+                    onClick={() => openNotifyPreview()}
+                    disabled={notifying}
+                    className="text-sm text-[#013f7c] hover:underline font-medium disabled:opacity-50 mt-0.5"
+                  >
+                    Send again
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-1">
+                  {event.presenter_notify_status === 'failed' && (
+                    <p className="text-xs text-red-700 mb-0.5">
+                      Last attempt failed{event.presenter_notify_error ? ` — ${event.presenter_notify_error}` : ''}
+                    </p>
+                  )}
+                  <button
+                    onClick={() => openNotifyPreview()}
+                    disabled={notifying}
+                    className="text-sm text-[#013f7c] hover:underline font-medium disabled:opacity-50"
+                  >
+                    {notifying ? 'Preparing…' : 'Notify presenter'}
+                  </button>
+                  <span className="text-xs text-gray-400 ml-2">Nothing sends until you confirm</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {event.proposal_id && (
+          <div className={row}>
+            <FileText className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+            <Link to={createPageUrl('EditProposal') + `?id=${event.proposal_id}`} className="text-[#013f7c] hover:underline font-medium">
+              View Related Proposal
+            </Link>
+          </div>
+        )}
+      </div>
+
+      {event.description && (
+        <FrameSection title="Description" icon={FileText}>
+          <p className="text-sm text-gray-700 whitespace-pre-wrap rounded-lg bg-gray-50 border border-gray-100 p-3">{event.description}</p>
+        </FrameSection>
+      )}
+
+      {/* Facilitation checklist (challenge events) */}
+      {isChallenge && (
+        <FrameSection title="Facilitation progress" icon={ClipboardCheck}>
+          <FacilitationChecklist
+            day0Count={assessmentCounts?.day0 ?? 0}
+            day14Count={assessmentCounts?.day14 ?? 0}
+            checkinCount={checkinCount}
+            hasRecording={!!event.recording_link}
+            compact
+          />
+        </FrameSection>
+      )}
+      {/* Facilitation checklist (non-challenge events with assessment_timing) */}
+      {!isChallenge && event.assessment_timing && event.assessment_timing !== 'none' && (
+        <FrameSection title="Assessment progress" icon={ClipboardCheck}>
+          <FacilitationChecklist
+            baselineCount={assessmentCounts?.baseline ?? 0}
+            endpointCount={assessmentCounts?.endpoint ?? 0}
+            checkinCount={checkinCount}
+            hasRecording={!!event.recording_link}
+            compact
+          />
+        </FrameSection>
+      )}
+    </div>
+  );
+
+  const viewRail = (
+    <>
+      {/* Sync to Google Calendar */}
+      <RailSection title="Google Calendar" icon={Calendar}>
+        {event.google_event_id ? (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 p-2.5 rounded-lg">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>Synced{event.meeting_link ? ' · Meet room ready' : ''}</span>
+            </div>
+            <Button
+              onClick={handleUnsyncFromGoogle}
+              disabled={syncing}
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              {syncing ? 'Removing...' : 'Remove from Google Calendar'}
+            </Button>
+          </div>
+        ) : (
+          <>
+            <Button
+              onClick={handleSyncToGoogle}
+              disabled={syncing}
+              size="sm"
+              className="w-full bg-green-600 hover:bg-green-700 text-white"
+            >
+              {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+              {syncing ? 'Syncing...' : 'Sync to Google Calendar'}
+            </Button>
+            <p className="text-[11px] text-gray-400 mt-1.5">Also creates a Google Meet room.</p>
+          </>
+        )}
+      </RailSection>
+
+      {/* Send Calendar Invite */}
+      <RailSection title="Send calendar invite" icon={Send}>
+        <div className="space-y-2">
+          <Input
+            type="email"
+            placeholder="Client email"
+            value={inviteEmails.client}
+            onChange={(e) => setInviteEmails(prev => ({ ...prev, client: e.target.value }))}
+            className="bg-white h-9"
+          />
+          <Input
+            type="email"
+            placeholder="Presenter email"
+            value={inviteEmails.presenter}
+            onChange={(e) => setInviteEmails(prev => ({ ...prev, presenter: e.target.value }))}
+            className="bg-white h-9"
+          />
+          <Button
+            onClick={handleSendInvite}
+            disabled={sendingInvite}
+            size="sm"
+            className="w-full bg-[#013f7c] hover:bg-[#012d5a]"
+          >
+            {sendingInvite ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+            {sendingInvite ? 'Sending...' : 'Send Invite by Email'}
+          </Button>
+        </div>
+      </RailSection>
+
+      {/* Export Options */}
+      <RailSection title="Add to other calendars" icon={ExternalLink}>
+        <div className="grid grid-cols-3 gap-1.5">
+          <Button variant="outline" size="sm" onClick={exportToGoogleCalendar} className="px-2">Google</Button>
+          <Button variant="outline" size="sm" onClick={exportToOutlook} className="px-2">Outlook</Button>
+          <Button variant="outline" size="sm" onClick={downloadICS} className="px-2">.ics</Button>
+        </div>
+      </RailSection>
+    </>
+  );
+
+  const viewFooter = (
+    <div className="flex items-center justify-between gap-2">
+      {!event.completed ? (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleMarkComplete}
+          disabled={markingComplete}
+          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
+        >
+          {markingComplete ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-1" />}
+          Mark as Completed
+        </Button>
+      ) : (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleMarkIncomplete}
+          disabled={markingComplete}
+          className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+        >
+          {markingComplete ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <X className="w-4 h-4 mr-1" />}
+          Mark as Incomplete
+        </Button>
+      )}
+      <Button variant="ghost" size="sm" className="text-red-500 hover:text-red-700 hover:bg-red-50" onClick={handleDelete} disabled={deleting}>
+        {deleting ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Trash2 className="w-4 h-4 mr-1" />}
+        Delete Event
+      </Button>
+    </div>
+  );
+
+  const colHeading = 'text-xs font-semibold uppercase tracking-wide text-gray-500';
+
+  const editMain = (
+    <div className="grid gap-x-8 gap-y-6 lg:grid-cols-2">
+      <div className="space-y-4">
+        <p className={colHeading}>What & who</p>
+        <div>
+          <Label>Event Title</Label>
+          <Input
+            value={editForm.title}
+            onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+            placeholder="Enter event title"
+          />
+        </div>
+
+        <div>
+          <Label>Client Name</Label>
+          <Input
+            value={editForm.client_name}
+            onChange={(e) => setEditForm(prev => ({ ...prev, client_name: e.target.value }))}
+            placeholder="Client name"
+          />
+        </div>
+
+        <div>
+          <Label>Presenter</Label>
+          {activePresenters.length > 0 ? (
+            <Select
+              value={editForm.presenter_id || 'none'}
+              onValueChange={(v) => {
+                const p = activePresenters.find(x => x.id === v);
+                setEditForm(prev => ({
+                  ...prev,
+                  presenter_id: v === 'none' ? '' : v,
+                  presenter: p?.name || '',
+                  // Carry the email too — notifications and Meet access both key off it.
+                  presenter_email: p?.email || ''
+                }));
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a presenter..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">No presenter</SelectItem>
+                {activePresenters.map(p => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}{p.email ? ` — ${p.email}` : ''}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              value={editForm.presenter}
+              onChange={(e) => setEditForm(prev => ({ ...prev, presenter: e.target.value }))}
+              placeholder="Presenter name"
+            />
+          )}
+        </div>
+
+        <div>
+          <Label>Presenter Fee Override ($/session)</Label>
+          <Input
+            type="number"
+            value={editForm.presenter_fee ?? ''}
+            onChange={(e) => setEditForm(prev => ({ ...prev, presenter_fee: e.target.value === '' ? null : Number(e.target.value) }))}
+            placeholder="Leave blank to use presenter's default rate"
+          />
+        </div>
+
+        <div>
+          <Label>Description</Label>
+          <Textarea
+            value={editForm.description}
+            onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+            placeholder="Event description..."
+            rows={5}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <p className={colHeading}>When & where</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Start Date</Label>
+            <Input
+              type="date"
+              value={editForm.start_date}
+              onChange={(e) => setEditForm(prev => ({ ...prev, start_date: e.target.value }))}
+            />
+          </div>
+          <div>
+            <Label>Start Time</Label>
+            <Input
+              type="time"
+              value={editForm.start_time}
+              onChange={(e) => setEditForm(prev => ({ ...prev, start_time: e.target.value }))}
+              disabled={editForm.all_day}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>End Date</Label>
+            <Input
+              type="date"
+              value={editForm.end_date}
+              onChange={(e) => setEditForm(prev => ({ ...prev, end_date: e.target.value }))}
+            />
+          </div>
+          <div>
+            <Label>End Time</Label>
+            <Input
+              type="time"
+              value={editForm.end_time}
+              onChange={(e) => setEditForm(prev => ({ ...prev, end_time: e.target.value }))}
+              disabled={editForm.all_day}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="edit_all_day"
+            checked={editForm.all_day}
+            onChange={(e) => setEditForm(prev => ({ ...prev, all_day: e.target.checked }))}
+            className="rounded"
+          />
+          <Label htmlFor="edit_all_day" className="cursor-pointer">All-day event</Label>
+        </div>
+
+        <div>
+          <Label>Location</Label>
+          <Input
+            value={editForm.location}
+            onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
+            placeholder="Location or meeting link"
+          />
+        </div>
+
+        <div>
+          <Label>Video link (attendees are sent here after check-in)</Label>
+          <Input
+            type="url"
+            value={editForm.meeting_link}
+            onChange={(e) => setEditForm(prev => ({ ...prev, meeting_link: e.target.value }))}
+            placeholder="https://zoom.us/j/…  ·  https://teams.microsoft.com/…  ·  https://meet.google.com/…"
+          />
+          <p className="text-xs text-gray-400 mt-1">Paste a Zoom, Teams, or Meet link. Leave blank to fall back to the Google Meet room created on sync.</p>
+        </div>
+      </div>
+    </div>
+  );
+
+  const editFooter = (
+    <div className="flex justify-end gap-2">
+      <Button variant="outline" onClick={() => setEditing(false)}>
+        Cancel
+      </Button>
+      <Button onClick={handleSaveEdit} disabled={saving} className="bg-[#264d44] hover:bg-[#1a3830]">
+        {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : null}
+        Save Changes
+      </Button>
+    </div>
+  );
+
+  return (<Dialog open={open} onOpenChange={onOpenChange}>
+      <RecordDetailContent maxWidth="1080px" fill={false}>
+        <RecordDetailFrame
+          header={header}
+          rail={editing ? null : viewRail}
+          railFirstOnNarrow={false}
+          footer={editing ? editFooter : viewFooter}
+        >
+          {editing ? editMain : viewMain}
+        </RecordDetailFrame>
+      </RecordDetailContent>
       {event.checkin_token && (
         <CheckinQrDialog
           open={showQr}
