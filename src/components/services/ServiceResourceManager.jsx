@@ -139,8 +139,10 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
   };
 
   return (
-    <div className="space-y-4">
+    // Attached list and the upload panel sit side by side once there is room.
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_21rem] gap-4 lg:gap-6 items-start">
       {/* Existing Resources */}
+      <div className="space-y-2 min-w-0">
       {resources.length === 0 ? (
         <p className="text-sm text-gray-400 italic text-center py-4">No resources attached yet.</p>
       ) : (
@@ -221,9 +223,10 @@ export default function ServiceResourceManager({ resources = [], onChange }) {
           })}
         </div>
       )}
+      </div>
 
       {/* Upload New Resource */}
-      <div className="border-t pt-4 space-y-3">
+      <div className="border-t pt-4 space-y-3 min-w-0 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-6">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Upload New Resource</p>
         <Input
           placeholder="Resource title (e.g. Stress Workshop Handout)"
