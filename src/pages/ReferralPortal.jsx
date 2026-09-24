@@ -218,7 +218,7 @@ export default function ReferralPortal() {
       title={partner.name}
       subtitle={partner.company}
       logo={false}
-      maxWidth="max-w-4xl"
+      maxWidth="max-w-6xl"
       headerPadding="py-6 px-4"
       subtitleClass="text-blue-200"
       headerExtra={!partner.is_active ? <Badge className="mt-2 bg-red-500 text-white">Inactive Partnership</Badge> : null}
