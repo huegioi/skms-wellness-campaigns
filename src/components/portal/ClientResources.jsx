@@ -2,9 +2,30 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FolderOpen, List, LayoutGrid, Search, Clock } from 'lucide-react';
+import { FolderOpen, List, LayoutGrid, Search, Clock, Lock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import ResourceCard from './ResourceCard';
+import { resourceAvailability } from '@/lib/resourceAvailability';
+
+const fmtUnlock = (iso) => iso
+  ? new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  : null;
+const unlockLabel = (iso) => (iso ? `Available after ${fmtUnlock(iso)}` : 'Available after your session takes place');
+
+function LockedResourceRow({ resource }) {
+  return (
+    <div className="flex items-start gap-3 p-3 rounded-lg border border-dashed border-gray-200 bg-gray-50/70">
+      <Lock className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-gray-400 truncate">{resource.title}</p>
+        {resource.description && <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{resource.description}</p>}
+      </div>
+      <span className="text-xs font-medium text-gray-500 bg-white border border-gray-200 rounded-full px-2 py-0.5 whitespace-nowrap">
+        {unlockLabel(resource.available_after)}
+      </span>
+    </div>
+  );
+}
 
 const typeOrder = ['video', 'audio', 'recording', 'presentation', 'handout', 'guide', 'link', 'other'];
 
@@ -19,7 +40,7 @@ const typeLabels = {
   other: 'Other Resources',
 };
 
-export default function ClientResources({ client, proposals = [], services = [] }) {
+export default function ClientResources({ client, proposals = [], services = [], events = [] }) {
   const [groupBy, setGroupBy] = useState('service');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
@@ -40,15 +61,21 @@ export default function ClientResources({ client, proposals = [], services = [] 
     const resources = [];
     for (const service of services) {
       if (!serviceIds.has(service.id)) continue;
+      // Only after this client's session for the service has taken place
+      // (the server also withholds the file links until then).
+      const avail = resourceAvailability(service, events);
       for (const r of (service.resources || [])) {
+        const locked = !avail.available || r.locked === true;
         resources.push({
           title: r.title,
-          file_url: r.file_url,
+          file_url: locked ? null : r.file_url,
           resource_type: r.resource_type,
           description: r.description,
           uploaded_date: r.uploaded_date,
           session_name: service.name,
           source_service_id: service.id,
+          locked,
+          available_after: r.available_after || avail.availableAfter,
         });
       }
     }
@@ -89,7 +116,7 @@ export default function ClientResources({ client, proposals = [], services = [] 
     }
 
     return [...byUrl.values()];
-  }, [proposals, services, client]);
+  }, [proposals, services, client, events]);
 
   const categoryForType = (t) => {
     if (['video', 'recording', 'audio'].includes(t)) return 'video';
@@ -227,13 +254,21 @@ export default function ClientResources({ client, proposals = [], services = [] 
               <CardTitle className="text-lg flex items-center gap-2 text-brand-green">
                 <FolderOpen className="w-5 h-5 text-brand-green" />
                 {getGroupLabel(key)}
-                <Badge variant="secondary" className="ml-auto">{items.length}</Badge>
+                {groupBy === 'service' && items.every(r => r.locked) ? (
+                  <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-gray-500">
+                    <Lock className="w-3.5 h-3.5" /> {unlockLabel(items[0].available_after)}
+                  </span>
+                ) : (
+                  <Badge variant="secondary" className="ml-auto">{items.length}</Badge>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
                 {items.map((resource, i) => (
-                  <ResourceCard key={i} resource={resource} />
+                  resource.locked
+                    ? <LockedResourceRow key={i} resource={resource} />
+                    : <ResourceCard key={i} resource={resource} />
                 ))}
               </div>
             </CardContent>

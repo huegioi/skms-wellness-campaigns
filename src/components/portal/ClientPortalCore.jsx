@@ -239,7 +239,7 @@ export default function ClientPortalCore({ mode, token, clientId }) {
         <ClientProfileSettings client={client} token={token} onUpdate={() => queryClient.invalidateQueries({ queryKey: ['clientPortalData'] })} />
       )}
       {activeTab === 'resources' && (
-        <ClientResources client={client} proposals={proposals} services={services} />
+        <ClientResources client={client} proposals={proposals} services={services} events={events} />
       )}
       {activeTab === 'feedback' && (
         <PortalFeedback client={client} proposals={proposals} services={services} />
