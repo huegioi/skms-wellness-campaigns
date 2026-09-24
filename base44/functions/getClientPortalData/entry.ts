@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { shouldExcludeDemo, demoExclusion, filterDemoRows } from '../../shared/demoPortal.ts';
 import { resolvePortalTemplates } from '../../shared/templatePersonalization.ts';
+import { resourceAvailability } from '../../shared/resourceAvailability.ts';
 
 /**
  * Single data source for the client portal.
@@ -120,9 +121,41 @@ Deno.serve(async (req) => {
       description: e.description,
       completed: e.completed,
       completed_date: e.completed_date,
+      service_id: e.service_id || null,
       service_name: e.service_id ? (serviceNameMap[e.service_id] || null) : null,
       updated_date: e.updated_date,
     }));
+
+    // ── Gate service resources ──────────────────────────────────────────
+    // Resources for a purchased service leave the server only after this
+    // client's session for it has taken place (shared/resourceAvailability.ts).
+    // Before then they go out as locked stubs with NO file link. Services the
+    // client hasn't purchased carry no resources at all.
+    const purchasedServiceIds = new Set();
+    for (const p of proposals) {
+      if (p.status !== 'accepted') continue;
+      const sel = p.selections || {};
+      for (const ids of [sel.workshops, sel.challengePrograms, sel.leadership, sel.movementClasses, sel.wellnessBoxes]) {
+        (Array.isArray(ids) ? ids : []).forEach(id => purchasedServiceIds.add(id));
+      }
+    }
+    const availabilityEvents = filterDemoRows(matchedEvents, excludeDemo);
+    const portalServices = services.map(svc => {
+      if (!Array.isArray(svc.resources) || svc.resources.length === 0) return svc;
+      if (!purchasedServiceIds.has(svc.id)) return { ...svc, resources: [] };
+      const avail = resourceAvailability(svc, availabilityEvents);
+      if (avail.available) return svc;
+      return {
+        ...svc,
+        resources: svc.resources.map(r => ({
+          title: r.title,
+          resource_type: r.resource_type,
+          description: r.description,
+          locked: true,
+          available_after: avail.availableAfter,
+        })),
+      };
+    });
 
     // ── Filter + personalize email templates server-side ────────────────
     // Only templates for purchased services with a BOOKED calendar event
@@ -152,7 +185,7 @@ Deno.serve(async (req) => {
       proposals,
       events: portalEvents,
       email_templates: portalTemplates,
-      services,
+      services: portalServices,
       checkins,
       stats: { people_engaged: peopleEngaged },
     });
