@@ -295,7 +295,12 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
           />
 
           {/* Trend chart */}
-          <ProgramParticipationChart participation={participation || []} cutoffDate={cutoffDate} />
+          <ProgramParticipationChart
+            participation={participation || []}
+            cutoffDate={cutoffDate}
+            cohortAssessments={cohortAssessments}
+            services={services}
+          />
 
           {/* Collapsible details section */}
           <div className="rounded-xl border border-[#e6e1d8] overflow-hidden" style={{ backgroundColor: '#f9f8f5' }}>

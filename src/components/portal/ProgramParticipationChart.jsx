@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import WellbeingTrendView from './WellbeingTrendView';
 import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 /**
@@ -73,17 +74,49 @@ function Stat({ value, label }) {
   );
 }
 
-export default function ProgramParticipationChart({ participation = [], cutoffDate = null }) {
+export default function ProgramParticipationChart({ participation = [], cutoffDate = null, cohortAssessments = [], services = [] }) {
   const s = useMemo(() => summarizeParticipation(participation, cutoffDate), [participation, cutoffDate]);
-  if (s.totalPrograms === 0) return null;
+  const hasScores = cohortAssessments.length > 0;
+  const [view, setView] = useState('engagement');
+  if (s.totalPrograms === 0 && !hasScores) return null;
+  const activeView = s.totalPrograms === 0 ? 'wellbeing' : view;
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-5">
-      <p className="text-sm font-semibold text-gray-700 mb-0.5">Program Participation</p>
-      <p className="text-xs text-gray-400 mb-4">
-        People who took part in your programs each month, and how many programs ran.
-      </p>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 mb-4">
+        <div>
+          <p className="text-sm font-semibold text-gray-700 mb-0.5">
+            {activeView === 'engagement' ? 'Program Participation' : 'Wellbeing Over Time'}
+          </p>
+          <p className="text-xs text-gray-400">
+            {activeView === 'engagement'
+              ? 'People who took part in your programs each month, and how many programs ran.'
+              : 'Survey scores over time, with when each program ran and what changed.'}
+          </p>
+        </div>
+        <div className="inline-flex self-start rounded-lg border border-gray-200 bg-white p-0.5 shrink-0">
+          {[['engagement', 'Engagement'], ['wellbeing', 'Wellbeing']].map(([k, lbl]) => (
+            <button
+              key={k}
+              onClick={() => setView(k)}
+              disabled={k === 'engagement' && s.totalPrograms === 0}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors disabled:opacity-40 ${activeView === k ? 'bg-brand-navy text-white' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              {lbl}
+            </button>
+          ))}
+        </div>
+      </div>
 
+      {activeView === 'wellbeing' ? (
+        <WellbeingTrendView
+          cohortAssessments={cohortAssessments}
+          participation={participation}
+          services={services}
+          cutoffDate={cutoffDate}
+        />
+      ) : (
+      <>
       <div className="grid grid-cols-3 gap-4 mb-4">
         <Stat value={s.totalPeople} label={s.totalPeople === 1 ? 'person took part' : 'people took part'} />
         <Stat value={s.totalPrograms} label={s.totalPrograms === 1 ? 'program delivered' : 'programs delivered'} />
@@ -109,6 +142,8 @@ export default function ProgramParticipationChart({ participation = [], cutoffDa
           Programs per person: 1 → {s.dist.one} · 2 → {s.dist.two} · 3+ → {s.dist.threePlus}
         </span>
       </div>
+      </>
+      )}
     </div>
   );
 }
