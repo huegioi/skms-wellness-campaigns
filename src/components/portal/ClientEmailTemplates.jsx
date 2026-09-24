@@ -5,6 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Mail, Download, FileText, Award, Dumbbell, Users, Package, Eye } from 'lucide-react';
+
+// Client-facing email templates are not ready yet — the list renders grayed out
+// with a "Coming soon" label. Set to false to re-enable.
+const EMAIL_TEMPLATES_COMING_SOON = true;
 // ── Download cleanup helpers ────────────────────────────────────────
 // Templates imported from real marketing emails drag along 1px spacer/tracking
 // images (Kajabi pixels, often proxied through googleusercontent) and
@@ -304,164 +308,181 @@ export default function ClientEmailTemplates({ proposal, templates = [], client,
         </CardContent>
       </Card>
 
-      {/* Service Templates */}
-      {proposalServices.length > 0 ? (
-        <Accordion type="single" collapsible className="space-y-4">
-          {proposalServices.map(service => {
-            const serviceTemplates = getTemplatesForService(service.key, service.name);
-            const Icon = categoryIcons[service.category] || FileText;
-            const color = categoryColors[service.category] || '#666';
+      {/* Service + additional templates — shown grayed out under a "Coming soon"
+          overlay until the client-facing template library is ready.
+          Flip EMAIL_TEMPLATES_COMING_SOON to false to turn them back on. */}
+      <div className="relative">
+        <div
+          className={EMAIL_TEMPLATES_COMING_SOON ? 'space-y-6 opacity-40 grayscale pointer-events-none select-none' : 'space-y-6'}
+          aria-hidden={EMAIL_TEMPLATES_COMING_SOON || undefined}
+        >
+        {/* Service Templates */}
+        {proposalServices.length > 0 ? (
+          <Accordion type="single" collapsible className="space-y-4">
+            {proposalServices.map(service => {
+              const serviceTemplates = getTemplatesForService(service.key, service.name);
+              const Icon = categoryIcons[service.category] || FileText;
+              const color = categoryColors[service.category] || '#666';
 
-            return (
-              <AccordionItem 
-                key={service.key} 
-                value={service.key}
-                className="bg-white rounded-lg border shadow-sm overflow-hidden"
-              >
-                <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <div 
-                      className="w-10 h-10 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: color }}
-                    >
-                      <Icon className="w-5 h-5 text-white" />
+              return (
+                <AccordionItem 
+                  key={service.key} 
+                  value={service.key}
+                  className="bg-white rounded-lg border shadow-sm overflow-hidden"
+                >
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="w-10 h-10 rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: color }}
+                      >
+                        <Icon className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="text-left">
+                        <h4 className="font-semibold text-gray-800">{service.name}</h4>
+                        <p className="text-sm text-gray-500">
+                          {serviceTemplates.length > 0 
+                            ? `${serviceTemplates.length} template(s) available`
+                            : 'No templates uploaded yet'
+                          }
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-left">
-                      <h4 className="font-semibold text-gray-800">{service.name}</h4>
-                      <p className="text-sm text-gray-500">
-                        {serviceTemplates.length > 0 
-                          ? `${serviceTemplates.length} template(s) available`
-                          : 'No templates uploaded yet'
-                        }
-                      </p>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  {serviceTemplates.length > 0 ? (
-                    <div className="space-y-3 mt-2">
-                      {serviceTemplates.map(template => (
-                        <div 
-                          key={template.id} 
-                          className="border rounded-lg p-4 bg-gray-50"
-                        >
-                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                            <div>
-                              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <Badge variant="outline">
-                                  {templateTypeLabels[template.template_type] || template.template_type}
-                                </Badge>
-                                {template.event_booked ? (
-                                  <Badge className="bg-green-100 text-green-700">Personalized for your event</Badge>
-                                ) : (
-                                  <Badge className="bg-amber-100 text-amber-700">Event dates TBD</Badge>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-4">
+                    {serviceTemplates.length > 0 ? (
+                      <div className="space-y-3 mt-2">
+                        {serviceTemplates.map(template => (
+                          <div 
+                            key={template.id} 
+                            className="border rounded-lg p-4 bg-gray-50"
+                          >
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                              <div>
+                                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                  <Badge variant="outline">
+                                    {templateTypeLabels[template.template_type] || template.template_type}
+                                  </Badge>
+                                  {template.event_booked ? (
+                                    <Badge className="bg-green-100 text-green-700">Personalized for your event</Badge>
+                                  ) : (
+                                    <Badge className="bg-amber-100 text-amber-700">Event dates TBD</Badge>
+                                  )}
+                                </div>
+                                <p className="font-medium text-gray-800">{template.subject}</p>
+                                {template.body && (
+                                  <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                                    {template.body.replace(/<[^>]*>/g, '').substring(0, 150)}...
+                                  </p>
                                 )}
                               </div>
-                              <p className="font-medium text-gray-800">{template.subject}</p>
-                              {template.body && (
-                                <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                                  {template.body.replace(/<[^>]*>/g, '').substring(0, 150)}...
-                                </p>
-                              )}
-                            </div>
-                            <div className="flex gap-2 shrink-0 flex-wrap">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => setViewingTemplate(template)}
-                              >
-                                <Eye className="w-4 h-4 mr-2" />
-                                View
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleDownload(template, 'eml')}
-                              >
-                                <Download className="w-4 h-4 mr-2" />
-                                .EML
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleDownload(template, 'doc')}
-                              >
-                                <Download className="w-4 h-4 mr-2" />
-                                .DOC
-                              </Button>
+                              <div className="flex gap-2 shrink-0 flex-wrap">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => setViewingTemplate(template)}
+                                >
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  View
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleDownload(template, 'eml')}
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  .EML
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => handleDownload(template, 'doc')}
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  .DOC
+                                </Button>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-6 text-gray-500">
-                      <FileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                      <p className="text-sm">Templates for this service will be uploaded soon.</p>
-                    </div>
-                  )}
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
-      ) : (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-            <p className="text-gray-500">No services found in your proposal.</p>
-          </CardContent>
-        </Card>
-      )}
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-6 text-gray-500">
+                        <FileText className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm">Templates for this service will be uploaded soon.</p>
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        ) : (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <FileText className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+              <p className="text-gray-500">No services found in your proposal.</p>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Additional templates assigned to this portal outside the service list */}
-      {extraTemplates.length > 0 && (
-        <Card className="border-l-4 border-l-[#770142]">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="w-5 h-5 text-[#770142]" />
-              Additional Templates
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {extraTemplates.map(template => (
-                <div key={template.id} className="border rounded-lg p-4 bg-gray-50">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <Badge variant="outline">
-                          {templateTypeLabels[template.template_type] || template.template_type}
-                        </Badge>
-                        {template.event_booked ? (
-                          <Badge className="bg-green-100 text-green-700">Personalized for your event</Badge>
-                        ) : (
-                          <Badge className="bg-amber-100 text-amber-700">Event dates TBD</Badge>
+        {/* Additional templates assigned to this portal outside the service list */}
+        {extraTemplates.length > 0 && (
+          <Card className="border-l-4 border-l-[#770142]">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="w-5 h-5 text-[#770142]" />
+                Additional Templates
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {extraTemplates.map(template => (
+                  <div key={template.id} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <Badge variant="outline">
+                            {templateTypeLabels[template.template_type] || template.template_type}
+                          </Badge>
+                          {template.event_booked ? (
+                            <Badge className="bg-green-100 text-green-700">Personalized for your event</Badge>
+                          ) : (
+                            <Badge className="bg-amber-100 text-amber-700">Event dates TBD</Badge>
+                          )}
+                        </div>
+                        <p className="font-medium text-gray-800">{template.subject}</p>
+                        {template.service_name && (
+                          <p className="text-xs text-gray-500 mt-0.5">{template.service_name}</p>
                         )}
                       </div>
-                      <p className="font-medium text-gray-800">{template.subject}</p>
-                      {template.service_name && (
-                        <p className="text-xs text-gray-500 mt-0.5">{template.service_name}</p>
-                      )}
-                    </div>
-                    <div className="flex gap-2 shrink-0 flex-wrap">
-                      <Button variant="outline" size="sm" onClick={() => setViewingTemplate(template)}>
-                        <Eye className="w-4 h-4 mr-2" /> View
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDownload(template, 'eml')}>
-                        <Download className="w-4 h-4 mr-2" /> .EML
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDownload(template, 'doc')}>
-                        <Download className="w-4 h-4 mr-2" /> .DOC
-                      </Button>
+                      <div className="flex gap-2 shrink-0 flex-wrap">
+                        <Button variant="outline" size="sm" onClick={() => setViewingTemplate(template)}>
+                          <Eye className="w-4 h-4 mr-2" /> View
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDownload(template, 'eml')}>
+                          <Download className="w-4 h-4 mr-2" /> .EML
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => handleDownload(template, 'doc')}>
+                          <Download className="w-4 h-4 mr-2" /> .DOC
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        </div>
+        {EMAIL_TEMPLATES_COMING_SOON && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="px-5 py-2 rounded-full bg-white/95 border border-gray-200 shadow-sm text-sm font-semibold text-gray-700 tracking-wide">
+              Coming soon
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* Help Text */}
       <Card className="bg-teal-50 border-teal-200">
