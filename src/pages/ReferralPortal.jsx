@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { format } from 'date-fns';
-import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown, BarChart3, ArrowLeft, BookOpen, ChevronRight, PlayCircle, Star, Download, Brain, Wrench } from 'lucide-react';
+import { Users, DollarSign, FileText, Plus, CheckCircle, Clock, TrendingUp, ExternalLink, AlertCircle, Gift, ChevronDown, BarChart3, ArrowLeft, BookOpen, ChevronRight, PlayCircle, Star, Download, Brain, Wrench, Home, Building2, ArrowRight } from 'lucide-react';
 import ROIDashboard from '@/components/portal/ROIDashboard';
 import BrokerFeedbackRollup from '@/components/portal/BrokerFeedbackRollup';
 import TierProgress from '@/components/portal/TierProgress';
@@ -15,14 +15,35 @@ import ReferralStepper from '@/components/portal/ReferralStepper';
 import RecentActivity from '@/components/portal/RecentActivity';
 import { PortalShell, PortalLoading, PortalError } from '@/components/portal/PortalShell';
 import PartnerToolsTab from '@/components/portal/PartnerToolsTab';
+import PartnerHomeTab from '@/components/portal/partner/PartnerHomeTab';
+import PartnerClientsTab from '@/components/portal/partner/PartnerClientsTab';
+import PartnerOfferings from '@/components/portal/partner/PartnerOfferings';
+import { usePartnerBook } from '@/components/portal/partner/usePartnerBook';
 import { REFERRAL_STATUS_COLORS as STATUS_COLORS, REFERRAL_STATUS_LABELS as STATUS_LABELS } from '@/lib/statusConfig';
 
 const TABS = [
-  { key: 'start_here', label: 'Start Here', icon: BookOpen },
-  { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+  { key: 'home', label: 'Home', icon: Home },
+  { key: 'referrals', label: 'Referrals', icon: Users },
+  { key: 'clients', label: 'Clients', icon: Building2 },
   { key: 'tools', label: 'Tools', icon: Wrench },
   { key: 'commissions', label: 'Commissions', icon: DollarSign },
+  { key: 'start_here', label: 'Start Here', icon: BookOpen },
 ];
+
+// What happens next for a referral at each status (shown on each referral row).
+const NEXT_STEP_TEXT = (status, commissionsEnabled, company) => ({
+  pending_review: 'We’ll confirm pipeline status within 5 business days.',
+  submitted: 'We’ll confirm pipeline status within 5 business days.',
+  contacted: `We’re in conversation${company ? ` with ${company}` : ''} and will keep you posted.`,
+  converted_to_client: 'They’re a client now — we’re putting their program together.',
+  purchased: commissionsEnabled
+    ? 'Program purchased. Commission is paid within 30 days of the client invoice.'
+    : 'Program purchased — follow their results on the Clients tab.',
+  commission_paid: 'Commission paid — thank you!',
+  not_eligible: 'Not eligible — usually because they were already in our pipeline in the prior 90 days.',
+}[status] || null);
+
+const EMPTY = [];
 
 export default function ReferralPortal() {
   const [searchParams] = useSearchParams();
@@ -40,9 +61,17 @@ export default function ReferralPortal() {
   const updateForm = (updater) => { setForm(updater); setSubmitError(null); };
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const [selectedClientROI, setSelectedClientROI] = useState(null);
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('home');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showOlder, setShowOlder] = useState(false);
+
+  const book = usePartnerBook({
+    portalId,
+    clientCompanies: data?.client_companies || EMPTY,
+    proposals: data?.partner_proposals || EMPTY,
+    services: data?.services || EMPTY,
+    events: data?.client_events || EMPTY,
+  });
 
   useEffect(() => {
     if (!portalId) { setError('No portal ID provided.'); setLoading(false); return; }
@@ -56,7 +85,7 @@ export default function ReferralPortal() {
       const res = await base44.functions.invoke('getReferralPortalData', { portal_id: portalId });
       if (res.data && res.data.partner) {
         setData(res.data);
-        // New partners (zero referrals) land on Start Here; returning partners go straight to Dashboard.
+        // New partners (zero referrals) land on Start Here; returning partners go straight to Home.
         if (!res.data.referrals || res.data.referrals.length === 0) {
           setActiveTab('start_here');
         }
@@ -114,7 +143,7 @@ export default function ReferralPortal() {
   const olderReferrals = filteredReferrals.filter(r => r.referral_date && new Date(r.referral_date) < twelveMonthsAgo);
 
   const renderReferralRow = (r, i) => (
-    <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg bg-gray-50 border gap-3">
+    <div key={i} className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between p-4 rounded-lg bg-gray-50 border gap-3">
       <div>
         <p className="font-semibold text-gray-800">{r.contact_name}</p>
         {r.company_name && <p className="text-sm text-gray-500">{r.company_name}</p>}
@@ -138,6 +167,14 @@ export default function ReferralPortal() {
         )}
       </div>
       <ReferralStepper status={r.status} commissionsEnabled={commissionsEnabled} />
+      {(NEXT_STEP_TEXT(r.status, commissionsEnabled, r.company_name) || r.updated_date) && (
+        <div className="w-full flex flex-wrap items-center justify-between gap-2 text-xs">
+          {NEXT_STEP_TEXT(r.status, commissionsEnabled, r.company_name) && (
+            <p className="text-gray-600 inline-flex items-center gap-1"><ArrowRight className="w-3 h-3 text-brand-navy" />{NEXT_STEP_TEXT(r.status, commissionsEnabled, r.company_name)}</p>
+          )}
+          {r.updated_date && <p className="text-gray-400">Last update {format(new Date(r.updated_date), 'MMM d, yyyy')}</p>}
+        </div>
+      )}
     </div>
   );
 
@@ -191,15 +228,23 @@ export default function ReferralPortal() {
       contentClass="px-4 py-8 space-y-6"
     >
 
-        {/* ─── DASHBOARD TAB ─── */}
-        {activeTab === 'dashboard' && (
+        {/* ─── HOME TAB ─── */}
+        {activeTab === 'home' && (
+          <PartnerHomeTab
+            partner={partner}
+            referrals={referrals}
+            activities={activities}
+            commissionsEnabled={commissionsEnabled}
+            commissionSummary={commission_summary}
+            book={book}
+            portalId={portalId}
+            onNavigate={setActiveTab}
+          />
+        )}
+
+        {/* ─── REFERRALS TAB ─── */}
+        {activeTab === 'referrals' && (
           <>
-            {/* Portfolio Wellness Impact */}
-            <BrokerFeedbackRollup clientCompanies={client_companies} services={services} portalId={portalId} />
-
-            {/* Recent Activity */}
-            <RecentActivity activities={activities} />
-
             {/* Submit a Referral */}
             <Card>
               <CardHeader>
@@ -386,57 +431,19 @@ export default function ReferralPortal() {
               </CardContent>
             </Card>
 
-            {/* Book of Business — ROI Drill-Down */}
-            {client_companies.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <BarChart3 className="w-5 h-5 text-brand-navy" />
-                    Book of Business — Client ROI
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {selectedClientROI ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3">
-                        <Button variant="ghost" size="sm" onClick={() => setSelectedClientROI(null)} className="gap-1 text-xs text-gray-500">
-                          <ArrowLeft className="w-3 h-3" /> All Clients
-                        </Button>
-                        <span className="text-sm font-semibold text-gray-700">{selectedClientROI.company}</span>
-                      </div>
-                      <ROIDashboard
-                        clientId={selectedClientROI.id}
-                        clientCompany={selectedClientROI.company}
-                        services={services}
-                        portalId={portalId}
-                        showReportButton={true}
-                        onGenerateReport={() => window.open(`${window.location.origin}/ClientReport?client_id=${selectedClientROI.id}&portal_id=${portalId}`, '_blank')}
-                      />
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <p className="text-xs text-gray-400 mb-3">Click any client to view their wellness ROI data and generate a report.</p>
-                      {client_companies.map(c => (
-                        <button
-                          key={c.id}
-                          onClick={() => setSelectedClientROI(c)}
-                          className="w-full text-left flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-blue-50 border border-transparent hover:border-brand-navy/20 transition-all group"
-                        >
-                          <div>
-                            <p className="text-sm font-medium text-gray-800">{c.company}</p>
-                            {c.name && c.name !== c.company && <p className="text-xs text-gray-400">{c.name}</p>}
-                          </div>
-                          <span className="text-xs text-gray-400 group-hover:text-brand-navy">View ROI →</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-
-            <p className="text-center text-xs text-gray-400 pb-4">SkillfulMeans · Referral Partner Portal</p>
           </>
+        )}
+
+        {/* ─── CLIENTS TAB ─── */}
+        {activeTab === 'clients' && (
+          <PartnerClientsTab
+            clientCompanies={client_companies}
+            services={services}
+            portalId={portalId}
+            book={book}
+            selectedClient={selectedClientROI}
+            onSelectClient={setSelectedClientROI}
+          />
         )}
 
         {/* ─── START HERE TAB ─── */}
@@ -450,7 +457,7 @@ export default function ReferralPortal() {
                     <Star className="w-8 h-8 text-brand-navy" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-brand-navy">Welcome to Your Partner Portal, {partner.name.split(' ')[0]}!</h2>
+                    <h2 className="text-xl font-bold text-brand-navy">Welcome to your Referral Partner Portal, {partner.name.split(' ')[0]}!</h2>
                     <p className="text-gray-600 text-sm mt-1">Everything you need to track referrals, view client ROI, and grow your partnership with SkillfulMeans — all in one place.</p>
                   </div>
                 </div>
@@ -468,10 +475,10 @@ export default function ReferralPortal() {
               <CardContent>
                 <div className="space-y-4">
                   {[
-                    { step: '1', title: 'Track Your Referrals', desc: commissionsEnabled ? 'On the Dashboard tab, see every referral you\'ve submitted and its current status — from initial contact all the way to commission paid.' : 'On the Dashboard tab, see every referral you\'ve submitted and its current status — from initial contact to purchased.' },
-                    { step: '2', title: 'View Client ROI Data', desc: 'In the "Book of Business" section, click any of your active clients to see NPS scores, stress reduction metrics, and session feedback from their employees.' },
+                    { step: '1', title: 'Track Your Referrals', desc: commissionsEnabled ? 'On the Referrals tab, see every referral you\'ve submitted, where it stands, and what happens next — from initial contact all the way to commission paid.' : 'On the Referrals tab, see every referral you\'ve submitted, where it stands, and what happens next — from initial contact to purchased.' },
+                    { step: '2', title: 'Follow Your Clients', desc: 'On the Clients tab, see each client\'s programs, upcoming sessions, and results — people engaged, eNPS, and wellbeing. Click a client for their full results.' },
                     { step: '3', title: 'Generate Client Reports', desc: 'Inside each client\'s ROI view, hit "Generate Report" to open a print-ready report you can share directly with the client\'s HR team.' },
-                    { step: '4', title: 'Submit New Referrals', desc: 'Use the "Submit a Referral" section on the dashboard. A first name and company is enough to get started — we take it from there.' },
+                    { step: '4', title: 'Submit New Referrals', desc: 'Use "Submit a Referral" on the Referrals tab. A first name and company is enough to get started — we take it from there.' },
                     ...(commissionsEnabled ? [{ step: '5', title: 'Review Your Commission Earnings', desc: 'Your live commission totals, YTD revenue placed, and pending balance are always visible on the Commissions tab.' }] : []),
                   ].map(({ step, title, desc }) => (
                     <div key={step} className="flex gap-4">
@@ -516,37 +523,12 @@ export default function ReferralPortal() {
               </CardContent>
             </Card>
 
-            {/* SKMS Program Offerings */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Gift className="w-5 h-5 text-brand-green" />
-                  What We Offer Your Clients
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-500 mb-4">These are the core programs your referred clients can access through SkillfulMeans:</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {[
-                    { name: 'Interactive Workshops', desc: '60–90 minute live sessions on stress, resilience, sleep, and mental performance. Virtual or in-person.' },
-                    { name: '14-Day Team Challenges', desc: 'Structured micro-habit programs that drive daily engagement and measurable behavior change.' },
-                    { name: 'Leadership EQ Programs', desc: 'Emotional intelligence and pressure management training built for managers and executives.' },
-                    { name: 'Mindful Movement Classes', desc: 'Guided breathwork, yoga, and movement sessions that reduce absenteeism triggers.' },
-                    { name: 'Wellness Boxes', desc: 'Physical or digital curated boxes with tools and resources to reinforce program takeaways.' },
-                    { name: 'Annual Workshop for You', desc: 'Every partner gets a complimentary workshop for their own team — virtual or in-person.' },
-                  ].map((item, i) => (
-                    <div key={i} className="p-3 bg-white rounded-lg border border-[#e6e1d8]">
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-brand-navy" style={{ backgroundColor: 'rgba(1,63,124,0.08)' }}>{item.name}</span>
-                      <p className="text-xs text-gray-600 mt-2">{item.desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* SKMS Program Offerings — live from the Services catalog */}
+            <PartnerOfferings services={services} />
 
             <div className="text-center pb-2">
-              <Button onClick={() => setActiveTab('dashboard')} className="bg-brand-navy hover:bg-[#012d5a] text-white gap-2">
-                Go to Dashboard <ChevronRight className="w-4 h-4" />
+              <Button onClick={() => setActiveTab('home')} className="bg-brand-navy hover:bg-[#012d5a] text-white gap-2">
+                Go to Home <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
