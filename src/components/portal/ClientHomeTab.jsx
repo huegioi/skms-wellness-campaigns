@@ -9,7 +9,7 @@ import AddToCalendarMenu from './AddToCalendarMenu';
 import {
   buildTimelineItems, timelineStatus, relativeDay, TIMELINE_ACTIONS, serviceForEvent,
 } from './timelineItems';
-import { resourceAvailability } from '@/lib/resourceAvailability';
+import { programStatuses, statusCounts, NON_PROGRAM_TYPES } from './programStatus';
 import { NPS_BENCHMARK_LABEL } from '@/lib/npsBenchmark';
 import { contactsForClient } from '@/lib/portalContacts';
 import { BAND_TONE_CLASSES } from '@/components/feedback/instrumentMeta';
@@ -27,8 +27,6 @@ import { Thumb, CardShell, ResultTile, HighlightsCard, ContactCard } from './Por
  *  5. Highlights feed + Your SkillfulMeans contact
  */
 
-const SESSION_SELECTION_KEYS = ['workshops', 'challengePrograms', 'leadership', 'movementClasses'];
-const NON_PROGRAM_TYPES = new Set(['meeting', 'follow_up', 'delivery']);
 const MIN_N = 5;
 
 export default function ClientHomeTab({ client, events = [], proposals = [], services = [], stats, onNavigate }) {
@@ -40,33 +38,8 @@ export default function ClientHomeTab({ client, events = [], proposals = [], ser
     || upcoming.find(i => i.kind === 'event') || null;
 
   // ── Program status: delivered / booked / not yet scheduled ────────────────
-  const programs = useMemo(() => {
-    const ids = [];
-    for (const p of proposals.filter(p => p.status === 'accepted')) {
-      const sel = p.selections || {};
-      for (const k of SESSION_SELECTION_KEYS) for (const id of (sel[k] || [])) if (id && !ids.includes(id)) ids.push(id);
-    }
-    const now = Date.now();
-    return ids.map(id => services.find(s => s.id === id)).filter(Boolean).map(svc => {
-      const sessions = events.filter(e => !NON_PROGRAM_TYPES.has(e.event_type) && serviceForEvent(e, services)?.id === svc.id);
-      const delivered = sessions.length > 0 && resourceAvailability(svc, sessions).available;
-      const future = sessions.filter(e => new Date(e.start_date).getTime() > now)
-        .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
-      const lastHeld = sessions.filter(e => new Date(e.end_date || e.start_date).getTime() <= now)
-        .sort((a, b) => new Date(b.end_date || b.start_date) - new Date(a.end_date || a.start_date))[0];
-      return {
-        service: svc,
-        status: delivered ? 'delivered' : future.length ? 'booked' : 'unscheduled',
-        nextDate: future[0]?.start_date || null,
-        lastHeldDate: lastHeld ? (lastHeld.end_date || lastHeld.start_date) : null,
-      };
-    });
-  }, [proposals, services, events]);
-  const counts = {
-    delivered: programs.filter(p => p.status === 'delivered').length,
-    booked: programs.filter(p => p.status === 'booked').length,
-    unscheduled: programs.filter(p => p.status === 'unscheduled').length,
-  };
+  const programs = useMemo(() => programStatuses(proposals, services, events), [proposals, services, events]);
+  const counts = statusCounts(programs);
   const isNewClient = counts.delivered === 0;
 
   // ── Results (same query + cache as the Feedback tab's dashboard) ─────────
