@@ -2,7 +2,7 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 
 // A single headline metric card with an evidence-tier badge.
-export default function HeroMetricCard({ label, value, caption, evidenceTier, color = '#013f7c' }) {
+export default function HeroMetricCard({ label, value, caption, benchmark, evidenceTier, color = '#013f7c' }) {
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm">
       <div className="flex items-start justify-between gap-2 mb-1">
@@ -15,6 +15,9 @@ export default function HeroMetricCard({ label, value, caption, evidenceTier, co
       </div>
       <p className="text-2xl font-bold" style={{ color }}>{value}</p>
       {caption && <p className="text-xs text-gray-500 mt-1.5 leading-snug">{caption}</p>}
+      {benchmark && (
+        <p className="text-xs text-gray-400 mt-1.5 pt-1.5 border-t border-gray-100">{benchmark}</p>
+      )}
     </div>
   );
 }

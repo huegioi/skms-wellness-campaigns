@@ -8,6 +8,7 @@ import Who5ResultsPanel from './Who5ResultsPanel';
 import PulseFeedbackRollup from './PulseFeedbackRollup';
 import MfsResultsPanel from './MfsResultsPanel';
 import HeroMetricCard from './HeroMetricCard';
+import { NPS_BENCHMARK_LABEL } from '@/lib/npsBenchmark';
 import NarrativeSummary from './NarrativeSummary';
 import EngagementTrendChart from './EngagementTrendChart';
 import AdminLinkSection from './AdminLinkSection';
@@ -266,6 +267,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
               label="eNPS"
               value={enpsValue != null && enpsCount >= 5 ? `${enpsValue >= 0 ? '+' : ''}${enpsValue}` : 'Collecting data'}
               caption={enpsValue != null && enpsCount >= 5 ? `employee Net Promoter Score · ${enpsCount} responses` : 'Likelihood to recommend the program.'}
+              benchmark={NPS_BENCHMARK_LABEL}
               evidenceTier="Advocacy"
               color="#013f7c"
             />

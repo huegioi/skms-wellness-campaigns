@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { computeEnps } from '@/components/feedback/instrumentMeta';
+import { NPS_BENCHMARK_LABEL } from '@/lib/npsBenchmark';
 
 // Portal privacy rule: never render a result built on fewer than 5 people.
 const MIN_N = 5;
@@ -10,12 +11,13 @@ function avg(nums) {
   return nums.reduce((s, v) => s + v, 0) / nums.length;
 }
 
-function Tile({ label, value, sub }) {
+function Tile({ label, value, sub, benchmark }) {
   return (
     <div className="text-center">
       <p className="text-xs text-gray-400 mb-0.5">{label}</p>
       <p className="text-lg font-bold text-gray-700">{value}</p>
       {sub && <p className="text-[10px] text-gray-400 mt-0.5">{sub}</p>}
+      {benchmark && <p className="text-[10px] text-gray-400 mt-0.5">{benchmark}</p>}
     </div>
   );
 }
@@ -110,6 +112,7 @@ export default function PulseFeedbackRollup({ pulseResponses = [] }) {
                     : '—'
                 }
                 sub={overall.nps.n >= MIN_N ? `NPS · ${overall.nps.n} rated` : 'collecting data'}
+                benchmark={NPS_BENCHMARK_LABEL}
               />
             </div>
             {overall.intentRate != null && (

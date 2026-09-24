@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart2, Users, Loader2, AlertCircle, ChevronDown, Activity } from 'lucide-react';
 import HeroMetricCard from './HeroMetricCard';
+import { NPS_BENCHMARK_LABEL } from '@/lib/npsBenchmark';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 import { getInstrumentKey, getScore, matchPairs, calcStats, computeEnps } from '@/components/feedback/instrumentMeta';
 
@@ -198,6 +199,7 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
                 label="eNPS"
                 value={enpsValue != null && enpsCount >= 5 ? `${enpsValue >= 0 ? '+' : ''}${enpsValue}` : 'Collecting data'}
                 caption={enpsValue != null && enpsCount >= 5 ? `employee Net Promoter Score · ${enpsCount} responses` : 'Likelihood to recommend the program.'}
+              benchmark={NPS_BENCHMARK_LABEL}
                 evidenceTier="Advocacy"
                 color="#013f7c"
               />
