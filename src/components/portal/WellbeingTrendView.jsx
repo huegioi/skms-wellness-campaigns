@@ -38,7 +38,7 @@ const monthLabel = (key) => {
   const [y, m] = key.split('-');
   return new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleDateString('en', { month: 'short', year: 'numeric' });
 };
-const fmt = (key, v) => (v == null ? '—' : key === 'uwes3' ? v.toFixed(1) : v.toFixed(v >= 20 ? 0 : 1));
+const fmt = (key, v) => (v == null ? '—' : key === 'uwes3' ? v.toFixed(1) : v.toFixed(Math.abs(v) >= 10 ? 0 : 1));
 
 function programImpact(rows, key) {
   const dir = INSTRUMENT_META[key]?.directionOfGood || 'higher';
