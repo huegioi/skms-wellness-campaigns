@@ -67,9 +67,9 @@ export default function ServiceImagesManager({ images = [], onChange }) {
       {images.length === 0 ? (
         <p className="text-sm text-gray-400">No images yet. The first image added becomes the primary image.</p>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           {images.map((img, idx) => (
-            <div key={idx} className="flex items-start gap-3 bg-gray-50 rounded-lg p-3">
+            <div key={idx} className="flex items-start gap-3 bg-gray-50 rounded-lg p-3 min-w-0">
               <div className="relative shrink-0">
                 <img
                   src={img.url}
