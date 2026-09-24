@@ -1,9 +1,19 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Award, Dumbbell, Users, Package } from 'lucide-react';
-import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 import { buildSelectionResolver, prettifyServiceKey } from '@/lib/serviceMatching';
 import { BOX_DISPLAY_NAMES, BOX_KEY_TO_SERVICE_NAME } from '@/lib/wellnessBoxes';
+
+// Some catalog short_descriptions were saved cut off mid-word at 150 chars
+// ("…focuses on recognizing s"). Use the short one only when it reads as a
+// finished sentence; otherwise fall back to the full description (plain text,
+// clamped to a few lines where it renders).
+function pickBlurb(service) {
+  const short = (service?.short_description || '').trim();
+  const full = (service?.description || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (short && (/[.!?…"”')]$/.test(short) || !full)) return short;
+  return full || short || '';
+}
 
 const categoryIcons = { workshops: Award, challengePrograms: Dumbbell, leadership: Users, movementClasses: Dumbbell };
 const categoryLabels = { workshops: 'Workshops', challengePrograms: '14-Day Challenges', leadership: 'Leadership Programs', movementClasses: 'Movement & Mindfulness Classes' };
@@ -82,7 +92,7 @@ export default function ClientProposalView({ proposals: propsList, proposal: sin
                         {items.map(key => {
                           const service = resolveService(key);
                           const title = service?.name || prettifyServiceKey(key);
-                          const blurb = service?.short_description || service?.description;
+                          const blurb = pickBlurb(service);
                           const imageUrl = service?.images?.[0]?.url;
 
                           return (
@@ -93,11 +103,11 @@ export default function ClientProposalView({ proposals: propsList, proposal: sin
                                     src={imageUrl}
                                     alt={title}
                                     loading="lazy"
-                                    className="w-full h-32 sm:w-32 sm:h-auto sm:self-stretch object-cover flex-shrink-0 bg-gray-100"
+                                    className="w-full h-auto sm:w-52 sm:self-start flex-shrink-0 bg-gray-100"
                                   />
                                 ) : (
                                   <div
-                                    className="hidden sm:flex w-32 flex-shrink-0 items-center justify-center bg-gray-100"
+                                    className="hidden sm:flex w-52 flex-shrink-0 items-center justify-center bg-gray-100"
                                     style={{ color }}
                                     aria-hidden="true"
                                   >
@@ -112,13 +122,7 @@ export default function ClientProposalView({ proposals: propsList, proposal: sin
                                     )}
                                   </div>
                                   {blurb && (
-                                    <p className="text-gray-600 text-sm leading-relaxed mt-1.5">{blurb}</p>
-                                  )}
-                                  {service?.included_assessments?.length > 0 && (
-                                    <div className="mt-3">
-                                      <p className="text-xs text-gray-400 mb-1">Includes assessments:</p>
-                                      <AssessmentBadges assessments={service.included_assessments} size="xs" />
-                                    </div>
+                                    <p className="text-gray-600 text-sm leading-relaxed mt-1.5 line-clamp-4">{blurb}</p>
                                   )}
                                 </div>
                               </div>
@@ -150,10 +154,10 @@ export default function ClientProposalView({ proposals: propsList, proposal: sin
                             src={service.images[0].url}
                             alt={label}
                             loading="lazy"
-                            className="w-full h-32 sm:w-32 sm:h-auto sm:self-stretch object-cover flex-shrink-0 bg-gray-100"
+                            className="w-full h-auto sm:w-52 sm:self-start flex-shrink-0 bg-gray-100"
                           />
                         ) : (
-                          <div className="hidden sm:flex w-32 flex-shrink-0 items-center justify-center bg-gray-100 text-brand-green" aria-hidden="true">
+                          <div className="hidden sm:flex w-52 flex-shrink-0 items-center justify-center bg-gray-100 text-brand-green" aria-hidden="true">
                             <Package className="w-7 h-7 opacity-40" />
                           </div>
                         )}
@@ -162,9 +166,9 @@ export default function ClientProposalView({ proposals: propsList, proposal: sin
                             <h4 className="font-semibold text-gray-800">{label}</h4>
                             <span className="text-xs text-gray-500 whitespace-nowrap">Qty {qty}</span>
                           </div>
-                          {(service?.short_description || service?.description) && (
-                            <p className="text-gray-600 text-sm leading-relaxed mt-1.5">
-                              {service.short_description || service.description}
+                          {pickBlurb(service) && (
+                            <p className="text-gray-600 text-sm leading-relaxed mt-1.5 line-clamp-4">
+                              {pickBlurb(service)}
                             </p>
                           )}
                         </div>
