@@ -170,8 +170,13 @@ export default function ClientResources({ client, proposals = [], services = [],
     return acc;
   }, {});
 
+  // Service view: groups with available resources first, locked ones after.
   const groupKeys = groupBy === 'service'
-    ? Object.keys(grouped).sort()
+    ? Object.keys(grouped).sort((a, b) => {
+        const la = grouped[a].every(r => r.locked) ? 1 : 0;
+        const lb = grouped[b].every(r => r.locked) ? 1 : 0;
+        return la - lb || a.localeCompare(b);
+      })
     : typeOrder.filter(k => grouped[k]);
 
   const getGroupLabel = (key) => {
