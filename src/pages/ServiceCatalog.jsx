@@ -370,297 +370,353 @@ function ServiceEditDialog({ service, open, onOpenChange, onSave, saving }) {
 
   if (!service) return null;
 
+  const config = categoryConfig[formData.category] || categoryConfig[service.category] || {};
+  const CategoryIcon = config.icon || Package;
+  const resourceCount = formData.resources?.length || 0;
+  const prepCount = (formData.presenter_materials?.length || 0) + (formData.presenter_notes ? 1 : 0);
+  const imageCount = formData.images?.length || 0;
+
+  const saveLabel = {
+    details: service.id ? 'Update Service' : 'Create Service',
+    resources: 'Save Resources',
+    prep: 'Save Presenter Prep',
+    images: 'Save Images',
+  }[editTab] || 'Save';
+
+  const countPill = (count, color) => (
+    count > 0 ? (
+      <span
+        className="ml-0.5 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: color }}
+      >
+        {count}
+      </span>
+    ) : null
+  );
+
+  const header = (
+    <div className="space-y-3">
+      <div className="flex items-start gap-3 min-w-0">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+          style={{ backgroundColor: config.color || '#264d44' }}
+        >
+          <CategoryIcon className="w-5 h-5 text-white" />
+        </div>
+        <div className="min-w-0">
+          <DialogTitle className="text-lg sm:text-xl leading-tight truncate">
+            {service.id ? (formData.name || 'Edit Service') : 'Add New Service'}
+          </DialogTitle>
+          <p className="text-xs text-gray-500 mt-0.5 truncate">
+            {config.label || 'Service'}
+            {service.id && Number(formData.price) > 0
+              ? ` · $${Number(formData.price).toLocaleString()}${formData.price_label ? ` ${formData.price_label}` : ''}`
+              : ''}
+          </p>
+        </div>
+      </div>
+
+      <TabsList className="w-full h-auto flex-wrap justify-start gap-1 p-1">
+        <TabsTrigger value="details" className="flex-1 min-w-[6.5rem]">Details</TabsTrigger>
+        <TabsTrigger value="resources" className="flex-1 min-w-[6.5rem] flex items-center gap-1.5">
+          <FolderOpen className="w-4 h-4" />
+          Resources
+          {countPill(resourceCount, '#264d44')}
+        </TabsTrigger>
+        <TabsTrigger value="prep" className="flex-1 min-w-[8rem] flex items-center gap-1.5">
+          <ClipboardList className="w-4 h-4" />
+          Presenter Prep
+          {countPill(prepCount, '#770142')}
+        </TabsTrigger>
+        <TabsTrigger value="images" className="flex-1 min-w-[6.5rem] flex items-center gap-1.5">
+          <ImageIcon className="w-4 h-4" />
+          Images
+          {countPill(imageCount, '#264d44')}
+        </TabsTrigger>
+      </TabsList>
+    </div>
+  );
+
+  const footer = (
+    <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-2">
+      <p className="text-xs text-gray-400 min-h-[1rem]">
+        {!formData.name ? 'A service name is required before saving.' : ''}
+      </p>
+      <div className="flex flex-col-reverse sm:flex-row gap-2">
+        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSave}
+          disabled={saving || !formData.name}
+          className="bg-[#770142] hover:bg-[#5a0132] sm:min-w-[10rem]"
+        >
+          {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+          {saving ? 'Saving...' : saveLabel}
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[95vw] sm:w-full max-h-[92vh] overflow-y-auto">
+      <RecordDetailContent maxWidth="1120px">
         <SonnerToaster position="top-center" style={{ zIndex: 9999 }} />
-        <DialogHeader>
-          <DialogTitle>{service.id ? 'Edit Service' : 'Add New Service'}</DialogTitle>
-        </DialogHeader>
+        <Tabs value={editTab} onValueChange={setEditTab} className="flex flex-col flex-1 min-h-0">
+          <RecordDetailFrame header={header} footer={footer}>
+            <TabsContent value="details" className="mt-0 focus-visible:ring-0">
+              {/* Two columns once there is room; a single stack on narrow windows. */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6 items-start">
+                <FrameSection title="Service" icon={Package} className="min-w-0">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Category *</label>
+                      <Select value={formData.category} onValueChange={(v) => setFormData({...formData, category: v})}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(categoryConfig).map(([key, cfg]) => (
+                            <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-        <Tabs value={editTab} onValueChange={setEditTab} className="mt-4">
-          <TabsList className="w-full">
-            <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
-            <TabsTrigger value="resources" className="flex-1 flex items-center gap-2">
-              <FolderOpen className="w-4 h-4" />
-              Resources
-              {(formData.resources?.length || 0) > 0 && (
-                <span className="ml-1 bg-[#264d44] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {formData.resources.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="prep" className="flex-1 flex items-center gap-2">
-              <ClipboardList className="w-4 h-4" />
-              Presenter Prep
-              {((formData.presenter_materials?.length || 0) > 0 || formData.presenter_notes) && (
-                <span className="ml-1 bg-[#770142] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {(formData.presenter_materials?.length || 0) + (formData.presenter_notes ? 1 : 0)}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="images" className="flex-1 flex items-center gap-2">
-              <ImageIcon className="w-4 h-4" />
-              Images
-              {(formData.images?.length || 0) > 0 && (
-                <span className="ml-1 bg-[#264d44] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                  {formData.images.length}
-                </span>
-              )}
-            </TabsTrigger>
-          </TabsList>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Service Name *</label>
+                      <Input
+                        value={formData.name || ''}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        placeholder="e.g., Stress Management Workshop"
+                      />
+                    </div>
 
-          <TabsContent value="details">
-        <div className="space-y-4 mt-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Category *</label>
-            <Select value={formData.category} onValueChange={(v) => setFormData({...formData, category: v})}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(categoryConfig).map(([key, config]) => (
-                  <SelectItem key={key} value={key}>{config.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Short Description</label>
+                      <Input
+                        value={formData.short_description || ''}
+                        onChange={(e) => setFormData({...formData, short_description: e.target.value})}
+                        placeholder="Brief one-line description"
+                      />
+                    </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Service Name *</label>
-            <Input 
-              value={formData.name || ''} 
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              placeholder="e.g., Stress Management Workshop"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Short Description</label>
-            <Input 
-              value={formData.short_description || ''} 
-              onChange={(e) => setFormData({...formData, short_description: e.target.value})}
-              placeholder="Brief one-line description"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Full Description</label>
-            <Textarea 
-              value={formData.description || ''} 
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              placeholder="Detailed description of the service..."
-              rows={4}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Price *</label>
-              <Input 
-                type="number"
-                value={formData.price || ''} 
-                onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value) || 0})}
-                placeholder="0"
-              />
-              {formData.category === 'wellness_box' && formData.qb_box_key && Number(formData.price) > 0 && Number(formData.price) < boxPriceFloor(formData.qb_box_key) && (
-                <p className="text-xs mt-1 text-amber-600 font-medium">
-                  Below the ${boxPriceFloor(formData.qb_box_key)} minimum for this wellness box.
-                </p>
-              )}
-            </div>
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Price Label</label>
-              <Input 
-                value={formData.price_label || ''} 
-                onChange={(e) => setFormData({...formData, price_label: e.target.value})}
-                placeholder="e.g., per session"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Duration</label>
-              <Input 
-                value={formData.duration || ''} 
-                onChange={(e) => setFormData({...formData, duration: e.target.value})}
-                placeholder="e.g., 1 hour, 14 days"
-              />
-            </div>
-            <div>
-              <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Duration (hours)</label>
-              <Input 
-                type="number"
-                value={formData.duration_hours || ''} 
-                onChange={(e) => setFormData({...formData, duration_hours: parseFloat(e.target.value) || 0})}
-                placeholder="For calendar events"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Target Audience</label>
-            <Input 
-              value={formData.target_audience || ''} 
-              onChange={(e) => setFormData({...formData, target_audience: e.target.value})}
-              placeholder="e.g., All employees, Leadership team"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Key Benefits</label>
-            <div className="flex gap-2 mb-2">
-              <Input 
-                value={benefitInput} 
-                onChange={(e) => setBenefitInput(e.target.value)}
-                placeholder="Add a benefit..."
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addBenefit())}
-              />
-              <Button type="button" variant="outline" onClick={addBenefit}>Add</Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {(formData.key_benefits || []).map((benefit, idx) => (
-                <Badge key={idx} variant="secondary" className="cursor-pointer" onClick={() => removeBenefit(idx)}>
-                  {benefit} ×
-                </Badge>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-1">Sort Order</label>
-            <Input 
-              type="number"
-              value={formData.sort_order || 0} 
-              onChange={(e) => setFormData({...formData, sort_order: parseInt(e.target.value) || 0})}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-600 mb-2">Assessments Included</label>
-            <p className="text-xs text-gray-400 mb-3">Validated instruments delivered with this service, beyond the standard session pulse.</p>
-            <AssessmentsSelector
-              category={formData.category}
-              value={formData.included_assessments || []}
-              onChange={(v) => setFormData(prev => ({ ...prev, included_assessments: v }))}
-              isNew={!service?.id}
-            />
-          </div>
-
-          <Button onClick={handleSave} disabled={saving || !formData.name} className="w-full bg-[#770142] hover:bg-[#5a0132]">
-            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-            {saving ? 'Saving...' : (service.id ? 'Update Service' : 'Create Service')}
-          </Button>
-        </div>
-          </TabsContent>
-
-          <TabsContent value="resources" className="mt-4">
-            <p className="text-sm text-gray-500 mb-4">
-              Files uploaded here will automatically appear in the portal Resources tab for any client who has purchased this service.
-            </p>
-            <ServiceResourceManager
-              resources={formData.resources || []}
-              onChange={(resources) => setFormData({ ...formData, resources })}
-            />
-            <Button onClick={handleSave} disabled={saving || !formData.name} className="w-full mt-4 bg-[#770142] hover:bg-[#5a0132]">
-              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              {saving ? 'Saving...' : 'Save Resources'}
-            </Button>
-          </TabsContent>
-
-          <TabsContent value="prep" className="mt-4">
-            <p className="text-sm text-gray-500 mb-4">
-              Decks, facilitation guides, and run-of-show notes shared with presenters for this service. These appear in each presenter's Session Prep card.
-            </p>
-
-            <div className="mb-5">
-              <label className="block text-sm font-medium text-gray-600 mb-2">Presenter Materials</label>
-              <div className="space-y-2 mb-2">
-                {(formData.presenter_materials || []).map((m, idx) => (
-                  <div key={idx} className="flex gap-2 items-center">
-                    <Input
-                      value={m.label || ''}
-                      onChange={(e) => {
-                        const arr = [...(formData.presenter_materials || [])];
-                        arr[idx] = { ...arr[idx], label: e.target.value };
-                        setFormData({ ...formData, presenter_materials: arr });
-                      }}
-                      placeholder="Label (e.g., Facilitation Guide)"
-                      className="flex-1"
-                    />
-                    <Input
-                      value={m.url || ''}
-                      onChange={(e) => {
-                        const arr = [...(formData.presenter_materials || [])];
-                        arr[idx] = { ...arr[idx], url: e.target.value };
-                        setFormData({ ...formData, presenter_materials: arr });
-                      }}
-                      placeholder="https://..."
-                      className="flex-1"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-500 shrink-0"
-                      onClick={() => {
-                        setFormData({
-                          ...formData,
-                          presenter_materials: (formData.presenter_materials || []).filter((_, i) => i !== idx)
-                        });
-                      }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Full Description</label>
+                      <Textarea
+                        value={formData.description || ''}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        placeholder="Detailed description of the service..."
+                        rows={6}
+                        className="resize-y"
+                      />
+                    </div>
                   </div>
-                ))}
+                </FrameSection>
+
+                <FrameSection title="Pricing & Delivery" icon={DollarSign} className="min-w-0">
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Price *</label>
+                        <Input
+                          type="number"
+                          value={formData.price || ''}
+                          onChange={(e) => setFormData({...formData, price: parseFloat(e.target.value) || 0})}
+                          placeholder="0"
+                        />
+                        {formData.category === 'wellness_box' && formData.qb_box_key && Number(formData.price) > 0 && Number(formData.price) < boxPriceFloor(formData.qb_box_key) && (
+                          <p className="text-xs mt-1 text-amber-600 font-medium">
+                            Below the ${boxPriceFloor(formData.qb_box_key)} minimum for this wellness box.
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Price Label</label>
+                        <Input
+                          value={formData.price_label || ''}
+                          onChange={(e) => setFormData({...formData, price_label: e.target.value})}
+                          placeholder="e.g., per session"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Duration</label>
+                        <Input
+                          value={formData.duration || ''}
+                          onChange={(e) => setFormData({...formData, duration: e.target.value})}
+                          placeholder="e.g., 1 hour, 14 days"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Duration (hours)</label>
+                        <Input
+                          type="number"
+                          value={formData.duration_hours || ''}
+                          onChange={(e) => setFormData({...formData, duration_hours: parseFloat(e.target.value) || 0})}
+                          placeholder="For calendar events"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Target Audience</label>
+                        <Input
+                          value={formData.target_audience || ''}
+                          onChange={(e) => setFormData({...formData, target_audience: e.target.value})}
+                          placeholder="e.g., All employees"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs sm:text-sm font-medium text-gray-600 mb-1">Sort Order</label>
+                        <Input
+                          type="number"
+                          value={formData.sort_order || 0}
+                          onChange={(e) => setFormData({...formData, sort_order: parseInt(e.target.value) || 0})}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-600 mb-1">Key Benefits</label>
+                      <div className="flex gap-2 mb-2">
+                        <Input
+                          value={benefitInput}
+                          onChange={(e) => setBenefitInput(e.target.value)}
+                          placeholder="Add a benefit..."
+                          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addBenefit())}
+                        />
+                        <Button type="button" variant="outline" onClick={addBenefit}>Add</Button>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {(formData.key_benefits || []).map((benefit, idx) => (
+                          <Badge key={idx} variant="secondary" className="cursor-pointer" onClick={() => removeBenefit(idx)}>
+                            {benefit} ×
+                          </Badge>
+                        ))}
+                        {(formData.key_benefits || []).length === 0 && (
+                          <p className="text-xs text-gray-400">None yet — benefits appear on proposals and the service card.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </FrameSection>
+
+                <FrameSection title="Assessments Included" icon={ClipboardList} className="lg:col-span-2 min-w-0">
+                  <p className="text-xs text-gray-400 -mt-1 mb-1">
+                    Validated instruments delivered with this service, beyond the standard session pulse.
+                  </p>
+                  <AssessmentsSelector
+                    category={formData.category}
+                    value={formData.included_assessments || []}
+                    onChange={(v) => setFormData(prev => ({ ...prev, included_assessments: v }))}
+                    isNew={!service?.id}
+                  />
+                </FrameSection>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setFormData({
-                  ...formData,
-                  presenter_materials: [...(formData.presenter_materials || []), { label: '', url: '' }]
-                })}
-                className="gap-2"
-              >
-                <Plus className="w-4 h-4" /> Add Material
-              </Button>
-            </div>
+            </TabsContent>
 
-            <div className="mb-5">
-              <label className="block text-sm font-medium text-gray-600 mb-1">Run-of-Show Notes</label>
-              <Textarea
-                value={formData.presenter_notes || ''}
-                onChange={(e) => setFormData({ ...formData, presenter_notes: e.target.value })}
-                placeholder="Run-of-show guidance, timing, key talking points, facilitation tips..."
-                rows={5}
+            <TabsContent value="resources" className="mt-0 focus-visible:ring-0">
+              <p className="text-sm text-gray-500 mb-4">
+                Files uploaded here will automatically appear in the portal Resources tab for any client who has purchased this service.
+              </p>
+              <ServiceResourceManager
+                resources={formData.resources || []}
+                onChange={(resources) => setFormData({ ...formData, resources })}
               />
-            </div>
+            </TabsContent>
 
-            <Button onClick={handleSave} disabled={saving || !formData.name} className="w-full bg-[#770142] hover:bg-[#5a0132]">
-              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              {saving ? 'Saving...' : 'Save Presenter Prep'}
-            </Button>
-          </TabsContent>
+            <TabsContent value="prep" className="mt-0 focus-visible:ring-0">
+              <p className="text-sm text-gray-500 mb-4">
+                Decks, facilitation guides, and run-of-show notes shared with presenters for this service. These appear in each presenter's Session Prep card.
+              </p>
 
-          <TabsContent value="images" className="mt-4">
-            <p className="text-sm text-gray-500 mb-4">
-              Upload images for this service. The first image is the primary image and appears on the service card.
-            </p>
-            <ServiceImagesManager
-              images={formData.images || []}
-              onChange={(images) => setFormData({ ...formData, images })}
-            />
-            <Button onClick={handleSave} disabled={saving || !formData.name} className="w-full mt-4 bg-[#770142] hover:bg-[#5a0132]">
-              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              {saving ? 'Saving...' : 'Save Images'}
-            </Button>
-          </TabsContent>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6 items-start">
+                <FrameSection title="Presenter Materials" icon={FolderOpen} className="min-w-0">
+                  <div className="space-y-2 mb-2">
+                    {(formData.presenter_materials || []).map((m, idx) => (
+                      <div key={idx} className="flex gap-2 items-center">
+                        <Input
+                          value={m.label || ''}
+                          onChange={(e) => {
+                            const arr = [...(formData.presenter_materials || [])];
+                            arr[idx] = { ...arr[idx], label: e.target.value };
+                            setFormData({ ...formData, presenter_materials: arr });
+                          }}
+                          placeholder="Label (e.g., Facilitation Guide)"
+                          className="flex-1 min-w-0"
+                        />
+                        <Input
+                          value={m.url || ''}
+                          onChange={(e) => {
+                            const arr = [...(formData.presenter_materials || [])];
+                            arr[idx] = { ...arr[idx], url: e.target.value };
+                            setFormData({ ...formData, presenter_materials: arr });
+                          }}
+                          placeholder="https://..."
+                          className="flex-1 min-w-0"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-red-500 shrink-0"
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              presenter_materials: (formData.presenter_materials || []).filter((_, i) => i !== idx)
+                            });
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    {(formData.presenter_materials || []).length === 0 && (
+                      <p className="text-xs text-gray-400">No materials linked yet.</p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFormData({
+                      ...formData,
+                      presenter_materials: [...(formData.presenter_materials || []), { label: '', url: '' }]
+                    })}
+                    className="gap-2"
+                  >
+                    <Plus className="w-4 h-4" /> Add Material
+                  </Button>
+                </FrameSection>
+
+                <FrameSection title="Run-of-Show Notes" icon={ClipboardList} className="min-w-0">
+                  <Textarea
+                    value={formData.presenter_notes || ''}
+                    onChange={(e) => setFormData({ ...formData, presenter_notes: e.target.value })}
+                    placeholder="Run-of-show guidance, timing, key talking points, facilitation tips..."
+                    rows={10}
+                    className="resize-y"
+                  />
+                </FrameSection>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="images" className="mt-0 focus-visible:ring-0">
+              <p className="text-sm text-gray-500 mb-4">
+                Upload images for this service. The first image is the primary image and appears on the service card.
+              </p>
+              <ServiceImagesManager
+                images={formData.images || []}
+                onChange={(images) => setFormData({ ...formData, images })}
+              />
+            </TabsContent>
+          </RecordDetailFrame>
         </Tabs>
-      </DialogContent>
+      </RecordDetailContent>
     </Dialog>
   );
 }
