@@ -73,7 +73,8 @@ export default function AssessmentsSelector({ category, value = [], onChange, is
 
   return (
     <div className="space-y-3">
-      <div className="space-y-2">
+      {/* One per row when narrow; a grid once the dialog has room. */}
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
         {INSTRUMENTS.map(inst => {
           const checked = value.includes(inst.key);
           return (
