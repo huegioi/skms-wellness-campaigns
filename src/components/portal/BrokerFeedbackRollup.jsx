@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart2, Users, Loader2, AlertCircle, ChevronDown, Activity } from 'lucide-react';
 import HeroMetricCard from './HeroMetricCard';
+import { summarizeParticipation } from './ProgramParticipationChart';
 import { NPS_BENCHMARK_LABEL } from '@/lib/npsBenchmark';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
 import { getInstrumentKey, getScore, matchPairs, calcStats, computeEnps } from '@/components/feedback/instrumentMeta';
@@ -33,7 +34,7 @@ function enpsForRows(cohortRows, pulseRows) {
   return computeEnps(scores);
 }
 
-export default function BrokerFeedbackRollup({ clientCompanies = [], services = [], portalId }) {
+export default function BrokerFeedbackRollup({ clientCompanies = [], services = [], portalId, showBreakdown = true }) {
   const [expandedClient, setExpandedClient] = useState(null);
   const clientIds = clientCompanies.map(c => c.id);
 
@@ -54,6 +55,7 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
   const allResponses = roiData?.feedback_responses || [];
   const allCohortAssessments = roiData?.cohort_assessments || [];
   const allCheckins = roiData?.checkins || [];
+  const participation = roiData?.participation || null;
 
   // ── Hero metrics ────────────────────────────────────────────────────────────
   const activeClientCount = clientCompanies.length;
@@ -63,8 +65,15 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
     const cohortEmails = new Set(allCohortAssessments.map(r => (r.participant_email || '').toLowerCase().trim()).filter(Boolean));
     const checkinEmails = new Set(allCheckins.map(c => (c.email || '').toLowerCase().trim()).filter(Boolean));
     const allEmails = new Set([...pulseEmails, ...cohortEmails, ...checkinEmails]);
+    // Prefer program-based participation (unique people per delivered program,
+    // staff excluded) — the portal path strips emails from feedback/check-ins,
+    // so the email union above undercounts. Falls back when unavailable.
+    if (participation) {
+      const s = summarizeParticipation(participation);
+      if (s.totalPrograms > 0) return s.totalPeople;
+    }
     return allEmails.size > 0 ? allEmails.size : allResponses.length;
-  }, [allResponses, allCohortAssessments, allCheckins]);
+  }, [allResponses, allCohortAssessments, allCheckins, participation]);
 
   const aggregateWho5Stats = useMemo(
     () => who5StatsForRows(allCohortAssessments),
@@ -123,7 +132,7 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
           <BarChart2 className="w-5 h-5" />
           Portfolio Wellness Impact
         </CardTitle>
-        <p className="text-xs text-gray-400 mt-0.5">Aggregated across your entire book of business — separate from your referral pipeline below</p>
+        <p className="text-xs text-gray-400 mt-0.5">Aggregated across your entire book of business</p>
       </CardHeader>
       <CardContent className="space-y-6">
 
@@ -178,7 +187,7 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
               <HeroMetricCard
                 label="Employees Reached"
                 value={employeesReached}
-                caption="Distinct participants across all clients."
+                caption="Unique people who took part, across all clients."
                 evidenceTier="Engagement"
                 color="#013f7c"
               />
@@ -206,7 +215,7 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
             </div>
 
             {/* Per-client list */}
-            <div>
+            {showBreakdown && (<div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Client Breakdown</p>
               <p className="text-xs text-gray-400 mb-3">Click a client to see their compact summary. Full ROI reports are in the Book of Business section below.</p>
               <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
@@ -283,7 +292,7 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
                   );
                 })}
               </div>
-            </div>
+            </div>)}
           </>
         )}
 
