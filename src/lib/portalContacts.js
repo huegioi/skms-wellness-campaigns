@@ -40,3 +40,6 @@ export const HR_PORTAL_CONTACT = PORTAL_CONTACTS.Heather;
 export function contactsForClient() {
   return [HR_PORTAL_CONTACT];
 }
+
+/** Referral partner portal contact — also Heather (2026-09-24). */
+export const PARTNER_PORTAL_CONTACT = HR_PORTAL_CONTACT;

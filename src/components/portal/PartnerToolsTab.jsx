@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { TrendingUp, Calculator, Copy, Share2, ExternalLink, CheckCircle, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { copyToClipboard } from '@/lib/copyToClipboard';
-import { HR_PORTAL_CONTACT } from '@/lib/portalContacts';
+import { PARTNER_PORTAL_CONTACT } from '@/lib/portalContacts';
 
 const TOOLS = [
   {
@@ -146,7 +146,7 @@ export default function PartnerToolsTab({ refCode }) {
 
       <p className="text-center text-sm text-stone-500 pt-2">
         Questions, co-selling help, or want us on a client call?{' '}
-        <a href={`mailto:${HR_PORTAL_CONTACT.email}`} className="font-semibold text-brand-navy hover:underline">{HR_PORTAL_CONTACT.first} ({HR_PORTAL_CONTACT.email})</a>
+        <a href={`mailto:${PARTNER_PORTAL_CONTACT.email}`} className="font-semibold text-brand-navy hover:underline">{PARTNER_PORTAL_CONTACT.first} ({PARTNER_PORTAL_CONTACT.email})</a>
         — that's what we're here for.
       </p>
     </div>
