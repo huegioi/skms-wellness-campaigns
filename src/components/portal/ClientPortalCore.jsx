@@ -217,8 +217,10 @@ export default function ClientPortalCore({ mode, token, clientId }) {
     >
       {activeTab === 'home' && (
         <ClientHomeTab
+          client={client}
           events={events}
           proposals={proposals}
+          services={services}
           stats={stats}
           onNavigate={setActiveTab}
         />
