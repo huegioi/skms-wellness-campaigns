@@ -227,7 +227,7 @@ export default function ClientPortalCore({ mode, token, clientId }) {
         <ClientProposalView proposals={proposals} client={client} services={services} />
       )}
       {activeTab === 'timeline' && (
-        <ClientTimeline events={events} proposal={acceptedProposal} />
+        <ClientTimeline events={events} proposal={acceptedProposal} services={services} />
       )}
       {activeTab === 'book' && (
         <BookSession client={client} />

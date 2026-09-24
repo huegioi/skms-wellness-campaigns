@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Calendar, Mail, Bell, Clock, AlertCircle, CheckCircle2, 
-  Users, Award, Dumbbell, Package, MessageSquare, ChevronDown, ChevronRight, CalendarPlus
+import {
+  Calendar, Mail, Bell, Clock, AlertCircle, CheckCircle2,
+  Users, Award, Dumbbell, Package, MessageSquare, ChevronDown, ChevronRight, Download,
 } from 'lucide-react';
-import { downloadICS } from '@/lib/ics';
-import { format, subDays, differenceInDays, isPast, isToday } from 'date-fns';
+import { downloadICSMulti } from '@/lib/ics';
+import { format, subDays, differenceInCalendarDays, isPast, isToday, setHours, setMinutes } from 'date-fns';
+import AddToCalendarMenu from './AddToCalendarMenu';
 
 // Events ingested from Google Calendar carry the invite body verbatim, which is
 // HTML — Google wraps pasted content in nested <table> scaffolding. Rendered as
@@ -40,111 +40,117 @@ function cleanEventDescription(raw) {
     .trim();
 }
 
-export default function ClientTimeline({ events, proposal }) {
+export default function ClientTimeline({ events = [], proposal, services = [] }) {
   const [pastExpanded, setPastExpanded] = useState(false);
+
   const eventTypeConfig = {
-    meeting: { label: 'Client Meeting', color: '#013f7c', icon: Users },
-    workshop: { label: 'Workshop', color: '#264d44', icon: Award },
-    challenge: { label: '14-Day Challenge', color: '#ff9878', icon: Dumbbell },
-    leadership: { label: 'Leadership Workshop', color: '#770142', icon: Award },
-    class: { label: 'Weekly Class', color: '#cae5e3', icon: Dumbbell },
-    delivery: { label: 'Wellness Box Delivery', color: '#eaf995', icon: Package },
-    follow_up: { label: 'Proposal Follow-up', color: '#441d37', icon: MessageSquare },
-    other: { label: 'Other', color: '#666', icon: Clock }
+    meeting: { label: 'Meeting', noun: 'meeting', color: '#013f7c', icon: Users },
+    workshop: { label: 'Workshop', noun: 'workshop', color: '#264d44', icon: Award },
+    challenge: { label: '14-Day Challenge', noun: 'challenge', color: '#b45309', icon: Dumbbell },
+    leadership: { label: 'Leadership Workshop', noun: 'workshop', color: '#770142', icon: Award },
+    class: { label: 'Weekly Class', noun: 'class', color: '#0f766e', icon: Dumbbell },
+    presentation: { label: 'Presentation', noun: 'presentation', color: '#264d44', icon: Award },
+    delivery: { label: 'Wellness Box Delivery', noun: 'delivery', color: '#4d7c0f', icon: Package },
+    follow_up: { label: 'Follow-up', noun: 'follow-up', color: '#441d37', icon: MessageSquare },
+    other: { label: 'Session', noun: 'session', color: '#4b5563', icon: Clock },
+  };
+  // Only real program sessions get "send announcement / reminder" to-dos.
+  const NO_EMAIL_TASKS = new Set(['meeting', 'follow_up', 'delivery']);
+
+  const ACTIONS = {
+    email_announcement: { label: 'Send announcement email', icon: Mail, color: '#013f7c', bg: '#e8eef6' },
+    email_reminder: { label: 'Send reminder email', icon: Bell, color: '#b4532a', bg: '#fdeee8' },
+    app_notification: { label: 'App notifications begin', icon: AlertCircle, color: '#770142', bg: '#f5e8ef' },
   };
 
-  // Generate timeline items including email reminders
-  const generateTimelineItems = () => {
-    const items = [];
+  // Match an event to its catalog service (for the image + clean name).
+  const serviceFor = (event) => {
+    if (event.service_id) {
+      const byId = services.find(s => s.id === event.service_id);
+      if (byId) return byId;
+    }
+    const names = [event.service_name, String(event.title || '').split(' — ')[0]]
+      .filter(Boolean).map(n => n.trim().toLowerCase());
+    return services.find(s => names.includes(String(s.name || '').trim().toLowerCase())) || null;
+  };
+  const programName = (event, service) =>
+    service?.name || event.service_name || String(event.title || '').split(' — ')[0].trim() || 'Session';
 
-    events.forEach(event => {
-      const eventDate = new Date(event.start_date);
-      const config = eventTypeConfig[event.event_type] || eventTypeConfig.other;
+  const portalUrl = typeof window !== 'undefined' ? window.location.href : '';
 
-      // 2 weeks before - Send announcement email
-      const twoWeeksBefore = subDays(eventDate, 14);
+  const items = [];
+  for (const event of events) {
+    const eventDate = new Date(event.start_date);
+    if (Number.isNaN(eventDate.getTime())) continue;
+    const config = eventTypeConfig[event.event_type] || eventTypeConfig.other;
+    const service = serviceFor(event);
+    const name = programName(event, service);
+    const image = service?.images?.[0]?.url || null;
+    const when = format(eventDate, 'EEE, MMM d');
+    const base = { event, service, name, image, config };
+    // Email to-dos land on the calendar at 9:00 AM local on the suggested day.
+    const taskTime = (d) => setMinutes(setHours(d, 9), 0);
+
+    if (!NO_EMAIL_TASKS.has(event.event_type)) {
+      const annDate = taskTime(subDays(eventDate, 14));
       items.push({
-        id: `${event.id}-2weeks`,
-        date: twoWeeksBefore,
-        type: 'email_announcement',
-        title: `Send Announcement Email: ${event.title}`,
-        description: `Send the announcement email to employees about the upcoming ${config.label.toLowerCase()}.`,
-        relatedEvent: event,
-        icon: Mail,
-        color: '#013f7c',
-        isReminder: true
+        ...base, id: `${event.id}-2weeks`, date: annDate, kind: 'email_announcement',
+        subtitle: `Let employees know it's coming — 2 weeks before the ${config.noun} on ${when}.`,
+        cal: {
+          id: `${event.id}-2weeks`, title: `Send announcement email: ${name}`, start: annDate,
+          end: new Date(annDate.getTime() + 15 * 60000), alarmMinutes: 0,
+          description: `Send the announcement email to your employees about ${name} on ${when}.\nEmail templates and details: ${portalUrl}`,
+        },
       });
-
-      // 2 days before - Send reminder email
-      const twoDaysBefore = subDays(eventDate, 2);
+      const remDate = taskTime(subDays(eventDate, 2));
       items.push({
-        id: `${event.id}-2days`,
-        date: twoDaysBefore,
-        type: 'email_reminder',
-        title: `Send Reminder Email: ${event.title}`,
-        description: `Send the reminder email to employees. The ${config.label.toLowerCase()} is in 2 days!`,
-        relatedEvent: event,
-        icon: Bell,
-        color: '#ff9878',
-        isReminder: true
+        ...base, id: `${event.id}-2days`, date: remDate, kind: 'email_reminder',
+        subtitle: `A quick nudge — the ${config.noun} is in 2 days (${when}).`,
+        cal: {
+          id: `${event.id}-2days`, title: `Send reminder email: ${name}`, start: remDate,
+          end: new Date(remDate.getTime() + 15 * 60000), alarmMinutes: 0,
+          description: `Send the reminder email to your employees — ${name} is on ${when}.\nEmail templates and details: ${portalUrl}`,
+        },
       });
-
-      // For challenges - 3 days before app notifications start
       if (event.event_type === 'challenge') {
-        const threeDaysBefore = subDays(eventDate, 3);
+        const notif = taskTime(subDays(eventDate, 3));
         items.push({
-          id: `${event.id}-app-notif`,
-          date: threeDaysBefore,
-          type: 'app_notification',
-          title: `App Notifications Begin: ${event.title}`,
-          description: `Employees who signed up for the challenge will start receiving app notifications to prepare for the challenge start.`,
-          relatedEvent: event,
-          icon: AlertCircle,
-          color: '#770142',
-          isReminder: true,
-          isNotification: true
+          ...base, id: `${event.id}-app-notif`, date: notif, kind: 'app_notification',
+          subtitle: 'Automatic — people who signed up get a heads-up in the app. Nothing for you to do.',
+          cal: null,
         });
       }
+    }
 
-      // The actual event
-      items.push({
-        id: event.id,
-        date: eventDate,
-        type: 'event',
-        title: event.title,
-        description: cleanEventDescription(event.description) || `${config.label} event`,
-        event: event,
-        icon: config.icon,
-        color: config.color,
-        isEvent: true,
-        completed: event.completed,
-        completed_date: event.completed_date
-      });
+    const timeRange = event.end_date
+      ? `${format(eventDate, 'h:mm a')} – ${format(new Date(event.end_date), 'h:mm a')}`
+      : format(eventDate, 'h:mm a');
+    items.push({
+      ...base, id: event.id, date: eventDate, kind: 'event',
+      subtitle: [timeRange, event.location].filter(Boolean).join(' · '),
+      detail: cleanEventDescription(event.description),
+      completed: event.completed, completed_date: event.completed_date,
+      cal: {
+        id: event.id, title: `${name} — SkillfulMeans`, start: event.start_date, end: event.end_date,
+        location: event.location || '', alarmMinutes: 30,
+        description: [cleanEventDescription(event.description), portalUrl && `Program details: ${portalUrl}`].filter(Boolean).join('\n\n'),
+      },
     });
+  }
+  items.sort((a, b) => a.date - b.date);
 
-    // Sort by date
-    items.sort((a, b) => new Date(a.date) - new Date(b.date));
-    return items;
-  };
-
-  const timelineItems = generateTimelineItems();
-
-  const getItemStatus = (item) => {
-    // If event is marked completed, always show as past
+  const statusOf = (item) => {
     if (item.completed) return 'past';
-    
-    const itemDate = new Date(item.date);
-    if (isPast(itemDate) && !isToday(itemDate)) return 'past';
-    if (isToday(itemDate)) return 'today';
+    if (isToday(item.date)) return 'today';
+    if (isPast(item.date)) return 'past';
     return 'future';
   };
-
-  const getDaysUntil = (date) => {
-    const days = differenceInDays(new Date(date), new Date());
+  const relative = (date) => {
+    const days = differenceInCalendarDays(date, new Date());
     if (days === 0) return 'Today';
     if (days === 1) return 'Tomorrow';
     if (days < 0) return `${Math.abs(days)} days ago`;
-    return `In ${days} days`;
+    return `in ${days} days`;
   };
 
   if (events.length === 0) {
@@ -159,160 +165,132 @@ export default function ClientTimeline({ events, proposal }) {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Legend */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Timeline Legend
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-brand-navy"></div>
-              <span className="text-sm text-gray-600">Announcement Email (2 weeks before)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-brand-peach"></div>
-              <span className="text-sm text-gray-600">Reminder Email (2 days before)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-brand-plum"></div>
-              <span className="text-sm text-gray-600">App Notifications (3 days before challenge)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-brand-green"></div>
-              <span className="text-sm text-gray-600">Event Day</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+  const pastItems = items.filter(i => statusOf(i) === 'past');
+  const upcomingItems = items.filter(i => statusOf(i) !== 'past');
+  const upcomingCal = upcomingItems.map(i => i.cal).filter(Boolean);
 
-      {/* Timeline */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Your Program Timeline</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {(() => {
-            const pastItems = timelineItems.filter(item => getItemStatus(item) === 'past');
-            const upcomingItems = timelineItems.filter(item => getItemStatus(item) !== 'past');
+  const Chip = ({ item, muted }) => {
+    if (item.kind === 'event') {
+      const Icon = item.config.icon;
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
+          style={{ backgroundColor: muted ? '#9ca3af' : item.config.color }}>
+          <Icon className="w-3 h-3" /> {item.config.label}
+        </span>
+      );
+    }
+    const a = ACTIONS[item.kind];
+    const Icon = a.icon;
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+        style={{ color: muted ? '#6b7280' : a.color, backgroundColor: muted ? '#f3f4f6' : a.bg }}>
+        <Icon className="w-3 h-3" /> {a.label}
+      </span>
+    );
+  };
 
-            const renderItem = (item) => {
-              const status = getItemStatus(item);
-              const Icon = item.icon;
-              return (
-                <div key={item.id} className="relative pl-12">
-                  <div 
-                    className={`absolute left-0 w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                      status === 'past' ? 'bg-gray-100 border-gray-300' :
-                      status === 'today' ? 'bg-white border-brand-plum ring-4 ring-brand-plum/20' :
-                      'bg-white border-gray-300'
-                    }`}
-                    style={{ 
-                      borderColor: status !== 'past' ? item.color : undefined,
-                      backgroundColor: status === 'past' ? '#f3f4f6' : 'white'
-                    }}
-                  >
-                    <Icon className="w-4 h-4" style={{ color: status === 'past' ? '#9ca3af' : item.color }} />
-                  </div>
-                  <div className={`p-4 rounded-lg border ${
-                    status === 'past' ? 'bg-gray-50 border-gray-200' :
-                    status === 'today' ? 'bg-white border-brand-plum shadow-md' :
-                    'bg-white border-gray-200'
-                  }`}>
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-2">
-                      <div className="flex items-center gap-2">
-                        <h4 className={`font-semibold ${status === 'past' ? 'text-gray-500' : 'text-gray-800'}`}>
-                          {item.title}
-                        </h4>
-                        {item.isReminder && (
-                          <Badge variant="outline" className="text-xs">
-                            {item.isNotification ? 'Auto' : 'Action Required'}
-                          </Badge>
-                        )}
-                        {item.isEvent && (
-                          <Badge style={{ backgroundColor: item.color, color: 'white' }} className="text-xs">
-                            Event
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`text-sm ${status === 'today' ? 'font-semibold text-brand-plum' : 'text-gray-500'}`}>
-                          {format(new Date(item.date), 'MMM d, yyyy')}
-                        </span>
-                        <Badge variant={status === 'past' ? 'secondary' : status === 'today' ? 'default' : 'outline'}>
-                          {getDaysUntil(item.date)}
-                        </Badge>
-                        {item.isEvent && status !== 'past' && (
-                          <button
-                            onClick={() => downloadICS({
-                              id: item.event.id,
-                              title: item.event.title,
-                              start: item.event.start_date,
-                              end: item.event.end_date,
-                              location: item.event.location,
-                              description: item.event.description,
-                            })}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-brand-green hover:bg-gray-100 transition-colors"
-                            title="Add to calendar"
-                          >
-                            <CalendarPlus className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    <p className={`text-sm ${status === 'past' ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {item.description}
-                    </p>
-                    {status === 'past' && !item.isReminder && (
-                      <div className="flex items-center gap-1 mt-2 text-green-600 text-sm">
-                        <CheckCircle2 className="w-4 h-4" />
-                        {item.completed ? 'Completed' : 'Past Event'}
-                      </div>
-                    )}
-                    {item.completed && item.completed_date && (
-                      <div className="text-xs text-gray-500 mt-1">
-                        Completed on {format(new Date(item.completed_date), 'MMM d, yyyy')}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            };
-
-            return (
-              <div className="relative">
-                <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200"></div>
-                <div className="space-y-6">
-                  {/* Past events collapsible */}
-                  {pastItems.length > 0 && (
-                    <div>
-                      <button
-                        onClick={() => setPastExpanded(!pastExpanded)}
-                        className="flex items-center gap-2 mb-4 px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors ml-12"
-                      >
-                        {pastExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                        {pastItems.length} Past Event{pastItems.length !== 1 ? 's' : ''}
-                      </button>
-                      {pastExpanded && (
-                        <div className="space-y-6 mb-6">
-                          {pastItems.map(renderItem)}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {/* Upcoming events */}
-                  {upcomingItems.map(renderItem)}
-                </div>
-              </div>
-            );
-          })()}
-        </CardContent>
-      </Card>
+  const Thumb = ({ item, muted }) => (
+    <div className={`w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-md border border-gray-100 bg-gray-50 overflow-hidden flex items-center justify-center ${muted ? 'opacity-50 grayscale' : ''}`}>
+      {item.image ? (
+        <img src={item.image} alt="" loading="lazy" className="w-full h-full object-contain" />
+      ) : (
+        React.createElement(item.config.icon, { className: 'w-7 h-7 opacity-40', style: { color: item.config.color } })
+      )}
     </div>
+  );
+
+  const renderItem = (item) => {
+    const status = statusOf(item);
+    const muted = status === 'past';
+    return (
+      <div
+        key={item.id}
+        className={`flex flex-wrap sm:flex-nowrap items-start gap-3 sm:gap-4 p-3 rounded-lg border ${
+          status === 'today' ? 'border-brand-plum shadow-md bg-white' : muted ? 'border-gray-100 bg-gray-50' : 'border-gray-200 bg-white'
+        }`}
+      >
+        <Thumb item={item} muted={muted} />
+        <div className="flex-1 min-w-0">
+          <Chip item={item} muted={muted} />
+          <h4 className={`mt-1.5 font-semibold leading-snug ${muted ? 'text-gray-500' : 'text-gray-900'}`}>{item.name}</h4>
+          {item.subtitle && <p className={`text-sm mt-0.5 ${muted ? 'text-gray-400' : 'text-gray-600'}`}>{item.subtitle}</p>}
+          {item.kind === 'event' && item.detail && !muted && (
+            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.detail}</p>
+          )}
+          {muted && item.kind === 'event' && (
+            <p className="flex items-center gap-1 mt-1.5 text-green-600 text-xs">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              {item.completed && item.completed_date ? `Completed ${format(new Date(item.completed_date), 'MMM d, yyyy')}` : 'Completed'}
+            </p>
+          )}
+        </div>
+        <div className="w-full sm:w-auto flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0 pl-[92px] sm:pl-0">
+          <div className="sm:text-right">
+            <p className={`text-sm font-semibold whitespace-nowrap ${status === 'today' ? 'text-brand-plum' : muted ? 'text-gray-400' : 'text-gray-900'}`}>
+              {format(item.date, 'EEE, MMM d')}
+            </p>
+            <p className="text-xs text-gray-500 whitespace-nowrap">{relative(item.date)}</p>
+          </div>
+          {!muted && item.cal && <AddToCalendarMenu event={item.cal} />}
+        </div>
+      </div>
+    );
+  };
+
+  // Month headers make a long list scannable.
+  const withMonthHeaders = (list) => {
+    const out = [];
+    let lastMonth = null;
+    for (const item of list) {
+      const m = format(item.date, 'MMMM yyyy');
+      if (m !== lastMonth) {
+        out.push(<p key={`m-${m}`} className="text-xs font-semibold uppercase tracking-wide text-gray-400 pt-2">{m}</p>);
+        lastMonth = m;
+      }
+      out.push(renderItem(item));
+    }
+    return out;
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <CardTitle className="text-lg">Your Program Timeline</CardTitle>
+            <p className="text-sm text-gray-500 mt-1">
+              Your sessions, plus when we suggest sending the announcement (2 weeks before) and reminder (2 days before) emails.
+            </p>
+          </div>
+          {upcomingCal.length > 1 && (
+            <button
+              type="button"
+              onClick={() => downloadICSMulti(upcomingCal, 'SkillfulMeans_program_timeline')}
+              className="inline-flex items-center gap-1.5 self-start rounded-md bg-brand-green px-3 py-2 text-xs font-semibold text-white hover:bg-[#1a3830] transition-colors whitespace-nowrap"
+              title="Downloads one calendar file with every upcoming date — opens in Outlook, Apple Calendar, or import into Google Calendar"
+            >
+              <Download className="w-3.5 h-3.5" /> Add all {upcomingCal.length} to my calendar
+            </button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {pastItems.length > 0 && (
+          <div>
+            <button
+              onClick={() => setPastExpanded(!pastExpanded)}
+              className="flex items-center gap-2 px-3 py-2 bg-gray-100 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors"
+            >
+              {pastExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              {pastItems.length} past item{pastItems.length !== 1 ? 's' : ''}
+            </button>
+            {pastExpanded && <div className="space-y-3 mt-3">{withMonthHeaders(pastItems)}</div>}
+          </div>
+        )}
+        {upcomingItems.length > 0
+          ? withMonthHeaders(upcomingItems)
+          : <p className="text-sm text-gray-500 py-4">Nothing upcoming right now.</p>}
+      </CardContent>
+    </Card>
   );
 }
