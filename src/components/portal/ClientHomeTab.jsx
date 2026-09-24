@@ -6,16 +6,15 @@ import {
 } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import AddToCalendarMenu from './AddToCalendarMenu';
-import { summarizeParticipation } from './ProgramParticipationChart';
 import {
   buildTimelineItems, timelineStatus, relativeDay, TIMELINE_ACTIONS, serviceForEvent,
 } from './timelineItems';
 import { resourceAvailability } from '@/lib/resourceAvailability';
 import { NPS_BENCHMARK_LABEL } from '@/lib/npsBenchmark';
 import { contactsForClient } from '@/lib/portalContacts';
-import {
-  getInstrumentKey, getScore, matchPairs, calcStats, calcBaseline, computeEnps, bandForScore, BAND_TONE_CLASSES,
-} from '@/components/feedback/instrumentMeta';
+import { BAND_TONE_CLASSES } from '@/components/feedback/instrumentMeta';
+import { summarizeResults } from './portalResults';
+import { Thumb, CardShell, ResultTile, HighlightsCard, ContactCard } from './PortalCards';
 
 /**
  * Client portal Home (overhauled 2026-09-24).
@@ -128,37 +127,6 @@ export default function ClientHomeTab({ client, events = [], proposals = [], ser
 
 // ── Data helpers ─────────────────────────────────────────────────────────────
 
-function summarizeResults(roiData, stats) {
-  const feedback = roiData?.feedback_responses || [];
-  const cohorts = roiData?.cohort_assessments || [];
-  const participation = roiData?.participation || null;
-
-  const partSummary = participation ? summarizeParticipation(participation) : null;
-  const people = partSummary && partSummary.totalPrograms > 0 ? partSummary.totalPeople : (stats?.people_engaged ?? null);
-  const programsWithPeople = partSummary?.totalPrograms || null;
-
-  const pulse = feedback.filter(r => r.behavior_intent || r.fit_confidence != null);
-  let enpsScores = cohorts.filter(r => getInstrumentKey(r) === 'enps').map(getScore).filter(s => s != null);
-  if (!enpsScores.length) enpsScores = pulse.filter(r => r.nps_score != null).map(r => r.nps_score);
-  const enps = computeEnps(enpsScores);
-
-  const who5 = cohorts.filter(r => getInstrumentKey(r) === 'who5');
-  const a = matchPairs(who5, 'cohort_start', ['cohort_end', 'session_check']);
-  const b = matchPairs(who5, 'challenge_day0', 'challenge_day14');
-  const pairs = [...a.pairs, ...b.pairs];
-  let wellbeing = null;
-  if (pairs.length >= MIN_N) {
-    const st = calcStats(pairs, a.distinctStarts + b.distinctStarts, 'higher');
-    wellbeing = { mode: 'change', value: st.avgDelta, n: st.n, isGood: st.isGood };
-  } else {
-    const base = calcBaseline(who5, 'cohort_start') || calcBaseline(who5, 'challenge_day0');
-    if (base && base.n >= MIN_N) wellbeing = { mode: 'baseline', value: base.avgStart, n: base.n, band: bandForScore('who5', base.avgStart) };
-  }
-  const firstWho5 = who5.map(r => r.submitted_at).filter(Boolean).sort()[0] || null;
-  const lastWho5 = who5.map(r => r.submitted_at).filter(Boolean).sort().slice(-1)[0] || null;
-  return { people, programsWithPeople, enps, wellbeing, firstWho5, lastWho5, participation };
-}
-
 function buildHighlights({ programs, roiData, results }) {
   const out = [];
   for (const p of programs) {
@@ -221,24 +189,6 @@ function WelcomeHeader({ client, counts, total }) {
       ) : (
         <p className="text-gray-600 mt-1">Your wellness program with SkillfulMeans.</p>
       )}
-    </div>
-  );
-}
-
-function Thumb({ image, size = 'w-16 h-16' }) {
-  return (
-    <div className={`${size} shrink-0 rounded-md border border-gray-100 bg-gray-50 overflow-hidden flex items-center justify-center`}>
-      {image ? <img src={image} alt="" loading="lazy" className="w-full h-full object-contain" /> : <Sparkles className="w-6 h-6 text-gray-300" />}
-    </div>
-  );
-}
-
-function CardShell({ eyebrow, children, footer }) {
-  return (
-    <div className="bg-white rounded-2xl shadow-sm p-5 flex flex-col h-full">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">{eyebrow}</p>
-      <div className="flex-1">{children}</div>
-      {footer}
     </div>
   );
 }
@@ -377,20 +327,6 @@ function GettingStarted({ timeline, counts, onNavigate }) {
   );
 }
 
-function ResultTile({ label, value, caption, extra, tone }) {
-  return (
-    <div className="bg-white rounded-2xl shadow-sm p-5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{label}</p>
-      <div className="flex items-center gap-2 mt-1">
-        <p className="text-3xl font-bold text-brand-navy">{value}</p>
-        {tone && <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${tone.cls}`}>{tone.label}</span>}
-      </div>
-      {caption && <p className="text-xs text-gray-500 mt-1">{caption}</p>}
-      {extra && <p className="text-xs text-gray-400 mt-1.5 pt-1.5 border-t border-gray-100">{extra}</p>}
-    </div>
-  );
-}
-
 function ResultsRow({ results, onNavigate }) {
   const { people, programsWithPeople, enps, wellbeing } = results;
   const enpsReady = enps?.enps != null && enps.n >= MIN_N;
@@ -462,62 +398,3 @@ function NotScheduledCard({ programs, onNavigate }) {
   );
 }
 
-function HighlightsCard({ items, onNavigate }) {
-  return (
-    <CardShell eyebrow="Latest highlights">
-      <ul className="divide-y divide-gray-100">
-        {items.map(h => {
-          const Icon = h.icon;
-          return (
-            <li key={h.key}>
-              <button onClick={() => onNavigate(h.tab)} className="w-full flex items-center gap-3 py-3 text-left group">
-                <span className="w-9 h-9 rounded-full bg-brand-green/10 flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4 text-brand-green" />
-                </span>
-                <span className="flex-1 min-w-0">
-                  <span className="block font-medium text-gray-800">{h.text}</span>
-                  <span className="block text-xs text-gray-500">{h.sub}{h.date ? ` · ${format(new Date(h.date), 'MMM d')}` : ''}</span>
-                </span>
-                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 shrink-0" />
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </CardShell>
-  );
-}
-
-function ContactCard({ contacts, company, wide }) {
-  const subject = encodeURIComponent(`Check-in request${company ? ` — ${company}` : ''}`);
-  return (
-    <CardShell eyebrow={contacts.length > 1 ? 'Your SkillfulMeans contacts' : 'Your SkillfulMeans contact'}>
-      <div className={`grid gap-4 ${wide && contacts.length > 1 ? 'sm:grid-cols-2' : ''}`}>
-        {contacts.map(c => (
-          <div key={c.email} className="flex items-start gap-3">
-            {c.photo_url ? (
-              <img src={c.photo_url} alt={c.name} className="w-12 h-12 rounded-full object-cover shrink-0" />
-            ) : (
-              <span className="w-12 h-12 rounded-full bg-brand-navy text-white font-semibold flex items-center justify-center shrink-0">
-                {c.name.split(/\s+/).filter(w => /^[A-Z]/.test(w)).slice(0, 2).map(w => w[0]).join('')}
-              </span>
-            )}
-            <div className="min-w-0">
-              <p className="font-semibold text-gray-900">{c.name}</p>
-              <p className="text-xs text-gray-500">{c.role}</p>
-              <a href={`mailto:${c.email}`} className="text-sm text-brand-navy hover:underline break-all">{c.email}</a>
-              <div className="mt-2">
-                <a
-                  href={`mailto:${c.email}?subject=${subject}`}
-                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:border-brand-green hover:text-brand-green"
-                >
-                  <Mail className="w-3.5 h-3.5" /> Schedule a check-in
-                </a>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </CardShell>
-  );
-}
