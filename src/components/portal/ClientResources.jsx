@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FolderOpen, List, LayoutGrid, Search } from 'lucide-react';
+import { FolderOpen, List, LayoutGrid, Search, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import ResourceCard from './ResourceCard';
 
@@ -118,7 +118,7 @@ export default function ClientResources({ client, proposals = [], services = [] 
       <div className="bg-white rounded-xl shadow-lg p-8 text-center">
         <FolderOpen className="w-16 h-16 mx-auto mb-4 text-gray-300" />
         <h3 className="text-xl font-semibold text-gray-700 mb-2">No Resources Yet</h3>
-        <p className="text-gray-500">Session recordings, presentations, and handouts will appear here once they've been shared with you.</p>
+        <p className="text-gray-500">Resources for each session — recordings, presentations, and handouts — become available here after that session has taken place.</p>
       </div>
     );
   }
@@ -161,6 +161,10 @@ export default function ClientResources({ client, proposals = [], services = [] 
               <CardTitle className="text-2xl text-brand-navy">Session Resources</CardTitle>
               <p className="text-gray-500 text-sm mt-1">
                 Access your session recordings, presentations, and handout materials below.
+              </p>
+              <p className="inline-flex items-start gap-1.5 mt-2 text-sm font-medium text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2.5 py-1.5">
+                <Clock className="w-4 h-4 mt-0.5 shrink-0" />
+                Resources for each session are available only after that session has taken place.
               </p>
             </div>
             <div className="flex gap-2">
