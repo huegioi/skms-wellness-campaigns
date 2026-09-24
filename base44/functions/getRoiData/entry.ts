@@ -152,6 +152,11 @@ async function fetchCheckinsForClients(base44, clientIds, stripPii = false, demo
 const INTERNAL_DOMAINS = ['skillfulmeans.life'];
 const isInternalEmail = (e) => INTERNAL_DOMAINS.some(d => e.endsWith('@' + d));
 const normEmail = (e) => String(e || '').toLowerCase().trim();
+// Drop SkillfulMeans staff test submissions from client-facing report data
+// (e.g. a team member test-driving an assessment link before a session).
+const notStaff = (email) => { const em = normEmail(email); return !em || !isInternalEmail(em); };
+const dropStaffFeedback = (rows) => rows.filter(r => notStaff(r.attendee_email) && notStaff(r.email_address));
+const dropStaffCohort = (rows) => rows.filter(r => notStaff(r.participant_email));
 
 async function buildParticipation(base44, clientIds, demoClientIds, feedbackRaw, cohortRaw) {
   if (!clientIds || clientIds.length === 0) return [];
@@ -269,12 +274,14 @@ Deno.serve(async (req) => {
         })),
       ]);
 
-      const feedback = feedbackResults.flat().map(r => projectRow(r, PORTAL_FEEDBACK_FIELDS));
-      const cohorts = cohortResults.flat().map(r => projectRow(r, PORTAL_COHORT_FIELDS));
+      const feedbackAll = dropStaffFeedback(feedbackResults.flat());
+      const cohortAll = dropStaffCohort(cohortResults.flat());
+      const feedback = feedbackAll.map(r => projectRow(r, PORTAL_FEEDBACK_FIELDS));
+      const cohorts = cohortAll.map(r => projectRow(r, PORTAL_COHORT_FIELDS));
       const pidCache = new Map();
       await pseudonymizeField(cohorts, 'participant_email', pidCache);
       const checkins = await fetchCheckinsForClients(base44, validIds, true, demoClientIds);
-      const participation = await buildParticipation(base44, validIds, demoClientIds, feedbackResults.flat(), cohortResults.flat());
+      const participation = await buildParticipation(base44, validIds, demoClientIds, feedbackAll, cohortAll);
       return Response.json({ allowed: true, feedback_responses: feedback, cohort_assessments: cohorts, checkins, participation });
     }
 
@@ -330,11 +337,14 @@ Deno.serve(async (req) => {
     // MFS rows are fetched SEPARATELY rather than by lifting the $ne filter:
     // one MFS respondent produces 4 rows, so a large team assessment would
     // otherwise crowd the cohort arc out of the shared 500-row limit.
-    const [feedback, cohorts, mfsRows] = await Promise.all([
+    const [feedbackRaw, cohortsRaw, mfsRows] = await Promise.all([
       base44.asServiceRole.entities.FeedbackResponse.filter({ client_id, ...demoFrag }, '-submitted_at', 500),
       base44.asServiceRole.entities.CohortAssessment.filter({ client_id, ...demoFrag, survey_type: { $ne: 'mfs' } }, '-submitted_at', 500),
       base44.asServiceRole.entities.CohortAssessment.filter({ client_id, ...demoFrag, survey_type: 'mfs' }, '-submitted_at', 2000),
     ]);
+
+    const feedback = dropStaffFeedback(feedbackRaw);
+    const cohorts = dropStaffCohort(cohortsRaw);
 
     // Portal paths (client_token or portal_id) strip PII + pseudonymize;
     // the authenticated-admin path keeps full fields.
