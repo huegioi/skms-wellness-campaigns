@@ -289,7 +289,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
           {/* Narrative summary */}
           <NarrativeSummary
             year={narrativeYear}
-            peopleEngaged={peopleEngaged}
+            peopleEngaged={peopleShown}
             who5Delta={who5Delta}
             evidenceTier="uncontrolled pre/post"
           />
