@@ -10,7 +10,7 @@ import MfsResultsPanel from './MfsResultsPanel';
 import HeroMetricCard from './HeroMetricCard';
 import { NPS_BENCHMARK_LABEL } from '@/lib/npsBenchmark';
 import NarrativeSummary from './NarrativeSummary';
-import EngagementTrendChart from './EngagementTrendChart';
+import ProgramParticipationChart, { summarizeParticipation } from './ProgramParticipationChart';
 import AdminLinkSection from './AdminLinkSection';
 import MethodologyNote from '@/components/feedback/MethodologyNote';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
@@ -51,6 +51,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
   const rawAssessments = roiData?.cohort_assessments || [];
   const mfsAssessments = roiData?.mfs_assessments || [];
   const checkins = roiData?.checkins || [];
+  const participation = roiData?.participation || null;
 
   const cutoffDate = useMemo(() => {
     if (dateRange !== '90days') return null;
@@ -84,6 +85,18 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
     const allEmails = new Set([...pulseEmails, ...cohortEmails, ...checkinEmails]);
     return allEmails.size > 0 ? allEmails.size : pulseResponses.length;
   }, [pulseResponses, cohortAssessments, checkins]);
+
+  // Program-based participation (people per delivered program, staff excluded).
+  // When present, it drives People Engaged so the hero and the chart agree.
+  const participationSummary = useMemo(
+    () => (participation ? summarizeParticipation(participation, cutoffDate) : null),
+    [participation, cutoffDate]
+  );
+  const hasParticipation = !!participationSummary && participationSummary.totalPrograms > 0;
+  const peopleShown = hasParticipation ? participationSummary.totalPeople : peopleEngaged;
+  const programsLine = hasParticipation
+    ? `${participationSummary.totalPrograms} ${participationSummary.totalPrograms === 1 ? 'program' : 'programs'}`
+    : (totalCheckins > 0 ? `${totalCheckins} session check-ins` : '');
 
   // ── Hero metric: Wellbeing change (WHO-5 delta) ────────────────────────────
   const who5Stats = useMemo(() => {
@@ -193,7 +206,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-bold text-gray-800">Wellness Impact Dashboard</h3>
-          <p className="text-sm text-gray-500">{peopleEngaged} people engaged{totalCheckins > 0 ? ` · ${totalCheckins} session check-ins` : ''}{clientCompany ? ` · ${clientCompany}` : ''}</p>
+          <p className="text-sm text-gray-500">{peopleShown} people engaged{programsLine ? ` · ${programsLine}` : ''}{clientCompany ? ` · ${clientCompany}` : ''}</p>
         </div>
         <div className="flex items-center gap-3">
           {hasRawData && (
@@ -238,8 +251,8 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <HeroMetricCard
               label="People Engaged"
-              value={peopleEngaged}
-              caption={totalCheckins > 0 ? `${totalCheckins} session check-ins · Distinct participants across all programs.` : "Distinct participants across all programs."}
+              value={peopleShown}
+              caption={hasParticipation ? `Distinct people across ${programsLine}.` : (totalCheckins > 0 ? `${totalCheckins} session check-ins · Distinct participants across all programs.` : "Distinct participants across all programs.")}
               evidenceTier="Engagement"
               color="#013f7c"
             />
@@ -266,7 +279,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
             <HeroMetricCard
               label="eNPS"
               value={enpsValue != null && enpsCount >= 5 ? `${enpsValue >= 0 ? '+' : ''}${enpsValue}` : 'Collecting data'}
-              caption={enpsValue != null && enpsCount >= 5 ? `employee Net Promoter Score · ${enpsCount} responses` : 'Likelihood to recommend the program.'}
+              caption={enpsValue != null && enpsCount >= 5 ? `${enpsCount} responses` : 'Likelihood to recommend the program.'}
               benchmark={NPS_BENCHMARK_LABEL}
               evidenceTier="Advocacy"
               color="#013f7c"
@@ -282,10 +295,7 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
           />
 
           {/* Trend chart */}
-          <EngagementTrendChart
-            pulseResponses={pulseResponses}
-            cohortAssessments={cohortAssessments}
-          />
+          <ProgramParticipationChart participation={participation || []} cutoffDate={cutoffDate} />
 
           {/* Collapsible details section */}
           <div className="rounded-xl border border-[#e6e1d8] overflow-hidden" style={{ backgroundColor: '#f9f8f5' }}>

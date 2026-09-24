@@ -198,7 +198,7 @@ export default function BrokerFeedbackRollup({ clientCompanies = [], services = 
               <HeroMetricCard
                 label="eNPS"
                 value={enpsValue != null && enpsCount >= 5 ? `${enpsValue >= 0 ? '+' : ''}${enpsValue}` : 'Collecting data'}
-                caption={enpsValue != null && enpsCount >= 5 ? `employee Net Promoter Score · ${enpsCount} responses` : 'Likelihood to recommend the program.'}
+                caption={enpsValue != null && enpsCount >= 5 ? `${enpsCount} responses` : 'Likelihood to recommend the program.'}
               benchmark={NPS_BENCHMARK_LABEL}
                 evidenceTier="Advocacy"
                 color="#013f7c"
