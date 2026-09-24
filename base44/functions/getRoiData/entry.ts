@@ -179,6 +179,7 @@ async function buildParticipation(base44, clientIds, demoClientIds, feedbackRaw,
     programs.set(e.id, {
       key: e.id,
       event_id: e.id,
+      client_id: e.client_id || null,
       title: String(e.title || '').split(' — ')[0].trim() || 'Program',
       service_id: e.service_id || null,
       date: e.start_date,
@@ -202,9 +203,9 @@ async function buildParticipation(base44, clientIds, demoClientIds, feedbackRaw,
     if (row.event_id) return; // tied to a future/meeting/other event — not a delivered program
     if (!row.submitted_at) return;
     const month = String(row.submitted_at).slice(0, 7);
-    const key = `svc:${row.service_id || 'unknown'}:${month}`;
+    const key = `svc:${row.client_id || 'none'}:${row.service_id || 'unknown'}:${month}`;
     if (!programs.has(key)) {
-      programs.set(key, { key, event_id: null, title: label || 'Program', service_id: row.service_id || null, date: row.submitted_at, emails: new Set() });
+      programs.set(key, { key, event_id: null, client_id: row.client_id || null, title: label || 'Program', service_id: row.service_id || null, date: row.submitted_at, emails: new Set() });
     }
     const p = programs.get(key);
     if (row.submitted_at < p.date) p.date = row.submitted_at;
@@ -223,7 +224,7 @@ async function buildParticipation(base44, clientIds, demoClientIds, feedbackRaw,
       if (!pid) { pid = await pseudonymizeEmail(em); cache.set(em, pid); }
       people.push(pid);
     }
-    out.push({ key: p.key, event_id: p.event_id, title: p.title, service_id: p.service_id, date: p.date, people });
+    out.push({ key: p.key, event_id: p.event_id, client_id: p.client_id, title: p.title, service_id: p.service_id, date: p.date, people });
   }
   out.sort((a, b) => String(a.date).localeCompare(String(b.date)));
   return out;

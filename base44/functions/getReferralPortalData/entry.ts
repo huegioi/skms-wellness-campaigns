@@ -205,10 +205,44 @@ Deno.serve(async (req) => {
 
   // ── Services (projected, no pricing) for broker portal ROI views ──
   const allServices = await base44.asServiceRole.entities.Service.list('sort_order');
+  // No pricing, no resources — just what the partner portal renders: names,
+  // images and descriptions for program cards and the live "What we offer" list.
+  const plain = (html) => String(html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   const portalServices = allServices.map(s => ({
     id: s.id, name: s.name, category: s.category,
-    included_assessments: s.included_assessments, sort_order: s.sort_order
+    included_assessments: s.included_assessments, sort_order: s.sort_order,
+    images: Array.isArray(s.images) && s.images[0]?.url ? [{ url: s.images[0].url }] : [],
+    short_description: s.short_description || '',
+    description: plain(s.description),
+    duration: s.duration || '',
+    is_active: s.is_active !== false,
   }));
+
+  // ── Sessions for this partner's clients (dates + program only) ──
+  // Deliberately NO location / join links / descriptions: partners see when a
+  // client's program runs, not the employee-facing meeting details.
+  const ownedClientIds = ownedClients.map(c => c.id);
+  let clientEvents = [];
+  if (ownedClientIds.length) {
+    const evs = await base44.asServiceRole.entities.CalendarEvent.filter(
+      { client_id: { $in: ownedClientIds } }, 'start_date', 1000
+    );
+    const serviceNameById = Object.fromEntries(allServices.map(s => [s.id, s.name]));
+    clientEvents = evs
+      .filter(e => partnerIsDemo || !e.is_demo)
+      .filter(e => e.event_type !== 'meeting' && e.event_type !== 'follow_up')
+      .map(e => ({
+        id: e.id,
+        client_id: e.client_id,
+        title: e.title,
+        event_type: e.event_type,
+        start_date: e.start_date,
+        end_date: e.end_date,
+        completed: e.completed,
+        service_id: e.service_id || null,
+        service_name: e.service_id ? (serviceNameById[e.service_id] || null) : null,
+      }));
+  }
 
   const response = {
     partner: {
@@ -238,6 +272,7 @@ Deno.serve(async (req) => {
       activity_date: a.activity_date
     })),
     services: portalServices,
+    client_events: clientEvents,
   };
 
   if (brokerage) {
