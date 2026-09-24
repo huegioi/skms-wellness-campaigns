@@ -119,11 +119,6 @@ export default function InstrumentResultCard({
         </div>
         {startBand && <BandToggle show={showBands} onClick={toggle} />}
         <BandExplainer show={showBands} band={startBand} score={stats.avgStart} />
-        <p className="text-xs text-gray-600 leading-relaxed mt-3 pt-3 border-t">
-          <span className="font-semibold text-gray-700">What this means: </span>
-          This is the team's starting picture — the average before programming. Change will be
-          measured against this number once follow-up responses come in.
-        </p>
       </div>
     );
   }
