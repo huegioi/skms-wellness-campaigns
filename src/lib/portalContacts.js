@@ -1,9 +1,10 @@
 import { parseOwners } from '@/lib/owners';
+import { HEATHER_PHOTO, WILLIAM_PHOTO } from '@/assets/teamPhotos';
 
 /**
  * Who a client sees as "Your SkillfulMeans contact" on the portal Home tab.
  * Keyed by the owner names used on Client.owner ("William", "Heather").
- * photo_url: drop in a hosted headshot URL to replace the initials avatar.
+ * photo_url: headshot (src/assets/teamPhotos.js); null falls back to initials.
  */
 export const PORTAL_CONTACTS = {
   William: {
@@ -11,14 +12,14 @@ export const PORTAL_CONTACTS = {
     first: 'William',
     role: 'Co-founder',
     email: 'william@skillfulmeans.life',
-    photo_url: null,
+    photo_url: WILLIAM_PHOTO,
   },
   Heather: {
     name: 'Heather Wise',
     first: 'Heather',
     role: 'Co-founder',
     email: 'heather@skillfulmeans.life',
-    photo_url: null,
+    photo_url: HEATHER_PHOTO,
   },
 };
 
