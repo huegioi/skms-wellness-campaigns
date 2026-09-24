@@ -1,4 +1,3 @@
-import { parseOwners } from '@/lib/owners';
 import { HEATHER_PHOTO, WILLIAM_PHOTO } from '@/assets/teamPhotos';
 
 /**
@@ -31,10 +30,13 @@ export const TEAM_FALLBACK_CONTACT = {
   photo_url: null,
 };
 
-/** Contacts for a client, primary owner first; team inbox when unassigned. */
-export function contactsForClient(client) {
-  const found = parseOwners(client?.owner)
-    .map(o => PORTAL_CONTACTS[Object.keys(PORTAL_CONTACTS).find(k => k.toLowerCase() === o.toLowerCase())])
-    .filter(Boolean);
-  return found.length ? found.slice(0, 2) : [TEAM_FALLBACK_CONTACT];
+/**
+ * The HR (client) portal contact is ALWAYS Heather (William, 2026-09-24),
+ * regardless of who owns the client record. Change it here to change it
+ * everywhere in the client portal.
+ */
+export const HR_PORTAL_CONTACT = PORTAL_CONTACTS.Heather;
+
+export function contactsForClient() {
+  return [HR_PORTAL_CONTACT];
 }

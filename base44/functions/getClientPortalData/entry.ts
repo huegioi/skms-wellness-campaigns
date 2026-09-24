@@ -173,9 +173,7 @@ Deno.serve(async (req) => {
       'id', 'name', 'email', 'email2', 'company', 'phone', 'title',
       'company_address', 'company_website', 'company_size', 'employee_count',
       'industry', 'portal_token', 'portal_template_ids', 'purchased_services',
-      'portal_documents', 'session_resources', 'updated_date',
-      // owner → drives the "Your SkillfulMeans contact" card on the portal Home tab
-      'owner'
+      'portal_documents', 'session_resources', 'updated_date'
     ];
     const projectedClient = {};
     for (const f of PORTAL_CLIENT_FIELDS) {

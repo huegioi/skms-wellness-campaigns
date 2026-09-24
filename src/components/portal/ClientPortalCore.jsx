@@ -17,6 +17,7 @@ import ClientHomeTab from '@/components/portal/ClientHomeTab';
 import ClientEngagementTab from '@/components/portal/ClientEngagementTab';
 import { copyToClipboard } from '@/lib/copyToClipboard';
 import PortalLinkDialog from '@/components/shared/PortalLinkDialog';
+import { HR_PORTAL_CONTACT } from '@/lib/portalContacts';
 
 /**
  * Shared client portal UI driven by mode.
@@ -207,7 +208,7 @@ export default function ClientPortalCore({ mode, token, clientId }) {
       footer={mode === 'client' && (
         <div className="bg-white border-t py-4 mt-8">
           <div className="max-w-6xl mx-auto px-4 text-center text-sm text-gray-500">
-            Need help? Contact us at <a href="mailto:admin@skillfulmeans.life" className="text-brand-plum underline">admin@skillfulmeans.life</a>
+            Need help? Contact {HR_PORTAL_CONTACT.name} at <a href={`mailto:${HR_PORTAL_CONTACT.email}`} className="text-brand-plum underline">{HR_PORTAL_CONTACT.email}</a>
           </div>
         </div>
       )}

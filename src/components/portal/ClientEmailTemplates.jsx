@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Mail, Download, FileText, Award, Dumbbell, Users, Package, Eye } from 'lucide-react';
+import { HR_PORTAL_CONTACT } from '@/lib/portalContacts';
 
 // Client-facing email templates are not ready yet — the list renders grayed out
 // with a "Coming soon" label. Set to false to re-enable.
@@ -489,7 +490,7 @@ export default function ClientEmailTemplates({ proposal, templates = [], client,
         <CardContent className="pt-6">
           <h4 className="font-semibold text-teal-800 mb-2">Need Custom Templates?</h4>
           <p className="text-teal-700/80 text-sm">
-            Contact us at <a href="mailto:admin@skillfulmeans.life" className="text-[#770142] underline">admin@skillfulmeans.life</a> if you need customized email templates or have any questions about communicating with your employees.
+            Contact {HR_PORTAL_CONTACT.first} at <a href={`mailto:${HR_PORTAL_CONTACT.email}`} className="text-[#770142] underline">{HR_PORTAL_CONTACT.email}</a> if you need customized email templates or have any questions about communicating with your employees.
           </p>
         </CardContent>
       </Card>
