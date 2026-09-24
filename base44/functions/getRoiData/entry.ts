@@ -133,6 +133,97 @@ async function fetchCheckinsForClients(base44, clientIds, stripPii = false, demo
 }
 
 
+
+/**
+ * Program participation — the source for the portal's "Program Participation"
+ * chart and the People Engaged hero number.
+ *
+ * One entry per PROGRAM that has actually happened (past, non-meeting
+ * CalendarEvent), listing the DISTINCT people who took part in it: anyone who
+ * checked in, left session feedback, or completed an assessment tied to that
+ * event. Assessment/feedback rows with no event_id are grouped into a
+ * per-service-per-month program bucket so challenges/cohorts still count.
+ *
+ * - Counts people, not records (one person's 5-instrument assessment = 1).
+ * - Dated by the PROGRAM's date, not when a form was submitted.
+ * - SkillfulMeans staff (test check-ins) are excluded.
+ * - People are returned as salted pseudonyms only — never emails.
+ */
+const INTERNAL_DOMAINS = ['skillfulmeans.life'];
+const isInternalEmail = (e) => INTERNAL_DOMAINS.some(d => e.endsWith('@' + d));
+const normEmail = (e) => String(e || '').toLowerCase().trim();
+
+async function buildParticipation(base44, clientIds, demoClientIds, feedbackRaw, cohortRaw) {
+  if (!clientIds || clientIds.length === 0) return [];
+  const events = await base44.asServiceRole.entities.CalendarEvent.filter(
+    { client_id: { $in: clientIds } }, '-start_date', 1000
+  );
+  const now = Date.now();
+  const programEvents = events.filter(e =>
+    (!e.is_demo || demoClientIds.has(e.client_id)) &&
+    e.event_type !== 'meeting' &&
+    e.start_date && new Date(e.start_date).getTime() <= now
+  );
+  const eventIds = programEvents.map(e => e.id);
+  const checkins = eventIds.length
+    ? await base44.asServiceRole.entities.EventCheckin.filter({ event_id: { $in: eventIds } }, '-checked_in_at', 5000)
+    : [];
+
+  const programs = new Map(); // key -> { key, event_id, title, service_id, date, emails:Set }
+  for (const e of programEvents) {
+    programs.set(e.id, {
+      key: e.id,
+      event_id: e.id,
+      title: String(e.title || '').split(' — ')[0].trim() || 'Program',
+      service_id: e.service_id || null,
+      date: e.start_date,
+      emails: new Set(),
+    });
+  }
+  const add = (eventId, email) => {
+    const em = normEmail(email);
+    if (!em || isInternalEmail(em)) return;
+    const p = programs.get(eventId);
+    if (p) p.emails.add(em);
+  };
+  for (const c of checkins) {
+    if (c.is_demo && !demoClientIds.has(c.client_id)) continue;
+    add(c.event_id, c.email);
+  }
+  const bucket = (row, email, label) => {
+    const em = normEmail(email);
+    if (!em || isInternalEmail(em)) return;
+    if (row.event_id && programs.has(row.event_id)) { programs.get(row.event_id).emails.add(em); return; }
+    if (row.event_id) return; // tied to a future/meeting/other event — not a delivered program
+    if (!row.submitted_at) return;
+    const month = String(row.submitted_at).slice(0, 7);
+    const key = `svc:${row.service_id || 'unknown'}:${month}`;
+    if (!programs.has(key)) {
+      programs.set(key, { key, event_id: null, title: label || 'Program', service_id: row.service_id || null, date: row.submitted_at, emails: new Set() });
+    }
+    const p = programs.get(key);
+    if (row.submitted_at < p.date) p.date = row.submitted_at;
+    p.emails.add(em);
+  };
+  for (const r of feedbackRaw) bucket(r, r.attendee_email || r.email_address, r.service_name);
+  for (const r of cohortRaw) bucket(r, r.participant_email, null);
+
+  const cache = new Map();
+  const out = [];
+  for (const p of programs.values()) {
+    if (p.emails.size === 0) continue; // no recorded participation → not shown
+    const people = [];
+    for (const em of p.emails) {
+      let pid = cache.get(em);
+      if (!pid) { pid = await pseudonymizeEmail(em); cache.set(em, pid); }
+      people.push(pid);
+    }
+    out.push({ key: p.key, event_id: p.event_id, title: p.title, service_id: p.service_id, date: p.date, people });
+  }
+  out.sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  return out;
+}
+
 const TEAM_EMAILS = (Deno.env.get("TEAM_EMAILS") || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
 const isTeamMember = (user) => user && (user.role === 'admin' || TEAM_EMAILS.includes((user.email || "").toLowerCase()));
 Deno.serve(async (req) => {
@@ -183,7 +274,8 @@ Deno.serve(async (req) => {
       const pidCache = new Map();
       await pseudonymizeField(cohorts, 'participant_email', pidCache);
       const checkins = await fetchCheckinsForClients(base44, validIds, true, demoClientIds);
-      return Response.json({ allowed: true, feedback_responses: feedback, cohort_assessments: cohorts, checkins });
+      const participation = await buildParticipation(base44, validIds, demoClientIds, feedbackResults.flat(), cohortResults.flat());
+      return Response.json({ allowed: true, feedback_responses: feedback, cohort_assessments: cohorts, checkins, participation });
     }
 
     // ── Single-client mode ────────────────────────────────────────────────────
@@ -259,6 +351,7 @@ Deno.serve(async (req) => {
       await pseudonymizeField(projectedCohorts, 'participant_email', pidCache);
     }
     const checkins = await fetchCheckinsForClients(base44, [client_id], isPortalPath, excludeDemo ? new Set() : new Set([client_id]));
+    const participation = await buildParticipation(base44, [client_id], excludeDemo ? new Set() : new Set([client_id]), feedback, cohorts);
 
     return Response.json({
       allowed: true,
@@ -266,6 +359,7 @@ Deno.serve(async (req) => {
       cohort_assessments: projectedCohorts,
       mfs_assessments: projectedMfs,
       checkins,
+      participation,
     });
   } catch (error) {
     return Response.json({ allowed: false, error: error.message }, { status: 500 });
