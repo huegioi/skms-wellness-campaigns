@@ -1,0 +1,44 @@
+{
+  "name": "Meeting Notes Sync Watchdog (Hourly)",
+  "description": "Checks every hour that Google Meet notes/transcripts are still flowing to client & partner Activity tabs (Auto-Capture automation active and running, Google Drive + Calendar connections working). Drives the in-app warning banner and emails William when it breaks, daily while broken, and when it clears. Runs checkMeetingNotesSyncHealth.",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "interval",
+      "cron_expression": null,
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": 60,
+      "interval_unit": "minutes",
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "meeting_notes_sync_watchdog",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "run_function": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "checkMeetingNotesSyncHealth",
+            "args": {
+              "automation": true,
+              "action": "check"
+            }
+          },
+          "then": "end"
+        }
+      }
+    ]
+  }
+}
