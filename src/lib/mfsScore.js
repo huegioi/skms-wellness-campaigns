@@ -10,11 +10,17 @@ export function normalizeWho5(responses) {
   return raw * 4;
 }
 
-// PSS-4: (16 − raw) / 16 × 100 — inverted (higher raw = more stress = worse)
+// PSS-4: items 2 and 3 are positively worded ("felt confident…", "things going
+// your way") and are REVERSE-scored (Cohen, 1983), exactly as the check-in and
+// cohort assessments do. Stress points = q1 + (4 − q2) + (4 − q3) + q4 (0–16),
+// then inverted to 0–100 (higher = better). A missing item adds no stress.
+export function pss4StressPoints(responses) {
+  if (!responses) return null;
+  return (responses.q1 || 0) + (4 - (responses.q2 ?? 4)) + (4 - (responses.q3 ?? 4)) + (responses.q4 || 0);
+}
 export function normalizePss4(responses) {
   if (!responses) return null;
-  const raw = (responses.q1 || 0) + (responses.q2 || 0) + (responses.q3 || 0) + (responses.q4 || 0);
-  return ((16 - raw) / 16) * 100;
+  return ((16 - pss4StressPoints(responses)) / 16) * 100;
 }
 
 // UWES-3: mean(0–6) / 6 × 100
