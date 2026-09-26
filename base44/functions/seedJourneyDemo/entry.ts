@@ -154,7 +154,9 @@ Deno.serve(async (req) => {
     for (const r of RESPONDENTS) {
       const sid = `mfj-demo-${crypto.randomUUID()}`;
       for (const [key, resp] of Object.entries(r)) {
-        const raw = Object.values(resp).reduce((s, v) => s + (v || 0), 0);
+        const raw = key === 'pss4'
+          ? (resp.q1||0) + (4 - (resp.q2 ?? 4)) + (4 - (resp.q3 ?? 4)) + (resp.q4||0)   // reverse-scored items 2, 3
+          : Object.values(resp).reduce((s, v) => s + (v || 0), 0);
         const normalized = normalizeInstrument(key, resp);
         const record = {
           client_id: client.id, survey_type: 'mfs', instrument: key,
