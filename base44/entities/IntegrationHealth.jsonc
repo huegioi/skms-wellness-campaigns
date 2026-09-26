@@ -1,0 +1,89 @@
+{
+  "name": "IntegrationHealth",
+  "type": "object",
+  "properties": {
+    "key": {
+      "type": "string",
+      "description": "Which sync this row tracks, e.g. 'meeting_notes'. One row per key."
+    },
+    "label": {
+      "type": "string",
+      "description": "Human name, e.g. 'Meeting notes \u2192 Activity tabs'"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "failing"
+      ],
+      "default": "ok"
+    },
+    "problems": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Problem codes found on the last check: automation_off, automation_failing, stale, drive_disconnected, calendar_disconnected"
+    },
+    "problem_detail": {
+      "type": "string",
+      "description": "Plain-language explanation of what is wrong (last check)"
+    },
+    "incident_started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_checked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_ok_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "last_alert_sent_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When William was last emailed about the open incident"
+    },
+    "resolved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "workflow_status": {
+      "type": "string"
+    },
+    "workflow_last_run_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "workflow_last_run_status": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "key"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
