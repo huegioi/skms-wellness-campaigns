@@ -1,5 +1,10 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
+// PSS-4 stress points (0–16) with items 2 and 3 reverse-scored. A missing item adds no stress.
+function pss4StressPoints(r) {
+  return (r.q1||0) + (4 - (r.q2 ?? 4)) + (4 - (r.q3 ?? 4)) + (r.q4||0);
+}
+
 function normalizeInstrument(key, responses) {
   if (!responses) return null;
   switch (key) {
@@ -8,8 +13,10 @@ function normalizeInstrument(key, responses) {
       return raw * 4;
     }
     case 'pss4': {
-      const raw = (responses.q1||0)+(responses.q2||0)+(responses.q3||0)+(responses.q4||0);
-      return ((16 - raw) / 16) * 100;
+      // Items 2 and 3 are positively worded and reverse-scored, as in the
+      // check-in / cohort assessments. Before 2026-09-26 they were summed raw,
+      // which scored "felt confident" as stress.
+      return ((16 - pss4StressPoints(responses)) / 16) * 100;
     }
     case 'uwes3': {
       const mean = ((responses.q1||0)+(responses.q2||0)+(responses.q3||0)) / 3;
@@ -70,7 +77,9 @@ Deno.serve(async (req) => {
 
     for (const inst of instruments) {
       if (!inst.responses) continue;
-      const raw = Object.values(inst.responses).reduce((s, v) => s + (v || 0), 0);
+      const raw = inst.key === 'pss4'
+        ? pss4StressPoints(inst.responses)
+        : Object.values(inst.responses).reduce((s, v) => s + (v || 0), 0);
       const normalized = normalizeInstrument(inst.key, inst.responses);
       const record = {
         client_id: journey.client_id,
