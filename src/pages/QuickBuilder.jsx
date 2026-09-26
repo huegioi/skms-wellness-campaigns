@@ -23,7 +23,7 @@ import {
   RATE_CARD,
 } from '@/lib/rateCard';
 
-const CALENDLY_LINK = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
+import { CALENDLY_DEMO_URL as CALENDLY_LINK } from '@/lib/qrLinks';
 
 const GOALS = [
   'Reduce burnout & stress',
