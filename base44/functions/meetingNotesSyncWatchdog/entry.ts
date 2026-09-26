@@ -16,6 +16,11 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 // warning banner in Layout. William is emailed when a problem starts, again every
 // 24 h while it lasts, and once when it clears.
 //
+// False-alarm guard: "hard" problems (automation switched off / missing, or Google
+// rejecting the connection's sign-in) raise the warning at once. "Soft" ones (automation
+// hasn't run lately, recent runs failed, Google timing out) must show up on TWO checks
+// in a row first — the very first run of this watchdog hit a one-off Drive HTTP 524.
+//
 // Actions:
 //   { action: 'status' }  → return the stored result + fix steps (any signed-in user)
 //   { action: 'check' }   → run the checks now (default; scheduled runs pass automation: true)
@@ -99,16 +104,36 @@ async function getWorkflowState() {
   return { available: false, reason: errors.join('; ') };
 }
 
+// Returns { ok, hard, detail }. hard=true means the connection itself is gone or
+// rejected (no active connection, no token, 401/403); anything else (timeouts, 5xx)
+// is treated as a soft, possibly-transient failure.
 async function probeConnector(base44: any, type: string, testUrl: string) {
+  let accessToken: string | undefined;
   try {
-    const { accessToken } = await base44.asServiceRole.connectors.getConnection(type);
-    if (!accessToken) return { ok: false, detail: 'no access token' };
-    const res = await fetch(testUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
-    if (!res.ok) return { ok: false, detail: `Google API HTTP ${res.status}` };
-    return { ok: true };
+    ({ accessToken } = await base44.asServiceRole.connectors.getConnection(type));
   } catch (e) {
-    return { ok: false, detail: (e as Error).message };
+    return { ok: false, hard: true, detail: (e as Error).message };
   }
+  if (!accessToken) return { ok: false, hard: true, detail: 'no access token' };
+
+  let lastDetail = '';
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
+    try {
+      const res = await fetch(testUrl, { headers: { Authorization: `Bearer ${accessToken}` }, signal: ctrl.signal });
+      if (res.ok) return { ok: true, hard: false, detail: '' };
+      if (res.status === 401 || res.status === 403) {
+        return { ok: false, hard: true, detail: `Google rejected the connection (HTTP ${res.status})` };
+      }
+      lastDetail = `Google API HTTP ${res.status}`;
+    } catch (e) {
+      lastDetail = (e as Error).name === 'AbortError' ? 'Google API timed out' : (e as Error).message;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  return { ok: false, hard: false, detail: lastDetail };
 }
 
 async function loadRow(base44: any) {
@@ -182,11 +207,13 @@ Deno.serve(async (req) => {
     const nowIso = now.toISOString();
     const problems: string[] = [];
     const details: string[] = [];
+    let hard = false; // any problem that should warn immediately
 
     // 1. Automation state
     const wf: any = await getWorkflowState();
     if (wf.available && wf.found) {
       if (wf.status !== 'active') {
+        hard = true;
         problems.push('automation_off');
         details.push(`automation status=${wf.status}${wf.status_reason ? ` (${wf.status_reason})` : ''}`);
       } else {
@@ -201,6 +228,7 @@ Deno.serve(async (req) => {
         }
       }
     } else if (wf.available && !wf.found) {
+      hard = true;
       problems.push('automation_off');
       details.push('automation not found (deleted or renamed?)');
     } else {
@@ -209,19 +237,22 @@ Deno.serve(async (req) => {
 
     // 2 + 3. Google connectors — a real API call, not just "is a token present"
     const drive = await probeConnector(base44, 'googledrive', 'https://www.googleapis.com/drive/v3/about?fields=user');
-    if (!drive.ok) { problems.push('drive_disconnected'); details.push(`Drive: ${drive.detail}`); }
+    if (!drive.ok) { if (drive.hard) hard = true; problems.push('drive_disconnected'); details.push(`Drive: ${drive.detail}`); }
     const cal = await probeConnector(base44, 'googlecalendar', 'https://www.googleapis.com/calendar/v3/users/me/calendarList?maxResults=1');
-    if (!cal.ok) { problems.push('calendar_disconnected'); details.push(`Calendar: ${cal.detail}`); }
+    if (!cal.ok) { if (cal.hard) hard = true; problems.push('calendar_disconnected'); details.push(`Calendar: ${cal.detail}`); }
 
     // Persist + alert
     const row = await loadRow(base44);
     const wasFailing = row?.status === 'failing';
-    const failing = problems.length > 0;
+    const badChecks = problems.length > 0 ? (row?.consecutive_bad_checks || 0) + 1 : 0;
+    // Warn on a hard problem at once, on a soft one only when it repeats.
+    const failing = problems.length > 0 && (hard || badChecks >= 2 || wasFailing);
     const update: any = {
       key: KEY, label: LABEL,
       status: failing ? 'failing' : 'ok',
       problems,
       problem_detail: details.join(' | '),
+      consecutive_bad_checks: badChecks,
       last_checked_at: nowIso,
       workflow_status: wf.available ? (wf.found ? wf.status : 'missing') : 'unknown',
       workflow_last_run_at: wf.last_run_at || null,
@@ -242,7 +273,7 @@ Deno.serve(async (req) => {
         );
         if (ok) { update.last_alert_sent_at = nowIso; emailed = reminder ? 'reminder' : 'alert'; }
       }
-    } else {
+    } else if (problems.length === 0) {
       update.last_ok_at = nowIso;
       if (wasFailing) {
         update.resolved_at = nowIso;
@@ -265,11 +296,11 @@ Deno.serve(async (req) => {
     else await base44.asServiceRole.entities.IntegrationHealth.create(update);
 
     return Response.json({
-      status: update.status, problems, details, emailed,
+      status: update.status, problems, details, emailed, consecutive_bad_checks: badChecks,
       workflow_check: wf.available ? 'ok' : `unavailable: ${wf.reason}`,
     });
   } catch (error) {
-    console.error('checkMeetingNotesSyncHealth error:', error);
+    console.error('meetingNotesSyncWatchdog error:', error);
     // 200 on purpose — see header comment.
     return Response.json({ status: 'check_error', error: (error as Error).message });
   }
