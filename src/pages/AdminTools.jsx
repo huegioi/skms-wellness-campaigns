@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
   ScanText, Gauge, Sparkles, Compass, Calculator, MonitorPlay,
-  Database, Bot, FlaskConical, Trophy, ExternalLink, ArrowRight,
+  Database, Bot, FlaskConical, Trophy, ExternalLink, ArrowRight, QrCode,
 } from 'lucide-react';
+import ConferenceQrDialog from '@/components/shared/ConferenceQrDialog';
 
 /**
  * Admin Tools — one drawer for the occasional-use tools.
@@ -47,6 +48,7 @@ const GROUPS = [
         icon: Sparkles,
         tint: 'bg-amber-100 text-amber-700',
         href: '/QuickBuilder',
+        qrKey: 'quickbuilder',
       },
       {
         name: 'Mental Fitness Journey',
@@ -54,6 +56,7 @@ const GROUPS = [
         icon: Compass,
         tint: 'bg-purple-100 text-purple-700',
         href: '/FitnessRoi',
+        qrKey: 'journey',
       },
       {
         name: 'ROI Calculator',
@@ -61,6 +64,7 @@ const GROUPS = [
         icon: Calculator,
         tint: 'bg-emerald-100 text-emerald-700',
         href: 'https://skillfulmeans-roi-production.up.railway.app/',
+        qrKey: 'roi',
       },
       {
         name: 'Client Demo',
@@ -68,6 +72,7 @@ const GROUPS = [
         icon: MonitorPlay,
         tint: 'bg-sky-100 text-sky-700',
         href: 'https://huegioi.github.io/skillfulmeans-client-demo',
+        qrKey: 'demo',
       },
     ],
   },
@@ -113,7 +118,7 @@ const GROUPS = [
   },
 ];
 
-function ToolCard({ tool }) {
+function ToolCard({ tool, onShowQr }) {
   const Icon = tool.icon;
   const isExternal = Boolean(tool.href);
 
@@ -139,10 +144,36 @@ function ToolCard({ tool }) {
     'hover:shadow-md hover:border-[#264d44]/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#264d44]';
 
   if (isExternal) {
-    return (
+    const link = (
       <a href={tool.href} target="_blank" rel="noopener noreferrer" className={className}>
         {body}
       </a>
+    );
+    if (!tool.qrKey) return link;
+
+    // Tools we share at conferences get a "Show QR code" strip under the card.
+    // It's a sibling of the link, not inside it (a button inside an <a> is
+    // invalid and would also open the tool).
+    return (
+      <div className="flex flex-col bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden
+                      hover:shadow-md hover:border-[#264d44]/30 transition-all">
+        <a
+          href={tool.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group block flex-1 p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#264d44]"
+        >
+          {body}
+        </a>
+        <button
+          type="button"
+          onClick={() => onShowQr(tool.qrKey)}
+          className="flex items-center justify-center gap-1.5 border-t border-gray-100 py-2.5 min-h-[44px] sm:min-h-0
+                     text-xs font-semibold text-[#264d44] hover:bg-[#264d44]/5"
+        >
+          <QrCode className="w-4 h-4" /> Show QR code
+        </button>
+      </div>
     );
   }
 
@@ -154,6 +185,8 @@ function ToolCard({ tool }) {
 }
 
 export default function AdminTools() {
+  const [qrKey, setQrKey] = useState(null);
+
   return (
     <div className="min-h-full bg-[#f4f0e9]">
       {/* Header — matches the other section headers */}
@@ -176,7 +209,7 @@ export default function AdminTools() {
               <p className="text-sm text-gray-500 mt-0.5 mb-3">{group.blurb}</p>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {group.tools.map((tool) => (
-                  <ToolCard key={tool.name} tool={tool} />
+                  <ToolCard key={tool.name} tool={tool} onShowQr={setQrKey} />
                 ))}
               </div>
             </section>
@@ -191,6 +224,12 @@ export default function AdminTools() {
           </p>
         </div>
       </div>
+
+      <ConferenceQrDialog
+        open={!!qrKey}
+        qrKey={qrKey}
+        onOpenChange={(o) => { if (!o) setQrKey(null); }}
+      />
     </div>
   );
 }
