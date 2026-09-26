@@ -188,7 +188,7 @@ export default function QuickBuilder() {
     <PortalShell
       accentColor="#013f7c"
       title="Quick Builder"
-      subtitle="Build your wellness campaign in minutes"
+      subtitle="Build a sample mental fitness campaign in minutes"
       maxWidth="max-w-4xl"
     >
       {/* Scroll anchor — see the step effect above */}
