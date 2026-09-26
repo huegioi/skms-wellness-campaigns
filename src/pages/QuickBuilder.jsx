@@ -376,7 +376,21 @@ export default function QuickBuilder() {
               <p className="text-sm font-semibold text-brand-navy">
                 At {headcount.toLocaleString()} employees, every workshop runs {sectionsPerWorkshop} times
               </p>
-              <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+              {/* Phone: one line plus a tap-to-expand "Why?" — the full
+                  paragraph pushed the first tier card below the fold. */}
+              <details className="sm:hidden mt-1 group">
+                <summary className="text-xs text-gray-600 leading-relaxed list-none cursor-pointer [&::-webkit-details-marker]:hidden">
+                  Prices below cover every sitting.{' '}
+                  <span className="font-semibold text-brand-navy underline underline-offset-2 group-open:hidden">Why?</span>
+                </summary>
+                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                  We cap sessions so they stay interactive, and schedule each topic {sectionsPerWorkshop} times
+                  across different days and hours so shift workers and busy teams can all attend — with
+                  wellness boxes for every sitting. Repeat sittings cost less, because the recording and
+                  printed materials are produced once.
+                </p>
+              </details>
+              <p className="hidden sm:block text-xs text-gray-600 mt-1 leading-relaxed">
                 We cap sessions so they stay interactive, and we schedule each topic {sectionsPerWorkshop} times
                 across different days and hours so shift workers and busy teams can all attend. The prices below
                 cover all {sectionsPerWorkshop} sittings of each workshop, plus wellness boxes for every one of
