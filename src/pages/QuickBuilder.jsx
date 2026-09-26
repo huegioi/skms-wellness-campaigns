@@ -12,6 +12,7 @@ import TierCard from '@/components/quickbuilder/TierCard';
 import QuoteBreakdown from '@/components/quickbuilder/QuoteBreakdown';
 import ProgramGallery from '@/components/quickbuilder/ProgramGallery';
 import MobileActionBar, { MobileActionBarSpacer } from '@/components/quickbuilder/MobileActionBar';
+import { HR_PORTAL_CONTACT } from '@/lib/portalContacts';
 import {
   PUBLIC_STAGES,
   computeQuote,
@@ -514,19 +515,47 @@ export default function QuickBuilder() {
           <QuoteBreakdown quote={quote} />
 
           {/* Nothing left to submit here, so the page ends by offering the
-              next real step: a conversation. */}
-          <div className="rounded-xl border border-brand-plum/25 bg-brand-plum/[0.04] p-5 text-center">
-            <p className="text-sm font-semibold text-gray-800">
-              Want to see what working with us actually looks like?
+              next real step: a conversation — with a real person's face on it.
+              Heather is the contact (same person as the client portal's
+              "Your SkillfulMeans contact" card, via HR_PORTAL_CONTACT). */}
+          <div className="rounded-xl border border-brand-plum/25 bg-brand-plum/[0.04] p-4 sm:p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
+              Book a call with {HR_PORTAL_CONTACT.first}
             </p>
-            <p className="text-xs text-gray-600 mt-1 mb-4 leading-relaxed">
-              A short call — we'll walk you through a campaign, answer questions, and shape the
-              numbers above around your team. No obligation.
+            <div className="flex items-start gap-4">
+              <img
+                src={HR_PORTAL_CONTACT.photo_url}
+                alt={HR_PORTAL_CONTACT.name}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover flex-shrink-0 ring-2 ring-white shadow-sm"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-lg font-bold text-gray-900 leading-tight">{HR_PORTAL_CONTACT.name}</p>
+                <p className="text-sm text-gray-500">{HR_PORTAL_CONTACT.role}</p>
+                <p className="hidden sm:block text-sm text-gray-600 mt-2 leading-relaxed">
+                  {HR_PORTAL_CONTACT.first} will walk you through what it's like to work with SkillfulMeans —
+                  how a campaign runs, what your team experiences, and how we'd shape the numbers above
+                  around you. No obligation.
+                </p>
+                <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer" className="hidden sm:inline-block mt-3">
+                  <Button size="lg" className="h-10 bg-brand-plum hover:bg-brand-plum-dark gap-2">
+                    <CalendarPlus className="w-5 h-5" />
+                    Book a Free Demo
+                    <ExternalLink className="w-4 h-4 ml-1" />
+                  </Button>
+                </a>
+              </div>
+            </div>
+            {/* Phone: copy and button run the full card width under the photo
+                row instead of squeezing into the column beside it. */}
+            <p className="sm:hidden text-sm text-gray-600 mt-3 leading-relaxed">
+              {HR_PORTAL_CONTACT.first} will walk you through what it's like to work with SkillfulMeans —
+              how a campaign runs, what your team experiences, and how we'd shape the numbers above
+              around you. No obligation.
             </p>
-            <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer" className="block sm:inline-block">
-              <Button size="lg" className="w-full sm:w-auto h-12 sm:h-10 bg-brand-plum hover:bg-brand-plum-dark gap-2">
+            <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer" className="sm:hidden block mt-4">
+              <Button size="lg" className="w-full h-12 text-base bg-brand-plum hover:bg-brand-plum-dark gap-2">
                 <CalendarPlus className="w-5 h-5" />
-                Book a free intro call
+                Book a Free Demo
                 <ExternalLink className="w-4 h-4 ml-1" />
               </Button>
             </a>
