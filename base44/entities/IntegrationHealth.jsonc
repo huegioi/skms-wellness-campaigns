@@ -29,6 +29,11 @@
       "type": "string",
       "description": "Plain-language explanation of what is wrong (last check)"
     },
+    "consecutive_bad_checks": {
+      "type": "number",
+      "default": 0,
+      "description": "Checks in a row that found a problem. Soft problems only raise the warning at 2+ (false-alarm guard)."
+    },
     "incident_started_at": {
       "type": "string",
       "format": "date-time"
