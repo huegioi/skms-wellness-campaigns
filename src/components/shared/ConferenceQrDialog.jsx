@@ -70,7 +70,10 @@ export default function ConferenceQrDialog({ open, onOpenChange, qrKey }) {
 
   return (
     <>
-      <Dialog open={open && !fullscreen} onOpenChange={onOpenChange}>
+      <Dialog
+        open={open && !fullscreen}
+        onOpenChange={(o) => { if (!o) setFullscreen(false); onOpenChange(o); }}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>{dest.label} QR code</DialogTitle>
@@ -138,8 +141,6 @@ export default function ConferenceQrDialog({ open, onOpenChange, qrKey }) {
           <p className="text-xs text-gray-400 mt-4">Tap anywhere to close</p>
         </div>
       )}
-      {/* Keep the hi-res canvas mounted while in full screen too, so Download
-          keeps working if the dialog is reopened. */}
     </>
   );
 }
