@@ -50,7 +50,7 @@ export default function ProgramGallery({
   const [openService, setOpenService] = useState(null);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-6">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8 space-y-6">
       <div>
         <h2 className="text-lg font-bold text-gray-800">What you can choose from</h2>
         <p className="text-sm text-gray-500 mt-1 leading-relaxed">
@@ -93,8 +93,19 @@ export default function ProgramGallery({
                 <Icon className="w-4 h-4 text-brand-navy" />
                 <h3 className="font-bold text-gray-800">{group.label}</h3>
                 <span className="text-xs text-gray-400">({items.length})</span>
+                {items.length > 1 && (
+                  <span className="sm:hidden ml-auto text-[11px] text-gray-400">Swipe →</span>
+                )}
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {/* Phone: one swipeable row per group instead of a 2-column
+                  grid — with 40+ programs the grid ran to roughly ten screens
+                  and buried the send button. The row bleeds to the card edge
+                  (-mx-4 matches the card's p-4) and the next card peeks in so
+                  it reads as scrollable. From sm up it's the original grid. */}
+              <div
+                className="flex gap-3 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-1 scroll-px-4
+                           [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
+                           sm:grid sm:grid-cols-3 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0"
                 {items.map(svc => {
                   const image = svc.images?.[0]?.url;
                   return (
@@ -103,7 +114,8 @@ export default function ProgramGallery({
                       type="button"
                       onClick={() => setOpenService(svc)}
                       className="group text-left rounded-xl overflow-hidden border border-gray-100 shadow-sm
-                                 hover:shadow-md hover:border-brand-navy/30 transition-all"
+                                 hover:shadow-md hover:border-brand-navy/30 transition-all
+                                 w-[72%] flex-shrink-0 snap-start sm:w-auto sm:flex-shrink"
                     >
                       <div className="relative aspect-video bg-gray-100">
                         {image ? (
@@ -114,8 +126,8 @@ export default function ProgramGallery({
                           </div>
                         )}
                       </div>
-                      <div className="flex items-center justify-center gap-1.5 py-2
-                                      text-[11px] font-medium text-brand-navy/70 group-hover:text-brand-navy">
+                      <div className="flex items-center justify-center gap-1.5 py-2.5 sm:py-2
+                                      text-xs sm:text-[11px] font-medium text-brand-navy/70 group-hover:text-brand-navy">
                         <Eye className="w-3.5 h-3.5" />
                         View description
                       </div>
@@ -148,7 +160,7 @@ export default function ProgramGallery({
                 )}
               </DialogHeader>
               {(openService.description || openService.short_description) ? (
-                <p className="text-sm text-gray-600 leading-relaxed max-h-64 overflow-y-auto">
+                <p className="text-sm text-gray-600 leading-relaxed sm:max-h-64 sm:overflow-y-auto">
                   {openService.description || openService.short_description}
                 </p>
               ) : (
@@ -161,7 +173,10 @@ export default function ProgramGallery({
 
       {/* This button now sends the inquiry as well as advancing, so it takes
           the plum submit styling and says what it's about to do. */}
-      <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3 pt-2">
+      {/* On phones these live in the pinned bottom bar (MobileActionBar in
+          QuickBuilder.jsx) instead, so they're reachable from anywhere in the
+          gallery. */}
+      <div className="hidden sm:flex sm:flex-row sm:justify-between gap-3 pt-2">
         <Button variant="outline" onClick={onBack} disabled={isSubmitting} className="gap-2">
           <ArrowLeft className="w-4 h-4" /> Back
         </Button>
