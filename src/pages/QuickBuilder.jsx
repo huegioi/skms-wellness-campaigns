@@ -331,7 +331,7 @@ export default function QuickBuilder() {
             </div>
           </div>
           <div className="flex justify-end pt-2">
-            <Button disabled={!step1Valid} onClick={goNext} className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm bg-brand-navy hover:bg-brand-navy-dark gap-2">
+            <Button disabled={!step1Valid} onClick={goNext} className="w-full sm:w-auto h-12 sm:h-9 text-base sm:text-sm bg-brand-navy hover:bg-brand-navy-dark gap-2">
               Next <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
@@ -524,7 +524,7 @@ export default function QuickBuilder() {
               numbers above around your team. No obligation.
             </p>
             <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer" className="block sm:inline-block">
-              <Button size="lg" className="w-full sm:w-auto h-12 sm:h-11 bg-brand-plum hover:bg-brand-plum-dark gap-2">
+              <Button size="lg" className="w-full sm:w-auto h-12 sm:h-10 bg-brand-plum hover:bg-brand-plum-dark gap-2">
                 <CalendarPlus className="w-5 h-5" />
                 Book a free intro call
                 <ExternalLink className="w-4 h-4 ml-1" />
