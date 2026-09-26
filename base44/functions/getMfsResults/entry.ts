@@ -108,7 +108,8 @@ function normalizeInstrument(instrumentKey, responses) {
     case 'who5':
       return (q1 + q2 + q3 + q4 + q5) * 4;
     case 'pss4':
-      return ((16 - (q1 + q2 + q3 + q4)) / 16) * 100;
+      // Items 2 and 3 are reverse-scored (a missing item adds no stress).
+      return ((16 - (q1 + (4 - (responses.q2 ?? 4)) + (4 - (responses.q3 ?? 4)) + q4)) / 16) * 100;
     case 'uwes3':
       return (((q1 + q2 + q3) / 3) / 6) * 100;
     case 'ucla3':
