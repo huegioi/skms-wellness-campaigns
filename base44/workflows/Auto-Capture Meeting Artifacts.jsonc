@@ -31,7 +31,9 @@
           "call": "invoke_backend_function",
           "with": {
             "function_name": "processMeetingArtifacts",
-            "args": {}
+            "args": {
+              "backfill_days": 30
+            }
           },
           "then": "end"
         }
