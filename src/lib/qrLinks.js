@@ -15,11 +15,15 @@ import { ROI_CALCULATOR_URL } from '@/lib/rateCard';
  */
 export const QR_BASE_URL = 'https://app.skillfulmeans.life';
 
+// The Calendly booking page used by every "book a call" button in the app.
+export const CALENDLY_DEMO_URL = 'https://calendly.com/d/cksd-9yr-nfc/skillfulmeans-strategy-session';
+
 export const QR_DESTINATIONS = {
   quickbuilder: { label: 'Quick Builder', url: '/QuickBuilder' },
   journey:      { label: 'Mental Fitness Journey', url: '/FitnessRoi' },
   roi:          { label: 'ROI Calculator', url: ROI_CALCULATOR_URL },
   demo:         { label: 'Client Demo', url: 'https://huegioi.github.io/skillfulmeans-client-demo' },
+  call:         { label: 'Book a Free Demo', url: CALENDLY_DEMO_URL },
 };
 
 /** The URL encoded into the QR code for a destination key. */
