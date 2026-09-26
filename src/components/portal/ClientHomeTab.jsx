@@ -191,10 +191,13 @@ function NextTodoCard({ item, onNavigate }) {
       <div className="flex gap-4">
         <Thumb image={item.image} />
         <div className="min-w-0 flex-1">
-          <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ color: a.color, backgroundColor: a.bg }}>
-            <Icon className="w-3 h-3" /> {a.label}
-          </span>
-          <p className="mt-1.5 font-semibold text-gray-900 leading-snug">{item.name}</p>
+          <div className="flex items-center gap-2">
+            <span className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: a.color }}>
+              <Icon className="w-4 h-4 text-white" />
+            </span>
+            <p className="text-base font-bold leading-tight" style={{ color: a.color }}>{a.label}</p>
+          </div>
+          <p className="mt-2 font-semibold text-gray-900 leading-snug">{item.name}</p>
           <p className="text-sm text-gray-600 mt-0.5">
             By <span className="font-medium text-gray-800">{format(item.date, 'EEE, MMM d')}</span> · {relativeDay(item.date)}
           </p>

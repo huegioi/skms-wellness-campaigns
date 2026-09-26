@@ -34,7 +34,7 @@ export default function ClientTimeline({ events = [], proposal, services = [] })
     if (item.kind === 'event') {
       const Icon = item.config.icon;
       return (
-        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold text-white"
+        <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
           style={{ backgroundColor: muted ? '#9ca3af' : item.config.color }}>
           <Icon className="w-3 h-3" /> {item.config.label}
         </span>
@@ -50,8 +50,8 @@ export default function ClientTimeline({ events = [], proposal, services = [] })
     );
   };
 
-  const Thumb = ({ item, muted }) => (
-    <div className={`w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-md border border-gray-100 bg-gray-50 overflow-hidden flex items-center justify-center ${muted ? 'opacity-50 grayscale' : ''}`}>
+  const Thumb = ({ item, muted, small }) => (
+    <div className={`${small ? 'w-14 h-14' : 'w-20 h-20 sm:w-24 sm:h-24'} shrink-0 rounded-md border border-gray-100 bg-white overflow-hidden flex items-center justify-center ${muted ? 'opacity-50 grayscale' : ''}`}>
       {item.image ? (
         <img src={item.image} alt="" loading="lazy" className="w-full h-full object-contain" />
       ) : (
@@ -60,39 +60,72 @@ export default function ClientTimeline({ events = [], proposal, services = [] })
     </div>
   );
 
+  // To-do items (emails to send) lead with a bold, colored action header so
+  // "what do I need to do" reads at a glance; sessions stay white cards led by
+  // the course image.
+  const ActionHeader = ({ item, muted }) => {
+    const a = ACTIONS[item.kind];
+    const Icon = a.icon;
+    const color = muted ? '#6b7280' : a.color;
+    const tag = item.kind === 'app_notification' ? 'Automatic' : muted ? 'Past' : 'Your to-do';
+    return (
+      <div className="flex flex-wrap items-center gap-2 mb-2.5">
+        <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: muted ? '#d1d5db' : a.color }}>
+          <Icon className="w-5 h-5 text-white" />
+        </span>
+        <p className="text-base sm:text-lg font-bold leading-tight" style={{ color }}>{a.label}</p>
+        <span
+          className="text-[10px] font-bold uppercase tracking-wider rounded-full px-2 py-0.5 border bg-white"
+          style={{ color, borderColor: muted ? '#e5e7eb' : a.color }}
+        >
+          {tag}
+        </span>
+      </div>
+    );
+  };
+
   const renderItem = (item) => {
     const status = statusOf(item);
     const muted = status === 'past';
+    const isAction = item.kind !== 'event';
+    const accent = muted ? '#d1d5db' : isAction ? ACTIONS[item.kind].color : item.config.color;
     return (
       <div
         key={item.id}
-        className={`flex flex-wrap sm:flex-nowrap items-start gap-3 sm:gap-4 p-3 rounded-lg border ${
-          status === 'today' ? 'border-brand-plum shadow-md bg-white' : muted ? 'border-gray-100 bg-gray-50' : 'border-gray-200 bg-white'
-        }`}
+        className={`p-3 sm:p-4 rounded-lg border border-l-4 ${
+          status === 'today' ? 'shadow-md ring-2 ring-brand-plum/30' : ''
+        } ${muted ? 'bg-gray-50 border-gray-100' : isAction ? 'border-transparent' : 'bg-white border-gray-200'}`}
+        style={{
+          borderLeftColor: accent,
+          backgroundColor: !muted && isAction ? ACTIONS[item.kind].bg : undefined,
+        }}
       >
-        <Thumb item={item} muted={muted} />
-        <div className="flex-1 min-w-0">
-          <Chip item={item} muted={muted} />
-          <h4 className={`mt-1.5 font-semibold leading-snug ${muted ? 'text-gray-500' : 'text-gray-900'}`}>{item.name}</h4>
-          {item.subtitle && <p className={`text-sm mt-0.5 ${muted ? 'text-gray-400' : 'text-gray-600'}`}>{item.subtitle}</p>}
-          {item.kind === 'event' && item.detail && !muted && (
-            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.detail}</p>
-          )}
-          {muted && item.kind === 'event' && (
-            <p className="flex items-center gap-1 mt-1.5 text-green-600 text-xs">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              {item.completed && item.completed_date ? `Completed ${format(new Date(item.completed_date), 'MMM d, yyyy')}` : 'Completed'}
-            </p>
-          )}
-        </div>
-        <div className="w-full sm:w-auto flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0 pl-[92px] sm:pl-0">
-          <div className="sm:text-right">
-            <p className={`text-sm font-semibold whitespace-nowrap ${status === 'today' ? 'text-brand-plum' : muted ? 'text-gray-400' : 'text-gray-900'}`}>
-              {format(item.date, 'EEE, MMM d')}
-            </p>
-            <p className="text-xs text-gray-500 whitespace-nowrap">{relative(item.date)}</p>
+        {isAction && <ActionHeader item={item} muted={muted} />}
+        <div className="flex flex-wrap sm:flex-nowrap items-start gap-3 sm:gap-4">
+          <Thumb item={item} muted={muted} small={isAction} />
+          <div className="flex-1 min-w-0">
+            {!isAction && <Chip item={item} muted={muted} />}
+            <h4 className={`${isAction ? '' : 'mt-1.5'} font-semibold leading-snug ${muted ? 'text-gray-500' : 'text-gray-900'}`}>{item.name}</h4>
+            {item.subtitle && <p className={`text-sm mt-0.5 ${muted ? 'text-gray-400' : 'text-gray-600'}`}>{item.subtitle}</p>}
+            {item.kind === 'event' && item.detail && !muted && (
+              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.detail}</p>
+            )}
+            {muted && item.kind === 'event' && (
+              <p className="flex items-center gap-1 mt-1.5 text-green-600 text-xs">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                {item.completed && item.completed_date ? `Completed ${format(new Date(item.completed_date), 'MMM d, yyyy')}` : 'Completed'}
+              </p>
+            )}
           </div>
-          {!muted && item.cal && <AddToCalendarMenu event={item.cal} />}
+          <div className={`w-full sm:w-auto flex sm:flex-col items-center sm:items-end justify-between gap-2 shrink-0 ${isAction ? 'pl-[68px]' : 'pl-[92px]'} sm:pl-0`}>
+            <div className="sm:text-right">
+              <p className={`text-sm font-semibold whitespace-nowrap ${status === 'today' ? 'text-brand-plum' : muted ? 'text-gray-400' : 'text-gray-900'}`}>
+                {isAction && !muted ? 'By ' : ''}{format(item.date, 'EEE, MMM d')}
+              </p>
+              <p className="text-xs text-gray-500 whitespace-nowrap">{relative(item.date)}</p>
+            </div>
+            {!muted && item.cal && <AddToCalendarMenu event={item.cal} />}
+          </div>
         </div>
       </div>
     );
