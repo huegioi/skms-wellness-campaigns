@@ -106,6 +106,7 @@ export default function ProgramGallery({
                 className="flex gap-3 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-1 scroll-px-4
                            [scrollbar-width:none] [&::-webkit-scrollbar]:hidden
                            sm:grid sm:grid-cols-3 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0"
+              >
                 {items.map(svc => {
                   const image = svc.images?.[0]?.url;
                   return (
