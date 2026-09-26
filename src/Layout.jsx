@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { useRateCard } from '@/lib/useRateCard';
+import SyncHealthBanner from '@/components/shared/SyncHealthBanner';
 import { Users, BarChart3, Calendar, Package, Mail, Menu, X, ClipboardList, Landmark, Wand2, CalendarDays, ScanText, Wrench, FlaskConical, ExternalLink } from 'lucide-react';
 
 const navItems = [
@@ -237,6 +238,8 @@ export default function Layout({ children, currentPageName }) {
 
       {/* ── MAIN CONTENT ── */}
       <div className="flex-1 flex flex-col min-w-0 lg:ml-56 overflow-y-auto">
+        {/* Integration health warning (meeting-notes sync) — renders nothing when healthy */}
+        <SyncHealthBanner />
         <main className="flex-1 pb-[calc(72px+env(safe-area-inset-bottom))] lg:pb-8">
           {children}
         </main>
