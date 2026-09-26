@@ -45,11 +45,13 @@ export default function Scan() {
   useEffect(() => {
     const prevTitle = document.title;
     document.title = 'SkillfulMeans — Mental Fitness Campaigns';
-    const raf = requestAnimationFrame(() => setVisible(true));
-    const timers = ITEMS.map((_, i) => setTimeout(() => setActive(i), INTRO_MS + i * STEP_MS));
+    // A timer, not requestAnimationFrame: rAF never fires in a background tab
+    // (e.g. a phone that opened the link behind the camera app), which left
+    // the whole screen at opacity 0.
+    const timers = [setTimeout(() => setVisible(true), 30)];
+    ITEMS.forEach((_, i) => timers.push(setTimeout(() => setActive(i), INTRO_MS + i * STEP_MS)));
     timers.push(setTimeout(go, TOTAL_MS));
     return () => {
-      cancelAnimationFrame(raf);
       timers.forEach(clearTimeout);
       document.title = prevTitle;
     };
