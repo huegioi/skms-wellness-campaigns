@@ -20,8 +20,11 @@ export default function EmailGate({ formData, onSubmit }) {
         company_name: formData.company_name || undefined,
         industry: formData.industry,
         headcount: Number(formData.headcount),
-        avg_salary: Number(formData.avgSalary),
-        turnover_rate: formData.turnoverRate,
+        // FitnessRoi passes snake_case (avg_salary / turnover_rate); older callers
+        // used camelCase. Reading only camelCase silently dropped the salary and
+        // turnover HR entered, so the server fell back to $65k / 18%.
+        avg_salary: Number(formData.avg_salary ?? formData.avgSalary),
+        turnover_rate: formData.turnover_rate ?? formData.turnoverRate,
         quick_answers: formData.quick_answers,
         ref: formData.ref || undefined,
       });
