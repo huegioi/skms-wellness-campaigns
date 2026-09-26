@@ -19,6 +19,7 @@ export const PUBLIC_PATHS = [
   '/ClaimsLite',
   '/MfsJourneySurvey',
   '/Unsubscribe',
+  '/Scan',
 ];
 
 export function isPublicPath(pathname) {
