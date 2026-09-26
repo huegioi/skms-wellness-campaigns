@@ -3,9 +3,10 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
   ScanText, Gauge, Sparkles, Compass, Calculator, MonitorPlay,
-  Database, Bot, FlaskConical, Trophy, ExternalLink, ArrowRight, QrCode,
+  Database, Bot, FlaskConical, Trophy, ExternalLink, ArrowRight, QrCode, CalendarPlus,
 } from 'lucide-react';
 import ConferenceQrDialog from '@/components/shared/ConferenceQrDialog';
+import { CALENDLY_DEMO_URL } from '@/lib/qrLinks';
 
 /**
  * Admin Tools — one drawer for the occasional-use tools.
@@ -73,6 +74,14 @@ const GROUPS = [
         tint: 'bg-sky-100 text-sky-700',
         href: 'https://huegioi.github.io/skillfulmeans-client-demo',
         qrKey: 'demo',
+      },
+      {
+        name: 'Book a Free Demo',
+        description: 'The Calendly booking page for a free demo call — the same link as the end of the Quick Builder.',
+        icon: CalendarPlus,
+        tint: 'bg-rose-100 text-[#770142]',
+        href: CALENDLY_DEMO_URL,
+        qrKey: 'call',
       },
     ],
   },
