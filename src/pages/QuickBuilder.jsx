@@ -550,13 +550,16 @@ export default function QuickBuilder() {
                   how a campaign runs, what your team experiences, and how we'd shape the numbers above
                   around you. No obligation.
                 </p>
-                <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer" className="hidden sm:inline-block mt-3">
-                  <Button size="lg" className="h-10 bg-brand-plum hover:bg-brand-plum-dark gap-2">
+                {/* asChild: the <a> IS the button. A <button> nested inside an
+                    <a> is invalid HTML and some browsers (Safari, Firefox) swallow
+                    the click instead of following the link. */}
+                <Button asChild size="lg" className="hidden sm:inline-flex mt-3 h-10 bg-brand-plum hover:bg-brand-plum-dark gap-2">
+                  <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer">
                     <CalendarPlus className="w-5 h-5" />
                     Book a Free Demo
                     <ExternalLink className="w-4 h-4 ml-1" />
-                  </Button>
-                </a>
+                  </a>
+                </Button>
               </div>
             </div>
             {/* Phone: copy and button run the full card width under the photo
@@ -566,13 +569,13 @@ export default function QuickBuilder() {
               how a campaign runs, what your team experiences, and how we'd shape the numbers above
               around you. No obligation.
             </p>
-            <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer" className="sm:hidden block mt-4">
-              <Button size="lg" className="w-full h-12 text-base bg-brand-plum hover:bg-brand-plum-dark gap-2">
+            <Button asChild size="lg" className="sm:hidden flex mt-4 w-full h-12 text-base bg-brand-plum hover:bg-brand-plum-dark gap-2">
+              <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer">
                 <CalendarPlus className="w-5 h-5" />
                 Book a Free Demo
                 <ExternalLink className="w-4 h-4 ml-1" />
-              </Button>
-            </a>
+              </a>
+            </Button>
           </div>
 
           <div className="flex justify-start pt-2">
