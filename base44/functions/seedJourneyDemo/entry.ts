@@ -29,8 +29,9 @@ function normalizeInstrument(key, responses) {
       return raw * 4;
     }
     case 'pss4': {
-      const raw = (responses.q1||0)+(responses.q2||0)+(responses.q3||0)+(responses.q4||0);
-      return ((16 - raw) / 16) * 100;
+      // Items 2 and 3 are reverse-scored (same as submitJourneySurvey).
+      const stress = (responses.q1||0) + (4 - (responses.q2 ?? 4)) + (4 - (responses.q3 ?? 4)) + (responses.q4||0);
+      return ((16 - stress) / 16) * 100;
     }
     case 'uwes3': {
       const mean = ((responses.q1||0)+(responses.q2||0)+(responses.q3||0)) / 3;
@@ -47,20 +48,22 @@ function normalizeInstrument(key, responses) {
 // ── 10 engineered respondents ──
 // Team data CONTRASTS with the leader's optimistic view:
 //   pss4 mean ≈ 52, 4/10 below 50 → stress_rate_real = 40% (vs leader's 25%)
+//   (pss4 items 2 and 3 are reverse-scored; their answers were flipped on
+//   2026-09-26 when scoring was corrected, so the demo's numbers are unchanged)
 //   ucla3 mean ≈ 47, 6/10 at or below 50 (connection is the hidden problem)
 //   who5  mean ≈ 57 (typical, unremarkable)
 //   uwes3 mean ≈ 63 (engagement is a relative strength)
 const RESPONDENTS = [
-  { pss4: {q1:3,q2:3,q3:2,q4:2}, ucla3: {q1:3,q2:3,q3:3}, who5: {q1:3,q2:3,q3:2,q4:3,q5:3}, uwes3: {q1:4,q2:4,q3:3} },
-  { pss4: {q1:3,q2:3,q3:3,q4:1}, ucla3: {q1:3,q2:3,q3:2}, who5: {q1:3,q2:3,q3:3,q4:3,q5:3}, uwes3: {q1:4,q2:4,q3:4} },
-  { pss4: {q1:2,q2:3,q3:3,q4:2}, ucla3: {q1:3,q2:2,q3:3}, who5: {q1:3,q2:2,q3:3,q4:2,q5:3}, uwes3: {q1:4,q2:3,q3:4} },
-  { pss4: {q1:3,q2:2,q3:3,q4:3}, ucla3: {q1:2,q2:2,q3:2}, who5: {q1:2,q2:3,q3:3,q4:2,q5:3}, uwes3: {q1:4,q2:4,q3:3} },
+  { pss4: {q1:3,q2:1,q3:2,q4:2}, ucla3: {q1:3,q2:3,q3:3}, who5: {q1:3,q2:3,q3:2,q4:3,q5:3}, uwes3: {q1:4,q2:4,q3:3} },
+  { pss4: {q1:3,q2:1,q3:1,q4:1}, ucla3: {q1:3,q2:3,q3:2}, who5: {q1:3,q2:3,q3:3,q4:3,q5:3}, uwes3: {q1:4,q2:4,q3:4} },
+  { pss4: {q1:2,q2:1,q3:1,q4:2}, ucla3: {q1:3,q2:2,q3:3}, who5: {q1:3,q2:2,q3:3,q4:2,q5:3}, uwes3: {q1:4,q2:3,q3:4} },
+  { pss4: {q1:3,q2:2,q3:1,q4:3}, ucla3: {q1:2,q2:2,q3:2}, who5: {q1:2,q2:3,q3:3,q4:2,q5:3}, uwes3: {q1:4,q2:4,q3:3} },
   { pss4: {q1:2,q2:2,q3:2,q4:2}, ucla3: {q1:2,q2:2,q3:2}, who5: {q1:3,q2:3,q3:3,q4:3,q5:3}, uwes3: {q1:4,q2:4,q3:4} },
   { pss4: {q1:1,q2:2,q3:2,q4:1}, ucla3: {q1:2,q2:2,q3:2}, who5: {q1:3,q2:3,q3:2,q4:3,q5:3}, uwes3: {q1:4,q2:4,q3:4} },
-  { pss4: {q1:2,q2:1,q3:2,q4:0}, ucla3: {q1:2,q2:1,q3:2}, who5: {q1:3,q2:3,q3:4,q4:3,q5:3}, uwes3: {q1:4,q2:4,q3:3} },
-  { pss4: {q1:1,q2:2,q3:1,q4:1}, ucla3: {q1:2,q2:2,q3:1}, who5: {q1:3,q2:2,q3:3,q4:2,q5:3}, uwes3: {q1:4,q2:4,q3:4} },
-  { pss4: {q1:2,q2:2,q3:1,q4:2}, ucla3: {q1:1,q2:2,q3:1}, who5: {q1:3,q2:3,q3:3,q4:3,q5:3}, uwes3: {q1:3,q2:4,q3:3} },
-  { pss4: {q1:1,q2:2,q3:1,q4:1}, ucla3: {q1:2,q2:1,q3:2}, who5: {q1:3,q2:3,q3:3,q4:3,q5:2}, uwes3: {q1:4,q2:4,q3:4} },
+  { pss4: {q1:2,q2:3,q3:2,q4:0}, ucla3: {q1:2,q2:1,q3:2}, who5: {q1:3,q2:3,q3:4,q4:3,q5:3}, uwes3: {q1:4,q2:4,q3:3} },
+  { pss4: {q1:1,q2:2,q3:3,q4:1}, ucla3: {q1:2,q2:2,q3:1}, who5: {q1:3,q2:2,q3:3,q4:2,q5:3}, uwes3: {q1:4,q2:4,q3:4} },
+  { pss4: {q1:2,q2:2,q3:3,q4:2}, ucla3: {q1:1,q2:2,q3:1}, who5: {q1:3,q2:3,q3:3,q4:3,q5:3}, uwes3: {q1:3,q2:4,q3:3} },
+  { pss4: {q1:1,q2:2,q3:3,q4:1}, ucla3: {q1:2,q2:1,q3:2}, who5: {q1:3,q2:3,q3:3,q4:3,q5:2}, uwes3: {q1:4,q2:4,q3:4} },
 ];
 
 Deno.serve(async (req) => {
