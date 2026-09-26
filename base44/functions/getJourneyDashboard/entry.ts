@@ -19,6 +19,21 @@ const DOMAIN_WEIGHTS = {
   // the matrix and assumes we still claim it.
 };
 const DOMAIN_TO_INSTRUMENT = { stress: 'pss4', wellbeing: 'who5', engagement: 'uwes3', connection: 'ucla3' };
+
+// Team scores are computed from each row's stored item answers, so every
+// journey uses the current scoring — including rows written before the PSS-4
+// fix of 2026-09-26, whose stored _normalized summed items 2 and 3 without
+// reverse-scoring them. Falls back to _normalized when a row has no items.
+function normalizeFromItems(key, r) {
+  if (!r) return null;
+  switch (key) {
+    case 'who5':  return ((r.q1||0) + (r.q2||0) + (r.q3||0) + (r.q4||0) + (r.q5||0)) * 4;
+    case 'pss4':  return ((16 - ((r.q1||0) + (4 - (r.q2 ?? 4)) + (4 - (r.q3 ?? 4)) + (r.q4||0))) / 16) * 100;
+    case 'uwes3': return ((((r.q1||0) + (r.q2||0) + (r.q3||0)) / 3) / 6) * 100;
+    case 'ucla3': return ((9 - ((r.q1||0) + (r.q2||0) + (r.q3||0))) / 6) * 100;
+    default: return null;
+  }
+}
 const DOMAIN_LABELS = { stress: 'Stress', wellbeing: 'Wellbeing', engagement: 'Engagement', connection: 'Connection' };
 
 function computeDomainOpportunity(teamScores, teamDrivers) {
@@ -134,7 +149,9 @@ Deno.serve(async (req) => {
       const sid = r.instrument_subscores?._sid;
       if (!sid) continue;
       if (!respondentMap[sid]) respondentMap[sid] = {};
-      respondentMap[sid][r.instrument] = r.instrument_subscores?._normalized;
+      const fromItems = r.item_responses && Object.keys(r.item_responses).length
+        ? normalizeFromItems(r.instrument, r.item_responses) : null;
+      respondentMap[sid][r.instrument] = fromItems ?? r.instrument_subscores?._normalized;
     }
     const respondentList = Object.values(respondentMap);
     const responseCount = respondentList.length;
