@@ -11,6 +11,7 @@ import { PreventativeBand, EveryCampaignIncludes } from '@/components/quickbuild
 import TierCard from '@/components/quickbuilder/TierCard';
 import QuoteBreakdown from '@/components/quickbuilder/QuoteBreakdown';
 import ProgramGallery from '@/components/quickbuilder/ProgramGallery';
+import MobileActionBar, { MobileActionBarSpacer } from '@/components/quickbuilder/MobileActionBar';
 import {
   PUBLIC_STAGES,
   computeQuote,
@@ -65,9 +66,17 @@ export default function QuickBuilder() {
   const [submitting, setSubmitting] = useState(false);
   const [emailError, setEmailError] = useState('');
 
+  // Programs come from a public function, not Service.list(): the Service
+  // entity is readable by signed-in users only, so prospects (who are never
+  // signed in) got an empty gallery. The function already drops inactive and
+  // non-public programs and returns display fields only — no prices.
   const { data: services = [], isLoading } = useQuery({
-    queryKey: ['quickBuilderServices'],
-    queryFn: () => base44.entities.Service.list('sort_order'),
+    queryKey: ['quickBuilderPublicServices'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getPublicServices', {});
+      return res?.data?.services || [];
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   const publicServices = useMemo(
@@ -87,7 +96,13 @@ export default function QuickBuilder() {
   // long step dropped you into the middle of the next one (typically landing
   // on "Why campaigns work"). scrollIntoView rather than window.scrollTo
   // because PortalShell's tabbed layout scrolls an inner div, not the window.
+  //
+  // Skipped on first render: running it on load scrolled the page past the
+  // header, so on a phone people arrived with the logo and title already
+  // off-screen.
+  const firstRender = useRef(true);
   useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return; }
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [step]);
 
@@ -179,9 +194,17 @@ export default function QuickBuilder() {
       <div ref={topRef} className="scroll-mt-4" />
 
       {/* Step indicator — mobile */}
-      <div className="sm:hidden mb-6 flex items-center justify-between">
-        <span className="text-sm font-bold text-brand-navy">Step {currentIndex + 1} of {STEPS.length}</span>
-        <span className="text-sm text-gray-500">{STEPS[currentIndex]?.label}</span>
+      <div className="sm:hidden mb-5">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-bold text-brand-navy">Step {currentIndex + 1} of {STEPS.length}</span>
+          <span className="text-sm text-gray-500">{STEPS[currentIndex]?.label}</span>
+        </div>
+        <div className="mt-2 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-brand-navy transition-all duration-300"
+            style={{ width: `${((currentIndex + 1) / STEPS.length) * 100}%` }}
+          />
+        </div>
       </div>
 
       {/* Step indicator — desktop */}
@@ -215,7 +238,7 @@ export default function QuickBuilder() {
 
       {/* ── Step 1: About your team ── */}
       {step === 1 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-7 space-y-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-7 space-y-4">
           <h2 className="text-lg font-bold text-gray-800">About your team</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -224,6 +247,8 @@ export default function QuickBuilder() {
                 value={form.company_name}
                 onChange={e => setForm({ ...form, company_name: e.target.value })}
                 placeholder="Acme Corp"
+                autoComplete="organization"
+                enterKeyHint="next"
               />
             </div>
             <div>
@@ -232,6 +257,9 @@ export default function QuickBuilder() {
                 value={form.contact_name}
                 onChange={e => setForm({ ...form, contact_name: e.target.value })}
                 placeholder="Jane Smith"
+                autoComplete="name"
+                autoCapitalize="words"
+                enterKeyHint="next"
               />
             </div>
           </div>
@@ -246,6 +274,11 @@ export default function QuickBuilder() {
                   validateEmail(e.target.value);
                 }}
                 placeholder="jane@acme.com"
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                enterKeyHint="next"
               />
               {emailError && <p className="text-xs text-red-500 mt-1">{emailError}</p>}
             </div>
@@ -259,6 +292,8 @@ export default function QuickBuilder() {
                   type="number"
                   min="1"
                   inputMode="numeric"
+                  pattern="[0-9]*"
+                  enterKeyHint="done"
                   className="pl-9"
                   value={form.headcount}
                   onChange={e => setForm({ ...form, headcount: e.target.value })}
@@ -281,7 +316,7 @@ export default function QuickBuilder() {
                     type="button"
                     disabled={disabled}
                     onClick={() => toggleGoal(goal)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                    className={`px-4 py-2 min-h-[44px] sm:min-h-0 rounded-full text-sm font-medium border transition-colors ${
                       selected
                         ? 'bg-brand-navy text-white border-brand-navy'
                         : disabled
@@ -296,7 +331,7 @@ export default function QuickBuilder() {
             </div>
           </div>
           <div className="flex justify-end pt-2">
-            <Button disabled={!step1Valid} onClick={goNext} className="bg-brand-navy hover:bg-brand-navy-dark gap-2">
+            <Button disabled={!step1Valid} onClick={goNext} className="w-full sm:w-auto h-12 sm:h-10 text-base sm:text-sm bg-brand-navy hover:bg-brand-navy-dark gap-2">
               Next <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
@@ -305,7 +340,7 @@ export default function QuickBuilder() {
 
       {/* ── Step 2: Pick your tier ── */}
       {step === 2 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-5">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8 space-y-5">
           <div>
             <h2 className="text-lg font-bold text-gray-800">Pick your tier</h2>
             <p className="text-sm text-gray-500 mt-1">
@@ -371,7 +406,7 @@ export default function QuickBuilder() {
                 type="checkbox"
                 checked={isNewClient}
                 onChange={toggleNewClient}
-                className="mt-0.5 w-4 h-4 rounded accent-brand-navy flex-shrink-0"
+                className="mt-0.5 w-5 h-5 sm:w-4 sm:h-4 rounded accent-brand-navy flex-shrink-0"
               />
               <span className="text-sm text-gray-700">
                 This is our first campaign with SkillfulMeans
@@ -388,7 +423,7 @@ export default function QuickBuilder() {
             and we'll shape one around you.
           </p>
 
-          <div className="flex justify-between pt-2">
+          <div className="hidden sm:flex justify-between pt-2">
             <Button variant="outline" onClick={goPrev} className="gap-2">
               <ArrowLeft className="w-4 h-4" /> Back
             </Button>
@@ -401,6 +436,40 @@ export default function QuickBuilder() {
             </Button>
           </div>
         </div>
+      )}
+
+      {/* Phone: the tier cards stack three deep, so the inline Next ended up
+          two screens below the card you tapped. Pin it to the bottom and say
+          what's selected. */}
+      {step === 2 && (
+        <MobileActionBar
+          onBack={goPrev}
+          summary={
+            selectedStage && quote
+              ? <><span className="font-semibold text-gray-800">{quote.tier.name}</span> · ${quote.total.toLocaleString()} / campaign</>
+              : 'Tap a tier to choose it'
+          }
+        >
+          <Button
+            disabled={!selectedStage}
+            onClick={goNext}
+            className="bg-brand-navy hover:bg-brand-navy-dark gap-2"
+          >
+            Next <ArrowRight className="w-4 h-4" />
+          </Button>
+        </MobileActionBar>
+      )}
+
+      {step === 3 && (
+        <MobileActionBar onBack={goPrev} backDisabled={submitting}>
+          <Button
+            onClick={handleSubmitAndContinue}
+            disabled={submitting}
+            className="bg-brand-plum hover:bg-brand-plum-dark gap-2"
+          >
+            {submitting ? 'Sending…' : <>Send my details & see my quote <ArrowRight className="w-4 h-4" /></>}
+          </Button>
+        </MobileActionBar>
       )}
 
       {/* ── Step 3: What's included (browse only) ── */}
@@ -417,7 +486,7 @@ export default function QuickBuilder() {
 
       {/* ── Step 4: Your quote ── */}
       {step === 4 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8 space-y-5">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8 space-y-5">
           {/* Receipt first — they clicked send on the last step and deserve to
               know it landed before they read anything else. */}
           {submitted && (
@@ -454,8 +523,8 @@ export default function QuickBuilder() {
               A short call — we'll walk you through a campaign, answer questions, and shape the
               numbers above around your team. No obligation.
             </p>
-            <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer" className="inline-block">
-              <Button size="lg" className="bg-brand-plum hover:bg-brand-plum-dark gap-2">
+            <a href={CALENDLY_LINK} target="_blank" rel="noopener noreferrer" className="block sm:inline-block">
+              <Button size="lg" className="w-full sm:w-auto h-12 sm:h-11 bg-brand-plum hover:bg-brand-plum-dark gap-2">
                 <CalendarPlus className="w-5 h-5" />
                 Book a free intro call
                 <ExternalLink className="w-4 h-4 ml-1" />
@@ -479,6 +548,8 @@ export default function QuickBuilder() {
           and 3) but not on the quote, where the breakdown already itemises
           exactly what they are getting. */}
       {step > 1 && step < 4 && <EveryCampaignIncludes />}
+
+      {(step === 2 || step === 3) && <MobileActionBarSpacer withSummary={step === 2} />}
     </PortalShell>
   );
 }
