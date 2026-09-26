@@ -4,7 +4,7 @@ import { AlertTriangle, ChevronDown, ChevronUp, RefreshCw, Mail } from 'lucide-r
 
 // Big warning shown at the top of every internal page when the Google Meet
 // notes → Activity tab sync is broken. State comes from the hourly watchdog
-// (checkMeetingNotesSyncHealth → IntegrationHealth 'meeting_notes'); the fix
+// (meetingNotesSyncWatchdog → IntegrationHealth 'meeting_notes'); the fix
 // steps come from the same function, so the banner and William's alert email
 // always say the same thing. Renders nothing when healthy.
 
@@ -25,7 +25,7 @@ export default function SyncHealthBanner() {
 
   const load = useCallback(async () => {
     try {
-      const res = await base44.functions.invoke('checkMeetingNotesSyncHealth', { action: 'status' });
+      const res = await base44.functions.invoke('meetingNotesSyncWatchdog', { action: 'status' });
       setHealth(res?.data || null);
     } catch {
       // Never let the health banner break a page.
@@ -42,7 +42,7 @@ export default function SyncHealthBanner() {
     setChecking(true);
     setRecheckMsg('');
     try {
-      const res = await base44.functions.invoke('checkMeetingNotesSyncHealth', { action: 'check' });
+      const res = await base44.functions.invoke('meetingNotesSyncWatchdog', { action: 'check' });
       await load();
       setRecheckMsg(res?.data?.status === 'ok' ? 'All clear — sync is healthy again.' : 'Still broken — see the steps below.');
     } catch {
