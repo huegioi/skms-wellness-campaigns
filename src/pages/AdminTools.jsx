@@ -101,7 +101,7 @@ const GROUPS = [
       },
       {
         name: 'Heather on LinkedIn',
-        description: 'Heather Wise, MPH — Co-founder',
+        description: 'Heather Wise, MPH, HHC — Co-founder',
         icon: Linkedin,
         photo: HEATHER_PHOTO,
         tint: 'bg-[#0a66c2]/10 text-[#0a66c2]',
@@ -162,7 +162,7 @@ function ToolCard({ tool, onShowQr }) {
         // Headshot with a small brand badge (the LinkedIn cards)
         <span className="relative w-10 h-10 shrink-0">
           <img src={tool.photo} alt="" className="w-10 h-10 rounded-full object-cover" />
-          <span className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-md flex items-center justify-center bg-white ring-1 ring-gray-200 ${tool.tint}`}>
+          <span className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-md flex items-center justify-center bg-white ring-1 ring-gray-200 text-[#0a66c2]`}>
             <Icon className="w-3 h-3" />
           </span>
         </span>
