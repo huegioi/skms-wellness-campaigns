@@ -24,6 +24,8 @@ export const QR_DESTINATIONS = {
   roi:          { label: 'ROI Calculator', url: ROI_CALCULATOR_URL },
   demo:         { label: 'Client Demo', url: 'https://huegioi.github.io/skillfulmeans-client-demo' },
   call:         { label: 'Book a Free Demo', url: CALENDLY_DEMO_URL },
+  william:      { label: "William's LinkedIn", url: 'https://www.linkedin.com/in/william-jackson-psy-d-b6597644/' },
+  heather:      { label: "Heather's LinkedIn", url: 'https://www.linkedin.com/in/heather-wise-mph-hhc-95028630/' },
 };
 
 /** The URL encoded into the QR code for a destination key. */
