@@ -3,10 +3,11 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import {
   ScanText, Gauge, Sparkles, Compass, Calculator, MonitorPlay,
-  Database, Bot, FlaskConical, Trophy, ExternalLink, ArrowRight, QrCode, CalendarPlus,
+  Database, Bot, FlaskConical, Trophy, ExternalLink, ArrowRight, QrCode, CalendarPlus, Linkedin,
 } from 'lucide-react';
 import ConferenceQrDialog from '@/components/shared/ConferenceQrDialog';
-import { CALENDLY_DEMO_URL } from '@/lib/qrLinks';
+import { CALENDLY_DEMO_URL, QR_DESTINATIONS } from '@/lib/qrLinks';
+import { WILLIAM_PHOTO, HEATHER_PHOTO } from '@/assets/teamPhotos';
 
 /**
  * Admin Tools — one drawer for the occasional-use tools.
@@ -86,6 +87,30 @@ const GROUPS = [
     ],
   },
   {
+    title: 'Connect with us',
+    blurb: 'Our LinkedIn profiles — show the QR code so people can connect on the spot.',
+    tools: [
+      {
+        name: 'William on LinkedIn',
+        description: 'William Jackson, Psy.D. — Co-founder',
+        icon: Linkedin,
+        photo: WILLIAM_PHOTO,
+        tint: 'bg-[#0a66c2]/10 text-[#0a66c2]',
+        href: QR_DESTINATIONS.william.url,
+        qrKey: 'william',
+      },
+      {
+        name: 'Heather on LinkedIn',
+        description: 'Heather Wise, MPH — Co-founder',
+        icon: Linkedin,
+        photo: HEATHER_PHOTO,
+        tint: 'bg-[#0a66c2]/10 text-[#0a66c2]',
+        href: QR_DESTINATIONS.heather.url,
+        qrKey: 'heather',
+      },
+    ],
+  },
+  {
     title: 'Challenges',
     blurb: 'The 14-day challenge app at challenges.skillfulmeans.life — a separate build, linked from here.',
     tools: [
@@ -133,9 +158,19 @@ function ToolCard({ tool, onShowQr }) {
 
   const body = (
     <div className="flex items-start gap-3">
-      <span className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${tool.tint}`}>
-        <Icon className="w-5 h-5" />
-      </span>
+      {tool.photo ? (
+        // Headshot with a small brand badge (the LinkedIn cards)
+        <span className="relative w-10 h-10 shrink-0">
+          <img src={tool.photo} alt="" className="w-10 h-10 rounded-full object-cover" />
+          <span className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-md flex items-center justify-center bg-white ring-1 ring-gray-200 ${tool.tint}`}>
+            <Icon className="w-3 h-3" />
+          </span>
+        </span>
+      ) : (
+        <span className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${tool.tint}`}>
+          <Icon className="w-5 h-5" />
+        </span>
+      )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <h3 className="font-semibold text-[#013f7c] text-sm leading-snug">{tool.name}</h3>
