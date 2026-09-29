@@ -1,5 +1,26 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
-import { upsertClientLead, logWarmInteraction } from '../../shared/warmProspect.ts';
+import { upsertClientLead } from '../../shared/warmProspect.ts';
+
+/**
+ * Timeline entry on the Client / Partner record. Written here rather than via
+ * warmProspect's logWarmInteraction, whose values (channel 'web', custom
+ * interaction types) fail ClientInteraction's enums and are silently dropped.
+ */
+async function logScanTouch(base44: any, target: { client_id?: string; referral_partner_id?: string }, scan: any, reviewer: string) {
+  try {
+    await base44.asServiceRole.entities.ClientInteraction.create({
+      ...target,
+      interaction_type: 'note',
+      channel: 'other',
+      date: scan.created_date || new Date().toISOString(),
+      subject: `Conference QR scan — ${scan.source_label || scan.source_key}`,
+      notes: `${scan.name || 'Visitor'} <${scan.email}> scanned the ${scan.source_label || scan.source_key} code and left their details. Filed from the Review Queue by ${reviewer}.`,
+      owner: reviewer.toLowerCase().startsWith('heather') ? 'Heather' : 'William',
+    });
+  } catch (err) {
+    console.error('[reviewScanLead] timeline write failed:', (err as any)?.message || err);
+  }
+}
 
 /**
  * Signed-in only — the Dashboard Review Queue's actions on a conference scan.
@@ -56,12 +77,7 @@ Deno.serve(async (req) => {
         debug: res.debug,
       }, { status: 422 });
     }
-    await logWarmInteraction(base44, {
-      client_id: res.client_id,
-      interaction_type: 'conference_scan',
-      subject: `Scanned ${scan.source_label || 'a QR code'} at a conference`,
-      notes: `${scan.name || 'Visitor'} <${scan.email}>`,
-    });
+    await logScanTouch(base44, { client_id: res.client_id }, scan, user.email);
     await base44.asServiceRole.entities.ScanLead.update(scan.id, {
       status: 'added_client_lead', client_id: res.client_id, ...reviewed,
     });
@@ -87,12 +103,7 @@ Deno.serve(async (req) => {
       notes: `Partner Lead — first seen via ${sourceText} on ${new Date().toISOString().slice(0, 10)}.`,
     });
   }
-  await logWarmInteraction(base44, {
-    referral_partner_id: partner.id,
-    interaction_type: 'conference_scan',
-    subject: `Scanned ${scan.source_label || 'a QR code'} at a conference`,
-    notes: `${scan.name || 'Visitor'} <${scan.email}>`,
-  });
+  await logScanTouch(base44, { referral_partner_id: partner.id }, scan, user.email);
   await base44.asServiceRole.entities.ScanLead.update(scan.id, {
     status: 'added_partner_lead', referral_partner_id: partner.id, ...reviewed,
   });
