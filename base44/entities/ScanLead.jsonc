@@ -1,11 +1,15 @@
 {
   "name": "ScanLead",
   "type": "object",
-  "description": "A person who scanned a conference QR code (/Scan) and left their name and email. Held for review on the Dashboard Review Queue \u2014 nothing is filed into Clients or Partners until William or Heather chooses. Written only by the public submitScanLead function; reviewed via reviewScanLead.",
+  "description": "A person who scanned a conference QR code (/Scan) and left their name, company and email. Held for review on the Dashboard Review Queue \u2014 nothing is filed into Clients or Partners until William or Heather chooses. Written only by the public submitScanLead function; reviewed via reviewScanLead.",
   "properties": {
     "name": {
       "type": "string",
       "description": "Name as typed by the visitor"
+    },
+    "company": {
+      "type": "string",
+      "description": "Company name as typed by the visitor"
     },
     "email": {
       "type": "string",
