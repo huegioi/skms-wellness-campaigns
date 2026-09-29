@@ -90,8 +90,7 @@ export default function Scan() {
       clearInterval(loop);
       document.title = prevTitle;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // run once per page load — the key and stored contact don't change
 
   const active = tick < 0 ? -1 : tick % ITEMS.length;
 
