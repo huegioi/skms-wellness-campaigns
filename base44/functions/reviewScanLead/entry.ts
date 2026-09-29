@@ -14,7 +14,7 @@ async function logScanTouch(base44: any, target: { client_id?: string; referral_
       channel: 'other',
       date: scan.created_date || new Date().toISOString(),
       subject: `Conference QR scan — ${scan.source_label || scan.source_key}`,
-      notes: `${scan.name || 'Visitor'} <${scan.email}> scanned the ${scan.source_label || scan.source_key} code and left their details. Filed from the Review Queue by ${reviewer}.`,
+      notes: `${scan.name || 'Visitor'}${scan.company ? ` (${scan.company})` : ''} <${scan.email}> scanned the ${scan.source_label || scan.source_key} code and left their details. Filed from the Review Queue by ${reviewer}.`,
       owner: reviewer.toLowerCase().startsWith('heather') ? 'Heather' : 'William',
     });
   } catch (err) {
@@ -67,6 +67,7 @@ Deno.serve(async (req) => {
     const res = await upsertClientLead(base44, {
       email: scan.email,
       contact_name: scan.name || null,
+      company_name: scan.company || null,
       source: sourceText,
     });
     if (!res.client_id) {
@@ -97,6 +98,7 @@ Deno.serve(async (req) => {
     partner = await base44.asServiceRole.entities.ReferralPartner.create({
       name: scan.name || emailLower,
       email: emailLower,
+      ...(scan.company ? { company: scan.company } : {}),
       partner_status: 'Prospect',
       is_active: false,
       unique_portal_id: crypto.randomUUID(),
