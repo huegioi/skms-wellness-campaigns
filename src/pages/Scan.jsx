@@ -55,6 +55,7 @@ export default function Scan() {
   const [tick, setTick] = useState(-1);          // cycling index, keeps looping
   const [stage, setStage] = useState('intro');   // intro → form
   const [name, setName] = useState(stored?.name || '');
+  const [company, setCompany] = useState(stored?.company || '');
   const [email, setEmail] = useState(stored?.email || '');
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
@@ -82,7 +83,7 @@ export default function Scan() {
     timers.push(setTimeout(() => (returning ? go() : setStage('form')), TOTAL_MS));
     if (returning) {
       base44.functions.invoke('submitScanLead', {
-        name: stored.name, email: stored.email, source_key: key,
+        name: stored.name, company: stored.company, email: stored.email, source_key: key,
       }).catch(() => {});
     }
     return () => {
@@ -100,9 +101,11 @@ export default function Scan() {
     if (!EMAIL_RE.test(em)) { setError('Please enter a valid email, or tap Skip.'); return; }
     setError('');
     setSending(true);
-    writeStored({ name: name.trim(), email: em });
+    writeStored({ name: name.trim(), company: company.trim(), email: em });
     try {
-      await base44.functions.invoke('submitScanLead', { name: name.trim(), email: em, source_key: key });
+      await base44.functions.invoke('submitScanLead', {
+        name: name.trim(), company: company.trim(), email: em, source_key: key,
+      });
     } catch (err) {
       // Never strand someone at a booth over a network hiccup — let them
       // through; only a validation reply keeps them here.
@@ -183,7 +186,7 @@ export default function Scan() {
         >
           <p className="text-base font-bold text-[#013f7c]">Stay in touch</p>
           <p className="text-sm text-gray-500 mt-0.5 mb-4">
-            Leave your name and email and we'll follow up personally. Then we'll open {dest.label}.
+            Leave your details and we'll follow up personally. Then we'll open {dest.label}.
           </p>
           <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="scan-name">Name</label>
           <input
@@ -194,6 +197,17 @@ export default function Scan() {
             autoCapitalize="words"
             enterKeyHint="next"
             placeholder="Jane Smith"
+            className="w-full h-12 rounded-lg border border-gray-300 px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#013f7c]/40"
+          />
+          <label className="block text-xs font-medium text-gray-600 mb-1 mt-3" htmlFor="scan-company">Company</label>
+          <input
+            id="scan-company"
+            value={company}
+            onChange={e => setCompany(e.target.value)}
+            autoComplete="organization"
+            autoCapitalize="words"
+            enterKeyHint="next"
+            placeholder="Acme Corp"
             className="w-full h-12 rounded-lg border border-gray-300 px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#013f7c]/40"
           />
           <label className="block text-xs font-medium text-gray-600 mb-1 mt-3" htmlFor="scan-email">Email</label>
