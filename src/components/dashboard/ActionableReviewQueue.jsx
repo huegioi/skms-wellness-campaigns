@@ -216,6 +216,11 @@ function ScanReviewCard({ scan, onAction, busyId }) {
           </div>
           <div className="min-w-0">
             <p className="font-semibold text-gray-800 text-sm truncate">{scan.name || 'No name given'}</p>
+            {scan.company && (
+              <p className="text-xs text-gray-500 flex items-center gap-1 truncate">
+                <Building className="w-3 h-3 flex-shrink-0" /> {scan.company}
+              </p>
+            )}
             <p className="text-xs text-gray-500 flex items-center gap-1 truncate">
               <Mail className="w-3 h-3 flex-shrink-0" /> <a href={`mailto:${scan.email}`} className="hover:underline truncate">{scan.email}</a>
             </p>
