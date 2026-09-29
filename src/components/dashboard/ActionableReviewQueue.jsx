@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useDashReferrals } from './useDashboardData';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -7,9 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import {
   CheckCircle, XCircle, Clock, Building, Mail, User,
-  FileText, DollarSign, ChevronDown, ChevronUp, AlertTriangle
+  FileText, DollarSign, ChevronDown, ChevronUp, AlertTriangle, QrCode, Handshake
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 
 // --- Referral Review Card ---
@@ -201,12 +201,96 @@ function ProposalVerificationCard({ referral }) {
   );
 }
 
+// --- Conference Scan Card ---
+// Someone scanned a conference QR code (/Scan) and left name + email.
+// Nothing is filed until one of these buttons is pressed (reviewScanLead).
+function ScanReviewCard({ scan, onAction, busyId }) {
+  const busy = busyId === scan.id;
+  const when = scan.created_date ? formatDistanceToNow(new Date(scan.created_date), { addSuffix: true }) : '';
+  return (
+    <div className="bg-white border border-violet-200 rounded-xl shadow-sm px-4 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <QrCode className="w-4 h-4 text-violet-600" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-gray-800 text-sm truncate">{scan.name || 'No name given'}</p>
+            <p className="text-xs text-gray-500 flex items-center gap-1 truncate">
+              <Mail className="w-3 h-3 flex-shrink-0" /> <a href={`mailto:${scan.email}`} className="hover:underline truncate">{scan.email}</a>
+            </p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Scanned <span className="font-medium text-violet-700">{scan.source_label || scan.source_key}</span>
+              {scan.scan_count > 1 ? ` · ${scan.scan_count}×` : ''}{when ? ` · ${when}` : ''}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2 mt-3">
+        <Button
+          size="sm"
+          className="bg-[#013f7c] hover:bg-[#013f7c]/90 text-white gap-1.5 text-xs"
+          disabled={busy}
+          onClick={() => onAction(scan, 'add_client')}
+        >
+          <Building className="w-3.5 h-3.5" /> Client Lead
+        </Button>
+        <Button
+          size="sm"
+          className="bg-[#264d44] hover:bg-[#264d44]/90 text-white gap-1.5 text-xs"
+          disabled={busy}
+          onClick={() => onAction(scan, 'add_partner')}
+        >
+          <Handshake className="w-3.5 h-3.5" /> Partner Lead
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="text-gray-500 border-gray-300 hover:bg-gray-50 gap-1.5 text-xs"
+          disabled={busy}
+          onClick={() => onAction(scan, 'dismiss')}
+        >
+          <XCircle className="w-3.5 h-3.5" /> Dismiss
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 // --- Main Component ---
 export default function ActionableReviewQueue() {
   const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState(false);
 
   const { data: rawReferrals = [], isLoading: loadingReferrals } = useDashReferrals();
+
+  // Conference QR scans waiting for a decision
+  const { data: pendingScans = [], isLoading: loadingScans } = useQuery({
+    queryKey: ['dash-scan-leads'],
+    queryFn: () => base44.entities.ScanLead.filter({ status: 'pending_review' }, '-created_date', 100),
+    refetchInterval: 60_000,
+  });
+  const [scanBusyId, setScanBusyId] = useState(null);
+  const handleScanAction = async (scan, action) => {
+    setScanBusyId(scan.id);
+    try {
+      const res = await base44.functions.invoke('reviewScanLead', { scan_id: scan.id, action });
+      const d = res?.data || {};
+      if (action === 'dismiss') toast.success('Scan dismissed');
+      else if (action === 'add_client') {
+        toast.success(d.existing
+          ? `Added to ${d.company_name || 'the existing company'}${d.is_current_client ? ' (already a client)' : ''}`
+          : `Client Lead created${d.company_name ? ` — ${d.company_name}` : ''}`);
+      } else {
+        toast.success(d.existing ? 'Already a partner — scan logged on their record' : 'Partner Lead created');
+      }
+      queryClient.invalidateQueries({ queryKey: ['dash-scan-leads'] });
+    } catch (err) {
+      toast.error(err?.response?.data?.error || err?.message || 'Something went wrong');
+    } finally {
+      setScanBusyId(null);
+    }
+  };
 
   // Exclude demo/broker-demo records from dashboard metrics
   const pendingReferrals = rawReferrals.filter(r => !r.is_demo && r.status === 'pending_review');
@@ -225,8 +309,8 @@ export default function ActionableReviewQueue() {
   const handleReferralAction = (referral, action, notes) =>
     reviewMutation.mutateAsync({ referral_id: referral.id, action, review_notes: notes });
 
-  const totalItems = pendingReferrals.length + allReferrals.length;
-  const isLoading = loadingReferrals;
+  const totalItems = pendingReferrals.length + allReferrals.length + pendingScans.length;
+  const isLoading = loadingReferrals && loadingScans;
 
   if (isLoading || totalItems === 0) return null;
 
@@ -247,6 +331,8 @@ export default function ActionableReviewQueue() {
             {pendingReferrals.length > 0 && `${pendingReferrals.length} referral${pendingReferrals.length !== 1 ? 's' : ''}`}
             {pendingReferrals.length > 0 && allReferrals.length > 0 && ' · '}
             {allReferrals.length > 0 && `${allReferrals.length} verification${allReferrals.length !== 1 ? 's' : ''}`}
+            {(pendingReferrals.length > 0 || allReferrals.length > 0) && pendingScans.length > 0 && ' · '}
+            {pendingScans.length > 0 && `${pendingScans.length} conference scan${pendingScans.length !== 1 ? 's' : ''}`}
           </span>
         </div>
         {collapsed ? <ChevronDown className="w-4 h-4 text-gray-400" /> : <ChevronUp className="w-4 h-4 text-gray-400" />}
@@ -256,6 +342,17 @@ export default function ActionableReviewQueue() {
       {!collapsed && (
         <div className="border-t border-amber-100 px-4 py-3">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            {pendingScans.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <QrCode className="w-3.5 h-3.5 text-violet-500" />
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Conference Scans</h3>
+                </div>
+                {pendingScans.map(s => (
+                  <ScanReviewCard key={s.id} scan={s} onAction={handleScanAction} busyId={scanBusyId} />
+                ))}
+              </div>
+            )}
             {pendingReferrals.length > 0 && (
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5">
