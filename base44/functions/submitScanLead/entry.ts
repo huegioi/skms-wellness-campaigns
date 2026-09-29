@@ -32,6 +32,7 @@ Deno.serve(async (req) => {
 
     const email = String(body.email || '').trim().toLowerCase().slice(0, 200);
     const name = String(body.name || '').trim().replace(/\s+/g, ' ').slice(0, 120);
+    const company = String(body.company || '').trim().replace(/\s+/g, ' ').slice(0, 160);
     const rawKey = String(body.source_key || '').toLowerCase().slice(0, 40);
     const source_key = SOURCES[rawKey] ? rawKey : 'unknown';
     const source_label = SOURCES[rawKey] || 'Unknown QR code';
@@ -51,12 +52,14 @@ Deno.serve(async (req) => {
       await base44.asServiceRole.entities.ScanLead.update(dupe.id, {
         scan_count: (dupe.scan_count || 1) + 1,
         ...(name && !dupe.name ? { name } : {}),
+        ...(company && !dupe.company ? { company } : {}),
       });
       return Response.json({ ok: true, deduped: true });
     }
 
     await base44.asServiceRole.entities.ScanLead.create({
       name: name || undefined,
+      company: company || undefined,
       email,
       source_key,
       source_label,
