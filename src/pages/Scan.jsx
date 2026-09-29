@@ -125,20 +125,20 @@ export default function Scan() {
     <div
       onClick={() => { if (stage === 'intro') (returning ? go() : setStage('form')); }}
       className={`min-h-[100dvh] w-full flex flex-col items-center text-center px-6 bg-[#013f7c] text-white select-none
-                  ${showForm ? 'justify-start pt-10 pb-10' : 'justify-center cursor-pointer'}`}
+                  ${showForm ? 'justify-start pt-6 pb-6' : 'justify-center cursor-pointer'}`}
       style={{ paddingBottom: 'calc(2.5rem + env(safe-area-inset-bottom))' }}
     >
       <img
         src={SKMS_LOGO_WHITE}
         alt="SkillfulMeans"
-        className={`w-auto transition-all duration-500 ${showForm ? 'h-14 mb-5' : 'h-20 sm:h-24 mb-7'} ${fade}`}
+        className={`w-auto transition-all duration-500 ${showForm ? 'h-11 mb-3' : 'h-20 sm:h-24 mb-7'} ${fade}`}
       />
 
-      <h1 className={`font-bold tracking-tight leading-tight transition-all duration-500 ${showForm ? 'text-2xl sm:text-4xl' : 'text-3xl sm:text-5xl'} ${fade}`}>
+      <h1 className={`font-bold tracking-tight leading-tight transition-all duration-500 ${showForm ? 'text-xl sm:text-4xl' : 'text-3xl sm:text-5xl'} ${fade}`}>
         Mental Fitness Campaigns
       </h1>
 
-      <div className={`w-11 h-1 rounded-full bg-brand-lime ${showForm ? 'my-4' : 'my-6'} ${fade}`} />
+      <div className={`w-11 h-1 rounded-full bg-brand-lime ${showForm ? 'my-3' : 'my-6'} ${fade}`} />
 
       {/* Cycling list — slides up in, then up and out; keeps looping */}
       <div className={`relative h-9 w-full max-w-md overflow-hidden ${fade}`} aria-live="polite">
@@ -174,7 +174,7 @@ export default function Scan() {
         ))}
       </div>
 
-      <p className={`italic text-white/90 leading-snug max-w-xs sm:max-w-md delay-200 ${showForm ? 'text-base sm:text-xl mt-5' : 'text-lg sm:text-2xl mt-7'} ${fade}`}>
+      <p className={`italic text-white/90 leading-snug max-w-xs sm:max-w-md delay-200 ${showForm ? 'text-sm sm:text-xl mt-3' : 'text-lg sm:text-2xl mt-7'} ${fade}`}>
         “Catch stress before it costs you”
       </p>
 
@@ -182,10 +182,10 @@ export default function Scan() {
         <form
           onSubmit={submit}
           onClick={e => e.stopPropagation()}
-          className="w-full max-w-sm mt-7 bg-white text-left text-gray-800 rounded-2xl p-5 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500"
+          className="w-full max-w-sm mt-5 bg-white text-left text-gray-800 rounded-2xl p-4 sm:p-5 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500"
         >
           <p className="text-base font-bold text-[#013f7c]">Stay in touch</p>
-          <p className="text-sm text-gray-500 mt-0.5 mb-4">
+          <p className="text-sm text-gray-500 mt-0.5 mb-3">
             Leave your details and we'll follow up personally. Then we'll open {dest.label}.
           </p>
           <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="scan-name">Name</label>
@@ -197,9 +197,9 @@ export default function Scan() {
             autoCapitalize="words"
             enterKeyHint="next"
             placeholder="Jane Smith"
-            className="w-full h-12 rounded-lg border border-gray-300 px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#013f7c]/40"
+            className="w-full h-11 rounded-lg border border-gray-300 px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#013f7c]/40"
           />
-          <label className="block text-xs font-medium text-gray-600 mb-1 mt-3" htmlFor="scan-company">Company</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1 mt-2.5" htmlFor="scan-company">Company</label>
           <input
             id="scan-company"
             value={company}
@@ -208,9 +208,9 @@ export default function Scan() {
             autoCapitalize="words"
             enterKeyHint="next"
             placeholder="Acme Corp"
-            className="w-full h-12 rounded-lg border border-gray-300 px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#013f7c]/40"
+            className="w-full h-11 rounded-lg border border-gray-300 px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#013f7c]/40"
           />
-          <label className="block text-xs font-medium text-gray-600 mb-1 mt-3" htmlFor="scan-email">Email</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1 mt-2.5" htmlFor="scan-email">Email</label>
           <input
             id="scan-email"
             type="email"
@@ -223,20 +223,20 @@ export default function Scan() {
             spellCheck={false}
             enterKeyHint="go"
             placeholder="jane@company.com"
-            className="w-full h-12 rounded-lg border border-gray-300 px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#013f7c]/40"
+            className="w-full h-11 rounded-lg border border-gray-300 px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#013f7c]/40"
           />
           {error && <p className="text-xs text-red-600 mt-2">{error}</p>}
           <button
             type="submit"
             disabled={sending}
-            className="w-full h-12 mt-4 rounded-lg bg-[#013f7c] text-white font-semibold text-base disabled:opacity-60"
+            className="w-full h-12 mt-3 rounded-lg bg-[#013f7c] text-white font-semibold text-base disabled:opacity-60"
           >
             {sending ? 'Sending…' : `Continue to ${dest.label}`}
           </button>
           <button
             type="button"
             onClick={go}
-            className="w-full h-11 mt-1 text-sm text-gray-500 hover:text-gray-700"
+            className="w-full h-10 mt-1 text-sm text-gray-500 hover:text-gray-700"
           >
             Skip for now
           </button>
