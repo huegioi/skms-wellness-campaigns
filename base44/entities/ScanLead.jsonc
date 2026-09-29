@@ -1,0 +1,102 @@
+{
+  "name": "ScanLead",
+  "type": "object",
+  "description": "A person who scanned a conference QR code (/Scan) and left their name and email. Held for review on the Dashboard Review Queue \u2014 nothing is filed into Clients or Partners until William or Heather chooses. Written only by the public submitScanLead function; reviewed via reviewScanLead.",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Name as typed by the visitor"
+    },
+    "email": {
+      "type": "string",
+      "description": "Email as typed by the visitor (lower-cased)"
+    },
+    "source_key": {
+      "type": "string",
+      "description": "Which QR code they scanned (qrLinks.js key: quickbuilder, journey, roi, demo, call, william, heather)"
+    },
+    "source_label": {
+      "type": "string",
+      "description": "Human label of the QR code, e.g. 'Quick Builder'"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_review",
+        "added_client_lead",
+        "added_partner_lead",
+        "dismissed"
+      ],
+      "default": "pending_review",
+      "description": "Review state"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Client (Client Lead) this scan was filed as"
+    },
+    "referral_partner_id": {
+      "type": "string",
+      "description": "ReferralPartner (Partner Lead) this scan was filed as"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "description": "Email of whoever reviewed it"
+    },
+    "review_notes": {
+      "type": "string"
+    },
+    "scan_count": {
+      "type": "number",
+      "default": 1,
+      "description": "Times this email submitted the same code within the dedupe window"
+    }
+  },
+  "required": [
+    "email",
+    "source_key"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
