@@ -1,11 +1,13 @@
 import React from 'react';
-import { Users, Share2, Lock, BarChart3 } from 'lucide-react';
+import { Users, FileText, Share2, BarChart3 } from 'lucide-react';
 
+// 2026-09-30 reorder: estimate → claims → people. Each step makes the read more
+// personal; claims is optional for anyone without a renewal report.
 export const JOURNEY_STEPS = [
   { num: 1, icon: Users, label: 'Your quick read', sub: '2 min — your estimate' },
-  { num: 2, icon: Share2, label: 'Launch team survey', sub: 'One link, 3 min each' },
-  { num: 3, icon: Lock, label: 'Results unlock', sub: 'At 5 responses' },
-  { num: 4, icon: BarChart3, label: 'See the gap — the cost', sub: 'Estimate vs. reality' },
+  { num: 2, icon: FileText, label: 'Your claims', sub: 'Optional — renewal report' },
+  { num: 3, icon: Share2, label: 'Your team survey', sub: 'One link, 3 min each' },
+  { num: 4, icon: BarChart3, label: 'See the gap', sub: 'Unlocks at 5 responses' },
 ];
 
 /**
