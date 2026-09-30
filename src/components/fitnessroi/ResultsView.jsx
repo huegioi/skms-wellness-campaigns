@@ -5,8 +5,7 @@ import JourneyScoreBars from '@/components/fitnessroi/JourneyScoreBars';
 import RoiProjection from '@/components/fitnessroi/RoiProjection';
 import ParticipationBuilder from '@/components/fitnessroi/ParticipationBuilder';
 import AssumptionsPanel from '@/components/fitnessroi/AssumptionsPanel';
-import PrimaryCta from '@/components/fitnessroi/PrimaryCta';
-import ClaimsHandoffCta from '@/components/warm/ClaimsHandoffCta';
+import NextStepsCta from '@/components/fitnessroi/NextStepsCta';
 
 export default function ResultsView({ data, hideCta }) {
   const { quick_scores, roi_snapshot, magic_key } = data;
@@ -67,7 +66,8 @@ export default function ResultsView({ data, hideCta }) {
 
       {!hideCta && (
         <div className="lg:col-span-2 lg:col-start-4 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-6">
-          <PrimaryCta magicKey={magic_key} />
+          {/* Step 2 (claims) then Step 3 (team survey) — see NextStepsCta. */}
+          <NextStepsCta magicKey={magic_key} />
         </div>
       )}
 
@@ -94,17 +94,9 @@ export default function ResultsView({ data, hideCta }) {
           conditionCount={Object.values(conditions).filter(Boolean).length}
         />
 
-        {/* Second path, offered after the projection rather than instead of the
-            team survey: the team survey deepens the perception picture, the
-            claims read corroborates it with money. Either is a real next step;
-            the dashboard renders its own copy of this, hence !hideCta. */}
-        {!hideCta && (
-          <ClaimsHandoffCta
-            magicKey={magic_key}
-            headcount={headcount}
-            avgSalary={roiInputs.avgSalary}
-          />
-        )}
+        {/* The claims card that used to sit here moved into the sidebar as
+            Step 2 (2026-09-30 reorder: estimate → claims → people). The
+            dashboard still renders its own ClaimsHandoffCta. */}
       </div>
     </div>
   );
