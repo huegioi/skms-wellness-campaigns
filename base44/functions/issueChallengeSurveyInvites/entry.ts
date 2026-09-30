@@ -86,38 +86,42 @@ Deno.serve(async (req) => {
     const base44 = createClientFromRequest(req);
     const db = base44.asServiceRole.entities;
 
-    // Same instrument set the un-tokenised CohortAssessment page would show for
-    // this service. Without it a token-mode page falls back to eNPS only.
-    const services = await db.Service.filter({ id: serviceId });
+    // Everything this person already has for this run, and the service, in one
+    // round trip each and in parallel — each entity call costs real latency.
+    const [services, existing] = await Promise.all([
+      db.Service.filter({ id: serviceId }),
+      db.SurveyInvite.filter({ challenge_program_id: programId, email }),
+    ]);
     const service = services[0];
     if (!service) return Response.json({ error: 'Unknown service_id.' }, { status: 404 });
+    // Same instrument set the un-tokenised CohortAssessment page would show for
+    // this service. Without it a token-mode page falls back to eNPS only.
     const instruments = service.included_assessments?.length ? service.included_assessments : ['who5'];
 
     const out: Record<string, { token: string; submitted: boolean }> = {};
+    const creates: Promise<unknown>[] = [];
     for (const [key, surveyType] of Object.entries(TIMINGS)) {
-      const existing = await db.SurveyInvite.filter({
-        challenge_program_id: programId,
-        email,
-        survey_type: surveyType,
-      });
-      const invite = existing[0];
+      const invite = existing.find((i: { survey_type?: string }) => i.survey_type === surveyType);
       if (invite) {
         out[key] = { token: invite.token, submitted: !!invite.submitted_at };
         continue;
       }
       const token = crypto.randomUUID();
-      await db.SurveyInvite.create({
-        token,
-        email,
-        client_id: clientId || undefined,
-        service_id: serviceId,
-        challenge_program_id: programId,
-        survey_type: surveyType,
-        instruments,
-        created_at: new Date().toISOString(),
-      });
+      creates.push(
+        db.SurveyInvite.create({
+          token,
+          email,
+          client_id: clientId || undefined,
+          service_id: serviceId,
+          challenge_program_id: programId,
+          survey_type: surveyType,
+          instruments,
+          created_at: new Date().toISOString(),
+        })
+      );
       out[key] = { token, submitted: false };
     }
+    await Promise.all(creates);
 
     return Response.json(out);
   } catch (error) {
