@@ -4,9 +4,10 @@ import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { ShieldCheck, Calendar, ExternalLink, Lock, ChevronLeft, ChevronDown } from 'lucide-react';
+import { ShieldCheck, Calendar, ExternalLink, Lock, ChevronLeft, ChevronDown, Rocket } from 'lucide-react';
 import { scoreClaimsProfile } from '@/lib/claimsScoring';
 import CarriedContext from '@/components/warm/CarriedContext';
+import { JOURNEY_KEY_STORAGE } from '@/components/warm/ClaimsHandoffCta';
 
 /**
  * Claims Lite — the public quick read (warming ladder rung 3).
@@ -72,6 +73,18 @@ export default function ClaimsLite() {
   const [showMore, setShowMore] = useState(false);
   const [result, setResult] = useState(null);
 
+  // ── Step 3 of the assessment (2026-09-30 reorder: estimate → claims → people) ──
+  // When the visitor came from their Team Mental Fitness Assessment, the Step 3
+  // card sends them back to THAT assessment's team-survey launch. The key comes
+  // from the pass (resolveHandoffPass → journey_key) or, same tab, from the
+  // session the handoff wrote. Only trusted alongside a pass, so a stale key
+  // from an earlier visit never attaches to someone arriving cold.
+  const [journeyKey, setJourneyKey] = useState(() => {
+    if (!passToken) return '';
+    try { return sessionStorage.getItem(JOURNEY_KEY_STORAGE) || ''; } catch { return ''; }
+  });
+  const [passRef, setPassRef] = useState('');
+
   // ── Resolve the pass: prefill AND show what carried over ──
   useEffect(() => {
     if (!passToken) return;
@@ -82,6 +95,8 @@ export default function ClaimsLite() {
         if (cancelled || !res?.data?.found) return;
         const c = res.data.carried || {};
         const k = res.data.known || null;
+        if (res.data.journey_key) setJourneyKey(res.data.journey_key);
+        if (res.data.ref) setPassRef(res.data.ref);
         setCarried(c);
         setKnown(k);
         setMeta(m => ({
@@ -321,6 +336,30 @@ export default function ClaimsLite() {
               The full read is free. The only gate is a conversation — we'd rather walk you through it than email you a PDF you have to interpret alone.
             </p>
           </div>
+
+          {/* Step 3 — the team survey. Secondary to the call, but always offered:
+              claims show the cost, their people show why. */}
+          {(() => {
+            const effectiveRef = ref || passRef;
+            const href = journeyKey
+              ? `/FitnessRoi/launch?k=${journeyKey}`
+              : `/FitnessRoi${effectiveRef ? `?ref=${encodeURIComponent(effectiveRef)}` : ''}`;
+            return (
+              <div className="mf-card p-6">
+                <p className="text-[11px] uppercase tracking-widest font-bold text-mf-ink-3 mb-2">Step 3 of 3 · Your people</p>
+                <h2 className="text-lg font-bold text-mf-plum mb-2 leading-snug">Now hear from your team.</h2>
+                <p className="text-sm text-mf-ink-2 mb-5 leading-relaxed">
+                  {journeyKey
+                    ? 'Your claims show the cost. A free, anonymous three-minute survey shows what your people are carrying — at five responses, their real scores appear beside yours.'
+                    : 'Your claims show the cost; your people show why. Start with a two-minute read on your team, then send them a free, anonymous three-minute survey.'}
+                </p>
+                <a href={href}
+                  className="inline-flex items-center gap-2 border-2 border-mf-plum text-mf-plum font-semibold text-sm px-7 py-3 rounded-full hover:bg-mf-cream transition-colors">
+                  <Rocket className="w-4 h-4" /> {journeyKey ? 'Launch your team survey' : 'Start the team assessment'}
+                </a>
+              </div>
+            );
+          })()}
 
           {result.has_clinical_flags && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
