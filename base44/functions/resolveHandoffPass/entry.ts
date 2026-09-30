@@ -82,7 +82,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    return Response.json({ found: true, carried, known, ref: found.ref || null, is_demo: found.is_demo === true });
+    // ── The assessment this pass came from (2026-09-30 reorder) ──
+    // Claims Lite is now Step 2 of 3; its Step 3 card sends the visitor back to
+    // their own assessment's team-survey launch. The magic key goes only to the
+    // holder of this pass — the same person who was holding the key a moment
+    // ago on their results page.
+    let journey_key: string | null = null;
+    if (found.journey_id) {
+      try {
+        const j = await base44.asServiceRole.entities.MfsJourney.get(found.journey_id).catch(() => null);
+        journey_key = (j as any)?.magic_key || null;
+      } catch { /* optional */ }
+    }
+
+    return Response.json({ found: true, carried, known, journey_key, ref: found.ref || null, is_demo: found.is_demo === true });
   } catch (err) {
     console.error('[resolveHandoffPass]', (err as any)?.message || err);
     return Response.json({ error: 'Could not resolve pass' }, { status: 500 });
