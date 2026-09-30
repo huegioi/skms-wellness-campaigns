@@ -22,13 +22,19 @@
       "type": "string",
       "description": "CalendarEvent ID this invite was generated for (post-session pulse / cohort_end). Used to attribute FeedbackResponse rows back to the session."
     },
+    "challenge_program_id": {
+      "type": "string",
+      "description": "Challenges app program (challenge run) id for challenge_day0 / challenge_day14 invites, issued by issueChallengeSurveyInvites. Scopes the invite to one run so a company repeating a challenge gets fresh links."
+    },
     "survey_type": {
       "type": "string",
       "enum": [
         "enps_post_session",
         "post_session_pulse",
         "cohort_end",
-        "cohort_1mo"
+        "cohort_1mo",
+        "challenge_day0",
+        "challenge_day14"
       ],
       "description": "Which survey timing this invite is for"
     },
