@@ -15,6 +15,35 @@ import { CarryPromise } from '@/components/warm/CarriedContext';
  * an opaque token in the URL. The card also states, visibly, which facts are
  * traveling — carrying data silently isn't enough.
  */
+// Session key ClaimsLite reads so its Step 3 card can send the visitor back to
+// THEIR assessment's team-survey launch. The pass also resolves it server-side
+// (resolveHandoffPass → journey_key); this covers the same-tab case even before
+// that backend change is published.
+export const JOURNEY_KEY_STORAGE = 'skms_journey_k';
+
+/**
+ * Mint a pass from the Journey and move to Claims Lite. Shared by this card
+ * and the results page's NextStepsCta (Step 2 of 3).
+ */
+export async function startClaimsHandoff(magicKey, highlights = []) {
+  try { if (magicKey) sessionStorage.setItem(JOURNEY_KEY_STORAGE, magicKey); } catch { /* private mode */ }
+  try {
+    // Only the magic key and the display highlights travel. Company, email,
+    // headcount, salary, industry, broker ref and demo flag are read from the
+    // Journey record server-side.
+    const res = await base44.functions.invoke('createHandoffPass', {
+      source: 'journey',
+      journey_magic_key: magicKey || undefined,
+      payload: { highlights },
+    });
+    const pass = res?.data?.pass;
+    window.location.href = pass ? `/ClaimsLite?pass=${pass}` : '/ClaimsLite';
+  } catch {
+    // Never trap them here — the form works without a pass, they just retype.
+    window.location.href = '/ClaimsLite';
+  }
+}
+
 export default function ClaimsHandoffCta({
   magicKey, companyName, headcount, avgSalary, industry, highlights = [],
 }) {
@@ -30,23 +59,8 @@ export default function ClaimsHandoffCta({
 
   const go = async () => {
     setBusy(true);
-    try {
-      // Only the magic key and the display highlights travel. Company, email,
-      // headcount, salary, industry, broker ref and demo flag are read from the
-      // Journey record server-side.
-      const res = await base44.functions.invoke('createHandoffPass', {
-        source: 'journey',
-        journey_magic_key: magicKey || undefined,
-        payload: { highlights },
-      });
-      const pass = res?.data?.pass;
-      window.location.href = pass ? `/ClaimsLite?pass=${pass}` : '/ClaimsLite';
-    } catch {
-      // Never trap them here — the form works without a pass, they just retype.
-      window.location.href = '/ClaimsLite';
-    } finally {
-      setBusy(false);
-    }
+    await startClaimsHandoff(magicKey, highlights);
+    setBusy(false);
   };
 
   return (
