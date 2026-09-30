@@ -106,7 +106,12 @@ Deno.serve(async (req) => {
     const out: Record<string, { token: string; submitted: boolean }> = {};
     const creates: Promise<unknown>[] = [];
     for (const [key, surveyType] of Object.entries(TIMINGS)) {
-      const invite = existing.find((i: { survey_type?: string }) => i.survey_type === surveyType);
+      // Reuse only an invite issued under the same service and client: if an
+      // admin corrects either id, the person gets fresh links filed correctly.
+      const invite = existing.find(
+        (i: { survey_type?: string; service_id?: string; client_id?: string | null }) =>
+          i.survey_type === surveyType && i.service_id === serviceId && (i.client_id || '') === clientId
+      );
       if (invite) {
         out[key] = { token: invite.token, submitted: !!invite.submitted_at };
         continue;
