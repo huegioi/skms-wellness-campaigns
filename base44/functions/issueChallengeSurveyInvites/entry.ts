@@ -4,8 +4,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
  * Private survey links for the challenges app (challenges.skillfulmeans.life).
  *
  * The challenges app calls this server-to-server when a participant reaches a
- * wellbeing-survey step. It returns that person's day-0 and day-14 invite
- * tokens, creating them the first time. The survey link then becomes
+ * wellbeing-survey step. It returns that person's day-0, day-14 and 30-day
+ * follow-up invite tokens, creating them the first time. The survey link then becomes
  * /CohortAssessment?t=<token>: the page fills in and locks the email from the
  * invite, so every score is filed under the address the person signed in with
  * — no typos, no personal-vs-work mismatch, no duplicate submissions.
@@ -15,7 +15,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
  *            x-sm-signature: hex HMAC-SHA256 of `${timestamp}.${rawBody}`
  *                            keyed with the SKMS_SURVEY_INVITE_SECRET secret
  *   body:    { email, program_id, service_id, client_id? }
- *   returns: { day0: { token, submitted }, day14: { token, submitted } }
+ *   returns: { day0:     { token, submitted },
+ *              day14:    { token, submitted },
+ *              followUp: { token, submitted } }   // survey_type cohort_1mo
  *
  * The signature covers the body, so a captured request can't be replayed with
  * a different email, and it expires after five minutes. No secret configured
@@ -23,7 +25,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
  */
 
 const WINDOW_MS = 5 * 60 * 1000;
-const TIMINGS = { day0: 'challenge_day0', day14: 'challenge_day14' } as const;
+const TIMINGS = { day0: 'challenge_day0', day14: 'challenge_day14', followUp: 'cohort_1mo' } as const;
 
 function hex(buf: ArrayBuffer): string {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
