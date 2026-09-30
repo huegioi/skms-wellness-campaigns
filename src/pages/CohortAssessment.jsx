@@ -42,8 +42,12 @@ export default function CohortAssessmentPage() {
   const effectiveServiceId = tokenData?.service_id || service_id;
   const effectiveClientId = tokenData?.client_id || client_id;
   const effectiveSurveyType = tokenData?.survey_type || TIMING_MAP[timing]?.survey_type || 'challenge_day0';
+  // Token invites carry the stored survey_type (e.g. challenge_day0), which is a
+  // TIMING_MAP value rather than a key — look it up either way.
   const timingLabel = tokenData
-    ? (TIMING_MAP[tokenData.survey_type]?.label || 'Survey')
+    ? (TIMING_MAP[tokenData.survey_type]?.label
+        || Object.values(TIMING_MAP).find(t => t.survey_type === tokenData.survey_type)?.label
+        || 'Survey')
     : (TIMING_MAP[timing]?.label || 'Survey');
 
   // Fetch service (for display name + challenge instruments)
