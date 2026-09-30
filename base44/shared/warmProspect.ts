@@ -152,9 +152,17 @@ export async function upsertClientLead(
 }
 
 /**
- * Records the tool touch on the shared timeline. New interaction TYPES, never
- * new columns — the lead board and client detail already render these.
+ * Records the tool touch on the shared timeline.
+ *
+ * ClientInteraction only accepts interaction_type call|email|meeting|note and
+ * channel email|call|text|linkedin|meeting|other. This used to write the
+ * caller's own type (e.g. 'claims_lite_submitted') and channel 'web', which
+ * failed validation — and because failures are swallowed below, every warm
+ * touch was silently dropped (found 2026-09-29). Now: callers keep passing a
+ * descriptive type, it's stored as a 'note' on channel 'other', and the
+ * descriptive type is kept in the notes so nothing is lost.
  */
+const VALID_TYPES = new Set(['call', 'email', 'meeting', 'note']);
 export async function logWarmInteraction(
   base44: any,
   { client_id, referral_partner_id, interaction_type, subject, notes }: {
@@ -164,14 +172,16 @@ export async function logWarmInteraction(
 ): Promise<void> {
   if (!client_id && !referral_partner_id) return;
   try {
+    const valid = VALID_TYPES.has(interaction_type);
+    const tag = valid ? '' : `[${interaction_type}]`;
     await base44.asServiceRole.entities.ClientInteraction.create({
       client_id: client_id || undefined,
       referral_partner_id: referral_partner_id || undefined,
-      interaction_type,
-      channel: 'web',
+      interaction_type: valid ? interaction_type : 'note',
+      channel: 'other',
       date: new Date().toISOString(),
       subject,
-      notes: notes || undefined,
+      notes: [notes, tag].filter(Boolean).join('\n') || undefined,
       owner: 'warming-engine',
     });
   } catch (err) {
