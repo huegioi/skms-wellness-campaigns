@@ -96,7 +96,12 @@ Deno.serve(async (req) => {
     if (!service) return Response.json({ error: 'Unknown service_id.' }, { status: 404 });
     // Same instrument set the un-tokenised CohortAssessment page would show for
     // this service. Without it a token-mode page falls back to eNPS only.
-    const instruments = service.included_assessments?.length ? service.included_assessments : ['who5'];
+    const instruments: string[] = service.included_assessments?.length ? service.included_assessments : ['who5'];
+    // eNPS asks whether they'd recommend the programme — meaningless before
+    // they've done any of it, so the baseline never includes it.
+    const baseline = instruments.filter((k) => k !== 'enps');
+    const instrumentsFor = (surveyType: string) =>
+      surveyType === 'challenge_day0' ? (baseline.length ? baseline : ['who5']) : instruments;
 
     const out: Record<string, { token: string; submitted: boolean }> = {};
     const creates: Promise<unknown>[] = [];
@@ -115,7 +120,7 @@ Deno.serve(async (req) => {
           service_id: serviceId,
           challenge_program_id: programId,
           survey_type: surveyType,
-          instruments,
+          instruments: instrumentsFor(surveyType),
           created_at: new Date().toISOString(),
         })
       );
