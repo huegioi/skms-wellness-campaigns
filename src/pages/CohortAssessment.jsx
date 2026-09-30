@@ -71,6 +71,12 @@ export default function CohortAssessmentPage() {
       ? FULL_BATTERY
       : (service?.included_assessments?.length ? service.included_assessments : ['who5']);
   }
+  // A baseline is taken before anyone has experienced the programme, so eNPS
+  // ("would you recommend this program?") has nothing to measure yet.
+  if (effectiveSurveyType === 'challenge_day0' || effectiveSurveyType === 'cohort_start') {
+    instrumentKeys = instrumentKeys.filter(k => k !== 'enps');
+    if (instrumentKeys.length === 0) instrumentKeys = ['who5'];
+  }
   const instruments = getOrderedInstruments(instrumentKeys);
 
   const [email, setEmail] = useState('');
