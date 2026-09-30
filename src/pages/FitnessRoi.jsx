@@ -26,8 +26,9 @@ export default function FitnessRoi() {
   const [resultsData, setResultsData] = useState(null);
   const startRef = useRef(null);
 
-  // Maps internal step (0–6) to the 4-step journey phase shown in the strip
-  const activeJourneyStep = step <= 4 ? 1 : step === 5 ? 2 : 4;
+  // Every screen on this page (questions, company info, email gate) is Step 1,
+  // the quick read. Claims (2) and the team survey (3) live on their own pages.
+  const activeJourneyStep = 1;
 
   const handleQuickAnswer = (key, index) => {
     setAnswers(prev => ({ ...prev, [key]: index }));
@@ -62,7 +63,7 @@ export default function FitnessRoi() {
                 It&rsquo;s like getting a physical for your team&rsquo;s mental fitness.
               </p>
               <p className="text-sm text-mf-ink-2 leading-relaxed">
-                Start with your own two-minute read on your team — then let their anonymous responses show you where you&rsquo;re right, where you&rsquo;re off, and what the gap is costing you.
+                Start with your own two-minute read on your team, check it against your claims if you have the renewal report, then let their anonymous responses show you where you&rsquo;re right, where you&rsquo;re off, and what the gap is costing you.
               </p>
             </div>
 
@@ -130,8 +131,9 @@ export default function FitnessRoi() {
               <p className="text-sm text-mf-ink-2 leading-relaxed max-w-2xl">
                 Your team&rsquo;s mental fitness in one place — how each domain scores against published
                 research norms, what the gap is likely costing you, and what a program would return.
-                Every number here is built from your own read on your team; invite them to the free
-                anonymous survey and it all re-runs on their answers.
+                Every number here is built from your own read and industry averages. Next, check it
+                against your claims — then invite your team to the free anonymous survey and the
+                dashboard re-runs on their answers.
               </p>
             </div>
             {resultsData.email_sent ? (
