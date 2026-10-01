@@ -29,11 +29,15 @@ async function logScanTouch(base44: any, target: { client_id?: string; referral_
  *                 writer; matches by email domain, never creates a company for
  *                 a free-mail address)
  *   add_partner → Partner Lead: ReferralPartner, partner_status 'Prospect',
- *                 matched by email so a known partner is never duplicated
+ *                 matched by email so a known partner is never duplicated,
+ *                 PLUS a card on the Partners → Referral Partners board
+ *                 (a broker_lead Lead) — that board is where William works
+ *                 partners. He approved this exception 2026-09-30: the
+ *                 'legacy Lead is frozen' rule stays for the automated
+ *                 warming tools; scans he files by hand go on the board.
  *   dismiss     → marked dismissed, nothing filed
  *
- * Never writes to the legacy Lead table (William, 2026-08-16). Never emails
- * the contact — outreach stays by hand.
+ * Never emails the contact — outreach stays by hand.
  */
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
@@ -106,8 +110,57 @@ Deno.serve(async (req) => {
     });
   }
   await logScanTouch(base44, { referral_partner_id: partner.id }, scan, user.email);
+  const leadId = await ensureBoardCard(base44, scan, emailLower, user);
   await base44.asServiceRole.entities.ScanLead.update(scan.id, {
     status: 'added_partner_lead', referral_partner_id: partner.id, ...reviewed,
   });
-  return Response.json({ ok: true, status: 'added_partner_lead', referral_partner_id: partner.id, existing });
+  return Response.json({
+    ok: true, status: 'added_partner_lead', referral_partner_id: partner.id, lead_id: leadId, existing,
+  });
+});
+
+/**
+ * Card on Partners → Referral Partners (a broker_lead Lead). Re-uses an
+ * existing card for the same email (un-archiving it) instead of duplicating.
+ * Met in person at the booth, so it starts as 'contacted' with a follow-up
+ * two days out — the same defaults as adding a partner by hand.
+ */
+async function ensureBoardCard(base44: any, scan: any, emailLower: string, user: any): Promise<string | null> {
+  try {
+    const existing = (await base44.asServiceRole.entities.Lead.filter({ email: emailLower }, '-created_date', 1))?.[0];
+    if (existing) {
+      const patch: Record<string, unknown> = {};
+      if (existing.is_archived) patch.is_archived = false;
+      if (existing.lead_type !== 'broker_lead') patch.lead_type = 'broker_lead';
+      if (!existing.company && scan.company) patch.company = scan.company;
+      if (Object.keys(patch).length) await base44.asServiceRole.entities.Lead.update(existing.id, patch);
+      return existing.id;
+    }
+    const today = new Date();
+    const ymd = (d: Date) => d.toISOString().slice(0, 10);
+    const followUp = new Date(today.getTime() + 2 * 86400000);
+    const reviewer = String(user.email || '').toLowerCase().startsWith('heather') ? 'Heather' : 'William';
+    const created = await base44.asServiceRole.entities.Lead.create({
+      name: scan.name || emailLower,
+      email: emailLower,
+      company: scan.company || undefined,
+      lead_type: 'broker_lead',
+      partner_status: 'new',
+      status: 'contacted',
+      referral_potential: 'medium',
+      owner: reviewer,
+      source: `Conference QR — ${scan.source_label || scan.source_key}`,
+      last_contacted_date: ymd(new Date(scan.created_date || today)),
+      next_followup_date: ymd(followUp),
+      notes: `Met at a conference — scanned the ${scan.source_label || scan.source_key} code and left their details.`,
+    });
+    return created.id;
+  } catch (err) {
+    console.error('[reviewScanLead] board card failed:', (err as any)?.message || err);
+    return null;
+  }
+}
+
+// (handler closed above)
+function _unused() {
 });
