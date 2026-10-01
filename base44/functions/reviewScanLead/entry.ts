@@ -19,7 +19,8 @@ import { upsertClientLead } from '../../shared/warmProspect.ts';
  * Notes and tags typed on the Review Queue card (2026-10-01) travel with the
  * person: tags are MERGED into the record's tags (never replace existing
  * ones), notes go on the timeline entry and onto new records. Existing
- * records' own notes field is never overwritten.
+ * records' own notes field is never overwritten. The scan's LinkedIn link
+ * (findScanLinkedIn, or pasted on the card) fills linkedin_url where empty.
  *
  * Never emails the contact — outreach stays by hand.
  */
@@ -41,6 +42,7 @@ async function logScanTouch(
     const lines = [
       `${scan.name || 'Visitor'}${scan.company ? ` (${scan.company})` : ''} <${scan.email}> scanned the ${scan.source_label || scan.source_key} code and left their details. Filed from the Review Queue by ${reviewer}.`,
       tags.length ? `Tags: ${tags.join(', ')}` : '',
+      scan.linkedin_url ? `LinkedIn: ${scan.linkedin_url}` : '',
       notes ? `Notes: ${notes}` : '',
     ].filter(Boolean);
     await base44.asServiceRole.entities.ClientInteraction.create({
@@ -108,10 +110,16 @@ Deno.serve(async (req) => {
         debug: res.debug,
       }, { status: 422 });
     }
-    if (tags.length) {
+    // A new Client Lead takes this person's LinkedIn; an existing company
+    // keeps its own (the link still goes on the timeline entry).
+    const linkedinForNew = !res.existing && scan.linkedin_url ? scan.linkedin_url : '';
+    if (tags.length || linkedinForNew) {
       try {
         const client = (await base44.asServiceRole.entities.Client.filter({ id: res.client_id }))?.[0];
-        await base44.asServiceRole.entities.Client.update(res.client_id, { tags: mergeTags(client?.tags, tags) });
+        const patch: Record<string, unknown> = {};
+        if (tags.length) patch.tags = mergeTags(client?.tags, tags);
+        if (linkedinForNew && !client?.linkedin_url) patch.linkedin_url = linkedinForNew;
+        if (Object.keys(patch).length) await base44.asServiceRole.entities.Client.update(res.client_id, patch);
       } catch (err) {
         console.error('[reviewScanLead] client tags failed:', (err as any)?.message || err);
       }
@@ -140,15 +148,19 @@ Deno.serve(async (req) => {
       partner_status: 'Prospect',
       is_active: false,
       unique_portal_id: crypto.randomUUID(),
+      ...(scan.linkedin_url ? { linkedin_url: scan.linkedin_url } : {}),
       tags,
       notes: [
         `Partner Lead — first seen via ${sourceText} on ${new Date().toISOString().slice(0, 10)}.`,
         notes,
       ].filter(Boolean).join('\n\n'),
     });
-  } else if (tags.length) {
+  } else if (tags.length || (scan.linkedin_url && !partner.linkedin_url)) {
     try {
-      await base44.asServiceRole.entities.ReferralPartner.update(partner.id, { tags: mergeTags(partner.tags, tags) });
+      await base44.asServiceRole.entities.ReferralPartner.update(partner.id, {
+        tags: mergeTags(partner.tags, tags),
+        ...(scan.linkedin_url && !partner.linkedin_url ? { linkedin_url: scan.linkedin_url } : {}),
+      });
     } catch (err) {
       console.error('[reviewScanLead] partner tags failed:', (err as any)?.message || err);
     }
@@ -179,6 +191,7 @@ async function ensureBoardCard(
       if (existing.is_archived) patch.is_archived = false;
       if (existing.lead_type !== 'broker_lead') patch.lead_type = 'broker_lead';
       if (!existing.company && scan.company) patch.company = scan.company;
+      if (!existing.linkedin_url && scan.linkedin_url) patch.linkedin_url = scan.linkedin_url;
       if (tags.length) patch.tags = mergeTags(existing.tags, tags);
       if (Object.keys(patch).length) await base44.asServiceRole.entities.Lead.update(existing.id, patch);
       return existing.id;
@@ -196,6 +209,7 @@ async function ensureBoardCard(
       referral_potential: 'medium',
       owner: ownerFor(user.email),
       source: `Conference QR — ${scan.source_label || scan.source_key}`,
+      ...(scan.linkedin_url ? { linkedin_url: scan.linkedin_url } : {}),
       last_contacted_date: ymd(new Date(scan.created_date || today)),
       next_followup_date: ymd(followUp),
       tags,
