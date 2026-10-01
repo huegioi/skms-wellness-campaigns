@@ -2,27 +2,6 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { upsertClientLead } from '../../shared/warmProspect.ts';
 
 /**
- * Timeline entry on the Client / Partner record. Written here rather than via
- * warmProspect's logWarmInteraction, whose values (channel 'web', custom
- * interaction types) fail ClientInteraction's enums and are silently dropped.
- */
-async function logScanTouch(base44: any, target: { client_id?: string; referral_partner_id?: string }, scan: any, reviewer: string) {
-  try {
-    await base44.asServiceRole.entities.ClientInteraction.create({
-      ...target,
-      interaction_type: 'note',
-      channel: 'other',
-      date: scan.created_date || new Date().toISOString(),
-      subject: `Conference QR scan — ${scan.source_label || scan.source_key}`,
-      notes: `${scan.name || 'Visitor'}${scan.company ? ` (${scan.company})` : ''} <${scan.email}> scanned the ${scan.source_label || scan.source_key} code and left their details. Filed from the Review Queue by ${reviewer}.`,
-      owner: reviewer.toLowerCase().startsWith('heather') ? 'Heather' : 'William',
-    });
-  } catch (err) {
-    console.error('[reviewScanLead] timeline write failed:', (err as any)?.message || err);
-  }
-}
-
-/**
  * Signed-in only — the Dashboard Review Queue's actions on a conference scan.
  *
  *   add_client  → Client Lead via upsertClientLead (the warm pipeline's ONE
@@ -37,14 +16,54 @@ async function logScanTouch(base44: any, target: { client_id?: string; referral_
  *                 warming tools; scans he files by hand go on the board.
  *   dismiss     → marked dismissed, nothing filed
  *
+ * Notes and tags typed on the Review Queue card (2026-10-01) travel with the
+ * person: tags are MERGED into the record's tags (never replace existing
+ * ones), notes go on the timeline entry and onto new records. Existing
+ * records' own notes field is never overwritten.
+ *
  * Never emails the contact — outreach stays by hand.
  */
+
+const cleanTags = (t: unknown): string[] =>
+  Array.isArray(t) ? [...new Set(t.map(x => String(x || '').trim()).filter(Boolean))].slice(0, 30) : [];
+const mergeTags = (a: unknown, b: string[]) => [...new Set([...(Array.isArray(a) ? a : []), ...b])];
+const ownerFor = (email: string) => (String(email || '').toLowerCase().startsWith('heather') ? 'Heather' : 'William');
+
+/**
+ * Timeline entry on the Client / Partner record. Uses values that pass
+ * ClientInteraction's enums (interaction_type 'note', channel 'other').
+ */
+async function logScanTouch(
+  base44: any, target: { client_id?: string; referral_partner_id?: string },
+  scan: any, reviewer: string, notes: string, tags: string[],
+) {
+  try {
+    const lines = [
+      `${scan.name || 'Visitor'}${scan.company ? ` (${scan.company})` : ''} <${scan.email}> scanned the ${scan.source_label || scan.source_key} code and left their details. Filed from the Review Queue by ${reviewer}.`,
+      tags.length ? `Tags: ${tags.join(', ')}` : '',
+      notes ? `Notes: ${notes}` : '',
+    ].filter(Boolean);
+    await base44.asServiceRole.entities.ClientInteraction.create({
+      ...target,
+      interaction_type: 'note',
+      channel: 'other',
+      date: scan.created_date || new Date().toISOString(),
+      subject: `Conference QR scan — ${scan.source_label || scan.source_key}`,
+      notes: lines.join('\n'),
+      owner: ownerFor(reviewer),
+    });
+  } catch (err) {
+    console.error('[reviewScanLead] timeline write failed:', (err as any)?.message || err);
+  }
+}
+
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
   const user = await base44.auth.me().catch(() => null);
   if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { scan_id, action, review_notes } = await req.json().catch(() => ({}));
+  const body = await req.json().catch(() => ({}));
+  const { scan_id, action, review_notes } = body;
   if (!scan_id || !['add_client', 'add_partner', 'dismiss'].includes(action)) {
     return Response.json({ error: 'scan_id and a valid action are required' }, { status: 400 });
   }
@@ -55,9 +74,16 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'This scan has already been reviewed' }, { status: 409 });
   }
 
+  // The card sends its current notes/tags with the click, so nothing typed in
+  // the last second is lost; fall back to what's saved on the scan.
+  const notes = String(body.notes ?? scan.notes ?? '').trim().slice(0, 4000);
+  const tags = cleanTags(body.tags ?? scan.tags);
+
   const reviewed = {
     reviewed_at: new Date().toISOString(),
     reviewed_by: user.email,
+    notes: notes || undefined,
+    tags,
     ...(review_notes ? { review_notes: String(review_notes).slice(0, 1000) } : {}),
   };
   const sourceText = `conference QR scan (${scan.source_label || scan.source_key})`;
@@ -75,14 +101,22 @@ Deno.serve(async (req) => {
       source: sourceText,
     });
     if (!res.client_id) {
-      // Almost always a personal address (gmail etc.) — there's no company to
-      // file it under. Say so plainly and leave the scan pending.
+      // Save what was typed so it isn't lost, but leave the scan pending.
+      await base44.asServiceRole.entities.ScanLead.update(scan.id, { notes: notes || undefined, tags });
       return Response.json({
         error: 'This looks like a personal email, so there is no company to file it under. Add them as a Partner Lead, or dismiss and follow up by hand.',
         debug: res.debug,
       }, { status: 422 });
     }
-    await logScanTouch(base44, { client_id: res.client_id }, scan, user.email);
+    if (tags.length) {
+      try {
+        const client = (await base44.asServiceRole.entities.Client.filter({ id: res.client_id }))?.[0];
+        await base44.asServiceRole.entities.Client.update(res.client_id, { tags: mergeTags(client?.tags, tags) });
+      } catch (err) {
+        console.error('[reviewScanLead] client tags failed:', (err as any)?.message || err);
+      }
+    }
+    await logScanTouch(base44, { client_id: res.client_id }, scan, user.email, notes, tags);
     await base44.asServiceRole.entities.ScanLead.update(scan.id, {
       status: 'added_client_lead', client_id: res.client_id, ...reviewed,
     });
@@ -106,11 +140,21 @@ Deno.serve(async (req) => {
       partner_status: 'Prospect',
       is_active: false,
       unique_portal_id: crypto.randomUUID(),
-      notes: `Partner Lead — first seen via ${sourceText} on ${new Date().toISOString().slice(0, 10)}.`,
+      tags,
+      notes: [
+        `Partner Lead — first seen via ${sourceText} on ${new Date().toISOString().slice(0, 10)}.`,
+        notes,
+      ].filter(Boolean).join('\n\n'),
     });
+  } else if (tags.length) {
+    try {
+      await base44.asServiceRole.entities.ReferralPartner.update(partner.id, { tags: mergeTags(partner.tags, tags) });
+    } catch (err) {
+      console.error('[reviewScanLead] partner tags failed:', (err as any)?.message || err);
+    }
   }
-  await logScanTouch(base44, { referral_partner_id: partner.id }, scan, user.email);
-  const leadId = await ensureBoardCard(base44, scan, emailLower, user);
+  await logScanTouch(base44, { referral_partner_id: partner.id }, scan, user.email, notes, tags);
+  const leadId = await ensureBoardCard(base44, scan, emailLower, user, notes, tags);
   await base44.asServiceRole.entities.ScanLead.update(scan.id, {
     status: 'added_partner_lead', referral_partner_id: partner.id, ...reviewed,
   });
@@ -121,11 +165,13 @@ Deno.serve(async (req) => {
 
 /**
  * Card on Partners → Referral Partners (a broker_lead Lead). Re-uses an
- * existing card for the same email (un-archiving it) instead of duplicating.
- * Met in person at the booth, so it starts as 'contacted' with a follow-up
- * two days out — the same defaults as adding a partner by hand.
+ * existing card for the same email (un-archiving it, merging tags) instead of
+ * duplicating. Met in person at the booth, so it starts as 'contacted' with a
+ * follow-up two days out — the same defaults as adding a partner by hand.
  */
-async function ensureBoardCard(base44: any, scan: any, emailLower: string, user: any): Promise<string | null> {
+async function ensureBoardCard(
+  base44: any, scan: any, emailLower: string, user: any, notes: string, tags: string[],
+): Promise<string | null> {
   try {
     const existing = (await base44.asServiceRole.entities.Lead.filter({ email: emailLower }, '-created_date', 1))?.[0];
     if (existing) {
@@ -133,13 +179,13 @@ async function ensureBoardCard(base44: any, scan: any, emailLower: string, user:
       if (existing.is_archived) patch.is_archived = false;
       if (existing.lead_type !== 'broker_lead') patch.lead_type = 'broker_lead';
       if (!existing.company && scan.company) patch.company = scan.company;
+      if (tags.length) patch.tags = mergeTags(existing.tags, tags);
       if (Object.keys(patch).length) await base44.asServiceRole.entities.Lead.update(existing.id, patch);
       return existing.id;
     }
     const today = new Date();
     const ymd = (d: Date) => d.toISOString().slice(0, 10);
     const followUp = new Date(today.getTime() + 2 * 86400000);
-    const reviewer = String(user.email || '').toLowerCase().startsWith('heather') ? 'Heather' : 'William';
     const created = await base44.asServiceRole.entities.Lead.create({
       name: scan.name || emailLower,
       email: emailLower,
@@ -148,11 +194,15 @@ async function ensureBoardCard(base44: any, scan: any, emailLower: string, user:
       partner_status: 'new',
       status: 'contacted',
       referral_potential: 'medium',
-      owner: reviewer,
+      owner: ownerFor(user.email),
       source: `Conference QR — ${scan.source_label || scan.source_key}`,
       last_contacted_date: ymd(new Date(scan.created_date || today)),
       next_followup_date: ymd(followUp),
-      notes: `Met at a conference — scanned the ${scan.source_label || scan.source_key} code and left their details.`,
+      tags,
+      notes: [
+        `Met at a conference — scanned the ${scan.source_label || scan.source_key} code and left their details.`,
+        notes,
+      ].filter(Boolean).join('\n\n'),
     });
     return created.id;
   } catch (err) {
