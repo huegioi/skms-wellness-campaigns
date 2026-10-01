@@ -1,7 +1,7 @@
 {
   "name": "ScanLead",
   "type": "object",
-  "description": "A person who scanned a conference QR code (/Scan) and left their name, company and email. Held for review on the Dashboard Review Queue \u2014 nothing is filed into Clients or Partners until William or Heather chooses. Notes and tags added in the Review Queue travel with them when filed. Written by the public submitScanLead function; reviewed via reviewScanLead.",
+  "description": "A person who scanned a conference QR code (/Scan) and left their name, company and email. Held for review on the Dashboard Review Queue \u2014 nothing is filed into Clients or Partners until William or Heather chooses. Notes, tags and the LinkedIn link travel with them when filed. Written by the public submitScanLead function; LinkedIn looked up by findScanLinkedIn; reviewed via reviewScanLead.",
   "properties": {
     "name": {
       "type": "string",
@@ -33,6 +33,34 @@
         "type": "string"
       },
       "description": "Tag labels (shared Tag pool, e.g. 'ITC Vegas 2026'); copied onto the record when filed"
+    },
+    "linkedin_url": {
+      "type": "string",
+      "description": "LinkedIn profile (https://www.linkedin.com/in/...) \u2014 found by the automatic web search or pasted by hand; copied onto the record when filed"
+    },
+    "linkedin_status": {
+      "type": "string",
+      "enum": [
+        "searching",
+        "found",
+        "not_found",
+        "error",
+        "manual"
+      ],
+      "description": "State of the automatic LinkedIn lookup (empty = not tried yet)"
+    },
+    "linkedin_headline": {
+      "type": "string",
+      "description": "Name / headline of the matched profile, shown on the card so the match can be checked"
+    },
+    "linkedin_confidence": {
+      "type": "string",
+      "description": "high / medium \u2014 how sure the lookup was"
+    },
+    "linkedin_checked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the lookup last ran"
     },
     "status": {
       "type": "string",
