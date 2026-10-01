@@ -1,7 +1,7 @@
 {
   "name": "ScanLead",
   "type": "object",
-  "description": "A person who scanned a conference QR code (/Scan) and left their name, company and email. Held for review on the Dashboard Review Queue \u2014 nothing is filed into Clients or Partners until William or Heather chooses. Written only by the public submitScanLead function; reviewed via reviewScanLead.",
+  "description": "A person who scanned a conference QR code (/Scan) and left their name, company and email. Held for review on the Dashboard Review Queue \u2014 nothing is filed into Clients or Partners until William or Heather chooses. Notes and tags added in the Review Queue travel with them when filed. Written by the public submitScanLead function; reviewed via reviewScanLead.",
   "properties": {
     "name": {
       "type": "string",
@@ -22,6 +22,17 @@
     "source_label": {
       "type": "string",
       "description": "Human label of the QR code, e.g. 'Quick Builder'"
+    },
+    "notes": {
+      "type": "string",
+      "description": "William/Heather's notes from the conversation, added in the Review Queue; copied onto the record when filed"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tag labels (shared Tag pool, e.g. 'ITC Vegas 2026'); copied onto the record when filed"
     },
     "status": {
       "type": "string",
