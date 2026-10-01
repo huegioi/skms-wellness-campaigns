@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
       return Response.json({ ok: true, deduped: true });
     }
 
-    await base44.asServiceRole.entities.ScanLead.create({
+    const created = await base44.asServiceRole.entities.ScanLead.create({
       name: name || undefined,
       company: company || undefined,
       email,
@@ -66,6 +66,15 @@ Deno.serve(async (req) => {
       status: 'pending_review',
       scan_count: 1,
     });
+
+    // Start the LinkedIn lookup (findScanLinkedIn, ~5–10s web search) without
+    // making the visitor wait for it: give the request a moment to get going,
+    // then send them on. If it doesn't run, the Review Queue starts it.
+    if (name && created?.id) {
+      const lookup = base44.functions.invoke('findScanLinkedIn', { scan_id: created.id })
+        .catch((err: any) => console.error('[submitScanLead] LinkedIn lookup:', err?.message || err));
+      await Promise.race([lookup, new Promise(r => setTimeout(r, 1500))]);
+    }
     return Response.json({ ok: true });
   } catch (error) {
     console.error('[submitScanLead]', (error as Error)?.message || error);
