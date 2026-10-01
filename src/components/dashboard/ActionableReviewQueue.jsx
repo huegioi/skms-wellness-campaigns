@@ -5,6 +5,7 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { TagSelector } from '@/components/ui/TagSelector';
 import {
   CheckCircle, XCircle, Clock, Building, Mail, User,
   FileText, DollarSign, ChevronDown, ChevronUp, AlertTriangle, QrCode, Handshake
@@ -206,6 +207,14 @@ function ProposalVerificationCard({ referral }) {
 // Nothing is filed until one of these buttons is pressed (reviewScanLead).
 function ScanReviewCard({ scan, onAction, busyId }) {
   const busy = busyId === scan.id;
+  // Notes + tags from the conversation (e.g. tag 'ITC Vegas 2026'). Saved on
+  // the scan as you go, and sent with the button press, so they land on the
+  // Client / Partner record and the Partners board card.
+  const [notes, setNotes] = useState(scan.notes || '');
+  const [tags, setTags] = useState(scan.tags || []);
+  React.useEffect(() => { setTags(scan.tags || []); }, [scan.tags]);
+  const save = (patch) => base44.entities.ScanLead.update(scan.id, patch).catch(() => {});
+  const changeTags = (next) => { setTags(next); save({ tags: next }); };
   const when = scan.created_date ? formatDistanceToNow(new Date(scan.created_date), { addSuffix: true }) : '';
   return (
     <div className="bg-white border border-violet-200 rounded-xl shadow-sm px-4 py-3">
@@ -231,12 +240,23 @@ function ScanReviewCard({ scan, onAction, busyId }) {
           </div>
         </div>
       </div>
+      <div className="mt-3 space-y-2">
+        <TagSelector value={tags} onChange={changeTags} />
+        <Textarea
+          rows={2}
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          onBlur={() => { if ((scan.notes || '') !== notes) save({ notes }); }}
+          placeholder="Notes from the conversation…"
+          className="text-sm sm:text-xs bg-white"
+        />
+      </div>
       <div className="flex flex-wrap gap-2 mt-3">
         <Button
           size="sm"
           className="bg-[#013f7c] hover:bg-[#013f7c]/90 text-white gap-1.5 text-xs"
           disabled={busy}
-          onClick={() => onAction(scan, 'add_client')}
+          onClick={() => onAction(scan, 'add_client', { notes, tags })}
         >
           <Building className="w-3.5 h-3.5" /> Client Lead
         </Button>
@@ -244,7 +264,7 @@ function ScanReviewCard({ scan, onAction, busyId }) {
           size="sm"
           className="bg-[#264d44] hover:bg-[#264d44]/90 text-white gap-1.5 text-xs"
           disabled={busy}
-          onClick={() => onAction(scan, 'add_partner')}
+          onClick={() => onAction(scan, 'add_partner', { notes, tags })}
         >
           <Handshake className="w-3.5 h-3.5" /> Partner Lead
         </Button>
@@ -253,7 +273,7 @@ function ScanReviewCard({ scan, onAction, busyId }) {
           variant="outline"
           className="text-gray-500 border-gray-300 hover:bg-gray-50 gap-1.5 text-xs"
           disabled={busy}
-          onClick={() => onAction(scan, 'dismiss')}
+          onClick={() => onAction(scan, 'dismiss', { notes, tags })}
         >
           <XCircle className="w-3.5 h-3.5" /> Dismiss
         </Button>
@@ -276,10 +296,29 @@ export default function ActionableReviewQueue() {
     refetchInterval: 60_000,
   });
   const [scanBusyId, setScanBusyId] = useState(null);
-  const handleScanAction = async (scan, action) => {
+  // "Tag all" — add one or more tags (e.g. the event) to every pending scan
+  const [bulkTags, setBulkTags] = useState([]);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const applyBulkTags = async () => {
+    if (!bulkTags.length) return;
+    setBulkBusy(true);
+    try {
+      await Promise.all(pendingScans.map(s =>
+        base44.entities.ScanLead.update(s.id, { tags: [...new Set([...(s.tags || []), ...bulkTags])] })));
+      toast.success(`Tagged ${pendingScans.length} scan${pendingScans.length !== 1 ? 's' : ''}`);
+      setBulkTags([]);
+      queryClient.invalidateQueries({ queryKey: ['dash-scan-leads'] });
+    } catch {
+      toast.error('Could not tag all scans');
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const handleScanAction = async (scan, action, extra = {}) => {
     setScanBusyId(scan.id);
     try {
-      const res = await base44.functions.invoke('reviewScanLead', { scan_id: scan.id, action });
+      const res = await base44.functions.invoke('reviewScanLead', { scan_id: scan.id, action, ...extra });
       const d = res?.data || {};
       if (action === 'dismiss') toast.success('Scan dismissed');
       else if (action === 'add_client') {
@@ -355,6 +394,20 @@ export default function ActionableReviewQueue() {
                   <QrCode className="w-3.5 h-3.5 text-violet-500" />
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Conference Scans</h3>
                 </div>
+                {pendingScans.length > 1 && (
+                  <div className="flex items-center gap-2 bg-violet-50 border border-violet-100 rounded-lg p-2">
+                    <div className="flex-1 min-w-0"><TagSelector value={bulkTags} onChange={setBulkTags} /></div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs shrink-0"
+                      disabled={!bulkTags.length || bulkBusy}
+                      onClick={applyBulkTags}
+                    >
+                      {bulkBusy ? 'Tagging…' : `Tag all ${pendingScans.length}`}
+                    </Button>
+                  </div>
+                )}
                 {pendingScans.map(s => (
                   <ScanReviewCard key={s.id} scan={s} onAction={handleScanAction} busyId={scanBusyId} />
                 ))}
