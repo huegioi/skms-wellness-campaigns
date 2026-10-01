@@ -160,7 +160,3 @@ async function ensureBoardCard(base44: any, scan: any, emailLower: string, user:
     return null;
   }
 }
-
-// (handler closed above)
-function _unused() {
-});
