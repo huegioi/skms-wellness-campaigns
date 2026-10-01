@@ -8,6 +8,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  * Partners or the legacy Lead table — that happens only when William or
  * Heather picks an action in the Dashboard Review Queue (reviewScanLead).
  * No email is sent to the visitor (see skms-no-auto-emails).
+ * Also kicks off findScanLinkedIn so the card arrives with a LinkedIn link.
  *
  * Keep SOURCES in step with src/lib/qrLinks.js. An unknown key is stored as
  * 'unknown' rather than rejected so a scan is never lost.
