@@ -69,6 +69,11 @@ export const TagSelector = ({ value = [], onChange, onManageTags }) => {
               </span>
             );
           })}
+          {value.length > 0 && (
+            <span className="text-muted-foreground font-normal text-[11px] flex items-center gap-0.5 ml-0.5">
+              <Plus className="w-3 h-3" /> Add / change
+            </span>
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-64 p-2" align="start">
