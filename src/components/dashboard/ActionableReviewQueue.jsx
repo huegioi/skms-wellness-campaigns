@@ -285,9 +285,11 @@ export default function ActionableReviewQueue() {
       else if (action === 'add_client') {
         toast.success(d.existing
           ? `Added to ${d.company_name || 'the existing company'}${d.is_current_client ? ' (already a client)' : ''}`
-          : `Client Lead created${d.company_name ? ` — ${d.company_name}` : ''}`);
+          : `Client Lead added to Clients${d.company_name ? ` — ${d.company_name}` : ''}`);
       } else {
-        toast.success(d.existing ? 'Already a partner — scan logged on their record' : 'Partner Lead created');
+        toast.success(d.existing
+          ? 'Already a partner — added to Partners → Referral Partners'
+          : 'Partner Lead added to Partners → Referral Partners');
       }
       queryClient.invalidateQueries({ queryKey: ['dash-scan-leads'] });
     } catch (err) {
