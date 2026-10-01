@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { TagSelector } from '@/components/ui/TagSelector';
+import ScanLinkedInRow from './ScanLinkedInRow';
 import {
   CheckCircle, XCircle, Clock, Building, Mail, User,
   FileText, DollarSign, ChevronDown, ChevronUp, AlertTriangle, QrCode, Handshake
@@ -205,7 +206,7 @@ function ProposalVerificationCard({ referral }) {
 // --- Conference Scan Card ---
 // Someone scanned a conference QR code (/Scan) and left name + email.
 // Nothing is filed until one of these buttons is pressed (reviewScanLead).
-function ScanReviewCard({ scan, onAction, busyId }) {
+function ScanReviewCard({ scan, onAction, busyId, linkedInSearching, onRefresh }) {
   const busy = busyId === scan.id;
   // Notes + tags from the conversation (e.g. tag 'ITC Vegas 2026'). Saved on
   // the scan as you go, and sent with the button press, so they land on the
@@ -240,8 +241,15 @@ function ScanReviewCard({ scan, onAction, busyId }) {
           </div>
         </div>
       </div>
+      <div className="mt-3">
+        <ScanLinkedInRow scan={scan} searching={linkedInSearching} onChanged={onRefresh} />
+      </div>
       <div className="mt-3 space-y-2">
-        <TagSelector value={tags} onChange={changeTags} />
+        <div>
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Tags</p>
+          <TagSelector value={tags} onChange={changeTags} />
+        </div>
+        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide">Notes</p>
         <Textarea
           rows={2}
           value={notes}
@@ -293,9 +301,32 @@ export default function ActionableReviewQueue() {
   const { data: pendingScans = [], isLoading: loadingScans } = useQuery({
     queryKey: ['dash-scan-leads'],
     queryFn: () => base44.entities.ScanLead.filter({ status: 'pending_review' }, '-created_date', 100),
-    refetchInterval: 60_000,
+    // Poll faster while a LinkedIn lookup is running so the button appears.
+    refetchInterval: (query) => ((query.state.data || []).some(s => s.linkedin_status === 'searching') ? 8_000 : 60_000),
   });
   const [scanBusyId, setScanBusyId] = useState(null);
+
+  // LinkedIn lookup for scans that never got one (older scans, or the lookup
+  // at scan time didn't start) and ones stuck 'searching' for 3+ minutes.
+  // One at a time, once per scan per page load.
+  const lookedUp = React.useRef(new Set());
+  const [lookupId, setLookupId] = useState(null);
+  React.useEffect(() => {
+    if (lookupId) return;
+    const stale = (s) => s.linkedin_status === 'searching'
+      && (!s.linkedin_checked_at || Date.now() - new Date(s.linkedin_checked_at).getTime() > 3 * 60_000);
+    const next = pendingScans.find(s => s.name && !lookedUp.current.has(s.id) && (!s.linkedin_status || stale(s)));
+    if (!next) return;
+    lookedUp.current.add(next.id);
+    setLookupId(next.id);
+    base44.functions.invoke('findScanLinkedIn', { scan_id: next.id })
+      .catch(() => {})
+      .finally(() => {
+        setLookupId(null);
+        queryClient.invalidateQueries({ queryKey: ['dash-scan-leads'] });
+      });
+  }, [pendingScans, lookupId, queryClient]);
+  const refreshScans = () => queryClient.invalidateQueries({ queryKey: ['dash-scan-leads'] });
   // "Tag all" — add one or more tags (e.g. the event) to every pending scan
   const [bulkTags, setBulkTags] = useState([]);
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -409,7 +440,14 @@ export default function ActionableReviewQueue() {
                   </div>
                 )}
                 {pendingScans.map(s => (
-                  <ScanReviewCard key={s.id} scan={s} onAction={handleScanAction} busyId={scanBusyId} />
+                  <ScanReviewCard
+                    key={s.id}
+                    scan={s}
+                    onAction={handleScanAction}
+                    busyId={scanBusyId}
+                    linkedInSearching={lookupId === s.id}
+                    onRefresh={refreshScans}
+                  />
                 ))}
               </div>
             )}
