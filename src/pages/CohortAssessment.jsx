@@ -54,6 +54,8 @@ export default function CohortAssessmentPage() {
   // rather than opened on its own. The app supplies its own heading, so the
   // blue header is dropped, and the page tells the app when it's done.
   const embedded = typeof window !== 'undefined' && window.self !== window.top;
+  // Full-height pages on their own; in a frame, only as tall as the content.
+  const centered = embedded ? 'py-8' : 'min-h-screen';
 
   // Fetch service (for display name + challenge instruments)
   const { data: service, isLoading: serviceLoading } = useQuery({
@@ -116,15 +118,54 @@ export default function CohortAssessmentPage() {
     }
   }, [embedded, submitted, tokenData?.already_submitted, effectiveSurveyType]);
 
+  // Report the height of the content itself (the element marked
+  // data-skms-survey), not the body: in a frame the page drops min-h-screen,
+  // so the height can shrink as well as grow and the app's frame always fits
+  // exactly — one scrollbar, the app's, never one inside the frame.
   useEffect(() => {
-    if (!embedded || typeof ResizeObserver === 'undefined') return;
-    const send = () =>
-      window.parent.postMessage({ type: 'skms-survey-height', height: document.body.scrollHeight }, '*');
-    const ro = new ResizeObserver(send);
-    ro.observe(document.body);
-    send();
-    return () => ro.disconnect();
+    if (!embedded) return;
+    document.documentElement.style.overflow = 'hidden';
+    let last = 0;
+    let raf = 0;
+    const measure = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const el = document.querySelector('[data-skms-survey]');
+        const h = Math.ceil(el ? el.getBoundingClientRect().height : document.body.scrollHeight);
+        if (h && h !== last) {
+          last = h;
+          window.parent.postMessage({ type: 'skms-survey-height', height: h }, '*');
+        }
+      });
+    };
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    let watched = null;
+    const watch = () => {
+      const el = document.querySelector('[data-skms-survey]');
+      if (ro && el && el !== watched) {
+        if (watched) ro.unobserve(watched);
+        ro.observe(el);
+        watched = el;
+      }
+      measure();
+    };
+    const mo = new MutationObserver(watch);
+    mo.observe(document.body, { childList: true, subtree: true });
+    window.addEventListener('resize', measure);
+    watch();
+    return () => {
+      mo.disconnect();
+      ro?.disconnect();
+      window.removeEventListener('resize', measure);
+      cancelAnimationFrame(raf);
+    };
   }, [embedded]);
+
+  // A new step starts at the top: let the app bring the frame's top into view
+  // if the person had scrolled past it answering the last step.
+  useEffect(() => {
+    if (embedded) window.parent.postMessage({ type: 'skms-survey-step', step: stepIndex }, '*');
+  }, [embedded, stepIndex]);
 
   const currentInstrument = stepIndex > 0 ? instruments[stepIndex - 1] : null;
   const instrumentAnswers = currentInstrument ? (answers[currentInstrument.key] || {}) : {};
@@ -182,7 +223,7 @@ export default function CohortAssessmentPage() {
   // Loading gate
   if ((token && tokenLoading) || (!tokenData && !effectiveServiceId && serviceLoading)) {
     return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
+      <div data-skms-survey className={`${centered} bg-[#f4f0e9] flex items-center justify-center`}>
         <Loader2 className="w-8 h-8 text-[#264d44] animate-spin" />
       </div>
     );
@@ -191,7 +232,7 @@ export default function CohortAssessmentPage() {
   // Token error
   if (token && tokenError) {
     return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
+      <div data-skms-survey className={`${centered} bg-[#f4f0e9] flex items-center justify-center p-4`}>
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
           <p className="text-gray-600">This survey link is invalid or has expired.</p>
         </div>
@@ -202,7 +243,7 @@ export default function CohortAssessmentPage() {
   // Already submitted
   if (tokenData?.already_submitted) {
     return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
+      <div data-skms-survey className={`${centered} bg-[#f4f0e9] flex items-center justify-center p-4`}>
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
           <CheckCircle2 className="w-16 h-16 text-[#264d44] mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Already submitted</h2>
@@ -214,7 +255,7 @@ export default function CohortAssessmentPage() {
 
   if (instruments.length === 0) {
     return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
+      <div data-skms-survey className={`${centered} bg-[#f4f0e9] flex items-center justify-center p-4`}>
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
           <p className="text-gray-600">No assessments configured for this check-in.</p>
         </div>
@@ -224,7 +265,7 @@ export default function CohortAssessmentPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
+      <div data-skms-survey className={`${centered} bg-[#f4f0e9] flex items-center justify-center p-4`}>
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
           <CheckCircle2 className="w-16 h-16 text-[#264d44] mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Thank you!</h2>
@@ -238,7 +279,7 @@ export default function CohortAssessmentPage() {
   const progress = (stepIndex / instruments.length) * 100;
 
   return (
-    <div className="min-h-screen bg-[#f4f0e9]">
+    <div data-skms-survey className={`${embedded ? 'pb-2' : 'min-h-screen'} bg-[#f4f0e9]`}>
       {!embedded && (
       <div className="bg-[#013f7c] text-white px-4 py-6 text-center">
         <img
@@ -296,6 +337,7 @@ export default function CohortAssessmentPage() {
                   )}
                 </div>
               </div>
+              {!embedded && (
               <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">
                   Phone Number <span className="text-gray-400 font-normal">(optional)</span>
@@ -308,6 +350,7 @@ export default function CohortAssessmentPage() {
                   className="w-full"
                 />
               </div>
+              )}
               <Button
                 onClick={() => setStepIndex(1)}
                 disabled={!canProceed}
