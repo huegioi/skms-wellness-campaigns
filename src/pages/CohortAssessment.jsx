@@ -50,6 +50,11 @@ export default function CohortAssessmentPage() {
         || 'Survey')
     : (TIMING_MAP[timing]?.label || 'Survey');
 
+  // Shown inside the SkillfulMeans Challenges app's welcome screen (an iframe)
+  // rather than opened on its own. The app supplies its own heading, so the
+  // blue header is dropped, and the page tells the app when it's done.
+  const embedded = typeof window !== 'undefined' && window.self !== window.top;
+
   // Fetch service (for display name + challenge instruments)
   const { data: service, isLoading: serviceLoading } = useQuery({
     queryKey: ['cohort-service', effectiveServiceId],
@@ -100,6 +105,26 @@ export default function CohortAssessmentPage() {
       navigate(`/AttendeeForm?t=${encodeURIComponent(token)}`, { replace: true });
     }
   }, [tokenData, token, navigate]);
+
+  // Embedded: tell the Challenges app this check-in is done (just a flag and
+  // the survey type — never any answers), and report the page height so the
+  // app can size the frame to fit instead of scrolling inside it.
+  useEffect(() => {
+    if (!embedded) return;
+    if (submitted || tokenData?.already_submitted) {
+      window.parent.postMessage({ type: 'skms-survey-submitted', survey_type: effectiveSurveyType }, '*');
+    }
+  }, [embedded, submitted, tokenData?.already_submitted, effectiveSurveyType]);
+
+  useEffect(() => {
+    if (!embedded || typeof ResizeObserver === 'undefined') return;
+    const send = () =>
+      window.parent.postMessage({ type: 'skms-survey-height', height: document.body.scrollHeight }, '*');
+    const ro = new ResizeObserver(send);
+    ro.observe(document.body);
+    send();
+    return () => ro.disconnect();
+  }, [embedded]);
 
   const currentInstrument = stepIndex > 0 ? instruments[stepIndex - 1] : null;
   const instrumentAnswers = currentInstrument ? (answers[currentInstrument.key] || {}) : {};
@@ -204,7 +229,7 @@ export default function CohortAssessmentPage() {
           <CheckCircle2 className="w-16 h-16 text-[#264d44] mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Thank you!</h2>
           <p className="text-gray-600">Your {timingLabel} responses have been recorded.</p>
-          <p className="text-sm text-gray-400 mt-4">You may close this window.</p>
+          {!embedded && <p className="text-sm text-gray-400 mt-4">You may close this window.</p>}
         </div>
       </div>
     );
@@ -214,6 +239,7 @@ export default function CohortAssessmentPage() {
 
   return (
     <div className="min-h-screen bg-[#f4f0e9]">
+      {!embedded && (
       <div className="bg-[#013f7c] text-white px-4 py-6 text-center">
         <img
           src="https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/1272f92b7_SKMSLogoShieldWhite.png"
@@ -225,6 +251,7 @@ export default function CohortAssessmentPage() {
           <p className="text-blue-200 text-sm mt-2 font-medium">{service?.name || tokenData?.service_name}</p>
         )}
       </div>
+      )}
 
       <div className="max-w-xl mx-auto px-4 pt-4">
         <div className="flex items-center justify-between mb-1.5">
