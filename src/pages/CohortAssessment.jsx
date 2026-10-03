@@ -126,17 +126,19 @@ export default function CohortAssessmentPage() {
     if (!embedded) return;
     document.documentElement.style.overflow = 'hidden';
     let last = 0;
-    let raf = 0;
+    let timer = 0;
+    // A short timer rather than requestAnimationFrame, which never fires while
+    // the page is in a background tab.
     const measure = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
         const el = document.querySelector('[data-skms-survey]');
         const h = Math.ceil(el ? el.getBoundingClientRect().height : document.body.scrollHeight);
         if (h && h !== last) {
           last = h;
           window.parent.postMessage({ type: 'skms-survey-height', height: h }, '*');
         }
-      });
+      }, 30);
     };
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
     let watched = null;
@@ -157,7 +159,7 @@ export default function CohortAssessmentPage() {
       mo.disconnect();
       ro?.disconnect();
       window.removeEventListener('resize', measure);
-      cancelAnimationFrame(raf);
+      clearTimeout(timer);
     };
   }, [embedded]);
 
