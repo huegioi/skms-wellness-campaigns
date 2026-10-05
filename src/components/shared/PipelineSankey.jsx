@@ -26,7 +26,8 @@ const STAGE_NODE_COLOR = '#52514e';
 const MAX_SOURCES = 6;
 
 const NODE_W = 12;
-const NODE_GAP = 10;
+const NODE_GAP = 12;
+const MIN_NODE_H = 8; // tiny nodes still get room for their label
 const LABEL_ROOM = 215;
 
 function useWidth(ref) {
@@ -41,6 +42,24 @@ function useWidth(ref) {
     return () => ro.disconnect();
   }, [ref]);
   return w;
+}
+
+// Height left in the window below the chart's top edge, so the chart fills the
+// screen instead of sitting in a short strip with empty page underneath.
+function useFitHeight(ref) {
+  const [h, setH] = useState(0);
+  useEffect(() => {
+    const measure = () => {
+      if (!ref.current) return;
+      const top = ref.current.getBoundingClientRect().top + window.scrollY;
+      // leave room for the card header, legend and footnote
+      setH(Math.round(window.innerHeight - top - 170));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [ref]);
+  return h;
 }
 
 function buildGraph(records, classify, stageOrder, outcomes, valueOf) {
@@ -105,16 +124,23 @@ function layout(graph, width, height) {
   const total = cols[0].reduce((s, n) => s + n.value, 0);
   if (!total) return null;
   // one scale for every column (same total) — fit the busiest column
-  const ky = Math.min(...cols.map(c => (height - NODE_GAP * Math.max(0, c.length - 1)) / total));
+  // one scale for every column (same total); shrink it until the busiest column
+  // fits once tiny nodes are padded up to MIN_NODE_H
+  const colHeight = (c, k) => c.reduce((s, n) => s + Math.max(MIN_NODE_H, n.value * k), 0) + NODE_GAP * Math.max(0, c.length - 1);
+  let ky = Math.min(...cols.map(c => (height - NODE_GAP * Math.max(0, c.length - 1)) / total));
+  for (let i = 0; i < 40 && Math.max(...cols.map(c => colHeight(c, ky))) > height; i++) ky *= 0.95;
   const innerW = Math.max(200, width - LABEL_ROOM * 2);
   const colX = [LABEL_ROOM, LABEL_ROOM + innerW / 2 - NODE_W / 2, LABEL_ROOM + innerW - NODE_W];
 
   cols.forEach((col, ci) => {
-    const used = col.reduce((s, n) => s + n.value * ky, 0) + NODE_GAP * Math.max(0, col.length - 1);
+    const used = colHeight(col, ky);
     let y = (height - used) / 2;
     for (const n of col) {
       n.x0 = colX[ci]; n.x1 = colX[ci] + NODE_W;
-      n.y0 = y; n.h = Math.max(1, n.value * ky); n.y1 = y + n.h;
+      const band = n.value * ky;
+      n.h = Math.max(MIN_NODE_H, band);
+      n.y0 = y; n.y1 = y + n.h;
+      n.pad = (n.h - band) / 2; // centre the link bands on a padded node
       y = n.y1 + NODE_GAP;
     }
   });
@@ -124,12 +150,12 @@ function layout(graph, width, height) {
   for (const l of links) { (out[l.source.id] ||= []).push(l); (inn[l.target.id] ||= []).push(l); }
   for (const list of Object.values(out)) {
     list.sort((a, b) => a.target.y0 - b.target.y0 || a.srcKey.localeCompare(b.srcKey));
-    let y = list[0].source.y0;
+    let y = list[0].source.y0 + list[0].source.pad;
     for (const l of list) { l.w = l.value * ky; l.sy = y + l.w / 2; y += l.w; }
   }
   for (const list of Object.values(inn)) {
     list.sort((a, b) => a.source.y0 - b.source.y0 || a.srcKey.localeCompare(b.srcKey));
-    let y = list[0].target.y0;
+    let y = list[0].target.y0 + list[0].target.pad;
     for (const l of list) { l.ty = y + l.w / 2; y += l.w; }
   }
   return { total };
@@ -158,7 +184,8 @@ export default function PipelineSankey({
     [records, classify, stageOrder, outcomes, metric]
   );
   const busiest = Math.max(...graph.cols.map(c => c.length), 1);
-  const height = Math.max(360, busiest * 34);
+  const fitHeight = useFitHeight(cardRef);
+  const height = Math.min(1100, Math.max(420, busiest * 36, fitHeight));
   const lay = useMemo(() => layout(graph, width, height), [graph, width, height]);
 
   // reset drill-down when the data or metric changes underneath it

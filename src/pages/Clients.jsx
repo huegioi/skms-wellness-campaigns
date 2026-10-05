@@ -548,7 +548,7 @@ export default function Clients() {
     <div className="min-h-screen bg-[#f4f0e9]">
       <ClientsSubNav activePage="Clients" />
 
-      <div className={`mx-auto px-4 md:px-8 py-6 ${viewMode === 'pipeline' ? 'max-w-full' : viewMode === 'flow' ? 'max-w-6xl' : 'max-w-5xl'}`}>
+      <div className={`mx-auto px-4 md:px-8 py-6 ${viewMode === 'pipeline' || viewMode === 'flow' ? 'max-w-full' : 'max-w-5xl'}`}>
         {/* Toolbar: view toggle + owner filter + add button */}
         <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
           <div className="flex items-center gap-2">

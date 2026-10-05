@@ -915,7 +915,7 @@ export default function Leads() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 md:px-6 py-6">
+      <div className={`${activeTab === 'broker_leads' && brokerViewMode === 'flow' ? 'max-w-full' : 'max-w-6xl'} mx-auto px-4 md:px-6 py-6`}>
         {activeTab !== 'inquiries' && (
           <QuickBuilderInquiriesBanner
             inquiries={qbInquiryLeads}
