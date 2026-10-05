@@ -101,12 +101,11 @@ Deno.serve(async (req) => {
     const sinceStr = new Date(now.getTime() - lookbackMs).toISOString();
 
     // Load clients, leads, existing CalendarEvents, and interactions with a calendar link
-    const [clients, leads, partners, calEvents, recentInteractions] = await Promise.all([
+    const [clients, leads, partners, calEvents] = await Promise.all([
       base44.asServiceRole.entities.Client.list(),
       base44.asServiceRole.entities.Lead.filter({ is_archived: { $ne: true } }),
       base44.asServiceRole.entities.ReferralPartner.list(),
       base44.asServiceRole.entities.CalendarEvent.list('-start_date', 500),
-      base44.asServiceRole.entities.ClientInteraction.list('-date', 500),
     ]);
 
     // Index CalendarEvents by google_event_id (dedup + update lookup)
@@ -115,10 +114,23 @@ Deno.serve(async (req) => {
       if (ce.google_event_id) calEventByGoogleId[ce.google_event_id] = ce;
     }
 
-    // Set of calendar_event_ids that already have a logged interaction (dedup for Part B)
-    const processedEventIds = new Set(
-      (recentInteractions || []).filter(i => i.calendar_event_id).map(i => i.calendar_event_id)
-    );
+    // Set of calendar_event_ids that already have a logged interaction (dedup for Part B).
+    // 2026-10-05 fix: this used to read only the 500 most recent interactions by date.
+    // Once >500 existed, older meetings fell outside that window and were logged AGAIN
+    // every 15 min, a runaway that created ~5,000 duplicates on Oct 4-5. Now we ask
+    // directly about the exact events we might log, so the window can't overflow.
+    const nowForDedup = new Date();
+    const candidateEventIds = calEvents
+      .filter(ce => ce.lead_id && ce.start_date && new Date(ce.start_date) <= nowForDedup)
+      .map(ce => ce.id);
+    const processedEventIds = new Set();
+    for (let i = 0; i < candidateEventIds.length; i += 100) {
+      const chunk = candidateEventIds.slice(i, i + 100);
+      const logged = await base44.asServiceRole.entities.ClientInteraction.filter(
+        { calendar_event_id: { $in: chunk } }, '-date', 20000
+      );
+      for (const it of logged || []) if (it.calendar_event_id) processedEventIds.add(it.calendar_event_id);
+    }
 
     // Build email → contact lookup indexes for attendee matching
     const leadByEmail = {};
