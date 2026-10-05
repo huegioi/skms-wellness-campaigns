@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Building2, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, ChevronRight, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, GitMerge, Settings, Inbox, Wrench, MoreVertical, Loader2, Filter } from 'lucide-react';
+import { Search, Plus, Building, Building2, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, ChevronRight, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, Waypoints, GitMerge, Settings, Inbox, Wrench, MoreVertical, Loader2, Filter } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
@@ -17,6 +17,8 @@ import PendingReferralsReview from '@/components/referrals/PendingReferralsRevie
 import QuickBuilderInquiriesBanner from '@/components/leads/QuickBuilderInquiriesBanner';
 import QuickBuilderInquiriesList from '@/components/leads/QuickBuilderInquiriesList';
 import PipelineView from '@/components/leads/PipelineView';
+import PipelineSankey from '@/components/shared/PipelineSankey';
+import { classifyLead, LEAD_STAGE_ORDER, LEAD_OUTCOMES, LEAD_METRICS } from '@/lib/pipelineFlow';
 import { ActivityStrip, getLeadStaleThreshold } from '@/components/shared/ActivityStrip';
 import { ChannelIndicators } from '@/components/shared/ChannelIndicators';
 import { buildLatestTouchMap, buildChannelSummaryMap } from '@/lib/lastTouch';
@@ -261,7 +263,7 @@ export default function Leads() {
   const [backfillingSheet, setBackfillingSheet] = useState(false);
   const [viewingBrokerLead, setViewingBrokerLead] = useState(null);
   const [showActivePartnersModal, setShowActivePartnersModal] = useState(false);
-  const [brokerViewMode, setBrokerViewMode] = useState(urlParams.get('view') === 'brokerages' ? 'brokerages' : 'list'); // 'list' | 'pipeline' | 'brokerages'
+  const [brokerViewMode, setBrokerViewMode] = useState(urlParams.get('view') === 'brokerages' ? 'brokerages' : 'list'); // 'list' | 'pipeline' | 'flow' | 'brokerages'
   const [brokerFilterOwner, setBrokerFilterOwner] = useState('all');
   const [brokerTagFilter, setBrokerTagFilter] = useState([]);
   // Mobile: filters collapse behind one badged button so the list starts near the top
@@ -1004,6 +1006,12 @@ export default function Leads() {
                   <Kanban className="w-4 h-4" /> Pipeline
                 </button>
                 <button
+                  onClick={() => setBrokerViewMode('flow')}
+                  className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${brokerViewMode === 'flow' ? 'bg-[#013f7c] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
+                >
+                  <Waypoints className="w-4 h-4" /> Flow
+                </button>
+                <button
                   onClick={() => setBrokerViewMode('brokerages')}
                   className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${brokerViewMode === 'brokerages' ? 'bg-[#013f7c] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
                 >
@@ -1082,6 +1090,20 @@ export default function Leads() {
 
             {brokerViewMode === 'brokerages' ? (
               <BrokeragesView partners={referralPartners} />
+            ) : brokerViewMode === 'flow' ? (
+              <PipelineSankey
+                title="Partner flow"
+                records={filteredBrokerLeads}
+                classify={classifyLead}
+                stageOrder={LEAD_STAGE_ORDER}
+                outcomes={LEAD_OUTCOMES}
+                metrics={LEAD_METRICS}
+                noun={{ one: 'partner', many: 'partners' }}
+                recordLabel={l => l.name || l.company || l.email}
+                recordSub={l => [l.company, l.owner].filter(Boolean).join(' · ')}
+                onSelectRecord={(lead) => setViewingBrokerLead(lead)}
+                accent="#013f7c"
+              />
             ) : brokerViewMode === 'pipeline' ? (
               <PipelineView
                 leads={filteredBrokerLeads}

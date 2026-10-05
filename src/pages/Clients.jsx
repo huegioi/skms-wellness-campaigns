@@ -26,6 +26,8 @@ import ClientsSubNav from '@/components/clients/ClientsSubNav.jsx';
 import BrokersEditor from '@/components/clients/BrokersEditor';
 import { TagSelector } from '@/components/ui/TagSelector';
 import ClientPipelineView from '@/components/clients/ClientPipelineView';
+import PipelineSankey from '@/components/shared/PipelineSankey';
+import { classifyClient, CLIENT_STAGE_ORDER, CLIENT_OUTCOMES, CLIENT_METRICS } from '@/lib/pipelineFlow';
 import { ActivityStrip } from '@/components/shared/ActivityStrip';
 import { useClientDeliveryStatus } from '@/hooks/useClientDeliveryStatus';
 import { isInRenewalRamp } from '@/lib/renewal';
@@ -33,7 +35,7 @@ import { CLIENT_STAGES } from '@/components/shared/constants';
 import { matchesOwnerSelect, UNASSIGNED_FILTER } from '@/lib/owners';
 import TagFilter from '@/components/ui/TagFilter';
 import TagManager from '@/components/ui/TagManager';
-import { LayoutList, Columns, Settings, MoreVertical } from 'lucide-react';
+import { LayoutList, Columns, Settings, MoreVertical, Waypoints } from 'lucide-react';
 
 function SyncEmailsButton() {
   const [syncing, setSyncing] = React.useState(false);
@@ -546,7 +548,7 @@ export default function Clients() {
     <div className="min-h-screen bg-[#f4f0e9]">
       <ClientsSubNav activePage="Clients" />
 
-      <div className={`mx-auto px-4 md:px-8 py-6 ${viewMode === 'pipeline' ? 'max-w-full' : 'max-w-5xl'}`}>
+      <div className={`mx-auto px-4 md:px-8 py-6 ${viewMode === 'pipeline' ? 'max-w-full' : viewMode === 'flow' ? 'max-w-6xl' : 'max-w-5xl'}`}>
         {/* Toolbar: view toggle + owner filter + add button */}
         <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
           <div className="flex items-center gap-2">
@@ -563,6 +565,12 @@ export default function Clients() {
                 className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${viewMode === 'pipeline' ? 'bg-[#264d44] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
               >
                 <Columns className="w-4 h-4" /> Pipeline
+              </button>
+              <button
+                onClick={() => setViewMode('flow')}
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${viewMode === 'flow' ? 'bg-[#264d44] text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+              >
+                <Waypoints className="w-4 h-4" /> Flow
               </button>
             </div>
 
@@ -816,6 +824,23 @@ export default function Clients() {
             clients={filteredClients}
             ownerFilter={ownerFilter}
             onClientClick={setViewingClient}
+          />
+        )}
+
+        {/* Flow (Sankey) View — source → current stage → outcome */}
+        {viewMode === 'flow' && (
+          <PipelineSankey
+            title="Client flow"
+            records={filteredClients}
+            classify={classifyClient}
+            stageOrder={CLIENT_STAGE_ORDER}
+            outcomes={CLIENT_OUTCOMES}
+            metrics={CLIENT_METRICS}
+            noun={{ one: 'client', many: 'clients' }}
+            recordLabel={c => c.company || c.name}
+            recordSub={c => [c.company && c.name !== c.company ? c.name : null, c.owner].filter(Boolean).join(' · ')}
+            onSelectRecord={setViewingClient}
+            accent="#264d44"
           />
         )}
 
