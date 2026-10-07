@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { advanceLeadsQuietly } from '../../shared/leadAutomationRunner.ts';
 
 const STATUS_LABELS = {
   pending_review: 'Under Review',
@@ -63,6 +64,20 @@ Deno.serve(async (req) => {
       message: `${referral.company_name || referral.contact_name} moved to ${STATUS_LABELS['submitted']}`,
       activity_date: new Date().toISOString()
     });
+    // First approved referral → the partner's lead becomes Active partner, right now
+    try {
+      const partner = referral.referral_partner_id
+        ? (await base44.asServiceRole.entities.ReferralPartner.filter({ id: referral.referral_partner_id }))?.[0]
+        : null;
+      if (partner?.email) {
+        const leads = await base44.asServiceRole.entities.Lead.filter(
+          { email: partner.email.toLowerCase(), lead_type: 'broker_lead' }, '-created_date', 10
+        );
+        await advanceLeadsQuietly(base44, { leadIds: (leads || []).map(l => l.id) }, 'referral');
+      }
+    } catch (e) {
+      console.warn('[reviewReferral] lead stage check skipped:', e.message);
+    }
     return Response.json({ success: true, status: 'submitted' });
   }
 

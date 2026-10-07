@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { advanceLeadsQuietly } from '../../shared/leadAutomationRunner.ts';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // updateLastContactedFromGmail — "Sync Emails" button on the Partners page.
@@ -60,7 +61,7 @@ async function getHeatherAccessToken() {
 }
 
 // Scan one mailbox and accumulate best contact dates per record.
-async function scanMailbox(accessToken, accountLabel, emailMap, bestDates) {
+async function scanMailbox(accessToken, accountLabel, emailMap, bestDates, leadByEmail = {}, leadEvidence = []) {
   const authHeader = { Authorization: `Bearer ${accessToken}` };
 
   // Fetch recent messages (last 500)
@@ -78,7 +79,7 @@ async function scanMailbox(accessToken, accountLabel, emailMap, bestDates) {
   for (const msg of messages) {
     try {
       const res = await fetch(
-        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Date`,
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${msg.id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Date&metadataHeaders=Subject`,
         { headers: authHeader }
       );
       if (!res.ok) continue;
@@ -99,6 +100,20 @@ async function scanMailbox(accessToken, accountLabel, emailMap, bestDates) {
         ...extractEmails(get('To')),
         ...extractEmails(get('Cc')),
       ];
+
+      // Stage evidence for partner leads (last 3 days only — older mail is covered by
+      // the 2-hourly sync and the nightly sweep): did THEY write, or did WE?
+      if (Date.now() - emailDate.getTime() <= 3 * 86400000) {
+        const fromAddrs = extractEmails(get('From'));
+        const weSent = fromAddrs.some(a => isSkmsAddress(a));
+        for (const addr of allAddresses) {
+          const lead = leadByEmail[addr];
+          if (!lead) continue;
+          const direction = fromAddrs.includes(addr) ? 'inbound' : (weSent ? 'outbound' : null);
+          if (!direction) continue;
+          leadEvidence.push({ matched_lead_id: lead.id, direction, date: emailDate.toISOString(), subject: get('Subject') });
+        }
+      }
 
       for (const addr of allAddresses) {
         // Skip SKMS team addresses — we want external contacts
@@ -169,11 +184,19 @@ Deno.serve(async (req) => {
     }
 
     const bestDates = {};
+    // Partner leads by address — separate from emailMap, whose priority rules can hide a
+    // Lead behind a Client/ReferralPartner with the same email.
+    const leadByEmail = {};
+    for (const lead of leads) {
+      if (lead.lead_type !== 'broker_lead' || lead.is_demo) continue;
+      for (const e of [lead.email, lead.email2]) if (e) leadByEmail[e.toLowerCase()] = lead;
+    }
+    const leadEvidence = [];
 
     // 1. Scan William's mailbox via shared Gmail connector
     try {
       const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
-      await scanMailbox(accessToken, 'william', emailMap, bestDates);
+      await scanMailbox(accessToken, 'william', emailMap, bestDates, leadByEmail, leadEvidence);
     } catch (err) {
       console.error(`William scan error: ${err.message}`);
     }
@@ -182,7 +205,7 @@ Deno.serve(async (req) => {
     const heatherToken = await getHeatherAccessToken();
     if (heatherToken) {
       try {
-        await scanMailbox(heatherToken, 'heather', emailMap, bestDates);
+        await scanMailbox(heatherToken, 'heather', emailMap, bestDates, leadByEmail, leadEvidence);
       } catch (err) {
         console.error(`Heather scan error: ${err.message}`);
       }
@@ -218,9 +241,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Move partner leads on what just came in (sent → In sequence, reply → Talking)
+    const stageResult = leadEvidence.length
+      ? await advanceLeadsQuietly(base44, { leadIds: [...new Set(leadEvidence.map(e => e.matched_lead_id))], extraEmails: leadEvidence }, 'gmail')
+      : null;
+
     return Response.json({
       message: 'Sync complete',
       updated,
+      lead_stage_moves: stageResult?.stage_moves?.length || 0,
       accounts_scanned: heatherToken ? ['william', 'heather'] : ['william'],
     });
   } catch (error) {

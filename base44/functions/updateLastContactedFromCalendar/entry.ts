@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { advanceLeadsQuietly } from '../../shared/leadAutomationRunner.ts';
 
 // Shared multi-calendar watch list. Keep in sync with handleCalendarEventChange.
 // Calendars must be shared with the connected Google account (read access).
@@ -401,7 +402,16 @@ Deno.serve(async (req) => {
       leadsUpdated = await batchBulkUpdate(base44.asServiceRole.entities.Lead, leadUpdates);
     }
 
+    // Move partner leads on their meetings: booked → Meeting booked, just ended → Met.
+    // Only leads with a meeting from 2 days ago onward (the nightly sweep covers the rest).
+    const recentCutoff = new Date(now.getTime() - 2 * 86400000);
+    const meetingLeadIds = [...new Set(calEvents
+      .filter(ce => ce.lead_id && ce.start_date && new Date(ce.start_date) >= recentCutoff)
+      .map(ce => ce.lead_id))];
+    const stageResult = await advanceLeadsQuietly(base44, { leadIds: meetingLeadIds }, 'calendar');
+
     return Response.json({
+      leadStageMoves: stageResult?.stage_moves?.length || 0,
       message: backfillDays > 0 ? `Backfill complete (${backfillDays}d + future)` : 'Processed',
       mode: backfillDays > 0 ? 'backfill' : 'incremental',
       calendarsWatched: WATCHED_CALENDARS.length,

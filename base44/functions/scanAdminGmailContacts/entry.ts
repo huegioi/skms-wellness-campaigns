@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { advanceLeadsQuietly } from '../../shared/leadAutomationRunner.ts';
 import { ImapFlow } from 'npm:imapflow@1.0.169';
 
 const SKMS_ACCOUNTS = ['william@skillfulmeans.life', 'heather@skillfulmeans.life', 'admin@skillfulmeans.life'];
@@ -371,6 +372,7 @@ async function scanViaImapAndLog(accountEmail, password, accountLabel, emailMap,
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
+    const runStartedAt = new Date().toISOString();
 
     // Allow both authenticated admin calls and service-role scheduled calls
     let isScheduled = false;
@@ -518,8 +520,23 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[scanAdminGmailContacts] Complete — ${totalNewLogs} new emails logged, ${updatedCount} last_contacted_date updated`);
-    return Response.json({ success: true, new_emails_logged: totalNewLogs, contacts_updated: updatedCount });
+    // Move partner leads on the emails this run just logged (backup to the live Gmail trigger)
+    let leadStageMoves = 0;
+    if (totalNewLogs > 0) {
+      try {
+        const fresh = await base44.asServiceRole.entities.EmailLog.filter(
+          { created_date: { $gte: runStartedAt }, matched_lead_id: { $nin: ['', null] } }, '-date', 5000
+        );
+        const ids = [...new Set((fresh || []).map(e => e.matched_lead_id).filter(Boolean))];
+        const r = await advanceLeadsQuietly(base44, { leadIds: ids }, 'email-sync');
+        leadStageMoves = r?.stage_moves?.length || 0;
+      } catch (e) {
+        console.warn('[scanAdminGmailContacts] lead stage check skipped:', e.message);
+      }
+    }
+
+    console.log(`[scanAdminGmailContacts] Complete — ${totalNewLogs} new emails logged, ${updatedCount} last_contacted_date updated, ${leadStageMoves} lead stage moves`);
+    return Response.json({ success: true, new_emails_logged: totalNewLogs, contacts_updated: updatedCount, lead_stage_moves: leadStageMoves });
   } catch (error) {
     console.error('scanAdminGmailContacts error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });

@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
+import { advanceLeadsQuietly } from '../../shared/leadAutomationRunner.ts';
 import { senderForOwner } from '../../shared/owners.ts';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -312,6 +313,12 @@ Deno.serve(async (req) => {
     }
 
     await base44.entities.OutreachCampaign.update(campaign_id, { last_status_sync_at: new Date().toISOString() });
+
+    // Move partner leads in this campaign on what was just sent / replied
+    if (updatedSent + updatedReplied > 0) {
+      const leadIds = [...new Set(recipients.filter(r => r.record_type === 'lead' && r.record_id).map(r => r.record_id))];
+      await advanceLeadsQuietly(base44, { leadIds }, 'campaign');
+    }
 
     return Response.json({
       success: true,
