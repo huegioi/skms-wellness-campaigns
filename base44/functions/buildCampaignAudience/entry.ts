@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     //   - Leads with status in DEAD_LEAD_STATUSES (not_interested, converted, current_client)
     //   - ReferralPartners with partner_status='Inactive' or is_active=false
     // Tag scope does NOT apply this filter.
-    const DEAD_LEAD_STATUSES = ['not_interested', 'converted', 'current_client'];
+    const DEAD_LEAD_STATUSES = ['not_interested', 'not_a_fit', 'converted', 'current_client'];
     const isPartnerAllScope = isAllScope && campaign.audience_type === 'partner';
     if (isPartnerAllScope) {
       allRecords = allRecords.filter(r => {

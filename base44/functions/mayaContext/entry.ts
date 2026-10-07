@@ -1,5 +1,17 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import { resolveClientContact, listClientContacts } from '../../shared/clientContact.ts';
+import { normalizeStage, stageLabel, cohortOf, PRE_TALKING_STAGES, CLOSED_STAGES, WON_STAGES } from '../../shared/leadStages.ts';
+import { primaryOwner as primaryOwnerName } from '../../shared/owners.ts';
+
+/** ISO week label (e.g. 2026-W41) — a grouped reminder reappears at most once a week. */
+function isoWeek(d) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  const week = Math.ceil(((t - yearStart) / 86400000 + 1) / 7);
+  return `${t.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Maya Context Builder — shared backend function invoked by:
@@ -450,7 +462,13 @@ Title: ${record.title || 'Unknown'}
 Phone: ${record.phone || 'Unknown'}
 Lead Type: ${record.lead_type || 'Unknown'}
 Partner Status: ${record.partner_status || 'Unknown'}
-Pipeline Stage: ${record.follow_up_stage || 'No stage set'}
+Pipeline Stage: ${stageLabel(record.status)}${record.stage_entered_date ? ` (since ${record.stage_entered_date})` : ''}
+Cadence step: ${record.follow_up_stage || 'none'}
+Where they came from: ${record.source_type || 'not recorded'}${record.source ? ` — ${record.source}` : ''}
+Next follow-up: ${record.next_followup_date || 'none set'}
+Agreed next step: ${record.next_step || 'none logged'}
+Last meeting outcome: ${record.meeting_outcome || 'not logged'}${record.closed_reason ? `
+Closed because: ${record.closed_reason}` : ''}
 Status: ${record.status || 'Unknown'}
 Tags: ${record.tags?.length ? record.tags.join(', ') : 'None'}
 Owner: ${record.owner || 'Unassigned'}
@@ -1182,6 +1200,7 @@ async function buildSalesContext(base44) {
   const interactions = allInteractions.filter(i => !i.is_demo);
 
   const nameOf = (p) => p.company || p.client_name || 'Unknown';
+  const partnerLeadIds = new Set(leads.filter(l => (l.lead_type || 'broker_lead') === 'broker_lead').map(l => l.id));
 
   // ── a) Stalled proposals ────────────────────────────────────────────────
   // Open money that stopped moving. sent_date/viewed_date are null on most real
@@ -1238,6 +1257,9 @@ async function buildSalesContext(base44) {
     if (start < windowStart || start > graceCutoff) continue;
     const who = e.client_name || '';
     if (!who && !e.client_id && !e.lead_id) continue;        // unattributable calendar noise
+    // Partner-lead meetings move the lead to "Met" automatically and get their own
+    // "log the outcome" reminder — don't nag twice about the same meeting.
+    if (e.lead_id && !e.client_id && partnerLeadIds.has(e.lead_id)) continue;
 
     const since = (d) => d && new Date(d) > start;
     const loggedAfter = interactions.some(i =>
@@ -1268,29 +1290,104 @@ async function buildSalesContext(base44) {
   }
   meetingsNoFollowUp.sort((a, b) => b.daysAgo - a.daysAgo);
 
-  // ── c) Leads past their own follow-up date ──────────────────────────────
-  // These dates were already being set and only ever checked for partners.
-  const DEAD_STATUSES = ['converted', 'not_interested', 'current_client'];
+  // ── c) Partner leads: grouped until they're talking, individual after ─────
+  // Before a real conversation (To contact / In sequence) follow-ups go out in batches
+  // per event, so they become ONE reminder per cohort ("Follow up with ITC Vegas 2026
+  // contacts (12)"). From Talking onward every lead is its own reminder.
   const overdueLeads = [];
+  const todayStr = startToday.toISOString().slice(0, 10);
+  const weekKey = isoWeek(startToday);
+  const groups = {};
+  const noNextDate = [];
+  const ownerOf = (l) => primaryOwnerName(l.owner) || 'Unassigned';
   for (const l of leads) {
-    if (DEAD_STATUSES.includes(l.status)) continue;
-    const dueRaw = l.next_followup_date || l.follow_up_due_date;
-    if (!dueRaw) continue;
-    const due = startOfDay(new Date(dueRaw));
-    if (isNaN(due.getTime()) || due >= startToday) continue;
-    const overdueDays = daysBetween(due, now);
+    const stage = normalizeStage(l.status);
     const who = l.name || l.company || 'Unknown';
     const where = l.company && l.name ? ` (${l.company})` : '';
-    overdueLeads.push({ who: who + where, overdueDays, status: l.status || '' });
+    const isPartnerLead = (l.lead_type || 'broker_lead') === 'broker_lead';
+
+    // Not now → bring it back on its revisit date
+    if (stage === 'not_interested') {
+      if (l.revisit_date && l.revisit_date <= todayStr) {
+        reminderCandidates.push({
+          type: 'lead_revisit_due', category: 'sales',
+          key: `lead_revisit_due:${l.id}:${l.revisit_date}`,
+          client: who, leadId: l.id, owner: l.owner || '', triggerDate: l.revisit_date,
+          text: `${who}${where} — parked as Not now${l.closed_reason ? ` ("${l.closed_reason}")` : ''}; today is the revisit date. Reopen or push it out.`,
+        });
+      }
+      continue;
+    }
+    if (CLOSED_STAGES.has(stage) || WON_STAGES.has(stage)) continue;
+
+    // Met but no outcome logged → ask, individually
+    if (stage === 'met' && !l.meeting_outcome) {
+      reminderCandidates.push({
+        type: 'meeting_outcome_needed', category: 'sales',
+        key: `meeting_outcome_needed:${l.id}`,
+        client: who, leadId: l.id, owner: l.owner || '',
+        triggerDate: l.stage_entered_date || todayStr,
+        text: `${who}${where} — you met; log how it went and the agreed next step.`,
+      });
+      continue;
+    }
+
+    const dueRaw = l.next_followup_date || l.follow_up_due_date;
+    const due = dueRaw ? startOfDay(new Date(dueRaw)) : null;
+    const validDue = due && !isNaN(due.getTime());
+
+    if (PRE_TALKING_STAGES.has(stage) && isPartnerLead) {
+      if (!validDue || due > startToday) continue;               // due today or earlier
+      const cohort = cohortOf(l) || '__other__';
+      (groups[cohort] ||= []).push(l);
+      continue;
+    }
+
+    // Talking and beyond (and company inquiries): individual
+    if (validDue && due < startToday) {
+      const overdueDays = daysBetween(due, now);
+      overdueLeads.push({ who: who + where, overdueDays, status: stageLabel(stage) });
+      reminderCandidates.push({
+        type: 'lead_follow_up_due', category: 'sales',
+        key: `lead_follow_up_due:${l.id}:${due.toISOString().slice(0, 10)}`,
+        client: who, leadId: l.id, owner: l.owner || '',
+        triggerDate: due.toISOString().slice(0, 10),
+        text: `${who}${where} — follow-up was due ${overdueDays} day${overdueDays === 1 ? '' : 's'} ago (${stageLabel(stage)})${l.next_step ? `. Next step: ${l.next_step}` : ''}.`,
+      });
+    } else if (!validDue && !PRE_TALKING_STAGES.has(stage)) {
+      // In a live conversation with no next date at all — the thread will drop.
+      noNextDate.push(l);
+    }
+  }
+  if (noNextDate.length) {
+    // One housekeeping item instead of a line per lead
     reminderCandidates.push({
-      type: 'lead_follow_up_due',
-      category: 'sales',
-      key: `lead_follow_up_due:${l.id}:${due.toISOString().slice(0, 10)}`,
-      client: who,
-      leadId: l.id,
-      triggerDate: due.toISOString().slice(0, 10),
-      text: `${who}${where} — follow-up was due ${overdueDays} day${overdueDays === 1 ? '' : 's'} ago${l.status ? ` (${l.status.replace(/_/g, ' ')})` : ''}.`,
+      type: 'lead_stalled', category: 'sales',
+      key: `lead_stalled:no_next_date:${weekKey}`,
+      client: '', groupKey: '__no_next_date__',
+      leadIds: noNextDate.map(l => l.id), count: noNextDate.length,
+      owner: [...new Set(noNextDate.map(ownerOf))].join(', '),
+      triggerDate: todayStr,
+      text: `${noNextDate.length} conversation${noNextDate.length === 1 ? '' : 's'} (Talking or later) ha${noNextDate.length === 1 ? 's' : 've'} no next follow-up date — set one or close ${noNextDate.length === 1 ? 'it' : 'them'}.`,
     });
+  }
+  for (const [cohort, members] of Object.entries(groups)) {
+    const label = cohort === '__other__' ? 'other new partner leads' : `${cohort} contacts`;
+    const byOwner = {};
+    for (const m of members) { const o = ownerOf(m); byOwner[o] = (byOwner[o] || 0) + 1; }
+    const split = Object.entries(byOwner).sort((a, b) => b[1] - a[1]).map(([o, n]) => `${o} ${n}`).join(', ');
+    const oldest = members.map(m => m.next_followup_date || m.follow_up_due_date).filter(Boolean).sort()[0] || todayStr;
+    const inSeq = members.filter(m => normalizeStage(m.status) === 'contacted').length;
+    reminderCandidates.push({
+      type: 'lead_group_follow_up', category: 'sales',
+      key: `lead_group_follow_up:${cohort}:${weekKey}`,
+      client: cohort === '__other__' ? '' : cohort,
+      groupKey: cohort, leadIds: members.map(m => m.id), count: members.length,
+      owner: Object.keys(byOwner).join(', '),
+      triggerDate: oldest,
+      text: `Follow up with ${label} (${members.length}) — ${inSeq} in sequence, ${members.length - inSeq} not reached yet · ${split}.`,
+    });
+    overdueLeads.push({ who: `${label} (group of ${members.length})`, overdueDays: daysBetween(startOfDay(new Date(oldest)), now), status: 'grouped' });
   }
   overdueLeads.sort((a, b) => b.overdueDays - a.overdueDays);
 

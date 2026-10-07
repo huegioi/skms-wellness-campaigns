@@ -41,6 +41,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea as TextareaUI } from '@/components/ui/textarea';
 import { LEAD_STATUS_CONFIG as STATUS_CONFIG, PARTNER_STATUS_CONFIG, REFERRAL_STATUS_COLORS } from '@/lib/statusConfig';
 import ReferralPotentialBadge from '@/components/leads/ReferralPotentialBadge';
+import { normalizeLeadStatus } from '@/lib/statusConfig';
+import { SOURCE_TYPES, inferSourceType } from '@/lib/leadStages';
 
 const EMPTY_BROKER_LEAD_FORM = {
   name: '', email: '', email2: '', company: '', title: '', phone: '',
@@ -48,7 +50,7 @@ const EMPTY_BROKER_LEAD_FORM = {
   last_contacted_date: '', next_followup_date: '', notes: '', source: '',
   lead_type: 'broker_lead', partner_status: 'new', follow_up_stage: '',
   referral_potential: 'medium', referral_count: 0, last_referral_date: '',
-  tags: [], address: '', company_size: ''
+  tags: [], address: '', company_size: '', source_type: ''
 };
 
 // yyyy-MM-dd for today plus an optional day offset (local time, not UTC)
@@ -265,7 +267,8 @@ export default function Leads() {
   const [showActivePartnersModal, setShowActivePartnersModal] = useState(false);
   const [brokerViewMode, setBrokerViewMode] = useState(urlParams.get('view') === 'brokerages' ? 'brokerages' : 'list'); // 'list' | 'pipeline' | 'flow' | 'brokerages'
   const [brokerFilterOwner, setBrokerFilterOwner] = useState('all');
-  const [brokerTagFilter, setBrokerTagFilter] = useState([]);
+  // ?tag=ITC%20Vegas%202026 — Maya's grouped follow-ups link straight to their cohort
+  const [brokerTagFilter, setBrokerTagFilter] = useState(() => (urlParams.get('tag') ? [urlParams.get('tag')] : []));
   // Mobile: filters collapse behind one badged button so the list starts near the top
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [brokerTagMatchAll, setBrokerTagMatchAll] = useState(false);
@@ -599,10 +602,16 @@ export default function Leads() {
     e.preventDefault();
     if (createMutation.isPending || updateMutation.isPending) return;
     const data = { ...brokerForm };
+    if (!data.source_type) {
+      toast.error('Pick where this partner came from — it is how the Flow view shows which channels work.');
+      return;
+    }
     // New partners are logged as contacted right now, with a 48h follow-up by default
     if (!editingBrokerLead) {
       data.last_contacted_date = dateOffset(0);
       if (!data.next_followup_date) data.next_followup_date = dateOffset(2);
+      data.stage_entered_date = dateOffset(0);
+      data.stage_history = [{ from: '', to: normalizeLeadStatus(data.status), at: new Date().toISOString(), by: 'manual', reason: 'Added' }];
     }
     if (!data.last_contacted_date) delete data.last_contacted_date;
     if (!data.next_followup_date) delete data.next_followup_date;
@@ -638,7 +647,8 @@ export default function Leads() {
       last_referral_date: lead.last_referral_date || '',
       tags: lead.tags || [],
       address: lead.address || '',
-      company_size: lead.company_size || ''
+      company_size: lead.company_size || '',
+      source_type: lead.source_type || inferSourceType(lead) || '',
     });
     setEditingBrokerLead(lead);
   };
@@ -724,7 +734,7 @@ export default function Leads() {
       lead.name?.toLowerCase().includes(brokerSearch.toLowerCase()) ||
       lead.email?.toLowerCase().includes(brokerSearch.toLowerCase()) ||
       lead.company?.toLowerCase().includes(brokerSearch.toLowerCase());
-    const matchStatus = brokerFilterStatus === 'all' || (lead.status || 'cold') === brokerFilterStatus;
+    const matchStatus = brokerFilterStatus === 'all' || normalizeLeadStatus(lead.status) === brokerFilterStatus;
     // 'all' | a name (matches ANY of the record's owners) | UNASSIGNED_FILTER (no owner)
     const matchOwner = matchesOwnerSelect(lead.owner, brokerFilterOwner);
     const matchTags = brokerTagFilter.length === 0 || (brokerTagMatchAll
@@ -1049,7 +1059,7 @@ export default function Leads() {
                   <SelectTrigger className="w-full md:w-[160px] bg-white"><SelectValue placeholder="Filter by status" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    {Object.entries(STATUS_CONFIG).map(([k, v]) => (
+                    {Object.entries(STATUS_CONFIG).filter(([, v]) => !v.legacy && !v.clientOnly).map(([k, v]) => (
                       <SelectItem key={k} value={k}>{v.label}</SelectItem>
                     ))}
                   </SelectContent>
@@ -1725,6 +1735,21 @@ export default function Leads() {
             <div className="grid grid-cols-2 gap-3">
               <Input placeholder="Phone" value={brokerForm.phone} onChange={e => setBrokerForm({...brokerForm, phone: e.target.value})} />
               <Input placeholder="Industry" value={brokerForm.industry} onChange={e => setBrokerForm({...brokerForm, industry: e.target.value})} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Where they came from *</label>
+                <Select value={brokerForm.source_type || ''} onValueChange={v => setBrokerForm({...brokerForm, source_type: v})}>
+                  <SelectTrigger><SelectValue placeholder="Pick one" /></SelectTrigger>
+                  <SelectContent>
+                    {SOURCE_TYPES.map(st => <SelectItem key={st.key} value={st.key}>{st.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Detail (which event, who referred)</label>
+                <Input placeholder="e.g. ITC Vegas 2026" value={brokerForm.source} onChange={e => setBrokerForm({...brokerForm, source: e.target.value})} />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

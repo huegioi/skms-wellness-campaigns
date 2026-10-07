@@ -77,16 +77,35 @@ Deno.serve(async (req) => {
   let openReminders = [];
   let overdueReminders = 0;
   try {
-    const allReminders = await base44.asServiceRole.entities.MayaReminder.list('trigger_date', 500);
-    const existingKeys = new Set(allReminders.map(r => r.dedupe_key));
     // Delivery and sales candidates share one queue; `category` is what splits them into
     // the two sections of the brief.
     const candidates = [
       ...(delivery.reminderCandidates || []).map(c => ({ ...c, category: c.category || 'delivery' })),
       ...(sales.reminderCandidates || []).map(c => ({ ...c, category: c.category || 'sales' })),
     ];
+    // ★ 2026-10-07: look up existing reminders BY KEY. This used to read only the first 500
+    // reminders (oldest first), so once more than 500 existed, newer ones fell outside the
+    // window and were re-created as duplicates on every run.
+    const candidateKeys = [...new Set(candidates.map(c => c.key))];
+    const existingByKey = {};
+    for (let i = 0; i < candidateKeys.length; i += 100) {
+      const found = await base44.asServiceRole.entities.MayaReminder.filter(
+        { dedupe_key: { $in: candidateKeys.slice(i, i + 100) } }, 'trigger_date', 1000
+      );
+      for (const r of found || []) existingByKey[r.dedupe_key] = r;
+    }
     for (const c of candidates) {
-      if (existingKeys.has(c.key)) continue;
+      const existing = existingByKey[c.key];
+      if (existing) {
+        // A grouped reminder keeps the same key all week while its members change.
+        if (existing.status === 'open' && c.groupKey &&
+            (existing.count !== c.count || existing.text !== c.text)) {
+          await base44.asServiceRole.entities.MayaReminder.update(existing.id, {
+            text: c.text, count: c.count, lead_ids: c.leadIds || [], owner: c.owner || '',
+          }).catch(e => console.log('[mayaDailyBriefing] group update failed:', c.key, e.message));
+        }
+        continue;
+      }
       try {
         await base44.asServiceRole.entities.MayaReminder.create({
           reminder_type: c.type,
@@ -102,9 +121,27 @@ Deno.serve(async (req) => {
           source_proposal_id: c.proposalId || '',
           trigger_date: c.triggerDate,
           status: 'open',
+          ...(c.groupKey ? { group_key: c.groupKey, lead_ids: c.leadIds || [], count: c.count || 0 } : {}),
+          ...(c.owner ? { owner: c.owner } : {}),
         });
       } catch (e) {
         console.log('[mayaDailyBriefing] Failed to create reminder:', c.key, e.message);
+      }
+    }
+    // Lead reminders close themselves once they no longer apply (the lead replied, moved
+    // stage, got a new date, or was closed). Only when the sales context loaded cleanly,
+    // so a failed run never wipes the list.
+    if (Array.isArray(sales.reminderCandidates)) {
+      const AUTO_CLOSE_TYPES = ['lead_follow_up_due', 'lead_group_follow_up', 'meeting_outcome_needed', 'lead_revisit_due', 'lead_stalled'];
+      const liveKeys = new Set(candidateKeys);
+      const openLead = await base44.asServiceRole.entities.MayaReminder.filter(
+        { status: 'open', reminder_type: { $in: AUTO_CLOSE_TYPES } }, 'trigger_date', 2000
+      );
+      for (const r of openLead || []) {
+        if (liveKeys.has(r.dedupe_key)) continue;
+        await base44.asServiceRole.entities.MayaReminder.update(r.id, {
+          status: 'done', completed_by: 'Maya (no longer needed)', completed_at: new Date().toISOString(),
+        }).catch(e => console.log('[mayaDailyBriefing] auto-close failed:', r.id, e.message));
       }
     }
     // Fetch all open reminders sorted by trigger_date ascending
@@ -132,6 +169,11 @@ Deno.serve(async (req) => {
         // Older records predate the field; they were all delivery-side.
         category: r.category || 'delivery',
         client_name: r.client_name || '',
+        lead_id: r.lead_id || '',
+        group_key: r.group_key || '',
+        lead_ids: r.lead_ids || [],
+        count: r.count ?? null,
+        owner: r.owner || '',
         amount: r.amount ?? null,
         trigger_date: r.trigger_date,
         overdue: overdueDays >= 3,

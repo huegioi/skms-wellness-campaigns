@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
+import { buildStageChange } from '../../shared/leadStages.ts';
 
 // High-quality broker leads sheet (referral partners)
 const SPREADSHEET_ID = '1QyVdp7XWFfUkZyqLMVn6P39X84WgYWOHfqI2US7WKWk';
@@ -10,41 +11,61 @@ const SHEET_STATUS_TO_APP = {
   'responded': 'in_conversation',
   'in conversation': 'in_conversation',
   'meeting scheduled': 'meeting_scheduled',
-  'proposal sent': 'proposal_sent',
+  'proposal sent': 'onboarding',
   'converted': 'converted',
   'not interested': 'not_interested',
   'client': 'current_client',
   'current client': 'current_client',
 };
 
-const APP_STATUS_RANK = ['cold','contacted','in_conversation','meeting_scheduled','proposal_sent','converted','not_interested','current_client'];
+// Never-downgrade order for sheet → app imports. Closed states rank above every open stage
+// so a stale sheet label can't reopen a lead. (Stage set: src/lib/leadStages.js)
+const APP_STATUS_RANK = ['cold','contacted','in_conversation','meeting_scheduled','met','onboarding','active_partner','converted','not_interested','not_a_fit','current_client'];
 
-// Pipeline Stage column label ↔ Lead.status enum mapping
+// Pipeline Stage column label ↔ Lead.status enum mapping.
+// Reads BOTH the current labels and the pre-2026-10 ones still sitting in old rows.
 const PIPELINE_STAGE_LABEL_TO_ENUM = {
+  'to contact': 'cold',
   'new': 'cold',
+  'in sequence': 'contacted',
   'contacted': 'contacted',
+  'talking': 'in_conversation',
   'in conversation': 'in_conversation',
+  'meeting booked': 'meeting_scheduled',
   'meeting scheduled': 'meeting_scheduled',
-  'proposal sent': 'proposal_sent',
+  'met — next step': 'met',
+  'met - next step': 'met',
+  'met': 'met',
+  'onboarding': 'onboarding',
+  'proposal sent': 'onboarding',
+  'active partner': 'active_partner',
   'converted': 'converted',
+  'not now': 'not_interested',
   'not interested': 'not_interested',
+  'not a fit': 'not_a_fit',
   'current client': 'current_client',
 };
 
 const ENUM_TO_PIPELINE_STAGE_LABEL = {
-  'cold': 'New',
-  'contacted': 'Contacted',
-  'in_conversation': 'In Conversation',
-  'meeting_scheduled': 'Meeting Scheduled',
-  'proposal_sent': 'Proposal Sent',
+  'cold': 'To contact',
+  'contacted': 'In sequence',
+  'in_conversation': 'Talking',
+  'meeting_scheduled': 'Meeting booked',
+  'met': 'Met — next step',
+  'onboarding': 'Onboarding',
+  'active_partner': 'Active partner',
   'converted': 'Converted',
-  'not_interested': 'Not Interested',
+  'not_interested': 'Not now',
+  'not_a_fit': 'Not a fit',
   'current_client': 'Current Client',
-  'responded': 'In Conversation',
+  'responded': 'Talking',
+  'proposal_sent': 'Onboarding',
 };
 
 function normalizeStatus(status) {
-  return status === 'responded' ? 'in_conversation' : (status || 'cold');
+  if (status === 'responded') return 'in_conversation';
+  if (status === 'proposal_sent') return 'onboarding';
+  return status || 'cold';
 }
 
 const EMAIL_REGEX = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
@@ -221,7 +242,7 @@ Deno.serve(async (req) => {
         if (lead.is_demo) continue;
         if (lead.email) {
           const ns = normalizeStatus(lead.status);
-          statusLabelByEmail[lead.email.toLowerCase()] = ENUM_TO_PIPELINE_STAGE_LABEL[ns] || 'New';
+          statusLabelByEmail[lead.email.toLowerCase()] = ENUM_TO_PIPELINE_STAGE_LABEL[ns] || 'To contact';
         }
       }
 
@@ -737,7 +758,7 @@ Deno.serve(async (req) => {
         'email address': email || '',
         'company': company || '',
         'brokerage': company || '',
-        'pipeline stage': ENUM_TO_PIPELINE_STAGE_LABEL[normalizeStatus(status)] || 'New',
+        'pipeline stage': ENUM_TO_PIPELINE_STAGE_LABEL[normalizeStatus(status)] || 'To contact',
         'notes': notes || '',
         'linkedin': source || '',
         'source': source || '',
@@ -967,8 +988,9 @@ Deno.serve(async (req) => {
         };
         // Only update status from Pipeline Stage if the cell had a recognized value
         // and it's at the same or higher rank (never downgrade from sheet)
-        if (lead._hasPipelineStage && sheetRank >= appRank) {
-          updates.status = lead.status;
+        if (lead._hasPipelineStage && sheetRank >= appRank && lead.status !== normalizedAppStatus) {
+          // Same stamping as every other stage change (stage date + history + next date)
+          Object.assign(updates, buildStageChange(existing, lead.status, { by: 'sheet', reason: 'Pipeline Stage column' }));
         }
         console.log('Updating lead from sheet:', updates.name, '| pipeline status:', lead.status);
         await base44.asServiceRole.entities.Lead.update(existing.id, updates);

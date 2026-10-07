@@ -6,6 +6,9 @@ const ADVANCED_STATUSES = [
   'in_conversation',
   'meeting_scheduled',
   'proposal_sent',
+  'met',
+  'onboarding',
+  'active_partner',
   'converted',
   'current_client',
 ];

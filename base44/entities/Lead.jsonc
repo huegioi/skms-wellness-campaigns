@@ -125,10 +125,61 @@
         "proposal_sent",
         "converted",
         "not_interested",
-        "current_client"
+        "current_client",
+        "met",
+        "onboarding",
+        "active_partner",
+        "not_a_fit"
       ],
       "default": "cold",
-      "description": "Outreach status. 'in_conversation' is the canonical value; 'responded' is a legacy synonym (normalized to in_conversation in the UI)."
+      "description": "Partner pipeline stage. Labels + rules live in src/lib/leadStages.js (mirror base44/shared/leadStages.ts): cold=To contact, contacted=In sequence, in_conversation=Talking, meeting_scheduled=Meeting booked, met=Met \u2014 next step, onboarding=Onboarding, active_partner=Active partner, not_interested=Not now, not_a_fit=Not a fit. Legacy: responded\u2192in_conversation, proposal_sent\u2192onboarding; converted/current_client = company inquiry that became a client."
+    },
+    "stage_entered_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date the lead entered its current status (pipeline stage)."
+    },
+    "stage_history": {
+      "type": "array",
+      "description": "Stage changes, oldest first (last 50). by = person, 'auto' (evidence-based automation) or 'sheet'.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "at": { "type": "string", "format": "date-time" },
+          "by": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "meeting_outcome": {
+      "type": "string",
+      "enum": ["held", "no_show", "rescheduled"],
+      "description": "Outcome of the most recent meeting (logged after it happens)."
+    },
+    "next_step": {
+      "type": "string",
+      "description": "The agreed next step, in plain words."
+    },
+    "closed_reason": {
+      "type": "string",
+      "description": "Why the lead is Not now / Not a fit."
+    },
+    "revisit_date": {
+      "type": "string",
+      "format": "date",
+      "description": "When to reopen a 'Not now' lead."
+    },
+    "source_type": {
+      "type": "string",
+      "enum": ["event", "linkedin", "referral", "podcast", "cold_list", "inbound", "quickbuilder", "other"],
+      "description": "Where the lead came from (pick-list). Free-text detail stays in 'source' (event name, who referred them)."
+    },
+    "auto_stage_paused": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true, the evidence-based automation (advanceLeadStages) never moves this lead."
     },
     "last_contacted_date": {
       "type": "string",

@@ -3,26 +3,32 @@
  * Import these instead of declaring local copies.
  */
 import { Clock, Send, Eye, CheckCircle, XCircle, AlertCircle, Trophy } from 'lucide-react';
+import { normalizeStage } from '@/lib/leadStages';
 
 // ── Lead outreach status (Lead.status) ────────────────────────────────────────
 export const LEAD_STATUS_CONFIG = {
-  cold:               { label: 'Cold',              color: 'bg-slate-100 text-slate-700 border-slate-300', chart: '#94a3b8' },
-  contacted:          { label: 'Contacted',          color: 'bg-blue-100 text-blue-700 border-blue-300',   chart: '#3b82f6' },
-  responded:          { label: 'Responded',          color: 'bg-purple-100 text-purple-700 border-purple-300', chart: '#a855f7' },
-  in_conversation:   { label: 'In Conversation',   color: 'bg-purple-100 text-purple-700 border-purple-300', chart: '#a855f7' },
-  meeting_scheduled:  { label: 'Meeting Scheduled',  color: 'bg-amber-100 text-amber-700 border-amber-300',  chart: '#f59e0b' },
-  proposal_sent:      { label: 'Proposal Sent',      color: 'bg-orange-100 text-orange-700 border-orange-300', chart: '#f97316' },
-  converted:          { label: 'Converted ✓',        color: 'bg-green-100 text-green-700 border-green-300',  chart: '#22c55e' },
-  not_interested:     { label: 'Not Interested',     color: 'bg-red-100 text-red-700 border-red-300',       chart: '#ef4444' },
-  current_client:     { label: 'Current Client',     color: 'bg-teal-100 text-teal-800 border-teal-400 font-semibold', chart: '#14b8a6' },
+  cold:              { label: 'To contact',      color: 'bg-slate-100 text-slate-700 border-slate-300',     chart: '#94a3b8' },
+  contacted:         { label: 'In sequence',     color: 'bg-blue-100 text-blue-700 border-blue-300',        chart: '#3b82f6' },
+  in_conversation:   { label: 'Talking',         color: 'bg-purple-100 text-purple-700 border-purple-300',  chart: '#a855f7' },
+  meeting_scheduled: { label: 'Meeting booked',  color: 'bg-amber-100 text-amber-700 border-amber-300',     chart: '#f59e0b' },
+  met:               { label: 'Met — next step', color: 'bg-orange-100 text-orange-700 border-orange-300',  chart: '#f97316' },
+  onboarding:        { label: 'Onboarding',      color: 'bg-cyan-100 text-cyan-800 border-cyan-300',        chart: '#06b6d4' },
+  active_partner:    { label: 'Active partner',  color: 'bg-green-100 text-green-700 border-green-300',      chart: '#22c55e' },
+  not_interested:    { label: 'Not now',         color: 'bg-red-100 text-red-700 border-red-300',           chart: '#ef4444' },
+  not_a_fit:         { label: 'Not a fit',       color: 'bg-gray-100 text-gray-600 border-gray-300',        chart: '#6b7280' },
+  converted:         { label: 'Won — client',    color: 'bg-green-100 text-green-700 border-green-300',      chart: '#22c55e', clientOnly: true },
+  current_client:    { label: 'Current client',  color: 'bg-teal-100 text-teal-800 border-teal-400 font-semibold', chart: '#14b8a6', clientOnly: true },
+  // Legacy values — still readable on old records, normalized away (never offered as choices)
+  responded:         { label: 'Talking',         color: 'bg-purple-100 text-purple-700 border-purple-300',  chart: '#a855f7', legacy: true },
+  proposal_sent:     { label: 'Onboarding',      color: 'bg-cyan-100 text-cyan-800 border-cyan-300',        chart: '#06b6d4', legacy: true },
 };
 
 /**
- * Normalizes a Lead.status value. 'responded' is a legacy synonym for
- * 'in_conversation' — mapped here so the UI treats them identically.
+ * Normalizes a Lead.status value (legacy responded → in_conversation,
+ * proposal_sent → onboarding). Defined in src/lib/leadStages.js.
  */
 export function normalizeLeadStatus(status) {
-  return status === 'responded' ? 'in_conversation' : (status || 'cold');
+  return normalizeStage(status);
 }
 
 // ── Partner status (Lead.partner_status) ──────────────────────────────────────

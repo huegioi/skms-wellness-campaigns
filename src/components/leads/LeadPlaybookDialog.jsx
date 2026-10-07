@@ -8,7 +8,7 @@ import { CheckCircle2 } from 'lucide-react';
  */
 const LEAD_PLAYBOOKS = {
   cold: {
-    label: 'New',
+    label: 'To contact',
     description: 'Start the outreach sequence — connect before you pitch.',
     steps: [
       'Add to CRM with today\'s date and mark follow-up for Day 2.',
@@ -20,8 +20,8 @@ const LEAD_PLAYBOOKS = {
     ],
   },
   contacted: {
-    label: 'Contacted',
-    description: 'You\'ve made first contact. Keep the momentum with a multi-channel cadence.',
+    label: 'In sequence',
+    description: 'Outreach is under way. Work the cadence (about 6 touches over 3 weeks), then park the lead as Not now if nothing comes back. The app moves leads here automatically when the first email goes out.',
     steps: [
       'Send a brief intro email — who you are, what SkillfulMeans does, why you\'re reaching out (under 5 sentences).',
       'Call their direct line; if voicemail: leave a 20-second message — name, company, what you do.',
@@ -33,8 +33,8 @@ const LEAD_PLAYBOOKS = {
     ],
   },
   in_conversation: {
-    label: 'In Conversation',
-    description: 'They\'re responding. Move toward a meeting while interest is warm.',
+    label: 'Talking',
+    description: 'They replied — from here Maya reminds you about them individually. Move toward a meeting while interest is warm.',
     steps: [
       'Propose a 15-minute discovery call with a clear, low-friction ask.',
       'Share a one-pager PDF or link to the SkillfulMeans overview.',
@@ -45,7 +45,7 @@ const LEAD_PLAYBOOKS = {
     ],
   },
   meeting_scheduled: {
-    label: 'Meeting Scheduled',
+    label: 'Meeting booked',
     description: 'Prepare thoroughly so the meeting makes a strong impression.',
     steps: [
       'Prepare a 10-minute overview of SkillfulMeans services tailored to their client base.',
@@ -57,30 +57,56 @@ const LEAD_PLAYBOOKS = {
       'If podcast: confirm recording date/time/platform; prepare 3–5 key talking points on mental fitness.',
     ],
   },
-  proposal_sent: {
-    label: 'Proposal Sent',
-    description: 'Stay top of mind without being pushy — follow up with purpose.',
+  met: {
+    label: 'Met — next step',
+    description: 'The meeting happened. Log how it went and the one next step you agreed — Maya keeps asking until you do.',
     steps: [
-      'Follow up Day 3 with a quick check-in email.',
-      'Follow up Day 7 with a call if no response.',
-      'Follow up Day 14 with a final email offering to answer questions.',
-      'Track if proposal link was viewed.',
-      'If broker referred — update them on the proposal status.',
+      'Log the outcome (held / no-show / rescheduled) and the agreed next step on the card.',
+      'Send a recap email within 24 hours restating that next step and its date.',
+      'If they are ready: send the partner agreement and move them to Onboarding.',
+      'If it was a no-show: reschedule once, then return them to In sequence.',
+      'Ask for 1–2 specific employer groups they could introduce in the next renewal cycle.',
+    ],
+  },
+  onboarding: {
+    label: 'Onboarding',
+    description: 'They said yes. Get them set up so their first referral is easy.',
+    steps: [
+      'Send (or confirm signature of) the referral partner agreement.',
+      'Send their referral portal link and a 2-minute walkthrough.',
+      'Give them the broker one-pager and the HR program guide to forward.',
+      'Agree the first client to introduce, and a date.',
+      'The lead moves to Active partner automatically when their first referral is approved.',
+    ],
+  },
+  active_partner: {
+    label: 'Active partner',
+    description: 'Their first referral is approved. Now keep the relationship producing.',
+    steps: [
+      'Thank them personally for the first referral.',
+      'Keep them posted on how the referred client is doing.',
+      'Set a quarterly check-in and invite them to Lunch & Learns.',
+      'Bring them into renewal-season planning for their book.',
     ],
   },
   converted: {
-    label: 'Won',
-    description: 'Secure the commitment and kickstart the partnership.',
+    label: 'Won — client',
+    description: 'A company inquiry that became a client.',
     steps: [
       'Send a formal confirmation email with next steps.',
-      'Notify the referring broker with a thank you.',
-      'Schedule a discovery call within 1 week to align on partnership details.',
       'Begin preparing onboarding tasks and client record setup.',
-      'Add to monthly check-in cadence.',
+    ],
+  },
+  not_a_fit: {
+    label: 'Not a fit',
+    description: 'Closed for good — note why so the pattern shows up across leads.',
+    steps: [
+      'Record the reason (e.g. no group-benefits book, wrong region).',
+      'Remove from active outreach campaigns.',
     ],
   },
   not_interested: {
-    label: 'Not Now',
+    label: 'Not now',
     description: 'Keep the door open for future re-engagement.',
     steps: [
       'Thank them for their time and keep the connection warm.',

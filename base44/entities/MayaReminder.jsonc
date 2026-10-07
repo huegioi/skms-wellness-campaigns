@@ -13,7 +13,11 @@
         "proposal_stalled",
         "meeting_no_follow_up",
         "lead_follow_up_due",
-        "partner_gone_quiet"
+        "partner_gone_quiet",
+        "lead_group_follow_up",
+        "meeting_outcome_needed",
+        "lead_revisit_due",
+        "lead_stalled"
       ],
       "description": "Type of follow-up reminder. The first five are delivery-side (they only fire on ACCEPTED proposals and delivery events); the last four are sales-side."
     },
@@ -89,6 +93,23 @@
       "type": "boolean",
       "default": false,
       "description": "True if this record is demo/broker-demo sample data."
+    },
+    "group_key": {
+      "type": "string",
+      "description": "For grouped reminders (lead_group_follow_up): the cohort, usually the event tag, e.g. 'ITC Vegas 2026'."
+    },
+    "lead_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "For grouped reminders: the leads in the group."
+    },
+    "count": {
+      "type": "number",
+      "description": "For grouped reminders: how many leads are in the group."
+    },
+    "owner": {
+      "type": "string",
+      "description": "Who the reminder is for (lead owner, comma-joined when several)."
     }
   },
   "required": [

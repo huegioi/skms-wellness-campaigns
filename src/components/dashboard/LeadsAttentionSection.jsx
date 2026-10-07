@@ -28,7 +28,7 @@ const CHANNEL_LABELS = {
   other: 'Note',
 };
 
-const CLOSED_STATUSES = new Set(['converted', 'not_interested', 'current_client']);
+const CLOSED_STATUSES = new Set(['converted', 'not_interested', 'not_a_fit', 'current_client']);
 
 const EVENT_TYPE_CONFIG = {
   meeting: { label: 'Meeting', color: '#3B82F6' },

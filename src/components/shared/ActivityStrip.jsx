@@ -29,9 +29,10 @@ function timeAgo(dateStr) {
 
 /** Stale threshold (days) based on lead acquisition status. */
 export function getLeadStaleThreshold(status) {
+  // Gone-quiet highlight (days since last touch) per pipeline stage
   const map = {
-    cold: 3, contacted: 3, responded: 5, in_conversation: 5,
-    meeting_scheduled: 7, proposal_sent: 7,
+    cold: 14, contacted: 7, responded: 5, in_conversation: 5,
+    meeting_scheduled: 14, met: 7, proposal_sent: 14, onboarding: 14,
   };
   return map[status] || null;
 }

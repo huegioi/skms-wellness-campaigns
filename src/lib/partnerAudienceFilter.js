@@ -18,7 +18,8 @@ import { ownerBuckets, matchesOwnerFilter as _matchesOwnerFilter } from '@/lib/o
  */
 
 /** Lead.status values that represent dead/lost/converted leads. */
-export const DEAD_LEAD_STATUSES = ['not_interested', 'converted', 'current_client'];
+// Mirror of CLOSED_STAGES in src/lib/leadStages.js (+ buildCampaignAudience)
+export const DEAD_LEAD_STATUSES = ['not_interested', 'not_a_fit', 'converted', 'current_client'];
 
 /**
  * Returns true if a Lead record is dead/lost and should be excluded from

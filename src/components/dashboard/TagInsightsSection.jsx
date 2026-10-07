@@ -59,7 +59,7 @@ export default function TagInsightsSection() {
       .filter(o => o.leads >= MIN_LEAD_VOLUME)
       .map(o => {
         const taggedLeads = leads.filter(l => (l.tags || []).includes(o.name));
-        const converted = taggedLeads.filter(l => l.status === 'converted' || l.status === 'current_client').length;
+        const converted = taggedLeads.filter(l => ['converted', 'current_client', 'active_partner'].includes(l.status)).length;
         return { ...o, converted, rate: o.leads > 0 ? Math.round((converted / o.leads) * 100) : 0 };
       })
       .sort((a, b) => b.rate - a.rate);

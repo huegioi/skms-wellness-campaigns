@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { buildStageChange, normalizeStage } from '@/lib/leadStages';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { InlineText } from '@/components/shared/inline/InlineText';
@@ -46,7 +47,9 @@ export function RecordSnapshotHeader({ record, entityType, stages, onUpdate }) {
   const handleStageChange = (newStage) => {
     const updates = {};
     if (entityType === 'Lead') {
-      updates.follow_up_stage = newStage;
+      // The pipeline stage (Lead.status), stamped like every other stage change.
+      Object.assign(updates, buildStageChange(localRecord, newStage, { by: 'manual' }));
+      if (!Object.keys(updates).length) return;
     } else if (entityType === 'Client') {
       updates.client_stage = newStage;
     } else if (entityType === 'ReferralPartner') {
@@ -65,11 +68,11 @@ export function RecordSnapshotHeader({ record, entityType, stages, onUpdate }) {
     : '??';
 
   const stageField =
-    entityType === 'Lead' ? 'follow_up_stage'
+    entityType === 'Lead' ? 'status'
     : entityType === 'Client' ? 'client_stage'
     : 'partner_status';
 
-  const stageValue = r[stageField];
+  const stageValue = entityType === 'Lead' ? normalizeStage(r.status) : r[stageField];
 
   return (
     <div className="flex items-start gap-3 flex-wrap p-4 bg-white rounded-xl border border-gray-200">

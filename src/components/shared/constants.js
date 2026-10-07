@@ -3,6 +3,8 @@
  * Used by pipeline views, inline controls, and RecordSnapshotHeader.
  */
 
+import { LEAD_STAGE_DEFS } from '@/lib/leadStages';
+
 export const OWNERS = ['William', 'Heather'];
 
 // ── Lead follow-up stages (maps to Lead.follow_up_stage) ─────────────────────
@@ -46,16 +48,11 @@ export const LEAD_STAGES = [
 ];
 
 // ── Lead status pipeline (maps to Lead.status) ───────────────────────────────
-export const LEAD_STATUS_STAGES = [
-  { key: 'cold',              label: 'New',                group: 'Pipeline' },
-  { key: 'contacted',         label: 'Contacted',          group: 'Pipeline' },
-  { key: 'in_conversation',  label: 'In Conversation',   group: 'Pipeline' },
-  { key: 'meeting_scheduled', label: 'Meeting Scheduled',  group: 'Pipeline' },
-  { key: 'proposal_sent',    label: 'Proposal Sent',      group: 'Pipeline' },
-  { key: 'converted',        label: 'Won — Converted',     group: 'Closed' },
-  { key: 'current_client',   label: 'Won — Current Client', group: 'Closed' },
-  { key: 'not_interested',   label: 'Not Now',            group: 'Closed' },
-];
+export const LEAD_STATUS_STAGES = LEAD_STAGE_DEFS.map(st => ({
+  key: st.key,
+  label: st.label,
+  group: st.group === 'Open' ? 'Pipeline' : 'Closed',
+}));
 
 // ── Client stages (maps to Client.client_stage) ──────────────────────────────
 export const CLIENT_STAGES = [

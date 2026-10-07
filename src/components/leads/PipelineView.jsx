@@ -5,6 +5,8 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { PipelineCard } from '@/components/shared/PipelineCard';
 import { LEAD_STATUS_STAGES } from '@/components/shared/constants';
 import { normalizeLeadStatus } from '@/lib/statusConfig';
+import { LEAD_STAGE_DEFS, buildStageChange, cadenceStep } from '@/lib/leadStages';
+import StageDetailsDialog from '@/components/leads/StageDetailsDialog';
 import { ActivityStrip } from '@/components/shared/ActivityStrip';
 import { buildLatestTouchMap, buildChannelSummaryMap } from '@/lib/lastTouch';
 import LeadPlaybookDialog from '@/components/leads/LeadPlaybookDialog';
@@ -17,17 +19,19 @@ import { parseISO, isToday, isPast } from 'date-fns';
 
 // ── Status column definitions ────────────────────────────────────────────────
 
-const STATUS_COLUMNS = [
-  { key: 'cold',              label: 'New',                accent: '#94a3b8', staleThreshold: 3 },
-  { key: 'contacted',         label: 'Contacted',          accent: '#3b82f6', staleThreshold: 3 },
-  { key: 'in_conversation',  label: 'In Conversation',   accent: '#a855f7', staleThreshold: 5 },
-  { key: 'meeting_scheduled', label: 'Meeting Scheduled',  accent: '#f59e0b', staleThreshold: 7 },
-  { key: 'proposal_sent',    label: 'Proposal Sent',       accent: '#f97316', staleThreshold: 7 },
-];
+// Columns come from the one stage definition (src/lib/leadStages.js)
+const ACCENTS = {
+  cold: '#94a3b8', contacted: '#3b82f6', in_conversation: '#a855f7', meeting_scheduled: '#f59e0b',
+  met: '#f97316', onboarding: '#06b6d4', active_partner: '#22c55e', not_interested: '#ef4444', not_a_fit: '#6b7280',
+};
+const STATUS_COLUMNS = LEAD_STAGE_DEFS.filter(s => s.group === 'Open').map(s => ({
+  key: s.key, label: s.label, accent: ACCENTS[s.key], staleThreshold: s.staleDays,
+}));
 
 const CLOSED_COLUMNS = [
-  { key: 'converted',     label: '✓ Won',     accent: '#22c55e', statuses: ['converted', 'current_client'] },
-  { key: 'not_interested', label: '✗ Not Now', accent: '#ef4444', statuses: ['not_interested'] },
+  { key: 'active_partner', label: '✓ Active partner', accent: ACCENTS.active_partner, statuses: ['active_partner', 'converted', 'current_client'] },
+  { key: 'not_interested', label: 'Not now',          accent: ACCENTS.not_interested, statuses: ['not_interested'] },
+  { key: 'not_a_fit',      label: 'Not a fit',        accent: ACCENTS.not_a_fit,      statuses: ['not_a_fit'] },
 ];
 
 // Overlap stages: in both acquisition and engagement. Route to engagement only
@@ -49,11 +53,22 @@ function getDueDateStatus(dueDateStr) {
 }
 
 function LeadAlertBadges({ lead }) {
-  const dueDateStatus = getDueDateStatus(lead.follow_up_due_date);
+  const dueDateStatus = getDueDateStatus(lead.next_followup_date || lead.follow_up_due_date);
+  const step = cadenceStep(lead);
   return (
     <div className="flex flex-wrap items-center gap-1 mb-1">
       {/* Click the chip to change referral potential without opening the card */}
       <ReferralPotentialBadge lead={lead} size="xs" />
+      {step && (
+        <span className="inline-flex items-center text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-full px-1.5 py-0.5" title="Outreach cadence step">
+          {step}
+        </span>
+      )}
+      {normalizeLeadStatus(lead.status) === 'met' && !lead.meeting_outcome && (
+        <span className="inline-flex items-center text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-300 rounded-full px-1.5 py-0.5">
+          Log meeting outcome
+        </span>
+      )}
       {dueDateStatus === 'overdue' && (
         <span className="inline-flex items-center text-xs font-semibold text-red-700 bg-red-50 border border-red-300 rounded-full px-1.5 py-0.5">
           ⚠ Overdue
@@ -132,7 +147,7 @@ function StatusColumn({ col, leads, handlers, latestTouchByLead, nextEventByLead
                         touchChannel={latestTouchByLead[lead.id]?.channel || lead.outreach_channel || 'other'}
                         staleThreshold={col.staleThreshold}
                         nextEvent={nextEventByLead[lead.id]}
-                        followUpDate={lead.follow_up_due_date}
+                        followUpDate={lead.next_followup_date || lead.follow_up_due_date}
                         recordId={lead.id}
                         owner={lead.owner}
                         onOwnerChange={handlers.onOwnerChange}
@@ -179,6 +194,7 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
   const [noteDialog, setNoteDialog] = useState(null);
   const [noteText, setNoteText] = useState('');
   const [playbookStatus, setPlaybookStatus] = useState(null);
+  const [stageDetails, setStageDetails] = useState(null);
 
   // Fetch interactions for activity strips (last touch)
   const { data: interactions = [] } = useQuery({
@@ -237,11 +253,17 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
   const handleStatusChange = async (leadId, newStatus) => {
     const status = newStatus || 'cold';
     const lead = leads.find(l => l.id === leadId);
+    // Stage date, history and next follow-up are stamped the same way everywhere
+    const patch = lead ? buildStageChange(lead, status, { by: 'manual' }) : { status };
+    if (!Object.keys(patch).length) return;
     queryClient.setQueryData(['leads'], (old) =>
-      (old || []).map(l => l.id === leadId ? { ...l, status } : l)
+      (old || []).map(l => l.id === leadId ? { ...l, ...patch } : l)
     );
+    if (lead && ['met', 'not_interested', 'not_a_fit'].includes(status)) {
+      setStageDetails({ lead: { ...lead, ...patch }, stage: status, patch });
+    }
     try {
-      await base44.entities.Lead.update(leadId, { status });
+      await base44.entities.Lead.update(leadId, patch);
       if (lead) {
         const sheetName = lead.sheet_origin?.replace('BrokerLeads:', '') || 'Referral Partners';
         base44.functions.invoke('syncBrokerLeadsSheet', {
@@ -455,6 +477,14 @@ export default function PipelineView({ leads, onSelectLead, onStageChange }) {
 
         </div>
       </DragDropContext>
+
+      {/* Meeting outcome / closing reason, asked right after the move */}
+      <StageDetailsDialog
+        target={stageDetails}
+        onClose={() => setStageDetails(null)}
+        onSaved={(id, data) => queryClient.setQueryData(['leads'], (old) =>
+          (old || []).map(l => l.id === id ? { ...l, ...data } : l))}
+      />
 
       {/* Playbook Dialog */}
       <LeadPlaybookDialog

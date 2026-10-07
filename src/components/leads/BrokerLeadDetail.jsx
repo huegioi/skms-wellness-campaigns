@@ -20,7 +20,8 @@ import { RecordDetailContent, RecordDetailFrame, StatTile, RailSection } from '@
 import CollapsibleFieldSection from '@/components/shared/CollapsibleFieldSection';
 import { InlineText } from '@/components/shared/inline/InlineText';
 import { InlineSelect } from '@/components/shared/inline/InlineSelect';
-import { LEAD_STAGES } from '@/components/shared/constants';
+import { LEAD_STATUS_STAGES } from '@/components/shared/constants';
+import { SOURCE_TYPES, MEETING_OUTCOMES, stageLabel, normalizeStage, inferSourceType, buildStageChange } from '@/lib/leadStages';
 import { LEAD_STATUS_CONFIG as STATUS_CONFIG, PARTNER_STATUS_CONFIG, REFERRAL_STATUS_COLORS, PROPOSAL_STATUS_CONFIG } from '@/lib/statusConfig';
 import InteractionTimeline from '@/components/shared/InteractionTimeline';
 import BrokeragePicker from '@/components/partners/BrokeragePicker';
@@ -269,7 +270,11 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
       referral_history: updatedHistory,
       referral_count: updatedHistory.length,
       last_referral_date: referralForm.date,
-      partner_status: 'active_partner'
+      partner_status: 'active_partner',
+      // First referral = Active partner (never moves a closed/won lead backwards)
+      ...(['active_partner', 'converted', 'current_client'].includes(normalizeStage(lead.status))
+        ? {}
+        : buildStageChange(lead, 'active_partner', { by: 'manual', reason: 'Referral logged' })),
     });
 
     setReferralForm(EMPTY_REFERRAL);
@@ -337,7 +342,7 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
       <DialogTitle className="sr-only">{lead.name}</DialogTitle>
       <div className="flex flex-col sm:flex-row sm:items-start gap-3">
         <div className="flex-1 min-w-0">
-          <RecordSnapshotHeader record={lead} entityType="Lead" stages={LEAD_STAGES} onUpdate={handleFieldUpdate} />
+          <RecordSnapshotHeader record={lead} entityType="Lead" stages={LEAD_STATUS_STAGES} onUpdate={handleFieldUpdate} />
         </div>
         <div className="flex flex-wrap sm:flex-col gap-2 shrink-0">
           <Button
@@ -448,6 +453,71 @@ export default function BrokerLeadDetail({ lead: initialLead, onClose, onUpdate 
                     </a>
                   </div>
                 )}
+              </CollapsibleFieldSection>
+
+              <CollapsibleFieldSection title="Pipeline" icon={Clock}>
+                <div>
+                  <span className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Stage</span>
+                  <span className="text-sm text-gray-700">
+                    {stageLabel(lead.status)}
+                    {lead.stage_entered_date && <span className="text-gray-400"> · since {fmtDate(lead.stage_entered_date)}</span>}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Next follow-up</span>
+                  <Input type="date" className="h-7 text-xs w-[150px]" value={lead.next_followup_date || ''}
+                    onChange={e => handleFieldUpdate({ next_followup_date: e.target.value || null })} />
+                </div>
+                <div>
+                  <span className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Where they came from</span>
+                  <InlineSelect label="Pick one" value={lead.source_type || inferSourceType(lead) || ''}
+                    onSave={v => handleFieldUpdate({ source_type: v || null })}
+                    options={SOURCE_TYPES.map(s => ({ value: s.key, label: s.label }))} />
+                </div>
+                <InlineText label="Source detail" value={lead.source} onSave={v => handleFieldUpdate({ source: v })} placeholder="Which event / who referred" />
+                {['meeting_scheduled', 'met', 'onboarding'].includes(normalizeStage(lead.status)) && (
+                  <div>
+                    <span className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Meeting outcome</span>
+                    <InlineSelect label="Not logged" value={lead.meeting_outcome || ''}
+                      onSave={v => handleFieldUpdate({ meeting_outcome: v || null })}
+                      options={MEETING_OUTCOMES.map(o => ({ value: o.key, label: o.label }))} />
+                  </div>
+                )}
+                <div className="sm:col-span-2">
+                  <InlineText label="Agreed next step" value={lead.next_step} onSave={v => handleFieldUpdate({ next_step: v })} placeholder="The one next step you agreed" />
+                </div>
+                {['not_interested', 'not_a_fit'].includes(normalizeStage(lead.status)) && (
+                  <>
+                    <div className="sm:col-span-2">
+                      <InlineText label="Why closed" value={lead.closed_reason} onSave={v => handleFieldUpdate({ closed_reason: v })} placeholder="Reason" />
+                    </div>
+                    {normalizeStage(lead.status) === 'not_interested' && (
+                      <div>
+                        <span className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Revisit on</span>
+                        <Input type="date" className="h-7 text-xs w-[150px]" value={lead.revisit_date || ''}
+                          onChange={e => handleFieldUpdate({ revisit_date: e.target.value || null, next_followup_date: e.target.value || null })} />
+                      </div>
+                    )}
+                  </>
+                )}
+                {(lead.stage_history || []).length > 0 && (
+                  <div className="sm:col-span-2">
+                    <span className="block text-[10px] uppercase tracking-wide text-gray-400 mb-1">Stage history</span>
+                    <ol className="space-y-0.5 text-xs text-gray-600">
+                      {[...lead.stage_history].reverse().slice(0, 8).map((h, i) => (
+                        <li key={i}>
+                          {fmtDate(h.at)} — {h.from ? `${stageLabel(h.from)} → ` : ''}<span className="font-medium text-gray-800">{stageLabel(h.to)}</span>
+                          <span className="text-gray-400"> · {h.by === 'auto' ? `auto${h.reason ? ` (${h.reason})` : ''}` : h.by === 'sheet' ? 'from sheet' : 'by hand'}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+                <label className="sm:col-span-2 flex items-center gap-2 text-xs text-gray-500">
+                  <input type="checkbox" checked={!!lead.auto_stage_paused}
+                    onChange={e => handleFieldUpdate({ auto_stage_paused: e.target.checked })} />
+                  Don't move this lead automatically
+                </label>
               </CollapsibleFieldSection>
 
               <CollapsibleFieldSection title="Partner Details" icon={Star}>

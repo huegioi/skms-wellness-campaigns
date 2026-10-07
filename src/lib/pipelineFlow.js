@@ -6,6 +6,7 @@
  */
 import { CLIENT_STAGES } from '@/components/shared/constants';
 import { normalizeLeadStatus } from '@/lib/statusConfig';
+import { SOURCE_TYPES, inferSourceType } from '@/lib/leadStages';
 
 // Status colors (reserved — always paired with a text label in the chart).
 const GOOD = '#0ca30c';
@@ -80,33 +81,30 @@ export function isEngagementLead(lead) {
   return true;
 }
 
-export const LEAD_STAGE_ORDER = ['cold', 'contacted', 'in_conversation', 'meeting_scheduled', 'proposal_sent', 'engagement', 'closed'];
+export const LEAD_STAGE_ORDER = ['cold', 'contacted', 'in_conversation', 'meeting_scheduled', 'met', 'onboarding', 'engagement', 'won', 'closed'];
 const LEAD_STAGE_LABEL = {
-  cold: 'New', contacted: 'Contacted', in_conversation: 'In Conversation',
-  meeting_scheduled: 'Meeting Scheduled', proposal_sent: 'Proposal Sent',
-  engagement: 'Engagement board', closed: 'Closed',
+  cold: 'To contact', contacted: 'In sequence', in_conversation: 'Talking',
+  meeting_scheduled: 'Meeting booked', met: 'Met — next step', onboarding: 'Onboarding',
+  engagement: 'Engagement board', won: 'Active partner / won', closed: 'Closed',
 };
 
 export const LEAD_OUTCOMES = [
-  { key: 'open',           label: 'Still in outreach', color: ACTIVE },
+  { key: 'open',           label: 'Still in pipeline', color: ACTIVE },
   { key: 'active_partner', label: 'Active partner',    color: GOOD },
-  { key: 'won',            label: 'Won',               color: GOOD },
+  { key: 'won',            label: 'Won — client',      color: GOOD },
   { key: 'cooling',        label: 'Inactive',          color: WARNING },
   { key: 'not_now',        label: 'Not now',           color: CRITICAL },
+  { key: 'not_a_fit',      label: 'Not a fit',         color: NEUTRAL_LIGHT },
 ];
 
 const titleCase = s => s.replace(/\s+/g, ' ').trim().replace(/\b\w/g, ch => ch.toUpperCase());
 
+const SOURCE_LABEL = Object.fromEntries(SOURCE_TYPES.map(t => [t.key, t.label]));
+
 function leadSource(lead) {
-  const raw = String(lead.source || '').trim();
-  const s = raw.toLowerCase();
-  if (lead.lead_type === 'company_inquiry' || /quick ?builder/.test(s)) return { key: 'quickbuilder', label: 'QuickBuilder' };
-  if (/referr/.test(s)) return { key: 'referral', label: 'Referral' };
-  if (/linked ?in/.test(s)) return { key: 'linkedin', label: 'LinkedIn' };
-  if (/podcast/.test(s)) return { key: 'podcast', label: 'Podcast' };
-  if (/nabip|event|conference|summit|expo|card|scan|lunch|meetup|network/.test(s)) return { key: 'events', label: 'Events & networking' };
-  if (/sheet|import|csv|list/.test(s) || (!s && lead.sheet_origin)) return { key: 'sheet', label: 'Sheet import' };
-  if (s) return { key: `src:${s}`, label: titleCase(raw).slice(0, 28) };
+  // The pick-list wins; older leads fall back to a best guess from the free text.
+  const key = lead.source_type || inferSourceType(lead);
+  if (key) return { key, label: SOURCE_LABEL[key] || titleCase(key) };
   return { key: 'unknown', label: 'Not recorded' };
 }
 
@@ -118,8 +116,10 @@ export function classifyLead(lead) {
     outcomeKey = lead.follow_up_stage === 'Inactive' || lead.partner_status === 'inactive' ? 'cooling' : 'active_partner';
   } else {
     const status = normalizeLeadStatus(lead.status);
-    if (status === 'converted' || status === 'current_client') { stageKey = 'closed'; outcomeKey = 'won'; }
+    if (status === 'converted' || status === 'current_client') { stageKey = 'won'; outcomeKey = 'won'; }
+    else if (status === 'active_partner') { stageKey = 'won'; outcomeKey = 'active_partner'; }
     else if (status === 'not_interested') { stageKey = 'closed'; outcomeKey = 'not_now'; }
+    else if (status === 'not_a_fit') { stageKey = 'closed'; outcomeKey = 'not_a_fit'; }
     else {
       stageKey = LEAD_STAGE_LABEL[status] ? status : 'cold';
       outcomeKey = lead.partner_status === 'active_partner' ? 'active_partner'
