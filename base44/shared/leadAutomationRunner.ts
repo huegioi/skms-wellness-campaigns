@@ -3,7 +3,7 @@
  * Runs the evidence-based stage check (rules: ./leadAutomation.ts) against the
  * database. Called right after the app learns something new:
  *   - updateLastContactedFromGmail  (Gmail connector trigger — as mail arrives)
- *   - scanAdminGmailContacts        (2-hourly backup email sync)
+ *   - scanAdminGmailContacts        (manual "Sync Emails" buttons)
  *   - updateLastContactedFromCalendar (every 15 min — meetings booked / ended)
  *   - syncCampaignSendStatus        (campaign email sent / replied)
  *   - reviewReferral                (referral approved)
