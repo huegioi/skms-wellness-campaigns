@@ -1,6 +1,6 @@
 {
   "name": "Advance Lead Stages - Nightly",
-  "description": "Safety sweep: moves partner leads forward on evidence (emails, calendar, campaign replies, approved referrals) for any lead the live Gmail/calendar/campaign/referral hooks missed. Forward-only; never sends anything.",
+  "description": "Safety sweep: moves partner leads forward on evidence (emails, calendar, campaign replies, approved referrals) for any lead the live Gmail/calendar/campaign/referral hooks missed. Forward-only; never sends anything. Runs advanceLeadStages.",
   "trigger": {
     "condition": null,
     "config": {
@@ -19,23 +19,23 @@
     }
   },
   "definition": {
-    "document": {
-      "dsl": "1.0.0",
-      "name": "advance_lead_stages_nightly",
-      "version": "1.0",
-      "namespace": "base44"
-    },
     "do": [
       {
         "run_function": {
           "call": "invoke_backend_function",
+          "then": "end",
           "with": {
-            "function_name": "advanceLeadStages",
-            "args": {}
-          },
-          "then": "end"
+            "args": {},
+            "function_name": "advanceLeadStages"
+          }
         }
       }
-    ]
+    ],
+    "document": {
+      "dsl": "1.0.0",
+      "name": "advance_lead_stages_nightly",
+      "namespace": "base44",
+      "version": "1.0"
+    }
   }
 }
