@@ -1,316 +1,229 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
-import { firstNameOf } from '../../shared/clientContact.ts';
 import { senderForOwner } from '../../shared/owners.ts';
+import { buildRecipientBrief } from '../../shared/draftContext.ts';
+import { voiceFor } from '../../shared/senderVoice.ts';
 
+/**
+ * Writes ONE campaign email draft for ONE recipient. Never sends anything.
+ *
+ * Rebuilt 2026-10-07 because drafts were generic (the template was copied nearly word
+ * for word into every email) and ignored most of what we know about each person:
+ *   - context comes from shared/draftContext.ts (notes, meeting notes, real email bodies
+ *     both ways, logged touches, stage / next step, event, brokerage, earlier campaign
+ *     emails) — and works for referral partners, which used to get no context at all
+ *   - the writer is the SENDER (William / Heather) in their own voice (shared/senderVoice.ts),
+ *     not Maya's internal analyst persona with its tables-and-bullets formatting rules
+ *   - the template is treated as the BRIEF (purpose, offer, CTA), not text to copy
+ *   - follow-ups see the whole thread and switch to a real reply if they already wrote back
+ *   - "regenerate with feedback" shows the model the current draft + all earlier feedback
+ *   - the brief the model saw is saved on the row (draft_context) for "What Maya used"
+ */
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
     let user;
-    try {
-      user = await base44.auth.me();
-    } catch (e) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    try { user = await base44.auth.me(); } catch { return Response.json({ error: 'Unauthorized' }, { status: 401 }); }
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     let body;
-    try {
-      body = await req.json();
-    } catch (e) {
-      return Response.json({ error: 'Invalid JSON body' }, { status: 400 });
-    }
-
+    try { body = await req.json(); } catch { return Response.json({ error: 'Invalid JSON body' }, { status: 400 }); }
     const { campaign_id, recipient_id, feedback } = body;
     if (!campaign_id || !recipient_id) {
       return Response.json({ error: 'Missing campaign_id or recipient_id' }, { status: 400 });
     }
 
-    // ── 1. Load campaign and recipient; set status "drafting" ──
+    // ── 1. Campaign + recipient ──
     const campaign = await base44.entities.OutreachCampaign.get(campaign_id);
-    if (!campaign) {
-      return Response.json({ error: 'Campaign not found' }, { status: 404 });
-    }
-
+    if (!campaign) return Response.json({ error: 'Campaign not found' }, { status: 404 });
     const recipient = await base44.entities.CampaignRecipient.get(recipient_id);
     if (!recipient || recipient.campaign_id !== campaign_id) {
       return Response.json({ error: 'Recipient not found or does not belong to campaign' }, { status: 404 });
     }
-
+    const previousDraft = recipient.draft_body ? { subject: recipient.draft_subject, body: recipient.draft_body } : null;
     await base44.entities.CampaignRecipient.update(recipient_id, { status: 'drafting' });
 
-    // ── 2. Get context via mayaContext bundle (same pattern as mayaDraftEmail) ──
-    const _ik = Deno.env.get('MAYA_INTERNAL_KEY');
-    const bundleRes = await base44.functions.invoke('mayaContext', {
-      action: 'bundle',
-      record_type: recipient.record_type,
-      record_id: recipient.record_id,
-      categories: ['sales_process', 'products', 'positioning'],
-      internal_key: _ik,
-    });
-    const bd = bundleRes.data || {};
-    const recordText = bd.recordText || '';
-    const knowledgeText = bd.knowledgeText || '';
-    const MAYA_PERSONA = bd.persona || '';
-    const hasRichContext = bd.has_rich_context === true;
-    const thinContext = !hasRichContext;
+    // ── 2. What we know about them ──
+    const brief = await buildRecipientBrief(base44, recipient, { campaignId: campaign_id });
 
-    // ── WHO ARE WE WRITING TO? ──
-    // `recipient.name` is the RESOLVED human name for this email address — empty
-    // when no contact is known (see shared/clientContact.ts). It is never the
-    // company. When we don't have a name we say so in the prompt and let the
-    // draft greet neutrally; we do NOT let the model reconstruct one from the
-    // email address. "adileone@region16ct.org" is Tony DiLeone, not "Adi".
-    const contactName = (recipient.name || bd.recipientName || '').trim();
-    const companyName = recipient.company || '';
-    const hasContactName = !!contactName && contactName.toLowerCase() !== companyName.toLowerCase();
-    const firstName = hasContactName ? firstNameOf(contactName) : null;
+    // Knowledge base: pick entries relevant to THIS campaign (it used to get whichever 3
+    // entries were edited last, because no question was passed).
+    let knowledgeText = '';
+    try {
+      const bundleRes = await base44.functions.invoke('mayaContext', {
+        action: 'bundle',
+        record_type: recipient.record_type,
+        record_id: recipient.record_id,
+        categories: ['sales_process', 'products', 'positioning'],
+        question: [campaign.name, campaign.description, campaign.personalization_notes, campaign.subject_template].filter(Boolean).join(' — '),
+        internal_key: Deno.env.get('MAYA_INTERNAL_KEY'),
+      });
+      knowledgeText = bundleRes?.data?.knowledgeText || '';
+    } catch (e) {
+      console.warn('[generateCampaignDraft] knowledge lookup failed:', (e as any)?.message);
+    }
 
-    const contactBlock = hasContactName
-      ? `Name: ${contactName}
-First name: ${firstName}`
-      : `Name: UNKNOWN — we do not have a contact name for this address.
-First name: UNKNOWN`;
+    // ── 3. Who sends it ──
+    const sender = campaign.sender_mode === 'heather' ? 'heather'
+      : campaign.sender_mode === 'william' ? 'william'
+      : senderForOwner(recipient.owner);
+    const senderFirst = sender === 'heather' ? 'Heather' : 'William';
 
-    const NAME_RULES = `NAME RULES (ABSOLUTE — these override every other instruction):
-${hasContactName
-  ? `- Greet this person as "${firstName}". Use no other name for them.`
-  : `- We do NOT know this person's name. Open with a nameless greeting: "Hi there," or "Hello,". Write the rest of the email normally.`}
-- NEVER infer, guess or construct a person's name from an email address. An address local-part is not a name: "adileone@" is not "Adi", "caherne@" is not "Christy", "kslobodian@" is not a first name.
-- NEVER use the company name as the person's name. "Hi ${companyName || '<Company>'}," is always wrong.
-- NEVER take a name from the context below unless it is stated as the name of THIS recipient. Other people appear in the history; they are not who we are writing to.
+    // Name: always from the live record (the row's snapshot can be stale)
+    const hasName = !!brief.firstName;
+    const NAME_RULES = `NAME RULES (absolute):
+${hasName
+  ? `- Greet them as "${brief.firstName}". Use no other name for them.`
+  : `- We do NOT know this person's name. Open with "Hi there," or "Hello,".`}
+- Never build a name from an email address ("adileone@" is not "Adi") and never greet the company as if it were a person.
+- Other people named in the brief are not the recipient.`;
 
-`;
-
-    const greetingLabel = hasContactName ? contactName : `the contact at ${companyName || 'this company'}`;
-
-    // ── Follow-up round detection ──
-    // Rows with followup_round >= 1 get a short 2-4 sentence bump instead of
-    // the full skeleton draft. Context: the original (latest sent) email's
-    // subject + body + sent date, the round number, the launch's guidance,
-    // and the launch's selected_ctas.
+    // ── 4. Follow-up thread (rounds ≥ 1) ──
     const isFollowup = (recipient.followup_round || 0) >= 1;
-    let originalEmail = null;
+    let threadBlock = '';
+    let replyBlock = '';
+    let followSubject = '';
     let launch = null;
     if (isFollowup) {
       if (recipient.launch_id) {
-        try {
-          launch = await base44.entities.CampaignFollowUpLaunch.get(recipient.launch_id);
-        } catch (e) { /* missing launch record — continue without it */ }
+        try { launch = await base44.entities.CampaignFollowUpLaunch.get(recipient.launch_id); } catch { /* optional */ }
       }
-      // Find the latest SENT row for this email — the message being bumped.
-      const siblings = await base44.entities.CampaignRecipient.filter(
-        { campaign_id },
-        '-created_date',
-        500
-      );
       const emailKey = (recipient.email || '').toLowerCase().trim();
-      const sentSiblings = siblings
-        .filter(s =>
-          (s.email || '').toLowerCase().trim() === emailKey &&
-          s.status === 'sent' &&
-          s.id !== recipient.id
-        )
-        .sort((a, b) =>
-          ((b.followup_round || 0) - (a.followup_round || 0)) ||
-          (new Date(b.sent_at || 0).getTime() - new Date(a.sent_at || 0).getTime())
-        );
-      originalEmail = sentSiblings[0] || null;
+      const siblings = (await base44.entities.CampaignRecipient.filter({ campaign_id }, 'followup_round', 500))
+        .filter(s => (s.email || '').toLowerCase().trim() === emailKey && s.id !== recipient.id && s.status === 'sent')
+        .sort((a, b) => (a.followup_round || 0) - (b.followup_round || 0));
+      const first = siblings[0];
+      followSubject = 'Re: ' + String(first?.draft_subject || campaign.subject_template || '').replace(/^(re:\s*)+/i, '');
+      threadBlock = siblings.length
+        ? siblings.map(s => `--- ${s.followup_round ? `Follow-up ${s.followup_round}` : 'Original email'} (sent ${s.sent_at ? new Date(s.sent_at).toDateString() : 'recently'}):\n${s.draft_body || ''}`).join('\n\n')
+        : '(no earlier email found)';
+      const firstSent = first?.sent_at ? new Date(first.sent_at).getTime() : 0;
+      const theirs = brief.lastTheyWrote;
+      if (theirs && firstSent && new Date(theirs.date).getTime() > firstSent) {
+        replyBlock = `THEY HAVE ALREADY WRITTEN BACK (${new Date(theirs.date).toDateString()}): "${String(theirs.body_preview || theirs.snippet || '').slice(0, 500)}"
+→ Do NOT write a "bump". Write a short, natural reply to what they said.`;
+      }
     }
 
-    // ── Calls-to-action snapshot ──
-    // Round 1 uses campaign.selected_ctas; follow-up rounds use the launch's
-    // selected_ctas snapshot.
-    const selectedCtas = Array.isArray(campaign.selected_ctas) ? campaign.selected_ctas : [];
-    const ctaBlock = selectedCtas.length > 0
-      ? `CALLS TO ACTION (selected for this campaign — weave in at most two):
-${selectedCtas.map(c => `- "${c.label || ''}" → ${c.url || ''}${c.guidance ? ` (guidance: ${c.guidance})` : ''}`).join('\n')}
-- Weave in AT MOST TWO of the above CTAs, chosen for fit with this recipient's context.
-- Each CTA should read as a natural sentence with the URL as a plain link (no link dumps, no bullet list of links).
-- If a demo-call or scheduling CTA is selected, it should usually be the closing ask.
-
-`
+    // ── 5. Calls to action ──
+    const ctas = isFollowup
+      ? (Array.isArray(launch?.selected_ctas) ? launch.selected_ctas : [])
+      : (Array.isArray(campaign.selected_ctas) ? campaign.selected_ctas : []);
+    const ctaBlock = ctas.length
+      ? `LINKS YOU MAY USE (pick the ONE that fits this person best; put the bare URL in a natural sentence):
+${ctas.map(c => `- ${c.label || ''}: ${c.url || ''}${c.guidance ? ` (when to use: ${c.guidance})` : ''}`).join('\n')}`
       : '';
 
-    // ── 3. Build LLM prompt ──
-    const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const feedbackBlock = feedback
+      ? `REVISION REQUEST from ${senderFirst === 'Heather' ? 'Heather/William' : 'William/Heather'} — this overrides everything else:
+"${feedback}"${recipient.feedback_note && recipient.feedback_note !== feedback ? `\nEarlier feedback on this draft (still applies unless contradicted): "${recipient.feedback_note}"` : ''}${previousDraft ? `\nTHE CURRENT DRAFT YOU ARE REVISING:\nSubject: ${previousDraft.subject}\n${previousDraft.body}` : ''}`
+      : '';
 
-    const systemPrompt = `[SYSTEM NOTE: Today's date is ${currentDate}.]
+    const today = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-${MAYA_PERSONA}`;
+    const prompt = `${voiceFor(sender)}
 
-    let userMessage;
+Today is ${today}. You are writing one email to one person. It must read as if ${senderFirst} wrote it to them personally — never like a mail merge.
 
-    if (isFollowup) {
-      // ── Follow-up bump prompt (2-4 sentence thread reply) ──
-      const origSubject = originalEmail?.draft_subject || '';
-      const origBody = originalEmail?.draft_body || '';
-      const origDate = originalEmail?.sent_at
-        ? new Date(originalEmail.sent_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-        : 'recently';
-      const roundNum = recipient.followup_round || 1;
-      const launchGuidance = launch?.guidance || '';
-      const launchCtas = Array.isArray(launch?.selected_ctas) ? launch.selected_ctas : [];
-      const ctaBlockFu = launchCtas.length > 0
-        ? `CALLS TO ACTION (selected for this follow-up round — weave in AT MOST ONE):
-${launchCtas.map(c => `- "${c.label || ''}" → ${c.url || ''}${c.guidance ? ` (guidance: ${c.guidance})` : ''}`).join('\n')}
-- Weave in AT MOST ONE CTA, as a natural sentence with the URL as a plain link.
-- If none fit naturally, end with a soft open question instead.
+${isFollowup ? `THIS IS FOLLOW-UP #${recipient.followup_round} IN AN EMAIL THREAD.
+THE THREAD SO FAR:
+${threadBlock}
 
-`
-        : '';
-      const senderName = campaign.sender_mode === 'heather' ? 'Heather'
-        : campaign.sender_mode === 'william' ? 'William'
-        : (senderForOwner(recipient.owner) === 'heather' ? 'Heather' : 'William'); // primary owner decides
+${replyBlock}
+GUIDANCE FOR THIS ROUND: ${launch?.guidance || '(none)'}
 
-      userMessage = `FOLLOW-UP EMAIL — Round ${roundNum}. This is a gentle bump to someone who received your previous email but did not reply.
-
-ORIGINAL EMAIL SENT (the message being bumped):
-Subject: ${origSubject}
-Sent: ${origDate}
-Body:
-${origBody}
-
-FOLLOW-UP GUIDANCE (from the campaign operator for this round):
-${launchGuidance || '(none)'}
-
-${ctaBlockFu}CONTACT CONTEXT (record data, email history, interactions, meeting notes):
-${recordText}
-
-KNOWLEDGE BASE:
-${knowledgeText}
-
-CONTACT DETAILS:
-${contactBlock}
-Email: ${recipient.email || bd.recipientEmail || ''}
-Company: ${companyName}
-
-${NAME_RULES}TASK: Write a short follow-up email to ${greetingLabel}.
-
-STYLE CONTRACT (CRITICAL):
-- 2 to 4 sentences only. No longer.
-- Reference the original email's topic WITHOUT repeating its content.
-- Add ONE new angle or gentle nudge (a useful resource, a relevant observation, a quick question). Open with something of value — do NOT open with "just bumping this" or "following up" as the whole message.
-- AT MOST ONE CTA from the selected CTAs above, woven in naturally. If none selected, end with a soft open question.
-- Sign off as ${senderName} (matching the campaign's sender_mode).
-- Subject MUST be "Re: " + the original subject (this will be a thread reply). Keep the same subject otherwise.
-
-${thinContext
-  ? 'THIN CONTEXT: This contact has NO interactions and NO email history in our system. Keep the bump grounded in the original email and light company-level detail only. Do NOT invent a shared history.'
-  : 'THIN CONTEXT: This contact has rich context available above. Personalize naturally using the real history.'}
-
-HARD RULES:
-1. Never invent meetings, conversations, or facts not present in the provided context.
-2. No bullet points, numbered lists, or hyphens used as dashes. Write normal paragraphs.
-3. Output STRICTLY as a JSON object: {"subject": "...", "body": "..."}. No markdown, no code fences, no commentary.`;
-    } else {
-      // ── Round-1 original outreach prompt (unchanged) ──
-      userMessage = `CAMPAIGN EMAIL SKELETON (preserve structure, key points, and call-to-action):
-Subject template: ${campaign.subject_template || ''}
-Body template:
+RULES FOR THE FOLLOW-UP:
+- 2 to 4 sentences. Do not repeat what earlier emails said.
+- Bring ONE new thing: a detail from the brief about them, a useful resource, or a simple question. Never open with "just bumping this" / "following up".
+- Subject must be exactly: ${followSubject}` : `THE CAMPAIGN BRIEF (what this email is for):
+Campaign: ${campaign.name || ''}${campaign.description ? ` — ${campaign.description}` : ''}
+Template subject: ${campaign.subject_template || ''}
+Template body:
 ${campaign.body_template || ''}
+Personalization notes from ${senderFirst === 'Heather' ? 'Heather' : 'William'}: ${campaign.personalization_notes || '(none)'}
 
-CAMPAIGN PERSONALIZATION NOTES:
-${campaign.personalization_notes || '(none)'}
+HOW TO USE THE TEMPLATE:
+- It is a BRIEF, not text to paste. Keep its purpose, its facts/offer and its ask.
+- Rewrite generic sentences in the sender's voice so they connect to THIS person. Do not copy more than one sentence of it word for word.
+- Fill any [PERSONALIZE: …] or {{merge}} slot with real content from the brief, never with a placeholder.
+- Length: about the template's length or shorter — the voice rules above win.
+- Subject: short and specific to them (you may adapt the template subject).`}
 
-${feedback ? `REVIEWER FEEDBACK (William/Heather's correction for this specific draft — takes priority over the notes above):
-${feedback}` : ''}
+PERSONALIZATION (the most important part):
+- Open with the single most relevant REAL thing from the brief below: something they said or wrote, what came out of a meeting, the event where we met, their next step, a referral they sent, their company's situation.
+- Use only facts that appear in the brief. If the brief is thin, keep it simple and honest (e.g. where we met, their company) — never pretend to a history that isn't there.
+- If they were already emailed by another campaign recently (see brief), do not write as if this is first contact.
+- If something in the brief makes this email a bad idea (they said no, they asked not to be contacted, they are mid-conversation on another topic), still write a sensible draft but say so in "concerns".
 
-CONTACT CONTEXT (record data, email history, interactions, meeting notes):
-${recordText}
+${NAME_RULES}
 
-KNOWLEDGE BASE:
-${knowledgeText}
+${ctaBlock}
 
-CONTACT DETAILS:
-${contactBlock}
-Email: ${recipient.email || bd.recipientEmail || ''}
-Company: ${companyName}
+${feedbackBlock}
 
-${NAME_RULES}TASK: Write a personalized email to ${greetingLabel} using the SKELETON above as the base structure.
+WHAT WE KNOW ABOUT THEM:
+${brief.text}
 
-SKELETON RULES (CRITICAL):
-- The body_template is the SKELETON. Its structure, key points, and call-to-action must be preserved.
-- Target roughly the template's length. This OVERRIDES the 120-word rule used for one-off Maya emails.
-- ${hasContactName
-  ? `Replace {{first_name}} with "${firstName}".`
-  : `The template may contain {{first_name}} — we have no name, so rewrite that greeting as a nameless one ("Hi there,"). Do NOT leave the placeholder in, and do NOT substitute the company name.`} Replace {{company}} with "${companyName}". Replace any similar merge hints with real values.
+${knowledgeText ? `SKILLFULMEANS BACKGROUND (use only if it helps this person; never paste it in):\n${knowledgeText.slice(0, 3000)}` : ''}
 
-PERSONAL TOUCHES:
-- Personalize the greeting and opening lines with natural references to the contact's real history (last meeting, notes, their company's situation).
-- Fill in every [PERSONALIZE: ...] block with real, context-grounded content.
+FORMAT: plain text email paragraphs. No bullet points, no numbered lists, no markdown, no bold. Exactly one ask.`;
 
-${thinContext
-  ? 'THIN CONTEXT: This contact has NO interactions and NO email history in our system. Keep the skeleton intact with light company-level personalization only (company name, industry if known). Do NOT invent a shared history.'
-  : 'THIN CONTEXT: This contact has rich context available above. Personalize naturally using the real history.'}
+    // ── 6. Call the model (structured output) ──
+    const schema = {
+      type: 'object',
+      properties: {
+        subject: { type: 'string' },
+        body: { type: 'string' },
+        hooks_used: { type: 'array', items: { type: 'string' }, description: 'The specific facts from the brief this email relies on, in a few words each' },
+        concerns: { type: 'string', description: 'Anything the sender should check before sending; empty if none' },
+      },
+      required: ['subject', 'body'],
+    };
 
-${ctaBlock}HARD RULES:
-1. Never invent meetings, conversations, or facts not present in the provided context.
-2. No bullet points, numbered lists, or hyphens used as dashes. Write normal paragraphs.
-3. End with exactly ONE clear call-to-action (from the skeleton).
-4. Keep Maya's warm, professional, direct voice.
-5. Output STRICTLY as a JSON object: {"subject": "...", "body": "..."}. No markdown, no code fences, no commentary.`;
-    }
-
-    // ── Call LLM with one retry on parse failure ──
-    let subject = '';
-    let emailBody = '';
+    let out = null;
     let lastError = '';
-
-    for (let attempt = 0; attempt < 2; attempt++) {
-      let rawText;
+    for (let attempt = 0; attempt < 2 && !out; attempt++) {
       try {
-        const llmResult = await base44.asServiceRole.integrations.Core.InvokeLLM({
-          prompt: `${systemPrompt}\n\n${userMessage}`,
-          model: 'claude_sonnet_4_6',
+        const res = await base44.asServiceRole.integrations.Core.InvokeLLM({
+          prompt, model: 'claude_sonnet_4_6', response_json_schema: schema,
         });
-        rawText = typeof llmResult === 'string' ? llmResult : '';
-      } catch (llmErr) {
-        console.error(`[generateCampaignDraft] LLM call failed (attempt ${attempt + 1}):`, llmErr.message);
-        lastError = 'LLM call failed: ' + llmErr.message;
-        continue;
-      }
-
-      try {
-        const cleaned = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-        const parsed = JSON.parse(cleaned);
-        subject = parsed.subject || '';
-        emailBody = parsed.body || '';
-        if (subject && emailBody) break;
-        lastError = 'LLM returned empty subject or body';
+        let parsed = res;
+        if (typeof res === 'string') {
+          parsed = JSON.parse(res.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim());
+        }
+        if (parsed?.subject && parsed?.body) out = parsed;
+        else lastError = 'Model returned an empty subject or body';
       } catch (e) {
-        console.error(`[generateCampaignDraft] JSON parse failed (attempt ${attempt + 1}):`, rawText?.slice(0, 200));
-        lastError = 'Failed to parse LLM output as JSON';
+        lastError = 'Draft generation failed: ' + (e as any)?.message;
+        console.error('[generateCampaignDraft]', lastError);
       }
     }
 
-    if (!subject || !emailBody) {
-      await base44.entities.CampaignRecipient.update(recipient_id, {
-        status: 'error',
-        error_message: lastError || 'LLM returned empty response',
-      });
+    if (!out) {
+      await base44.entities.CampaignRecipient.update(recipient_id, { status: 'error', error_message: lastError || 'Empty response' });
       return Response.json({ error: lastError || 'Failed to generate draft', recipient_id }, { status: 500 });
     }
 
-    // ── 4. Save draft on recipient; NO Gmail draft, NO sending ──
+    const subject = isFollowup && followSubject ? followSubject : out.subject;
+    const hooks = Array.isArray(out.hooks_used) ? out.hooks_used.slice(0, 6) : [];
+
+    // ── 7. Save (no Gmail draft, no sending) ──
     await base44.entities.CampaignRecipient.update(recipient_id, {
       status: 'drafted',
       draft_subject: subject,
-      draft_body: emailBody,
+      draft_body: out.body,
       drafted_at: new Date().toISOString(),
-      thin_context: thinContext,
+      thin_context: !brief.rich,
+      draft_context: brief.text.slice(0, 12000),
+      draft_hooks: hooks,
+      draft_concerns: out.concerns || '',
+      ...(brief.name && !recipient.name ? { name: brief.name } : {}),
       ...(feedback ? { feedback_note: feedback } : {}),
       error_message: null,
     });
 
-    return Response.json({
-      success: true,
-      recipient_id,
-      subject,
-      body: emailBody,
-      thin_context: thinContext,
-    });
+    return Response.json({ success: true, recipient_id, subject, body: out.body, hooks_used: hooks, concerns: out.concerns || '', thin_context: !brief.rich });
   } catch (error) {
-    console.error('[generateCampaignDraft] Error:', error.message, error.stack);
-    return Response.json({ error: error.message }, { status: 500 });
+    console.error('[generateCampaignDraft] Error:', (error as any)?.message, (error as any)?.stack);
+    return Response.json({ error: (error as any)?.message }, { status: 500 });
   }
 });

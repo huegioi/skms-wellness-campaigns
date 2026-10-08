@@ -138,6 +138,25 @@
     "launch_id": {
       "type": "string",
       "description": "CampaignFollowUpLaunch ID that created this follow-up row (set on bump rows only)."
+    },
+    "draft_context": {
+      "type": "string",
+      "description": "The brief Maya wrote this draft from (what she knew about the recipient). Shown as 'What Maya used'."
+    },
+    "draft_hooks": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The specific facts from the brief this draft relies on."
+    },
+    "draft_concerns": {
+      "type": "string",
+      "description": "Anything Maya thinks the sender should check before sending."
+    },
+    "contact_name_missing": {
+      "type": "boolean",
+      "description": "No human name is known for this address (set by buildCampaignAudience)."
     }
   },
   "required": [

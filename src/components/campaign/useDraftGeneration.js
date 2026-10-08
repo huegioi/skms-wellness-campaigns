@@ -15,13 +15,15 @@ export function useDraftGeneration(campaignId) {
     return () => { cancelRef.current = true; };
   }, []);
 
-  const generate = useCallback(async (recipients) => {
+  // includeDrafted: also redo rows already drafted (not approved/sent) — "Redraft all"
+  const generate = useCallback(async (recipients, { includeDrafted = false } = {}) => {
     if (generatingRef.current) return;
     generatingRef.current = true;
     setGenerating(true);
 
     const eligible = recipients.filter(r =>
-      r.status === 'pending' || r.status === 'error' || r.status === 'drafting'
+      r.status === 'pending' || r.status === 'error' || r.status === 'drafting' ||
+      (includeDrafted && r.status === 'drafted')
     );
 
     if (eligible.length === 0) {

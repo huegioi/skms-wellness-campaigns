@@ -227,6 +227,32 @@ export default function CampaignDetailStub({ campaignId, onBack }) {
                 <Button
                   variant="outline"
                   disabled={generating || bulkApproving}
+                  className="gap-1.5 text-sm border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  <Wand2 className="w-4 h-4" />
+                  Redraft all ({draftedCount})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Redraft {draftedCount} emails?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Maya rewrites every draft that hasn't been approved yet, using everything she knows about each person. Edits you made by hand to those drafts will be replaced. Approved and sent emails are not touched.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => generate(recipients, { includeDrafted: true })}>Redraft</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          {draftedCount > 0 && !bulkApproving && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  disabled={generating || bulkApproving}
                   className="gap-1.5 text-sm border-[#264d44] text-[#264d44] hover:bg-[#264d44]/5"
                 >
                   <Check className="w-4 h-4" />
