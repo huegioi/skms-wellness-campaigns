@@ -5,9 +5,12 @@ import OutreachCampaignsTab from '@/components/campaign/OutreachCampaignsTab';
 import NetworkingEventsTab from '@/components/campaign/NetworkingEventsTab';
 
 export default function CampaignCalendar() {
+  // ?tab=outreach&campaign=<id> — Maya's "Draft follow-ups" opens a campaign directly
+  const params = new URLSearchParams(window.location.search);
+  const tab = ['calendar', 'outreach', 'networking'].includes(params.get('tab')) ? params.get('tab') : 'calendar';
   return (
     <div className="max-w-5xl mx-auto px-4 md:px-8 py-6 pb-20">
-      <Tabs defaultValue="calendar" className="w-full">
+      <Tabs defaultValue={tab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="calendar">Campaign Calendar</TabsTrigger>
           <TabsTrigger value="outreach">Outreach Campaigns</TabsTrigger>
@@ -17,7 +20,7 @@ export default function CampaignCalendar() {
           <CampaignCalendarTab />
         </TabsContent>
         <TabsContent value="outreach">
-          <OutreachCampaignsTab />
+          <OutreachCampaignsTab initialCampaignId={params.get('campaign')} />
         </TabsContent>
         <TabsContent value="networking">
           <NetworkingEventsTab />

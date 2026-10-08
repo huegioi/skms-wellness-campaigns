@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
     // stage, got a new date, or was closed). Only when the sales context loaded cleanly,
     // so a failed run never wipes the list.
     if (Array.isArray(sales.reminderCandidates)) {
-      const AUTO_CLOSE_TYPES = ['lead_follow_up_due', 'lead_group_follow_up', 'meeting_outcome_needed', 'lead_revisit_due', 'lead_stalled'];
+      const AUTO_CLOSE_TYPES = ['lead_follow_up_due', 'lead_group_follow_up', 'meeting_outcome_needed', 'lead_revisit_due', 'lead_stalled', 'meeting_prep', 'event_recap', 'weekly_pipeline'];
       const liveKeys = new Set(candidateKeys);
       const openLead = await base44.asServiceRole.entities.MayaReminder.filter(
         { status: 'open', reminder_type: { $in: AUTO_CLOSE_TYPES } }, 'trigger_date', 2000
@@ -150,7 +150,9 @@ Deno.serve(async (req) => {
     todayStart.setHours(0, 0, 0, 0);
     // Drop challenge-report follow-ups whose challenge ended more than 14 days ago.
     // trigger_date = challenge_end + 1, so ageDays > 14 means the challenge is stale.
+    const todayYmd = new Date(now).toISOString().slice(0, 10);
     const freshOpen = rawOpen.filter(r => {
+      if (r.snoozed_until && r.snoozed_until > todayYmd) return false;   // snoozed
       if (r.reminder_type !== 'challenge_report') return true;
       const triggerStart = new Date(r.trigger_date);
       if (isNaN(triggerStart.getTime())) return true;
@@ -170,6 +172,7 @@ Deno.serve(async (req) => {
         category: r.category || 'delivery',
         client_name: r.client_name || '',
         lead_id: r.lead_id || '',
+        source_event_id: r.source_event_id || '',
         group_key: r.group_key || '',
         lead_ids: r.lead_ids || [],
         count: r.count ?? null,

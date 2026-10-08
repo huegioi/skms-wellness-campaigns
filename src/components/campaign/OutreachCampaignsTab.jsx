@@ -8,10 +8,10 @@ import OutreachCampaignCard from '@/components/campaign/OutreachCampaignCard';
 import NewCampaignWizard from '@/components/campaign/NewCampaignWizard';
 import CampaignDetailStub from '@/components/campaign/CampaignDetailStub';
 
-export default function OutreachCampaignsTab() {
+export default function OutreachCampaignsTab({ initialCampaignId = null }) {
   const queryClient = useQueryClient();
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [selectedCampaignId, setSelectedCampaignId] = useState(null);
+  const [selectedCampaignId, setSelectedCampaignId] = useState(initialCampaignId || null);
 
   const { data: campaigns = [], isLoading } = useQuery({
     queryKey: ['outreach_campaigns'],

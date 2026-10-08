@@ -1,6 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import { resolveClientContact, listClientContacts } from '../../shared/clientContact.ts';
-import { normalizeStage, stageLabel, cohortOf, PRE_TALKING_STAGES, CLOSED_STAGES, WON_STAGES } from '../../shared/leadStages.ts';
+import { normalizeStage, stageLabel, stageRank as stageRankOf, cohortOf, PRE_TALKING_STAGES, CLOSED_STAGES, WON_STAGES } from '../../shared/leadStages.ts';
 import { primaryOwner as primaryOwnerName } from '../../shared/owners.ts';
 
 /** ISO week label (e.g. 2026-W41) — a grouped reminder reappears at most once a week. */
@@ -1390,6 +1390,84 @@ async function buildSalesContext(base44) {
     overdueLeads.push({ who: `${label} (group of ${members.length})`, overdueDays: daysBetween(startOfDay(new Date(oldest)), now), status: 'grouped' });
   }
   overdueLeads.sort((a, b) => b.overdueDays - a.overdueDays);
+
+  // ── c2) Meeting prep — a partner/lead meeting in the next ~36 hours ──────
+  const leadById = Object.fromEntries(leads.map(l => [l.id, l]));
+  const prepHorizon = now.getTime() + 36 * 3600 * 1000;
+  for (const e of events) {
+    if (!e.lead_id || isDeliveryEvent(e)) continue;
+    const start = new Date(e.start_date);
+    if (isNaN(start.getTime()) || start.getTime() < now.getTime() || start.getTime() > prepHorizon) continue;
+    const l = leadById[e.lead_id];
+    if (!l) continue;
+    const who = l.name || l.company || 'your meeting';
+    const when = start.toLocaleString('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', minute: '2-digit' });
+    reminderCandidates.push({
+      type: 'meeting_prep', category: 'sales',
+      key: `meeting_prep:${e.id}`,
+      client: who, leadId: l.id, eventId: e.id, owner: l.owner || '',
+      triggerDate: todayStr,
+      text: `Prep: meeting with ${who}${l.company && l.name ? ` (${l.company})` : ''} — ${when}. Open the prep brief.`,
+    });
+  }
+
+  // ── c3) Event recap — two weeks after an event's contacts came in ──────
+  const cohortLeads = {};
+  for (const l of leads) {
+    if ((l.lead_type || 'broker_lead') !== 'broker_lead') continue;
+    const c = cohortOf(l);
+    if (c) (cohortLeads[c] ||= []).push(l);
+  }
+  for (const [cohort, members] of Object.entries(cohortLeads)) {
+    if (members.length < 3) continue;
+    const firstIn = members.map(m => m.created_date).filter(Boolean).sort()[0];
+    if (!firstIn) continue;
+    const ageDays = daysBetween(startOfDay(new Date(firstIn)), now);
+    if (ageDays < 14 || ageDays > 21) continue;
+    const by = {};
+    for (const m of members) { const st = stageLabel(m.status); by[st] = (by[st] || 0) + 1; }
+    const order = ['To contact', 'In sequence', 'Talking', 'Meeting booked', 'Met — next step', 'Onboarding', 'Active partner', 'Not now', 'Not a fit'];
+    const parts = order.filter(k => by[k]).map(k => `${by[k]} ${k.toLowerCase()}`);
+    reminderCandidates.push({
+      type: 'event_recap', category: 'sales',
+      key: `event_recap:${cohort}`,
+      client: cohort, groupKey: cohort, leadIds: members.map(m => m.id), count: members.length,
+      triggerDate: todayStr,
+      text: `${cohort}, two weeks on: ${members.length} contacts — ${parts.join(', ')}.`,
+    });
+  }
+
+  // ── c4) Monday pipeline summary (from stage history) ─────────────────────
+  if (now.getDay() === 1 || now.getDay() === 2) {
+    const weekAgo = now.getTime() - 7 * 86400000;
+    const moves = [];
+    for (const l of leads) {
+      for (const h of l.stage_history || []) {
+        if (h?.at && new Date(h.at).getTime() >= weekAgo && h.from) moves.push({ l, h });
+      }
+    }
+    const forward = moves.filter(m => stageRankOf(m.h.to) > stageRankOf(m.h.from));
+    const toCounts = {};
+    for (const m of forward) { const k = stageLabel(m.h.to); toCounts[k] = (toCounts[k] || 0) + 1; }
+    const stuck = leads.filter(l => {
+      const st = normalizeStage(l.status);
+      if (!['in_conversation', 'meeting_scheduled', 'met', 'onboarding'].includes(st) || !l.stage_entered_date) return false;
+      return daysBetween(startOfDay(new Date(l.stage_entered_date)), now) > 14;
+    });
+    const wins = forward.filter(m => normalizeStage(m.h.to) === 'active_partner').length;
+    const parts = [
+      forward.length ? `${forward.length} lead${forward.length === 1 ? '' : 's'} moved forward (${Object.entries(toCounts).map(([k, n]) => `${n} to ${k}`).join(', ')})` : 'no leads moved forward',
+      wins ? `${wins} new active partner${wins === 1 ? '' : 's'}` : '',
+      stuck.length ? `${stuck.length} conversation${stuck.length === 1 ? '' : 's'} stuck more than 14 days` : '',
+    ].filter(Boolean);
+    reminderCandidates.push({
+      type: 'weekly_pipeline', category: 'sales',
+      key: `weekly_pipeline:${weekKey}`,
+      client: '', leadIds: stuck.map(l => l.id), groupKey: stuck.length ? '__stuck__' : '', count: stuck.length,
+      triggerDate: todayStr,
+      text: `Last week in the partner pipeline: ${parts.join('; ')}.`,
+    });
+  }
 
   // ── d) Referral partners who have gone quiet ────────────────────────────
   // Someone who has sent business before and then stopped is the warmest re-open there is.

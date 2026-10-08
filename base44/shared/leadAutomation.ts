@@ -106,8 +106,15 @@ export function planLeadStageMoves({ leads, emails = [], events = [], recipients
       if (inb[lead.id]) cands.push(['in_conversation', inb[lead.id], 'they replied by email']);
       if (out[lead.id]) cands.push(['contacted', out[lead.id], 'outreach email sent']);
 
+      // A manual stage change beats any evidence older than it (e.g. a no-show moved back
+      // to Talking must not be pushed to "Met" again by the same past meeting).
+      const lastManualAt = Math.max(0, ...(lead.stage_history || [])
+        .filter(h => h && h.by !== 'auto' && h.at)
+        .map(h => new Date(h.at).getTime()));
+      const fresh = cands.filter(c => c[0] === 'meeting_scheduled' || new Date(c[1]).getTime() > lastManualAt);
+
       let best = null;
-      for (const c of cands) if (!best || stageRank(c[0]) > stageRank(best[0])) best = c;
+      for (const c of fresh) if (!best || stageRank(c[0]) > stageRank(best[0])) best = c;
       if (best && stageRank(best[0]) > stageRank(current)) {
         const at = new Date(best[1]).getTime() > nowMs ? now : new Date(best[1]);
         Object.assign(patch, buildStageChange(lead, best[0], { by: 'auto', reason: best[2], at, extra: best[3] || {} }));
