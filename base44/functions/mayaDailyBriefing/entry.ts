@@ -137,7 +137,12 @@ Deno.serve(async (req) => {
       const openLead = await base44.asServiceRole.entities.MayaReminder.filter(
         { status: 'open', reminder_type: { $in: AUTO_CLOSE_TYPES } }, 'trigger_date', 2000
       );
-      for (const r of openLead || []) {
+      // Partner-lead "met N days ago, nothing logged" items are replaced by the
+      // meeting-outcome item (Held / No-show / Rescheduled) — retire the old ones.
+      const legacyMeetingNags = await base44.asServiceRole.entities.MayaReminder.filter(
+        { status: 'open', reminder_type: 'meeting_no_follow_up', lead_id: { $nin: ['', null] }, client_id: { $in: ['', null] } }, 'trigger_date', 500
+      ).catch(() => []);
+      for (const r of [...(openLead || []), ...(legacyMeetingNags || [])]) {
         if (liveKeys.has(r.dedupe_key)) continue;
         await base44.asServiceRole.entities.MayaReminder.update(r.id, {
           status: 'done', completed_by: 'Maya (no longer needed)', completed_at: new Date().toISOString(),
