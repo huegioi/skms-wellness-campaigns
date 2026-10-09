@@ -11,6 +11,7 @@ import HeroMetricCard from './HeroMetricCard';
 import { NPS_BENCHMARK_LABEL } from '@/lib/npsBenchmark';
 import NarrativeSummary from './NarrativeSummary';
 import ProgramParticipationChart, { summarizeParticipation } from './ProgramParticipationChart';
+import WellbeingDotPlot from './WellbeingDotPlot';
 import AdminLinkSection from './AdminLinkSection';
 import MethodologyNote from '@/components/feedback/MethodologyNote';
 import AssessmentBadges from '@/components/assessments/AssessmentBadges';
@@ -294,7 +295,25 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
             evidenceTier="uncontrolled pre/post"
           />
 
-          {/* Trend chart */}
+          {/* First chart: every person's WHO-5 score, program by program, with
+              the team average running through it. */}
+          <WellbeingDotPlot
+            cohortAssessments={cohortAssessments}
+            participation={participation || []}
+            services={services}
+          />
+
+          {/* Where the team stands on each survey — a band picture per survey,
+              raw scores one click away. The other result sections stay in the
+              details below. */}
+          <Who5ResultsPanel
+            part="primary"
+            cohortAssessments={cohortAssessments}
+            acceptedProposalId={acceptedProposalId}
+            services={services}
+          />
+
+          {/* Participation over time (+ the all-measures trend toggle) */}
           <ProgramParticipationChart
             participation={participation || []}
             cutoffDate={cutoffDate}
@@ -313,8 +332,10 @@ export default function ROIDashboard({ clientId, clientCompany, services = [], s
             </button>
             {detailsOpen && (
               <div className="px-5 pb-5 space-y-6">
-                {/* Per-instrument cards (cohort + challenge breakdowns) */}
+                {/* The remaining result sections (1-month follow-up, challenge
+                    breakdowns, advocacy); the headline arc is shown up front. */}
                 <Who5ResultsPanel
+                  part="secondary"
                   cohortAssessments={cohortAssessments}
                   acceptedProposalId={acceptedProposalId}
                   services={services}
