@@ -1,44 +1,61 @@
 // Instrument metadata + generalized matching/stats helpers.
 // Reused by Who5Analytics (admin) and Who5ResultsPanel (client portal).
 
+// short = plain-language name for visual summaries; code = the instrument's own name.
 export const INSTRUMENT_META = {
   who5: {
     label: 'WHO-5 Wellbeing',
+    short: 'Wellbeing',
+    code: 'WHO-5',
     scale: '0–100 · higher is better',
     interpretation: 'A validated 5-question wellbeing score. Higher means better overall wellbeing.',
     directionOfGood: 'higher',
   },
   uwes3: {
     label: 'UWES-3 Work Engagement',
+    short: 'Work engagement',
+    code: 'UWES-3',
     scale: '0–6 · higher is better',
     interpretation: 'Three-item work engagement scale — the score is the MEAN of the three 0–6 items, so it ranges 0–6. Higher means more energy, enthusiasm, and immersion at work.',
     directionOfGood: 'higher',
   },
   pss4: {
     label: 'PSS-4 Perceived Stress',
+    short: 'Stress',
+    code: 'PSS-4',
     scale: '0–16 · lower is better',
     interpretation: 'A 4-item perceived stress scale. Lower means less stress.',
     directionOfGood: 'lower',
   },
   ucla3: {
     label: 'UCLA-3 Loneliness',
+    short: 'Loneliness',
+    code: 'UCLA-3',
     scale: '3–9 · lower is better',
     interpretation: 'A 3-item loneliness scale. Lower means less loneliness.',
     directionOfGood: 'lower',
   },
   cbi: {
     label: 'CBI Burnout',
+    short: 'Burnout',
+    code: 'CBI',
     scale: '0–100 · lower is better',
     interpretation: 'A 6-item burnout scale using the standard CBI 0–100 scoring (each 0–4 item rescaled ×25 and averaged). Lower means less burnout.',
     directionOfGood: 'lower',
   },
   enps: {
     label: 'eNPS Advocacy',
+    short: 'Advocacy',
+    code: 'eNPS',
     scale: '0–10 · higher is better',
     interpretation: 'Likelihood to recommend the program. Higher means stronger advocacy.',
     directionOfGood: 'higher',
   },
 };
+
+// Display order for instrument summaries: overall wellbeing first, then the
+// strain measures, then engagement and advocacy.
+export const INSTRUMENT_ORDER = ['who5', 'pss4', 'cbi', 'ucla3', 'uwes3', 'enps'];
 
 // ── Research-based score bands ("is this number high, low, or typical?") ───
 // Cutoffs come from each instrument's published norms. Used to color the
@@ -207,6 +224,18 @@ export function describeChange(key, stats, opts = {}) {
   const meaning = stats.isGood ? n.better : n.worse;
 
   return `Average ${n.noun} ${movement} from ${from} — ${magnitude} ${direction}. ${meaning}`;
+}
+
+/**
+ * One-word read of a pre/post change, using the same thresholds as
+ * describeChange so the visual summary and the sentence never disagree.
+ * Returns { label, tone } — tone: 'good' | 'poor' | 'flat' — or null.
+ */
+export function changeVerdict(key, stats) {
+  const n = CHANGE_NARRATION[key];
+  if (!n || !stats || stats.avgDelta == null) return null;
+  if (Math.abs(stats.avgDelta) < n.modest) return { label: 'About the same', tone: 'flat' };
+  return stats.isGood ? { label: 'Improved', tone: 'good' } : { label: 'Worse', tone: 'poor' };
 }
 
 // Resolve the composite score for a row, with legacy WHO-5 fallback.
