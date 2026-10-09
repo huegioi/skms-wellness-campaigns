@@ -69,35 +69,55 @@ function BandToggle({ show, onClick }) {
   );
 }
 
+// Card header. Embedded (inside a ScoreBandRow, which already shows the plain
+// name) it shrinks to one muted line so the raw numbers lead.
+function CardHeader({ meta, badge, embedded }) {
+  if (embedded) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+        <p className="text-xs text-gray-500"><span className="font-semibold text-gray-700">{meta.label}</span> · {meta.scale}</p>
+        <Badge variant="outline" className="text-[10px] border-gray-200 text-gray-500 whitespace-nowrap">{badge}</Badge>
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-start justify-between gap-3 mb-2">
+      <div>
+        <p className="text-sm font-semibold text-gray-800">{meta.label}</p>
+        <p className="text-xs text-gray-400">{meta.scale}</p>
+      </div>
+      <Badge variant="outline" className="text-xs border-gray-200 text-gray-500 whitespace-nowrap">
+        {badge}
+      </Badge>
+    </div>
+  );
+}
+
+// embedded: rendered as the "raw score" panel under a ScoreBandRow — no card
+// chrome of its own, and the band explainer starts open.
 export default function InstrumentResultCard({
   instrumentKey,
   stats,
   evidenceTier,
   startLabel = 'Pre',
   endLabel = 'Post',
+  embedded = false,
 }) {
-  const [showBands, setShowBands] = useState(false);
+  const [showBands, setShowBands] = useState(embedded);
   const meta = INSTRUMENT_META[instrumentKey];
   if (!meta || !stats) return null;
 
   const toggle = () => setShowBands(v => !v);
   const startBand = bandForScore(instrumentKey, stats.avgStart);
+  const shell = embedded ? '' : 'bg-white rounded-xl shadow-sm p-5';
 
   // Baseline-only mode: starting numbers exist but no follow-up yet. Show the
   // Before value immediately and leave After/Change as pending — an HR reader
   // gets their starting picture without waiting for the end-of-program survey.
   if (stats.baselineOnly) {
     return (
-      <div className="bg-white rounded-xl shadow-sm p-5">
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <div>
-            <p className="text-sm font-semibold text-gray-800">{meta.label}</p>
-            <p className="text-xs text-gray-400">{meta.scale}</p>
-          </div>
-          <Badge variant="outline" className="text-xs border-gray-200 text-gray-500 whitespace-nowrap">
-            Baseline — awaiting follow-up
-          </Badge>
-        </div>
+      <div className={shell}>
+        <CardHeader meta={meta} badge="Baseline — awaiting follow-up" embedded={embedded} />
         <p className="text-xs text-gray-500 mb-3 leading-relaxed">{meta.interpretation}</p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="text-center">
@@ -131,16 +151,8 @@ export default function InstrumentResultCard({
   const narrative = describeChange(instrumentKey, stats, { startLabel, endLabel });
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-5">
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div>
-          <p className="text-sm font-semibold text-gray-800">{meta.label}</p>
-          <p className="text-xs text-gray-400">{meta.scale}</p>
-        </div>
-        <Badge variant="outline" className="text-xs border-gray-200 text-gray-500 whitespace-nowrap">
-          {evidenceTier}
-        </Badge>
-      </div>
+    <div className={shell}>
+      <CardHeader meta={meta} badge={evidenceTier} embedded={embedded} />
       <p className="text-xs text-gray-500 mb-3 leading-relaxed">{meta.interpretation}</p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="text-center">
