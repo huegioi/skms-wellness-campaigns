@@ -1,10 +1,15 @@
 import React, { useMemo } from 'react';
 import { Activity, CalendarCheck, ThumbsUp } from 'lucide-react';
-import InstrumentResultCard from '@/components/feedback/InstrumentResultCard';
-import { INSTRUMENT_META, getInstrumentKey, getScore, matchPairs, calcStats, calcBaseline, computeEnps } from '@/components/feedback/instrumentMeta';
+import ScoreBandRow, { ScoreBandLegend } from '@/components/feedback/ScoreBandRow';
+import { INSTRUMENT_META, INSTRUMENT_ORDER, getInstrumentKey, getScore, matchPairs, calcStats, calcBaseline, computeEnps } from '@/components/feedback/instrumentMeta';
 
 // Portal privacy rule: never render a result built on fewer than 5 people.
 const MIN_N = 5;
+
+const orderOf = (key) => {
+  const i = INSTRUMENT_ORDER.indexOf(key);
+  return i === -1 ? INSTRUMENT_ORDER.length : i;
+};
 
 function buildInstrumentStats(rows, startType, endType) {
   const byInstrument = {};
@@ -22,48 +27,66 @@ function buildInstrumentStats(rows, startType, endType) {
     const stats = calcStats(pairs, distinctStarts, meta?.directionOfGood || 'higher')
       || calcBaseline(rows, startType);
     return { key, stats };
-  }).filter(s => s.stats);
+  }).filter(s => s.stats).sort((a, b) => orderOf(a.key) - orderOf(b.key));
 }
 
-// Shown in place of an InstrumentResultCard when n < 5 (portal min-N suppression).
-function InstrumentSuppressedCard({ instrumentKey, n }) {
-  const label = INSTRUMENT_META[instrumentKey]?.label || instrumentKey;
+// Shown in place of a result row when n < 5 (portal min-N suppression).
+function InstrumentSuppressedRow({ instrumentKey, n }) {
+  const meta = INSTRUMENT_META[instrumentKey];
   return (
-    <div className="border rounded-lg p-3">
-      <div className="flex justify-between items-center mb-1">
-        <p className="text-sm font-medium text-gray-800">{label}</p>
-        <span className="text-xs text-gray-400">n={n}</span>
+    <div className="px-5 py-3 flex items-center justify-between gap-3">
+      <div>
+        <p className="text-sm font-semibold text-gray-800">{meta?.short || instrumentKey}</p>
+        <p className="text-[11px] text-gray-400">{meta?.code || ''}</p>
       </div>
       <p className="text-xs text-gray-400 italic">Collecting data (n={n})</p>
     </div>
   );
 }
 
-// One section of matched-pair instrument cards, with a shared empty state.
+// One section: a card of visual result rows (each opens to its raw score),
+// with a shared empty state.
 function InstrumentSection({ icon: Icon, iconClass, title, subtitle, stats, evidenceTier, emptyText, startLabel, endLabel }) {
+  const followUp = stats.some(({ stats: s }) => !s.baselineOnly && s.n >= MIN_N);
+  const sub = typeof subtitle === 'function' ? subtitle(followUp) : subtitle;
   return (
-    <div>
-      <div className="flex items-center gap-2 mb-1">
-        <Icon className={`w-4 h-4 ${iconClass}`} />
-        <p className="text-sm font-semibold text-gray-700">{title}</p>
+    <div className="bg-white rounded-xl shadow-sm">
+      <div className="px-5 pt-5 flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Icon className={`w-4 h-4 ${iconClass}`} />
+            <p className="text-sm font-semibold text-gray-700">{title}</p>
+          </div>
+          <p className="text-xs text-gray-400">{sub}</p>
+        </div>
+        {stats.length > 0 && <div className="sm:pt-1 shrink-0"><ScoreBandLegend followUp={followUp} /></div>}
       </div>
-      <p className="text-xs text-gray-400 mb-3">{subtitle}</p>
       {stats.length > 0 ? (
-        <div className="grid gap-3">
+        <div className="mt-2 pb-1 divide-y divide-gray-100">
           {stats.map(({ key, stats: s }) => (
             s.n < MIN_N
-              ? <InstrumentSuppressedCard key={key} instrumentKey={key} n={s.n} />
-              : <InstrumentResultCard key={key} instrumentKey={key} stats={s} evidenceTier={evidenceTier} startLabel={startLabel} endLabel={endLabel} />
+              ? <InstrumentSuppressedRow key={key} instrumentKey={key} n={s.n} />
+              : <ScoreBandRow key={key} instrumentKey={key} stats={s} evidenceTier={evidenceTier} startLabel={startLabel} endLabel={endLabel} />
           ))}
         </div>
       ) : (
-        <p className="text-xs text-gray-400 italic py-3">{emptyText}</p>
+        <p className="text-xs text-gray-400 italic px-5 py-4">{emptyText}</p>
       )}
     </div>
   );
 }
 
-export default function Who5ResultsPanel({ cohortAssessments = [], acceptedProposalId, services = [] }) {
+const OPEN_HINT = 'Open any row for the raw score and what it means.';
+
+/**
+ * part:
+ *  - 'all' (default): every section, as before.
+ *  - 'primary': only the headline arc (the plan-year cohort arc, or the
+ *    challenge arc when there is no cohort data) — shown up front on the
+ *    dashboard.
+ *  - 'secondary': everything else — lives in the collapsible details.
+ */
+export default function Who5ResultsPanel({ cohortAssessments = [], acceptedProposalId, services = [], part = 'all' }) {
   const cohortRows = cohortAssessments;
 
   // ── Section 1: Cohort arc ──────────────────────────────────────────────────
@@ -78,7 +101,6 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
     [cohortRows_]
   );
 
-  // ── Section 2: By challenge ────────────────────────────────────────────────
   // Section: 1-month sustain. Baseline vs. one month AFTER the program ended.
   // Kept separate from the year arc so the follow-up survey is never confused
   // with the end-of-program one.
@@ -95,6 +117,7 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
     [cohortRows]
   );
 
+  // ── Section 2: By challenge ────────────────────────────────────────────────
   const challengeRows = useMemo(() =>
     cohortRows.filter(r => r.survey_type === 'challenge_day0' || r.survey_type === 'challenge_day14'),
     [cohortRows]
@@ -105,7 +128,7 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
   );
 
   // Section: Advocacy (eNPS). Single-point measure, not a pre/post pair, so it
-  // gets its own breakdown rather than an InstrumentResultCard.
+  // gets its own breakdown rather than a result row.
   const enpsBreakdown = useMemo(() => {
     const scores = cohortRows
       .filter(r => getInstrumentKey(r) === 'enps')
@@ -114,54 +137,69 @@ export default function Who5ResultsPanel({ cohortAssessments = [], acceptedPropo
     return computeEnps(scores);
   }, [cohortRows]);
 
-  return (
-    <div className="space-y-4">
-      {/* ── Section 1: Cohort arc ───────────────────────────────────────────── */}
-      {cohortRows_.length > 0 && (
-        <InstrumentSection
-          icon={Activity}
-          iconClass="text-brand-plum"
-          title="Wellbeing — This Plan Year"
-          subtitle="Year arc — matched comparison of program start vs. program end"
-          stats={cohortInstrumentStats}
-          startLabel="Before"
-          endLabel="After"
-          evidenceTier="Matched comparison"
-          emptyText="Cohort results appear once Cohort Start and Cohort End responses come in."
-        />
-      )}
+  const primaryKey = cohortRows_.length > 0 ? 'cohort' : (challengeRows.length > 0 ? 'challenge' : null);
+  const inPart = (key) => part === 'all' || (part === 'primary' ? key === primaryKey : key !== primaryKey);
+  if (part === 'primary' && !primaryKey) return null;
 
-      {/* 1-month sustain — baseline vs. one month after the program ended */}
-      {hasSustainResponses && (
-        <InstrumentSection
-          icon={CalendarCheck}
-          iconClass="text-brand-navy"
-          title="Sustained — One Month Later"
-          subtitle="Follow-up arc — program start vs. one month after the program ended"
-          stats={sustainInstrumentStats}
-          startLabel="Before"
-          endLabel="1 Month After"
-          evidenceTier="Matched comparison — 1-month follow-up"
-          emptyText="Sustain results appear once one-month follow-up responses come in."
-        />
-      )}
-
-      {/* ── Section 2: By challenge ─────────────────────────────────────────── */}
+  const sections = [];
+  if (cohortRows_.length > 0 && inPart('cohort')) {
+    sections.push(
       <InstrumentSection
+        key="cohort"
+        icon={Activity}
+        iconClass="text-brand-plum"
+        title="Wellbeing — This Plan Year"
+        subtitle={(followUp) => followUp
+          ? `Start of the plan year vs. the latest check-in, same people matched. ${OPEN_HINT}`
+          : `Where your team started on each survey, against its research range. ${OPEN_HINT}`}
+        stats={cohortInstrumentStats}
+        startLabel="Before"
+        endLabel="After"
+        evidenceTier="Matched comparison"
+        emptyText="Cohort results appear once Cohort Start and Cohort End responses come in."
+      />
+    );
+  }
+  if (hasSustainResponses && inPart('sustain')) {
+    sections.push(
+      <InstrumentSection
+        key="sustain"
+        icon={CalendarCheck}
+        iconClass="text-brand-navy"
+        title="Sustained — One Month Later"
+        subtitle={`Program start vs. one month after the program ended, same people matched. ${OPEN_HINT}`}
+        stats={sustainInstrumentStats}
+        startLabel="Before"
+        endLabel="1 Month After"
+        evidenceTier="Matched comparison — 1-month follow-up"
+        emptyText="Sustain results appear once one-month follow-up responses come in."
+      />
+    );
+  }
+  if (inPart('challenge')) {
+    sections.push(
+      <InstrumentSection
+        key="challenge"
         icon={Activity}
         iconClass="text-brand-green"
         title="Challenge Wellbeing — By Program"
-        subtitle="Program effect — uncontrolled pre/post (Day 0 vs. Day 14)"
+        subtitle={`Day 0 vs. Day 14 of each challenge (uncontrolled pre/post). ${OPEN_HINT}`}
         stats={challengeInstrumentStats}
         startLabel="Day 0"
         endLabel="Day 14"
         evidenceTier="Program effect — uncontrolled pre/post"
         emptyText="Challenge results appear once Day 0 and Day 14 responses come in."
       />
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {sections}
 
       {/* Advocacy — eNPS (single-point, not a before/after pair) */}
-      {enpsBreakdown.n > 0 && (
-        <div>
+      {enpsBreakdown.n > 0 && inPart('enps') && (
+        <div className="bg-white rounded-xl shadow-sm p-5">
           <div className="flex items-center gap-2 mb-1">
             <ThumbsUp className="w-4 h-4 text-brand-navy" />
             <p className="text-sm font-semibold text-gray-700">Advocacy — eNPS</p>
