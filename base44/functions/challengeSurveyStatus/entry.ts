@@ -10,7 +10,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.39';
  *   POST /functions/challengeSurveyStatus
  *   headers: x-sm-timestamp, x-sm-signature — same scheme and secret
  *            (SKMS_SURVEY_INVITE_SECRET) as issueChallengeSurveyInvites
- *   body:    { program_id }
+ *   body:    { program_id, service_id }   // the challenge's current service
  *   returns: { day0: { [email]: { remaining: number, total: number } } }
  *
  * Counts only — no answers or scores leave Base44. Uses the same rules as
@@ -57,22 +57,29 @@ Deno.serve(async (req) => {
   if (!ts || !sig || !Number.isFinite(age) || age > WINDOW_MS) return deny();
   if (!safeEqual(sig, await hmacHex(secret, `${ts}.${raw}`))) return deny();
 
-  let body: { program_id?: unknown };
+  let body: { program_id?: unknown; service_id?: unknown };
   try {
     body = JSON.parse(raw);
   } catch {
     return Response.json({ error: 'Body must be JSON.' }, { status: 400 });
   }
   const programId = String(body.program_id ?? '').trim();
-  if (!programId || programId.length > 100) {
-    return Response.json({ error: 'program_id is required.' }, { status: 400 });
+  const serviceId = String(body.service_id ?? '').trim();
+  if (!programId || programId.length > 100 || !serviceId || serviceId.length > 100) {
+    return Response.json({ error: 'program_id and service_id are required.' }, { status: 400 });
   }
 
   try {
     const base44 = createClientFromRequest(req);
     const db = base44.asServiceRole.entities;
 
-    const invites = await db.SurveyInvite.filter({ challenge_program_id: programId, survey_type: 'challenge_day0' });
+    // Only invites filed under the challenge's current service: one issued
+    // before an admin corrected the service id measures the wrong thing.
+    const invites = await db.SurveyInvite.filter({
+      challenge_program_id: programId,
+      survey_type: 'challenge_day0',
+      service_id: serviceId,
+    });
     const day0: Record<string, { remaining: number; total: number }> = {};
     if (!invites.length) return Response.json({ day0 });
 
@@ -104,8 +111,7 @@ Deno.serve(async (req) => {
         if (a.instrument && at >= since) done.add(a.instrument);
       }
       const remaining = list.filter((k) => !done.has(k)).length;
-      // An admin who corrected the service id leaves an older invite behind;
-      // the most complete picture for the person wins.
+      // Two invites for one person (a different client id): the more complete wins.
       const prev = day0[email];
       if (!prev || remaining < prev.remaining) day0[email] = { remaining, total: list.length };
     }
