@@ -317,8 +317,10 @@ export default function CohortAssessmentPage() {
               <div>
                 <h2 className="text-lg font-bold text-gray-800 mb-1">Let's get started</h2>
                 <p className="text-sm text-gray-500">
-                  This check-in takes about {estMinutes} minute{estMinutes !== 1 ? 's' : ''}.
-                  Your email links your responses across time.
+                  {tokenData?.answered_instruments?.length
+                    ? <>You've already answered part of this check-in. {instruments.length === 1 ? 'One short section is' : `${instruments.length} short sections are`} left — about {estMinutes} minute{estMinutes !== 1 ? 's' : ''}.</>
+                    : <>This check-in takes about {estMinutes} minute{estMinutes !== 1 ? 's' : ''}.
+                  Your email links your responses across time.</>}
                 </p>
               </div>
               <div>
