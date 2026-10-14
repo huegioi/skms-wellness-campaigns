@@ -199,7 +199,7 @@ function phaseRecords(clientId, proposalId, serviceId, p, phase, instruments, sc
 
 function genNps(bias) {
   const r = Math.random();
-  if (bias === 'high') {            // Lakeside ~ +50
+  if (bias === 'high') {            // Horizon Medical Group ~ +50
     if (r < 0.68) return randInt(9, 10);
     if (r < 0.82) return randInt(7, 8);
     return Math.random() < 0.6 ? randInt(5, 6) : randInt(0, 4);
@@ -408,7 +408,7 @@ Deno.serve(async (req) => {
     function addEvent(client, proposalId, daysOffset, hour, dur, type, title, completed, serviceInfo, feedbackCount, label) {
       eventSpecs.push({ rec: eventRecord(client, proposalId, daysOffset, hour, dur, type, title, completed, serviceInfo), client, serviceInfo, label, completed, feedbackCount, daysOffset });
     }
-    // Lakeside — full year of delivery, 6 delivered + 1 upcoming
+    // Horizon Medical Group — full year of delivery, 6 delivered + 1 upcoming
     addEvent(lakeside, lakesideProposal.id, -322, 10, 1.5, 'workshop', 'Beyond Burnout Workshop', true, workshopSvc, 6, 'Q1 Beyond Burnout');
     addEvent(lakeside, lakesideProposal.id, -290, 10, 1, 'challenge', 'Calm & Confident Mind Challenge — Kickoff', true, cCalmMind, 5, 'Q1 Challenge Kickoff');
     addEvent(lakeside, lakesideProposal.id, -255, 14, 1.5, 'workshop', 'Compassion in Crisis Workshop', true, wCompassion, 5, 'Q2 Compassion in Crisis');
@@ -450,7 +450,7 @@ Deno.serve(async (req) => {
     // ── 8. Cohort assessments (full plan-year arc, all 5 instruments) ──
     const cohortRecords = [];
 
-    // Lakeside — 8 named participants, full arc:
+    // Horizon Medical Group — 8 named participants, full arc:
     //   cohort_start (5 instruments) → session_check (who5) → cohort_end (5) →
     //   enps_post_session → cohort_1mo (5, 6 of 8 sustain responders)
     // Each participant keeps ONE trajectory across every phase, so the 1-month
@@ -712,7 +712,7 @@ Deno.serve(async (req) => {
     const cedarMfsRecords = generateMfsResponses(cedarClient.id, 28, { who5: 3.3, pss4: 1.5, uwes3: 4.5, ucla3: 1.6 }, 10);
     if (cedarMfsRecords.length) await base44.asServiceRole.entities.CohortAssessment.bulkCreate(cedarMfsRecords);
 
-    // Lakeside also took the MFS team assessment at the top of its plan year.
+    // Horizon Medical Group also took the MFS team assessment at the top of its plan year.
     // The other three MFS companies are lead-gen demos with no delivered
     // programming, so without this the client-portal MFS panel has no populated
     // portal to appear on and the feature is invisible in the demo.
