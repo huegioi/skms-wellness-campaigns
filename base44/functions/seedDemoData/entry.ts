@@ -290,11 +290,11 @@ Deno.serve(async (req) => {
       demoTag = await base44.asServiceRole.entities.Tag.create({ name: DEMO_TAG, color: '#a855f7', description: 'Broker-demo sample data — excluded from syncs, briefings, and analytics.' });
     }
 
-    // ── 2. Broker: Horizon Benefits Group (Alex Morgan) ──
+    // ── 2. Broker: Summit Benefits Group (Alex Morgan) ──
     const brokerToken = makeToken('bp');
     const lastSept = (() => { const y = now.getFullYear(); const s = new Date(y, 8, 1); if (s > now) s.setFullYear(y - 1); return s.toISOString().split('T')[0]; })();
     const broker = await base44.asServiceRole.entities.ReferralPartner.create({
-      name: 'Alex Morgan', email: 'alex.morgan@example.com', company: 'Horizon Benefits Group',
+      name: 'Alex Morgan', email: 'alex.morgan@example.com', company: 'Summit Benefits Group',
       phone: '(555) 200-1000', tier: 'Tier 1', renewal_cohort: 'Jan 1', unique_portal_id: brokerToken,
       agreement_signed_date: lastSept, commission_tiers: STANDARD_COMMISSION_TIERS,
       ytd_revenue: 48500, total_commissions_paid: 2450, is_active: true, partner_status: 'Active Partner',
@@ -309,9 +309,9 @@ Deno.serve(async (req) => {
 
     const [lakeside, brightpath, meridian] = (await base44.asServiceRole.entities.Client.bulkCreate([
       {
-        name: 'Dana Whitfield', email: 'dana.whitfield@example.com', email_domain: getOrgDomain('dana.whitfield@example.com'), company: 'Lakeside Manufacturing',
-        phone: '(555) 300-2000', title: 'HR Director', industry: 'Manufacturing', company_size: '201-500', employee_count: 280,
-        company_address: '1450 Industrial Pkwy, Cleveland, OH', referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan',
+        name: 'Dana Whitfield', email: 'dana.whitfield@example.com', email_domain: getOrgDomain('dana.whitfield@example.com'), company: 'Horizon Medical Group',
+        phone: '(555) 300-2000', title: 'HR Director', industry: 'Healthcare', company_size: '201-500', employee_count: 280,
+        company_address: '1450 Medical Center Dr, Cleveland, OH', referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan',
         portal_token: lakesideToken, client_stage: 'program_delivery', tier: 'Tier 1', renewal_cohort: 'Jan 1', plan_year_start: dateAt(-335),
         last_touchpoint_date: dateAt(-20), last_service_date: dateAt(-35), last_contacted_date: dateAt(-20),
         owner: 'Heather', tags: [DEMO_TAG], is_demo: true,
@@ -430,7 +430,7 @@ Deno.serve(async (req) => {
     const eventsWithSpecs = createdEvents.map((ev, i) => ({ event: ev, spec: eventSpecs[i] }));
 
     // ── 7. EventCheckins (12-18 per delivered event) ──
-    const lakesidePool = pool('lakeside', 44);
+    const lakesidePool = pool('horizon', 44);
     const brightpathPool = pool('brightpath', 30);
     const meridianPool = pool('meridian', 24);
     const poolFor = (c) => (c === lakeside ? lakesidePool : c === brightpath ? brightpathPool : meridianPool);
@@ -573,7 +573,7 @@ Deno.serve(async (req) => {
 
     // ── 12. Referrals (3 placed + 1 pending) ──
     const [lakesideReferral, brightpathReferral, meridianReferral, cascadeReferral] = (await base44.asServiceRole.entities.Referral.bulkCreate([
-      { referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan', contact_name: 'Dana Whitfield', contact_email: 'dana.whitfield@example.com', company_name: 'Lakeside Manufacturing', referred_client_id: lakeside.id, proposal_id: lakesideProposal.id, referral_date: isoAt(-330, 13), status: 'commission_paid', first_year_revenue: 18000, commission_rate: 0.10, commission_amount: 1800, brokerage_commission: 0, broker_commission: 1800, notes: 'Strong manufacturing client — full annual program. Commission paid.', is_demo: true },
+      { referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan', contact_name: 'Dana Whitfield', contact_email: 'dana.whitfield@example.com', company_name: 'Horizon Medical Group', referred_client_id: lakeside.id, proposal_id: lakesideProposal.id, referral_date: isoAt(-330, 13), status: 'commission_paid', first_year_revenue: 18000, commission_rate: 0.10, commission_amount: 1800, brokerage_commission: 0, broker_commission: 1800, notes: 'Strong healthcare client — full annual program. Commission paid.', is_demo: true },
       { referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan', contact_name: 'Marcus Bell', contact_email: 'marcus.bell@example.com', company_name: 'Brightpath Credit Union', referred_client_id: brightpath.id, proposal_id: brightpathProposal.id, referral_date: isoAt(-100, 13), status: 'purchased', first_year_revenue: 6500, commission_rate: 0.10, commission_amount: 650, brokerage_commission: 0, broker_commission: 650, notes: 'Credit union — mid-size program. Commission paid.', is_demo: true },
       { referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan', contact_name: 'Priya Nair', contact_email: 'priya.nair@example.com', company_name: 'Meridian Health Group', referred_client_id: meridian.id, proposal_id: meridianProposal.id, referral_date: isoAt(-12, 13), status: 'converted_to_client', first_year_revenue: 24000, commission_rate: 0.10, commission_amount: 2400, brokerage_commission: 0, broker_commission: 2400, notes: 'Large healthcare group — commission pending until first invoice is paid.', is_demo: true },
       { referral_partner_id: broker.id, referral_partner_name: 'Alex Morgan', contact_name: 'Renee Okafor', contact_email: 'renee.okafor@example.com', company_name: 'Cascade Dental Partners', referred_lead_id: cascadeLead.id, referral_date: isoAt(-4, 13), status: 'pending_review', first_year_revenue: 0, commission_rate: 0.10, commission_amount: 0, notes: 'New referral — awaiting review and outreach.', is_demo: true },
@@ -581,11 +581,11 @@ Deno.serve(async (req) => {
 
     // ── 13. Referral activities (the story over months) ──
     const salesActivities = [
-      { referral_id: lakesideReferral.id, message: 'Alex Morgan submitted a referral for Lakeside Manufacturing (Dana Whitfield).', activity_date: isoAt(-330, 13) },
-      { referral_id: lakesideReferral.id, message: 'Lakeside Manufacturing contacted — discovery call scheduled with Dana.', activity_date: isoAt(-322, 10) },
-      { referral_id: lakesideReferral.id, message: 'Lakeside Manufacturing converted to client. Proposal accepted ($18,000).', activity_date: isoAt(-318, 14) },
-      { referral_id: lakesideReferral.id, message: 'Lakeside Manufacturing purchase recorded. First-year revenue: $18,000.', activity_date: isoAt(-315, 11) },
-      { referral_id: lakesideReferral.id, message: 'Commission paid to Alex Morgan for Lakeside Manufacturing ($1,800 at 10%).', activity_date: isoAt(-300, 12), activity_type: 'commission_payment', amount: 1800 },
+      { referral_id: lakesideReferral.id, message: 'Alex Morgan submitted a referral for Horizon Medical Group (Dana Whitfield).', activity_date: isoAt(-330, 13) },
+      { referral_id: lakesideReferral.id, message: 'Horizon Medical Group contacted — discovery call scheduled with Dana.', activity_date: isoAt(-322, 10) },
+      { referral_id: lakesideReferral.id, message: 'Horizon Medical Group converted to client. Proposal accepted ($18,000).', activity_date: isoAt(-318, 14) },
+      { referral_id: lakesideReferral.id, message: 'Horizon Medical Group purchase recorded. First-year revenue: $18,000.', activity_date: isoAt(-315, 11) },
+      { referral_id: lakesideReferral.id, message: 'Commission paid to Alex Morgan for Horizon Medical Group ($1,800 at 10%).', activity_date: isoAt(-300, 12), activity_type: 'commission_payment', amount: 1800 },
       { referral_id: brightpathReferral.id, message: 'Alex Morgan submitted a referral for Brightpath Credit Union (Marcus Bell).', activity_date: isoAt(-100, 13) },
       { referral_id: brightpathReferral.id, message: 'Brightpath Credit Union contacted and discovery call completed.', activity_date: isoAt(-95, 10) },
       { referral_id: brightpathReferral.id, message: 'Brightpath Credit Union purchased. First-year revenue: $6,500.', activity_date: isoAt(-90, 11) },
@@ -743,7 +743,7 @@ Deno.serve(async (req) => {
       success: true,
       broker_portal_link: origin + '/ReferralPortal?id=' + brokerToken,
       client_portal_links: [
-        { company: 'Lakeside Manufacturing', link: origin + '/ClientPortal?token=' + lakesideToken },
+        { company: 'Horizon Medical Group', link: origin + '/ClientPortal?token=' + lakesideToken },
         { company: 'Brightpath Credit Union', link: origin + '/ClientPortal?token=' + brightpathToken },
         { company: 'Meridian Health Group', link: origin + '/ClientPortal?token=' + meridianToken },
       ],
