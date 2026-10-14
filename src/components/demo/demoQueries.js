@@ -43,7 +43,7 @@ export async function fetchDemoCounts() {
 }
 
 const CLIENT_DESCRIPTIONS = {
-  'Lakeside Manufacturing': 'Full year of delivered workshops, ROI dashboard populated, cohort assessments complete.',
+  'Horizon Medical Group': 'Full year of delivered workshops, ROI dashboard populated, cohort assessments complete.',
   'Brightpath Credit Union': 'Mid-journey program — half delivered, next challenge starting soon.',
   'Meridian Health Group': 'Recently converted — first workshop delivered, remaining sessions scheduled.',
 };
