@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { senderForOwner } from '../../shared/owners.ts';
 import { buildRecipientBrief } from '../../shared/draftContext.ts';
 import { voiceFor } from '../../shared/senderVoice.ts';
+import { styleBlockFor } from '../../shared/writingStyle.ts';
 
 /**
  * Writes ONE campaign email draft for ONE recipient. Never sends anything.
@@ -120,8 +121,12 @@ ${ctas.map(c => `- ${c.label || ''}: ${c.url || ''}${c.guidance ? ` (when to use
 
     const today = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-    const prompt = `${voiceFor(sender)}
+    // Writing style learned from how this sender edited earlier drafts (WritingStyleProfile,
+    // maintained by learnWritingStyle). Empty when there is no active profile yet.
+    const learnedStyle = await styleBlockFor(base44, sender);
 
+    const prompt = `${voiceFor(sender)}
+${learnedStyle ? `\n${learnedStyle}\n` : ''}
 Today is ${today}. You are writing one email to one person. It must read as if ${senderFirst} wrote it to them personally — never like a mail merge.
 
 ${isFollowup ? `THIS IS FOLLOW-UP #${recipient.followup_round} IN AN EMAIL THREAD.
@@ -211,6 +216,10 @@ FORMAT: plain text email paragraphs. No bullet points, no numbered lists, no mar
       status: 'drafted',
       draft_subject: subject,
       draft_body: out.body,
+      // Maya's own version, kept even if the draft is edited in the app — the "before"
+      // side of writing-style learning (shared/writingStyle.ts)
+      maya_subject: subject,
+      maya_body: out.body,
       drafted_at: new Date().toISOString(),
       thin_context: !brief.rich,
       draft_context: brief.text.slice(0, 12000),
