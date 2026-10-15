@@ -1,0 +1,119 @@
+{
+  "name": "WritingStyleProfile",
+  "properties": {
+    "edits_analyzed": {
+      "default": 0,
+      "description": "How many edited emails the rules have been learned from",
+      "type": "integer"
+    },
+    "examples": {
+      "description": "A few short before (Maya) -> after (sent) excerpts that show the style. Tone only; facts are never reused.",
+      "items": {
+        "properties": {
+          "after": {
+            "type": "string"
+          },
+          "before": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "is_active": {
+      "default": true,
+      "description": "When on, campaign drafts are written with these rules",
+      "type": "boolean"
+    },
+    "last_learned_at": {
+      "description": "When the learner last updated this profile",
+      "format": "date-time",
+      "type": "string"
+    },
+    "last_summary": {
+      "description": "Plain-language note of what changed in the last learning run",
+      "type": "string"
+    },
+    "learned_rules": {
+      "description": "Writing rules Maya distilled from comparing her drafts with what was actually sent. Editable.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "own_rules": {
+      "description": "Rules the sender wrote themselves, one per line. Always applied and never removed by the learner.",
+      "type": "string"
+    },
+    "sender": {
+      "description": "Whose voice this profile describes (one profile per sender)",
+      "enum": [
+        "william",
+        "heather"
+      ],
+      "type": "string"
+    },
+    "unchanged_count": {
+      "default": 0,
+      "description": "How many Maya drafts went out with no real changes",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "sender"
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "user"
+          }
+        }
+      ]
+    }
+  },
+  "type": "object"
+}
