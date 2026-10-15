@@ -74,9 +74,11 @@ export default function WizardStepMessage({ form, updateForm }) {
   });
 
   return (
-    <div className="space-y-4">
+    // Wide windows: the email on the left, Maya's notes + CTAs on the right.
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)] items-start">
+    <div className="space-y-4 min-w-0">
       {/* Template actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
           <PopoverTrigger asChild>
             <Button variant="outline" size="sm" className="gap-1.5">
@@ -139,7 +141,8 @@ export default function WizardStepMessage({ form, updateForm }) {
       <div>
         <Label className="text-sm font-medium text-gray-700 mb-1 block">Body Template *</Label>
         <Textarea
-          rows={6}
+          rows={12}
+          className="min-h-[14rem]"
           placeholder="Hi {{first_name}},&#10;&#10;[PERSONALIZE: reference your last conversation]&#10;&#10;Best,&#10;William"
           value={form.body_template}
           onChange={e => updateForm('body_template', e.target.value)}
@@ -149,12 +152,14 @@ export default function WizardStepMessage({ form, updateForm }) {
           Use <code className="bg-gray-100 px-1 rounded">[PERSONALIZE: ...]</code> for guidance Maya will fill in.
         </p>
       </div>
+    </div>
 
+    <div className="space-y-4 min-w-0">
       {/* Personalization notes */}
       <div>
         <Label className="text-sm font-medium text-gray-700 mb-1 block">Personalization Notes</Label>
         <Textarea
-          rows={3}
+          rows={4}
           placeholder="Tell Maya about this campaign - e.g., 'we met most of these people at the SHRM conference last week; keep it warm and brief'"
           value={form.personalization_notes}
           onChange={e => updateForm('personalization_notes', e.target.value)}
@@ -163,6 +168,7 @@ export default function WizardStepMessage({ form, updateForm }) {
 
       {/* Calls to action */}
       <CtaLibrarySection onSelectedCtasChange={(snapshot) => updateForm('selected_ctas', snapshot)} />
+    </div>
     </div>
   );
 }
