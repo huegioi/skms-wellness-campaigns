@@ -69,13 +69,15 @@ Deno.serve(async (req) => {
         if (sent?.body) {
           patch = finalFields(r, sent, 'gmail_sent');
           captured++;
-        } else if (r.final_body || r.draft_body) {
-          // Not in Sent any more (deleted / different mailbox): fall back to the approved text,
-          // which still holds any edits made in the app.
-          patch = { ...finalFields(r, { subject: r.final_subject || r.draft_subject, body: r.final_body || r.draft_body }, 'approved') };
+        } else if (r.maya_body && r.final_source === 'approved' && r.final_body) {
+          // Not found in Sent (deleted / different mailbox): the approved text still holds any
+          // edits made in the app, and maya_body is Maya's real original — still a fair pair.
+          patch = finalFields(r, { subject: r.final_subject, body: r.final_body }, 'approved');
           patch.style_status = patch.edit_ratio < UNCHANGED_THRESHOLD ? 'unchanged' : 'pending';
           notFound++;
         } else {
+          // Older rows only have the approved draft; without the sent email there is nothing
+          // to compare, so don't count them either way.
           patch = { style_status: 'skipped' };
           notFound++;
         }
