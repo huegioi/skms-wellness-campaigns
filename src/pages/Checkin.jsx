@@ -91,6 +91,12 @@ export default function Checkin() {
       err?.response?.status === 429 ||
       err?.status === 429 ||
       /too many check-ins/i.test(err?.response?.data?.error || err?.message || '');
+    // Server hiccups (database write timeouts, 5xx) are transient — retry them too.
+    const isServerHiccup = (err) => {
+      const status = err?.response?.status ?? err?.status;
+      return err?.response?.data?.retryable === true || (typeof status === 'number' && status >= 500) || !status;
+    };
+    const isRetryable = (err) => is429(err) || isServerHiccup(err);
     const wait = (ms) => new Promise(r => setTimeout(r, ms));
 
     // submitCheckin may 429 under burst load (a large workshop scanning the QR
@@ -105,7 +111,7 @@ export default function Checkin() {
         break;
       } catch (err) {
         lastErr = err;
-        if (is429(err) && attempt < 2) {
+        if (isRetryable(err) && attempt < 2) {
           setRetrying(true);
           const base = attempt === 0 ? 1500 : 3000;
           await wait(base + Math.floor(Math.random() * 400));
@@ -120,8 +126,13 @@ export default function Checkin() {
       if (is429(lastErr)) {
         setSubmitError('The room is busy right now. Please try again in a moment.');
         setShowRetryButton(true);
+      } else if (isServerHiccup(lastErr)) {
+        setSubmitError("We couldn't save your check-in just now. Please tap Try again.");
+        setShowRetryButton(true);
       } else {
-        setSubmitError(lastErr.response?.data?.error || 'Something went wrong. Please try again.');
+        // Only show short, human messages from the server — never raw system errors.
+        const msg = lastErr.response?.data?.error;
+        setSubmitError(msg && msg.length <= 140 ? msg : 'Something went wrong. Please try again.');
       }
       setSubmitting(false);
       return;
@@ -287,7 +298,7 @@ export default function Checkin() {
           )}
           <Button type="submit" disabled={submitting || retrying} className="w-full bg-[#013f7c] hover:bg-[#012d5a] text-white">
             {submitting || retrying
-              ? <><Loader2 className="w-4 h-4 animate-spin" />{retrying ? ' The room is busy — retrying…' : ''}</>
+              ? <><Loader2 className="w-4 h-4 animate-spin" />{retrying ? ' Still saving — retrying…' : ''}</>
               : 'Join session'}
           </Button>
         </form>
