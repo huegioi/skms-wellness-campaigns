@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
         followups_retargeted: followups.filter(f => ['pending', 'drafting', 'drafted', 'error'].includes(f.status)).length,
         followups_already_in_gmail: followups.filter(f => ['approved', 'sent', 'replied'].includes(f.status)).map(f => ({ id: f.id, status: f.status })),
       };
-      if (fix.link_fixed || dryRun) fixes.push(fix);
+      fixes.push(fix);
 
       if (!dryRun) {
         await db.CampaignRecipient.update(r.id, patch);
