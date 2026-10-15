@@ -20,7 +20,7 @@ import {
  * Runs nightly ("Learn Writing Style - Nightly") and from the "Learn from my edits" button.
  */
 
-const CAPTURE_DEFAULT = 40;
+const CAPTURE_DEFAULT = 20; // each email can take several Gmail reads to verify the right message
 const LEARN_DEFAULT = 20;
 
 Deno.serve(async (req) => {
