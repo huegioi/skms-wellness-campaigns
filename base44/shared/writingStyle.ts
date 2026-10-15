@@ -192,7 +192,8 @@ export async function findSentCampaignEmail(accessToken, recipient) {
   const push = (id) => { if (id && !ids.includes(id)) ids.push(id); };
   if (recipient.approved_at) {
     const a = Math.floor(new Date(recipient.approved_at).getTime() / 1000) - 60;
-    const after = await list(`to:${email} in:sent after:${a}`);
+    // Campaign drafts go out within days of approval; the window keeps the earliest in the page.
+    const after = await list(`to:${email} in:sent after:${a} before:${a + 30 * 86400}`);
     after.slice().reverse().forEach(m => push(m.id)); // earliest after approval first
   }
   if (recipient.sent_at) {
