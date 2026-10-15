@@ -2,15 +2,17 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Plus, Mail } from 'lucide-react';
+import { Plus, Mail, PenLine } from 'lucide-react';
 import { toast } from 'sonner';
 import OutreachCampaignCard from '@/components/campaign/OutreachCampaignCard';
 import NewCampaignWizard from '@/components/campaign/NewCampaignWizard';
 import CampaignDetailStub from '@/components/campaign/CampaignDetailStub';
+import WritingStylePanel from '@/components/campaign/WritingStylePanel';
 
 export default function OutreachCampaignsTab({ initialCampaignId = null }) {
   const queryClient = useQueryClient();
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [styleOpen, setStyleOpen] = useState(false);
   const [selectedCampaignId, setSelectedCampaignId] = useState(initialCampaignId || null);
 
   const { data: campaigns = [], isLoading } = useQuery({
@@ -68,9 +70,15 @@ export default function OutreachCampaignsTab({ initialCampaignId = null }) {
             <p className="text-xs text-gray-500 hidden sm:block">Tag-based email campaigns with Maya-drafted personalization</p>
           </div>
         </div>
-        <Button onClick={() => setWizardOpen(true)} className="bg-[#264d44] hover:bg-[#264d44]/90 text-white gap-1.5 text-sm">
-          <Plus className="w-4 h-4" /> <span className="hidden sm:inline">New</span> Outreach Campaign
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* What Maya has learned from how William / Heather edit her drafts */}
+          <Button variant="outline" onClick={() => setStyleOpen(true)} className="gap-1.5 text-sm bg-white" title="Writing style learned from your edits">
+            <PenLine className="w-4 h-4" /> <span className="hidden sm:inline">Writing style</span>
+          </Button>
+          <Button onClick={() => setWizardOpen(true)} className="bg-[#264d44] hover:bg-[#264d44]/90 text-white gap-1.5 text-sm">
+            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">New</span> Outreach Campaign
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -92,6 +100,8 @@ export default function OutreachCampaignsTab({ initialCampaignId = null }) {
           ))}
         </div>
       )}
+
+      <WritingStylePanel open={styleOpen} onOpenChange={setStyleOpen} />
 
       <NewCampaignWizard
         open={wizardOpen}
