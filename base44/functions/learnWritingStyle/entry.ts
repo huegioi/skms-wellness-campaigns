@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     for (const r of toCapture.slice(0, captureLimit)) {
       if (!(r._sender in tokens)) {
         tokens[r._sender] = await gmailAccessToken(base44, r._sender);
-        if (!tokens[r._sender]) notes.push(`Couldn't read ${SENDER_NAME[r._sender]}'s Gmail — her/his sent emails are skipped for now.`);
+        if (!tokens[r._sender]) notes.push(`Couldn't read ${SENDER_NAME[r._sender]}'s Gmail — those sent emails will be read on a later run.`);
       }
       const token = tokens[r._sender];
       if (!token) continue;
@@ -101,7 +101,9 @@ Deno.serve(async (req) => {
       const now = new Date().toISOString();
       if (unchangedNew.length) {
         for (const r of unchangedNew) await db.CampaignRecipient.update(r.id, { style_learned_at: now });
-        profile = await db.WritingStyleProfile.update(profile.id, { unchanged_count: (profile.unchanged_count || 0) + unchangedNew.length }) || profile;
+        const unchanged_count = (profile.unchanged_count || 0) + unchangedNew.length;
+        await db.WritingStyleProfile.update(profile.id, { unchanged_count });
+        profile = { ...profile, unchanged_count };
       }
       if (!batch.length) {
         results.push({ sender, learned_from: 0, unchanged: unchangedNew.length, remaining: 0 });
