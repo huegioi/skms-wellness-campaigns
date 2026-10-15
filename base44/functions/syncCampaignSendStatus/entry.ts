@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { advanceLeadsQuietly } from '../../shared/leadAutomationRunner.ts';
 import { senderForOwner } from '../../shared/owners.ts';
-import { readGmailMessage, finalFields, looksLikeCampaignEmail } from '../../shared/writingStyle.ts';
+import { readGmailMessage, finalFields, findSentCampaignEmail } from '../../shared/writingStyle.ts';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // syncCampaignSendStatus — read-only Gmail check for campaign send/reply status.
@@ -36,6 +36,22 @@ async function searchMessages(accessToken, query) {
     if (!res.ok) return null;
     const data = await res.json();
     return data.messages?.[0] || null;
+  } catch (e) {
+    return null;
+  }
+}
+
+// Earliest match for a query (Gmail lists newest first).
+async function searchEarliestMessage(accessToken, query) {
+  try {
+    const res = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}&maxResults=20`,
+      { headers: { 'Authorization': `Bearer ${accessToken}` } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const list = data.messages || [];
+    return list.length ? list[list.length - 1] : null;
   } catch (e) {
     return null;
   }
@@ -215,34 +231,39 @@ Deno.serve(async (req) => {
             // by its original id after Schedule Send delivers the message (verified
             // empirically 2026-08-05 — drafts.get returned 200 for four drafts whose
             // messages were already in Sent). A found sent-message always wins.
+            //
+            // 2026-10-15: this used to take the NEWEST sent message to the person after
+            // approval, so a later unrelated email (a proposal reply, an invoice) could be
+            // recorded as the campaign email — wrong sent_at, and a wrong thread_id that
+            // would have put follow-up bumps in the wrong conversation. Now the earliest
+            // sent message whose subject/text matches the draft wins (shared/writingStyle.ts).
+            // Only if nothing matches AND the Gmail draft is gone (sent after a heavy
+            // rewrite) do we fall back to the earliest message after approval.
             const approvedTs = Math.floor(new Date(r.approved_at).getTime() / 1000);
-            const sentMsg = await searchMessages(accessToken, `to:${r.email} after:${approvedTs} in:sent`);
+            let verified = null;
+            try {
+              verified = await findSentCampaignEmail(accessToken, r, { approvalWindowOnly: true });
+            } catch (e) {
+              console.warn(`[syncCampaignSendStatus] verified search failed for ${r.id}:`, e.message);
+            }
+            let sentMsg = verified ? { id: verified.messageId, threadId: verified.threadId } : null;
+            if (!sentMsg && !(await checkDraftExists(accessToken, r.gmail_draft_id))) {
+              const earliest = await searchEarliestMessage(accessToken, `to:${r.email} after:${approvedTs} before:${approvedTs + 30 * 86400} in:sent`);
+              if (earliest) sentMsg = earliest;
+            }
 
             if (sentMsg) {
-              const msgDate = await getMessageDate(accessToken, sentMsg.id);
+              const msgDate = verified?.sentAt || await getMessageDate(accessToken, sentMsg.id);
               const updateFields = { status: 'sent', sent_at: msgDate };
-              // Backfill thread_id + rfc_message_id so this recipient can be
-              // bumped in a follow-up round. sentMsg already carries threadId;
-              // we fetch the Message-ID header separately. Additive only —
-              // does NOT change the existing sent/replied detection logic.
-              if (!r.thread_id || !r.rfc_message_id) {
-                if (!r.thread_id && sentMsg.threadId) updateFields.thread_id = sentMsg.threadId;
-                if (!r.rfc_message_id) {
-                  const rfc = await getMessageIdHeader(accessToken, sentMsg.id);
-                  if (rfc) updateFields.rfc_message_id = rfc;
-                }
-              }
+              // thread_id + rfc_message_id of THIS message, so follow-up bumps reply in the
+              // right conversation.
+              if (sentMsg.threadId) updateFields.thread_id = sentMsg.threadId;
+              const rfc = verified?.rfcMessageId || await getMessageIdHeader(accessToken, sentMsg.id);
+              if (rfc) updateFields.rfc_message_id = rfc;
               // Writing-style learning: keep the text that actually went out (edits made in
               // Gmail included) next to Maya's version. Best-effort — never blocks the sync.
-              try {
-                const sentText = await readGmailMessage(accessToken, sentMsg.id);
-                // Only when it really is the campaign email — otherwise learnWritingStyle's
-                // careful search finds the right one later.
-                if (sentText?.body && looksLikeCampaignEmail(r, sentText).ok) {
-                  Object.assign(updateFields, finalFields(r, sentText, 'gmail_sent'));
-                }
-              } catch (e) {
-                console.warn(`[syncCampaignSendStatus] sent-text capture failed for ${r.id}:`, e.message);
+              if (verified?.body) {
+                Object.assign(updateFields, finalFields(r, verified, 'gmail_sent'));
               }
               await base44.entities.CampaignRecipient.update(r.id, updateFields);
 
