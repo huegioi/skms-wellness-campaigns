@@ -151,12 +151,15 @@ async function gmailGet(accessToken, path) {
 export async function readGmailMessage(accessToken, messageId) {
   const msg = await gmailGet(accessToken, `messages/${messageId}?format=full`);
   if (!msg?.payload) return null;
-  const subject = msg.payload.headers?.find(h => h.name?.toLowerCase() === 'subject')?.value || '';
+  const header = (n) => msg.payload.headers?.find(h => h.name?.toLowerCase() === n)?.value || '';
+  const subject = header('subject');
+  const rfcMessageId = header('message-id');
+  const sentAt = msg.internalDate ? new Date(Number(msg.internalDate)).toISOString() : null;
   // HTML first: Gmail's text/plain alternative is hard-wrapped at ~76 characters.
   const html = findPart(msg.payload, 'text/html');
   const plain = findPart(msg.payload, 'text/plain');
   const raw = html ? htmlToText(decodeBase64Url(html)) : plain ? decodeBase64Url(plain) : '';
-  return { subject, body: cleanEmailText(raw), messageId, threadId: msg.threadId, internalDate: msg.internalDate };
+  return { subject, body: cleanEmailText(raw), messageId, threadId: msg.threadId, rfcMessageId, sentAt };
 }
 
 export function normalizeSubject(s) {
@@ -178,7 +181,7 @@ export function looksLikeCampaignEmail(recipient, sent) {
  * Find the campaign email as it was actually sent. Tight time window around sent_at first
  * (sent_at is the sent message's own Date header), then the thread, then "after approval".
  */
-export async function findSentCampaignEmail(accessToken, recipient) {
+export async function findSentCampaignEmail(accessToken, recipient, opts: { approvalWindowOnly?: boolean } = {}) {
   const email = String(recipient?.email || '').trim();
   if (!email) return null;
   const list = async (q, max = 10) => {
@@ -196,11 +199,11 @@ export async function findSentCampaignEmail(accessToken, recipient) {
     const after = await list(`to:${email} in:sent after:${a} before:${a + 30 * 86400}`);
     after.slice().reverse().forEach(m => push(m.id)); // earliest after approval first
   }
-  if (recipient.sent_at) {
+  if (recipient.sent_at && !opts.approvalWindowOnly) {
     const s = Math.floor(new Date(recipient.sent_at).getTime() / 1000);
     (await list(`to:${email} in:sent after:${s - 900} before:${s + 900}`, 5)).forEach(m => push(m.id));
   }
-  if (recipient.thread_id) {
+  if (recipient.thread_id && !opts.approvalWindowOnly) {
     const thread = await gmailGet(accessToken, `threads/${recipient.thread_id}?format=minimal`);
     (thread?.messages || []).filter(m => (m.labelIds || []).includes('SENT')).forEach(m => push(m.id));
   }
