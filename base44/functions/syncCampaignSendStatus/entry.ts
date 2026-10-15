@@ -1,7 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { advanceLeadsQuietly } from '../../shared/leadAutomationRunner.ts';
 import { senderForOwner } from '../../shared/owners.ts';
-import { readGmailMessage, finalFields, findSentCampaignEmail } from '../../shared/writingStyle.ts';
+import { finalFields, findSentCampaignEmail } from '../../shared/writingStyle.ts';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // syncCampaignSendStatus — read-only Gmail check for campaign send/reply status.
@@ -293,7 +293,8 @@ Deno.serve(async (req) => {
             // recipient: once both are set, this block is skipped. Does NOT
             // change the existing reply detection below.
             if (!r.thread_id || !r.rfc_message_id) {
-              const sentMsg2 = await searchMessages(accessToken, `to:${r.email} after:${sentTs} in:sent`);
+              // Earliest at/after sent_at (not the newest — a later email would be a different thread)
+              const sentMsg2 = await searchEarliestMessage(accessToken, `to:${r.email} after:${sentTs - 60} before:${sentTs + 86400} in:sent`);
               if (sentMsg2) {
                 const update2 = {};
                 if (!r.thread_id && sentMsg2.threadId) update2.thread_id = sentMsg2.threadId;
