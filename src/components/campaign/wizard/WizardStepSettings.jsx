@@ -42,9 +42,10 @@ export default function WizardStepSettings({ form, updateForm }) {
   };
 
   return (
-    <div className="space-y-5">
+    // Wide windows: sender on the left, CC list on the right.
+    <div className="grid gap-6 lg:grid-cols-2 items-start">
       {/* Sender mode */}
-      <div>
+      <div className="min-w-0">
         <Label className="text-sm font-medium text-gray-700 mb-2 block">Sender Mode</Label>
         <RadioGroup
           value={form.sender_mode}
@@ -64,7 +65,7 @@ export default function WizardStepSettings({ form, updateForm }) {
       </div>
 
       {/* CC emails */}
-      <div>
+      <div className="min-w-0">
         <Label className="text-sm font-medium text-gray-700 mb-2 block">CC Emails</Label>
         <div className="space-y-2">
           {PRESET_EMAILS.map(email => (
