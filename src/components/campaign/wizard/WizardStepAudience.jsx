@@ -166,7 +166,9 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
     : 0;
 
   return (
-    <div className="space-y-4">
+    // Wide windows: who to target on the left, the live matched list on the right.
+    <div className="grid gap-6 lg:grid-cols-2 items-start">
+    <div className="space-y-4 min-w-0">
       {/* Campaign name */}
       <div>
         <Label className="text-sm font-medium text-gray-700 mb-1 block">Campaign Name *</Label>
@@ -296,6 +298,16 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
         )}
       </div>
 
+    </div>
+
+    <div className="space-y-4 min-w-0">
+      {!showPreview && (
+        <div className="text-sm text-gray-400 py-10 px-4 text-center border border-dashed rounded-lg">
+          <Users className="w-5 h-5 mx-auto mb-2 text-gray-300" />
+          Pick one or more tags (or “All {typeLabel}”) to see who this campaign will reach.
+        </div>
+      )}
+
       {/* High-volume note */}
       {showPreview && finalCount > 25 && (
         <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
@@ -307,7 +319,7 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
       {/* Live preview */}
       {showPreview && (
         <div>
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
             <Label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5" />
               Matched Records ({matchedRecords.length})
@@ -336,7 +348,7 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
               {isAllScope ? 'No records found.' : 'No records match the selected tags.'}
             </div>
           ) : (
-            <div className="border rounded-lg max-h-64 overflow-y-auto divide-y divide-gray-50">
+            <div className="border rounded-lg max-h-64 lg:max-h-[30rem] overflow-y-auto divide-y divide-gray-50">
               {matchedRecords.map(r => {
                 const isExcluded = excludedIds.includes(r.id);
                 const hasNoEmail = !r.email;
@@ -397,6 +409,7 @@ export default function WizardStepAudience({ form, updateForm, excludedIds, togg
           )}
         </div>
       )}
+    </div>
     </div>
   );
 }
