@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { advanceLeadsQuietly } from '../../shared/leadAutomationRunner.ts';
 import { senderForOwner } from '../../shared/owners.ts';
+import { readGmailMessage, finalFields } from '../../shared/writingStyle.ts';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // syncCampaignSendStatus — read-only Gmail check for campaign send/reply status.
@@ -230,6 +231,14 @@ Deno.serve(async (req) => {
                   const rfc = await getMessageIdHeader(accessToken, sentMsg.id);
                   if (rfc) updateFields.rfc_message_id = rfc;
                 }
+              }
+              // Writing-style learning: keep the text that actually went out (edits made in
+              // Gmail included) next to Maya's version. Best-effort — never blocks the sync.
+              try {
+                const sentText = await readGmailMessage(accessToken, sentMsg.id);
+                if (sentText?.body) Object.assign(updateFields, finalFields(r, sentText, 'gmail_sent'));
+              } catch (e) {
+                console.warn(`[syncCampaignSendStatus] sent-text capture failed for ${r.id}:`, e.message);
               }
               await base44.entities.CampaignRecipient.update(r.id, updateFields);
 
