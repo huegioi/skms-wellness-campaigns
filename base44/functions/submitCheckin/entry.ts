@@ -1,5 +1,14 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
 
+// Base44's hosted database occasionally times out a write ("Write results
+// unavailable ... Request timed out"). These are transient — the same write
+// succeeds seconds later — so we retry instead of failing the attendee.
+const isTransient = (err: unknown) =>
+  /timed? ?out|timeout|write results unavailable|ECONNRESET|socket|network|NotWritablePrimary|PrimarySteppedDown|InterruptedDueToReplStateChange|\b50[234]\b/i
+    .test(String((err as any)?.message || err || ''));
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+const FRIENDLY_SAVE_ERROR = "We couldn't save your check-in just now. Please tap Try again.";
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -47,13 +56,35 @@ Deno.serve(async (req) => {
     // same event. No upsert, no dedup at write time.
     // client_id is copied from the event for direct portal grouping; null if
     // the event has no client (becomes an "unmatched" check-in).
-    await base44.asServiceRole.entities.EventCheckin.create({
+    const record = {
       event_id: event.id,
       client_id: event.client_id || null,
       name: name?.trim() || '',
       email: normalizedEmail,
       checked_in_at: now,
-    });
+    };
+    let saved = false;
+    for (let attempt = 0; attempt < 3 && !saved; attempt++) {
+      try {
+        await base44.asServiceRole.entities.EventCheckin.create(record);
+        saved = true;
+      } catch (err) {
+        console.error(`submitCheckin: create failed (attempt ${attempt + 1})`, (err as any)?.message);
+        if (!isTransient(err)) throw err;
+        await sleep(700 * (attempt + 1));
+        // "Write results unavailable" can mean the write actually landed —
+        // look for this exact row before writing it again.
+        try {
+          const existing = await base44.asServiceRole.entities.EventCheckin.filter(
+            { event_id: event.id, email: normalizedEmail }, '-checked_in_at', 3
+          );
+          if ((existing || []).some((c: any) => c.checked_in_at === now)) saved = true;
+        } catch { /* fall through to retry */ }
+      }
+    }
+    if (!saved) {
+      return Response.json({ error: FRIENDLY_SAVE_ERROR, retryable: true }, { status: 503 });
+    }
 
     // Resolve meeting link
     const location = (event.location || '').trim();
@@ -66,6 +97,11 @@ Deno.serve(async (req) => {
       event_title: event.title,
     });
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    // Never show raw database/infrastructure errors to attendees.
+    console.error('submitCheckin: unhandled error', (error as any)?.message);
+    return Response.json(
+      { error: FRIENDLY_SAVE_ERROR, retryable: isTransient(error) },
+      { status: isTransient(error) ? 503 : 500 }
+    );
   }
 });
