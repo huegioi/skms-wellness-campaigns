@@ -147,10 +147,12 @@ ${pairs}
 YOUR TASK
 1. Work out what ${name} consistently changes: length, openings and greetings, sign-off, sentences or phrases removed or added, formality, warmth, how the ask and links are framed, subject lines, paragraphing, punctuation habits.
 2. Return the COMPLETE updated rule list (at most 15 rules). Keep current rules unless the new edits contradict them; merge duplicates; drop rules the edits show are wrong.
+   - The list holds ONLY what the edits teach beyond the base voice guide. Never copy or paraphrase a base-guide rule into it. If the edits show a base rule is wrong for ${name}, write the correction as "Instead of …, …".
+   - An empty list is fine if the edits teach nothing new.
    - Add a rule only when the pattern shows up in at least two edits, or when one edit shows an unmistakable standing preference (e.g. a different sign-off).
    - Each rule is one imperative sentence, concrete, with a short quoted phrase as illustration when useful (e.g. 'Cut "I hope this finds you well" style openers').
    - Never write rules about specific people, companies, events, products or facts — style only.
-3. Ignore differences that are content rather than style: facts ${name} added about the recipient, corrected names, swapped links, dates.
+3. Ignore differences that are content rather than style: facts ${name} added about the recipient, corrected names, swapped links, dates. If a "sent" email is clearly not a rewrite of Maya's draft (a different topic altogether), ignore that pair completely.
 4. Choose up to 3 short before→after excerpts (each under 60 words) that best show the style — new ones from these edits, or keep current ones if they are still the best. Replace recipient names with [Name], companies with [Company], events with [Event].
 5. summary: one or two plain sentences, written to ${name}, on what changed in the guide this round (or that the edits confirmed it).`;
 
