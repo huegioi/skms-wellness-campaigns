@@ -273,8 +273,9 @@ export default function Leads() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [brokerTagMatchAll, setBrokerTagMatchAll] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
-  // Pipeline card order inside each column: 'default' | 'potential_desc' | 'potential_asc'.
-  // Remembered per browser so the board opens the way it was left.
+  // Card order for the List view and inside each Pipeline column:
+  // 'default' | 'potential_desc' | 'potential_asc'. One setting shared by both views,
+  // remembered per browser so the page opens the way it was left.
   const [brokerPipelineSort, setBrokerPipelineSortState] = useState(() => {
     try { return localStorage.getItem('skms.partnerPipelineSort') || 'default'; } catch { return 'default'; }
   });
@@ -285,7 +286,7 @@ export default function Leads() {
   const brokerActiveFilterCount =
     (brokerFilterStatus !== 'all' ? 1 : 0) +
     (brokerFilterOwner !== 'all' ? 1 : 0) +
-    (brokerViewMode === 'pipeline' && brokerPipelineSort !== 'default' ? 1 : 0) +
+    ((brokerViewMode === 'pipeline' || brokerViewMode === 'list') && brokerPipelineSort !== 'default' ? 1 : 0) +
     brokerTagFilter.length;
 
   // Duplicate cleanup state (lifted up so button lives in header)
@@ -753,12 +754,12 @@ export default function Leads() {
     return matchSearch && matchStatus && matchOwner && matchTags;
   });
 
-  // Pipeline view: order cards by referral potential. The board groups leads into
-  // columns in the order it receives them, so sorting here sorts every column.
-  // Leads with no potential set always go to the bottom. Sort is stable, so ties
-  // keep their existing order.
+  // List + Pipeline views: order cards by referral potential. The pipeline board
+  // groups leads into columns in the order it receives them, so sorting here sorts
+  // every column too. Leads with no potential set always go to the bottom. Sort is
+  // stable, so ties keep their existing order.
   const POTENTIAL_RANK = { high: 3, medium: 2, low: 1 };
-  const pipelineBrokerLeads = brokerPipelineSort === 'default'
+  const sortedBrokerLeads = brokerPipelineSort === 'default'
     ? filteredBrokerLeads
     : [...filteredBrokerLeads].sort((a, b) => {
         const ra = POTENTIAL_RANK[a.referral_potential] || 0;
@@ -1099,7 +1100,7 @@ export default function Leads() {
                 </SelectContent>
               </Select>
 
-              {brokerViewMode === 'pipeline' && (
+              {(brokerViewMode === 'pipeline' || brokerViewMode === 'list') && (
                 <Select value={brokerPipelineSort} onValueChange={setBrokerPipelineSort}>
                   <SelectTrigger className="w-full md:w-[210px] bg-white">
                     <ArrowUpDown className="w-4 h-4 mr-1 text-gray-400 shrink-0" />
@@ -1154,7 +1155,7 @@ export default function Leads() {
               />
             ) : brokerViewMode === 'pipeline' ? (
               <PipelineView
-                leads={pipelineBrokerLeads}
+                leads={sortedBrokerLeads}
                 onSelectLead={(lead) => setViewingBrokerLead(lead)}
                 onStageChange={(leadId, newStage) => {
                   queryClient.setQueryData(['leads'], (old) =>
@@ -1171,7 +1172,7 @@ export default function Leads() {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredBrokerLeads.map(lead => <BrokerLeadCard key={lead.id} lead={lead} latestTouch={latestTouchByLead[lead.id]} nextEvent={nextEventByLead[lead.id]} channelSummary={channelSummaryByLead[lead.id]} />)}
+                {sortedBrokerLeads.map(lead => <BrokerLeadCard key={lead.id} lead={lead} latestTouch={latestTouchByLead[lead.id]} nextEvent={nextEventByLead[lead.id]} channelSummary={channelSummaryByLead[lead.id]} />)}
               </div>
             )}
           </TabsContent>
