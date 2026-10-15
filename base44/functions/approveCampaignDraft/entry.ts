@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.40';
 import { senderForOwner } from '../../shared/owners.ts';
+import { finalFields } from '../../shared/writingStyle.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -101,6 +102,9 @@ Deno.serve(async (req) => {
       draft_mailbox: draft_mailbox || undefined,
       interaction_id: interaction.id,
       error_message: null,
+      // Writing-style learning: the approved text is the "after" until Gmail shows what was
+      // really sent (syncCampaignSendStatus / learnWritingStyle replace it then).
+      ...finalFields(recipient, { subject: recipient.draft_subject || '', body: recipient.draft_body || '' }, 'approved'),
       ...(isFollowup && !recipient.thread_id ? { feedback_note: 'thread id missing — sent as fresh email' } : {}),
     });
 
