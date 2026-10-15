@@ -152,10 +152,26 @@ export async function readGmailMessage(accessToken, messageId) {
   const msg = await gmailGet(accessToken, `messages/${messageId}?format=full`);
   if (!msg?.payload) return null;
   const subject = msg.payload.headers?.find(h => h.name?.toLowerCase() === 'subject')?.value || '';
-  const plain = findPart(msg.payload, 'text/plain');
+  // HTML first: Gmail's text/plain alternative is hard-wrapped at ~76 characters.
   const html = findPart(msg.payload, 'text/html');
-  const raw = plain ? decodeBase64Url(plain) : html ? htmlToText(decodeBase64Url(html)) : '';
-  return { subject, body: cleanEmailText(raw), messageId };
+  const plain = findPart(msg.payload, 'text/plain');
+  const raw = html ? htmlToText(decodeBase64Url(html)) : plain ? decodeBase64Url(plain) : '';
+  return { subject, body: cleanEmailText(raw), messageId, threadId: msg.threadId, internalDate: msg.internalDate };
+}
+
+export function normalizeSubject(s) {
+  return String(s || '').toLowerCase().replace(/^((re|fwd?|fw)\s*:\s*)+/i, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+}
+
+/** Does this sent message look like the campaign email the row describes? */
+export function looksLikeCampaignEmail(recipient, sent) {
+  if (!sent?.body) return { ok: false, ratio: 1, subjectMatch: false };
+  const want = normalizeSubject(recipient?.maya_subject || recipient?.draft_subject);
+  const got = normalizeSubject(sent.subject);
+  const subjectMatch = !!want && !!got && (want === got || got.includes(want) || want.includes(got));
+  const ratio = editRatio(mayaVersion(recipient).body, sent.body);
+  // A changed subject is fine when the text clearly overlaps; an unrelated email is not.
+  return { ok: subjectMatch ? ratio < 0.95 : ratio <= 0.6, ratio, subjectMatch };
 }
 
 /**
@@ -165,27 +181,38 @@ export async function readGmailMessage(accessToken, messageId) {
 export async function findSentCampaignEmail(accessToken, recipient) {
   const email = String(recipient?.email || '').trim();
   if (!email) return null;
-  const list = async (q) => {
-    const data = await gmailGet(accessToken, `messages?q=${encodeURIComponent(q)}&maxResults=5`);
+  const list = async (q, max = 10) => {
+    const data = await gmailGet(accessToken, `messages?q=${encodeURIComponent(q)}&maxResults=${max}`);
     return data?.messages || [];
   };
-  let hits = [];
+  // Candidates, most likely first. The stored sent_at / thread_id can point at the wrong
+  // email (older status checks took the NEWEST message after approval), so every
+  // candidate is verified against the draft before it is used.
+  const ids: string[] = [];
+  const push = (id) => { if (id && !ids.includes(id)) ids.push(id); };
+  if (recipient.approved_at) {
+    const a = Math.floor(new Date(recipient.approved_at).getTime() / 1000) - 60;
+    const after = await list(`to:${email} in:sent after:${a}`);
+    after.slice().reverse().forEach(m => push(m.id)); // earliest after approval first
+  }
   if (recipient.sent_at) {
     const s = Math.floor(new Date(recipient.sent_at).getTime() / 1000);
-    hits = await list(`to:${email} in:sent after:${s - 900} before:${s + 900}`);
+    (await list(`to:${email} in:sent after:${s - 900} before:${s + 900}`, 5)).forEach(m => push(m.id));
   }
-  if (!hits.length && recipient.thread_id) {
+  if (recipient.thread_id) {
     const thread = await gmailGet(accessToken, `threads/${recipient.thread_id}?format=minimal`);
-    const sent = (thread?.messages || []).find(m => (m.labelIds || []).includes('SENT'));
-    if (sent) hits = [sent];
+    (thread?.messages || []).filter(m => (m.labelIds || []).includes('SENT')).forEach(m => push(m.id));
   }
-  if (!hits.length && recipient.approved_at) {
-    const a = Math.floor(new Date(recipient.approved_at).getTime() / 1000);
-    const all = await list(`to:${email} in:sent after:${a}`);
-    if (all.length) hits = [all[all.length - 1]]; // list is newest first → take the earliest after approval
+
+  let best = null;
+  for (const id of ids.slice(0, 6)) {
+    const sent = await readGmailMessage(accessToken, id);
+    const check = looksLikeCampaignEmail(recipient, sent);
+    if (!check.ok) continue;
+    if (check.subjectMatch) return sent; // earliest subject match after approval = the campaign email
+    if (!best || check.ratio < best.ratio) best = { ...sent, ratio: check.ratio };
   }
-  if (!hits.length) return null;
-  return readGmailMessage(accessToken, hits[0].id);
+  return best;
 }
 
 /** Maya's side of the comparison (rows from before 2026-10-15 only have the approved draft). */
