@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Building, Building2, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, ChevronRight, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, Waypoints, GitMerge, Settings, Inbox, Wrench, MoreVertical, Loader2, Filter } from 'lucide-react';
+import { Search, Plus, Building, Building2, Mail, Phone, Pencil, Trash2, RefreshCw, ExternalLink, User, Star, Users, ChevronDown, ChevronUp, ChevronRight, AlertCircle, Handshake, Clock, ScanText, Share2, Copy, Edit, Check, Bell, List, Kanban, Waypoints, GitMerge, Settings, Inbox, Wrench, MoreVertical, Loader2, Filter, ArrowUpDown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import GmailHistory from '@/components/clients/GmailHistory';
 import BrokerLeadDetail from '@/components/leads/BrokerLeadDetail';
@@ -273,9 +273,19 @@ export default function Leads() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [brokerTagMatchAll, setBrokerTagMatchAll] = useState(false);
   const [showTagManager, setShowTagManager] = useState(false);
+  // Pipeline card order inside each column: 'default' | 'potential_desc' | 'potential_asc'.
+  // Remembered per browser so the board opens the way it was left.
+  const [brokerPipelineSort, setBrokerPipelineSortState] = useState(() => {
+    try { return localStorage.getItem('skms.partnerPipelineSort') || 'default'; } catch { return 'default'; }
+  });
+  const setBrokerPipelineSort = (v) => {
+    setBrokerPipelineSortState(v);
+    try { localStorage.setItem('skms.partnerPipelineSort', v); } catch { /* storage unavailable */ }
+  };
   const brokerActiveFilterCount =
     (brokerFilterStatus !== 'all' ? 1 : 0) +
     (brokerFilterOwner !== 'all' ? 1 : 0) +
+    (brokerViewMode === 'pipeline' && brokerPipelineSort !== 'default' ? 1 : 0) +
     brokerTagFilter.length;
 
   // Duplicate cleanup state (lifted up so button lives in header)
@@ -743,6 +753,20 @@ export default function Leads() {
     return matchSearch && matchStatus && matchOwner && matchTags;
   });
 
+  // Pipeline view: order cards by referral potential. The board groups leads into
+  // columns in the order it receives them, so sorting here sorts every column.
+  // Leads with no potential set always go to the bottom. Sort is stable, so ties
+  // keep their existing order.
+  const POTENTIAL_RANK = { high: 3, medium: 2, low: 1 };
+  const pipelineBrokerLeads = brokerPipelineSort === 'default'
+    ? filteredBrokerLeads
+    : [...filteredBrokerLeads].sort((a, b) => {
+        const ra = POTENTIAL_RANK[a.referral_potential] || 0;
+        const rb = POTENTIAL_RANK[b.referral_potential] || 0;
+        if (!ra || !rb) return rb - ra; // unset last either way
+        return brokerPipelineSort === 'potential_asc' ? ra - rb : rb - ra;
+      });
+
   const BrokerLeadCard = ({ lead, latestTouch, nextEvent, channelSummary }) => {
     const [showEmails, setShowEmails] = useState(false);
     const statusCfg = STATUS_CONFIG[lead.status || 'cold'] || STATUS_CONFIG.cold;
@@ -1075,6 +1099,20 @@ export default function Leads() {
                 </SelectContent>
               </Select>
 
+              {brokerViewMode === 'pipeline' && (
+                <Select value={brokerPipelineSort} onValueChange={setBrokerPipelineSort}>
+                  <SelectTrigger className="w-full md:w-[210px] bg-white">
+                    <ArrowUpDown className="w-4 h-4 mr-1 text-gray-400 shrink-0" />
+                    <SelectValue placeholder="Sort cards" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default order</SelectItem>
+                    <SelectItem value="potential_desc">Potential: High → Low</SelectItem>
+                    <SelectItem value="potential_asc">Potential: Low → High</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+
               <TagFilter
                 selected={brokerTagFilter}
                 onChange={setBrokerTagFilter}
@@ -1116,7 +1154,7 @@ export default function Leads() {
               />
             ) : brokerViewMode === 'pipeline' ? (
               <PipelineView
-                leads={filteredBrokerLeads}
+                leads={pipelineBrokerLeads}
                 onSelectLead={(lead) => setViewingBrokerLead(lead)}
                 onStageChange={(leadId, newStage) => {
                   queryClient.setQueryData(['leads'], (old) =>
