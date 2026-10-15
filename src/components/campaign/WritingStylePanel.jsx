@@ -190,8 +190,9 @@ export default function WritingStylePanel({ open, onOpenChange }) {
     setLearning(true);
     try {
       let last = null;
-      // Reading Gmail is batched (40 emails a call); keep going until everything is read.
-      for (let round = 0; round < 6; round++) {
+      // Reading Gmail is batched (20 emails a call). A few rounds here; the nightly run
+      // finishes the rest of a large backlog.
+      for (let round = 0; round < 4; round++) {
         const res = await base44.functions.invoke('learnWritingStyle', { sender });
         last = res?.data;
         if (last?.error) throw new Error(last.error);
