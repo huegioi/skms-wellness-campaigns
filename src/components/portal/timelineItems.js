@@ -99,7 +99,7 @@ export function buildTimelineItems(events = [], services = [], portalUrl = '') {
         cal: {
           id: `${event.id}-2weeks`, title: `Send announcement email: ${name}`, start: annDate,
           end: new Date(annDate.getTime() + 15 * 60000), alarmMinutes: 0,
-          description: `Send the announcement email to your employees about ${name} on ${when}.\nEmail templates and details: ${portalUrl}`,
+          description: `Send the announcement email to your employees about ${name} on ${when}.\nProgram details: ${portalUrl}`,
         },
       });
       const remDate = taskTime(subDays(eventDate, 2));
@@ -109,7 +109,7 @@ export function buildTimelineItems(events = [], services = [], portalUrl = '') {
         cal: {
           id: `${event.id}-2days`, title: `Send reminder email: ${name}`, start: remDate,
           end: new Date(remDate.getTime() + 15 * 60000), alarmMinutes: 0,
-          description: `Send the reminder email to your employees — ${name} is on ${when}.\nEmail templates and details: ${portalUrl}`,
+          description: `Send the reminder email to your employees — ${name} is on ${when}.\nProgram details: ${portalUrl}`,
         },
       });
       if (event.event_type === 'challenge') {

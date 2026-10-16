@@ -19,6 +19,10 @@ import { copyToClipboard } from '@/lib/copyToClipboard';
 import PortalLinkDialog from '@/components/shared/PortalLinkDialog';
 import { HR_PORTAL_CONTACT } from '@/lib/portalContacts';
 
+// Emails tab hidden in all client portals for now (William, 2026-10-16).
+// Set to true to bring it back — the tab and its content return as they were.
+const SHOW_EMAILS_TAB = false;
+
 /**
  * Shared client portal UI driven by mode.
  * mode="admin"  — uses clientId credential, shows Share Portal button
@@ -98,7 +102,7 @@ export default function ClientPortalCore({ mode, token, clientId }) {
     { key: 'feedback', label: 'Feedback', icon: ClipboardList },
     { key: 'engagement', label: 'Engagement', icon: UserCheck },
     { key: 'resources', label: 'Resources', icon: FolderOpen },
-    { key: 'templates', label: 'Emails', icon: Mail },
+    ...(SHOW_EMAILS_TAB ? [{ key: 'templates', label: 'Emails', icon: Mail }] : []),
     { key: 'book', label: 'Book', icon: CalendarPlus },
     { key: 'profile', label: 'Profile', icon: Settings },
   ];
@@ -235,7 +239,7 @@ export default function ClientPortalCore({ mode, token, clientId }) {
       {activeTab === 'book' && (
         <BookSession client={client} />
       )}
-      {activeTab === 'templates' && (
+      {SHOW_EMAILS_TAB && activeTab === 'templates' && (
         <ClientEmailTemplates proposal={acceptedProposal} templates={allTemplates} client={client} services={services} />
       )}
       {activeTab === 'profile' && (
