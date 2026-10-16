@@ -69,7 +69,7 @@ export default function ClientHomeTab({ client, events = [], proposals = [], ser
       {isNewClient ? (
         <div className="grid gap-4 lg:grid-cols-5">
           <div className="lg:col-span-3">
-            <GettingStarted timeline={timeline} counts={counts} onNavigate={onNavigate} />
+            <GettingStarted onNavigate={onNavigate} />
           </div>
           <div className="lg:col-span-2">
             <NextSessionCard item={nextSession} onNavigate={onNavigate} />
@@ -251,54 +251,44 @@ function NextSessionCard({ item, onNavigate }) {
   );
 }
 
-function GettingStarted({ timeline, counts, onNavigate }) {
-  const firstSession = timeline.find(i => i.kind === 'event' && !NON_PROGRAM_TYPES.has(i.event.event_type) && timelineStatus(i) !== 'past');
-  const eid = firstSession?.event?.id;
-  const ann = eid && timeline.find(i => i.id === `${eid}-2weeks`);
-  const rem = eid && timeline.find(i => i.id === `${eid}-2days`);
-  const done = (i) => i && timelineStatus(i) === 'past';
-  const steps = [
-    {
-      title: 'Schedule your first session',
-      done: counts.booked > 0,
-      sub: counts.booked > 0 ? `Booked — ${firstSession ? `${firstSession.name} on ${format(firstSession.date, 'EEE, MMM d')}` : 'on your calendar'}` : 'Pick a date for your first program.',
-      action: counts.booked > 0 ? null : <button onClick={() => onNavigate('book')} className="text-sm font-medium text-brand-navy hover:underline">Book now →</button>,
-    },
-    {
-      title: 'Announce it to your employees',
-      done: done(ann),
-      sub: ann ? `Suggested: ${format(ann.date, 'EEE, MMM d')} (2 weeks before)` : 'Two weeks before your session.',
-      action: ann && !done(ann) ? <AddToCalendarMenu event={ann.cal} /> : null,
-    },
-    {
-      title: 'Send a reminder',
-      done: done(rem),
-      sub: rem ? `Suggested: ${format(rem.date, 'EEE, MMM d')} (2 days before)` : 'Two days before your session.',
-      action: rem && !done(rem) ? <AddToCalendarMenu event={rem.cal} /> : null,
-    },
-    {
-      title: 'See your results & resources',
-      done: false,
-      sub: 'Unlocks after your first session — participation, feedback, and session materials.',
-      action: null,
-    },
-  ];
+// Static "things you can do" list for new clients — each row jumps to the
+// tab where you do it. Deliberately not a progress checklist.
+const GETTING_STARTED_ITEMS = [
+  { tab: 'book', icon: CalendarPlus, color: '#264d44', title: 'Schedule your first session',
+    desc: 'Pick a date for your first workshop or program on the Book tab.' },
+  { tab: 'timeline', icon: CalendarCheck, color: '#013f7c', title: 'Check out your Timeline',
+    desc: 'See upcoming events and add email reminders — when to announce and remind employees — to your calendar.' },
+  { tab: 'proposal', icon: Sparkles, color: '#770142', title: 'Review your programming',
+    desc: 'See every workshop, challenge, and program included in your plan.' },
+  { tab: 'resources', icon: FolderOpen, color: '#b4532a', title: 'Find session resources',
+    desc: 'Recordings, slides, and handouts appear here after each session.' },
+  { tab: 'feedback', icon: BarChart3, color: '#264d44', title: 'Follow your results',
+    desc: 'Participation, feedback, and wellbeing results build as your sessions happen.' },
+];
+
+function GettingStarted({ onNavigate }) {
   return (
     <CardShell eyebrow="Getting started">
-      <ol className="space-y-4">
-        {steps.map((s, i) => (
-          <li key={s.title} className="flex items-start gap-3">
-            {s.done
-              ? <CheckCircle2 className="w-6 h-6 text-brand-green shrink-0" />
-              : <span className="w-6 h-6 shrink-0 rounded-full border-2 border-gray-200 text-xs font-semibold text-gray-400 flex items-center justify-center">{i + 1}</span>}
-            <div className="flex-1 min-w-0">
-              <p className={`font-semibold ${s.done ? 'text-gray-500 line-through decoration-gray-300' : 'text-gray-900'}`}>{s.title}</p>
-              <p className="text-sm text-gray-500">{s.sub}</p>
-            </div>
-            {s.action && <div className="shrink-0">{s.action}</div>}
-          </li>
-        ))}
-      </ol>
+      <p className="text-sm text-gray-600 -mt-1 mb-3">A few things you can do in your portal:</p>
+      <ul className="divide-y divide-gray-100">
+        {GETTING_STARTED_ITEMS.map(item => {
+          const Icon = item.icon;
+          return (
+            <li key={item.tab}>
+              <button onClick={() => onNavigate(item.tab)} className="w-full flex items-center gap-3 py-3 text-left group">
+                <span className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: item.color }}>
+                  <Icon className="w-5 h-5 text-white" />
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block font-semibold text-gray-900 group-hover:text-brand-navy">{item.title}</span>
+                  <span className="block text-sm text-gray-500">{item.desc}</span>
+                </span>
+                <ArrowRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 shrink-0" />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </CardShell>
   );
 }
