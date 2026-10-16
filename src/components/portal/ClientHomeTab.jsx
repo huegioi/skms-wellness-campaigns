@@ -42,7 +42,7 @@ export default function ClientHomeTab({ client, events = [], proposals = [], ser
   const counts = statusCounts(programs);
   const isNewClient = counts.delivered === 0;
 
-  // ── Results (same query + cache as the Feedback tab's dashboard) ─────────
+  // ── Results (same query + cache as the Survey Data tab's dashboard) ─────────
   const { data: roiData } = useQuery({
     queryKey: ['roi-data', client?.id, client?.portal_token, undefined],
     queryFn: async () => {

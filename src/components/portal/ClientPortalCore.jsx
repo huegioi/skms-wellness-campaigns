@@ -99,7 +99,7 @@ export default function ClientPortalCore({ mode, token, clientId }) {
     { key: 'home', label: 'Home', icon: LayoutDashboard },
     { key: 'proposal', label: 'Programming', icon: FileText },
     { key: 'timeline', label: 'Timeline', icon: Calendar },
-    { key: 'feedback', label: 'Feedback', icon: ClipboardList },
+    { key: 'feedback', label: 'Survey Data', icon: ClipboardList },
     { key: 'engagement', label: 'Engagement', icon: UserCheck },
     { key: 'resources', label: 'Resources', icon: FolderOpen },
     ...(SHOW_EMAILS_TAB ? [{ key: 'templates', label: 'Emails', icon: Mail }] : []),
