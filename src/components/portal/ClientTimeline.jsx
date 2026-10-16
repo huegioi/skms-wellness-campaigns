@@ -14,7 +14,7 @@ export default function ClientTimeline({ events = [], proposal, services = [] })
   const statusOf = timelineStatus;
   const relative = relativeDay;
 
-  if (events.length === 0) {
+  if (items.length === 0) {
     return (
       <Card>
         <CardContent className="py-12 text-center">
@@ -67,7 +67,7 @@ export default function ClientTimeline({ events = [], proposal, services = [] })
     const a = ACTIONS[item.kind];
     const Icon = a.icon;
     const color = muted ? '#6b7280' : a.color;
-    const tag = item.kind === 'app_notification' ? 'Automatic' : muted ? 'Past' : 'Your to-do';
+    const tag = muted ? 'Past' : 'Your to-do';
     return (
       <div className="flex flex-wrap items-center gap-2 mb-2.5">
         <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: muted ? '#d1d5db' : a.color }}>
@@ -153,7 +153,7 @@ export default function ClientTimeline({ events = [], proposal, services = [] })
           <div>
             <CardTitle className="text-lg">Your Program Timeline</CardTitle>
             <p className="text-sm text-gray-500 mt-1">
-              Your sessions, plus when we suggest sending the announcement (2 weeks before) and reminder (2 days before) emails.
+              Your scheduled sessions, plus the suggested dates to email your team: an announcement 2 weeks before and a reminder 2 days before.
             </p>
           </div>
           {upcomingCal.length > 1 && (

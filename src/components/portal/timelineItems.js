@@ -1,10 +1,16 @@
-import { Users, Award, Dumbbell, Package, MessageSquare, Clock, Mail, Bell, AlertCircle } from 'lucide-react';
+import { Users, Award, Dumbbell, Package, MessageSquare, Clock, Mail, Bell } from 'lucide-react';
 import { format, subDays, differenceInCalendarDays, isPast, isToday, setHours, setMinutes } from 'date-fns';
+import { isPortalSession } from '@/lib/portalSessions';
 
 /**
  * Shared "program timeline" logic for the client portal — the Timeline tab and
  * the Home tab's "Your next to-do" / "Next session" cards both read from this,
  * so they always agree on what's due and when.
+ *
+ * It holds exactly two things: the program sessions on the calendar, and the
+ * suggested dates for emailing the team about each one (announcement 2 weeks
+ * before, reminder 2 days before). Meetings, follow-ups, deliveries and
+ * old-spreadsheet leftovers never appear (shared/portalSessions.ts).
  */
 
 // Events ingested from Google Calendar carry the invite body verbatim, which is
@@ -52,13 +58,9 @@ export const EVENT_TYPE_CONFIG = {
   other: { label: 'Session', noun: 'session', color: '#4b5563', icon: Clock },
 };
 
-// Only real program sessions get "send announcement / reminder" to-dos.
-const NO_EMAIL_TASKS = new Set(['meeting', 'follow_up', 'delivery']);
-
 export const TIMELINE_ACTIONS = {
   email_announcement: { label: 'Send announcement email', icon: Mail, color: '#013f7c', bg: '#e8eef6' },
   email_reminder: { label: 'Send reminder email', icon: Bell, color: '#b4532a', bg: '#fdeee8' },
-  app_notification: { label: 'App notifications begin', icon: AlertCircle, color: '#770142', bg: '#f5e8ef' },
 };
 
 /** Match a calendar event to its catalog service (image + clean name). */
@@ -80,6 +82,7 @@ export function programNameForEvent(event, service) {
 export function buildTimelineItems(events = [], services = [], portalUrl = '') {
   const items = [];
   for (const event of events) {
+    if (!isPortalSession(event)) continue;
     const eventDate = new Date(event.start_date);
     if (Number.isNaN(eventDate.getTime())) continue;
     const config = EVENT_TYPE_CONFIG[event.event_type] || EVENT_TYPE_CONFIG.other;
@@ -91,36 +94,27 @@ export function buildTimelineItems(events = [], services = [], portalUrl = '') {
     // Email to-dos land on the calendar at 9:00 AM local on the suggested day.
     const taskTime = (d) => setMinutes(setHours(d, 9), 0);
 
-    if (!NO_EMAIL_TASKS.has(event.event_type)) {
-      const annDate = taskTime(subDays(eventDate, 14));
-      items.push({
-        ...base, id: `${event.id}-2weeks`, date: annDate, kind: 'email_announcement',
-        subtitle: `Let employees know it's coming — 2 weeks before the ${config.noun} on ${when}.`,
-        cal: {
-          id: `${event.id}-2weeks`, title: `Send announcement email: ${name}`, start: annDate,
-          end: new Date(annDate.getTime() + 15 * 60000), alarmMinutes: 0,
-          description: `Send the announcement email to your employees about ${name} on ${when}.\nProgram details: ${portalUrl}`,
-        },
-      });
-      const remDate = taskTime(subDays(eventDate, 2));
-      items.push({
-        ...base, id: `${event.id}-2days`, date: remDate, kind: 'email_reminder',
-        subtitle: `A quick nudge — the ${config.noun} is in 2 days (${when}).`,
-        cal: {
-          id: `${event.id}-2days`, title: `Send reminder email: ${name}`, start: remDate,
-          end: new Date(remDate.getTime() + 15 * 60000), alarmMinutes: 0,
-          description: `Send the reminder email to your employees — ${name} is on ${when}.\nProgram details: ${portalUrl}`,
-        },
-      });
-      if (event.event_type === 'challenge') {
-        const notif = taskTime(subDays(eventDate, 3));
-        items.push({
-          ...base, id: `${event.id}-app-notif`, date: notif, kind: 'app_notification',
-          subtitle: 'Automatic — people who signed up get a heads-up in the app. Nothing for you to do.',
-          cal: null,
-        });
-      }
-    }
+    // Every session gets the two suggested team emails.
+    const annDate = taskTime(subDays(eventDate, 14));
+    items.push({
+      ...base, id: `${event.id}-2weeks`, date: annDate, kind: 'email_announcement',
+      subtitle: `Let employees know it's coming — 2 weeks before the ${config.noun} on ${when}.`,
+      cal: {
+        id: `${event.id}-2weeks`, title: `Send announcement email: ${name}`, start: annDate,
+        end: new Date(annDate.getTime() + 15 * 60000), alarmMinutes: 0,
+        description: `Send the announcement email to your employees about ${name} on ${when}.\nProgram details: ${portalUrl}`,
+      },
+    });
+    const remDate = taskTime(subDays(eventDate, 2));
+    items.push({
+      ...base, id: `${event.id}-2days`, date: remDate, kind: 'email_reminder',
+      subtitle: `A quick nudge — the ${config.noun} is in 2 days (${when}).`,
+      cal: {
+        id: `${event.id}-2days`, title: `Send reminder email: ${name}`, start: remDate,
+        end: new Date(remDate.getTime() + 15 * 60000), alarmMinutes: 0,
+        description: `Send the reminder email to your employees — ${name} is on ${when}.\nProgram details: ${portalUrl}`,
+      },
+    });
 
     const timeRange = event.end_date
       ? `${format(eventDate, 'h:mm a')} – ${format(new Date(event.end_date), 'h:mm a')}`

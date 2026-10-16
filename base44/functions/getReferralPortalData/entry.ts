@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import { shouldExcludeDemo } from '../../shared/demoPortal.ts';
+import { isPortalSession } from '../../shared/portalSessions.ts';
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
@@ -230,7 +231,7 @@ Deno.serve(async (req) => {
     const serviceNameById = Object.fromEntries(allServices.map(s => [s.id, s.name]));
     clientEvents = evs
       .filter(e => partnerIsDemo || !e.is_demo)
-      .filter(e => e.event_type !== 'meeting' && e.event_type !== 'follow_up')
+      .filter(isPortalSession) // program sessions only — shared/portalSessions.ts
       .map(e => ({
         id: e.id,
         client_id: e.client_id,

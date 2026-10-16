@@ -1,8 +1,10 @@
 import { serviceForEvent } from './timelineItems';
 import { resourceAvailability } from '@/lib/resourceAvailability';
+import { NON_SESSION_EVENT_TYPES } from '@/lib/portalSessions';
 
 export const SESSION_SELECTION_KEYS = ['workshops', 'challengePrograms', 'leadership', 'movementClasses'];
-export const NON_PROGRAM_TYPES = new Set(['meeting', 'follow_up', 'delivery']);
+// Meetings, follow-ups and deliveries aren't program sessions (shared/portalSessions.ts).
+export const NON_PROGRAM_TYPES = new Set(NON_SESSION_EVENT_TYPES);
 
 /**
  * Per purchased program (accepted-proposal selections): delivered / booked /

@@ -2,6 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { shouldExcludeDemo, demoExclusion, filterDemoRows } from '../../shared/demoPortal.ts';
 import { resolvePortalTemplates } from '../../shared/templatePersonalization.ts';
 import { resourceAvailability } from '../../shared/resourceAvailability.ts';
+import { isPortalSession } from '../../shared/portalSessions.ts';
 
 /**
  * Single data source for the client portal.
@@ -110,7 +111,10 @@ Deno.serve(async (req) => {
     const peopleEngaged = new Set([...pulseEmails, ...cohortEmails, ...checkinEmails]).size;
 
     // ── Project events to only portal-rendered fields ───────────────────
-    const portalEvents = filterDemoRows(matchedEvents, excludeDemo).map(e => ({
+    // Program sessions only (shared/portalSessions.ts): meetings, follow-ups,
+    // deliveries and old-spreadsheet leftovers never leave the server. The
+    // check-in lookup and resource gating still see every matched event.
+    const portalEvents = filterDemoRows(matchedEvents, excludeDemo).filter(isPortalSession).map(e => ({
       id: e.id,
       title: e.title,
       start_date: e.start_date,
