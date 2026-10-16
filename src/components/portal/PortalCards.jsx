@@ -81,7 +81,7 @@ export function ContactCard({ contacts, company, wide }) {
             )}
             <div className="min-w-0">
               <p className="font-semibold text-gray-900">{c.name}</p>
-              <p className="text-xs text-gray-500">{c.role}</p>
+              {c.role && <p className="text-xs text-gray-500">{c.role}</p>}
               <a href={`mailto:${c.email}`} className="text-sm text-brand-navy hover:underline break-all">{c.email}</a>
               <div className="mt-2">
                 <a

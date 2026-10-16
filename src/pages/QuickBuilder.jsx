@@ -12,7 +12,7 @@ import TierCard from '@/components/quickbuilder/TierCard';
 import QuoteBreakdown from '@/components/quickbuilder/QuoteBreakdown';
 import ProgramGallery from '@/components/quickbuilder/ProgramGallery';
 import MobileActionBar, { MobileActionBarSpacer } from '@/components/quickbuilder/MobileActionBar';
-import { HR_PORTAL_CONTACT } from '@/lib/portalContacts';
+import { DEMO_CALL_CONTACT } from '@/lib/portalContacts';
 import {
   PUBLIC_STAGES,
   computeQuote,
@@ -530,23 +530,23 @@ export default function QuickBuilder() {
 
           {/* Nothing left to submit here, so the page ends by offering the
               next real step: a conversation — with a real person's face on it.
-              Heather is the contact (same person as the client portal's
-              "Your SkillfulMeans contact" card, via HR_PORTAL_CONTACT). */}
+              Heather is the contact (DEMO_CALL_CONTACT in lib/portalContacts —
+              separate from the client portal contact, which is Shemmah). */}
           <div className="rounded-xl border border-brand-plum/25 bg-brand-plum/[0.04] p-4 sm:p-5">
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">
-              Book a call with {HR_PORTAL_CONTACT.first}
+              Book a call with {DEMO_CALL_CONTACT.first}
             </p>
             <div className="flex items-start gap-4">
               <img
-                src={HR_PORTAL_CONTACT.photo_url}
-                alt={HR_PORTAL_CONTACT.name}
+                src={DEMO_CALL_CONTACT.photo_url}
+                alt={DEMO_CALL_CONTACT.name}
                 className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover flex-shrink-0 ring-2 ring-white shadow-sm"
               />
               <div className="min-w-0 flex-1">
-                <p className="text-lg font-bold text-gray-900 leading-tight">{HR_PORTAL_CONTACT.name}</p>
-                <p className="text-sm text-gray-500">{HR_PORTAL_CONTACT.role}</p>
+                <p className="text-lg font-bold text-gray-900 leading-tight">{DEMO_CALL_CONTACT.name}</p>
+                <p className="text-sm text-gray-500">{DEMO_CALL_CONTACT.role}</p>
                 <p className="hidden sm:block text-sm text-gray-600 mt-2 leading-relaxed">
-                  {HR_PORTAL_CONTACT.first} will walk you through what it's like to work with SkillfulMeans —
+                  {DEMO_CALL_CONTACT.first} will walk you through what it's like to work with SkillfulMeans —
                   how a campaign runs, what your team experiences, and how we'd shape the numbers above
                   around you. No obligation.
                 </p>
@@ -565,7 +565,7 @@ export default function QuickBuilder() {
             {/* Phone: copy and button run the full card width under the photo
                 row instead of squeezing into the column beside it. */}
             <p className="sm:hidden text-sm text-gray-600 mt-3 leading-relaxed">
-              {HR_PORTAL_CONTACT.first} will walk you through what it's like to work with SkillfulMeans —
+              {DEMO_CALL_CONTACT.first} will walk you through what it's like to work with SkillfulMeans —
               how a campaign runs, what your team experiences, and how we'd shape the numbers above
               around you. No obligation.
             </p>

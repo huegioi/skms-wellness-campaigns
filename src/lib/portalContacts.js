@@ -20,6 +20,13 @@ export const PORTAL_CONTACTS = {
     email: 'heather@skillfulmeans.life',
     photo_url: HEATHER_PHOTO,
   },
+  Shemmah: {
+    name: 'Shemmah',
+    first: 'Shemmah',
+    role: '', // title not set yet — the card hides an empty role line
+    email: 'admin@skillfulmeans.life',
+    photo_url: null, // initials until a headshot is added to src/assets/teamPhotos.js
+  },
 };
 
 export const TEAM_FALLBACK_CONTACT = {
@@ -31,15 +38,18 @@ export const TEAM_FALLBACK_CONTACT = {
 };
 
 /**
- * The HR (client) portal contact is ALWAYS Heather (William, 2026-09-24),
- * regardless of who owns the client record. Change it here to change it
- * everywhere in the client portal.
+ * The HR (client) portal contact is ALWAYS Shemmah at admin@ (William,
+ * 2026-10-16; was Heather), regardless of who owns the client record. Used by
+ * the client portal Home contact card, the portal footer, and the Emails tab.
  */
-export const HR_PORTAL_CONTACT = PORTAL_CONTACTS.Heather;
+export const HR_PORTAL_CONTACT = PORTAL_CONTACTS.Shemmah;
 
 export function contactsForClient() {
   return [HR_PORTAL_CONTACT];
 }
 
-/** Referral partner portal contact — also Heather (2026-09-24). */
-export const PARTNER_PORTAL_CONTACT = HR_PORTAL_CONTACT;
+/** Referral partner portal contact — Heather (unchanged 2026-10-16). */
+export const PARTNER_PORTAL_CONTACT = PORTAL_CONTACTS.Heather;
+
+/** Public QuickBuilder "Book a call / Book a Free Demo" card — Heather runs demos. */
+export const DEMO_CALL_CONTACT = PORTAL_CONTACTS.Heather;
