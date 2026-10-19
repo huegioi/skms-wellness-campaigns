@@ -4,6 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DollarSign, TrendingUp, Users, Landmark } from 'lucide-react';
+import { isFirmPartnershipActive } from '@/lib/firmPartnership';
 
 export default function BrokerageRollup({ brokerage }) {
   const { data: partners = [] } = useQuery({
@@ -80,13 +81,18 @@ export default function BrokerageRollup({ brokerage }) {
         <div className="bg-gray-50 rounded-lg p-3">
           <div className="flex items-center gap-1.5 mb-1">
             <Users className="w-3.5 h-3.5 text-gray-500" />
-            <span className="text-xs font-medium text-gray-500">Brokers</span>
+            <span className="text-xs font-medium text-gray-500">People</span>
           </div>
           <p className="text-lg font-bold text-gray-700">{partners.length}</p>
         </div>
       </div>
 
-      {/* Toggle status */}
+      {/* Toggle status — only meaningful under an ACTIVE firm partnership */}
+      {!isFirmPartnershipActive(brokerage) ? (
+        <p className="text-xs text-gray-500">
+          No active firm partnership — the firm's commission settings are not applied. Each person here earns on their own individual terms.
+        </p>
+      ) : (
       <div className="flex flex-wrap gap-2">
         <Badge className={brokerage.brokerage_commission_enabled !== false ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}>
           Brokerage commission: {brokerage.brokerage_commission_enabled !== false ? 'On' : 'Off'}
@@ -100,6 +106,7 @@ export default function BrokerageRollup({ brokerage }) {
           </Badge>
         )}
       </div>
+      )}
 
       {/* Per-broker breakdown */}
       {brokerBreakdown.length > 0 && (
