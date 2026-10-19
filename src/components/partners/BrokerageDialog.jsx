@@ -6,7 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogTitle } from '@/components/ui/dialog';
-import { Building2, Layers, Percent, Users, Plus, Trash2 } from 'lucide-react';
+import { Building2, Layers, Percent, Users, Plus, Trash2, Handshake } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { PARTNERSHIP_STATUS, ORG_TYPE } from '@/lib/firmPartnership';
 import { RecordDetailContent, RecordDetailFrame, RailSection, FrameSection } from '@/components/shared/RecordDetailFrame';
 import { useToast } from '@/components/ui/use-toast';
 import { isExcludedDomain } from '@/lib/emailDomain';
@@ -23,6 +25,15 @@ const EMPTY_FORM = {
   email_domain: '',
   email_domain_aliases: '',
   notes: '',
+  org_type: 'brokerage',
+  // New firms start as directory-only: no firm deal, so linking a broker
+  // never silently moves their commission to the firm.
+  partnership_status: 'none',
+  agreement_signed_date: '',
+  agreement_file_url: '',
+  primary_contact_partner_id: '',
+  owner: '',
+  partnership_notes: '',
   commission_tiers: DEFAULT_TIERS,
   brokerage_commission_enabled: true,
   broker_commission_enabled: true,
@@ -67,6 +78,13 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
           email_domain: editing.email_domain || '',
           email_domain_aliases: (editing.email_domain_aliases || []).join(', '),
           notes: editing.notes || '',
+          org_type: editing.org_type || 'brokerage',
+          partnership_status: editing.partnership_status || 'none',
+          agreement_signed_date: editing.agreement_signed_date || '',
+          agreement_file_url: editing.agreement_file_url || '',
+          primary_contact_partner_id: editing.primary_contact_partner_id || '',
+          owner: editing.owner || '',
+          partnership_notes: editing.partnership_notes || '',
           commission_tiers: editing.commission_tiers || DEFAULT_TIERS,
           brokerage_commission_enabled: editing.brokerage_commission_enabled !== false,
           broker_commission_enabled: editing.broker_commission_enabled !== false,
@@ -89,7 +107,7 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
       qc.invalidateQueries({ queryKey: ['brokerages'] });
       qc.invalidateQueries({ queryKey: ['referralPartners'] });
       onOpenChange(false);
-      toast({ title: editing ? 'Brokerage updated' : 'Brokerage created' });
+      toast({ title: editing ? 'Firm updated' : 'Firm created' });
       onSaved?.(saved);
     },
   });
@@ -140,6 +158,9 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
       ...form,
       email_domain: normalizeDomain(form.email_domain),
       email_domain_aliases: parseAliases(form.email_domain_aliases),
+      // Empty strings would fail the date format / leave junk ids
+      agreement_signed_date: form.agreement_signed_date || null,
+      primary_contact_partner_id: form.primary_contact_partner_id || null,
     });
   };
 
@@ -177,6 +198,8 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
     enabled: open && !!editing?.id,
   });
 
+  const hasDeal = form.partnership_status !== 'none';
+  const dealActive = form.partnership_status === 'active';
   const bothEnabled = form.brokerage_commission_enabled && form.broker_commission_enabled;
   const brokeragePct = Math.round((1 - form.broker_split) * 100);
   const brokerPct = Math.round(form.broker_split * 100);
@@ -197,11 +220,11 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
   // editing, the firm's brokers + current tier). Footer: Save stays pinned.
   const header = (
     <div className="min-w-0">
-      <DialogTitle className="text-xl font-bold text-[#013f7c]">{editing ? 'Edit Brokerage' : 'Add Brokerage'}</DialogTitle>
+      <DialogTitle className="text-xl font-bold text-[#013f7c]">{editing ? 'Edit Firm / Company' : 'Add Firm / Company'}</DialogTitle>
       <p className="text-sm text-gray-500 mt-0.5 truncate">
         {editing
           ? [editing.name, normalizeDomain(editing.email_domain)].filter(Boolean).join(' · ')
-          : 'Group brokers under one firm with a shared, two-level commission structure.'}
+          : 'A firm in your directory. Add a firm partnership only if you have a deal with the whole company.'}
       </p>
     </div>
   );
@@ -227,7 +250,19 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
   const rail = (
     <>
       <RailSection title="Commission structure" icon={Percent}>
+        {!hasDeal ? (
+          <p className="text-xs text-gray-500">
+            No firm partnership, so there is no firm commission. Each person linked to this firm is an
+            individual partner and earns on their own tiers. Set Partnership to Prospect or Active to
+            configure a firm-level deal.
+          </p>
+        ) : (
         <div className="space-y-3">
+          {!dealActive && (
+            <p className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1.5">
+              These settings take effect only while the partnership is Active. Until then, people at this firm earn individually.
+            </p>
+          )}
           <div className="flex items-start justify-between gap-3">
             <div>
               <label className="text-sm font-medium text-gray-700">Brokerage commission</label>
@@ -279,6 +314,7 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
             </p>
           )}
         </div>
+        )}
       </RailSection>
 
       {editing && (
@@ -324,7 +360,7 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
       <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
       {/* form= submits the form in the body even though the button sits outside it */}
       <Button type="submit" form="brokerage-form" disabled={saveMutation.isPending} className="bg-[#013f7c] hover:bg-[#012d5a] text-white">
-        {saveMutation.isPending ? 'Saving...' : editing ? 'Save Changes' : 'Create Brokerage'}
+        {saveMutation.isPending ? 'Saving...' : editing ? 'Save Changes' : 'Create Firm'}
       </Button>
     </div>
   );
@@ -372,12 +408,91 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
               )}
 
               <div>
+                <label className="text-sm font-medium text-gray-700 block mb-1">Type</label>
+                <Select value={form.org_type} onValueChange={v => setForm(f => ({ ...f, org_type: v }))}>
+                  <SelectTrigger className="w-full sm:w-1/2 bg-white"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(ORG_TYPE).map(([k, v]) => (
+                      <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
                 <label className="text-sm font-medium text-gray-700 block mb-1">Notes</label>
                 <Textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={3} />
               </div>
             </FrameSection>
 
-            {/* Commission Tiers */}
+            {/* Firm-level partnership — the deal with the whole company */}
+            <FrameSection title="Firm partnership" icon={Handshake}>
+              <p className="text-xs text-gray-500">
+                Is there an agreement with the company itself, not just with individual people who work there?
+                Only an <span className="font-medium">Active</span> firm partnership applies the firm's commission
+                settings to referrals from its people.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-1">Partnership</label>
+                  <Select value={form.partnership_status} onValueChange={v => setForm(f => ({ ...f, partnership_status: v }))}>
+                    <SelectTrigger className="w-full bg-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">None — directory only</SelectItem>
+                      <SelectItem value="prospect">Prospect — in talks</SelectItem>
+                      <SelectItem value="active">Active — agreement in place</SelectItem>
+                      <SelectItem value="inactive">Inactive — ended or paused</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {hasDeal && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 block mb-1">Owner</label>
+                    <Input value={form.owner} onChange={e => setForm(f => ({ ...f, owner: e.target.value }))} placeholder="William, Heather" />
+                  </div>
+                )}
+              </div>
+              {hasDeal && (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 block mb-1">Main contact</label>
+                      <Select
+                        value={form.primary_contact_partner_id || '__none__'}
+                        onValueChange={v => setForm(f => ({ ...f, primary_contact_partner_id: v === '__none__' ? '' : v }))}
+                        disabled={!editing || firmBrokers.length === 0}
+                      >
+                        <SelectTrigger className="w-full bg-white">
+                          <SelectValue placeholder={!editing ? 'Save the firm first' : 'No one linked yet'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__"><span className="text-gray-400 italic">— None —</span></SelectItem>
+                          {firmBrokers.map(p => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-400 mt-1">Picked from partners linked to this firm.</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-700 block mb-1">Agreement signed</label>
+                      <Input type="date" value={form.agreement_signed_date} onChange={e => setForm(f => ({ ...f, agreement_signed_date: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 block mb-1">Agreement file URL</label>
+                    <Input value={form.agreement_file_url} onChange={e => setForm(f => ({ ...f, agreement_file_url: e.target.value }))} placeholder="https://..." />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 block mb-1">Partnership terms</label>
+                    <Textarea value={form.partnership_notes} onChange={e => setForm(f => ({ ...f, partnership_notes: e.target.value }))} rows={3} placeholder="What was agreed — commission, co-marketing, exclusivity, who can refer…" />
+                  </div>
+                </>
+              )}
+            </FrameSection>
+
+            {/* Commission Tiers — only meaningful for a firm-level deal */}
+            {hasDeal && (
             <FrameSection
               title="Commission tiers"
               icon={Layers}
@@ -447,6 +562,7 @@ export default function BrokerageDialog({ open, onOpenChange, editing, onSaved, 
                 })}
               </div>
             </FrameSection>
+            )}
           </form>
         </RecordDetailFrame>
       </RecordDetailContent>
