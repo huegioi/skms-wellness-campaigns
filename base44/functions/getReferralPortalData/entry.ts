@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 import { shouldExcludeDemo } from '../../shared/demoPortal.ts';
 import { isPortalSession } from '../../shared/portalSessions.ts';
+import { commissionFirm } from '../../shared/firmPartnership.ts';
 
 Deno.serve(async (req) => {
   const base44 = createClientFromRequest(req);
@@ -53,11 +54,14 @@ Deno.serve(async (req) => {
   });
 
   // ─── Brokerage context ───
+  // Firm commission settings apply only under an ACTIVE firm partnership.
+  // A partner at a directory-only firm is an individual partner (own tiers,
+  // own YTD, full commission). See shared/firmPartnership.ts.
   let brokerage = null;
   let brokerageAggregateYtd = 0;
   if (partner.brokerage_id) {
     try {
-      brokerage = await base44.asServiceRole.entities.Brokerage.get(partner.brokerage_id);
+      brokerage = commissionFirm(await base44.asServiceRole.entities.Brokerage.get(partner.brokerage_id));
       if (brokerage) {
         const brokeragePartners = await base44.asServiceRole.entities.ReferralPartner.filter(
           partnerIsDemo
