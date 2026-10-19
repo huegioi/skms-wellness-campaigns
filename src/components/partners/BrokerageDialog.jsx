@@ -8,7 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogTitle } from '@/components/ui/dialog';
 import { Building2, Layers, Percent, Users, Plus, Trash2, Handshake } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PARTNERSHIP_STATUS, ORG_TYPE } from '@/lib/firmPartnership';
+import { ORG_TYPE } from '@/lib/firmPartnership';
 import { RecordDetailContent, RecordDetailFrame, RailSection, FrameSection } from '@/components/shared/RecordDetailFrame';
 import { useToast } from '@/components/ui/use-toast';
 import { isExcludedDomain } from '@/lib/emailDomain';
