@@ -187,11 +187,14 @@ Deno.serve(async (req) => {
     }
 
     // ─── Brokerage context ───
+    // Only a firm with an ACTIVE firm-level partnership changes the money.
+    // A partner linked to a directory-only firm is an individual partner:
+    // own tiers, own YTD, 100% to them. See shared/firmPartnership.ts.
     let brokerage = null;
     let brokeragePartners = [];
     if (partner?.brokerage_id) {
       try {
-        brokerage = await base44.asServiceRole.entities.Brokerage.get(partner.brokerage_id);
+        brokerage = commissionFirm(await base44.asServiceRole.entities.Brokerage.get(partner.brokerage_id));
         if (brokerage) {
           brokeragePartners = await base44.asServiceRole.entities.ReferralPartner.filter(
             { brokerage_id: partner.brokerage_id, is_demo: false }, '-created_date', 500
