@@ -1,80 +1,125 @@
 {
   "name": "Brokerage",
-  "type": "object",
   "properties": {
-    "name": {
-      "type": "string",
-      "description": "Brokerage display name"
+    "agreement_file_url": {
+      "description": "URL to the signed firm-level partnership agreement",
+      "type": "string"
     },
-    "company": {
-      "type": "string",
-      "description": "Legal company name"
+    "agreement_signed_date": {
+      "description": "Date the firm-level partnership agreement was signed",
+      "format": "date",
+      "type": "string"
     },
-    "notes": {
-      "type": "string",
-      "description": "Internal notes about this brokerage"
+    "broker_commission_enabled": {
+      "default": true,
+      "description": "Whether individual brokers earn commission under the firm agreement. When false, broker portals hide commission features exactly like PP2-off. Applied ONLY while partnership_status is 'active'.",
+      "type": "boolean"
+    },
+    "broker_split": {
+      "default": 0.5,
+      "description": "The broker's fraction of total commission when both brokerage and broker commission are enabled (0\u20131). Applied ONLY while partnership_status is 'active'.",
+      "type": "number"
+    },
+    "brokerage_commission_enabled": {
+      "default": true,
+      "description": "Whether the brokerage (house) earns commission on placements by its brokers. Applied ONLY while partnership_status is 'active'.",
+      "type": "boolean"
+    },
+    "client_id": {
+      "description": "Primary client ID associated with this brokerage",
+      "type": "string"
     },
     "commission_tiers": {
-      "type": "array",
-      "description": "Tiered commission rates based on the brokerage's aggregate annual first-year revenue across all its brokers",
+      "description": "Tiered commission rates based on the brokerage's aggregate annual first-year revenue across all its brokers. Applied ONLY while partnership_status is 'active'.",
       "items": {
-        "type": "object",
         "properties": {
-          "min_revenue": {
-            "type": "number"
+          "label": {
+            "type": "string"
           },
           "max_revenue": {
             "type": "number"
           },
-          "rate": {
+          "min_revenue": {
             "type": "number"
           },
-          "label": {
-            "type": "string"
+          "rate": {
+            "type": "number"
           }
-        }
-      }
+        },
+        "type": "object"
+      },
+      "type": "array"
     },
-    "brokerage_commission_enabled": {
-      "type": "boolean",
-      "default": true,
-      "description": "Whether the brokerage (house) earns commission on placements by its brokers"
-    },
-    "broker_commission_enabled": {
-      "type": "boolean",
-      "default": true,
-      "description": "Whether individual brokers earn commission. When false, broker portals hide commission features exactly like PP2-off."
-    },
-    "broker_split": {
-      "type": "number",
-      "default": 0.5,
-      "description": "The broker's fraction of total commission when both brokerage and broker commission are enabled (0\u20131)"
-    },
-    "client_id": {
-      "type": "string",
-      "description": "Primary client ID associated with this brokerage"
+    "company": {
+      "description": "Legal company name",
+      "type": "string"
     },
     "email_domain": {
-      "type": "string",
-      "description": "Primary email domain for this brokerage (e.g. bbrown.com)"
+      "description": "Primary email domain for this brokerage (e.g. bbrown.com)",
+      "type": "string"
     },
     "email_domain_aliases": {
-      "type": "array",
+      "default": [],
+      "description": "Additional mail domains owned by this brokerage (acquired firms, legacy brands). Used alongside email_domain for broker/firm matching. Any UI or code path that persists aliases must call sanitizeEmailDomainAliases from shared/emailDomain.ts first. Note: this field currently has no reader \u2014 firm matching by domain does not exist as a code path.",
       "items": {
         "type": "string"
       },
-      "default": [],
-      "description": "Additional mail domains owned by this brokerage (acquired firms, legacy brands). Used alongside email_domain for broker/firm matching. Any UI or code path that persists aliases must call sanitizeEmailDomainAliases from shared/emailDomain.ts first. Note: this field currently has no reader \u2014 firm matching by domain does not exist as a code path."
+      "type": "array"
     },
     "is_demo": {
-      "type": "boolean",
       "default": false,
-      "description": "True if this record is demo/broker-demo sample data."
+      "description": "True if this record is demo/broker-demo sample data.",
+      "type": "boolean"
+    },
+    "name": {
+      "description": "Brokerage display name",
+      "type": "string"
+    },
+    "notes": {
+      "description": "Internal notes about this brokerage",
+      "type": "string"
+    },
+    "org_type": {
+      "default": "brokerage",
+      "description": "What kind of organization this is: brokerage, carrier/health plan, vendor/solution partner, PEO, consultant, or other.",
+      "enum": [
+        "brokerage",
+        "carrier",
+        "vendor",
+        "peo",
+        "consultant",
+        "other"
+      ],
+      "type": "string"
+    },
+    "owner": {
+      "description": "SkillfulMeans owner(s) of the firm relationship, comma-separated, first = primary. Parse with shared/owners.ts / src/lib/owners.js.",
+      "type": "string"
+    },
+    "partnership_notes": {
+      "description": "Terms of the firm-level partnership (what was agreed, co-marketing, exclusivity, etc.)",
+      "type": "string"
+    },
+    "partnership_status": {
+      "default": "none",
+      "description": "Firm-level partnership with SkillfulMeans. 'none' = directory only (we just group this firm's people by email domain; each person's deal is individual). Only 'active' applies the firm's commission tiers/house share/split to referrals from its people. Read via shared/firmPartnership.ts isFirmPartnershipActive().",
+      "enum": [
+        "none",
+        "prospect",
+        "active",
+        "inactive"
+      ],
+      "type": "string"
+    },
+    "primary_contact_partner_id": {
+      "description": "ReferralPartner id of the main contact for the firm-level partnership",
+      "type": "string"
     }
   },
   "required": [
     "name"
   ],
+  "type": "object",
   "rls": {
     "create": {
       "$or": [
