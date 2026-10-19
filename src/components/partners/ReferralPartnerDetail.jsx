@@ -117,6 +117,11 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
     queryFn: () => base44.entities.Referral.filter({ referral_partner_id: initialPartner.id }, '-referral_date')
   });
 
+  const { data: brokerages = [] } = useQuery({
+    queryKey: ['brokerages'],
+    queryFn: () => base44.entities.Brokerage.list('name', 500)
+  });
+
   const { data: allClients = [] } = useQuery({
     queryKey: ['clients_for_partners'],
     queryFn: () => base44.entities.Client.list('-created_date', 500)
