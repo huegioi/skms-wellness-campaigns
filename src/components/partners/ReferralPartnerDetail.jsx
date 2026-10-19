@@ -18,6 +18,8 @@ import { REFERRAL_STATUS_COLORS } from '@/lib/statusConfig';
 import InteractionTimeline from '@/components/shared/InteractionTimeline';
 import CommissionPaymentsLedger from '@/components/partners/CommissionPaymentsLedger';
 import BrokeragePicker from '@/components/partners/BrokeragePicker';
+import PartnerRelationshipChip from '@/components/partners/PartnerRelationshipChip';
+import { isFirmPartnershipActive } from '@/lib/firmPartnership';
 import { setMayaRecordContext, clearMayaRecordContext } from '@/lib/mayaOrbStore';
 
 function TierField({ value, onSave, type = 'text', placeholder, step }) {
@@ -150,8 +152,10 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const earnedAmt = (r) => partner.brokerage_id ? (r.broker_commission != null ? (r.broker_commission || 0) : (r.commission_amount || 0)) : (r.commission_amount || 0);
-  const hasUnsplit = !!partner.brokerage_id && referrals.some(r => r.broker_commission == null && (r.commission_amount || 0) > 0);
+  // Firm split applies only under an ACTIVE firm partnership (lib/firmPartnership.js)
+  const underFirm = isFirmPartnershipActive(brokerages.find(b => b.id === partner.brokerage_id));
+  const earnedAmt = (r) => underFirm ? (r.broker_commission != null ? (r.broker_commission || 0) : (r.commission_amount || 0)) : (r.commission_amount || 0);
+  const hasUnsplit = underFirm && referrals.some(r => r.broker_commission == null && (r.commission_amount || 0) > 0);
   const totalCommission = referrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
   const earnedCommission = referrals.reduce((sum, r) => sum + earnedAmt(r), 0);
 
@@ -173,6 +177,7 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
             stages={PARTNER_STAGES}
             onUpdate={handleUpdate}
           />
+          <PartnerRelationshipChip partner={partner} brokerages={brokerages} className="mt-2" />
         </div>
         <div className="grid grid-cols-2 gap-2 shrink-0 sm:w-[21rem]">
           <Button variant="outline" size="sm" className="gap-1.5 justify-start" onClick={copyLink}>
@@ -224,7 +229,7 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
           value={`$${earnedCommission.toLocaleString()}`}
           color="#16a34a"
           sub={
-            partner.brokerage_id && totalCommission > 0
+            underFirm && totalCommission > 0
               ? `Total (house + broker): $${totalCommission.toLocaleString()}${hasUnsplit ? ' · unsplit — run backfill' : ''}`
               : hasUnsplit ? 'unsplit — run backfill' : undefined
           }
@@ -312,7 +317,7 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
                 </div>
                 {/* Brokerage */}
                 <div className="sm:col-span-2">
-                  <span className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Brokerage</span>
+                  <span className="block text-[10px] uppercase tracking-wide text-gray-400 mb-0.5">Firm / company</span>
                   <BrokeragePicker
                     value={partner.brokerage_id}
                     onChange={v => handleUpdate({ brokerage_id: v })}
@@ -338,8 +343,8 @@ export default function ReferralPartnerDetail({ partner: initialPartner, onClose
 
               <CollapsibleFieldSection title="Commission Tiers" icon={DollarSign} defaultOpen>
                 <div className="sm:col-span-2 space-y-2">
-                  {partner.brokerage_id && (
-                    <p className="text-xs text-gray-400">This partner belongs to a brokerage — the brokerage's tiers apply; these solo tiers are kept for reference.</p>
+                  {underFirm && (
+                    <p className="text-xs text-gray-400">This partner refers under an active firm partnership — the firm's tiers apply; these individual tiers are kept for reference.</p>
                   )}
                   <div className="grid grid-cols-4 gap-2 text-[10px] uppercase tracking-wide text-gray-400 px-1.5">
                     <span>Label</span>
