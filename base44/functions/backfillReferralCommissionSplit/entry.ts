@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { commissionFirm } from '../../shared/firmPartnership.ts';
 
 /**
  * One-time backfill: populate broker_commission / brokerage_commission on historical
@@ -47,7 +48,8 @@ Deno.serve(async (req) => {
     const byPartner = {}; // partnerId -> { partnerName, partnerEmail, brokerageName, referrals: [...] }
     for (const r of targets) {
       const partner = r.referral_partner_id ? partnerById[r.referral_partner_id] : null;
-      const brokerage = partner?.brokerage_id ? brokerageById[partner.brokerage_id] : null;
+      // Firm split only under an ACTIVE firm partnership (shared/firmPartnership.ts)
+      const brokerage = partner?.brokerage_id ? commissionFirm(brokerageById[partner.brokerage_id]) : null;
       const key = r.referral_partner_id || '_no_partner';
 
       if (!byPartner[key]) {
@@ -116,7 +118,8 @@ Deno.serve(async (req) => {
     for (const r of targets) {
       try {
         const partner = r.referral_partner_id ? partnerById[r.referral_partner_id] : null;
-        const brokerage = partner?.brokerage_id ? brokerageById[partner.brokerage_id] : null;
+        // Firm split only under an ACTIVE firm partnership (shared/firmPartnership.ts)
+      const brokerage = partner?.brokerage_id ? commissionFirm(brokerageById[partner.brokerage_id]) : null;
         const totalCommission = r.commission_amount;
 
         let brokerCommission = 0;
