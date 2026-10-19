@@ -1053,7 +1053,7 @@ export default function Leads() {
                   onClick={() => setBrokerViewMode('brokerages')}
                   className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors ${brokerViewMode === 'brokerages' ? 'bg-[#013f7c] text-white' : 'text-gray-500 hover:bg-gray-50'}`}
                 >
-                  <Building2 className="w-4 h-4" /> Brokerages
+                  <Building2 className="w-4 h-4" /> Firms
                 </button>
               </div>
 
