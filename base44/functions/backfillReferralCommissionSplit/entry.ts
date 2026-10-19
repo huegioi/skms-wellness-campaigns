@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
       try {
         const partner = r.referral_partner_id ? partnerById[r.referral_partner_id] : null;
         // Firm split only under an ACTIVE firm partnership (shared/firmPartnership.ts)
-      const brokerage = partner?.brokerage_id ? commissionFirm(brokerageById[partner.brokerage_id]) : null;
+        const brokerage = partner?.brokerage_id ? commissionFirm(brokerageById[partner.brokerage_id]) : null;
         const totalCommission = r.commission_amount;
 
         let brokerCommission = 0;
