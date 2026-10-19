@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Sparkles } from 'lucide-react';
 import BrokerageDialog from '@/components/partners/BrokerageDialog';
 import { getOrgDomain } from '@/lib/emailDomain';
+import { isFirmPartnershipActive, hasFirmPartnership, PARTNERSHIP_STATUS, partnershipStatus } from '@/lib/firmPartnership';
 
 const NONE = '__none__';
 
@@ -81,16 +82,21 @@ export default function BrokeragePicker({ value, onChange, contactEmail, disable
         disabled={disabled}
       >
         <SelectTrigger className="w-full bg-gray-50">
-          <SelectValue placeholder="None (solo partner)" />
+          <SelectValue placeholder="No firm" />
         </SelectTrigger>
         <SelectContent>
           <SelectItem value={NONE}>
-            <span className="text-gray-400 italic">— Solo — no brokerage —</span>
+            <span className="text-gray-400 italic">— No firm —</span>
           </SelectItem>
           {sorted.map(b => (
             <SelectItem key={b.id} value={b.id}>
               <div className="flex flex-col">
-                <span>{b.name}</span>
+                <span>
+                  {b.name}
+                  {hasFirmPartnership(b) && (
+                    <span className="ml-1.5 text-[10px] text-emerald-700">· firm partnership ({PARTNERSHIP_STATUS[partnershipStatus(b)].short.toLowerCase()})</span>
+                  )}
+                </span>
                 {b.email_domain && (
                   <span className="text-xs text-gray-400">{b.email_domain}</span>
                 )}
@@ -99,6 +105,17 @@ export default function BrokeragePicker({ value, onChange, contactEmail, disable
           ))}
         </SelectContent>
       </Select>
+
+      {/* What linking to this firm means for the money */}
+      {value && (() => {
+        const firm = sorted.find(b => b.id === value);
+        if (!firm) return null;
+        return isFirmPartnershipActive(firm) ? (
+          <p className="text-xs text-emerald-700">Refers under the {firm.name} firm agreement — the firm's commission settings apply.</p>
+        ) : (
+          <p className="text-xs text-gray-500">Works at {firm.name}. No active firm deal, so this is an individual partnership on their own tiers.</p>
+        );
+      })()}
 
       {/* Single-match suggestion — separate prompt with Apply button */}
       {suggestion && (
@@ -129,7 +146,7 @@ export default function BrokeragePicker({ value, onChange, contactEmail, disable
         onClick={() => setShowBrokerageDialog(true)}
         className="inline-flex items-center gap-1 text-xs text-[#013f7c] hover:underline mt-0.5"
       >
-        <Plus className="w-3 h-3" /> Add brokerage
+        <Plus className="w-3 h-3" /> Add firm
       </button>
 
       <BrokerageDialog
