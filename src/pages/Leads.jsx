@@ -26,6 +26,8 @@ import { parseOwners, matchesOwnerSelect, UNASSIGNED_FILTER } from '@/lib/owners
 import { OWNERS } from '@/components/shared/constants';
 import MergePartnerDuplicatesPanel from '@/components/leads/MergePartnerDuplicatesPanel';
 import BrokeragesView from '@/components/partners/BrokeragesView';
+import PartnerRelationshipChip from '@/components/partners/PartnerRelationshipChip';
+import { isFirmPartnershipActive } from '@/lib/firmPartnership';
 import PartnerAdminMenu from '@/components/partners/PartnerAdminMenu';
 import ReferralPartnerDetail from '@/components/partners/ReferralPartnerDetail';
 import { Switch } from '@/components/ui/switch';
@@ -425,7 +427,8 @@ export default function Leads() {
       }
       if (data.brokerage_id && brokerageSettings) {
         const brokerage = brokerages.find(b => b.id === data.brokerage_id);
-        if (brokerage) {
+        // Firm commission settings are only editable (and only matter) under an ACTIVE firm partnership
+        if (brokerage && isFirmPartnershipActive(brokerage)) {
           await base44.entities.Brokerage.update(brokerage.id, brokerageSettings);
         }
       }
@@ -1216,8 +1219,9 @@ export default function Leads() {
               <div className="space-y-4">
                 {referralPartners.map(partner => {
                   const partnerReferrals = referrals.filter(r => r.referral_partner_id === partner.id);
-                  const earnedAmt = (r) => partner.brokerage_id ? (r.broker_commission != null ? (r.broker_commission || 0) : (r.commission_amount || 0)) : (r.commission_amount || 0);
-                  const hasUnsplit = !!partner.brokerage_id && partnerReferrals.some(r => r.broker_commission == null && (r.commission_amount || 0) > 0);
+                  const underFirm = isFirmPartnershipActive(brokerages.find(b => b.id === partner.brokerage_id));
+                  const earnedAmt = (r) => underFirm ? (r.broker_commission != null ? (r.broker_commission || 0) : (r.commission_amount || 0)) : (r.commission_amount || 0);
+                  const hasUnsplit = underFirm && partnerReferrals.some(r => r.broker_commission == null && (r.commission_amount || 0) > 0);
                   const totalCommission = partnerReferrals.reduce((sum, r) => sum + (r.commission_amount || 0), 0);
                   const totalRevenue = partnerReferrals.reduce((sum, r) => sum + (r.first_year_revenue || 0), 0);
                   const convertedReferrals = partnerReferrals.filter(r => ['converted_to_client','purchased','commission_paid'].includes(r.status));
@@ -1242,6 +1246,7 @@ export default function Leads() {
                                 {partner.is_active !== false ? 'Active' : 'Inactive'}
                               </span>
                               {currentTier && <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700">{currentTier.label}</span>}
+                              <PartnerRelationshipChip partner={partner} brokerages={brokerages} />
                             </div>
                             {partner.company && <p className="text-gray-500 text-sm">{partner.company}</p>}
                             <p className="text-gray-400 text-sm">{partner.email}</p>
@@ -1397,7 +1402,7 @@ export default function Leads() {
 
             {/* Brokerage Picker */}
             <div>
-              <label className="text-sm font-medium text-gray-700 block mb-1">Brokerage</label>
+              <label className="text-sm font-medium text-gray-700 block mb-1">Firm / company</label>
               <Select
                 value={partnerForm.brokerage_id || '__none__'}
                 onValueChange={(val) => {
@@ -1418,22 +1423,30 @@ export default function Leads() {
                 }}
               >
                 <SelectTrigger className="w-full bg-gray-50">
-                  <SelectValue placeholder="None (solo partner)" />
+                  <SelectValue placeholder="No firm" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__none__">
-                    <span className="text-gray-400 italic">— None (solo partner) —</span>
+                    <span className="text-gray-400 italic">— No firm —</span>
                   </SelectItem>
-                  {brokerages.map(b => (
-                    <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                  {[...brokerages].sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(b => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}{isFirmPartnershipActive(b) ? ' · firm partnership' : ''}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-400 mt-1">When assigned, commission tiers come from the brokerage and are computed on aggregate revenue.</p>
+              {(() => {
+                const firm = brokerages.find(b => b.id === partnerForm.brokerage_id);
+                if (!firm) return <p className="text-xs text-gray-400 mt-1">Individual partner — earns on the tiers below.</p>;
+                return isFirmPartnershipActive(firm)
+                  ? <p className="text-xs text-emerald-700 mt-1">Refers under the {firm.name} firm agreement — the firm's tiers and split apply.</p>
+                  : <p className="text-xs text-gray-500 mt-1">Works at {firm.name}. No active firm deal, so this is an individual partner on the tiers below.</p>;
+              })()}
             </div>
 
-            {/* Brokerage Commission Settings — only when a brokerage is assigned */}
-            {partnerForm.brokerage_id && brokerageSettings && (() => {
+            {/* Firm Commission Settings — only under an ACTIVE firm partnership */}
+            {partnerForm.brokerage_id && brokerageSettings && isFirmPartnershipActive(brokerages.find(b => b.id === partnerForm.brokerage_id)) && (() => {
               const selectedBrokerage = brokerages.find(b => b.id === partnerForm.brokerage_id);
               const bothEnabled = brokerageSettings.brokerage_commission_enabled && brokerageSettings.broker_commission_enabled;
               const brokeragePct = Math.round((1 - brokerageSettings.broker_split) * 100);
