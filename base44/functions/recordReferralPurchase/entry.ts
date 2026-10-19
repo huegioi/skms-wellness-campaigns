@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 import { customBoxUnitPrice } from '../../shared/wellnessBoxes.ts';
+import { commissionFirm } from '../../shared/firmPartnership.ts';
 
 // Hardcoded fallback for wellness box prices — used only if a Service record is missing or has no price
 const FALLBACK_BOX_PRICES = {
