@@ -23,6 +23,9 @@ export default function Checkin() {
   const [kiosk, setKiosk] = useState(false);
   const [kioskSuccess, setKioskSuccess] = useState(false);
   const [surveyData, setSurveyData] = useState(null);
+  // Challenges have no session to check in to (see getCheckinEvent).
+  const [redirecting, setRedirecting] = useState(false);
+  const [challengeNoLink, setChallengeNoLink] = useState(false);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -36,7 +39,21 @@ export default function Checkin() {
     setKiosk(urlParams.get('kiosk') === '1');
     base44.functions.invoke('getCheckinEvent', { token: t })
       .then(res => {
-        setEventInfo(res.data);
+        const info = res.data;
+        // A challenge link goes straight to the challenge's sign-up page: no name and
+        // email form here, no survey, no video link. The challenges app does all of it.
+        if (info?.is_challenge) {
+          if (info.challenge_signup_url) {
+            setRedirecting(true);
+            window.location.replace(info.challenge_signup_url);
+            return;
+          }
+          setEventInfo(info);
+          setChallengeNoLink(true);
+          setLoading(false);
+          return;
+        }
+        setEventInfo(info);
         setLoading(false);
       })
       .catch(() => {
@@ -179,8 +196,22 @@ export default function Checkin() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center">
+      <div className="min-h-screen bg-[#f4f0e9] flex flex-col items-center justify-center gap-3">
         <Loader2 className="w-8 h-8 text-[#013f7c] animate-spin" />
+        {redirecting && <p className="text-sm text-gray-500">Taking you to the challenge sign-up…</p>}
+      </div>
+    );
+  }
+
+  if (challengeNoLink) {
+    return (
+      <div className="min-h-screen bg-[#f4f0e9] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
+          <img src={LOGO_URL} alt="SkillfulMeans" className="h-12 w-auto mx-auto mb-6" />
+          <h1 className="text-xl font-bold text-[#013f7c] mb-2">{eventInfo?.title}</h1>
+          <p className="text-gray-600">The sign-up link for this challenge isn't ready yet.</p>
+          <p className="text-sm text-gray-400 mt-2">Please check back soon, or ask the person who shared this link with you.</p>
+        </div>
       </div>
     );
   }
