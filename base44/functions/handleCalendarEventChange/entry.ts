@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import { isChallengeBooking, challengeGoogleFields } from '../../shared/challengeInvite.ts';
 
 const APP_BASE_URL = 'https://app.skillfulmeans.life';
 function buildCheckinUrl(token) {
@@ -93,7 +94,10 @@ Deno.serve(async (req) => {
         } catch { /* non-fatal — invite description simply omits service copy */ }
       }
       const checkinUrl = buildCheckinUrl(data.checkin_token);
-      const eventData = {
+      // Challenges keep their own shape on Google: sign-up link, all-day across the whole
+      // challenge, Free, no Meet room. Same fields syncCalendarEventToGoogle writes.
+      const isChallenge = isChallengeBooking(data, service);
+      const eventData = isChallenge ? challengeGoogleFields(data, service, true) : {
         summary: data.title,
         description: data.checkin_token ? buildInviteDescription(data, service) : (data.description || ''),
         location: data.checkin_token ? (checkinUrl || '') : (data.location || ''),
@@ -124,7 +128,8 @@ Deno.serve(async (req) => {
       }
 
       // Keep the Meet-room holder on the session's time/title (non-fatal).
-      if (data.google_meet_event_id) {
+      // A challenge has no room; syncCalendarEventToGoogle removes any old one.
+      if (data.google_meet_event_id && !isChallenge) {
         const holderPatch = { summary: `Meet room · ${data.title}`, start: eventData.start, end: eventData.end };
         for (const calId of candidateCals) {
           const res = await fetch(
