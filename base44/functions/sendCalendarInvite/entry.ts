@@ -199,7 +199,7 @@ Deno.serve(async (req) => {
               : ''}
 
             <div style="margin: 22px 0 8px;">
-              ${isChallenge && signupUrl ? linkButton(signupUrl, 'Join the challenge', '#264d44') : ''}
+              ${isChallenge && signupUrl ? linkButton(escapeHtml(signupUrl), 'Join the challenge', '#264d44') : ''}
               ${calendarUrl ? linkButton(calendarUrl, 'Open in Google Calendar', '#013f7c') : ''}
               ${isPresenter && portalUrl ? linkButton(portalUrl, 'Accept or decline', '#770142') : ''}
             </div>
