@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.38';
+import { isChallengeBooking, challengeSignupUrl } from '../../shared/challengeInvite.ts';
 
 Deno.serve(async (req) => {
   try {
@@ -51,10 +52,17 @@ Deno.serve(async (req) => {
       } catch { serviceInfo = null; }
     }
 
+    // A challenge has no session to check in to: the page sends people straight to
+    // the challenge's sign-up link instead (src/pages/Checkin.jsx).
+    const isChallenge = isChallengeBooking(event, serviceInfo);
+
     return Response.json({
       event_id: event.id,
       title: event.title,
       start_date: event.start_date,
+      event_type: event.event_type || null,
+      is_challenge: isChallenge,
+      challenge_signup_url: isChallenge ? challengeSignupUrl(event) : null,
       client_company: clientCompany,
       has_meeting_link: !!meetingLink,
       meeting_link: meetingLink,
