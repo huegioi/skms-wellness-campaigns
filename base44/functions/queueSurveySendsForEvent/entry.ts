@@ -63,7 +63,8 @@ async function processEvent(base44, event) {
   }
 
   // (b)+(c) Endpoint event completed → queue cohort_end (next morning) + cohort_1mo (+30 days)
-  if (event.completed && event.assessment_timing === 'endpoint') {
+  // Not for challenges: the challenges app sends their day-14 and 30-day surveys itself.
+  if (event.completed && event.assessment_timing === 'endpoint' && event.event_type !== 'challenge') {
     const clientId = event.client_id;
     const serviceId = event.service_id;
 
