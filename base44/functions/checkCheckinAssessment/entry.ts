@@ -41,6 +41,13 @@ Deno.serve(async (req) => {
     }
     const isChallenge = service?.category === 'challenge';
 
+    // Challenges are surveyed in the challenges app (day 0, day 14, 30 days), never at
+    // check-in. Asking here too would put the same questionnaires in front of people
+    // twice and file the answers apart from the challenge's own.
+    if (isChallenge || event.event_type === 'challenge') {
+      return Response.json({ needs_survey: false, reason: 'challenge' });
+    }
+
     // Instruments per timing.
     // baseline → BASELINE_BATTERY (hardcoded — backend can't import from src/).
     //   eNPS is deliberately excluded; it is always collected post-session.
