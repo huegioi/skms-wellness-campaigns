@@ -16,7 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import FacilitationChecklist from '@/components/shared/FacilitationChecklist';
 import CheckinQrDialog from '@/components/shared/CheckinQrDialog';
 import { isChallengeEvent } from '@/lib/challengeUtils';
-import { buildInviteDescription, icsEscape, icsFold } from '@/lib/calendarInviteBody';
+import { buildInviteDescription, icsEscape, icsFold, challengeDateRange, challengeSignupUrl, challengeLengthDays, addDays } from '@/lib/calendarInviteBody';
 import { resolveClientContact } from '@/lib/clientContacts';
 import { RecordDetailContent, RecordDetailFrame, RailSection, FrameSection } from '@/components/shared/RecordDetailFrame';
 
@@ -44,6 +44,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
     description: event.description || '',
     location: event.location || '',
     meeting_link: event.meeting_link || '',
+    challenge_signup_url: event.challenge_signup_url || '',
     presenter: event.presenter || '',
     presenter_id: event.presenter_id || '',
     presenter_email: event.presenter_email || '',
@@ -140,17 +141,29 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
 
     setSaving(true);
     try {
-      const startDateTime = `${editForm.start_date}T${editForm.start_time || '00:00'}:00`;
-      const endDateTime = editForm.end_date && editForm.end_time
+      let startDateTime = `${editForm.start_date}T${editForm.start_time || '00:00'}:00`;
+      let endDateTime = editForm.end_date && editForm.end_time
         ? `${editForm.end_date}T${editForm.end_time}:00`
         : new Date(new Date(startDateTime).getTime() + 60 * 60 * 1000).toISOString();
+      // A challenge is all-day across its days (14 unless a last day is set), with no
+      // video link and no check-in survey. Same rules as booking one.
+      if (isChallenge) {
+        const lastDay = editForm.end_date && editForm.end_date > editForm.start_date
+          ? editForm.end_date
+          : addDays(editForm.start_date, challengeLengthDays(service) - 1);
+        startDateTime = `${editForm.start_date}T09:00:00`;
+        endDateTime = `${lastDay}T09:00:00`;
+      }
 
       const updatedData = {
         title: editForm.title,
         description: editForm.description,
         location: editForm.location,
         // Video link handed to attendees after check-in — any provider (Meet, Zoom, Teams).
-        meeting_link: (editForm.meeting_link || '').trim() || null,
+        meeting_link: isChallenge ? null : ((editForm.meeting_link || '').trim() || null),
+        ...(isChallenge
+          ? { challenge_signup_url: (editForm.challenge_signup_url || '').trim() || null, assessment_timing: 'none' }
+          : {}),
         presenter: editForm.presenter,
         presenter_id: editForm.presenter_id || null,
         presenter_email: editForm.presenter_email || '',
@@ -163,7 +176,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
         client_name: editForm.client_name,
         start_date: startDateTime,
         end_date: endDateTime,
-        all_day: editForm.all_day
+        all_day: isChallenge ? true : editForm.all_day
       };
 
       // Update in CalendarEvent entity (automation will handle Google sync)
@@ -180,6 +193,13 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
     }
   };
 
+  // A challenge exports as an all-day span across its days with the sign-up link,
+  // the same shape the Google sync gives it.
+  const challengeRange = isChallenge ? challengeDateRange(event, service) : null;
+  const exportLocation = isChallenge ? (challengeSignupUrl(event) || '') : (event.location || '');
+  const exportDetails = isChallenge ? buildInviteDescription(event, service) : (event.description || '');
+  const compactDay = (ymd) => ymd.replace(/-/g, '');
+
   const exportToGoogleCalendar = () => {
     const startDate = parseISO(event.start_date);
     const endDate = event.end_date ? parseISO(event.end_date) : new Date(startDate.getTime() + 60 * 60 * 1000);
@@ -189,9 +209,11 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
     const url = new URL('https://calendar.google.com/calendar/render');
     url.searchParams.set('action', 'TEMPLATE');
     url.searchParams.set('text', event.title);
-    url.searchParams.set('dates', `${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}`);
-    if (event.description) url.searchParams.set('details', event.description);
-    if (event.location) url.searchParams.set('location', event.location);
+    url.searchParams.set('dates', challengeRange
+      ? `${compactDay(challengeRange.start)}/${compactDay(challengeRange.endExclusive)}`
+      : `${formatGoogleDate(startDate)}/${formatGoogleDate(endDate)}`);
+    if (exportDetails) url.searchParams.set('details', exportDetails);
+    if (exportLocation) url.searchParams.set('location', exportLocation);
     
     window.open(url.toString(), '_blank');
   };
@@ -202,10 +224,16 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
     
     const url = new URL('https://outlook.office.com/calendar/0/deeplink/compose');
     url.searchParams.set('subject', event.title);
-    url.searchParams.set('startdt', startDate.toISOString());
-    url.searchParams.set('enddt', endDate.toISOString());
-    if (event.description) url.searchParams.set('body', event.description);
-    if (event.location) url.searchParams.set('location', event.location);
+    if (challengeRange) {
+      url.searchParams.set('startdt', challengeRange.start);
+      url.searchParams.set('enddt', challengeRange.endExclusive);
+      url.searchParams.set('allday', 'true');
+    } else {
+      url.searchParams.set('startdt', startDate.toISOString());
+      url.searchParams.set('enddt', endDate.toISOString());
+    }
+    if (exportDetails) url.searchParams.set('body', exportDetails);
+    if (exportLocation) url.searchParams.set('location', exportLocation);
     
     window.open(url.toString(), '_blank');
   };
@@ -221,11 +249,19 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
       'VERSION:2.0',
       'PRODID:-//SkillfulMeans//Calendar//EN',
       'BEGIN:VEVENT',
-      icsFold(`DTSTART:${icsEscape(formatICSDate(startDate))}`),
-      icsFold(`DTEND:${icsEscape(formatICSDate(endDate))}`),
+      ...(challengeRange
+        ? [
+            `DTSTART;VALUE=DATE:${compactDay(challengeRange.start)}`,
+            `DTEND;VALUE=DATE:${compactDay(challengeRange.endExclusive)}`,
+            'TRANSP:TRANSPARENT',
+          ]
+        : [
+            icsFold(`DTSTART:${icsEscape(formatICSDate(startDate))}`),
+            icsFold(`DTEND:${icsEscape(formatICSDate(endDate))}`),
+          ]),
       icsFold(`SUMMARY:${icsEscape(event.title)}`),
       icsFold(`DESCRIPTION:${icsEscape(buildInviteDescription(event, service))}`),
-      icsFold(`LOCATION:${icsEscape(event.location || '')}`),
+      icsFold(`LOCATION:${icsEscape(exportLocation)}`),
       'END:VEVENT',
       'END:VCALENDAR'
     ];
@@ -521,13 +557,61 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
                   Copy kiosk link
                 </button>
               </div>
-              <p className="text-xs text-gray-400 mt-0.5">Share this in the calendar invite instead of the raw video link. Kiosk link is for a tablet at the door.</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {isChallenge
+                  ? 'For a challenge this link forwards straight to the sign-up page, so it also works on a slide or a QR code.'
+                  : 'Share this in the calendar invite instead of the raw video link. Kiosk link is for a tablet at the door.'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Challenge sign-up: what a challenge has instead of a video link */}
+        {isChallenge && (
+          <div className={row}>
+            <ExternalLink className="w-5 h-5 text-gray-400 mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm text-gray-500">Challenge sign-up <span className="text-gray-400">· on the calendar invite</span></p>
+              {event.challenge_signup_url ? (
+                <>
+                  <a href={event.challenge_signup_url} target="_blank" rel="noopener noreferrer" className="font-medium text-[#013f7c] hover:underline break-all">
+                    {event.challenge_signup_url.replace(/^https?:\/\//, '')}
+                  </a>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-0.5">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(event.challenge_signup_url);
+                        toast.success('Sign-up link copied!');
+                      }}
+                      className="text-sm text-[#013f7c] hover:underline font-medium"
+                    >
+                      Copy link
+                    </button>
+                    <span className="text-gray-300">·</span>
+                    <a href={event.challenge_signup_url} target="_blank" rel="noopener noreferrer" className="text-sm text-[#013f7c] hover:underline font-medium">
+                      Open
+                    </a>
+                    <span className="text-gray-300">·</span>
+                    <button onClick={() => setEditing(true)} className="text-sm text-[#013f7c] hover:underline font-medium">
+                      Change link
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-0.5">People join here with their work email. The challenges app asks every survey, so there is no check-in survey and no video link.</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-amber-700">No sign-up link yet. Until there is one, the invite says the link is coming soon.</p>
+                  <button onClick={() => setEditing(true)} className="text-sm text-[#013f7c] hover:underline font-medium mt-0.5">
+                    Paste the share link from Challenges Admin
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}
 
         {/* Video link — the link attendees are handed after check-in (Meet, Zoom, Teams, …) */}
-        {(() => {
+        {!isChallenge && (() => {
           const link = event.meeting_link || '';
           const provider = /meet\.google\.com/i.test(link) ? 'Google Meet'
             : /zoom\.(us|com)/i.test(link) ? 'Zoom'
@@ -700,7 +784,7 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
           <div className="space-y-2">
             <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 p-2.5 rounded-lg">
               <CheckCircle2 className="w-4 h-4 shrink-0" />
-              <span>Synced{event.meeting_link ? ' · Meet room ready' : ''}</span>
+              <span>Synced{!isChallenge && event.meeting_link ? ' · Meet room ready' : ''}</span>
             </div>
             <Button
               onClick={handleUnsyncFromGoogle}
@@ -724,7 +808,11 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
               {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
               {syncing ? 'Syncing...' : 'Sync to Google Calendar'}
             </Button>
-            <p className="text-[11px] text-gray-400 mt-1.5">Also creates a Google Meet room.</p>
+            <p className="text-[11px] text-gray-400 mt-1.5">
+              {isChallenge
+                ? 'Adds it all-day across the challenge, marked Free, with the sign-up link. No Meet room.'
+                : 'Also creates a Google Meet room.'}
+            </p>
           </>
         )}
       </RailSection>
@@ -943,16 +1031,29 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
           />
         </div>
 
-        <div>
-          <Label>Video link (attendees are sent here after check-in)</Label>
-          <Input
-            type="url"
-            value={editForm.meeting_link}
-            onChange={(e) => setEditForm(prev => ({ ...prev, meeting_link: e.target.value }))}
-            placeholder="https://zoom.us/j/…  ·  https://teams.microsoft.com/…  ·  https://meet.google.com/…"
-          />
-          <p className="text-xs text-gray-400 mt-1">Paste a Zoom, Teams, or Meet link. Leave blank to fall back to the Google Meet room created on sync.</p>
-        </div>
+        {isChallenge ? (
+          <div>
+            <Label>Challenge sign-up link</Label>
+            <Input
+              type="url"
+              value={editForm.challenge_signup_url}
+              onChange={(e) => setEditForm(prev => ({ ...prev, challenge_signup_url: e.target.value }))}
+              placeholder="https://challenges.skillfulmeans.life/join/c/…"
+            />
+            <p className="text-xs text-gray-400 mt-1">The challenge's share link from Challenges Admin. The calendar invite carries it, and the check-in link forwards to it. Saving keeps the event all-day across the challenge (14 days unless you set an end date).</p>
+          </div>
+        ) : (
+          <div>
+            <Label>Video link (attendees are sent here after check-in)</Label>
+            <Input
+              type="url"
+              value={editForm.meeting_link}
+              onChange={(e) => setEditForm(prev => ({ ...prev, meeting_link: e.target.value }))}
+              placeholder="https://zoom.us/j/…  ·  https://teams.microsoft.com/…  ·  https://meet.google.com/…"
+            />
+            <p className="text-xs text-gray-400 mt-1">Paste a Zoom, Teams, or Meet link. Leave blank to fall back to the Google Meet room created on sync.</p>
+          </div>
+        )}
       </div>
     </div>
   );
