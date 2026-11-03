@@ -26,6 +26,7 @@ import SurveySendsCard from '@/components/scheduling/SurveySendsCard';
 import { computeSmartAssessmentTiming } from '@/lib/checkinAssessmentUtils';
 import ProposalPicker from '@/components/proposals/ProposalPicker';
 import { getProposalServiceItems, getProposalParty } from '@/lib/proposalFulfillment';
+import { challengeDateRange, challengeLengthDays, addDays, longDay } from '@/lib/calendarInviteBody';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 
@@ -49,6 +50,7 @@ export default function SchedulingHub() {
     end_time: '',
     location: '',
     meeting_link: '',
+    challenge_signup_url: '',
     client_name: '',
     client_id: '',
     client_email: '',
@@ -187,6 +189,20 @@ export default function SchedulingHub() {
         ? matchedService.category
         : 'other';
 
+      // A challenge runs all day for its whole length (the service's length, 14 days,
+      // unless a last day is set), carries its sign-up link instead of a video link, and
+      // is never surveyed at check-in: the challenges app asks every survey itself.
+      const isChallenge = derivedEventType === 'challenge';
+      let startValue = startDateTime;
+      let endValue = endDateTime;
+      if (isChallenge) {
+        const lastDay = eventData.end_date && eventData.end_date > eventData.start_date
+          ? eventData.end_date
+          : addDays(eventData.start_date, challengeLengthDays(matchedService) - 1);
+        startValue = `${eventData.start_date}T09:00:00`;
+        endValue = `${lastDay}T09:00:00`;
+      }
+
       // Auto-tag is_demo when the linked client is a demo client.
       const linkedClientId = eventData.client_id || resolvedClientId;
       const linkedClient = linkedClientId ? allClients.find(c => c.id === linkedClientId) : null;
@@ -195,13 +211,14 @@ export default function SchedulingHub() {
       const calendarEvent = await base44.entities.CalendarEvent.create({
         title: eventData.title,
         description: eventData.description || '',
-        location: eventData.location || '',
+        location: isChallenge ? '' : (eventData.location || ''),
         // Optional Zoom/Teams/Meet link chosen at booking time. The Google sync below only
         // fills meeting_link when it's empty, so a pasted link is kept and no Meet replaces it.
-        meeting_link: (eventData.meeting_link || '').trim() || null,
-        start_date: startDateTime,
-        end_date: endDateTime,
-        all_day: eventData.all_day,
+        meeting_link: isChallenge ? null : ((eventData.meeting_link || '').trim() || null),
+        challenge_signup_url: isChallenge ? ((eventData.challenge_signup_url || '').trim() || null) : null,
+        start_date: startValue,
+        end_date: endValue,
+        all_day: isChallenge ? true : eventData.all_day,
         event_type: derivedEventType,
         client_name: eventData.client_name || '',
         client_id: linkedClientId,
@@ -210,7 +227,7 @@ export default function SchedulingHub() {
         presenter_id: eventData.presenter_id || null,
         presenter_email: eventData.presenter_email || '',
         proposal_id: eventData.proposal_id || '',
-        assessment_timing: eventData.assessment_timing || 'none',
+        assessment_timing: isChallenge ? 'none' : (eventData.assessment_timing || 'none'),
         checkin_token: crypto.randomUUID(),
         color: '#264d44',
         is_demo: linkedClient?.is_demo === true,
@@ -241,7 +258,15 @@ export default function SchedulingHub() {
       queryClient.invalidateQueries({ queryKey: ['delivery-events'] });     // client-card chip
       queryClient.invalidateQueries({ queryKey: ['fulfillment-events'] });  // proposal fulfillment card
       const ownLink = calendarEvent?.meeting_link && !/meet\.google\.com/i.test(calendarEvent.meeting_link);
-      if (sync.status === 'synced' && ownLink) {
+      if (calendarEvent?.event_type === 'challenge') {
+        if (sync.status === 'failed') {
+          toast.warning('Booked, but Google Calendar sync failed.', { description: `${sync.error}. Open the event and click Sync to Google to retry.` });
+        } else if (calendarEvent.challenge_signup_url) {
+          toast.success('Booked. The calendar event carries the challenge sign-up link.', { description: 'All-day across the challenge, marked Free, no Meet room.' });
+        } else {
+          toast.warning('Booked. Add the challenge sign-up link next.', { description: "Copy the challenge's share link from Challenges Admin, then open this event, click Edit and paste it in." });
+        }
+      } else if (sync.status === 'synced' && ownLink) {
         toast.success('Booked — added to Google Calendar.', { description: 'Attendees get your video link after they check in; the invite carries only the check-in link.' });
       } else if (sync.status === 'synced' && sync.meetLink) {
         toast.success('Booked — added to Google Calendar, Meet room ready.', { description: 'The invite carries only the check-in link; attendees get the Meet after they check in.' });
@@ -509,6 +534,7 @@ export default function SchedulingHub() {
       end_time: '',
       location: '',
       meeting_link: '',
+      challenge_signup_url: '',
       client_name: '',
       client_id: '',
       client_email: '',
@@ -536,6 +562,16 @@ export default function SchedulingHub() {
   };
 
   const selectedInvoice = invoices.find(inv => inv.id === selectedInvoiceId);
+
+  // Booking a challenge: sign-up link instead of a video link, no check-in survey,
+  // all-day across the challenge's days.
+  const bookingService = bookingForm.service_id ? (allServices.find(s => s.id === bookingForm.service_id) || null) : null;
+  const bookingIsChallenge = bookingService?.category === 'challenge';
+  const challengeRangePreview = bookingIsChallenge && bookingForm.start_date
+    ? challengeDateRange({ start_date: bookingForm.start_date, end_date: bookingForm.end_date }, bookingService)
+    : null;
+  const signupUrlLooksOff = bookingIsChallenge && !!bookingForm.challenge_signup_url.trim()
+    && !/^https:\/\/challenges\.skillfulmeans\.life\/join\//i.test(bookingForm.challenge_signup_url.trim());
 
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-3 sm:p-4 md:p-8">
@@ -1097,7 +1133,14 @@ export default function SchedulingHub() {
                       )}
                     </div>
 
-                    {bookingForm.service_id && (() => {
+                    {bookingIsChallenge && (
+                      <div className="sm:col-span-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                        <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">Surveys</p>
+                        <p className="text-xs text-emerald-900 mt-0.5">None at check-in. The challenges app asks the starting survey, the day-14 survey and the 30-day follow-up, so nobody is asked twice.</p>
+                      </div>
+                    )}
+
+                    {bookingForm.service_id && !bookingIsChallenge && (() => {
                       const svc = allServices.find(s => s.id === bookingForm.service_id);
                       const calendarEventsList = calendarEvents || [];
                       const client = bookingForm.client_id ? allClients.find(c => c.id === bookingForm.client_id) : null;
@@ -1139,7 +1182,7 @@ export default function SchedulingHub() {
                     <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 block">Date & Time</Label>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <Label className="text-xs text-gray-500">Start Date</Label>
+                        <Label className="text-xs text-gray-500">{bookingIsChallenge ? 'Day 1' : 'Start Date'}</Label>
                         <Input
                           type="date"
                           value={bookingForm.start_date}
@@ -1147,17 +1190,19 @@ export default function SchedulingHub() {
                           className="mt-1 bg-white"
                         />
                       </div>
+                      {!bookingIsChallenge && (
+                        <div>
+                          <Label className="text-xs text-gray-500">Start Time</Label>
+                          <Input
+                            type="time"
+                            value={bookingForm.start_time}
+                            onChange={(e) => setBookingForm(prev => ({ ...prev, start_time: e.target.value }))}
+                            className="mt-1 bg-white"
+                          />
+                        </div>
+                      )}
                       <div>
-                        <Label className="text-xs text-gray-500">Start Time</Label>
-                        <Input
-                          type="time"
-                          value={bookingForm.start_time}
-                          onChange={(e) => setBookingForm(prev => ({ ...prev, start_time: e.target.value }))}
-                          className="mt-1 bg-white"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-gray-500">End Date <span className="text-gray-400">(optional)</span></Label>
+                        <Label className="text-xs text-gray-500">{bookingIsChallenge ? 'Last day' : 'End Date'} <span className="text-gray-400">(optional)</span></Label>
                         <Input
                           type="date"
                           value={bookingForm.end_date}
@@ -1165,28 +1210,56 @@ export default function SchedulingHub() {
                           className="mt-1 bg-white"
                         />
                       </div>
-                      <div>
-                        <Label className="text-xs text-gray-500">End Time <span className="text-gray-400">(optional)</span></Label>
-                        <Input
-                          type="time"
-                          value={bookingForm.end_time}
-                          onChange={(e) => setBookingForm(prev => ({ ...prev, end_time: e.target.value }))}
-                          className="mt-1 bg-white"
+                      {!bookingIsChallenge && (
+                        <div>
+                          <Label className="text-xs text-gray-500">End Time <span className="text-gray-400">(optional)</span></Label>
+                          <Input
+                            type="time"
+                            value={bookingForm.end_time}
+                            onChange={(e) => setBookingForm(prev => ({ ...prev, end_time: e.target.value }))}
+                            className="mt-1 bg-white"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    {bookingIsChallenge ? (
+                      <p className="text-xs text-gray-600 mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                        {challengeRangePreview
+                          ? `Runs ${longDay(challengeRangePreview.start)} to ${longDay(challengeRangePreview.last)} (${challengeRangePreview.days} days). On Google it shows as one all-day event across those days, marked Free.`
+                          : `Pick day 1. The challenge runs ${challengeLengthDays(bookingService)} days unless you set a last day.`}
+                      </p>
+                    ) : (
+                      <div className="flex items-center gap-2 mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                        <input
+                          type="checkbox"
+                          id="all_day"
+                          checked={bookingForm.all_day}
+                          onChange={(e) => setBookingForm(prev => ({ ...prev, all_day: e.target.checked }))}
+                          className="rounded w-4 h-4 accent-[#264d44]"
                         />
+                        <Label htmlFor="all_day" className="cursor-pointer text-sm text-gray-700">All-day event</Label>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 mt-3 p-3 bg-white rounded-lg border border-gray-200">
-                      <input
-                        type="checkbox"
-                        id="all_day"
-                        checked={bookingForm.all_day}
-                        onChange={(e) => setBookingForm(prev => ({ ...prev, all_day: e.target.checked }))}
-                        className="rounded w-4 h-4 accent-[#264d44]"
-                      />
-                      <Label htmlFor="all_day" className="cursor-pointer text-sm text-gray-700">All-day event</Label>
-                    </div>
+                    )}
                   </div>
 
+                  {bookingIsChallenge && (
+                    <div className="border-t border-gray-200 pt-4">
+                      <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Challenge sign-up link</Label>
+                      <Input
+                        type="url"
+                        value={bookingForm.challenge_signup_url}
+                        onChange={(e) => setBookingForm(prev => ({ ...prev, challenge_signup_url: e.target.value }))}
+                        placeholder="https://challenges.skillfulmeans.life/join/c/…"
+                        className="mt-1 bg-white"
+                      />
+                      <p className="text-xs text-gray-400 mt-1">Copy the challenge's share link from Challenges Admin. The calendar event and the emailed invite carry this link, and the check-in link forwards to it. No Meet room is made for a challenge.</p>
+                      {signupUrlLooksOff && (
+                        <p className="text-xs text-amber-600 mt-1">⚠ That doesn't look like a challenges.skillfulmeans.life/join/ link. Double-check it before booking.</p>
+                      )}
+                    </div>
+                  )}
+
+                  {!bookingIsChallenge && (
                   <div className="border-t border-gray-200 pt-4">
                     <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</Label>
                     <Input
@@ -1196,7 +1269,9 @@ export default function SchedulingHub() {
                       className="mt-1 bg-white"
                     />
                   </div>
+                  )}
 
+                  {!bookingIsChallenge && (
                   <div className="border-t border-gray-200 pt-4">
                     <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Video link (after check-in)</Label>
                     <Input
@@ -1208,6 +1283,7 @@ export default function SchedulingHub() {
                     />
                     <p className="text-xs text-gray-400 mt-1">Attendees are sent here after they complete the check-in survey. The calendar invite carries only the check-in link.</p>
                   </div>
+                  )}
 
                   <div className="border-t border-gray-200 pt-4">
                     <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Presenter</Label>
