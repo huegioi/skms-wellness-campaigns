@@ -570,8 +570,9 @@ export default function SchedulingHub() {
   const challengeRangePreview = bookingIsChallenge && bookingForm.start_date
     ? challengeDateRange({ start_date: bookingForm.start_date, end_date: bookingForm.end_date }, bookingService)
     : null;
-  const signupUrlLooksOff = bookingIsChallenge && !!bookingForm.challenge_signup_url.trim()
-    && !/^https:\/\/challenges\.skillfulmeans\.life\/join\//i.test(bookingForm.challenge_signup_url.trim());
+  const signupUrlDraft = (bookingForm.challenge_signup_url || '').trim();
+  const signupUrlLooksOff = bookingIsChallenge && !!signupUrlDraft
+    && !/^https:\/\/challenges\.skillfulmeans\.life\/join\//i.test(signupUrlDraft);
 
   return (
     <div className="min-h-screen bg-[#f4f0e9] p-3 sm:p-4 md:p-8">
@@ -1247,7 +1248,7 @@ export default function SchedulingHub() {
                       <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Challenge sign-up link</Label>
                       <Input
                         type="url"
-                        value={bookingForm.challenge_signup_url}
+                        value={bookingForm.challenge_signup_url || ''}
                         onChange={(e) => setBookingForm(prev => ({ ...prev, challenge_signup_url: e.target.value }))}
                         placeholder="https://challenges.skillfulmeans.life/join/c/…"
                         className="mt-1 bg-white"
