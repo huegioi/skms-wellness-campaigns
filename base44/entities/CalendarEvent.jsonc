@@ -189,6 +189,10 @@
       "type": "string",
       "description": "ID of the private 'Meet room' holder event on the admin calendar that owns this session's Google Meet. Kept separate from google_event_id so the client-facing invite only ever shows the check-in link."
     },
+    "challenge_signup_url": {
+      "type": "string",
+      "description": "Challenges only: the cohort's sign-up link in the challenges app (https://challenges.skillfulmeans.life/join/c/<id>, from Challenges Admin). The Google event and emailed invite carry this instead of a check-in link, and the check-in page forwards to it."
+    },
     "outlook_event_id": {
       "type": "string",
       "description": "Outlook Calendar event ID for sync"
