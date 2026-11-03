@@ -1,4 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
+import {
+  isChallengeBooking, challengeSignupUrl, challengeDateRange, challengeWhenLine, buildChallengeInviteDescription,
+} from '../../shared/challengeInvite.ts';
 
 // Manual-trigger calendar invite (the "Send Invite by Email" button). Never automatic.
 //
@@ -65,9 +68,23 @@ Deno.serve(async (req) => {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: NY,
     });
     const timeOf = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: NY });
-    const whenLabel = event.all_day
-      ? dayLabel
-      : `${dayLabel} · ${timeOf(startDate)} – ${timeOf(endDate)} ET`;
+
+    // A challenge invite points at the challenge's sign-up link and covers every day of
+    // the challenge. There is no check-in or video link for one.
+    let service = null;
+    if (event.service_id) {
+      const found = await base44.asServiceRole.entities.Service.filter({ id: event.service_id }).catch(() => []);
+      service = found[0] || null;
+    }
+    const isChallenge = isChallengeBooking(event, service);
+    const signupUrl = isChallenge ? challengeSignupUrl(event) : null;
+    const range = isChallenge ? challengeDateRange(event, service) : null;
+
+    const whenLabel = range
+      ? challengeWhenLine(range)
+      : event.all_day
+        ? dayLabel
+        : `${dayLabel} · ${timeOf(startDate)} – ${timeOf(endDate)} ET`;
 
     // Presenters are attendees on the Meet holder event, not on the client-facing one,
     // so each recipient gets the calendar link they can actually open.
@@ -115,7 +132,7 @@ Deno.serve(async (req) => {
 
       // Per-recipient ICS so the description carries the links that apply to them.
       const icsDescription = [
-        event.description || '',
+        isChallenge ? buildChallengeInviteDescription(event, service) : (event.description || ''),
         calendarUrl ? `Google Calendar: ${calendarUrl}` : '',
         isPresenter && portalUrl ? `Your presenter portal: ${portalUrl}` : '',
       ].filter(Boolean).join('\n\n');
@@ -128,11 +145,20 @@ Deno.serve(async (req) => {
         'METHOD:REQUEST',
         'BEGIN:VEVENT',
         icsFold(`DTSTAMP:${icsEscape(formatICS(new Date()))}`),
-        icsFold(`DTSTART:${icsEscape(formatICS(startDate))}`),
-        icsFold(`DTEND:${icsEscape(formatICS(endDate))}`),
+        // A challenge is all-day across its days (DTEND is exclusive) and shows as free time.
+        ...(range
+          ? [
+              `DTSTART;VALUE=DATE:${range.start.replace(/-/g, '')}`,
+              `DTEND;VALUE=DATE:${range.endExclusive.replace(/-/g, '')}`,
+              'TRANSP:TRANSPARENT',
+            ]
+          : [
+              icsFold(`DTSTART:${icsEscape(formatICS(startDate))}`),
+              icsFold(`DTEND:${icsEscape(formatICS(endDate))}`),
+            ]),
         icsFold(`SUMMARY:${icsEscape(event.title)}`),
         icsFold(`DESCRIPTION:${icsEscape(icsDescription)}`),
-        icsFold(`LOCATION:${icsEscape(event.location || '')}`),
+        icsFold(`LOCATION:${icsEscape(isChallenge ? (signupUrl || '') : (event.location || ''))}`),
         icsFold(`ORGANIZER;CN=SkillfulMeans:mailto:${CALENDAR_ID}`),
         icsFold(`ATTENDEE;CN=${icsEscape(toName || toEmail)};RSVP=TRUE:mailto:${toEmail}`),
         icsFold(`UID:${icsEscape(event.id)}-${isPresenter ? 'presenter' : 'client'}@skms-wellness`),
@@ -152,7 +178,7 @@ Deno.serve(async (req) => {
           </div>
           <div style="background: #f9f9f9; padding: 30px; border-radius: 0 0 12px 12px; border: 1px solid #e5e7eb;">
             <p style="color: #374151;">${toName ? `Hi ${escapeHtml(toName)},` : 'Hi there,'}</p>
-            <p style="color: #374151;">${isPresenter ? "You're presenting the following session:" : 'You have been invited to the following event:'}</p>
+            <p style="color: #374151;">${isPresenter ? "You're presenting the following session:" : isChallenge ? "You're invited to join this challenge:" : 'You have been invited to the following event:'}</p>
             <div style="background: white; border-left: 4px solid #013f7c; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h2 style="color: #013f7c; margin: 0 0 12px 0; font-size: 18px;">${escapeHtml(event.title)}</h2>
               <p style="margin: 6px 0; color: #4b5563;"><strong>When:</strong> ${escapeHtml(whenLabel)}</p>
@@ -161,7 +187,19 @@ Deno.serve(async (req) => {
               ${event.description ? `<p style="margin: 12px 0 0; color: #4b5563; white-space: pre-wrap;">${escapeHtml(event.description)}</p>` : ''}
             </div>
 
+            ${isChallenge
+              ? (signupUrl
+                ? `<p style="color:#374151;margin:16px 0 6px;"><strong>How to join (about 2 minutes):</strong></p>
+            <ol style="color:#4b5563;margin:0 0 0 18px;padding:0;line-height:1.6;">
+              <li>Open the link and enter your name and work email.</li>
+              <li>Tap the sign-in link we email you. No password needed.</li>
+              <li>Answer a short starting check-in.</li>
+            </ol>`
+                : `<p style="color:#4b5563;margin:16px 0 0;">Your link to join this challenge will be shared before day 1.</p>`)
+              : ''}
+
             <div style="margin: 22px 0 8px;">
+              ${isChallenge && signupUrl ? linkButton(signupUrl, 'Join the challenge', '#264d44') : ''}
               ${calendarUrl ? linkButton(calendarUrl, 'Open in Google Calendar', '#013f7c') : ''}
               ${isPresenter && portalUrl ? linkButton(portalUrl, 'Accept or decline', '#770142') : ''}
             </div>
