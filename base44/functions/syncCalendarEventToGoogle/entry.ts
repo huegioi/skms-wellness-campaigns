@@ -1,4 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
+import { isChallengeBooking, challengeGoogleFields, challengeSignupUrl } from '../../shared/challengeInvite.ts';
 
 const APP_BASE_URL = 'https://app.skillfulmeans.life';
 function buildCheckinUrl(token) {
@@ -133,8 +134,12 @@ Deno.serve(async (req) => {
         } catch { /* non-fatal */ }
       }
       const checkinUrl = buildCheckinUrl(event.checkin_token);
+      // A challenge is not a session: its event carries the challenge's sign-up link,
+      // runs all-day across every day of the challenge, shows as Free, and never gets
+      // a Meet room (see shared/challengeInvite.ts).
+      const isChallenge = isChallengeBooking(event, service);
       // Client-facing event: title, check-in link, description, times. NEVER a Meet.
-      const eventData = {
+      const eventData = isChallenge ? challengeGoogleFields(event, service) : {
         summary: event.title,
         description: event.checkin_token ? buildInviteDescription(event, service) : (event.description || ''),
         location: event.checkin_token ? (checkinUrl || '') : (event.location || ''),
@@ -145,6 +150,9 @@ Deno.serve(async (req) => {
           ? { date: event.end_date?.split('T')[0] || event.start_date.split('T')[0] }
           : { dateTime: event.end_date || event.start_date, timeZone: 'America/New_York' }
       };
+      // PATCH merges nested objects, so a challenge that was once a timed event must
+      // clear its old times explicitly.
+      const patchData = isChallenge ? challengeGoogleFields(event, service, true) : eventData;
 
       let googleEventId = event.google_event_id;
       let strippedInviteMeet = false;
@@ -161,7 +169,7 @@ Deno.serve(async (req) => {
         }
         if (googleEventId) {
           // PATCH — not PUT — to preserve attendees, reminders, extendedProperties, colorId.
-          const patchBody = hasInviteMeet ? { ...eventData, conferenceData: null } : eventData;
+          const patchBody = hasInviteMeet ? { ...patchData, conferenceData: null } : patchData;
           const updateResponse = await fetch(
             `${GCAL}/${googleEventId}?sendUpdates=none${hasInviteMeet ? '&conferenceDataVersion=1' : ''}`,
             { method: 'PATCH', headers: jsonHeaders, body: JSON.stringify(patchBody) }
@@ -194,7 +202,11 @@ Deno.serve(async (req) => {
       // ── Meet holder event ──
       let meetEventId = event.google_meet_event_id || null;
       let meetLink = '';
-      if (meetEventId) {
+      if (isChallenge) {
+        // No video room for a challenge. Remove one an earlier sync created.
+        if (meetEventId) await gcalDelete(meetEventId);
+        meetEventId = null;
+      } else if (meetEventId) {
         const getRes = await fetch(`${GCAL}/${meetEventId}`, { headers: authHeaders });
         if (getRes.ok) {
           const holder = await getRes.json();
@@ -224,7 +236,7 @@ Deno.serve(async (req) => {
       }
       // A hand-chosen Zoom/Teams link means no Meet room is wanted — don't create a holder.
       const usesOtherProvider = !!event.meeting_link && !/meet\.google\.com/i.test(event.meeting_link);
-      if (!meetEventId && !usesOtherProvider) {
+      if (!isChallenge && !meetEventId && !usesOtherProvider) {
         const holderRes = await fetch(`${GCAL}?sendUpdates=none&conferenceDataVersion=1`, {
           method: 'POST',
           headers: jsonHeaders,
@@ -254,6 +266,8 @@ Deno.serve(async (req) => {
       const existing = event.meeting_link || '';
       const existingIsMeet = /meet\.google\.com/i.test(existing);
       if (meetLink && meetLink !== existing && (!existing || existingIsMeet)) patch.meeting_link = meetLink;
+      // A challenge's Meet room is gone, so its link must go too.
+      if (isChallenge && existingIsMeet) patch.meeting_link = null;
       if (Object.keys(patch).length) {
         await base44.asServiceRole.entities.CalendarEvent.update(eventId, patch);
       }
@@ -266,9 +280,15 @@ Deno.serve(async (req) => {
         // Who, if anyone, was invited to the room — the event dialog shows this back.
         presenterInvited: meetEventId ? (holderAttendees(event)[0]?.email || null) : null,
         strippedInviteMeet,
-        message: meetLink
-          ? 'Event synced to Google Calendar; Meet room ready (kept off the invite)'
-          : 'Event synced to Google Calendar (no Meet link returned)'
+        isChallenge,
+        signupUrl: isChallenge ? challengeSignupUrl(event) : null,
+        message: isChallenge
+          ? (challengeSignupUrl(event)
+            ? 'Challenge synced to Google Calendar with its sign-up link'
+            : 'Challenge synced to Google Calendar; no sign-up link yet')
+          : meetLink
+            ? 'Event synced to Google Calendar; Meet room ready (kept off the invite)'
+            : 'Event synced to Google Calendar (no Meet link returned)'
       });
 
     } else if (action === 'unsync') {
