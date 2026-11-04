@@ -319,7 +319,7 @@ Deno.serve(async (req) => {
     let user = null;
     if (!isAutomation) {
       user = await base44.auth.me().catch(() => null);
-      if (!isTeamMember(user)) return Response.json({ error: 'Unauthorized' }, { status: 403 });
+      if (!isTeamMember(user)) return Response.json({ error: 'Unauthorized', v: 2 }, { status: 403 });
     }
 
     const siteId = Deno.env.get('KAJABI_SITE_ID');
