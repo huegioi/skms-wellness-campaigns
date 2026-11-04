@@ -2,7 +2,7 @@
   "name": "Sync Client to Kajabi",
   "description": "Runs syncClientToKajabi whenever a Client is created or updated: every person on the record (primary, email2, related contacts, brokers, wellness consultant) becomes a subscribed Kajabi contact tagged Client / Client Lead / Broker / Engagement Consultant. Skips demo/internal/test/suppressed addresses. Exits without calling Kajabi when nothing relevant changed (kajabi_sync_signature).",
   "trigger": {
-    "condition": null,
+    "condition": "${ (.trigger.event_type == \"create\") or any((.trigger.changed_fields // [])[]; contains(\"email\") or IN(\"related_contacts\",\"brokers\",\"client_stage\",\"is_assessment_lead\")) }",
     "config": {
       "trigger_type": "entity",
       "events": [
@@ -19,7 +19,10 @@
           "call": "invoke_backend_function",
           "then": "end",
           "with": {
-            "args": {},
+            "args": {
+              "automation": true,
+              "client_id": "${ .trigger.entity_id }"
+            },
             "function_name": "syncClientToKajabi"
           }
         }
@@ -29,7 +32,7 @@
       "dsl": "1.0.0",
       "name": "sync_client_to_kajabi",
       "namespace": "base44",
-      "version": "1.0"
+      "version": "1.1"
     }
   }
 }
