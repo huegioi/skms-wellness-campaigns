@@ -246,13 +246,18 @@ async function loadSuppressed(base44) {
  * Sync one client. Returns a report. With dryRun, reads Kajabi but writes nothing anywhere.
  * `force` ignores the signature (used when a stored id might be stale).
  */
+/** Everyone we know as a broker/partner: ReferralPartner rows plus broker-type rows in the legacy (read-only) Lead table. */
 async function loadPartnerEmails(base44) {
+  const out = new Set();
   try {
     const rows = await base44.asServiceRole.entities.ReferralPartner.list('-created_date', 5000);
-    return new Set(rows.map(r => key(r.email)).filter(Boolean));
-  } catch (_) {
-    return new Set();
-  }
+    for (const r of rows) if (r.email) out.add(key(r.email));
+  } catch (_) { /* best effort */ }
+  try {
+    const rows = await base44.asServiceRole.entities.Lead.list('-created_date', 5000);
+    for (const r of rows) if (r.email && (r.lead_type === 'broker' || r.lead_type === 'broker_lead')) out.add(key(r.email));
+  } catch (_) { /* best effort */ }
+  return out;
 }
 
 async function syncClient(base44, siteId, client, suppressed, partnerEmails, { dryRun = false, force = false } = {}) {
