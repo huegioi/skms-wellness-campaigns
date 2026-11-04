@@ -38,6 +38,8 @@ const PRE_SALE_STAGES = new Set([
   'proposal_viewed', 'negotiation', 'verbal_yes',
 ]);
 const INTERNAL_DOMAINS = ['skillfulmeans.life'];
+// William's own test inboxes used when trying out intake forms.
+const TEST_ADDRESS = /^(williamcharlesjackson(\+[^@]*)?|huegioi[^@]*)@gmail\.com$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const BACKFILL_BUDGET_MS = 240_000;
 
@@ -64,7 +66,7 @@ function isPreSale(client) {
 }
 
 /** Every syncable person on the record, deduped by email, with the tag they should carry. */
-function collectPeople(client) {
+function collectPeople(client, partnerEmails = new Set()) {
   const out = new Map();
   const clientTag = isPreSale(client) ? TAG_CLIENT_LEAD : TAG_CLIENT;
   const related = Array.isArray(client.related_contacts) ? client.related_contacts : [];
@@ -73,7 +75,10 @@ function collectPeople(client) {
   const add = (email, name, phone, type, source) => {
     const e = key(email);
     if (!e || out.has(e)) return;
-    out.set(e, { email: e, name: personName(name, client.company), phone: norm(phone), tag: tagFor(type), source });
+    // A broker sometimes sits on a client record as an ordinary contact. If the address belongs to a
+    // referral partner, tag it as a broker, never as a client.
+    const role = partnerEmails.has(e) && type !== 'wellness_consultant' ? 'broker' : type;
+    out.set(e, { email: e, name: personName(name, client.company), phone: norm(phone), tag: tagFor(role), source });
   };
 
   // Related contacts first: they carry the most accurate name + role for their own address.
@@ -92,6 +97,7 @@ function skipReason(email, suppressed) {
   if (!EMAIL_RE.test(email)) return 'invalid_email';
   if (INTERNAL_DOMAINS.some(d => email.endsWith('@' + d))) return 'internal_address';
   if (TEAM_EMAILS.includes(email)) return 'team_address';
+  if (TEST_ADDRESS.test(email)) return 'test_address';
   if (suppressed.has(email)) return 'suppressed';
   return null;
 }
@@ -168,7 +174,10 @@ async function tagId(siteId, name, create) {
 }
 
 async function findByEmail(siteId, email) {
-  const res = await kj(`/contacts?filter[site_id]=${siteId}&filter[email]=${encodeURIComponent(email)}`);
+  // NOTE: Kajabi has no filter[email]. An unknown filter is silently ignored and the API returns the
+  // newest contacts, so a filter[email] lookup only "finds" recently created people. email_contains is
+  // the real filter; the exact match below narrows it.
+  const res = await kj(`/contacts?filter[site_id]=${siteId}&filter[email_contains]=${encodeURIComponent(email)}&page[size]=50`);
   if (!res.ok) throw new Error(`Kajabi contact lookup failed for ${email} (${res.status}): ${await res.text()}`);
   const body = await res.json();
   return (body.data || []).find(c => key(c.attributes?.email) === email) || null;
@@ -225,13 +234,22 @@ async function loadSuppressed(base44) {
  * Sync one client. Returns a report. With dryRun, reads Kajabi but writes nothing anywhere.
  * `force` ignores the signature (used when a stored id might be stale).
  */
-async function syncClient(base44, siteId, client, suppressed, { dryRun = false, force = false } = {}) {
+async function loadPartnerEmails(base44) {
+  try {
+    const rows = await base44.asServiceRole.entities.ReferralPartner.list('-created_date', 5000);
+    return new Set(rows.map(r => key(r.email)).filter(Boolean));
+  } catch (_) {
+    return new Set();
+  }
+}
+
+async function syncClient(base44, siteId, client, suppressed, partnerEmails, { dryRun = false, force = false } = {}) {
   const report = { client_id: client.id, company: client.company || client.name, people: [], skipped: [] };
 
   if (client.is_demo) return { ...report, status: 'skipped', reason: 'demo_record' };
   if (client.is_internal) return { ...report, status: 'skipped', reason: 'internal_client' };
 
-  const all = collectPeople(client);
+  const all = collectPeople(client, partnerEmails);
   const people = [];
   for (const p of all) {
     const why = skipReason(p.email, suppressed);
@@ -319,13 +337,14 @@ Deno.serve(async (req) => {
     let user = null;
     if (!isAutomation) {
       user = await base44.auth.me().catch(() => null);
-      if (!isTeamMember(user)) return Response.json({ error: 'Unauthorized', v: 2 }, { status: 403 });
+      if (!isTeamMember(user)) return Response.json({ error: 'Unauthorized', v: 3 }, { status: 403 });
     }
 
     const siteId = Deno.env.get('KAJABI_SITE_ID');
     if (!siteId) return Response.json({ error: 'KAJABI_SITE_ID is not set' }, { status: 500 });
 
     const suppressed = await loadSuppressed(base44);
+    const partnerEmails = await loadPartnerEmails(base44);
 
     // ── Backfill ──
     if (payload.mode === 'backfill') {
@@ -346,7 +365,7 @@ Deno.serve(async (req) => {
 
       for (const c of clients) {
         if (Date.now() - started > BACKFILL_BUDGET_MS) { remaining++; continue; }
-        const r = await syncClient(base44, siteId, c, suppressed, { dryRun });
+        const r = await syncClient(base44, siteId, c, suppressed, partnerEmails, { dryRun });
         totals.processed++;
         if (r.status === 'unchanged') { totals.unchanged++; continue; }
         if (r.status === 'skipped') {
@@ -383,7 +402,7 @@ Deno.serve(async (req) => {
     if (!client && payload.data?.id) client = payload.data;
     if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
 
-    const result = await syncClient(base44, siteId, client, suppressed, { dryRun: payload.dry_run === true, force: payload.force === true });
+    const result = await syncClient(base44, siteId, client, suppressed, partnerEmails, { dryRun: payload.dry_run === true, force: payload.force === true });
     console.log(`syncClientToKajabi ${result.status} ${result.company}: ${JSON.stringify(result.people)}`);
     return Response.json(user ? result : { status: result.status, people: result.people.length, errors: result.errors?.length || 0 });
   } catch (error) {
