@@ -401,6 +401,23 @@
       "default": false,
       "description": "Demo data flag."
     },
+    "kajabi_contact_id": {
+      "type": "string",
+      "description": "Kajabi contact id for the primary email. Written by syncClientToKajabi."
+    },
+    "kajabi_contact_ids": {
+      "type": "object",
+      "description": "Kajabi contact id per synced email on this record (primary, email2, related contacts). Written by syncClientToKajabi."
+    },
+    "kajabi_sync_signature": {
+      "type": "string",
+      "description": "Emails + Kajabi tags last synced successfully. syncClientToKajabi skips the client when this still matches (loop guard)."
+    },
+    "kajabi_synced_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time syncClientToKajabi ran for this client."
+    },
     "is_internal": {
       "type": "boolean",
       "default": false,
