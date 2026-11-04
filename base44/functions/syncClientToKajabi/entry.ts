@@ -69,6 +69,7 @@ function isPreSale(client) {
 function collectPeople(client, partnerEmails = new Set()) {
   const out = new Map();
   const clientTag = isPreSale(client) ? TAG_CLIENT_LEAD : TAG_CLIENT;
+  const clientDomain = key(client.email_domain) || (key(client.email).split('@')[1] || '');
   const related = Array.isArray(client.related_contacts) ? client.related_contacts : [];
   const tagFor = (type) => type === 'broker' ? TAG_BROKER : type === 'wellness_consultant' ? TAG_CONSULTANT : clientTag;
 
@@ -76,8 +77,11 @@ function collectPeople(client, partnerEmails = new Set()) {
     const e = key(email);
     if (!e || out.has(e)) return;
     // A broker sometimes sits on a client record as an ordinary contact. If the address belongs to a
-    // referral partner, tag it as a broker, never as a client.
-    const role = partnerEmails.has(e) && type !== 'wellness_consultant' ? 'broker' : type;
+    // referral partner at ANOTHER organization, tag it as a broker, not a client. A partner at the
+    // client's own domain is both (dual roles are additive): they keep the client tag here and the
+    // partner sync gives them the partner tags.
+    const sameOrg = clientDomain && e.endsWith('@' + clientDomain);
+    const role = partnerEmails.has(e) && !sameOrg && type !== 'wellness_consultant' ? 'broker' : type;
     out.set(e, { email: e, name: personName(name, client.company), phone: norm(phone), tag: tagFor(role), source });
   };
 
@@ -337,7 +341,7 @@ Deno.serve(async (req) => {
     let user = null;
     if (!isAutomation) {
       user = await base44.auth.me().catch(() => null);
-      if (!isTeamMember(user)) return Response.json({ error: 'Unauthorized', v: 3 }, { status: 403 });
+      if (!isTeamMember(user)) return Response.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const siteId = Deno.env.get('KAJABI_SITE_ID');
