@@ -179,10 +179,25 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
         all_day: isChallenge ? true : editForm.all_day
       };
 
-      // Update in CalendarEvent entity (automation will handle Google sync)
       await base44.entities.CalendarEvent.update(event.id, updatedData);
 
-      toast.success('Event updated successfully');
+      // Nothing mirrors app edits to Google on its own, so push them now for an event
+      // that's already on the calendar. Same call as the sync button; Google emails nobody.
+      let googleNote = null;
+      if (event.google_event_id && !event.is_demo) {
+        try {
+          const res = await base44.functions.invoke('syncCalendarEventToGoogle', { eventId: event.id, action: 'sync' });
+          if (!res.data?.success) googleNote = res.data?.error || 'unknown error';
+        } catch (e) {
+          googleNote = e?.response?.data?.error || e.message;
+        }
+      }
+
+      if (googleNote) {
+        toast.warning('Saved, but Google Calendar did not update.', { description: `${googleNote}. Open the event and click Update Google Calendar to retry.` });
+      } else {
+        toast.success(event.google_event_id ? 'Event updated here and on Google Calendar' : 'Event updated successfully');
+      }
       setEditing(false);
       onUpdated?.();
       onOpenChange(false);
@@ -328,7 +343,13 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
       });
 
       if (response.data.success) {
-        if (response.data.meetLink) {
+        if (response.data.isChallenge) {
+          toast.success('Google Calendar updated.', {
+            description: response.data.signupUrl
+              ? 'All-day across the challenge, marked Free, with the sign-up link.'
+              : 'No sign-up link yet, so the invite says it is coming soon.',
+          });
+        } else if (response.data.meetLink) {
           toast.success('Synced to Google Calendar — Meet room ready.', { description: 'The invite carries only the check-in link; attendees get the Meet after they check in.' });
         } else {
           toast.success('Synced to Google Calendar.', { description: 'Google did not return a Meet link. Try Add Meet link again in a moment.' });
@@ -786,6 +807,16 @@ export default function EventDetailDialog({ event, open, onOpenChange, eventType
               <CheckCircle2 className="w-4 h-4 shrink-0" />
               <span>Synced{!isChallenge && event.meeting_link ? ' · Meet room ready' : ''}</span>
             </div>
+            <Button
+              onClick={handleSyncToGoogle}
+              disabled={syncing}
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              {syncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+              {syncing ? 'Updating...' : 'Update Google Calendar'}
+            </Button>
             <Button
               onClick={handleUnsyncFromGoogle}
               disabled={syncing}
