@@ -275,11 +275,15 @@ Deno.serve(async (req) => {
           // Collect update if time/title/location changed or source_calendar missing
           const updatePayload = { id: existingCE.id };
           let changed = false;
-          if (existingCE.title !== title) { updatePayload.title = title; changed = true; }
-          if (startISO && existingCE.start_date !== startISO) { updatePayload.start_date = startISO; changed = true; }
-          if (endISO && existingCE.end_date !== endISO) { updatePayload.end_date = endISO; changed = true; }
-          if (location && existingCE.location !== location) { updatePayload.location = location; changed = true; }
-          if (videoLink && existingCE.meeting_link !== videoLink) { updatePayload.meeting_link = videoLink; changed = true; }
+          // A challenge's title, dates and links belong to the app (Scheduling Hub). Google
+          // keeps an all-day event's end as the day AFTER the last day, so copying its dates
+          // back here would push the challenge a day later on every pass.
+          const appOwned = existingCE.event_type === 'challenge';
+          if (!appOwned && existingCE.title !== title) { updatePayload.title = title; changed = true; }
+          if (!appOwned && startISO && existingCE.start_date !== startISO) { updatePayload.start_date = startISO; changed = true; }
+          if (!appOwned && endISO && existingCE.end_date !== endISO) { updatePayload.end_date = endISO; changed = true; }
+          if (!appOwned && location && existingCE.location !== location) { updatePayload.location = location; changed = true; }
+          if (!appOwned && videoLink && existingCE.meeting_link !== videoLink) { updatePayload.meeting_link = videoLink; changed = true; }
           if (!existingCE.source_calendar) { updatePayload.source_calendar = cal.id; changed = true; }
           // Backfill contact IDs on existing events that were created before partner/domain matching
           if (matchedPartner && !existingCE.referral_partner_id) { updatePayload.referral_partner_id = matchedPartner.id; changed = true; }
