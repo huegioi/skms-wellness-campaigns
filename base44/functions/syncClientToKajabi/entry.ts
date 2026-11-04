@@ -416,11 +416,16 @@ Deno.serve(async (req) => {
     }
 
     // ── Single client ──
-    const clientId = payload.client_id || payload.event?.entity_id;
+    const clientId = payload.client_id || payload.event?.entity_id || payload.entity_id || payload.data?.id;
     let client = null;
     if (clientId) client = await base44.asServiceRole.entities.Client.get(clientId).catch(() => null);
     if (!client && payload.data?.id) client = payload.data;
-    if (!client) return Response.json({ error: 'Client not found' }, { status: 404 });
+    if (!client) {
+      // Deleted between trigger and run, or an unexpected payload shape. Not an error worth failing the
+      // workflow over (repeated failures auto-disable it), so log and exit cleanly.
+      console.warn(`syncClientToKajabi: no client for id=${clientId || 'none'} payload keys=${Object.keys(payload).join(',')}`);
+      return Response.json({ status: 'skipped', reason: 'client_not_found' });
+    }
 
     const result = await syncClient(base44, siteId, client, suppressed, partnerEmails, { dryRun: payload.dry_run === true, force: payload.force === true });
     console.log(`syncClientToKajabi ${result.status} ${result.company}: ${JSON.stringify(result.people)}`);
