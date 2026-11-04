@@ -4,7 +4,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  * CLIENT → KAJABI CONTACT SYNC (one-way, app → Kajabi)
  *
  * Every person on a Client record becomes a Kajabi contact:
- *   - the primary email, email2, and every related_contacts[].email
+ *   - the primary email, email2, every related_contacts[].email,
+ *   - brokers[].email, broker_email, wellness_consultant_email
  * New Kajabi contacts are created SUBSCRIBED (William's decision 2026-11-04).
  * Existing Kajabi contacts are never re-subscribed: an unsubscribe in Kajabi stands.
  *
@@ -80,6 +81,10 @@ function collectPeople(client) {
   // Top-level fields. Only pair client.name with client.email (never with email2).
   add(client.email, client.name, client.phone, 'other', 'primary');
   add(client.email2, null, null, 'other', 'email2');
+  // Brokers and consultants listed on the record.
+  for (const b of (Array.isArray(client.brokers) ? client.brokers : [])) add(b?.email, b?.name, b?.phone, 'broker', 'brokers');
+  add(client.broker_email, client.broker_name, null, 'broker', 'broker_email');
+  add(client.wellness_consultant_email, client.wellness_consultant_name, null, 'wellness_consultant', 'wellness_consultant');
   return [...out.values()];
 }
 
