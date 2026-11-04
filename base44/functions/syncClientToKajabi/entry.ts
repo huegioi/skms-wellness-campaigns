@@ -187,6 +187,14 @@ async function findByEmail(siteId, email) {
   return (body.data || []).find(c => key(c.attributes?.email) === email) || null;
 }
 
+/** Direct lookup by a Kajabi id we stored earlier. Null if it was deleted/merged in Kajabi. */
+async function getById(id) {
+  const res = await kj(`/contacts/${id}`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Kajabi contact ${id} lookup failed (${res.status}): ${await res.text()}`);
+  return (await res.json()).data || null;
+}
+
 async function createContact(siteId, person) {
   const attributes = { email: person.email, subscribed: true };
   if (person.name) attributes.name = person.name;
@@ -273,7 +281,10 @@ async function syncClient(base44, siteId, client, suppressed, partnerEmails, { d
   for (const p of people) {
     const row = { email: p.email, name: p.name, tag: p.tag, source: p.source };
     try {
-      let contact = await findByEmail(siteId, p.email);
+      // Stored id first: Kajabi's search index lags a few seconds behind a create.
+      let contact = ids[p.email] ? await getById(ids[p.email]) : null;
+      if (contact && key(contact.attributes?.email) !== p.email) contact = null;
+      if (!contact) contact = await findByEmail(siteId, p.email);
       if (contact) {
         row.action = 'exists';
       } else if (dryRun) {
