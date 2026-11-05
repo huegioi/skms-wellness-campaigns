@@ -4,9 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Copy, Check, Download, Maximize2, X } from 'lucide-react';
 import { qrScanUrl, QR_DESTINATIONS } from '@/lib/qrLinks';
+import { aeqScanUrl, AEQ_QR_DESTINATIONS } from '@/lib/athleticEqQr';
 
 const LOGO_URL = 'https://media.base44.com/images/public/6911f6f4a9d8505805b51a3b/bb0a43468_SKMSLogoShieldBrown.png';
-const NAVY = '#013f7c';
+const SKMS_NAVY = '#013f7c';
 
 /**
  * QR code for one prospecting tool, for sharing at a conference.
@@ -26,8 +27,16 @@ export default function ConferenceQrDialog({ open, onOpenChange, qrKey }) {
   const canvasWrap = useRef(null);
 
   if (!qrKey) return null;
-  const dest = QR_DESTINATIONS[qrKey];
-  const url = qrScanUrl(qrKey);
+  // Keys starting with "aeq:" are the Athletic EQ codes (William and Trevon).
+  const aeqKey = qrKey.startsWith('aeq:') ? qrKey.slice(4) : null;
+  const dest = aeqKey
+    ? { ...AEQ_QR_DESTINATIONS[aeqKey], label: AEQ_QR_DESTINATIONS[aeqKey].cardLabel }
+    : QR_DESTINATIONS[qrKey];
+  const url = aeqKey ? aeqScanUrl(aeqKey) : qrScanUrl(qrKey);
+  const NAVY = aeqKey ? '#264d44' : SKMS_NAVY;
+  const brand = aeqKey ? 'Athletic EQ' : 'SkillfulMeans';
+  const tagline = aeqKey ? 'Small steps, great distances.' : '“Catch stress before it costs you”';
+  const footer = aeqKey ? 'Athletic EQ' : 'SkillfulMeans · Mental Fitness Campaigns';
 
   const copy = async () => {
     try {
@@ -55,14 +64,14 @@ export default function ConferenceQrDialog({ open, onOpenChange, qrKey }) {
     ctx.drawImage(qr, (W - qrSize) / 2, pad + 80, qrSize, qrSize);
     ctx.fillStyle = '#374151';
     ctx.font = 'italic 30px sans-serif';
-    ctx.fillText('“Catch stress before it costs you”', W / 2, pad + 80 + qrSize + 50);
+    ctx.fillText(tagline, W / 2, pad + 80 + qrSize + 50);
     ctx.fillStyle = '#9ca3af';
     ctx.font = '22px sans-serif';
-    ctx.fillText('SkillfulMeans · Mental Fitness Campaigns', W / 2, pad + 80 + qrSize + 88);
+    ctx.fillText(footer, W / 2, pad + 80 + qrSize + 88);
     c.toBlob((blob) => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `SkillfulMeans-QR-${dest.label.replace(/\s+/g, '-')}.png`;
+      a.download = `${brand.replace(/\s+/g, '-')}-QR-${dest.label.replace(/\s+/g, '-')}.png`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     });
@@ -80,12 +89,14 @@ export default function ConferenceQrDialog({ open, onOpenChange, qrKey }) {
           </DialogHeader>
 
           <div className="flex flex-col items-center gap-3 py-1">
-            <img src={LOGO_URL} alt="SkillfulMeans" className="h-8" />
+            {!aeqKey && <img src={LOGO_URL} alt="SkillfulMeans" className="h-8" />}
             <div className="bg-white rounded-2xl p-4 border border-gray-200">
               <QRCodeSVG value={url} size={224} level="M" marginSize={1} fgColor={NAVY} />
             </div>
             <p className="text-xs text-gray-500 text-center">
-              Opens the SkillfulMeans welcome screen, then {dest.label}.
+              {aeqKey
+                ? 'Asks for their details, adds them to Notion, then opens the destination.'
+                : `Opens the SkillfulMeans welcome screen, then ${dest.label}.`}
             </p>
             <button
               type="button"
@@ -128,8 +139,8 @@ export default function ConferenceQrDialog({ open, onOpenChange, qrKey }) {
           >
             <X className="w-5 h-5 text-gray-600" />
           </button>
-          <img src={LOGO_URL} alt="SkillfulMeans" className="h-10 mb-3" />
-          <p className="text-xl font-bold text-[#013f7c] mb-6 text-center">{dest.label}</p>
+          {!aeqKey && <img src={LOGO_URL} alt="SkillfulMeans" className="h-10 mb-3" />}
+          <p className="text-xl font-bold mb-6 text-center" style={{ color: NAVY }}>{aeqKey ? 'Athletic EQ' : dest.label}</p>
           <QRCodeSVG
             value={url}
             level="M"
@@ -137,7 +148,7 @@ export default function ConferenceQrDialog({ open, onOpenChange, qrKey }) {
             fgColor={NAVY}
             style={{ width: 'min(82vw, 62vh, 460px)', height: 'min(82vw, 62vh, 460px)' }}
           />
-          <p className="text-base italic text-gray-600 mt-6 text-center">“Catch stress before it costs you”</p>
+          <p className="text-base italic text-gray-600 mt-6 text-center">{tagline}</p>
           <p className="text-xs text-gray-400 mt-4">Tap anywhere to close</p>
         </div>
       )}
