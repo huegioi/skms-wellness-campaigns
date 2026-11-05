@@ -22,6 +22,7 @@ import PresenterPortal from './pages/PresenterPortal';
 import QuickBuilder from './pages/QuickBuilder';
 import Scan from './pages/Scan';
 import AthleticEQScan from './pages/AthleticEQScan';
+import AthleticEQCodes from './pages/AthleticEQCodes';
 import Checkin from './pages/Checkin';
 import MentalFitnessScore from './pages/MentalFitnessScore';
 import MfsSurvey from './pages/MfsSurvey';
@@ -124,6 +125,7 @@ const AuthenticatedApp = () => {
       <Route path="/Scan" element={<Scan />} />
       {/* Athletic EQ QR landing: details to Notion, then forwards (src/lib/athleticEqQr.js) */}
       <Route path="/AthleticEQ" element={<AthleticEQScan />} />
+      <Route path="/AthleticEQCodes" element={<AthleticEQCodes />} />
       <Route path="/Checkin" element={<Checkin />} />
       {/* The Mental Fitness Score is retired (William, 2026-08-17) — the Mental
           Fitness Journey replaces it. These redirect rather than 404 because the
