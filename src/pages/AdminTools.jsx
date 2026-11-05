@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import ConferenceQrDialog from '@/components/shared/ConferenceQrDialog';
 import { CALENDLY_DEMO_URL, QR_DESTINATIONS } from '@/lib/qrLinks';
+import { AEQ_QR_DESTINATIONS } from '@/lib/athleticEqQr';
 import { WILLIAM_PHOTO, HEATHER_PHOTO } from '@/assets/teamPhotos';
 
 /**
@@ -107,6 +108,36 @@ const GROUPS = [
         tint: 'bg-[#0a66c2]/10 text-[#0a66c2]',
         href: QR_DESTINATIONS.heather.url,
         qrKey: 'heather',
+      },
+    ],
+  },
+  {
+    title: 'Athletic EQ',
+    blurb: 'William and Trevon. Each code asks for their details, adds them to the Athletic EQ Notion tracker, then opens the destination.',
+    tools: [
+      {
+        name: 'William',
+        description: 'Opens William\'s LinkedIn. Marked "Met by William" in Notion.',
+        icon: Linkedin,
+        tint: 'bg-[#264d44]/10 text-[#264d44]',
+        href: AEQ_QR_DESTINATIONS.william.url,
+        qrKey: 'aeq:william',
+      },
+      {
+        name: 'Trevon',
+        description: 'Opens the website until his LinkedIn is added. Marked "Met by Trevon" in Notion.',
+        icon: Linkedin,
+        tint: 'bg-[#264d44]/10 text-[#264d44]',
+        href: AEQ_QR_DESTINATIONS.trevon.url,
+        qrKey: 'aeq:trevon',
+      },
+      {
+        name: 'Athletic EQ website',
+        description: 'Opens the Athletic EQ landing page.',
+        icon: Trophy,
+        tint: 'bg-[#264d44]/10 text-[#264d44]',
+        href: AEQ_QR_DESTINATIONS.website.url,
+        qrKey: 'aeq:website',
       },
     ],
   },
