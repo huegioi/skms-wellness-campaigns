@@ -1,0 +1,74 @@
+{
+  "description": "Backup copy of a person who scanned an Athletic EQ QR code (/AthleticEQ). The working record lives in the Notion database Athletic EQ Form; this copy means a lead is never lost if Notion is unavailable. Written by the public aeqScanLead function, which also retries any failed Notion sends.",
+  "name": "AeqScanLead",
+  "properties": {
+    "email": {
+      "description": "Lower-cased",
+      "type": "string"
+    },
+    "met_by": {
+      "description": "William, Trevon or Not specified",
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "notion_error": {
+      "type": "string"
+    },
+    "notion_page_id": {
+      "type": "string"
+    },
+    "notion_status": {
+      "default": "pending",
+      "enum": [
+        "pending",
+        "sent",
+        "already_in_notion",
+        "failed"
+      ],
+      "type": "string"
+    },
+    "role": {
+      "type": "string"
+    },
+    "scan_count": {
+      "default": 1,
+      "type": "number"
+    },
+    "school": {
+      "type": "string"
+    },
+    "source_key": {
+      "description": "Which QR code: william, trevon or website",
+      "type": "string"
+    }
+  },
+  "required": [
+    "email",
+    "source_key"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  },
+  "type": "object"
+}
