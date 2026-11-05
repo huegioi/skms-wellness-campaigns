@@ -125,7 +125,7 @@ const GROUPS = [
       },
       {
         name: 'Trevon',
-        description: 'Opens the website until his LinkedIn is added. Marked "Met by Trevon" in Notion.',
+        description: 'Opens Trevon\'s LinkedIn. Marked "Met by Trevon" in Notion.',
         icon: Linkedin,
         tint: 'bg-[#264d44]/10 text-[#264d44]',
         href: AEQ_QR_DESTINATIONS.trevon.url,
