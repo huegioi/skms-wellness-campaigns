@@ -19,6 +19,11 @@ const writeStored = (v) => {
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const SAVE_WAIT_MS = 6000; // never hold a visitor longer than this over a slow save
+const saveLead = (payload) => {
+  const save = base44.functions.invoke('aeqScanLead', payload);
+  return Promise.race([save, new Promise((resolve) => setTimeout(resolve, SAVE_WAIT_MS))]);
+};
 const inputClass =
   'w-full h-11 rounded-lg border border-gray-300 bg-white px-3 text-base focus:outline-none focus:ring-2 focus:ring-[#264d44]/40';
 
@@ -28,6 +33,9 @@ const inputClass =
  * Asks for name, school, email and role, sends them to the Notion tracker via
  * aeqScanLead, then forwards to the code's destination. "Skip" goes straight
  * through. Unknown or missing keys go to the website so a code never dead-ends.
+ *
+ * Phones can refuse an automatic jump to another site or app (LinkedIn on
+ * Android in particular), so the finished screen always shows a real link to tap.
  */
 export default function AthleticEQScan() {
   const [params] = useSearchParams();
@@ -44,6 +52,7 @@ export default function AthleticEQScan() {
   const [trap, setTrap] = useState('');
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+  const [done, setDone] = useState(returning);
   const leaving = useRef(false);
 
   const go = useCallback(() => {
@@ -60,7 +69,7 @@ export default function AthleticEQScan() {
     link.href = FONT_URL;
     document.head.appendChild(link);
     if (returning) {
-      base44.functions.invoke('aeqScanLead', { ...stored, source_key: key })
+      saveLead({ ...stored, source_key: key })
         .catch(() => {})
         .finally(go);
     }
@@ -80,7 +89,7 @@ export default function AthleticEQScan() {
     const contact = { name: name.trim(), school: school.trim(), email: em, role };
     writeStored(contact);
     try {
-      await base44.functions.invoke('aeqScanLead', { ...contact, source_key: key, company_url: trap });
+      await saveLead({ ...contact, source_key: key, company_url: trap });
     } catch (err) {
       // Never strand someone over a network hiccup. Only a validation reply keeps them here.
       if (err?.response?.status === 400) {
@@ -89,6 +98,8 @@ export default function AthleticEQScan() {
         return;
       }
     }
+    setSending(false);
+    setDone(true);
     go();
   };
 
@@ -109,8 +120,18 @@ export default function AthleticEQScan() {
         ))}
       </div>
 
-      {returning ? (
-        <p className="mt-10 text-base text-white/80">Opening {dest.label}…</p>
+      {done ? (
+        <div className="w-full max-w-sm mt-6 rounded-2xl bg-white p-5 text-center text-gray-800 shadow-xl">
+          <p className="text-lg font-bold" style={{ color: GREEN }}>{returning ? 'Welcome back' : 'Thank you'}</p>
+          <p className="text-sm text-gray-500 mt-1 mb-4">William or Trevon will follow up personally.</p>
+          <a
+            href={dest.url}
+            className="flex w-full min-h-12 items-center justify-center px-3 py-2 rounded-lg text-white font-semibold text-base"
+            style={{ backgroundColor: GREEN }}
+          >
+            Open {dest.label}
+          </a>
+        </div>
       ) : (
         <form onSubmit={submit} className="w-full max-w-sm mt-6 rounded-2xl bg-white p-5 text-left text-gray-800 shadow-xl">
           <p className="text-lg font-bold" style={{ color: GREEN }}>Stay in touch</p>
