@@ -14,8 +14,7 @@ export const AEQ_WEBSITE_URL = 'https://courses.skillfulmeans.life/AthleticEQ';
 export const AEQ_QR_DESTINATIONS = {
   website: { label: 'the Athletic EQ website', cardLabel: 'Athletic EQ website', url: AEQ_WEBSITE_URL },
   william: { label: "William's LinkedIn", cardLabel: "William's LinkedIn", url: 'https://www.linkedin.com/in/william-jackson-psy-d-b6597644/' },
-  // Trevon's LinkedIn address goes here. Until then his code opens the website.
-  trevon: { label: 'the Athletic EQ website', cardLabel: "Trevon's code", url: AEQ_WEBSITE_URL },
+  trevon: { label: "Trevon's LinkedIn", cardLabel: "Trevon's LinkedIn", url: 'https://www.linkedin.com/in/trevon-bryant-2538bb150' },
 };
 
 export const AEQ_ROLES = [
