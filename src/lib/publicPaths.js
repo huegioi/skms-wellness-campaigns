@@ -21,6 +21,7 @@ export const PUBLIC_PATHS = [
   '/Unsubscribe',
   '/Scan',
   '/AthleticEQ',
+  '/AthleticEQCodes',
 ];
 
 export function isPublicPath(pathname) {
