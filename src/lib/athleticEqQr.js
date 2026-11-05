@@ -13,6 +13,8 @@ export const AEQ_WEBSITE_URL = 'https://courses.skillfulmeans.life/AthleticEQ';
 
 export const AEQ_QR_DESTINATIONS = {
   website: { label: 'the Athletic EQ website', cardLabel: 'Athletic EQ website', url: AEQ_WEBSITE_URL },
+  // Shown on presentation slides; leads are marked Source "Presentation" in Notion.
+  talk: { label: 'the Athletic EQ website', cardLabel: 'Presentation slide', url: AEQ_WEBSITE_URL },
   william: { label: "William's LinkedIn", cardLabel: "William's LinkedIn", url: 'https://www.linkedin.com/in/william-jackson-psy-d-b6597644/' },
   trevon: { label: "Trevon's LinkedIn", cardLabel: "Trevon's LinkedIn", url: 'https://www.linkedin.com/in/trevon-bryant-2538bb150' },
 };
