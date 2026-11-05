@@ -139,6 +139,14 @@ const GROUPS = [
         href: AEQ_QR_DESTINATIONS.website.url,
         qrKey: 'aeq:website',
       },
+      {
+        name: 'Presentation slide',
+        description: 'For slides. Opens the Athletic EQ landing page. Marked Source "Presentation" in Notion.',
+        icon: Trophy,
+        tint: 'bg-[#264d44]/10 text-[#264d44]',
+        href: AEQ_QR_DESTINATIONS.talk.url,
+        qrKey: 'aeq:talk',
+      },
     ],
   },
   {
