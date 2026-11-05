@@ -13,7 +13,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  */
 const NOTION_DATABASE_ID = '18903d586bc780bd9ff3c48fef4f5107';
 const OWNER_WILLIAM = 'b8b5dc35-3fb5-481d-9646-23156c0f5188';
-const MET_BY: Record<string, string> = { william: 'William', trevon: 'Trevon', website: 'Not specified' };
+const MET_BY: Record<string, string> = { william: 'William', trevon: 'Trevon', website: 'Not specified', talk: 'Not specified' };
 const ROLES = [
   'Athletic Director or Assistant AD',
   'Head of School or Administrator',
@@ -58,7 +58,7 @@ async function sendToNotion(lead: Record<string, string>) {
       Email: { email: lead.email },
       'Follow Up': { select: { name: 'Needs Follow Up' } },
       Status: { status: { name: 'Not started' } },
-      Source: { select: { name: 'QR code' } },
+      Source: { select: { name: lead.source_key === 'talk' ? 'Presentation' : 'QR code' } },
       'Met by': { select: { name: lead.met_by } },
       Owner: { people: [{ object: 'user', id: OWNER_WILLIAM }] },
     };
