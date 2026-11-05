@@ -20,6 +20,7 @@ export const PUBLIC_PATHS = [
   '/MfsJourneySurvey',
   '/Unsubscribe',
   '/Scan',
+  '/AthleticEQ',
 ];
 
 export function isPublicPath(pathname) {
