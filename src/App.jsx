@@ -21,6 +21,7 @@ import Presenters from './pages/Presenters';
 import PresenterPortal from './pages/PresenterPortal';
 import QuickBuilder from './pages/QuickBuilder';
 import Scan from './pages/Scan';
+import AthleticEQScan from './pages/AthleticEQScan';
 import Checkin from './pages/Checkin';
 import MentalFitnessScore from './pages/MentalFitnessScore';
 import MfsSurvey from './pages/MfsSurvey';
@@ -121,6 +122,8 @@ const AuthenticatedApp = () => {
       <Route path="/QuickBuilder" element={<QuickBuilder />} />
       {/* Conference QR landing — logo + tagline, then forwards (src/lib/qrLinks.js) */}
       <Route path="/Scan" element={<Scan />} />
+      {/* Athletic EQ QR landing: details to Notion, then forwards (src/lib/athleticEqQr.js) */}
+      <Route path="/AthleticEQ" element={<AthleticEQScan />} />
       <Route path="/Checkin" element={<Checkin />} />
       {/* The Mental Fitness Score is retired (William, 2026-08-17) — the Mental
           Fitness Journey replaces it. These redirect rather than 404 because the
