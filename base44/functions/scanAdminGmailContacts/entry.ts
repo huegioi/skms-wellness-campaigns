@@ -130,6 +130,12 @@ async function scanViaImap(accountEmail, password, emailMap, updates) {
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Reject if `promise` hasn't settled within `ms` (the work itself is abandoned, not cancelled).
+const withTimeout = (promise, ms, label) => Promise.race([
+  promise,
+  new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)),
+]);
+
 async function fetchWithQuotaRetry(url, headers) {
   const res = await fetch(url, { headers });
   if (res.status === 429) {
@@ -366,6 +372,9 @@ async function scanViaImapAndLog(accountEmail, password, accountLabel, emailMap,
     secure: true,
     auth: { user: accountEmail, pass: password },
     logger: false,
+    connectionTimeout: 15000,
+    greetingTimeout: 10000,
+    socketTimeout: 30000,
   });
 
   await imapClient.connect();
@@ -508,22 +517,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 2. Scan admin@skillfulmeans.life via IMAP
-    const adminEmail = Deno.env.get('GMAIL_ADDRESS') || 'admin@skillfulmeans.life';
-    const adminPassword = Deno.env.get('GMAIL_ADMIN_PASSWORD');
-    if (adminPassword && Date.now() > deadline) {
-      timedOut = true;
-    } else if (adminPassword) {
-      try {
-        const result = await scanViaImapAndLog(adminEmail, adminPassword, 'admin', emailMap, base44, daysBack);
-        mergeUpdates(result?.updates);
-        totalNewLogs += result?.newLogs || 0;
-      } catch (err) {
-        console.error(`IMAP scan error for ${adminEmail}: ${err.message}`);
-      }
-    }
-
-    // 3. Scan Heather's mailbox via OAuth refresh token (read-only Gmail API)
+    // 2. Scan Heather's mailbox via OAuth refresh token (read-only Gmail API)
     const heatherToken = Date.now() > deadline ? null : await getHeatherAccessToken();
     if (Date.now() > deadline) {
       timedOut = true;
@@ -538,6 +532,26 @@ Deno.serve(async (req) => {
       }
     } else {
       console.warn('Heather Gmail not connected — skipping her mailbox');
+    }
+
+    // 3. Scan admin@skillfulmeans.life via IMAP. Last and time-boxed: an IMAP connection
+    // that never answers used to hang the whole run until the 5-minute kill.
+    const adminEmail = Deno.env.get('GMAIL_ADDRESS') || 'admin@skillfulmeans.life';
+    const adminPassword = Deno.env.get('GMAIL_ADMIN_PASSWORD');
+    if (adminPassword && Date.now() > deadline) {
+      timedOut = true;
+    } else if (adminPassword) {
+      try {
+        const imapBudget = Math.max(5_000, Math.min(45_000, deadline - Date.now()));
+        const result = await withTimeout(
+          scanViaImapAndLog(adminEmail, adminPassword, 'admin', emailMap, base44, daysBack),
+          imapBudget, 'admin@ IMAP scan'
+        );
+        mergeUpdates(result?.updates);
+        totalNewLogs += result?.newLogs || 0;
+      } catch (err) {
+        console.error(`IMAP scan error for ${adminEmail}: ${err.message}`);
+      }
     }
 
     // Persist last_contacted_date updates to Client, Lead, and ReferralPartner entities
