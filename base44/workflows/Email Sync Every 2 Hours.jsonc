@@ -26,8 +26,7 @@
           "then": "end",
           "with": {
             "args": {
-              "days_back": 60,
-              "skip_lead_stages": true
+              "days_back": 3
             },
             "function_name": "scanAdminGmailContacts"
           }
