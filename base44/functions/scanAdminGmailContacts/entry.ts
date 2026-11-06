@@ -6,6 +6,11 @@ const SKMS_ACCOUNTS = ['william@skillfulmeans.life', 'heather@skillfulmeans.life
 
 const TEAM_EMAILS = (Deno.env.get('TEAM_EMAILS') || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
 const isTeamMember = (user) => user && (user.role === 'admin' || TEAM_EMAILS.includes((user.email || '').toLowerCase()));
+// Our own addresses: any @skillfulmeans.life mailbox, plus TEAM_EMAILS.
+const isTeamAddress = (addr) => {
+  const a = (addr || '').trim().toLowerCase();
+  return a.endsWith('@skillfulmeans.life') || TEAM_EMAILS.includes(a);
+};
 
 // Scheduled runs scan a short window; the windowed dedupe below makes overlapping
 // windows safe. The old 90-day default hit the 5-minute function limit on every run
@@ -64,8 +69,7 @@ async function getHeatherAccessToken() {
 }
 
 function isOutbound(fromEmail, toEmail) {
-  const fromLower = (fromEmail || '').toLowerCase();
-  return SKMS_ACCOUNTS.some(a => fromLower.includes(a.split('@')[0]));
+  return isTeamAddress(parseEmail(fromEmail));
 }
 
 // Parse email address from header string like "Name <email@example.com>" or "email@example.com"
@@ -307,7 +311,7 @@ async function scanMailboxViaImap(imapClient, mailboxPath, since, existingIds, e
       const subject = message.envelope.subject || '';
 
       const allAddresses = [fromAddr, ...toAddrs, ...ccAddrs];
-      const direction = SKMS_ACCOUNTS.some(a => fromAddr.includes(a.split('@')[0])) ? 'outbound' : 'inbound';
+      const direction = isTeamAddress(fromAddr) ? 'outbound' : 'inbound';
 
       let matchedClientId = null;
       let matchedLeadId = null;
@@ -438,17 +442,20 @@ Deno.serve(async (req) => {
 
     // Build unified email -> { entityType, record } map
     const emailMap = {};
+    // Our own mailboxes are never a contact. A test Lead or the internal Client carrying
+    // william@ / heather@ / admin@ would otherwise match every message in the mailbox
+    // (seen 2026-11-06: one test Lead matched 445 of William's messages in 3 days).
+    const addContact = (addr, entityType, record, overwrite = false) => {
+      const key = (addr || '').trim().toLowerCase();
+      if (!key || !key.includes('@') || isTeamAddress(key)) return;
+      if (overwrite || !emailMap[key]) emailMap[key] = { entityType, record };
+    };
 
     for (const c of clients) {
-      if (c.email) emailMap[c.email.toLowerCase()] = { entityType: 'Client', record: c };
-      if (c.email2 && !emailMap[c.email2.toLowerCase()]) {
-        emailMap[c.email2.toLowerCase()] = { entityType: 'Client', record: c };
-      }
-      for (const contact of c.related_contacts || []) {
-        if (contact.email && !emailMap[contact.email.toLowerCase()]) {
-          emailMap[contact.email.toLowerCase()] = { entityType: 'Client', record: c };
-        }
-      }
+      if (c.is_internal) continue;
+      addContact(c.email, 'Client', c, true);
+      addContact(c.email2, 'Client', c);
+      for (const contact of c.related_contacts || []) addContact(contact.email, 'Client', c);
     }
 
     // Order matters: ReferralPartner is inserted BEFORE Lead so that a broker
@@ -456,21 +463,13 @@ Deno.serve(async (req) => {
     // the partner relationship (the canonical record). Otherwise the Lead
     // shadows the partner and partner last_contacted_date never updates.
     for (const p of referralPartners) {
-      if (p.email && !emailMap[p.email.toLowerCase()]) {
-        emailMap[p.email.toLowerCase()] = { entityType: 'ReferralPartner', record: p };
-      }
-      if (p.email2 && !emailMap[p.email2.toLowerCase()]) {
-        emailMap[p.email2.toLowerCase()] = { entityType: 'ReferralPartner', record: p };
-      }
+      addContact(p.email, 'ReferralPartner', p);
+      addContact(p.email2, 'ReferralPartner', p);
     }
 
     for (const lead of leads) {
-      if (lead.email && !emailMap[lead.email.toLowerCase()]) {
-        emailMap[lead.email.toLowerCase()] = { entityType: 'Lead', record: lead };
-      }
-      if (lead.email2 && !emailMap[lead.email2.toLowerCase()]) {
-        emailMap[lead.email2.toLowerCase()] = { entityType: 'Lead', record: lead };
-      }
+      addContact(lead.email, 'Lead', lead);
+      addContact(lead.email2, 'Lead', lead);
     }
 
     const allUpdates = {};
