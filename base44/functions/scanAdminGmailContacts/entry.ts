@@ -164,7 +164,9 @@ async function scanViaGmailApi(accessToken, emailMap, base44, accountLabel, days
     // --- List phase: collect message IDs for this batch ---
     try {
       const orQuery = batch.map(e => `{from:${e} to:${e}}`).join(' OR ');
-      const query = encodeURIComponent(`(${orQuery}) after:${afterStr}`);
+      // -in:draft: unsent drafts (Maya/campaign drafts, follow-ups waiting for review) are not
+      // contact history; logging them as outbound mail would fake last_contacted_date.
+      const query = encodeURIComponent(`(${orQuery}) after:${afterStr} -in:draft`);
 
       let pageToken = null;
       do {
