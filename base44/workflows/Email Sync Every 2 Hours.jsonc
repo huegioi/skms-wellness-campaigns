@@ -1,6 +1,6 @@
 {
   "name": "Email Sync Every 2 Hours",
-  "description": "Syncs Gmail emails from all accounts into the EmailLog entity every 2 hours.",
+  "description": "Syncs Gmail emails (William, Heather, admin@) into the EmailLog entity every 2 hours. Scans the last 3 days each run (overlap is deduped) and stops at a time budget so it never hits the 5-minute limit.",
   "trigger": {
     "condition": null,
     "config": {
@@ -19,24 +19,26 @@
     }
   },
   "definition": {
-    "document": {
-      "dsl": "1.0.0",
-      "name": "email_sync_every_2_hours",
-      "version": "1.0",
-      "namespace": "base44"
-    },
     "do": [
       {
         "run_function": {
           "call": "invoke_backend_function",
+          "then": "end",
           "with": {
-            "function_name": "scanAdminGmailContacts",
-            "args": {}
-          },
-          "then": "end"
+            "args": {
+              "days_back": 3
+            },
+            "function_name": "scanAdminGmailContacts"
+          }
         }
       }
-    ]
+    ],
+    "document": {
+      "dsl": "1.0.0",
+      "name": "email_sync_every_2_hours",
+      "namespace": "base44",
+      "version": "1.0"
+    }
   },
   "x-base44-migrated-from-automation": {
     "legacy_payload_function": "scanAdminGmailContacts"
