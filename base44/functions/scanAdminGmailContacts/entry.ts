@@ -4,6 +4,39 @@ import { ImapFlow } from 'npm:imapflow@1.0.169';
 
 const SKMS_ACCOUNTS = ['william@skillfulmeans.life', 'heather@skillfulmeans.life', 'admin@skillfulmeans.life'];
 
+const TEAM_EMAILS = (Deno.env.get('TEAM_EMAILS') || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+const isTeamMember = (user) => user && (user.role === 'admin' || TEAM_EMAILS.includes((user.email || '').toLowerCase()));
+
+// Scheduled runs scan a short window; the windowed dedupe below makes overlapping
+// windows safe. The old 90-day default hit the 5-minute function limit on every run
+// (Jul 2026), which got the automation auto-disabled and starved EmailLog.
+const DEFAULT_DAYS_BACK = 3;
+const MAX_DAYS_BACK = 120;
+// Stop starting new mailbox work after this long so a run always finishes inside the
+// platform's 5-minute limit. Whatever is left is picked up by the next run.
+const TIME_BUDGET_MS = 200_000;
+
+// Message IDs already logged for this account inside the scan window (plus a margin).
+// Paged and windowed: the old unbounded filter() loaded every row ever logged.
+async function loadExistingIds(base44, accountLabel, since) {
+  const from = new Date(since);
+  from.setDate(from.getDate() - 2); // margin for timezone / Date-header skew
+  const ids = new Set();
+  const PAGE = 1000;
+  let prevFirst = null;
+  for (let skip = 0; skip < 50000; skip += PAGE) {
+    const page = await base44.asServiceRole.entities.EmailLog.filter(
+      { gmail_account: accountLabel, date: { $gte: from.toISOString() } }, '-date', PAGE, skip
+    );
+    const first = page?.[0]?.id || null;
+    if (first && first === prevFirst) break; // paging not honored; stop rather than loop
+    prevFirst = first;
+    for (const l of page || []) if (l.gmail_message_id) ids.add(l.gmail_message_id);
+    if (!page || page.length < PAGE) break;
+  }
+  return ids;
+}
+
 // Exchange Heather's stored refresh token for a Gmail access token (read-only).
 // Returns null on any failure — never blocks the William scan.
 async function getHeatherAccessToken() {
@@ -102,24 +135,25 @@ async function fetchWithQuotaRetry(url, headers) {
   return res;
 }
 
-async function scanViaGmailApi(accessToken, emailMap, base44, accountLabel, daysBack = 90) {
+async function scanViaGmailApi(accessToken, emailMap, base44, accountLabel, daysBack = DEFAULT_DAYS_BACK, deadline = Infinity) {
   const since = new Date();
   since.setDate(since.getDate() - daysBack);
   const afterStr = `${since.getFullYear()}/${since.getMonth() + 1}/${since.getDate()}`;
 
   const authHeaders = { Authorization: `Bearer ${accessToken}` };
 
-  // Get existing IDs to avoid duplicate fetches
-  const existingLogs = await base44.asServiceRole.entities.EmailLog.filter({ gmail_account: accountLabel });
-  const existingIds = new Set(existingLogs.map(l => l.gmail_message_id));
+  // Get existing IDs (inside the scan window) to avoid duplicate fetches
+  const existingIds = await loadExistingIds(base44, accountLabel, since);
 
   const updatesFromApi = {};
   let totalNewLogs = 0;
+  let timedOut = false;
 
   const contactEmails = Object.keys(emailMap);
   const BATCH_SIZE = 10;
 
   for (let i = 0; i < contactEmails.length; i += BATCH_SIZE) {
+    if (Date.now() > deadline) { timedOut = true; break; }
     const batch = contactEmails.slice(i, i + BATCH_SIZE);
     let batchMessageIds = [];
 
@@ -157,9 +191,10 @@ async function scanViaGmailApi(accessToken, emailMap, base44, accountLabel, days
     const batchLogs = [];
     for (const id of batchMessageIds) {
       if (existingIds.has(id)) continue;
+      if (Date.now() > deadline) { timedOut = true; break; }
 
       try {
-        await sleep(250); // small delay between individual message fetches
+        await sleep(60); // small delay between individual message fetches
         const msgUrl = `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=metadata&metadataHeaders=From&metadataHeaders=To&metadataHeaders=Cc&metadataHeaders=Date&metadataHeaders=Subject`;
         const msgRes = await fetchWithQuotaRetry(msgUrl, authHeaders);
         const msg = await msgRes.json();
@@ -235,10 +270,10 @@ async function scanViaGmailApi(accessToken, emailMap, base44, accountLabel, days
       console.log(`[scanAdminGmailContacts] Batch ${i}-${i + batch.length}: saved ${batchLogs.length} new EmailLog records (${accountLabel})`);
     }
 
-    await sleep(250); // small pause between batches
+    await sleep(100); // small pause between batches
   }
 
-  return { newLogs: totalNewLogs, updates: updatesFromApi };
+  return { newLogs: totalNewLogs, updates: updatesFromApi, timedOut };
 }
 
 async function scanMailboxViaImap(imapClient, mailboxPath, since, existingIds, emailMap, accountLabel) {
@@ -318,7 +353,7 @@ async function scanMailboxViaImap(imapClient, mailboxPath, since, existingIds, e
   return { newLogs, updates: updatesFromImap };
 }
 
-async function scanViaImapAndLog(accountEmail, password, accountLabel, emailMap, base44, daysBack = 90) {
+async function scanViaImapAndLog(accountEmail, password, accountLabel, emailMap, base44, daysBack = DEFAULT_DAYS_BACK) {
   const imapClient = new ImapFlow({
     host: 'imap.gmail.com',
     port: 993,
@@ -332,9 +367,8 @@ async function scanViaImapAndLog(accountEmail, password, accountLabel, emailMap,
   const since = new Date();
   since.setDate(since.getDate() - daysBack);
 
-  // Get existing IDs for this account once, reuse across mailboxes
-  const existingLogs = await base44.asServiceRole.entities.EmailLog.filter({ gmail_account: accountLabel });
-  const existingIds = new Set(existingLogs.map(l => l.gmail_message_id));
+  // Existing IDs for this account inside the window, reused across mailboxes
+  const existingIds = await loadExistingIds(base44, accountLabel, since);
 
   const allNewLogs = [];
   const allUpdates = {};
@@ -387,12 +421,19 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const daysBack = body.days_back || 90;
+    const requestedDays = Number(body.days_back);
+    const daysBack = Number.isFinite(requestedDays) && requestedDays > 0
+      ? Math.min(Math.ceil(requestedDays), MAX_DAYS_BACK)
+      : DEFAULT_DAYS_BACK;
+    // Backfills pass skip_lead_stages so old mail doesn't trigger a wave of stage moves
+    const skipLeadStages = body.skip_lead_stages === true;
+    const deadline = Date.now() + TIME_BUDGET_MS;
+    let timedOut = false;
 
     const [clients, leads, referralPartners] = await Promise.all([
-      base44.asServiceRole.entities.Client.list(),
-      base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead', is_archived: { $ne: true } }),
-      base44.asServiceRole.entities.ReferralPartner.list(),
+      base44.asServiceRole.entities.Client.list('-created_date', 5000),
+      base44.asServiceRole.entities.Lead.filter({ lead_type: 'broker_lead', is_archived: { $ne: true } }, '-created_date', 5000),
+      base44.asServiceRole.entities.ReferralPartner.list('-created_date', 5000),
     ]);
 
     // Build unified email -> { entityType, record } map
@@ -447,9 +488,10 @@ Deno.serve(async (req) => {
     // 1. Scan william@skillfulmeans.life via Gmail OAuth connector
     try {
       const { accessToken } = await base44.asServiceRole.connectors.getConnection('gmail');
-      const result = await scanViaGmailApi(accessToken, emailMap, base44, 'william', daysBack);
+      const result = await scanViaGmailApi(accessToken, emailMap, base44, 'william', daysBack, deadline);
       mergeUpdates(result?.updates);
       totalNewLogs += result?.newLogs || 0;
+      if (result?.timedOut) timedOut = true;
     } catch (err) {
       console.error(`Gmail connector scan error: ${err.message}`);
       // Send quota alert without stopping the run
@@ -468,7 +510,9 @@ Deno.serve(async (req) => {
     // 2. Scan admin@skillfulmeans.life via IMAP
     const adminEmail = Deno.env.get('GMAIL_ADDRESS') || 'admin@skillfulmeans.life';
     const adminPassword = Deno.env.get('GMAIL_ADMIN_PASSWORD');
-    if (adminPassword) {
+    if (adminPassword && Date.now() > deadline) {
+      timedOut = true;
+    } else if (adminPassword) {
       try {
         const result = await scanViaImapAndLog(adminEmail, adminPassword, 'admin', emailMap, base44, daysBack);
         mergeUpdates(result?.updates);
@@ -479,12 +523,15 @@ Deno.serve(async (req) => {
     }
 
     // 3. Scan Heather's mailbox via OAuth refresh token (read-only Gmail API)
-    const heatherToken = await getHeatherAccessToken();
-    if (heatherToken) {
+    const heatherToken = Date.now() > deadline ? null : await getHeatherAccessToken();
+    if (Date.now() > deadline) {
+      timedOut = true;
+    } else if (heatherToken) {
       try {
-        const result = await scanViaGmailApi(heatherToken, emailMap, base44, 'heather', daysBack);
+        const result = await scanViaGmailApi(heatherToken, emailMap, base44, 'heather', daysBack, deadline);
         mergeUpdates(result?.updates);
         totalNewLogs += result?.newLogs || 0;
+        if (result?.timedOut) timedOut = true;
       } catch (err) {
         console.error(`Gmail API scan error for heather: ${err.message}`);
       }
@@ -522,7 +569,7 @@ Deno.serve(async (req) => {
 
     // Move partner leads on the emails this run just logged (backup to the live Gmail trigger)
     let leadStageMoves = 0;
-    if (totalNewLogs > 0) {
+    if (totalNewLogs > 0 && !skipLeadStages) {
       try {
         const fresh = await base44.asServiceRole.entities.EmailLog.filter(
           { created_date: { $gte: runStartedAt }, matched_lead_id: { $nin: ['', null] } }, '-date', 5000
@@ -535,8 +582,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[scanAdminGmailContacts] Complete — ${totalNewLogs} new emails logged, ${updatedCount} last_contacted_date updated, ${leadStageMoves} lead stage moves`);
-    return Response.json({ success: true, new_emails_logged: totalNewLogs, contacts_updated: updatedCount, lead_stage_moves: leadStageMoves });
+    console.log(`[scanAdminGmailContacts] Complete — ${daysBack}d window, ${totalNewLogs} new emails logged, ${updatedCount} last_contacted_date updated, ${leadStageMoves} lead stage moves${timedOut ? ' (stopped at time budget; next run continues)' : ''}`);
+    return Response.json({ success: true, days_back: daysBack, new_emails_logged: totalNewLogs, contacts_updated: updatedCount, lead_stage_moves: leadStageMoves, partial: timedOut });
   } catch (error) {
     console.error('scanAdminGmailContacts error:', error.message);
     return Response.json({ error: error.message }, { status: 500 });
